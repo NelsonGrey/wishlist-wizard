@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { PriceTrackingHelp } from '@/components/help/PriceTrackingHelp';
 import { 
   Card, 
   CardContent, 
@@ -309,7 +310,10 @@ const PriceTrackingDemo = () => {
 
   return (
     <div className="container mx-auto py-8">
-      <h1 className="text-3xl font-bold mb-8 text-center">Price Tracking & Alerts</h1>
+      <div className="flex items-center justify-center gap-3 mb-8">
+        <h1 className="text-3xl font-bold text-center">Price Tracking & Alerts</h1>
+        <PriceTrackingHelp />
+      </div>
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Item Selection */}
