@@ -1,21 +1,66 @@
 /**
  * WishKeeper Extension Packaging Script
  * 
- * This script creates a ZIP file of the extension for distribution.
+ * This script creates browser-specific ZIP files of the extension for distribution.
  * 
  * Usage: 
- * 1. Install dependencies: npm install archiver
- * 2. Run: node package-extension.js
+ * 1. Install dependencies: npm install archiver minimist
+ * 2. Run: node package-extension.js --browser=chrome|firefox
  */
 
 const fs = require('fs');
 const path = require('path');
 const archiver = require('archiver');
+const minimist = require('minimist');
+
+// Parse command line arguments
+const argv = minimist(process.argv.slice(2));
+const browser = argv.browser || 'chrome'; // Default to Chrome if not specified
 
 // Configuration
 const OUTPUT_DIR = path.join(__dirname, 'dist');
-const OUTPUT_FILE = path.join(OUTPUT_DIR, 'wishkeeper-extension.zip');
 const VERSION = require('./manifest.json').version;
+const OUTPUT_FILE = path.join(OUTPUT_DIR, `wishkeeper-extension-${browser}-v${VERSION}.zip`);
+
+console.log(`🔧 Packaging WishKeeper extension for ${browser.toUpperCase()} v${VERSION}`);
+
+// Browser-specific manifest adjustments
+const manifestAdjustments = {
+  chrome: (manifest) => {
+    // Chrome uses Manifest V3
+    manifest.manifest_version = 3;
+    
+    // Ensure service worker is used instead of background page
+    if (manifest.background && !manifest.background.service_worker) {
+      manifest.background = {
+        service_worker: 'background.js'
+      };
+    }
+    
+    return manifest;
+  },
+  firefox: (manifest) => {
+    // Firefox requires different format for manifest
+    manifest.manifest_version = 2;
+    
+    // Firefox uses background page instead of service worker
+    if (manifest.background && manifest.background.service_worker) {
+      manifest.background = {
+        scripts: [manifest.background.service_worker]
+      };
+    }
+    
+    // Add Firefox-specific keys
+    manifest.browser_specific_settings = {
+      gecko: {
+        id: "wishkeeper@replit.app",
+        strict_min_version: "57.0"
+      }
+    };
+    
+    return manifest;
+  }
+};
 
 // Create output directory if it doesn't exist
 if (!fs.existsSync(OUTPUT_DIR)) {
@@ -107,6 +152,44 @@ archive.glob('**/*', {
   ignore: excludePatterns
 });
 
+// Create browser-specific manifest
+console.log('📝 Creating browser-specific manifest...');
+const manifestPath = path.join(__dirname, 'manifest.json');
+const manifest = require(manifestPath);
+
+// Apply browser-specific adjustments
+const adjustedManifest = manifestAdjustments[browser](manifest);
+
+// Create a temporary manifest file for packaging
+const tempManifestPath = path.join(__dirname, 'temp_manifest.json');
+fs.writeFileSync(tempManifestPath, JSON.stringify(adjustedManifest, null, 2));
+
+// Add the adjusted manifest to the archive
+archive.file(tempManifestPath, { name: 'manifest.json' });
+console.log('✅ Added browser-specific manifest.json');
+
 // Finalize the archive
 console.log('🔧 Finalizing package...');
-archive.finalize();
+archive.finalize().then(() => {
+  // Clean up temporary files
+  if (fs.existsSync(tempManifestPath)) {
+    fs.unlinkSync(tempManifestPath);
+    console.log('🧹 Cleaned up temporary files');
+  }
+  
+  console.log(`\n🚀 ${browser.toUpperCase()} Extension package is ready!`);
+  console.log(`📦 ${OUTPUT_FILE}`);
+  
+  // Print next steps based on browser
+  if (browser === 'chrome') {
+    console.log(`\n📋 Next steps for Chrome deployment:`);
+    console.log(`1. Visit chrome://extensions/ and enable Developer mode`);
+    console.log(`2. Test locally with "Load unpacked" or by dragging the ZIP file`);
+    console.log(`3. For distribution, visit https://chrome.google.com/webstore/devconsole`);
+  } else if (browser === 'firefox') {
+    console.log(`\n📋 Next steps for Firefox deployment:`);
+    console.log(`1. Visit about:debugging#/runtime/this-firefox`);
+    console.log(`2. Test locally with "Load Temporary Add-on"`);
+    console.log(`3. For distribution, visit https://addons.mozilla.org/developers/`);
+  }
+});
