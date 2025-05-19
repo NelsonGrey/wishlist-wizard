@@ -3,15 +3,25 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertUserSchema, insertWishlistSchema, insertWishlistItemSchema } from "@shared/schema";
 import { z } from "zod";
+import { register, login, logout, getCurrentUser, isAuthenticated } from "./auth";
+import { initializeSessionTable } from "./session";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
+  
+  // Initialize session table if using database storage
+  await initializeSessionTable();
+  
+  // Authentication routes
+  app.post("/api/auth/register", register);
+  app.post("/api/auth/login", login);
+  app.post("/api/auth/logout", logout);
+  app.get("/api/auth/me", getCurrentUser);
 
   // Get all wishlists for a user
-  app.get("/api/wishlists", async (req: Request, res: Response) => {
+  app.get("/api/wishlists", isAuthenticated, async (req: Request, res: Response) => {
     try {
-      // For demo purposes, use user ID 1
-      const userId = 1;
+      const userId = req.session.userId!;
       const wishlists = await storage.getWishlists(userId);
       
       // Get item counts for each wishlist
@@ -75,7 +85,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Create a new wishlist
-  app.post("/api/wishlists", async (req: Request, res: Response) => {
+  app.post("/api/wishlists", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const schema = insertWishlistSchema.omit({ shareId: true });
       const result = schema.safeParse(req.body);
@@ -96,7 +106,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Update a wishlist
-  app.patch("/api/wishlists/:id", async (req: Request, res: Response) => {
+  app.patch("/api/wishlists/:id", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
@@ -126,7 +136,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Delete a wishlist
-  app.delete("/api/wishlists/:id", async (req: Request, res: Response) => {
+  app.delete("/api/wishlists/:id", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
@@ -146,7 +156,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get items in a wishlist
-  app.get("/api/wishlists/:id/items", async (req: Request, res: Response) => {
+  app.get("/api/wishlists/:id/items", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const wishlistId = parseInt(req.params.id);
       if (isNaN(wishlistId)) {
@@ -167,7 +177,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Add an item to a wishlist
-  app.post("/api/items", async (req: Request, res: Response) => {
+  app.post("/api/items", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const result = insertWishlistItemSchema.safeParse(req.body);
       
@@ -192,7 +202,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Delete an item from a wishlist
-  app.delete("/api/items/:id", async (req: Request, res: Response) => {
+  app.delete("/api/items/:id", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
