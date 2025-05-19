@@ -10,7 +10,8 @@ import {
   insertNotificationSchema
 } from "@shared/schema";
 import { z } from "zod";
-import { register, login, logout, getCurrentUser, isAuthenticated } from "./auth";
+import { register, login, logout, getCurrentUser, isAuthenticated, verifyEmail, requestPasswordReset, resetPassword } from "./auth";
+import { issueToken } from "./jwt-auth";
 import { initializeSessionTable } from "./session";
 import { verifyExtensionAuth, getExtensionWishlists, addItemFromExtension } from "./extension";
 
@@ -25,6 +26,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/auth/login", login);
   app.post("/api/auth/logout", logout);
   app.get("/api/auth/me", getCurrentUser);
+  
+  // Enhanced authentication features
+  app.get("/api/auth/verify-email/:token", verifyEmail);
+  app.post("/api/auth/forgot-password", requestPasswordReset);
+  app.post("/api/auth/reset-password", resetPassword);
+  app.post("/api/auth/token", issueToken);
 
   // Get all wishlists for a user
   app.get("/api/wishlists", isAuthenticated, async (req: Request, res: Response) => {

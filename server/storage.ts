@@ -1,6 +1,6 @@
 import { v4 as uuidv4 } from "uuid";
 import { 
-  users, User, InsertUser,
+  users, User, InsertUser, UpdateUser,
   beneficiaries, Beneficiary, InsertBeneficiary,
   wishlists, Wishlist, InsertWishlist,
   wishlistItems, WishlistItem, InsertWishlistItem,
@@ -14,8 +14,10 @@ export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
+  getUserByVerificationToken(token: string): Promise<User[]>;
+  getUserByResetToken(token: string): Promise<User[]>;
   createUser(user: InsertUser): Promise<User>;
-  updateUser(id: number, userData: Partial<InsertUser>): Promise<User | undefined>;
+  updateUser(id: number, userData: Partial<UpdateUser>): Promise<User | undefined>;
 
   // Beneficiary methods
   getBeneficiaries(ownerId: number): Promise<Beneficiary[]>;
@@ -154,6 +156,18 @@ export class MemStorage implements IStorage {
   async getUserByEmail(email: string): Promise<User | undefined> {
     return Array.from(this.users.values()).find(
       (user) => user.email === email,
+    );
+  }
+  
+  async getUserByVerificationToken(token: string): Promise<User[]> {
+    return Array.from(this.users.values()).filter(
+      (user) => user.verificationToken === token,
+    );
+  }
+  
+  async getUserByResetToken(token: string): Promise<User[]> {
+    return Array.from(this.users.values()).filter(
+      (user) => user.passwordResetToken === token,
     );
   }
 

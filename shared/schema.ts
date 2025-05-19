@@ -137,22 +137,13 @@ export const wishlistItemsRelations = relations(wishlistItems, ({ one }) => ({
 }));
 
 // Insert Schemas
-export const insertUserSchema = createInsertSchema(users).pick({
-  username: true,
-  email: true,
-  password: true,
-  displayName: true,
-  avatarUrl: true,
-  role: true,
-  emailVerified: true,
-  verificationToken: true,
-  verificationExpires: true,
-  passwordResetToken: true,
-  passwordResetExpires: true,
-  active: true,
-  twoFactorEnabled: true,
-  twoFactorSecret: true,
+export const insertUserSchema = createInsertSchema(users).omit({
+  id: true, 
+  createdAt: true 
 });
+
+// Partial schema for fields that can be updated
+export const updateUserSchema = insertUserSchema.partial();
 
 export const insertBeneficiarySchema = createInsertSchema(beneficiaries).pick({
   name: true,
@@ -197,6 +188,7 @@ export const insertWishlistItemSchema = createInsertSchema(wishlistItems).pick({
 
 // Types
 export type InsertUser = z.infer<typeof insertUserSchema>;
+export type UpdateUser = z.infer<typeof updateUserSchema>;
 export type User = typeof users.$inferSelect;
 
 export type InsertBeneficiary = z.infer<typeof insertBeneficiarySchema>;
