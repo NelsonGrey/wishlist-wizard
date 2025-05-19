@@ -371,21 +371,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Create a notification for the wishlist owner if the reserver isn't the owner
       const wishlist = await storage.getWishlistById(updatedItem.wishlistId);
-      if (wishlist && wishlist.userId !== userId) {
-        // The current user is reserving someone else's item
-        const reserver = await storage.getUser(userId);
-        
-        // Create notification for the wishlist owner
-        await storage.createNotification({
-          userId: wishlist.userId,
-          type: "item_reserved",
-          title: "Item Reserved",
-          message: `${reserver?.displayName || reserver?.username || "Someone"} reserved "${updatedItem.title}" from your wishlist`,
-          relatedEntityId: updatedItem.id,
-          relatedEntityType: "wishlist_item",
-          isRead: false,
-          actionUrl: `/wishlist/${wishlist.id}`
-        });
+      if (!wishlist) {
+        return res.status(500).json({ message: "Failed to retrieve wishlist information" });
+      }
+      
+      // Get reserver info for notification
+      const reserver = await storage.getUser(userId);
+      const reserverName = reserver?.displayName || reserver?.username || "Someone";
+      
+      // If this is a collaborative wishlist, notify all collaborators
+      if (wishlist.isCollaborative) {
+        await notifyWishlistCollaborators(
+          wishlist.id,
+          `${reserverName} reserved "${updatedItem.title}" from the wishlist "${wishlist.name}"`,
+          "Item Reserved",
+          "item_reserved",
+          userId // Exclude the reserver from notifications
+        );
+      } 
+      // If this is a regular wishlist and reserver isn't the owner, notify the owner
+      else if (wishlist.userId !== userId) {
+        await notifyItemReserved(
+          wishlist.userId,
+          updatedItem,
+          wishlist.name,
+          reserverName
+        );
       }
       
       res.json(updatedItem);
@@ -420,23 +431,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(500).json({ message: "Failed to mark item as purchased" });
       }
       
-      // Create a notification for the wishlist owner if the purchaser isn't the owner
+      // Get wishlist information for notification
       const wishlist = await storage.getWishlistById(updatedItem.wishlistId);
-      if (wishlist && wishlist.userId !== userId) {
-        // The current user is purchasing someone else's item
-        const purchaser = await storage.getUser(userId);
-        
-        // Create notification for the wishlist owner
-        await storage.createNotification({
-          userId: wishlist.userId,
-          type: "item_purchased",
-          title: "Item Purchased",
-          message: `${purchaser?.displayName || purchaser?.username || "Someone"} marked "${updatedItem.title}" as purchased on your wishlist`,
-          relatedEntityId: updatedItem.id,
-          relatedEntityType: "wishlist_item",
-          isRead: false,
-          actionUrl: `/wishlist/${wishlist.id}`
-        });
+      if (!wishlist) {
+        return res.status(500).json({ message: "Failed to retrieve wishlist information" });
+      }
+      
+      // Get purchaser info for notification
+      const purchaser = await storage.getUser(userId);
+      const purchaserName = purchaser?.displayName || purchaser?.username || "Someone";
+      
+      // If this is a collaborative wishlist, notify all collaborators
+      if (wishlist.isCollaborative) {
+        await notifyWishlistCollaborators(
+          wishlist.id,
+          `${purchaserName} purchased "${updatedItem.title}" from the wishlist "${wishlist.name}"`,
+          "Item Purchased",
+          "item_purchased",
+          userId // Exclude the purchaser from notifications
+        );
+      } 
+      // If this is a regular wishlist and purchaser isn't the owner, notify the owner
+      else if (wishlist.userId !== userId) {
+        await notifyItemPurchased(
+          wishlist.userId,
+          updatedItem,
+          wishlist.name,
+          purchaserName
+        );
       }
       
       res.json(updatedItem);
