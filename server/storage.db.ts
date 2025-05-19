@@ -2,6 +2,7 @@ import { v4 as uuidv4 } from "uuid";
 import { db } from "./db";
 import { 
   users, User, InsertUser,
+  beneficiaries, Beneficiary, InsertBeneficiary,
   wishlists, Wishlist, InsertWishlist,
   wishlistItems, WishlistItem, InsertWishlistItem
 } from "@shared/schema";
@@ -43,9 +44,70 @@ export class DatabaseStorage implements IStorage {
     return updatedUser || undefined;
   }
 
+  // Beneficiary methods
+  async getBeneficiaries(ownerId: number): Promise<Beneficiary[]> {
+    return await db
+      .select()
+      .from(beneficiaries)
+      .where(eq(beneficiaries.ownerId, ownerId));
+  }
+
+  async getBeneficiary(id: number): Promise<Beneficiary | undefined> {
+    const [beneficiary] = await db
+      .select()
+      .from(beneficiaries)
+      .where(eq(beneficiaries.id, id));
+    return beneficiary || undefined;
+  }
+
+  async createBeneficiary(beneficiaryData: InsertBeneficiary): Promise<Beneficiary> {
+    const [beneficiary] = await db
+      .insert(beneficiaries)
+      .values(beneficiaryData)
+      .returning();
+    return beneficiary;
+  }
+
+  async updateBeneficiary(id: number, data: Partial<InsertBeneficiary>): Promise<Beneficiary | undefined> {
+    const [updatedBeneficiary] = await db
+      .update(beneficiaries)
+      .set(data)
+      .where(eq(beneficiaries.id, id))
+      .returning();
+    
+    return updatedBeneficiary || undefined;
+  }
+
+  async deleteBeneficiary(id: number): Promise<boolean> {
+    // First check if there are any wishlists for this beneficiary
+    const beneficiaryWishlists = await db
+      .select()
+      .from(wishlists)
+      .where(eq(wishlists.beneficiaryId, id));
+    
+    // If there are wishlists, don't delete the beneficiary
+    if (beneficiaryWishlists.length > 0) {
+      return false;
+    }
+    
+    const [deleted] = await db
+      .delete(beneficiaries)
+      .where(eq(beneficiaries.id, id))
+      .returning();
+    
+    return !!deleted;
+  }
+
   // Wishlist methods
   async getWishlists(userId: number): Promise<Wishlist[]> {
     return await db.select().from(wishlists).where(eq(wishlists.userId, userId));
+  }
+
+  async getWishlistsByBeneficiary(beneficiaryId: number): Promise<Wishlist[]> {
+    return await db
+      .select()
+      .from(wishlists)
+      .where(eq(wishlists.beneficiaryId, beneficiaryId));
   }
 
   async getWishlistById(id: number): Promise<Wishlist | undefined> {
@@ -72,10 +134,10 @@ export class DatabaseStorage implements IStorage {
     return wishlist;
   }
 
-  async updateWishlist(id: number, name: string): Promise<Wishlist | undefined> {
+  async updateWishlist(id: number, data: Partial<Omit<InsertWishlist, "userId">>): Promise<Wishlist | undefined> {
     const [updatedWishlist] = await db
       .update(wishlists)
-      .set({ name })
+      .set(data)
       .where(eq(wishlists.id, id))
       .returning();
     
@@ -127,5 +189,63 @@ export class DatabaseStorage implements IStorage {
       .returning();
     
     return !!deleted;
+  }
+
+  async updateWishlistItem(id: number, data: Partial<InsertWishlistItem>): Promise<WishlistItem | undefined> {
+    const [updatedItem] = await db
+      .update(wishlistItems)
+      .set(data)
+      .where(eq(wishlistItems.id, id))
+      .returning();
+    
+    return updatedItem || undefined;
+  }
+
+  async reserveWishlistItem(itemId: number, userId: number): Promise<WishlistItem | undefined> {
+    // First check if the item is already reserved or purchased
+    const [item] = await db
+      .select()
+      .from(wishlistItems)
+      .where(eq(wishlistItems.id, itemId));
+    
+    if (!item || item.reservedByUserId || item.purchasedByUserId) {
+      return undefined;
+    }
+    
+    // Update the item with the reservation
+    const [updatedItem] = await db
+      .update(wishlistItems)
+      .set({ reservedByUserId: userId })
+      .where(eq(wishlistItems.id, itemId))
+      .returning();
+    
+    return updatedItem || undefined;
+  }
+
+  async markItemPurchased(itemId: number, userId: number): Promise<WishlistItem | undefined> {
+    // First check if the item is already purchased
+    const [item] = await db
+      .select()
+      .from(wishlistItems)
+      .where(eq(wishlistItems.id, itemId));
+    
+    if (!item || item.purchasedByUserId) {
+      return undefined;
+    }
+    
+    const now = new Date();
+    
+    // Update the item as purchased and clear any reservation
+    const [updatedItem] = await db
+      .update(wishlistItems)
+      .set({ 
+        purchasedByUserId: userId,
+        purchasedAt: now,
+        reservedByUserId: null 
+      })
+      .where(eq(wishlistItems.id, itemId))
+      .returning();
+    
+    return updatedItem || undefined;
   }
 }

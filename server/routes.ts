@@ -1,7 +1,12 @@
 import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertUserSchema, insertWishlistSchema, insertWishlistItemSchema } from "@shared/schema";
+import { 
+  insertUserSchema, 
+  insertWishlistSchema, 
+  insertWishlistItemSchema,
+  insertBeneficiarySchema 
+} from "@shared/schema";
 import { z } from "zod";
 import { register, login, logout, getCurrentUser, isAuthenticated } from "./auth";
 import { initializeSessionTable } from "./session";
@@ -113,7 +118,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid wishlist ID" });
       }
       
-      const schema = z.object({ name: z.string().min(1) });
+      // Verify the user owns this wishlist
+      const existingWishlist = await storage.getWishlistById(id);
+      if (!existingWishlist || existingWishlist.userId !== req.session.userId) {
+        return res.status(404).json({ message: "Wishlist not found" });
+      }
+      
+      // Enhanced schema to support beneficiary wishlists and more features
+      const schema = z.object({ 
+        name: z.string().min(1).optional(),
+        beneficiaryId: z.number().nullable().optional(),
+        isPublic: z.boolean().optional(),
+        occasion: z.string().nullable().optional(),
+        occasionDate: z.coerce.date().nullable().optional()
+      });
+      
       const result = schema.safeParse(req.body);
       
       if (!result.success) {
@@ -123,7 +142,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      const wishlist = await storage.updateWishlist(id, result.data.name);
+      const wishlist = await storage.updateWishlist(id, result.data);
       if (!wishlist) {
         return res.status(404).json({ message: "Wishlist not found" });
       }
