@@ -9,8 +9,9 @@ import {
   SelectTrigger, 
   SelectValue 
 } from "@/components/ui/select";
-import { InboxIcon } from "lucide-react";
+import { HelpCircle, InboxIcon } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { RecommendationsHelp } from "@/components/help/RecommendationsHelp";
 
 export default function Recommendations() {
   const [selectedWishlistId, setSelectedWishlistId] = useState<string>("");
@@ -32,13 +33,16 @@ export default function Recommendations() {
 
       <div className="container mx-auto px-4 py-8">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
-          <div>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-blue-500 bg-clip-text text-transparent">
-              Smart Recommendations
-            </h1>
-            <p className="text-gray-600 mt-2">
-              Discover products tailored to your tastes and preferences
-            </p>
+          <div className="flex items-center gap-3">
+            <div>
+              <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-blue-500 bg-clip-text text-transparent">
+                Smart Recommendations
+              </h1>
+              <p className="text-gray-600 mt-2">
+                Discover products tailored to your tastes and preferences
+              </p>
+            </div>
+            <RecommendationsHelp />
           </div>
 
           {wishlists && wishlists.length > 0 && (
