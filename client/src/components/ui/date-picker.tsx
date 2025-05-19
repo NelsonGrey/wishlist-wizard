@@ -9,10 +9,11 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import { SelectSingleEventHandler } from "react-day-picker";
 
 interface DatePickerProps {
   selected?: Date;
-  onSelect?: (date: Date) => void;
+  onSelect?: SelectSingleEventHandler;
   placeholder?: string;
   className?: string;
   disabled?: boolean;
