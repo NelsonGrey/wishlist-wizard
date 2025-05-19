@@ -114,9 +114,11 @@ const ExtensionPage = () => {
                 </div>
               </CardContent>
               <CardFooter className="flex flex-col sm:flex-row gap-4">
-                <Button className="w-full sm:w-auto" size="lg">
-                  <SiChrome className="mr-2 h-5 w-5" />
-                  Install for Chrome
+                <Button className="w-full sm:w-auto" size="lg" asChild>
+                  <a href="/extension/download?browser=chrome">
+                    <FaChrome className="mr-2 h-5 w-5" />
+                    Install for Chrome
+                  </a>
                 </Button>
                 <Button variant="outline" className="w-full sm:w-auto" asChild>
                   <a href="/extension/INSTALLATION-GUIDE.md" target="_blank" rel="noopener noreferrer">
@@ -153,9 +155,11 @@ const ExtensionPage = () => {
                 </div>
               </CardContent>
               <CardFooter className="flex flex-col sm:flex-row gap-4">
-                <Button className="w-full sm:w-auto" size="lg">
-                  <SiFirefox className="mr-2 h-5 w-5" />
-                  Install for Firefox
+                <Button className="w-full sm:w-auto" size="lg" asChild>
+                  <a href="/extension/download?browser=firefox">
+                    <FaFirefox className="mr-2 h-5 w-5" />
+                    Install for Firefox
+                  </a>
                 </Button>
                 <Button variant="outline" className="w-full sm:w-auto" asChild>
                   <a href="/extension/INSTALLATION-GUIDE.md" target="_blank" rel="noopener noreferrer">
@@ -192,9 +196,11 @@ const ExtensionPage = () => {
                 </div>
               </CardContent>
               <CardFooter className="flex flex-col sm:flex-row gap-4">
-                <Button className="w-full sm:w-auto" size="lg">
-                  <SiMicrosoftedge className="mr-2 h-5 w-5" />
-                  Install for Edge
+                <Button className="w-full sm:w-auto" size="lg" asChild>
+                  <a href="/extension/download?browser=edge">
+                    <FaEdge className="mr-2 h-5 w-5" />
+                    Install for Edge
+                  </a>
                 </Button>
                 <Button variant="outline" className="w-full sm:w-auto" asChild>
                   <a href="/extension/INSTALLATION-GUIDE.md" target="_blank" rel="noopener noreferrer">
@@ -260,9 +266,11 @@ const ExtensionPage = () => {
             Install the WishKeeper extension today and start adding items to your wishlists with just one click from any online store.
           </p>
           <div className="flex flex-wrap justify-center gap-4">
-            <Button size="lg" className="py-6 px-8">
-              <SiChrome className="mr-2 h-5 w-5" />
-              Install Now
+            <Button size="lg" className="py-6 px-8" asChild>
+              <a href="/extension/download?browser=chrome">
+                <FaChrome className="mr-2 h-5 w-5" />
+                Install Now
+              </a>
             </Button>
             <Button variant="outline" size="lg" className="py-6 px-8" asChild>
               <Link href="/register">
