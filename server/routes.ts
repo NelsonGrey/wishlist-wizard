@@ -1146,7 +1146,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     } catch (error) {
       console.error("Error removing gift participant:", error);
-      res.status(500).json({ message: error.message || "Failed to remove gift participant" });
+      const errorMessage = error instanceof Error ? error.message : "Failed to remove gift participant";
+      res.status(500).json({ message: errorMessage });
     }
   });
 
@@ -1176,7 +1177,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(updatedReservation);
     } catch (error) {
       console.error("Error updating gift participation:", error);
-      res.status(500).json({ message: error.message || "Failed to update gift participation" });
+      const errorMessage = error instanceof Error ? error.message : "Failed to update gift participation";
+      res.status(500).json({ message: errorMessage });
     }
   });
 
@@ -1223,7 +1225,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     } catch (error) {
       console.error("Error marking gift as ready:", error);
-      res.status(500).json({ message: error.message || "Failed to mark gift as ready" });
+      const errorMessage = error instanceof Error ? error.message : "Failed to mark gift as ready";
+      res.status(500).json({ message: errorMessage });
     }
   });
 
@@ -1255,7 +1258,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     } catch (error) {
       console.error("Error marking gift as purchased:", error);
-      res.status(500).json({ message: error.message || "Failed to mark gift as purchased" });
+      const errorMessage = error instanceof Error ? error.message : "Failed to mark gift as purchased";
+      res.status(500).json({ message: errorMessage });
     }
   });
 
