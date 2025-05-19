@@ -583,38 +583,46 @@ export const userCalendars = pgTable("user_calendars", {
   settings: jsonb("settings").default('{}'),
 });
 
-export const userCalendarsRelations = relations(userCalendars, ({ one, many }) => ({
+export const userCalendarsRelations = relations(userCalendars, ({ one }) => ({
   user: one(users, {
     fields: [userCalendars.userId],
     references: [users.id]
-  }),
-  events: many(calendarEvents)
+  })
 }));
 
+// Simple calendar events table
 export const calendarEvents = pgTable("calendar_events", {
   id: serial("id").primaryKey(),
-  calendarId: integer("calendar_id").notNull().references(() => userCalendars.id),
-  externalEventId: text("external_event_id"), // ID in the external calendar system
+  userId: integer("user_id").notNull().references(() => users.id),
   title: text("title").notNull(),
   description: text("description"),
   startDate: timestamp("start_date").notNull(),
   endDate: timestamp("end_date"),
   location: text("location"),
-  reminderDays: integer("reminder_days"), // How many days before to remind
-  eventType: text("event_type").notNull(), // birthday, anniversary, wishlist_deadline, etc.
-  relatedEntityType: text("related_entity_type"), // wishlist, beneficiary, etc.
-  relatedEntityId: integer("related_entity_id"), // ID of related entity
   isAllDay: boolean("is_all_day").default(false).notNull(),
+  eventType: text("event_type").notNull(), // birthday, anniversary, wishlist_deadline, etc.
+  reminderDays: integer("reminder_days"), // How many days before to remind
+  color: text("color").default('#6366F1'),
   recurrence: text("recurrence"), // yearly, monthly, etc.
+  beneficiaryId: integer("beneficiary_id").references(() => beneficiaries.id),
+  wishlistId: integer("wishlist_id").references(() => wishlists.id),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
   metadata: jsonb("metadata").default('{}'),
 });
 
 export const calendarEventsRelations = relations(calendarEvents, ({ one }) => ({
-  calendar: one(userCalendars, {
-    fields: [calendarEvents.calendarId],
-    references: [userCalendars.id]
+  user: one(users, {
+    fields: [calendarEvents.userId],
+    references: [users.id]
+  }),
+  beneficiary: one(beneficiaries, {
+    fields: [calendarEvents.beneficiaryId],
+    references: [beneficiaries.id]
+  }),
+  wishlist: one(wishlists, {
+    fields: [calendarEvents.wishlistId],
+    references: [wishlists.id]
   })
 }));
 
@@ -653,21 +661,10 @@ export const insertUserCalendarSchema = createInsertSchema(userCalendars).pick({
   settings: true
 });
 
-export const insertCalendarEventSchema = createInsertSchema(calendarEvents).pick({
-  calendarId: true,
-  externalEventId: true,
-  title: true,
-  description: true,
-  startDate: true,
-  endDate: true,
-  location: true,
-  reminderDays: true,
-  eventType: true,
-  relatedEntityType: true,
-  relatedEntityId: true,
-  isAllDay: true,
-  recurrence: true,
-  metadata: true
+export const insertCalendarEventSchema = createInsertSchema(calendarEvents).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true
 });
 
 // Types for the new additions

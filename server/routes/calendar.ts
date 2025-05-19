@@ -1,9 +1,10 @@
 import { Request, Response } from 'express';
 import { db } from '../db';
-import { calendarEvents, eventReminders, calendarSyncSettings } from '../../shared/schema';
+import { calendarEvents, insertCalendarEventSchema } from '../../shared/schema';
 import { isAuthenticated } from '../auth';
 import { eq, and, gte } from 'drizzle-orm';
 import { format, addDays, parseISO } from 'date-fns';
+import { z } from 'zod';
 
 /**
  * Get all calendar events for the authenticated user
@@ -15,13 +16,8 @@ export async function getEvents(req: Request, res: Response) {
       return res.status(401).json({ error: 'Not authenticated' });
     }
 
-    const events = await db.query.calendarEvents.findMany({
-      where: eq(calendarEvents.userId, userId),
-      with: {
-        beneficiary: true,
-        wishlist: true,
-      }
-    });
+    const events = await db.select().from(calendarEvents)
+      .where(eq(calendarEvents.userId, userId));
 
     res.json(events);
   } catch (error) {
