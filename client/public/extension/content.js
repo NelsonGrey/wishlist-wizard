@@ -5,27 +5,93 @@
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   console.log('Content script received message:', message);
   
-  if (message.action === 'extractProductInfo' || message.action === 'getProductInfo') {
-    // If force flag is set, use a more aggressive approach
-    if (message.force) {
-      // For forced detection, lower the threshold for product page detection
-      const isProductPage = true; // Skip the check entirely
-      if (isProductPage) {
-        const productInfo = extractProductInfo();
-        sendResponse(productInfo);
+  try {
+    if (message.action === 'extractProductInfo' || message.action === 'getProductInfo') {
+      // If force flag is set, use a more aggressive approach
+      if (message.force) {
+        // For forced detection, lower the threshold for product page detection
+        const isProductPage = true; // Skip the check entirely
+        
+        try {
+          const productInfo = extractProductInfo();
+          
+          // Validate that we have sufficient product information
+          if (!productInfo.success || !productInfo.productInfo.title) {
+            sendResponse({ 
+              success: false, 
+              error: 'Could not extract sufficient product information', 
+              errorType: 'parsing',
+              partialInfo: productInfo.productInfo || null
+            });
+            return true;
+          }
+          
+          sendResponse(productInfo);
+        } catch (error) {
+          console.error('Error extracting product info (forced):', error);
+          sendResponse({ 
+            success: false, 
+            error: error.message || 'Error extracting product information', 
+            errorType: 'parsing',
+            stack: error.stack
+          });
+        }
       } else {
-        sendResponse({ success: false, error: 'Not a product page' });
+        // Normal detection with error handling
+        try {
+          const isProductPage = checkIfProductPage();
+          
+          if (!isProductPage) {
+            sendResponse({ 
+              success: false, 
+              error: 'Not a product page', 
+              errorType: 'detection',
+              url: window.location.href
+            });
+            return true;
+          }
+          
+          const productInfo = extractProductInfo();
+          
+          // Validate extraction results
+          if (!productInfo.success || !productInfo.productInfo.title) {
+            sendResponse({ 
+              success: false, 
+              error: 'Could not extract sufficient product information',
+              errorType: 'parsing',
+              partialInfo: productInfo.productInfo || null
+            });
+            return true;
+          }
+          
+          sendResponse(productInfo);
+        } catch (error) {
+          console.error('Error in product detection/extraction:', error);
+          sendResponse({ 
+            success: false, 
+            error: error.message || 'Error processing product page', 
+            errorType: error.message.includes('detection') ? 'detection' : 'parsing',
+            stack: error.stack
+          });
+        }
       }
     } else {
-      // Normal detection
-      const isProductPage = checkIfProductPage();
-      if (isProductPage) {
-        const productInfo = extractProductInfo();
-        sendResponse(productInfo);
-      } else {
-        sendResponse({ success: false, error: 'Not a product page' });
-      }
+      // Unknown action
+      sendResponse({
+        success: false,
+        error: `Unknown action: ${message.action}`,
+        errorType: 'unknown'
+      });
     }
+  } catch (error) {
+    // Catch-all for any unexpected errors
+    console.error('Unexpected error in content script:', error);
+    sendResponse({
+      success: false,
+      error: error.message || 'An unexpected error occurred',
+      errorType: 'unknown',
+      stack: error.stack
+    });
   }
   
   return true;
@@ -36,26 +102,79 @@ function extractProductInfo() {
   try {
     const url = window.location.href;
     let productInfo = null;
+    let extractionMethod = 'unknown';
+    
+    // Validate we have a proper URL
+    if (!url || typeof url !== 'string') {
+      throw new Error('Invalid URL for product extraction');
+    }
     
     // Try site-specific extractors first for better results
     if (url.includes('amazon.com') && url.includes('/dp/')) {
-      productInfo = extractAmazonProductInfo();
+      try {
+        productInfo = extractAmazonProductInfo();
+        extractionMethod = 'amazon';
+      } catch (err) {
+        console.warn('Amazon-specific extraction failed, falling back to generic extraction', err);
+      }
     }
     else if (url.includes('target.com') && url.includes('/p/')) {
-      productInfo = extractTargetProductInfo();
+      try {
+        productInfo = extractTargetProductInfo();
+        extractionMethod = 'target';
+      } catch (err) {
+        console.warn('Target-specific extraction failed, falling back to generic extraction', err);
+      }
     }
     else if (url.includes('walmart.com') && url.includes('/ip/')) {
-      productInfo = extractWalmartProductInfo();
+      try {
+        productInfo = extractWalmartProductInfo();
+        extractionMethod = 'walmart';
+      } catch (err) {
+        console.warn('Walmart-specific extraction failed, falling back to generic extraction', err);
+      }
     }
     
     // If site-specific extraction failed or it's not a known site, try generic extraction
     if (!productInfo) {
-      productInfo = extractGenericProductInfo();
+      try {
+        productInfo = extractGenericProductInfo();
+        extractionMethod = 'generic';
+      } catch (err) {
+        console.error('Generic extraction failed:', err);
+        throw new Error('Failed to extract product information: ' + err.message);
+      }
     }
     
-    if (productInfo && productInfo.title && productInfo.productUrl) {
-      // Get store name from the URL if not already set
-      if (!productInfo.store) {
+    // Validate extraction results
+    if (!productInfo) {
+      return {
+        success: false,
+        error: 'Unable to extract product information',
+        errorType: 'parsing',
+        url: url
+      };
+    }
+    
+    // Validate required fields
+    if (!productInfo.title) {
+      return {
+        success: false,
+        error: 'Could not detect product title',
+        errorType: 'parsing',
+        partialInfo: productInfo,
+        extractionMethod
+      };
+    }
+    
+    if (!productInfo.productUrl) {
+      // Set product URL to current page if missing
+      productInfo.productUrl = url;
+    }
+    
+    // Get store name from the URL if not already set
+    if (!productInfo.store) {
+      try {
         const urlObj = new URL(url);
         const hostname = urlObj.hostname;
         const domainParts = hostname.split('.');
@@ -66,25 +185,82 @@ function extractProductInfo() {
           hostname;
         
         productInfo.store = storeName;
+      } catch (err) {
+        console.warn('Error extracting store name from URL, using default', err);
+        productInfo.store = 'Online Store';
       }
-      
-      return {
-        success: true,
-        productInfo
-      };
-    } else {
-      return {
-        success: false,
-        error: 'Unable to extract product information from this page'
-      };
     }
+    
+    // Sanitize the price if present
+    if (productInfo.price) {
+      productInfo.price = sanitizePrice(productInfo.price);
+    }
+    
+    // Ensure image URL is absolute
+    if (productInfo.imageUrl && !productInfo.imageUrl.startsWith('http')) {
+      try {
+        const urlObj = new URL(url);
+        const baseUrl = urlObj.origin;
+        
+        if (productInfo.imageUrl.startsWith('//')) {
+          productInfo.imageUrl = 'https:' + productInfo.imageUrl;
+        } else if (productInfo.imageUrl.startsWith('/')) {
+          productInfo.imageUrl = baseUrl + productInfo.imageUrl;
+        } else {
+          productInfo.imageUrl = baseUrl + '/' + productInfo.imageUrl;
+        }
+      } catch (err) {
+        console.warn('Error converting relative image URL to absolute', err);
+      }
+    }
+    
+    return {
+      success: true,
+      productInfo,
+      extractionMethod
+    };
   } catch (error) {
     console.error('Error extracting product info:', error);
     return {
       success: false,
-      error: error.message
+      error: error.message,
+      errorType: 'parsing',
+      stack: error.stack,
+      url: window.location.href
     };
   }
+}
+
+// Helper function to sanitize price strings
+function sanitizePrice(price) {
+  if (!price) return '';
+  
+  // Handle already clean prices
+  if (typeof price === 'number') {
+    return price.toFixed(2);
+  }
+  
+  // Convert to string if not already
+  const priceStr = String(price).trim();
+  
+  // Remove all non-numeric characters except for decimal points/commas
+  let sanitized = priceStr.replace(/[^\d.,]/g, '');
+  
+  // Convert comma-based decimals to dot-based (e.g., European format)
+  if (sanitized.includes(',') && !sanitized.includes('.')) {
+    sanitized = sanitized.replace(',', '.');
+  } else if (sanitized.includes(',') && sanitized.includes('.')) {
+    // Handle cases like "1,234.56" - remove commas
+    sanitized = sanitized.replace(/,/g, '');
+  }
+  
+  // Ensure we have a proper number
+  const numValue = parseFloat(sanitized);
+  if (isNaN(numValue)) {
+    return '';
+  }
+  
+  return numValue.toFixed(2);
 }
 
 // Extract product information from Amazon product pages

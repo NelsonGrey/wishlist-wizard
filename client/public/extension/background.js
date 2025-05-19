@@ -27,35 +27,210 @@ chrome.runtime.onInstalled.addListener(async (details) => {
   }
 });
 
+// Global error tracking
+let lastError = null;
+let errorCount = 0;
+const ERROR_THRESHOLD = 5; // Max errors before recovery actions
+
+// Error recovery mode flag
+let recoveryMode = false;
+
+// Error tracking function
+function trackError(error, context) {
+  console.error(`Error in ${context}:`, error);
+  
+  // Store the error
+  lastError = {
+    message: error.message || String(error),
+    context,
+    timestamp: new Date().toISOString(),
+    tabId: error.tabId,
+    stack: error.stack
+  };
+  
+  // Increment error count
+  errorCount++;
+  
+  // Check if we need to enter recovery mode
+  if (errorCount >= ERROR_THRESHOLD && !recoveryMode) {
+    enterRecoveryMode();
+  }
+  
+  // Store error in extension local storage for later reporting
+  try {
+    chrome.storage.local.get(['errors'], (result) => {
+      const errors = result.errors || [];
+      // Keep only the last 20 errors
+      if (errors.length > 20) errors.shift();
+      errors.push(lastError);
+      chrome.storage.local.set({ errors });
+    });
+  } catch (storageError) {
+    console.warn('Could not store error in local storage:', storageError);
+  }
+  
+  return lastError;
+}
+
+// Enter recovery mode
+function enterRecoveryMode() {
+  recoveryMode = true;
+  console.warn('Entering recovery mode due to excessive errors');
+  
+  // Reset error count after entering recovery mode
+  setTimeout(() => {
+    recoveryMode = false;
+    errorCount = 0;
+    console.log('Exiting recovery mode');
+  }, 60000); // Recovery mode lasts for 1 minute
+  
+  // Perform recovery actions if needed
+  try {
+    // Reset extension state
+    chrome.storage.local.set({ 
+      recoveryMode: true,
+      lastRecovery: new Date().toISOString()
+    });
+    
+    // Notify any open popups about recovery mode
+    chrome.runtime.sendMessage({ 
+      action: 'recoveryMode', 
+      active: true,
+      reason: 'Too many errors occurred'
+    }).catch(() => {}); // Ignore errors if no listeners
+  } catch (error) {
+    console.error('Failed to perform recovery actions:', error);
+  }
+}
+
 // Handle messages from content scripts or popup
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  // Log messages for debugging
-  console.log('Background script received message:', message);
-  
-  // Handle different message types
-  if (message.action === 'login') {
-    // Open login page in new tab
-    chrome.tabs.create({
-      url: `${baseUrl}/login?source=extension`
-    });
-    sendResponse({ success: true });
+  try {
+    // Log messages for debugging
+    console.log('Background script received message:', message);
+    
+    // Add sender info for debugging
+    const senderInfo = sender.tab ? 
+      `from content script (${sender.tab.id}:${sender.tab.url})` : 
+      'from popup or other extension page';
+    
+    console.log(`Message received ${senderInfo}`);
+    
+    // Handle different message types
+    if (message.action === 'login') {
+      try {
+        // Open login page in new tab
+        chrome.tabs.create({
+          url: `${baseUrl}/login?source=extension`
+        });
+        sendResponse({ success: true });
+      } catch (error) {
+        const trackingInfo = trackError(error, 'login');
+        sendResponse({ 
+          success: false, 
+          error: error.message,
+          errorId: trackingInfo.timestamp
+        });
+      }
+    }
+    
+    else if (message.action === 'getWishlists') {
+      fetchWishlists()
+        .then(data => {
+          if (!data) {
+            throw new Error('No wishlist data received');
+          }
+          sendResponse({ success: true, wishlists: data });
+        })
+        .catch(error => {
+          const trackingInfo = trackError(error, 'getWishlists');
+          sendResponse({ 
+            success: false, 
+            error: error.message,
+            errorId: trackingInfo.timestamp,
+            recoveryMode
+          });
+        });
+      return true; // Keep sendResponse valid after async operation
+    }
+    
+    else if (message.action === 'addToWishlist') {
+      // Validate data
+      if (!message.data || !message.data.wishlistId || !message.data.title) {
+        const error = new Error('Invalid item data');
+        const trackingInfo = trackError(error, 'addToWishlist-validation');
+        sendResponse({ 
+          success: false, 
+          error: error.message,
+          errorId: trackingInfo.timestamp
+        });
+        return true;
+      }
+      
+      addItemToWishlist(message.data)
+        .then(data => {
+          // Reset error count on success
+          errorCount = Math.max(0, errorCount - 1);
+          sendResponse({ success: true, item: data });
+        })
+        .catch(error => {
+          const trackingInfo = trackError(error, 'addToWishlist');
+          sendResponse({ 
+            success: false, 
+            error: error.message,
+            errorId: trackingInfo.timestamp,
+            recoveryMode,
+            // Include auth status to help the UI handle auth errors
+            authError: error.message.toLowerCase().includes('auth') || 
+                      error.message.toLowerCase().includes('log in')
+          });
+        });
+      return true; // Keep sendResponse valid after async operation
+    }
+    
+    else if (message.action === 'getErrorStatus') {
+      // Return information about recent errors
+      sendResponse({
+        success: true,
+        lastError,
+        errorCount,
+        recoveryMode
+      });
+    }
+    
+    else if (message.action === 'clearErrors') {
+      // Clear error state
+      lastError = null;
+      errorCount = 0;
+      recoveryMode = false;
+      chrome.storage.local.remove(['errors']);
+      sendResponse({ success: true });
+    }
+    
+    else {
+      // Unknown action
+      const error = new Error(`Unknown action: ${message.action}`);
+      const trackingInfo = trackError(error, 'unknown-action');
+      sendResponse({ 
+        success: false, 
+        error: error.message,
+        errorId: trackingInfo.timestamp
+      });
+    }
+  } catch (error) {
+    // Handle any unexpected errors in message processing
+    const trackingInfo = trackError(error, 'message-handler');
+    try {
+      sendResponse({ 
+        success: false, 
+        error: 'Unexpected error in extension background script: ' + error.message,
+        errorId: trackingInfo.timestamp,
+        fatal: true
+      });
+    } catch (responseError) {
+      console.error('Failed to send error response:', responseError);
+    }
   }
-  
-  else if (message.action === 'getWishlists') {
-    fetchWishlists()
-      .then(data => sendResponse({ success: true, wishlists: data }))
-      .catch(error => sendResponse({ success: false, error: error.message }));
-    return true; // Keep sendResponse valid after async operation
-  }
-  
-  else if (message.action === 'addToWishlist') {
-    addItemToWishlist(message.data)
-      .then(data => sendResponse({ success: true, item: data }))
-      .catch(error => sendResponse({ success: false, error: error.message }));
-    return true; // Keep sendResponse valid after async operation
-  }
-  
-  // Other message handlers can be added here
   
   return true; // Keep sendResponse valid for async operations
 });
