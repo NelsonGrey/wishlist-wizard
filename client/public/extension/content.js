@@ -75,6 +75,62 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           });
         }
       }
+    } else if (message.action === 'enableQuickAdd') {
+      // Handle the quick add button injection
+      try {
+        if (!message.isLoggedIn) {
+          sendResponse({
+            success: false,
+            error: 'User must be logged in to enable quick add'
+          });
+          return true;
+        }
+        
+        if (!message.baseUrl) {
+          sendResponse({
+            success: false,
+            error: 'Base URL is required for API communication'
+          });
+          return true;
+        }
+        
+        // Inject the quick add button
+        const quickAddResult = injectQuickAddButton(message.baseUrl, message.productInfo);
+        
+        sendResponse({
+          success: quickAddResult.success,
+          message: quickAddResult.message
+        });
+      } catch (error) {
+        console.error('Error enabling quick add:', error);
+        sendResponse({
+          success: false,
+          error: error.message || 'Error enabling quick add functionality',
+          stack: error.stack
+        });
+      }
+    } else if (message.action === 'applyCoupon') {
+      // Handle applying a coupon code
+      try {
+        const code = message.code;
+        if (!code) {
+          sendResponse({
+            success: false,
+            message: 'No coupon code provided'
+          });
+          return true;
+        }
+        
+        // Try to find coupon input fields
+        const result = applyCouponCode(code);
+        sendResponse(result);
+      } catch (error) {
+        console.error('Error applying coupon:', error);
+        sendResponse({
+          success: false,
+          message: error.message || 'Error applying coupon code'
+        });
+      }
     } else {
       // Unknown action
       sendResponse({
