@@ -186,8 +186,43 @@ export type Beneficiary = typeof beneficiaries.$inferSelect;
 export type InsertWishlist = z.infer<typeof insertWishlistSchema>;
 export type Wishlist = typeof wishlists.$inferSelect;
 
+// Notifications table to track activities in the system
+export const notifications = pgTable("notifications", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  type: text("type").notNull(), // e.g., "wishlist_updated", "item_added", "collaborator_added"
+  title: text("title").notNull(),
+  message: text("message").notNull(),
+  relatedEntityId: integer("related_entity_id"), // ID of the related wishlist, item, etc.
+  relatedEntityType: text("related_entity_type"), // "wishlist", "item", "collaborator", etc.
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  isRead: boolean("is_read").default(false).notNull(),
+  actionUrl: text("action_url"), // URL to direct users to when they click on the notification
+});
+
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  user: one(users, {
+    fields: [notifications.userId],
+    references: [users.id]
+  })
+}));
+
+export const insertNotificationSchema = createInsertSchema(notifications).pick({
+  userId: true,
+  type: true,
+  title: true,
+  message: true,
+  relatedEntityId: true,
+  relatedEntityType: true,
+  isRead: true,
+  actionUrl: true,
+});
+
 export type InsertWishlistCollaborator = z.infer<typeof insertWishlistCollaboratorSchema>;
 export type WishlistCollaborator = typeof wishlistCollaborators.$inferSelect;
+
+export type InsertNotification = z.infer<typeof insertNotificationSchema>;
+export type Notification = typeof notifications.$inferSelect;
 
 export type InsertWishlistItem = z.infer<typeof insertWishlistItemSchema>;
 export type WishlistItem = typeof wishlistItems.$inferSelect;

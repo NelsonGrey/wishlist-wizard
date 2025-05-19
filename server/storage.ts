@@ -4,7 +4,8 @@ import {
   beneficiaries, Beneficiary, InsertBeneficiary,
   wishlists, Wishlist, InsertWishlist,
   wishlistItems, WishlistItem, InsertWishlistItem,
-  wishlistCollaborators, WishlistCollaborator, InsertWishlistCollaborator
+  wishlistCollaborators, WishlistCollaborator, InsertWishlistCollaborator,
+  notifications, Notification, InsertNotification
 } from "@shared/schema";
 import { DatabaseStorage } from "./storage.db";
 
@@ -49,6 +50,14 @@ export interface IStorage {
   deleteWishlistItem(id: number): Promise<boolean>;
   reserveWishlistItem(itemId: number, userId: number): Promise<WishlistItem | undefined>;
   markItemPurchased(itemId: number, userId: number): Promise<WishlistItem | undefined>;
+  
+  // Notification methods
+  getNotifications(userId: number, limit?: number): Promise<Notification[]>;
+  getUnreadNotificationCount(userId: number): Promise<number>;
+  createNotification(notification: InsertNotification): Promise<Notification>;
+  markNotificationAsRead(id: number): Promise<Notification | undefined>;
+  markAllNotificationsAsRead(userId: number): Promise<boolean>;
+  deleteNotification(id: number): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
@@ -57,11 +66,13 @@ export class MemStorage implements IStorage {
   private wishlists: Map<number, Wishlist>;
   private wishlistItems: Map<number, WishlistItem>;
   private wishlistCollaborators: Map<number, WishlistCollaborator>;
+  private notifications: Map<number, Notification>;
   private userIdCounter: number;
   private beneficiaryIdCounter: number;
   private wishlistIdCounter: number;
   private wishlistItemIdCounter: number;
   private collaboratorIdCounter: number;
+  private notificationIdCounter: number;
 
   constructor() {
     this.users = new Map();
@@ -69,11 +80,13 @@ export class MemStorage implements IStorage {
     this.wishlists = new Map();
     this.wishlistItems = new Map();
     this.wishlistCollaborators = new Map();
+    this.notifications = new Map();
     this.userIdCounter = 1;
     this.beneficiaryIdCounter = 1;
     this.wishlistIdCounter = 1;
     this.wishlistItemIdCounter = 1;
     this.collaboratorIdCounter = 1;
+    this.notificationIdCounter = 1;
     
     // Add a demo user
     this.createUser({
@@ -444,6 +457,83 @@ export class MemStorage implements IStorage {
     
     this.wishlistCollaborators.set(collaborator.id, updatedCollaborator);
     return true;
+  }
+
+  // Notification methods
+  async getNotifications(userId: number, limit?: number): Promise<Notification[]> {
+    // Get all notifications for the user, sorted by most recent first
+    let notifications = Array.from(this.notifications.values())
+      .filter(n => n.userId === userId)
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+    
+    // Apply limit if specified
+    if (limit && limit > 0) {
+      notifications = notifications.slice(0, limit);
+    }
+    
+    return notifications;
+  }
+  
+  async getUnreadNotificationCount(userId: number): Promise<number> {
+    return Array.from(this.notifications.values())
+      .filter(n => n.userId === userId && !n.isRead)
+      .length;
+  }
+  
+  async createNotification(notificationData: InsertNotification): Promise<Notification> {
+    const id = this.notificationIdCounter++;
+    const now = new Date();
+    
+    const notification: Notification = {
+      id,
+      userId: notificationData.userId,
+      type: notificationData.type,
+      title: notificationData.title,
+      message: notificationData.message,
+      relatedEntityId: notificationData.relatedEntityId || null,
+      relatedEntityType: notificationData.relatedEntityType || null,
+      createdAt: now,
+      isRead: notificationData.isRead || false,
+      actionUrl: notificationData.actionUrl || null
+    };
+    
+    this.notifications.set(id, notification);
+    return notification;
+  }
+  
+  async markNotificationAsRead(id: number): Promise<Notification | undefined> {
+    const notification = this.notifications.get(id);
+    if (!notification) return undefined;
+    
+    const updatedNotification: Notification = {
+      ...notification,
+      isRead: true
+    };
+    
+    this.notifications.set(id, updatedNotification);
+    return updatedNotification;
+  }
+  
+  async markAllNotificationsAsRead(userId: number): Promise<boolean> {
+    let success = true;
+    
+    const userNotifications = Array.from(this.notifications.values())
+      .filter(n => n.userId === userId && !n.isRead);
+    
+    for (const notification of userNotifications) {
+      const updatedNotification: Notification = {
+        ...notification,
+        isRead: true
+      };
+      
+      this.notifications.set(notification.id, updatedNotification);
+    }
+    
+    return success;
+  }
+  
+  async deleteNotification(id: number): Promise<boolean> {
+    return this.notifications.delete(id);
   }
 }
 
