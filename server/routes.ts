@@ -25,6 +25,16 @@ import {
   notifyWishlistCollaborators
 } from "./services/notificationService";
 
+import { 
+  addGiftParticipant, 
+  removeGiftParticipant, 
+  updateGiftParticipation, 
+  getGiftParticipantsWithDetails, 
+  getTotalContributedAmount, 
+  markGiftAsReady, 
+  markGiftAsPurchased 
+} from "./services/giftCoordinationService";
+
 // Import mobile routes
 import mobileRoutes from "./routes/mobileApi";
 
@@ -1063,6 +1073,192 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Social Gifting Coordination endpoints
+
+  // Get all participants for a gift
+  app.get("/api/gifts/:itemId/participants", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const itemId = parseInt(req.params.itemId);
+      if (isNaN(itemId)) {
+        return res.status(400).json({ message: "Invalid item ID" });
+      }
+      
+      // Verify the item exists
+      const item = await storage.getWishlistItem(itemId);
+      if (!item) {
+        return res.status(404).json({ message: "Item not found" });
+      }
+      
+      const participants = await getGiftParticipantsWithDetails(itemId);
+      res.json(participants);
+    } catch (error) {
+      console.error("Error getting gift participants:", error);
+      res.status(500).json({ message: "Failed to get gift participants" });
+    }
+  });
+
+  // Add a participant to a gift
+  app.post("/api/gifts/:itemId/participants", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const itemId = parseInt(req.params.itemId);
+      if (isNaN(itemId)) {
+        return res.status(400).json({ message: "Invalid item ID" });
+      }
+      
+      const userId = req.session.userId!;
+      const { contributionAmount, message } = req.body;
+      
+      if (!contributionAmount || contributionAmount <= 0) {
+        return res.status(400).json({ message: "Valid contribution amount is required" });
+      }
+      
+      const reservation = await addGiftParticipant(
+        itemId,
+        userId,
+        contributionAmount,
+        message || ""
+      );
+      
+      res.status(201).json(reservation);
+    } catch (error) {
+      console.error("Error adding gift participant:", error);
+      const errorMessage = error instanceof Error ? error.message : "Failed to add gift participant";
+      res.status(500).json({ message: errorMessage });
+    }
+  });
+
+  // Remove a participant from a gift
+  app.delete("/api/gifts/:itemId/participants", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const itemId = parseInt(req.params.itemId);
+      if (isNaN(itemId)) {
+        return res.status(400).json({ message: "Invalid item ID" });
+      }
+      
+      const userId = req.session.userId!;
+      
+      const success = await removeGiftParticipant(itemId, userId);
+      
+      if (success) {
+        res.status(204).send();
+      } else {
+        res.status(500).json({ message: "Failed to remove participant" });
+      }
+    } catch (error) {
+      console.error("Error removing gift participant:", error);
+      res.status(500).json({ message: error.message || "Failed to remove gift participant" });
+    }
+  });
+
+  // Update a participant's contribution
+  app.patch("/api/gifts/:itemId/participants", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const itemId = parseInt(req.params.itemId);
+      if (isNaN(itemId)) {
+        return res.status(400).json({ message: "Invalid item ID" });
+      }
+      
+      const userId = req.session.userId!;
+      const { contributionAmount, message, status } = req.body;
+      
+      // Build updates object with only provided fields
+      const updates: any = {};
+      if (contributionAmount !== undefined) updates.contributionAmount = contributionAmount;
+      if (message !== undefined) updates.message = message;
+      if (status !== undefined) updates.status = status;
+      
+      if (Object.keys(updates).length === 0) {
+        return res.status(400).json({ message: "No update data provided" });
+      }
+      
+      const updatedReservation = await updateGiftParticipation(itemId, userId, updates);
+      
+      res.json(updatedReservation);
+    } catch (error) {
+      console.error("Error updating gift participation:", error);
+      res.status(500).json({ message: error.message || "Failed to update gift participation" });
+    }
+  });
+
+  // Get total contributed amount for a gift
+  app.get("/api/gifts/:itemId/total", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const itemId = parseInt(req.params.itemId);
+      if (isNaN(itemId)) {
+        return res.status(400).json({ message: "Invalid item ID" });
+      }
+      
+      const total = await getTotalContributedAmount(itemId);
+      res.json({ total });
+    } catch (error) {
+      console.error("Error getting total contribution:", error);
+      res.status(500).json({ message: "Failed to get total contribution" });
+    }
+  });
+
+  // Mark a gift as ready to purchase
+  app.post("/api/gifts/:itemId/ready", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const itemId = parseInt(req.params.itemId);
+      if (isNaN(itemId)) {
+        return res.status(400).json({ message: "Invalid item ID" });
+      }
+      
+      const userId = req.session.userId!;
+      
+      // Verify user is participating in this gift
+      const participants = await getGiftParticipantsWithDetails(itemId);
+      const isParticipant = participants.some(p => p.user.id === userId);
+      
+      if (!isParticipant) {
+        return res.status(403).json({ message: "You must be a participant to mark a gift as ready" });
+      }
+      
+      const success = await markGiftAsReady(itemId, userId);
+      
+      if (success) {
+        res.json({ message: "Gift marked as ready to purchase" });
+      } else {
+        res.status(500).json({ message: "Failed to mark gift as ready" });
+      }
+    } catch (error) {
+      console.error("Error marking gift as ready:", error);
+      res.status(500).json({ message: error.message || "Failed to mark gift as ready" });
+    }
+  });
+
+  // Mark a gift as purchased
+  app.post("/api/gifts/:itemId/purchased", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const itemId = parseInt(req.params.itemId);
+      if (isNaN(itemId)) {
+        return res.status(400).json({ message: "Invalid item ID" });
+      }
+      
+      const userId = req.session.userId!;
+      const { purchaseDetails } = req.body;
+      
+      // Verify user is participating in this gift
+      const participants = await getGiftParticipantsWithDetails(itemId);
+      const isParticipant = participants.some(p => p.user.id === userId);
+      
+      if (!isParticipant) {
+        return res.status(403).json({ message: "You must be a participant to mark a gift as purchased" });
+      }
+      
+      const success = await markGiftAsPurchased(itemId, userId, purchaseDetails);
+      
+      if (success) {
+        res.json({ message: "Gift marked as purchased" });
+      } else {
+        res.status(500).json({ message: "Failed to mark gift as purchased" });
+      }
+    } catch (error) {
+      console.error("Error marking gift as purchased:", error);
+      res.status(500).json({ message: error.message || "Failed to mark gift as purchased" });
+    }
+  });
+
   // Extension download endpoints
   app.get("/extension/download", downloadExtension);
   app.get("/api/extension/metadata", getExtensionMetadata);
