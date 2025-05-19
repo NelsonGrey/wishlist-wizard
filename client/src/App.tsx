@@ -13,6 +13,7 @@ import Register from "@/pages/Register";
 import ExtensionPage from "@/pages/ExtensionPage";
 import Notifications from "@/pages/Notifications";
 import MobileAppDemo from "@/pages/MobileAppDemo";
+import ArVisualizerDemo from "@/pages/ArVisualizerDemo";
 
 function Router() {
   return (
@@ -27,6 +28,7 @@ function Router() {
       <Route path="/extension-welcome" component={ExtensionPage} />
       <Route path="/notifications" component={Notifications} />
       <Route path="/mobile-demo" component={MobileAppDemo} />
+      <Route path="/ar-visualizer" component={ArVisualizerDemo} />
       <Route component={NotFound} />
     </Switch>
   );
