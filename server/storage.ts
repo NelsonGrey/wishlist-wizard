@@ -1,6 +1,7 @@
 import { v4 as uuidv4 } from "uuid";
 import { 
   users, User, InsertUser,
+  beneficiaries, Beneficiary, InsertBeneficiary,
   wishlists, Wishlist, InsertWishlist,
   wishlistItems, WishlistItem, InsertWishlistItem
 } from "@shared/schema";
@@ -14,26 +15,39 @@ export interface IStorage {
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: number, userData: Partial<InsertUser>): Promise<User | undefined>;
 
+  // Beneficiary methods
+  getBeneficiaries(ownerId: number): Promise<Beneficiary[]>;
+  getBeneficiary(id: number): Promise<Beneficiary | undefined>;
+  createBeneficiary(beneficiary: InsertBeneficiary): Promise<Beneficiary>;
+  updateBeneficiary(id: number, data: Partial<InsertBeneficiary>): Promise<Beneficiary | undefined>;
+  deleteBeneficiary(id: number): Promise<boolean>;
+
   // Wishlist methods
   getWishlists(userId: number): Promise<Wishlist[]>;
+  getWishlistsByBeneficiary(beneficiaryId: number): Promise<Wishlist[]>;
   getWishlistById(id: number): Promise<Wishlist | undefined>;
   getWishlistByShareId(shareId: string): Promise<Wishlist | undefined>;
   createWishlist(wishlist: Omit<InsertWishlist, "shareId">): Promise<Wishlist>;
-  updateWishlist(id: number, name: string): Promise<Wishlist | undefined>;
+  updateWishlist(id: number, data: Partial<Omit<InsertWishlist, "userId">>): Promise<Wishlist | undefined>;
   deleteWishlist(id: number): Promise<boolean>;
 
   // Wishlist item methods
   getWishlistItems(wishlistId: number): Promise<WishlistItem[]>;
   getWishlistItem(id: number): Promise<WishlistItem | undefined>;
   createWishlistItem(item: InsertWishlistItem): Promise<WishlistItem>;
+  updateWishlistItem(id: number, data: Partial<InsertWishlistItem>): Promise<WishlistItem | undefined>;
   deleteWishlistItem(id: number): Promise<boolean>;
+  reserveWishlistItem(itemId: number, userId: number): Promise<WishlistItem | undefined>;
+  markItemPurchased(itemId: number, userId: number): Promise<WishlistItem | undefined>;
 }
 
 export class MemStorage implements IStorage {
   private users: Map<number, User>;
+  private beneficiaries: Map<number, Beneficiary>;
   private wishlists: Map<number, Wishlist>;
   private wishlistItems: Map<number, WishlistItem>;
   private userIdCounter: number;
+  private beneficiaryIdCounter: number;
   private wishlistIdCounter: number;
   private wishlistItemIdCounter: number;
 
