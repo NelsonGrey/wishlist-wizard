@@ -6,6 +6,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, getQueryFn } from "@/lib/queryClient";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { NotificationDropdown } from "@/components/ui/NotificationDropdown";
 
 export default function Header() {
   const [location, setLocation] = useLocation();
@@ -78,6 +79,7 @@ export default function Header() {
                 <Link href="/dashboard" className="text-gray-600 hover:text-gray-900 font-medium">
                   My Wishlists
                 </Link>
+                {isLoggedIn && <NotificationDropdown />}
                 {isHome ? (
                   <Button
                     onClick={() => window.location.href = "/dashboard"}
@@ -150,6 +152,13 @@ export default function Header() {
                         onClick={() => setIsMenuOpen(false)}
                       >
                         My Wishlists
+                      </Link>
+                      <Link 
+                        href="/notifications"
+                        className="text-lg font-medium hover:text-primary flex items-center gap-2"
+                        onClick={() => setIsMenuOpen(false)}
+                      >
+                        Notifications
                       </Link>
                       <a 
                         href="https://chrome.google.com/webstore/detail/wishkeeper/placeholder"

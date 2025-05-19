@@ -11,6 +11,7 @@ import SharedWishlist from "@/pages/SharedWishlist";
 import Login from "@/pages/Login";
 import Register from "@/pages/Register";
 import ExtensionPage from "@/pages/ExtensionPage";
+import Notifications from "@/pages/Notifications";
 
 function Router() {
   return (
@@ -23,6 +24,7 @@ function Router() {
       <Route path="/shared/:shareId" component={SharedWishlist} />
       <Route path="/extension" component={ExtensionPage} />
       <Route path="/extension-welcome" component={ExtensionPage} />
+      <Route path="/notifications" component={Notifications} />
       <Route component={NotFound} />
     </Switch>
   );
