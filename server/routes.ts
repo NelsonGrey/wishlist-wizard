@@ -214,6 +214,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const item = await storage.createWishlistItem(result.data);
+      
+      // Get the wishlist to check if it's collaborative
+      const wishlist = await storage.getWishlistById(result.data.wishlistId);
+      
+      // If this is a collaborative wishlist, notify collaborators
+      if (wishlist && wishlist.isCollaborative) {
+        // Get all collaborators
+        const collaborators = await storage.getCollaborators(wishlist.id);
+        const addedByUser = await storage.getUser(req.session.userId!);
+        
+        // Notify each collaborator except the one who added the item
+        for (const collaborator of collaborators) {
+          if (collaborator.userId !== req.session.userId) {
+            await storage.createNotification({
+              userId: collaborator.userId,
+              type: "item_added",
+              title: "New Item Added",
+              message: `${addedByUser?.displayName || addedByUser?.username || "Someone"} added "${item.title}" to the wishlist "${wishlist.name}"`,
+              relatedEntityId: item.id,
+              relatedEntityType: "wishlist_item",
+              isRead: false,
+              actionUrl: `/wishlist/${wishlist.id}`
+            });
+          }
+        }
+      }
+      
       res.status(201).json(item);
     } catch (error) {
       console.error("Error creating wishlist item:", error);
@@ -327,7 +354,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           userId: wishlist.userId,
           type: "item_reserved",
           title: "Item Reserved",
-          message: `${reserver?.displayName || reserver?.username || "Someone"} reserved "${updatedItem.name}" from your wishlist`,
+          message: `${reserver?.displayName || reserver?.username || "Someone"} reserved "${updatedItem.title}" from your wishlist`,
           relatedEntityId: updatedItem.id,
           relatedEntityType: "wishlist_item",
           isRead: false,
@@ -365,6 +392,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const updatedItem = await storage.markItemPurchased(id, userId);
       if (!updatedItem) {
         return res.status(500).json({ message: "Failed to mark item as purchased" });
+      }
+      
+      // Create a notification for the wishlist owner if the purchaser isn't the owner
+      const wishlist = await storage.getWishlistById(updatedItem.wishlistId);
+      if (wishlist && wishlist.userId !== userId) {
+        // The current user is purchasing someone else's item
+        const purchaser = await storage.getUser(userId);
+        
+        // Create notification for the wishlist owner
+        await storage.createNotification({
+          userId: wishlist.userId,
+          type: "item_purchased",
+          title: "Item Purchased",
+          message: `${purchaser?.displayName || purchaser?.username || "Someone"} marked "${updatedItem.title}" as purchased on your wishlist`,
+          relatedEntityId: updatedItem.id,
+          relatedEntityType: "wishlist_item",
+          isRead: false,
+          actionUrl: `/wishlist/${wishlist.id}`
+        });
       }
       
       res.json(updatedItem);
