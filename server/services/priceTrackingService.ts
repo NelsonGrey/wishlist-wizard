@@ -1,283 +1,372 @@
 import { db } from "../db";
+import { eq, and, lt, gt, inArray } from "drizzle-orm";
 import { 
   wishlistItems, 
-  priceAlerts, 
+  priceAlerts,
+  users,
   notifications,
-  InsertNotification
+  insertPriceAlertSchema,
+  type InsertPriceAlert,
+  type WishlistItem
 } from "@shared/schema";
-import { eq, and, lte, isNotNull } from "drizzle-orm";
-import { IStorage } from "../storage";
 
-export class PriceTrackingService {
-  private storage: IStorage;
+/**
+ * Update price history for an item and check all alerts
+ * @param itemId The item ID
+ * @param newPrice The new price (as string with currency symbol e.g. "$99.99")
+ * @param numericPrice The numeric price (as decimal)
+ */
+export async function updateItemPrice(
+  itemId: number, 
+  newPrice: string, 
+  numericPrice: number | string
+): Promise<void> {
+  try {
+    // Get current item to access its price history
+    const [item] = await db
+      .select({
+        id: wishlistItems.id,
+        title: wishlistItems.title,
+        price: wishlistItems.price,
+        numericPrice: wishlistItems.numericPrice,
+        priceHistory: wishlistItems.priceHistory
+      })
+      .from(wishlistItems)
+      .where(eq(wishlistItems.id, itemId));
 
-  constructor(storage: IStorage) {
-    this.storage = storage;
-  }
+    if (!item) {
+      throw new Error(`Item with ID ${itemId} not found`);
+    }
 
-  /**
-   * Update the price of an item and track the price history
-   */
-  async updateItemPrice(itemId: number, newPrice: string, numericPrice: number): Promise<boolean> {
+    // Parse the current price history
+    let priceHistory = [];
     try {
-      // Get the current item data
-      const item = await db.query.wishlistItems.findFirst({
-        where: eq(wishlistItems.id, itemId)
-      });
+      if (item.priceHistory) {
+        priceHistory = typeof item.priceHistory === 'string' 
+          ? JSON.parse(item.priceHistory) 
+          : item.priceHistory;
+      }
+    } catch (err) {
+      console.error("Error parsing price history:", err);
+      priceHistory = [];
+    }
 
-      if (!item) return false;
+    // Ensure priceHistory is an array
+    if (!Array.isArray(priceHistory)) {
+      priceHistory = [];
+    }
 
-      // Get current price history or initialize empty array
-      const priceHistory = item.priceHistory ? 
-        (Array.isArray(item.priceHistory) ? item.priceHistory : []) : 
-        [];
+    // Convert numeric price to a number for comparison
+    const newNumericPrice = typeof numericPrice === 'string' 
+      ? parseFloat(numericPrice) 
+      : numericPrice;
 
-      // Add current price to history with timestamp
-      priceHistory.push({
-        price: item.price,
-        numericPrice: item.numericPrice,
-        timestamp: new Date().toISOString()
-      });
+    // Add the new price to the history
+    priceHistory.push({
+      date: new Date().toISOString(),
+      price: newNumericPrice,
+      formattedPrice: newPrice
+    });
 
-      // Update the item with new price and history
-      await db.update(wishlistItems)
-        .set({
-          price: newPrice,
-          numericPrice,
-          priceHistory: JSON.stringify(priceHistory)
-        })
-        .where(eq(wishlistItems.id, itemId));
+    // Keep only the last 30 price points to avoid excessive storage
+    if (priceHistory.length > 30) {
+      priceHistory = priceHistory.slice(priceHistory.length - 30);
+    }
 
-      // Check if price drop triggers any alerts
-      await this.checkPriceAlerts(itemId, numericPrice);
+    // Update the item with the new price and history
+    await db.update(wishlistItems)
+      .set({
+        price: newPrice,
+        numericPrice: newNumericPrice.toString(),
+        priceHistory: JSON.stringify(priceHistory)
+      })
+      .where(eq(wishlistItems.id, itemId));
 
-      return true;
-    } catch (error) {
-      console.error("Error updating item price:", error);
+    // Check alerts for this item
+    await checkPriceAlerts(itemId, newNumericPrice, item.title);
+
+  } catch (error) {
+    console.error("Error updating item price:", error);
+    throw new Error("Failed to update item price and check alerts");
+  }
+}
+
+/**
+ * Create a price alert for a specific item
+ * @param userId The user ID
+ * @param itemId The item ID
+ * @param targetPrice The target price to alert at
+ * @param expiresAt Optional expiration date for the alert
+ */
+export async function createPriceAlert(alertData: InsertPriceAlert): Promise<any> {
+  try {
+    // Validate the input using Zod schema
+    const validatedData = insertPriceAlertSchema.parse(alertData);
+    
+    // Create the alert in the database
+    const [newAlert] = await db.insert(priceAlerts)
+      .values(validatedData)
+      .returning();
+    
+    return newAlert;
+  } catch (error) {
+    console.error("Error creating price alert:", error);
+    throw new Error("Failed to create price alert");
+  }
+}
+
+/**
+ * Get all price alerts for a user
+ * @param userId The user ID
+ */
+export async function getUserPriceAlerts(userId: number): Promise<any[]> {
+  try {
+    // Get alerts from the database
+    const alerts = await db
+      .select({
+        id: priceAlerts.id,
+        itemId: priceAlerts.itemId,
+        targetPrice: priceAlerts.targetPrice,
+        notified: priceAlerts.notified,
+        createdAt: priceAlerts.createdAt,
+        expiresAt: priceAlerts.expiresAt,
+        // Include item details
+        item: {
+          title: wishlistItems.title,
+          price: wishlistItems.price,
+          numericPrice: wishlistItems.numericPrice,
+          imageUrl: wishlistItems.imageUrl,
+          productUrl: wishlistItems.productUrl,
+          store: wishlistItems.store
+        }
+      })
+      .from(priceAlerts)
+      .leftJoin(wishlistItems, eq(priceAlerts.itemId, wishlistItems.id))
+      .where(eq(priceAlerts.userId, userId));
+
+    return alerts;
+  } catch (error) {
+    console.error("Error fetching user price alerts:", error);
+    throw new Error("Failed to fetch price alerts");
+  }
+}
+
+/**
+ * Delete a price alert
+ * @param alertId The alert ID
+ * @param userId The user ID (for security check)
+ */
+export async function deletePriceAlert(alertId: number, userId: number): Promise<boolean> {
+  try {
+    // Verify the alert belongs to the user
+    const [alert] = await db
+      .select()
+      .from(priceAlerts)
+      .where(
+        and(
+          eq(priceAlerts.id, alertId),
+          eq(priceAlerts.userId, userId)
+        )
+      );
+
+    if (!alert) {
       return false;
     }
+
+    // Delete the alert
+    await db.delete(priceAlerts)
+      .where(eq(priceAlerts.id, alertId));
+
+    return true;
+  } catch (error) {
+    console.error("Error deleting price alert:", error);
+    throw new Error("Failed to delete price alert");
   }
+}
 
-  /**
-   * Create a price alert for an item
-   */
-  async createPriceAlert(userId: number, itemId: number, targetPrice: number, expiresAt?: Date): Promise<number | null> {
-    try {
-      // Get the current item
-      const item = await db.query.wishlistItems.findFirst({
-        where: eq(wishlistItems.id, itemId)
-      });
+/**
+ * Check all price alerts for an item when its price changes
+ * @param itemId The item ID
+ * @param currentPrice The current price as a number
+ * @param itemTitle The item's title for notifications
+ */
+async function checkPriceAlerts(
+  itemId: number, 
+  currentPrice: number, 
+  itemTitle: string
+): Promise<void> {
+  try {
+    // Get all active, non-expired, non-notified alerts for this item
+    // where the current price is at or below the target price
+    const now = new Date();
+    
+    const alerts = await db
+      .select({
+        id: priceAlerts.id,
+        userId: priceAlerts.userId,
+        targetPrice: priceAlerts.targetPrice
+      })
+      .from(priceAlerts)
+      .where(
+        and(
+          eq(priceAlerts.itemId, itemId),
+          eq(priceAlerts.notified, false),
+          // Either no expiration or not expired yet
+          (priceAlerts.expiresAt.isNull().or(gt(priceAlerts.expiresAt, now))),
+          // Current price must be at or below target price
+          lt(currentPrice, priceAlerts.targetPrice)
+        )
+      );
 
-      if (!item) return null;
+    if (alerts.length === 0) {
+      return; // No alerts to process
+    }
 
-      // Create the price alert
-      const [newAlert] = await db.insert(priceAlerts)
+    // Process each alert
+    for (const alert of alerts) {
+      // Mark the alert as notified
+      await db.update(priceAlerts)
+        .set({ notified: true })
+        .where(eq(priceAlerts.id, alert.id));
+
+      // Create a notification for the user
+      await db.insert(notifications)
         .values({
-          userId,
-          itemId,
-          targetPrice,
-          expiresAt: expiresAt || null
-        })
-        .returning({ id: priceAlerts.id });
+          userId: alert.userId,
+          type: "price_alert",
+          title: "Price Drop Alert",
+          message: `The price of "${itemTitle}" has dropped to or below your target price of ${alert.targetPrice}!`,
+          relatedEntityId: itemId,
+          relatedEntityType: "wishlist_item",
+          actionUrl: `/item/${itemId}`,
+          isRead: false
+        });
+    }
 
-      // If the current price is already lower than target price, notify immediately
-      if (item.numericPrice && item.numericPrice <= targetPrice) {
-        await this.notifyPriceAlert(newAlert.id);
-      }
+    // If needed, you could also send email notifications here
+    // This would require integrating with an email service like SendGrid
+  } catch (error) {
+    console.error("Error checking price alerts:", error);
+    // Don't throw here to prevent blocking the price update
+  }
+}
 
-      return newAlert.id;
+/**
+ * Update price history for multiple items (batch processing)
+ * Used for scheduled price updates from external sources
+ * @param updates Array of item updates with ID and new price
+ */
+export async function updateMultipleItemPrices(
+  updates: Array<{ itemId: number; newPrice: string; numericPrice: number }>
+): Promise<void> {
+  // Process each update
+  for (const update of updates) {
+    try {
+      await updateItemPrice(update.itemId, update.newPrice, update.numericPrice);
     } catch (error) {
-      console.error("Error creating price alert:", error);
-      return null;
+      console.error(`Error updating price for item ${update.itemId}:`, error);
+      // Continue with other updates even if one fails
     }
   }
+}
 
-  /**
-   * Check if any price alerts are triggered by a price change
-   */
-  private async checkPriceAlerts(itemId: number, currentPrice: number): Promise<void> {
-    // Find all alerts for this item where target price >= current price
-    const triggeredAlerts = await db.query.priceAlerts.findMany({
-      where: and(
-        eq(priceAlerts.itemId, itemId),
-        lte(priceAlerts.targetPrice, currentPrice),
-        eq(priceAlerts.notified, false),
-        isNotNull(priceAlerts.expiresAt)
-      )
-    });
+/**
+ * Get price history for an item
+ * @param itemId The item ID
+ * @returns Array of price history points
+ */
+export async function getItemPriceHistory(itemId: number): Promise<any[]> {
+  try {
+    const [item] = await db
+      .select({
+        priceHistory: wishlistItems.priceHistory
+      })
+      .from(wishlistItems)
+      .where(eq(wishlistItems.id, itemId));
 
-    // Notify for each triggered alert
-    for (const alert of triggeredAlerts) {
-      await this.notifyPriceAlert(alert.id);
+    if (!item) {
+      return [];
     }
-  }
 
-  /**
-   * Send notification for a triggered price alert
-   */
-  private async notifyPriceAlert(alertId: number): Promise<void> {
-    // Get the alert details
-    const alert = await db.query.priceAlerts.findFirst({
-      where: eq(priceAlerts.id, alertId),
-      with: {
-        item: true,
-        user: true
+    // Parse the price history
+    let priceHistory = [];
+    try {
+      if (item.priceHistory) {
+        priceHistory = typeof item.priceHistory === 'string' 
+          ? JSON.parse(item.priceHistory) 
+          : item.priceHistory;
       }
-    });
+    } catch (err) {
+      console.error("Error parsing price history:", err);
+      return [];
+    }
 
-    if (!alert || !alert.item) return;
-
-    // Create notification
-    const notification: InsertNotification = {
-      userId: alert.userId,
-      type: "price_alert",
-      title: "Price Drop Alert",
-      message: `The price of "${alert.item.title}" has dropped to ${alert.item.price}, below your target of $${alert.targetPrice}`,
-      relatedEntityId: alert.itemId,
-      relatedEntityType: "wishlist_item",
-      actionUrl: `/items/${alert.itemId}`,
-      isRead: false
-    };
-
-    await db.insert(notifications).values(notification);
-
-    // Mark the alert as notified
-    await db.update(priceAlerts)
-      .set({ notified: true })
-      .where(eq(priceAlerts.id, alertId));
+    return Array.isArray(priceHistory) ? priceHistory : [];
+  } catch (error) {
+    console.error("Error getting item price history:", error);
+    throw new Error("Failed to get item price history");
   }
+}
 
-  /**
-   * Get price history for an item
-   */
-  async getItemPriceHistory(itemId: number): Promise<any[]> {
-    // Get the item
-    const item = await db.query.wishlistItems.findFirst({
-      where: eq(wishlistItems.id, itemId)
-    });
+/**
+ * Find items with significant price drops in the last day
+ * This can be used for a daily digest email or recommendations
+ * @param threshold Percentage threshold for significant drops (e.g. 10 for 10%)
+ * @returns Array of items with significant price drops
+ */
+export async function findSignificantPriceDrops(threshold: number = 10): Promise<WishlistItem[]> {
+  try {
+    // Get all items
+    const items = await db
+      .select()
+      .from(wishlistItems);
 
-    if (!item || !item.priceHistory) return [];
-
-    // Parse and return price history
-    return Array.isArray(item.priceHistory) ? 
-      item.priceHistory : 
-      JSON.parse(item.priceHistory.toString());
-  }
-
-  /**
-   * Get price alerts for a user
-   */
-  async getUserPriceAlerts(userId: number): Promise<any[]> {
-    return db.query.priceAlerts.findMany({
-      where: eq(priceAlerts.userId, userId),
-      with: {
-        item: true
+    const significantDrops: WishlistItem[] = [];
+    
+    // Process each item
+    for (const item of items) {
+      let priceHistory = [];
+      try {
+        if (item.priceHistory) {
+          priceHistory = typeof item.priceHistory === 'string' 
+            ? JSON.parse(item.priceHistory) 
+            : item.priceHistory;
+        }
+      } catch (err) {
+        continue; // Skip items with invalid price history
       }
-    });
-  }
 
-  /**
-   * Delete a price alert
-   */
-  async deletePriceAlert(alertId: number): Promise<boolean> {
-    const result = await db.delete(priceAlerts)
-      .where(eq(priceAlerts.id, alertId));
-    
-    return result.rowCount > 0;
-  }
+      if (!Array.isArray(priceHistory) || priceHistory.length < 2) {
+        continue; // Skip items with insufficient price history
+      }
 
-  /**
-   * Get items with recent price drops
-   */
-  async getRecentPriceDrops(limit: number = 10): Promise<any[]> {
-    // Get all items with price history
-    const items = await db.query.wishlistItems.findMany({
-      where: isNotNull(wishlistItems.priceHistory)
-    });
+      // Check for price drops in the last day
+      const now = new Date();
+      const oneDayAgo = new Date(now);
+      oneDayAgo.setDate(now.getDate() - 1);
 
-    // Find items with recent price drops
-    const itemsWithPriceDrops = items
-      .filter(item => {
-        if (!item.priceHistory) return false;
-        
-        const history = Array.isArray(item.priceHistory) ? 
-          item.priceHistory : 
-          JSON.parse(item.priceHistory.toString());
-        
-        if (history.length < 2) return false;
-        
-        // Check if latest price is lower than previous
-        const latestPrice = history[history.length - 1].numericPrice;
-        const previousPrice = history[history.length - 2].numericPrice;
-        
-        return latestPrice < previousPrice;
-      })
-      .map(item => {
-        const history = Array.isArray(item.priceHistory) ? 
-          item.priceHistory : 
-          JSON.parse(item.priceHistory.toString());
-        
-        const latestPrice = history[history.length - 1].numericPrice;
-        const previousPrice = history[history.length - 2].numericPrice;
-        const dropPercentage = ((previousPrice - latestPrice) / previousPrice) * 100;
-        
-        return {
-          ...item,
-          previousPrice,
-          dropPercentage
-        };
-      })
-      .sort((a, b) => b.dropPercentage - a.dropPercentage)
-      .slice(0, limit);
-    
-    return itemsWithPriceDrops;
-  }
+      const recentPrices = priceHistory
+        .filter(p => new Date(p.date) >= oneDayAgo)
+        .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
-  /**
-   * Find similar items with lower prices
-   */
-  async findCheaperAlternatives(itemId: number, limit: number = 5): Promise<any[]> {
-    // Get the item
-    const item = await db.query.wishlistItems.findFirst({
-      where: eq(wishlistItems.id, itemId)
-    });
+      if (recentPrices.length < 2) {
+        continue; // Skip if not enough recent price points
+      }
 
-    if (!item || !item.category || !item.numericPrice) return [];
+      const oldestRecent = recentPrices[0];
+      const newest = recentPrices[recentPrices.length - 1];
 
-    // Find items in the same category with lower prices
-    const similarItems = await db.query.wishlistItems.findMany({
-      where: and(
-        eq(wishlistItems.category, item.category),
-        isNotNull(wishlistItems.numericPrice)
-      )
-    });
+      // Calculate percentage drop
+      const percentDrop = ((oldestRecent.price - newest.price) / oldestRecent.price) * 100;
 
-    // Filter by similar title and lower price
-    const alternatives = similarItems
-      .filter(similar => {
-        // Exclude the same item
-        if (similar.id === itemId) return false;
-        
-        // Only include items with lower prices
-        if (!similar.numericPrice || similar.numericPrice >= item.numericPrice) return false;
-        
-        // Check for title similarity (simple word overlap)
-        const itemWords = item.title.toLowerCase().split(' ');
-        const similarWords = similar.title.toLowerCase().split(' ');
-        const commonWords = itemWords.filter(word => 
-          word.length > 3 && similarWords.includes(word)
-        ).length;
-        
-        // If at least 2 significant words match, consider it similar
-        return commonWords >= 2;
-      })
-      .sort((a, b) => {
-        const aPriceDiff = item.numericPrice - a.numericPrice;
-        const bPriceDiff = item.numericPrice - b.numericPrice;
-        return bPriceDiff - aPriceDiff; // Sort by biggest price difference first
-      })
-      .slice(0, limit);
-    
-    return alternatives;
+      if (percentDrop >= threshold) {
+        significantDrops.push(item);
+      }
+    }
+
+    return significantDrops;
+  } catch (error) {
+    console.error("Error finding significant price drops:", error);
+    return [];
   }
 }
