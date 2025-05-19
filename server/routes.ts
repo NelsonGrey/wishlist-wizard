@@ -25,7 +25,12 @@ import {
   notifyWishlistCollaborators
 } from "./services/notificationService";
 
+// Import mobile routes
+import mobileRoutes from "./routes/mobileApi";
+
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Apply mobile API routes
+  app.use("/api/mobile", mobileRoutes);
   const httpServer = createServer(app);
   
   // Initialize session table if using database storage
