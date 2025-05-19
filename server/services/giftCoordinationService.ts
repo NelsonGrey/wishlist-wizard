@@ -455,6 +455,7 @@ export async function markGiftAsPurchased(
     return true;
   } catch (error) {
     console.error("Error marking gift as purchased:", error);
-    throw new Error("Failed to mark gift as purchased");
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    throw new Error(`Failed to mark gift as purchased: ${errorMessage}`);
   }
 }
