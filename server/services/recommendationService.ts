@@ -1,405 +1,275 @@
+import OpenAI from "openai";
 import { db } from "../db";
-import { users, beneficiaries, wishlists, wishlistItems, userPreferences, recommendations, InsertRecommendation } from "@shared/schema";
-import { eq, and, not, isNull, desc, sql } from "drizzle-orm";
-import { IStorage } from "../storage";
+import { eq } from "drizzle-orm";
+import { wishlistItems, wishlists } from "@shared/schema";
 
-export class RecommendationService {
-  private storage: IStorage;
+// Initialize the OpenAI client
+// The newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-  constructor(storage: IStorage) {
-    this.storage = storage;
+interface RecommendedProduct {
+  title: string;
+  imageUrl: string;
+  price: string;
+  productUrl: string;
+  store: string;
+  description: string;
+  relevanceScore: number; // 0-100 score indicating how relevant this recommendation is
+  matchReason: string; // Brief explanation of why this was recommended
+}
+
+/**
+ * Get personalized product recommendations based on user's wishlist items
+ * @param userId The user ID to get recommendations for
+ * @param limit Maximum number of recommendations to return
+ * @returns Array of recommended products
+ */
+export async function getRecommendationsForUser(userId: number, limit = 5): Promise<RecommendedProduct[]> {
+  try {
+    // Get all of the user's wishlist IDs
+    const userWishlists = await db
+      .select({ id: wishlists.id })
+      .from(wishlists)
+      .where(eq(wishlists.userId, userId));
+
+    const wishlistIds = userWishlists.map(wl => wl.id);
+
+    if (wishlistIds.length === 0) {
+      return []; // User has no wishlists
+    }
+
+    // Get the user's wishlist items
+    const items = await db
+      .select({
+        title: wishlistItems.title,
+        price: wishlistItems.price,
+        store: wishlistItems.store,
+        category: wishlistItems.category,
+        brand: wishlistItems.brand,
+        metadata: wishlistItems.metadata
+      })
+      .from(wishlistItems)
+      .where(
+        wishlistIds.length === 1 
+          ? eq(wishlistItems.wishlistId, wishlistIds[0])
+          : wishlistItems.wishlistId.in(wishlistIds)
+      )
+      .limit(20); // Limit to recent items to analyze
+
+    if (items.length === 0) {
+      return []; // No items in wishlists
+    }
+
+    // Create a user profile based on wishlist items
+    const userProfile = analyzeWishlistItems(items);
+
+    // Get recommendations based on the user profile using AI
+    const recommendations = await generateRecommendationsWithAI(userProfile, items, limit);
+    
+    return recommendations;
+  } catch (error) {
+    console.error('Error getting recommendations:', error);
+    throw new Error('Failed to generate recommendations');
   }
+}
 
-  /**
-   * Generate personalized recommendations for a user
-   */
-  async generateRecommendationsForUser(userId: number): Promise<boolean> {
+/**
+ * Analyze wishlist items to create a user profile
+ */
+function analyzeWishlistItems(items: any[]): any {
+  // Extract categories, brands, price ranges, etc.
+  const categories = {};
+  const brands = {};
+  const stores = {};
+  let totalPrice = 0;
+  
+  items.forEach(item => {
+    // Count categories
+    if (item.category) {
+      categories[item.category] = (categories[item.category] || 0) + 1;
+    }
+    
+    // Count brands
+    if (item.brand) {
+      brands[item.brand] = (brands[item.brand] || 0) + 1;
+    }
+    
+    // Count stores
+    if (item.store) {
+      stores[item.store] = (stores[item.store] || 0) + 1;
+    }
+    
+    // Add to total price for average calculation
+    if (item.price) {
+      const numericPrice = parseFloat(item.price.replace(/[^0-9.]/g, ''));
+      if (!isNaN(numericPrice)) {
+        totalPrice += numericPrice;
+      }
+    }
+  });
+  
+  // Calculate average price
+  const averagePrice = items.length > 0 ? totalPrice / items.length : 0;
+  
+  // Sort categories, brands, etc. by frequency
+  const sortedCategories = Object.entries(categories)
+    .sort((a, b) => b[1] - a[1])
+    .map(([category]) => category);
+    
+  const sortedBrands = Object.entries(brands)
+    .sort((a, b) => b[1] - a[1])
+    .map(([brand]) => brand);
+    
+  const sortedStores = Object.entries(stores)
+    .sort((a, b) => b[1] - a[1])
+    .map(([store]) => store);
+  
+  return {
+    topCategories: sortedCategories.slice(0, 5),
+    topBrands: sortedBrands.slice(0, 5),
+    preferredStores: sortedStores.slice(0, 3),
+    averagePrice,
+    itemCount: items.length
+  };
+}
+
+/**
+ * Generate product recommendations using OpenAI API
+ */
+async function generateRecommendationsWithAI(
+  userProfile: any, 
+  existingItems: any[], 
+  limit: number
+): Promise<RecommendedProduct[]> {
+  try {
+    // Create a prompt for the AI to generate recommendations
+    const existingTitles = existingItems.map(item => item.title);
+    const existingBrands = existingItems
+      .filter(item => item.brand)
+      .map(item => item.brand);
+      
+    const itemDescriptions = existingItems.map(item => 
+      `- ${item.title}${item.brand ? ` by ${item.brand}` : ''}${item.price ? ` (${item.price})` : ''}`
+    ).join('\n');
+    
+    const prompt = `
+      I need to recommend products to a user based on their wishlist. Here's what I know about their preferences:
+      
+      Top product categories: ${userProfile.topCategories.join(', ') || 'Not enough data'}
+      Preferred brands: ${userProfile.topBrands.join(', ') || 'Not enough data'}
+      Preferred stores: ${userProfile.preferredStores.join(', ') || 'Various online stores'}
+      Average price point: $${userProfile.averagePrice.toFixed(2)}
+      
+      Their current wishlist items include:
+      ${itemDescriptions}
+      
+      Please recommend ${limit} products that would appeal to this user based on their preferences. The recommendations should be different from what they already have, but complementary or similar in style/theme/function.
+      
+      For each product, include:
+      1. A realistic product title
+      2. A plausible product URL (can be fictional but realistic looking)
+      3. An image URL (can be fictional but realistic looking)
+      4. A realistic price that aligns with their average spending
+      5. A store name that aligns with their preferences
+      6. A brief description of the product
+      7. A relevance score from 0-100 indicating how well this matches their preferences
+      8. A brief reason why this product would appeal to them
+      
+      Return the results as a JSON array with these fields: title, productUrl, imageUrl, price, store, description, relevanceScore, matchReason.
+    `;
+    
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o", // The newest OpenAI model
+      messages: [
+        { role: "system", content: "You are a personalized shopping recommendation assistant that helps users discover products they might like based on their preferences." },
+        { role: "user", content: prompt }
+      ],
+      response_format: { type: "json_object" },
+      temperature: 0.7
+    });
+    
+    const content = response.choices[0].message.content;
+    
+    if (!content) {
+      throw new Error("No content in OpenAI response");
+    }
+    
     try {
-      // Get user preferences
-      const userPrefs = await db.query.userPreferences.findFirst({
-        where: eq(userPreferences.userId, userId)
-      });
-
-      // Get user's past interactions with items
-      const userWishlists = await db.query.wishlists.findMany({
-        where: eq(wishlists.userId, userId),
-        with: {
-          items: true
-        }
-      });
-
-      // Flatten the items from all wishlists
-      const userItems = userWishlists.flatMap(wishlist => wishlist.items || []);
-
-      // Extract categories and brands that the user has shown interest in
-      const userCategories = new Set(userItems
-        .filter(item => item.category)
-        .map(item => item.category));
-
-      const userBrands = new Set(userItems
-        .filter(item => item.brand)
-        .map(item => item.brand));
-
-      // Get the user's beneficiaries
-      const userBeneficiaries = await db.query.beneficiaries.findMany({
-        where: eq(beneficiaries.ownerId, userId)
-      });
-
-      // Generate recommendations for each beneficiary
-      for (const beneficiary of userBeneficiaries) {
-        // Get beneficiary's wishlists
-        const beneficiaryWishlists = await db.query.wishlists.findMany({
-          where: eq(wishlists.beneficiaryId, beneficiary.id)
-        });
-
-        for (const wishlist of beneficiaryWishlists) {
-          // Generate recommendations based on similar users
-          await this.generateSimilarUserRecommendations(userId, beneficiary.id, wishlist.id);
-          
-          // Generate popularity-based recommendations
-          await this.generatePopularityRecommendations(userId, beneficiary.id, wishlist.id, 
-            Array.from(userCategories), Array.from(userBrands));
-        }
-      }
-
-      // Generate general recommendations for the user (not beneficiary-specific)
-      await this.generateGeneralRecommendations(userId, userPrefs);
-
-      return true;
+      const data = JSON.parse(content);
+      return data.recommendations || [];
     } catch (error) {
-      console.error("Error generating recommendations:", error);
-      return false;
+      console.error("Error parsing OpenAI response:", error);
+      console.log("Raw response:", content);
+      throw new Error("Failed to parse AI recommendations");
     }
+  } catch (error) {
+    console.error("Error generating AI recommendations:", error);
+    // Fallback to simpler recommendations if AI fails
+    return generateBasicRecommendations(userProfile, existingItems, limit);
   }
+}
 
-  /**
-   * Generate recommendations based on similar users
-   */
-  private async generateSimilarUserRecommendations(
-    userId: number, 
-    beneficiaryId: number, 
-    wishlistId: number
-  ): Promise<void> {
-    // Find users with similar tastes
-    const similarUsers = await this.findSimilarUsers(userId);
-    
-    // Get items from similar users that might be relevant
-    const recommendedItems = await this.getItemsFromSimilarUsers(similarUsers, userId);
-    
-    // Convert to recommendations and save
-    for (const item of recommendedItems.slice(0, 5)) { // Limit to 5 recommendations
-      const recommendation: InsertRecommendation = {
-        userId,
-        targetBeneficiaryId: beneficiaryId,
-        targetWishlistId: wishlistId,
-        itemTitle: item.title,
-        itemDescription: `Similar users have this item on their wishlists`,
-        imageUrl: item.imageUrl,
-        productUrl: item.productUrl,
-        price: item.price,
-        store: item.store,
-        category: item.category,
-        confidence: 0.85, // High confidence for similar user recommendations
-        reasoningText: "Other users with similar tastes have added this item to their wishlists",
-        source: "similar_users",
-        metadata: {
-          originalItemId: item.id,
-          similarityScore: item.similarityScore
-        }
-      };
-      
-      await db.insert(recommendations).values(recommendation);
-    }
+/**
+ * Generate basic recommendations without AI as a fallback
+ */
+function generateBasicRecommendations(
+  userProfile: any, 
+  existingItems: any[], 
+  limit: number
+): RecommendedProduct[] {
+  const recommendations: RecommendedProduct[] = [];
+  
+  // Create some basic recommendations based on categories and price points
+  if (userProfile.topCategories.includes('Electronics')) {
+    recommendations.push({
+      title: 'Wireless Noise Cancelling Headphones',
+      imageUrl: 'https://example.com/headphones.jpg',
+      price: `$${Math.round(userProfile.averagePrice * 0.9)}`,
+      productUrl: 'https://example.com/headphones',
+      store: userProfile.preferredStores[0] || 'Amazon',
+      description: 'Premium wireless headphones with active noise cancellation and long battery life.',
+      relevanceScore: 85,
+      matchReason: 'Based on your interest in electronics and similar price range.'
+    });
   }
-
-  /**
-   * Generate recommendations based on item popularity
-   */
-  private async generatePopularityRecommendations(
-    userId: number, 
-    beneficiaryId: number, 
-    wishlistId: number,
-    userCategories: string[],
-    userBrands: string[]
-  ): Promise<void> {
-    // Find popular items in categories the user is interested in
-    const popularItems = await db.query.wishlistItems.findMany({
-      where: sql`${wishlistItems.category} IN (${userCategories.join(',')}) OR ${wishlistItems.brand} IN (${userBrands.join(',')})`,
-      orderBy: [desc(wishlistItems.popularity)]
+  
+  if (userProfile.topCategories.includes('Clothing')) {
+    recommendations.push({
+      title: 'Premium Cotton T-Shirt',
+      imageUrl: 'https://example.com/tshirt.jpg',
+      price: `$${Math.round(userProfile.averagePrice * 0.4)}`,
+      productUrl: 'https://example.com/tshirt',
+      store: userProfile.preferredStores[0] || 'Gap',
+      description: 'Soft, comfortable cotton t-shirt available in multiple colors.',
+      relevanceScore: 80,
+      matchReason: 'Matches your clothing preferences at a similar price point.'
+    });
+  }
+  
+  // Generic recommendations if we don't have enough data
+  if (recommendations.length < limit) {
+    recommendations.push({
+      title: 'Bestselling Novel',
+      imageUrl: 'https://example.com/book.jpg',
+      price: '$14.99',
+      productUrl: 'https://example.com/book',
+      store: 'BookStore',
+      description: 'Award-winning bestseller that has captivated readers worldwide.',
+      relevanceScore: 65,
+      matchReason: 'Popular choice that complements your existing wishlist items.'
     });
     
-    // Convert to recommendations and save
-    for (const item of popularItems.slice(0, 5)) { // Limit to 5 recommendations
-      const recommendation: InsertRecommendation = {
-        userId,
-        targetBeneficiaryId: beneficiaryId,
-        targetWishlistId: wishlistId,
-        itemTitle: item.title,
-        itemDescription: `Popular item with other users`,
-        imageUrl: item.imageUrl,
-        productUrl: item.productUrl,
-        price: item.price,
-        store: item.store,
-        category: item.category,
-        confidence: 0.7, // Medium confidence for popularity-based recommendations
-        reasoningText: "This is a popular item in categories you've shown interest in",
-        source: "popularity",
-        metadata: {
-          originalItemId: item.id,
-          popularityScore: item.popularity
-        }
-      };
-      
-      await db.insert(recommendations).values(recommendation);
-    }
-  }
-
-  /**
-   * Generate general recommendations based on user preferences
-   */
-  private async generateGeneralRecommendations(userId: number, userPrefs: any): Promise<void> {
-    if (!userPrefs) return;
-    
-    // Extract preferences
-    const favoriteCategories = userPrefs.favoriteCategories || [];
-    const favoriteBrands = userPrefs.favoriteBrands || [];
-    
-    // Find items matching preferences
-    const matchingItems = await db.query.wishlistItems.findMany({
-      where: sql`
-        (${wishlistItems.category} IN (${favoriteCategories.join(',')}) OR 
-        ${wishlistItems.brand} IN (${favoriteBrands.join(',')})) AND
-        ${wishlistItems.purchasedByUserId} IS NULL
-      `,
-      orderBy: [desc(wishlistItems.createdAt)]
+    recommendations.push({
+      title: 'Smart Water Bottle',
+      imageUrl: 'https://example.com/bottle.jpg',
+      price: '$29.99',
+      productUrl: 'https://example.com/bottle',
+      store: 'FitnessGear',
+      description: 'Tracks your hydration and reminds you when to drink water.',
+      relevanceScore: 60,
+      matchReason: 'Useful everyday item that complements your lifestyle.'
     });
-    
-    // Convert to recommendations
-    for (const item of matchingItems.slice(0, 3)) { // Limit to 3 general recommendations
-      const recommendation: InsertRecommendation = {
-        userId,
-        targetBeneficiaryId: null,
-        targetWishlistId: null,
-        itemTitle: item.title,
-        itemDescription: `Matches your preferences`,
-        imageUrl: item.imageUrl,
-        productUrl: item.productUrl,
-        price: item.price,
-        store: item.store,
-        category: item.category,
-        confidence: 0.6, // Lower confidence for general recommendations
-        reasoningText: "This matches categories and brands you've marked as favorites",
-        source: "user_preferences",
-        metadata: {
-          originalItemId: item.id
-        }
-      };
-      
-      await db.insert(recommendations).values(recommendation);
-    }
   }
-
-  /**
-   * Find users with similar tastes
-   */
-  private async findSimilarUsers(userId: number): Promise<number[]> {
-    // Get all wishlists for the user
-    const userWishlists = await db.query.wishlists.findMany({
-      where: eq(wishlists.userId, userId),
-      with: {
-        items: true
-      }
-    });
-    
-    // Get unique categories and brands from user's items
-    const userItems = userWishlists.flatMap(wishlist => wishlist.items || []);
-    const userCategories = new Set(userItems.filter(item => item.category).map(item => item.category));
-    const userBrands = new Set(userItems.filter(item => item.brand).map(item => item.brand));
-    
-    // Find users with similar items
-    const similarUsers = await db.query.users.findMany({
-      where: not(eq(users.id, userId)),
-      with: {
-        wishlists: {
-          with: {
-            items: true
-          }
-        }
-      }
-    });
-    
-    // Calculate similarity scores
-    const userSimilarityScores = similarUsers.map(user => {
-      const userItems = user.wishlists.flatMap(wishlist => wishlist.items || []);
-      const userItemCategories = new Set(userItems.filter(item => item.category).map(item => item.category));
-      const userItemBrands = new Set(userItems.filter(item => item.brand).map(item => item.brand));
-      
-      // Calculate Jaccard similarity for categories and brands
-      const categoryIntersection = new Set([...userCategories].filter(x => userItemCategories.has(x))).size;
-      const categoryUnion = new Set([...userCategories, ...userItemCategories]).size;
-      
-      const brandIntersection = new Set([...userBrands].filter(x => userItemBrands.has(x))).size;
-      const brandUnion = new Set([...userBrands, ...userItemBrands]).size;
-      
-      const categorySimilarity = categoryUnion > 0 ? categoryIntersection / categoryUnion : 0;
-      const brandSimilarity = brandUnion > 0 ? brandIntersection / brandUnion : 0;
-      
-      // Combined similarity score (weighted)
-      const similarityScore = (categorySimilarity * 0.7) + (brandSimilarity * 0.3);
-      
-      return {
-        userId: user.id,
-        similarityScore
-      };
-    });
-    
-    // Sort by similarity and take top 5
-    const topSimilarUsers = userSimilarityScores
-      .sort((a, b) => b.similarityScore - a.similarityScore)
-      .slice(0, 5)
-      .map(user => user.userId);
-    
-    return topSimilarUsers;
-  }
-
-  /**
-   * Get items from similar users that might be relevant
-   */
-  private async getItemsFromSimilarUsers(similarUserIds: number[], currentUserId: number): Promise<any[]> {
-    // Get items from similar users' wishlists
-    const items = [];
-    
-    for (const userId of similarUserIds) {
-      const userWishlists = await db.query.wishlists.findMany({
-        where: eq(wishlists.userId, userId),
-        with: {
-          items: true
-        }
-      });
-      
-      const userItems = userWishlists.flatMap(wishlist => wishlist.items || []);
-      
-      // Add all items with similarity score
-      const similarityScore = similarUserIds.indexOf(userId) / similarUserIds.length;
-      items.push(...userItems.map(item => ({
-        ...item,
-        similarityScore: 1 - similarityScore // Higher score for more similar users
-      })));
-    }
-    
-    // Deduplicate items by URL
-    const uniqueItems = [];
-    const urlSet = new Set();
-    
-    for (const item of items) {
-      if (!urlSet.has(item.productUrl)) {
-        urlSet.add(item.productUrl);
-        uniqueItems.push(item);
-      }
-    }
-    
-    return uniqueItems;
-  }
-
-  /**
-   * Get recommendations for a user
-   */
-  async getUserRecommendations(userId: number, limit: number = 10): Promise<any[]> {
-    // Query recommendations for the user
-    const userRecommendations = await db.query.recommendations.findMany({
-      where: and(
-        eq(recommendations.userId, userId),
-        eq(recommendations.isRejected, false)
-      ),
-      orderBy: [
-        desc(recommendations.confidence),
-        desc(recommendations.createdAt)
-      ],
-      limit
-    });
-    
-    return userRecommendations;
-  }
-
-  /**
-   * Get recommendations for a specific beneficiary
-   */
-  async getBeneficiaryRecommendations(userId: number, beneficiaryId: number, limit: number = 10): Promise<any[]> {
-    // Query recommendations for the beneficiary
-    const beneficiaryRecommendations = await db.query.recommendations.findMany({
-      where: and(
-        eq(recommendations.userId, userId),
-        eq(recommendations.targetBeneficiaryId, beneficiaryId),
-        eq(recommendations.isRejected, false)
-      ),
-      orderBy: [
-        desc(recommendations.confidence),
-        desc(recommendations.createdAt)
-      ],
-      limit
-    });
-    
-    return beneficiaryRecommendations;
-  }
-
-  /**
-   * Save a recommendation as a wishlist item
-   */
-  async saveRecommendationToWishlist(recommendationId: number): Promise<number | null> {
-    // Get the recommendation
-    const recommendation = await db.query.recommendations.findFirst({
-      where: eq(recommendations.id, recommendationId)
-    });
-    
-    if (!recommendation || !recommendation.targetWishlistId) return null;
-    
-    // Create a wishlist item from the recommendation
-    const newItem = {
-      wishlistId: recommendation.targetWishlistId,
-      title: recommendation.itemTitle,
-      price: recommendation.price || "Unknown price",
-      imageUrl: recommendation.imageUrl || "",
-      productUrl: recommendation.productUrl || "",
-      store: recommendation.store || "Unknown store",
-      note: recommendation.itemDescription || "",
-      category: recommendation.category,
-      brand: null,
-      numericPrice: null,
-      metadata: { source: "recommendation", recommendationId: recommendation.id }
-    };
-    
-    // Save the item to the database
-    const [createdItem] = await db.insert(wishlistItems).values(newItem).returning({ id: wishlistItems.id });
-    
-    // Mark the recommendation as saved
-    await db.update(recommendations)
-      .set({ isSaved: true })
-      .where(eq(recommendations.id, recommendationId));
-    
-    return createdItem?.id || null;
-  }
-
-  /**
-   * Reject a recommendation
-   */
-  async rejectRecommendation(recommendationId: number): Promise<boolean> {
-    // Mark the recommendation as rejected
-    const result = await db.update(recommendations)
-      .set({ isRejected: true })
-      .where(eq(recommendations.id, recommendationId));
-    
-    return result.rowCount > 0;
-  }
-
-  /**
-   * Mark a recommendation as viewed
-   */
-  async markRecommendationAsViewed(recommendationId: number): Promise<boolean> {
-    // Mark the recommendation as viewed
-    const result = await db.update(recommendations)
-      .set({ isViewed: true })
-      .where(eq(recommendations.id, recommendationId));
-    
-    return result.rowCount > 0;
-  }
+  
+  return recommendations.slice(0, limit);
 }
