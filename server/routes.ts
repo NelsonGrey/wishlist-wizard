@@ -215,8 +215,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const item = await storage.createWishlistItem(result.data);
       
-      // Get the wishlist to check if it's collaborative
-      const wishlist = await storage.getWishlistById(result.data.wishlistId);
+      // Use the existing wishlist object instead of fetching it again
       
       // If this is a collaborative wishlist, notify collaborators
       if (wishlist && wishlist.isCollaborative) {
@@ -868,6 +867,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // ==================== NOTIFICATIONS ROUTES ====================
   
+  // Get AdSense configuration
+  app.get("/api/config/adsense", async (_req: Request, res: Response) => {
+    try {
+      // Provide the AdSense publisher ID from environment variables
+      res.json({
+        publisherId: process.env.GOOGLE_ADSENSE_PUBLISHER_ID || ''
+      });
+    } catch (error) {
+      console.error("Error fetching AdSense config:", error);
+      res.status(500).json({ message: "Failed to retrieve AdSense configuration" });
+    }
+  });
+
   // Get recent notifications for the current user
   app.get("/api/notifications", isAuthenticated, async (req: Request, res: Response) => {
     try {

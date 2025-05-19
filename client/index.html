@@ -10,6 +10,18 @@
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://wishkeeper.app" />
     <link rel="icon" type="image/png" href="/icons/icon48.png" />
+    <!-- Google AdSense Script -->
+    <script id="google-adsense-script" async src="" crossorigin="anonymous"></script>
+    <script>
+      // Set the AdSense script src with the publisher ID from environment variable
+      fetch('/api/config/adsense')
+        .then(response => response.json())
+        .then(data => {
+          const script = document.getElementById('google-adsense-script');
+          script.src = `https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${data.publisherId}`;
+        })
+        .catch(error => console.error('Error loading AdSense config:', error));
+    </script>
   </head>
   <body>
     <div id="root"></div>
