@@ -5,7 +5,11 @@ import { z } from "zod";
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),
+  email: text("email").notNull().unique(),
   password: text("password").notNull(),
+  displayName: text("display_name"),
+  avatarUrl: text("avatar_url"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
 export const wishlists = pgTable("wishlists", {
@@ -31,7 +35,10 @@ export const wishlistItems = pgTable("wishlist_items", {
 // Insert Schemas
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
+  email: true,
   password: true,
+  displayName: true,
+  avatarUrl: true,
 });
 
 export const insertWishlistSchema = createInsertSchema(wishlists).pick({
