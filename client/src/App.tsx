@@ -17,6 +17,7 @@ import ArVisualizerDemo from "@/pages/ArVisualizerDemo";
 import SocialSharingDemo from "@/pages/SocialSharingDemo";
 import PriceTrackingDemo from "@/pages/PriceTrackingDemo";
 import UserProfile from "@/pages/UserProfile";
+import Recommendations from "@/pages/Recommendations";
 
 function Router() {
   return (
@@ -35,6 +36,7 @@ function Router() {
       <Route path="/social-sharing" component={SocialSharingDemo} />
       <Route path="/price-tracking" component={PriceTrackingDemo} />
       <Route path="/user-profile" component={UserProfile} />
+      <Route path="/recommendations" component={Recommendations} />
       <Route component={NotFound} />
     </Switch>
   );
