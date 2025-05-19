@@ -20,10 +20,16 @@ body {
 
 .header {
   display: flex;
-  align-items: center;
+  flex-direction: column;
   margin-bottom: 20px;
   padding-bottom: 12px;
   border-bottom: 1px solid #e5e7eb;
+}
+
+.header .title-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 12px;
 }
 
 .logo {
@@ -37,6 +43,40 @@ h1 {
   color: #4f46e5;
   margin: 0;
   font-weight: 600;
+}
+
+/* Tab Navigation */
+.nav-tabs {
+  display: flex;
+  gap: 4px;
+  width: 100%;
+  background-color: #f3f4f6;
+  border-radius: 8px;
+  padding: 4px;
+}
+
+.tab-button {
+  flex: 1;
+  background: none;
+  border: none;
+  padding: 8px 12px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #6b7280;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.tab-button:hover {
+  color: #4f46e5;
+  background-color: rgba(79, 70, 229, 0.05);
+}
+
+.tab-button.active {
+  background-color: #ffffff;
+  color: #4f46e5;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .screen {
@@ -193,6 +233,7 @@ label {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  margin-top: 16px;
 }
 
 .primary-button {
@@ -204,6 +245,8 @@ label {
   font-weight: 500;
   cursor: pointer;
   transition: background-color 0.2s;
+  text-align: center;
+  text-decoration: none;
 }
 
 .primary-button:hover {
@@ -219,6 +262,8 @@ label {
   font-weight: 500;
   cursor: pointer;
   transition: background-color 0.2s, color 0.2s;
+  text-align: center;
+  text-decoration: none;
 }
 
 .secondary-button:hover {
@@ -239,6 +284,37 @@ label {
 
 .text-button:hover {
   color: #4338ca;
+}
+
+/* Quick Add Options */
+.quick-add-options {
+  margin-bottom: 16px;
+}
+
+.option-button {
+  display: flex;
+  align-items: center;
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  padding: 8px 12px;
+  border-radius: 6px;
+  width: 100%;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.option-button:hover {
+  background-color: #f1f5f9;
+  border-color: #cbd5e1;
+}
+
+.option-icon {
+  margin-right: 8px;
+  font-size: 16px;
+}
+
+.option-text {
+  font-size: 14px;
 }
 
 /* Success Screen */
@@ -287,6 +363,246 @@ label {
 #error-screen h2 {
   color: #ef4444;
   margin-bottom: 8px;
+}
+
+/* Price Comparison Screen */
+#price-comparison-screen h2,
+#coupon-screen h2 {
+  font-size: 18px;
+  color: #4f46e5;
+  margin: 0 0 16px 0;
+  text-align: center;
+}
+
+.best-deal {
+  background-color: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 16px;
+}
+
+.best-deal h3 {
+  color: #10b981;
+  font-size: 16px;
+  margin: 0 0 8px 0;
+}
+
+.deal-details {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 12px;
+}
+
+.deal-store {
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.deal-price {
+  font-size: 16px;
+  color: #10b981;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.deal-savings {
+  font-size: 14px;
+  color: #10b981;
+}
+
+.comparison-results,
+.coupon-results {
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  max-height: 280px;
+  overflow-y: auto;
+  margin-bottom: 16px;
+}
+
+.comparison-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.comparison-item:last-child {
+  border-bottom: none;
+}
+
+.comparison-details {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.store-name {
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+
+.price {
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.price-difference {
+  font-size: 13px;
+  margin-top: 2px;
+}
+
+.price-difference.lower {
+  color: #10b981;
+}
+
+.price-difference.higher {
+  color: #ef4444;
+}
+
+.comparison-badges {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.in-stock-badge,
+.free-shipping-badge {
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 10px;
+  background-color: #f3f4f6;
+}
+
+.in-stock-badge.yes {
+  background-color: #d1fae5;
+  color: #065f46;
+}
+
+.free-shipping-badge.yes {
+  background-color: #dbeafe;
+  color: #1e40af;
+}
+
+.view-button {
+  color: #4f46e5;
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: none;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.view-button:hover {
+  background-color: #f5f5ff;
+}
+
+/* Coupon Screen */
+.coupon-item {
+  padding: 12px;
+  border-bottom: 1px solid #e5e7eb;
+  position: relative;
+}
+
+.coupon-item:last-child {
+  border-bottom: none;
+}
+
+.coupon-details {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 10px;
+}
+
+.coupon-code {
+  background-color: #f3f4f6;
+  padding: 6px 10px;
+  border-radius: 4px;
+  font-family: 'Courier New', monospace;
+  font-weight: 600;
+  margin-bottom: 6px;
+  display: inline-block;
+  align-self: flex-start;
+}
+
+.coupon-discount {
+  font-weight: 600;
+  color: #10b981;
+  margin-bottom: 4px;
+}
+
+.coupon-description {
+  font-size: 14px;
+  margin-bottom: 4px;
+}
+
+.coupon-expiry,
+.coupon-source {
+  font-size: 12px;
+  color: #6b7280;
+  margin-bottom: 2px;
+}
+
+.coupon-verification {
+  display: flex;
+  align-items: center;
+  font-size: 12px;
+  color: #10b981;
+  margin-top: 4px;
+}
+
+.coupon-verification::before {
+  content: '✓';
+  margin-right: 4px;
+}
+
+.coupon-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.copy-button,
+.apply-button {
+  flex: 1;
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+}
+
+.copy-button {
+  background-color: #f3f4f6;
+  color: #1f2937;
+}
+
+.apply-button {
+  background-color: #4f46e5;
+  color: white;
+}
+
+.link-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.link-list a {
+  color: #4f46e5;
+  text-decoration: none;
+  font-size: 13px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  background-color: #f5f5ff;
+}
+
+.link-list a:hover {
+  background-color: #e4e3ff;
 }
 
 /* Footer */
