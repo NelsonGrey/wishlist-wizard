@@ -1,13 +1,31 @@
 // WishKeeper Extension - Content Script
 // This script runs on supported shopping websites and extracts product information
 
-// Listen for messages from the background script
+// Listen for messages from the background script or popup
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   console.log('Content script received message:', message);
   
-  if (message.action === 'extractProductInfo') {
-    const productInfo = extractProductInfo();
-    sendResponse(productInfo);
+  if (message.action === 'extractProductInfo' || message.action === 'getProductInfo') {
+    // If force flag is set, use a more aggressive approach
+    if (message.force) {
+      // For forced detection, lower the threshold for product page detection
+      const isProductPage = true; // Skip the check entirely
+      if (isProductPage) {
+        const productInfo = extractProductInfo();
+        sendResponse(productInfo);
+      } else {
+        sendResponse({ success: false, error: 'Not a product page' });
+      }
+    } else {
+      // Normal detection
+      const isProductPage = checkIfProductPage();
+      if (isProductPage) {
+        const productInfo = extractProductInfo();
+        sendResponse(productInfo);
+      } else {
+        sendResponse({ success: false, error: 'Not a product page' });
+      }
+    }
   }
   
   return true;

@@ -1,162 +1,111 @@
 // WishKeeper Extension - Background Script
-// This script acts as a bridge between the content scripts and the WishKeeper app
+// This script handles communication between the extension and the website
 
-// Store API endpoint base URL
-const API_BASE_URL = 'https://wishkeeper.replit.app';
-let userToken = null;
-let currentUser = null;
-let userWishlists = [];
+// Base URL for the WishKeeper website API
+let baseUrl = 'https://wishkeeper.replit.app';
 
-// Check if user is logged in on extension startup
-chrome.runtime.onStartup.addListener(() => {
-  checkLoginStatus();
+// Get API base URL
+async function getApiUrl() {
+  // For development environments, can be changed to use localhost
+  if (process.env.NODE_ENV === 'development') {
+    return 'http://localhost:5000';
+  }
+  return baseUrl;
+}
+
+// Listen for extension installation or update
+chrome.runtime.onInstalled.addListener(async (details) => {
+  console.log('Extension installed or updated:', details.reason);
+  
+  // Initialize extension state
+  if (details.reason === 'install') {
+    // First-time installation
+    // Open the welcome page
+    chrome.tabs.create({
+      url: `${await getApiUrl()}/extension-welcome`
+    });
+  }
 });
 
-// Listen for messages from the content scripts or popup
+// Handle messages from content scripts or popup
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  // Log messages for debugging
   console.log('Background script received message:', message);
   
   // Handle different message types
-  switch (message.action) {
-    case 'checkLogin':
-      checkLoginStatus().then(sendResponse);
-      return true; // Keep the message channel open for async response
-      
-    case 'fetchWishlists':
-      fetchWishlists().then(sendResponse);
-      return true;
-      
-    case 'addItem':
-      addItemToWishlist(message.data).then(sendResponse);
-      return true;
-      
-    case 'logout':
-      logout().then(sendResponse);
-      return true;
-      
-    case 'extractProductInfo':
-      // Forward the message to the content script of the active tab
-      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-        if (tabs[0]) {
-          chrome.tabs.sendMessage(tabs[0].id, { action: 'extractProductInfo' }, (response) => {
-            sendResponse(response);
-          });
-        } else {
-          sendResponse({ success: false, error: 'No active tab found' });
-        }
-      });
-      return true;
+  if (message.action === 'login') {
+    // Open login page in new tab
+    chrome.tabs.create({
+      url: `${baseUrl}/login?source=extension`
+    });
+    sendResponse({ success: true });
   }
+  
+  else if (message.action === 'getWishlists') {
+    fetchWishlists()
+      .then(data => sendResponse({ success: true, wishlists: data }))
+      .catch(error => sendResponse({ success: false, error: error.message }));
+    return true; // Keep sendResponse valid after async operation
+  }
+  
+  else if (message.action === 'addToWishlist') {
+    addItemToWishlist(message.data)
+      .then(data => sendResponse({ success: true, item: data }))
+      .catch(error => sendResponse({ success: false, error: error.message }));
+    return true; // Keep sendResponse valid after async operation
+  }
+  
+  // Other message handlers can be added here
+  
+  return true; // Keep sendResponse valid for async operations
 });
 
-// Function to check if the user is logged in
-async function checkLoginStatus() {
-  try {
-    // Make a request to your auth endpoint
-    const response = await fetch(`${API_BASE_URL}/api/auth/me`, {
-      method: 'GET',
-      credentials: 'include'
-    });
-    
-    if (response.ok) {
-      const data = await response.json();
-      currentUser = data;
-      return { loggedIn: true, user: data };
-    } else {
-      currentUser = null;
-      return { loggedIn: false };
-    }
-  } catch (error) {
-    console.error('Error checking login status:', error);
-    return { loggedIn: false, error: error.message };
-  }
-}
-
-// Function to fetch user's wishlists
+// Fetch wishlists from the API
 async function fetchWishlists() {
-  try {
-    // Check if user is logged in first
-    const loginStatus = await checkLoginStatus();
-    if (!loginStatus.loggedIn) {
-      return { success: false, error: 'User not logged in' };
+  const apiUrl = await getApiUrl();
+  const response = await fetch(`${apiUrl}/api/extension/wishlists`, {
+    method: 'GET',
+    credentials: 'include',
+    headers: {
+      'Accept': 'application/json'
     }
-    
-    // Fetch the wishlists
-    const response = await fetch(`${API_BASE_URL}/api/wishlists`, {
-      method: 'GET',
-      credentials: 'include'
-    });
-    
-    if (response.ok) {
-      const wishlists = await response.json();
-      userWishlists = wishlists;
-      return { success: true, wishlists };
-    } else {
-      return { success: false, error: 'Failed to fetch wishlists' };
-    }
-  } catch (error) {
-    console.error('Error fetching wishlists:', error);
-    return { success: false, error: error.message };
+  });
+  
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.error || 'Failed to fetch wishlists');
   }
+  
+  return await response.json();
 }
 
-// Function to add an item to a wishlist
-async function addItemToWishlist(data) {
-  try {
-    // Check if user is logged in first
-    const loginStatus = await checkLoginStatus();
-    if (!loginStatus.loggedIn) {
-      return { success: false, error: 'User not logged in' };
-    }
-    
-    // Add the item to the specified wishlist
-    const response = await fetch(`${API_BASE_URL}/api/items`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      credentials: 'include',
-      body: JSON.stringify({
-        wishlistId: data.wishlistId,
-        title: data.title,
-        price: data.price,
-        imageUrl: data.imageUrl,
-        productUrl: data.productUrl,
-        store: data.store,
-        note: data.note || null
-      })
-    });
-    
-    if (response.ok) {
-      const item = await response.json();
-      return { success: true, item };
-    } else {
-      const errorData = await response.json();
-      return { success: false, error: errorData.message || 'Failed to add item' };
-    }
-  } catch (error) {
-    console.error('Error adding item to wishlist:', error);
-    return { success: false, error: error.message };
+// Add item to wishlist
+async function addItemToWishlist(itemData) {
+  const apiUrl = await getApiUrl();
+  const response = await fetch(`${apiUrl}/api/extension/add-item`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json'
+    },
+    body: JSON.stringify(itemData)
+  });
+  
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.error || 'Failed to add item to wishlist');
   }
+  
+  return await response.json();
 }
 
-// Function to log out
-async function logout() {
-  try {
-    const response = await fetch(`${API_BASE_URL}/api/auth/logout`, {
-      method: 'POST',
-      credentials: 'include'
-    });
-    
-    if (response.ok) {
-      currentUser = null;
-      userWishlists = [];
-      return { success: true };
-    } else {
-      return { success: false, error: 'Failed to logout' };
-    }
-  } catch (error) {
-    console.error('Error logging out:', error);
-    return { success: false, error: error.message };
+// Initialize browser action icon
+chrome.action.setIcon({
+  path: {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
   }
-}
+});
