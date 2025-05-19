@@ -7,7 +7,8 @@ import {
   BadgeDollarSign,
   Smile,
   Smartphone,
-  Award
+  Award,
+  User
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -130,6 +131,28 @@ export default function Features() {
             </CardContent>
             <CardFooter>
               <Button variant="outline" className="w-full" disabled>Coming Soon</Button>
+            </CardFooter>
+          </Card>
+          
+          {/* Advanced User Profiles Feature */}
+          <Card className="border-2 hover:border-primary/30 hover:shadow-lg transition-all">
+            <CardHeader className="pb-2">
+              <div className="p-2 w-12 h-12 bg-primary/10 rounded-lg mb-2 flex items-center justify-center">
+                <User className="text-primary" size={24} />
+              </div>
+              <CardTitle>Advanced User Profiles</CardTitle>
+              <CardDescription>Personalized preferences</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="text-slate-600">
+                Create personalized profiles with detailed gift preferences, statistics, and
+                recommendation settings to get better gift suggestions.
+              </p>
+            </CardContent>
+            <CardFooter>
+              <Link href="/user-profile">
+                <Button variant="outline" className="w-full">Try User Profiles</Button>
+              </Link>
             </CardFooter>
           </Card>
           
