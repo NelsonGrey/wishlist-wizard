@@ -1,15 +1,62 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { Menu } from "lucide-react";
+import { Menu, LogOut } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest, getQueryFn } from "@/lib/queryClient";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 export default function Header() {
-  const [location] = useLocation();
+  const [location, setLocation] = useLocation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const isHome = location === "/";
-  const isLoggedIn = true; // Always true for demo
+  
+  // Fetch current user to determine login status
+  const { data: currentUser, isLoading } = useQuery({
+    queryKey: ['/api/auth/me'],
+    queryFn: async () => {
+      try {
+        const res = await fetch('/api/auth/me', { credentials: 'include' });
+        if (res.status === 401) return null;
+        if (!res.ok) throw new Error('Failed to fetch user');
+        return res.json();
+      } catch (error) {
+        console.error('Error fetching current user:', error);
+        return null;
+      }
+    }
+  });
+  
+  const isLoggedIn = !!currentUser;
+  
+  // Handle logout
+  const handleLogout = async () => {
+    try {
+      await apiRequest("POST", "/api/auth/logout");
+      
+      // Invalidate queries
+      queryClient.invalidateQueries({ queryKey: ['/api/auth/me'] });
+      
+      toast({
+        title: "Logged out",
+        description: "You have been logged out successfully",
+      });
+      
+      // Redirect to home
+      setLocation("/");
+    } catch (error) {
+      console.error("Logout error:", error);
+      toast({
+        title: "Logout failed",
+        description: "There was an error logging out",
+        variant: "destructive",
+      });
+    }
+  };
 
   return (
     <header className="bg-white shadow-sm border-b">
@@ -43,11 +90,19 @@ export default function Header() {
                     href="https://chrome.google.com/webstore/detail/wishkeeper/placeholder"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="bg-primary hover:bg-indigo-700 text-white px-4 py-2 rounded-md font-medium text-sm transition inline-block"
+                    className="text-gray-600 hover:text-gray-900 font-medium"
                   >
                     Download Extension
                   </a>
                 )}
+                <Button 
+                  onClick={handleLogout}
+                  variant="outline"
+                  className="flex items-center gap-1 ml-2"
+                >
+                  <LogOut className="h-4 w-4" />
+                  Logout
+                </Button>
               </>
             ) : (
               <>
@@ -60,9 +115,11 @@ export default function Header() {
                 >
                   Download Extension
                 </a>
-                <Button className="bg-primary hover:bg-indigo-700 text-white">
-                  Log In
-                </Button>
+                <Link href="/login">
+                  <Button className="bg-primary hover:bg-indigo-700 text-white">
+                    Log In
+                  </Button>
+                </Link>
               </>
             )}
           </div>
@@ -114,9 +171,11 @@ export default function Header() {
                       >
                         Download Extension
                       </a>
-                      <Button className="bg-primary hover:bg-indigo-700 text-white w-full mt-4">
-                        Log In
-                      </Button>
+                      <Link href="/login" onClick={() => setIsMenuOpen(false)}>
+                        <Button className="bg-primary hover:bg-indigo-700 text-white w-full mt-4">
+                          Log In
+                        </Button>
+                      </Link>
                     </>
                   )}
                 </nav>
