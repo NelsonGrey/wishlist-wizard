@@ -69,9 +69,8 @@ export async function addGiftParticipant(
     const newReservation: InsertGiftReservation = {
       wishlistItemId: itemId,
       userId,
-      contributionAmount,
+      contributionAmount: contributionAmount.toString(),
       message,
-      createdAt: new Date(),
       status: "active",
     };
 
@@ -312,9 +311,8 @@ async function notifyOtherParticipants(
         title,
         message,
         isRead: false,
-        relatedItemId: itemId,
-        relatedWishlistId: item.wishlistId,
-        createdAt: new Date()
+        relatedEntityId: itemId,
+        relatedEntityType: "item"
       };
 
       await db.insert(notifications).values(notification);
@@ -370,9 +368,9 @@ export async function markGiftAsReady(itemId: number, organizerId: number): Prom
         title: "Gift Ready to Purchase",
         message: `The group gift "${item.title}" is now ready to purchase. ${organizerName} will coordinate the purchase.`,
         isRead: false,
-        relatedItemId: itemId,
-        relatedWishlistId: item.wishlistId,
-        createdAt: new Date()
+        relatedEntityId: itemId,
+        relatedEntityType: "item",
+        actionUrl: `/wishlist/${item.wishlistId}`
       };
 
       await db.insert(notifications).values(notification);
