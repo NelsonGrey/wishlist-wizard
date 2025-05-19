@@ -35,13 +35,17 @@ import {
   markGiftAsPurchased 
 } from "./services/giftCoordinationService";
 
-// Import mobile routes
+// Import API routes
 import mobileRoutes from "./routes/mobileApi";
+import { registerCalendarRoutes } from "./routes/calendar";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Apply mobile API routes
   app.use("/api/mobile", mobileRoutes);
   const httpServer = createServer(app);
+  
+  // Register calendar routes
+  registerCalendarRoutes(app);
   
   // Initialize session table if using database storage
   await initializeSessionTable();
