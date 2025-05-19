@@ -1,6 +1,7 @@
 import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
+import { downloadExtension, getExtensionMetadata, packageExtensions } from "./extension-deploy";
 import { 
   insertUserSchema, 
   insertWishlistSchema, 
@@ -977,6 +978,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to delete notification" });
     }
   });
+  
+  // Extension download endpoints
+  app.get("/extension/download", downloadExtension);
+  app.get("/api/extension/metadata", getExtensionMetadata);
+  app.post("/api/extension/package", packageExtensions);
 
   return httpServer;
 }
