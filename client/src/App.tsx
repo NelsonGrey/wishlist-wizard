@@ -18,6 +18,7 @@ import SocialSharingDemo from "@/pages/SocialSharingDemo";
 import PriceTrackingDemo from "@/pages/PriceTrackingDemo";
 import UserProfile from "@/pages/UserProfile";
 import Recommendations from "@/pages/Recommendations";
+import Calendar from "@/pages/Calendar";
 
 function Router() {
   return (
@@ -37,6 +38,7 @@ function Router() {
       <Route path="/price-tracking" component={PriceTrackingDemo} />
       <Route path="/user-profile" component={UserProfile} />
       <Route path="/recommendations" component={Recommendations} />
+      <Route path="/calendar" component={Calendar} />
       <Route component={NotFound} />
     </Switch>
   );
