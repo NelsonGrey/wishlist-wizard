@@ -515,6 +515,167 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ==================== PRICE TRACKING ROUTES ====================
+  
+  // Get price history for an item
+  app.get("/api/items/:id/price-history", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const itemId = parseInt(req.params.id);
+      
+      if (isNaN(itemId)) {
+        return res.status(400).json({ error: "Invalid item ID" });
+      }
+      
+      // Import the price tracking service
+      const { getItemPriceHistory } = await import("./services/priceTrackingService");
+      
+      // Get the item's price history
+      const priceHistory = await getItemPriceHistory(itemId);
+      
+      return res.json(priceHistory);
+    } catch (error) {
+      console.error("Error getting price history:", error);
+      return res.status(500).json({ error: "Failed to get price history" });
+    }
+  });
+  
+  // Create a price alert for an item
+  app.post("/api/price-alerts", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const userId = req.session.userId!;
+      
+      // Validate request body
+      const alertSchema = z.object({
+        itemId: z.number(),
+        targetPrice: z.number().positive(),
+        expiresAt: z.string().datetime().optional().nullable()
+      });
+      
+      const result = alertSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ error: "Invalid price alert data", details: result.error });
+      }
+      
+      const { itemId, targetPrice, expiresAt } = result.data;
+      
+      // Import the price tracking service
+      const { createPriceAlert } = await import("./services/priceTrackingService");
+      
+      // Create the price alert
+      const alertData = {
+        userId,
+        itemId,
+        targetPrice: targetPrice.toString(),
+        expiresAt: expiresAt ? new Date(expiresAt) : null
+      };
+      
+      const newAlert = await createPriceAlert(alertData);
+      
+      return res.status(201).json(newAlert);
+    } catch (error) {
+      console.error("Error creating price alert:", error);
+      return res.status(500).json({ error: "Failed to create price alert" });
+    }
+  });
+  
+  // Get all price alerts for the current user
+  app.get("/api/price-alerts", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const userId = req.session.userId!;
+      
+      // Import the price tracking service
+      const { getUserPriceAlerts } = await import("./services/priceTrackingService");
+      
+      // Get the user's price alerts
+      const alerts = await getUserPriceAlerts(userId);
+      
+      return res.json(alerts);
+    } catch (error) {
+      console.error("Error getting price alerts:", error);
+      return res.status(500).json({ error: "Failed to get price alerts" });
+    }
+  });
+  
+  // Delete a price alert
+  app.delete("/api/price-alerts/:id", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const userId = req.session.userId!;
+      const alertId = parseInt(req.params.id);
+      
+      if (isNaN(alertId)) {
+        return res.status(400).json({ error: "Invalid alert ID" });
+      }
+      
+      // Import the price tracking service
+      const { deletePriceAlert } = await import("./services/priceTrackingService");
+      
+      // Delete the price alert
+      const success = await deletePriceAlert(alertId, userId);
+      
+      if (!success) {
+        return res.status(404).json({ error: "Price alert not found or not owned by user" });
+      }
+      
+      return res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting price alert:", error);
+      return res.status(500).json({ error: "Failed to delete price alert" });
+    }
+  });
+  
+  // Update an item's price (for testing or manual updates)
+  app.patch("/api/items/:id/price", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const itemId = parseInt(req.params.id);
+      
+      if (isNaN(itemId)) {
+        return res.status(400).json({ error: "Invalid item ID" });
+      }
+      
+      // Validate request body
+      const priceSchema = z.object({
+        price: z.string(),
+        numericPrice: z.number().positive()
+      });
+      
+      const result = priceSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ error: "Invalid price data", details: result.error });
+      }
+      
+      const { price, numericPrice } = result.data;
+      
+      // Import the price tracking service
+      const { updateItemPrice } = await import("./services/priceTrackingService");
+      
+      // Update the item's price
+      await updateItemPrice(itemId, price, numericPrice);
+      
+      return res.json({ success: true });
+    } catch (error) {
+      console.error("Error updating item price:", error);
+      return res.status(500).json({ error: "Failed to update item price" });
+    }
+  });
+  
+  // Get items with significant price drops
+  app.get("/api/price-drops", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const threshold = req.query.threshold ? parseInt(req.query.threshold as string) : 10;
+      
+      // Import the price tracking service
+      const { findSignificantPriceDrops } = await import("./services/priceTrackingService");
+      
+      // Find items with significant price drops
+      const items = await findSignificantPriceDrops(threshold);
+      
+      return res.json(items);
+    } catch (error) {
+      console.error("Error finding price drops:", error);
+      return res.status(500).json({ error: "Failed to find price drops" });
+    }
+  });
+
   // ==================== BENEFICIARY ROUTES ====================
   
   // Get all beneficiaries for a user
