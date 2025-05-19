@@ -240,6 +240,120 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Update a wishlist item
+  app.patch("/api/items/:id", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid item ID" });
+      }
+      
+      // Get the item to verify ownership
+      const item = await storage.getWishlistItem(id);
+      if (!item) {
+        return res.status(404).json({ message: "Item not found" });
+      }
+      
+      // Get the wishlist to verify ownership
+      const wishlist = await storage.getWishlistById(item.wishlistId);
+      if (!wishlist || wishlist.userId !== req.session.userId) {
+        return res.status(403).json({ message: "You don't have permission to update this item" });
+      }
+      
+      const schema = z.object({
+        note: z.string().nullable().optional(),
+        price: z.string().optional(),
+        title: z.string().optional(),
+        imageUrl: z.string().optional(),
+        productUrl: z.string().optional(),
+        store: z.string().optional()
+      });
+      
+      const result = schema.safeParse(req.body);
+      
+      if (!result.success) {
+        return res.status(400).json({ 
+          message: "Invalid item data", 
+          errors: result.error.format() 
+        });
+      }
+      
+      const updatedItem = await storage.updateWishlistItem(id, result.data);
+      res.json(updatedItem);
+    } catch (error) {
+      console.error("Error updating wishlist item:", error);
+      res.status(500).json({ message: "Failed to update wishlist item" });
+    }
+  });
+
+  // Reserve an item on a wishlist
+  app.post("/api/items/:id/reserve", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid item ID" });
+      }
+      
+      const userId = req.session.userId!;
+      
+      // Get the item to check if it's already reserved or purchased
+      const item = await storage.getWishlistItem(id);
+      if (!item) {
+        return res.status(404).json({ message: "Item not found" });
+      }
+      
+      if (item.reservedByUserId) {
+        return res.status(400).json({ message: "This item is already reserved" });
+      }
+      
+      if (item.purchasedByUserId) {
+        return res.status(400).json({ message: "This item has already been purchased" });
+      }
+      
+      const updatedItem = await storage.reserveWishlistItem(id, userId);
+      if (!updatedItem) {
+        return res.status(500).json({ message: "Failed to reserve item" });
+      }
+      
+      res.json(updatedItem);
+    } catch (error) {
+      console.error("Error reserving wishlist item:", error);
+      res.status(500).json({ message: "Failed to reserve wishlist item" });
+    }
+  });
+
+  // Mark an item as purchased
+  app.post("/api/items/:id/purchase", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid item ID" });
+      }
+      
+      const userId = req.session.userId!;
+      
+      // Get the item to check if it's already purchased
+      const item = await storage.getWishlistItem(id);
+      if (!item) {
+        return res.status(404).json({ message: "Item not found" });
+      }
+      
+      if (item.purchasedByUserId) {
+        return res.status(400).json({ message: "This item has already been purchased" });
+      }
+      
+      const updatedItem = await storage.markItemPurchased(id, userId);
+      if (!updatedItem) {
+        return res.status(500).json({ message: "Failed to mark item as purchased" });
+      }
+      
+      res.json(updatedItem);
+    } catch (error) {
+      console.error("Error marking wishlist item as purchased:", error);
+      res.status(500).json({ message: "Failed to mark wishlist item as purchased" });
+    }
+  });
+
   // Get recently added items (across all wishlists for a user)
   app.get("/api/recent-items", isAuthenticated, async (req: Request, res: Response) => {
     try {
@@ -265,6 +379,174 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching recent items:", error);
       res.status(500).json({ message: "Failed to retrieve recent items" });
+    }
+  });
+
+  // ==================== BENEFICIARY ROUTES ====================
+  
+  // Get all beneficiaries for a user
+  app.get("/api/beneficiaries", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const userId = req.session.userId!;
+      const beneficiaries = await storage.getBeneficiaries(userId);
+      res.json(beneficiaries);
+    } catch (error) {
+      console.error("Error fetching beneficiaries:", error);
+      res.status(500).json({ message: "Failed to retrieve beneficiaries" });
+    }
+  });
+
+  // Get a specific beneficiary
+  app.get("/api/beneficiaries/:id", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid beneficiary ID" });
+      }
+      
+      const beneficiary = await storage.getBeneficiary(id);
+      
+      // Ensure the user owns this beneficiary
+      if (!beneficiary || beneficiary.ownerId !== req.session.userId) {
+        return res.status(404).json({ message: "Beneficiary not found" });
+      }
+      
+      res.json(beneficiary);
+    } catch (error) {
+      console.error("Error fetching beneficiary:", error);
+      res.status(500).json({ message: "Failed to retrieve beneficiary" });
+    }
+  });
+
+  // Create a new beneficiary
+  app.post("/api/beneficiaries", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      // Ensure the beneficiary has the current user as owner
+      const beneficiaryData = {
+        ...req.body,
+        ownerId: req.session.userId
+      };
+      
+      const schema = insertBeneficiarySchema;
+      const result = schema.safeParse(beneficiaryData);
+      
+      if (!result.success) {
+        return res.status(400).json({ 
+          message: "Invalid beneficiary data", 
+          errors: result.error.format() 
+        });
+      }
+      
+      const beneficiary = await storage.createBeneficiary(result.data);
+      res.status(201).json(beneficiary);
+    } catch (error) {
+      console.error("Error creating beneficiary:", error);
+      res.status(500).json({ message: "Failed to create beneficiary" });
+    }
+  });
+
+  // Update a beneficiary
+  app.patch("/api/beneficiaries/:id", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid beneficiary ID" });
+      }
+      
+      // Verify the user owns this beneficiary
+      const existingBeneficiary = await storage.getBeneficiary(id);
+      if (!existingBeneficiary || existingBeneficiary.ownerId !== req.session.userId) {
+        return res.status(404).json({ message: "Beneficiary not found" });
+      }
+      
+      // Define schema for beneficiary updates
+      const schema = z.object({ 
+        name: z.string().min(1).optional(),
+        relationship: z.string().nullable().optional(),
+        birthdate: z.coerce.date().nullable().optional(),
+        notes: z.string().nullable().optional()
+      });
+      
+      const result = schema.safeParse(req.body);
+      
+      if (!result.success) {
+        return res.status(400).json({ 
+          message: "Invalid beneficiary data", 
+          errors: result.error.format() 
+        });
+      }
+      
+      const beneficiary = await storage.updateBeneficiary(id, result.data);
+      if (!beneficiary) {
+        return res.status(404).json({ message: "Beneficiary not found" });
+      }
+      
+      res.json(beneficiary);
+    } catch (error) {
+      console.error("Error updating beneficiary:", error);
+      res.status(500).json({ message: "Failed to update beneficiary" });
+    }
+  });
+
+  // Delete a beneficiary
+  app.delete("/api/beneficiaries/:id", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid beneficiary ID" });
+      }
+      
+      // Verify the user owns this beneficiary
+      const beneficiary = await storage.getBeneficiary(id);
+      if (!beneficiary || beneficiary.ownerId !== req.session.userId) {
+        return res.status(404).json({ message: "Beneficiary not found" });
+      }
+      
+      const success = await storage.deleteBeneficiary(id);
+      if (!success) {
+        return res.status(400).json({ 
+          message: "Cannot delete beneficiary with active wishlists. Remove all wishlists first." 
+        });
+      }
+      
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting beneficiary:", error);
+      res.status(500).json({ message: "Failed to delete beneficiary" });
+    }
+  });
+
+  // Get wishlists for a specific beneficiary
+  app.get("/api/beneficiaries/:id/wishlists", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid beneficiary ID" });
+      }
+      
+      // Verify the user owns this beneficiary
+      const beneficiary = await storage.getBeneficiary(id);
+      if (!beneficiary || beneficiary.ownerId !== req.session.userId) {
+        return res.status(404).json({ message: "Beneficiary not found" });
+      }
+      
+      const wishlists = await storage.getWishlistsByBeneficiary(id);
+      
+      // Get item counts for each wishlist
+      const wishlistsWithCounts = await Promise.all(
+        wishlists.map(async (wishlist) => {
+          const items = await storage.getWishlistItems(wishlist.id);
+          return {
+            ...wishlist,
+            itemCount: items.length
+          };
+        })
+      );
+      
+      res.json(wishlistsWithCounts);
+    } catch (error) {
+      console.error("Error fetching beneficiary wishlists:", error);
+      res.status(500).json({ message: "Failed to retrieve beneficiary wishlists" });
     }
   });
 

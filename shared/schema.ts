@@ -45,9 +45,27 @@ export const wishlists = pgTable("wishlists", {
   beneficiaryId: integer("beneficiary_id").references(() => beneficiaries.id), // Optional - if set, this list is for the beneficiary
   shareId: varchar("share_id", { length: 36 }).notNull().unique(),
   isPublic: boolean("is_public").default(false).notNull(), // Make accessible to the public without login
+  isCollaborative: boolean("is_collaborative").default(false).notNull(), // Allow collaborative editing
   createdAt: timestamp("created_at").defaultNow().notNull(),
   occasion: text("occasion"), // e.g., "Birthday", "Christmas", "Baby Shower"
   occasionDate: timestamp("occasion_date"), // When the event is happening
+  description: text("description"), // Additional description for the wishlist
+});
+
+// Table for wishlist collaborators (for group gifting)
+export const wishlistCollaborators = pgTable("wishlist_collaborators", {
+  id: serial("id").primaryKey(),
+  wishlistId: integer("wishlist_id").notNull().references(() => wishlists.id),
+  userId: integer("user_id").notNull().references(() => users.id),
+  role: text("role").default("editor").notNull(), // "editor", "viewer", etc.
+  addedAt: timestamp("added_at").defaultNow().notNull(),
+  addedBy: integer("added_by").references(() => users.id), // Who added this collaborator
+  lastActive: timestamp("last_active"), // When they last interacted with the wishlist
+}, (table) => {
+  return {
+    // Unique constraint to prevent duplicate collaborators
+    unique_collaborator: primaryKey({ columns: [table.wishlistId, table.userId] }),
+  }
 });
 
 export const wishlistsRelations = relations(wishlists, ({ one, many }) => ({
@@ -59,7 +77,23 @@ export const wishlistsRelations = relations(wishlists, ({ one, many }) => ({
     fields: [wishlists.beneficiaryId],
     references: [beneficiaries.id]
   }),
-  items: many(wishlistItems)
+  items: many(wishlistItems),
+  collaborators: many(wishlistCollaborators)
+}));
+
+export const wishlistCollaboratorsRelations = relations(wishlistCollaborators, ({ one }) => ({
+  wishlist: one(wishlists, {
+    fields: [wishlistCollaborators.wishlistId],
+    references: [wishlists.id]
+  }),
+  user: one(users, {
+    fields: [wishlistCollaborators.userId],
+    references: [users.id]
+  }),
+  addedByUser: one(users, {
+    fields: [wishlistCollaborators.addedBy],
+    references: [users.id]
+  })
 }));
 
 export const wishlistItems = pgTable("wishlist_items", {
@@ -115,8 +149,18 @@ export const insertWishlistSchema = createInsertSchema(wishlists).pick({
   shareId: true,
   beneficiaryId: true,
   isPublic: true,
+  isCollaborative: true,
   occasion: true,
   occasionDate: true,
+  description: true,
+});
+
+export const insertWishlistCollaboratorSchema = createInsertSchema(wishlistCollaborators).pick({
+  wishlistId: true,
+  userId: true,
+  role: true,
+  addedBy: true,
+  lastActive: true,
 });
 
 export const insertWishlistItemSchema = createInsertSchema(wishlistItems).pick({
@@ -141,6 +185,9 @@ export type Beneficiary = typeof beneficiaries.$inferSelect;
 
 export type InsertWishlist = z.infer<typeof insertWishlistSchema>;
 export type Wishlist = typeof wishlists.$inferSelect;
+
+export type InsertWishlistCollaborator = z.infer<typeof insertWishlistCollaboratorSchema>;
+export type WishlistCollaborator = typeof wishlistCollaborators.$inferSelect;
 
 export type InsertWishlistItem = z.infer<typeof insertWishlistItemSchema>;
 export type WishlistItem = typeof wishlistItems.$inferSelect;

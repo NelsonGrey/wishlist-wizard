@@ -3,7 +3,8 @@ import {
   users, User, InsertUser,
   beneficiaries, Beneficiary, InsertBeneficiary,
   wishlists, Wishlist, InsertWishlist,
-  wishlistItems, WishlistItem, InsertWishlistItem
+  wishlistItems, WishlistItem, InsertWishlistItem,
+  wishlistCollaborators, WishlistCollaborator, InsertWishlistCollaborator
 } from "@shared/schema";
 import { DatabaseStorage } from "./storage.db";
 
@@ -25,11 +26,20 @@ export interface IStorage {
   // Wishlist methods
   getWishlists(userId: number): Promise<Wishlist[]>;
   getWishlistsByBeneficiary(beneficiaryId: number): Promise<Wishlist[]>;
+  getCollaborativeWishlists(userId: number): Promise<Wishlist[]>;
   getWishlistById(id: number): Promise<Wishlist | undefined>;
   getWishlistByShareId(shareId: string): Promise<Wishlist | undefined>;
   createWishlist(wishlist: Omit<InsertWishlist, "shareId">): Promise<Wishlist>;
   updateWishlist(id: number, data: Partial<Omit<InsertWishlist, "userId">>): Promise<Wishlist | undefined>;
   deleteWishlist(id: number): Promise<boolean>;
+  
+  // Wishlist collaborator methods
+  addCollaborator(collaborator: InsertWishlistCollaborator): Promise<WishlistCollaborator>;
+  removeCollaborator(wishlistId: number, userId: number): Promise<boolean>;
+  getCollaborators(wishlistId: number): Promise<WishlistCollaborator[]>;
+  updateCollaboratorRole(wishlistId: number, userId: number, role: string): Promise<WishlistCollaborator | undefined>;
+  isCollaborator(wishlistId: number, userId: number): Promise<boolean>;
+  updateCollaboratorActivity(wishlistId: number, userId: number): Promise<boolean>;
 
   // Wishlist item methods
   getWishlistItems(wishlistId: number): Promise<WishlistItem[]>;
@@ -46,20 +56,24 @@ export class MemStorage implements IStorage {
   private beneficiaries: Map<number, Beneficiary>;
   private wishlists: Map<number, Wishlist>;
   private wishlistItems: Map<number, WishlistItem>;
+  private wishlistCollaborators: Map<number, WishlistCollaborator>;
   private userIdCounter: number;
   private beneficiaryIdCounter: number;
   private wishlistIdCounter: number;
   private wishlistItemIdCounter: number;
+  private collaboratorIdCounter: number;
 
   constructor() {
     this.users = new Map();
     this.beneficiaries = new Map();
     this.wishlists = new Map();
     this.wishlistItems = new Map();
+    this.wishlistCollaborators = new Map();
     this.userIdCounter = 1;
     this.beneficiaryIdCounter = 1;
     this.wishlistIdCounter = 1;
     this.wishlistItemIdCounter = 1;
+    this.collaboratorIdCounter = 1;
     
     // Add a demo user
     this.createUser({
@@ -210,6 +224,19 @@ export class MemStorage implements IStorage {
     );
   }
 
+  async getCollaborativeWishlists(userId: number): Promise<Wishlist[]> {
+    // Get all wishlists where the user is a collaborator
+    const collaborations = Array.from(this.wishlistCollaborators.values()).filter(
+      (collaborator) => collaborator.userId === userId
+    );
+    
+    // Get the actual wishlists by their IDs
+    const wishlistIds = new Set(collaborations.map(c => c.wishlistId));
+    return Array.from(this.wishlists.values()).filter(
+      (wishlist) => wishlistIds.has(wishlist.id)
+    );
+  }
+
   async getWishlistById(id: number): Promise<Wishlist | undefined> {
     return this.wishlists.get(id);
   }
@@ -232,8 +259,10 @@ export class MemStorage implements IStorage {
       beneficiaryId: wishlistData.beneficiaryId || null,
       shareId,
       isPublic: wishlistData.isPublic || false,
+      isCollaborative: wishlistData.isCollaborative || false,
       occasion: wishlistData.occasion || null,
       occasionDate: wishlistData.occasionDate || null,
+      description: wishlistData.description || null,
       createdAt: now
     };
     
