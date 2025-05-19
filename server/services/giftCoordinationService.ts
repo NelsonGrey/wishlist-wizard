@@ -95,7 +95,8 @@ export async function addGiftParticipant(
     return reservation;
   } catch (error) {
     console.error("Error adding gift participant:", error);
-    throw new Error(`Failed to add gift participant: ${error.message}`);
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    throw new Error(`Failed to add gift participant: ${errorMessage}`);
   }
 }
 
@@ -154,7 +155,8 @@ export async function removeGiftParticipant(
     return true;
   } catch (error) {
     console.error("Error removing gift participant:", error);
-    throw new Error(`Failed to remove gift participant: ${error.message}`);
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    throw new Error(`Failed to remove gift participant: ${errorMessage}`);
   }
 }
 
@@ -227,7 +229,8 @@ export async function updateGiftParticipation(
     return updatedReservation;
   } catch (error) {
     console.error("Error updating gift participation:", error);
-    throw new Error(`Failed to update gift participation: ${error.message}`);
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    throw new Error(`Failed to update gift participation: ${errorMessage}`);
   }
 }
 
@@ -324,6 +327,7 @@ async function notifyOtherParticipants(
     }
   } catch (error) {
     console.error("Error notifying other participants:", error);
+    // Just log the error but don't throw as this is a non-critical operation
   }
 }
 
@@ -384,7 +388,8 @@ export async function markGiftAsReady(itemId: number, organizerId: number): Prom
     return true;
   } catch (error) {
     console.error("Error marking gift as ready:", error);
-    throw new Error("Failed to mark gift as ready");
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    throw new Error(`Failed to mark gift as ready: ${errorMessage}`);
   }
 }
 
