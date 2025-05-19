@@ -11,6 +11,7 @@ import {
 import { z } from "zod";
 import { register, login, logout, getCurrentUser, isAuthenticated } from "./auth";
 import { initializeSessionTable } from "./session";
+import { verifyExtensionAuth, getExtensionWishlists, addItemFromExtension } from "./extension";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
@@ -940,6 +941,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to mark all notifications as read" });
     }
   });
+  
+  // ==================== BROWSER EXTENSION ROUTES ====================
+  
+  // Verify extension authentication
+  app.get("/api/extension/auth", verifyExtensionAuth);
+  
+  // Get wishlists for extension
+  app.get("/api/extension/wishlists", getExtensionWishlists);
+  
+  // Add item from extension
+  app.post("/api/extension/items", isAuthenticated, addItemFromExtension);
   
   // Delete a notification
   app.delete("/api/notifications/:id", isAuthenticated, async (req: Request, res: Response) => {
