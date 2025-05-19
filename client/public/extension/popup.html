@@ -25,6 +25,15 @@
       <p>Loading...</p>
     </div>
 
+    <!-- Not a product page screen -->
+    <div id="not-product-screen" class="screen hidden">
+      <div class="message-box">
+        <p>This doesn't appear to be a product page.</p>
+        <p class="small-text">WishKeeper works on product pages from any online retailer.</p>
+        <button id="force-detection-button" class="secondary-button">This is a product - try again</button>
+      </div>
+    </div>
+
     <!-- Product Info Screen -->
     <div id="product-screen" class="screen hidden">
       <div class="product-info">
@@ -33,7 +42,24 @@
           <h2 id="product-title" class="product-title"></h2>
           <p id="product-price" class="product-price"></p>
           <p id="product-store" class="product-store"></p>
+          <span id="store-badge" class="store-badge"></span>
         </div>
+      </div>
+      
+      <button id="edit-product-button" class="text-button">Edit Product Info</button>
+      
+      <div id="edit-product-form" class="edit-form hidden">
+        <div class="form-group">
+          <label for="edit-title">Title:</label>
+          <input type="text" id="edit-title" class="form-input">
+        </div>
+        
+        <div class="form-group">
+          <label for="edit-price">Price:</label>
+          <input type="text" id="edit-price" class="form-input">
+        </div>
+        
+        <button id="update-product-button" class="secondary-button">Update Information</button>
       </div>
       
       <div class="wishlist-selection">

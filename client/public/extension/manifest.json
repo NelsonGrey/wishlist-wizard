@@ -23,10 +23,7 @@
     "cookies"
   ],
   "host_permissions": [
-    "*://*.amazon.com/*",
-    "*://*.target.com/*",
-    "*://*.walmart.com/*",
-    "*://*.wishkeeper.replit.app/*"
+    "<all_urls>"
   ],
   "background": {
     "service_worker": "background.js"
@@ -34,9 +31,7 @@
   "content_scripts": [
     {
       "matches": [
-        "*://*.amazon.com/*",
-        "*://*.target.com/*",
-        "*://*.walmart.com/*"
+        "<all_urls>"
       ],
       "js": ["content.js"]
     }
