@@ -9,6 +9,7 @@ import CreateWishlistDialog from "@/components/CreateWishlistDialog";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
+import { SidebarAd } from "@/components/ads";
 
 type Wishlist = {
   id: number;
@@ -75,6 +76,9 @@ export default function Dashboard() {
               <span>Create New List</span>
             </Button>
           </div>
+          
+          {/* Dashboard layout with sidebar ad */}
+          <div className="flex flex-col lg:flex-row gap-6">
 
           {isLoading ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
