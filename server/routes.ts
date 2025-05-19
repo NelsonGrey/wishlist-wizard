@@ -967,6 +967,69 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get recommendations for a specific beneficiary
+  app.get("/api/recommendations/beneficiary/:id", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const userId = req.session.userId as number;
+      const beneficiaryId = parseInt(req.params.id);
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 5;
+      
+      if (isNaN(beneficiaryId)) {
+        return res.status(400).json({ error: "Invalid beneficiary ID" });
+      }
+      
+      // Import the recommendation service
+      const { getRecommendationsForBeneficiary } = await import("./services/recommendationService");
+      
+      // Get personalized recommendations for the beneficiary
+      const recommendations = await getRecommendationsForBeneficiary(userId, beneficiaryId, limit);
+      
+      return res.json(recommendations);
+    } catch (error) {
+      console.error("Error getting beneficiary recommendations:", error);
+      return res.status(500).json({ error: "Failed to generate beneficiary recommendations" });
+    }
+  });
+  
+  // Update recommendation status (viewed, saved, or rejected)
+  app.patch("/api/recommendations/:id/status", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const userId = req.session.userId as number;
+      const recommendationId = parseInt(req.params.id);
+      
+      if (isNaN(recommendationId)) {
+        return res.status(400).json({ error: "Invalid recommendation ID" });
+      }
+      
+      // Validate request body
+      const statusSchema = z.object({
+        isViewed: z.boolean().optional(),
+        isSaved: z.boolean().optional(),
+        isRejected: z.boolean().optional()
+      });
+      
+      const result = statusSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ error: "Invalid status update data" });
+      }
+      
+      // Import the recommendation service
+      const { updateRecommendationStatus } = await import("./services/recommendationService");
+      
+      // Update the recommendation status
+      const success = await updateRecommendationStatus(recommendationId, userId, result.data);
+      
+      if (!success) {
+        return res.status(404).json({ error: "Recommendation not found or not owned by user" });
+      }
+      
+      return res.json({ success: true });
+    } catch (error) {
+      console.error("Error updating recommendation status:", error);
+      return res.status(500).json({ error: "Failed to update recommendation status" });
+    }
+  });
+
   // Get recent notifications for the current user
   app.get("/api/notifications", isAuthenticated, async (req: Request, res: Response) => {
     try {
