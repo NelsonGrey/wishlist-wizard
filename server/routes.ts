@@ -14,6 +14,16 @@ import { register, login, logout, getCurrentUser, isAuthenticated, verifyEmail, 
 import { issueToken } from "./jwt-auth";
 import { initializeSessionTable } from "./session";
 import { verifyExtensionAuth, getExtensionWishlists, addItemFromExtension, verifyExtensionJWT } from "./extension";
+import { 
+  notifyWishlistCreated, 
+  notifyItemAdded, 
+  notifyItemReserved, 
+  notifyItemPurchased,
+  notifyWishlistShared,
+  notifyCollaboratorAdded,
+  notifyCollaboratorRemoved,
+  notifyWishlistCollaborators
+} from "./services/notificationService";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
@@ -113,6 +123,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const wishlist = await storage.createWishlist(result.data);
+      
+      // Get creator info for notification
+      const creator = await storage.getUser(req.session.userId!);
+      const creatorName = creator?.displayName || creator?.username || "Someone";
+      
+      // Notify the creator about their new wishlist
+      await notifyWishlistCreated(req.session.userId!, wishlist, creatorName);
+      
       res.status(201).json(wishlist);
     } catch (error) {
       console.error("Error creating wishlist:", error);
@@ -224,29 +242,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const item = await storage.createWishlistItem(result.data);
       
-      // Use the existing wishlist object instead of fetching it again
+      // Get user info for notification
+      const addedByUser = await storage.getUser(req.session.userId!);
+      const adderName = addedByUser?.displayName || addedByUser?.username || "Someone";
       
       // If this is a collaborative wishlist, notify collaborators
-      if (wishlist && wishlist.isCollaborative) {
-        // Get all collaborators
-        const collaborators = await storage.getCollaborators(wishlist.id);
-        const addedByUser = await storage.getUser(req.session.userId!);
-        
-        // Notify each collaborator except the one who added the item
-        for (const collaborator of collaborators) {
-          if (collaborator.userId !== req.session.userId) {
-            await storage.createNotification({
-              userId: collaborator.userId,
-              type: "item_added",
-              title: "New Item Added",
-              message: `${addedByUser?.displayName || addedByUser?.username || "Someone"} added "${item.title}" to the wishlist "${wishlist.name}"`,
-              relatedEntityId: item.id,
-              relatedEntityType: "wishlist_item",
-              isRead: false,
-              actionUrl: `/wishlist/${wishlist.id}`
-            });
-          }
-        }
+      if (wishlist.isCollaborative) {
+        await notifyWishlistCollaborators(
+          wishlist.id,
+          `${adderName} added "${item.title}" to the wishlist "${wishlist.name}"`,
+          "New Item Added",
+          "item_added",
+          req.session.userId // Exclude the current user from notifications
+        );
+      } 
+      // If this is a regular wishlist owned by someone else (beneficiary wishlist)
+      else if (wishlist.userId !== req.session.userId) {
+        // Notify the owner
+        await notifyItemAdded(
+          wishlist.userId,
+          item,
+          wishlist.name,
+          adderName
+        );
       }
       
       res.status(201).json(item);
