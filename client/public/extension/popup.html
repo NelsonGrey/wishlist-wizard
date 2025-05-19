@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WishKeeper</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <img src="../icons/icon48.png" alt="WishKeeper Logo" class="logo">
+      <h1>WishKeeper</h1>
+    </div>
+
+    <!-- Login Screen -->
+    <div id="login-screen" class="screen">
+      <p>Sign in to add items to your wishlists</p>
+      <button id="login-button" class="primary-button">Sign In</button>
+    </div>
+
+    <!-- Loading Screen -->
+    <div id="loading-screen" class="screen hidden">
+      <div class="spinner"></div>
+      <p>Loading...</p>
+    </div>
+
+    <!-- Product Info Screen -->
+    <div id="product-screen" class="screen hidden">
+      <div class="product-info">
+        <img id="product-image" src="" alt="Product Image" class="product-image">
+        <div class="product-details">
+          <h2 id="product-title" class="product-title"></h2>
+          <p id="product-price" class="product-price"></p>
+          <p id="product-store" class="product-store"></p>
+        </div>
+      </div>
+      
+      <div class="wishlist-selection">
+        <label for="wishlist-select">Add to wishlist:</label>
+        <select id="wishlist-select" class="wishlist-dropdown">
+          <option value="" disabled selected>Select a wishlist</option>
+        </select>
+      </div>
+      
+      <div class="note-section">
+        <label for="note-input">Add a note (optional):</label>
+        <textarea id="note-input" class="note-textarea" placeholder="Why do you want this item?"></textarea>
+      </div>
+      
+      <div class="button-group">
+        <button id="add-button" class="primary-button">Add to Wishlist</button>
+        <button id="cancel-button" class="secondary-button">Cancel</button>
+      </div>
+    </div>
+
+    <!-- Success Screen -->
+    <div id="success-screen" class="screen hidden">
+      <div class="success-icon">✓</div>
+      <h2>Added to Wishlist!</h2>
+      <p>Item successfully added to your wishlist.</p>
+      <button id="done-button" class="primary-button">Done</button>
+      <button id="view-wishlist-button" class="secondary-button">View Wishlist</button>
+    </div>
+
+    <!-- Error Screen -->
+    <div id="error-screen" class="screen hidden">
+      <div class="error-icon">!</div>
+      <h2>Oops!</h2>
+      <p id="error-message">Something went wrong. Please try again.</p>
+      <button id="retry-button" class="primary-button">Retry</button>
+      <button id="close-button" class="secondary-button">Close</button>
+    </div>
+
+    <div class="footer">
+      <span id="user-info" class="user-info hidden">Signed in as <span id="username"></span></span>
+      <button id="logout-button" class="text-button hidden">Sign Out</button>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
