@@ -10,7 +10,8 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { SiChrome, SiFirefox, SiMicrosoftedge } from 'react-icons/si';
+// Using alternative icons from the React Icons library
+import { FaChrome, FaFirefox, FaEdge } from 'react-icons/fa';
 import { ResponsiveAd } from '@/components/ads/AdUnit';
 
 const ExtensionPage = () => {
@@ -77,13 +78,13 @@ const ExtensionPage = () => {
         <Tabs defaultValue="chrome" className="w-full mb-16">
           <TabsList className="grid w-full grid-cols-3 mb-8">
             <TabsTrigger value="chrome" className="flex items-center gap-2">
-              <SiChrome className="h-5 w-5" /> Chrome
+              <FaChrome className="h-5 w-5" /> Chrome
             </TabsTrigger>
             <TabsTrigger value="firefox" className="flex items-center gap-2">
-              <SiFirefox className="h-5 w-5" /> Firefox
+              <FaFirefox className="h-5 w-5" /> Firefox
             </TabsTrigger>
             <TabsTrigger value="edge" className="flex items-center gap-2">
-              <SiMicrosoftedge className="h-5 w-5" /> Edge
+              <FaEdge className="h-5 w-5" /> Edge
             </TabsTrigger>
           </TabsList>
           

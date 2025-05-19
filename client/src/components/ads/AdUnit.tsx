@@ -23,6 +23,59 @@ declare global {
  * @param className - Additional CSS classes
  * @param style - Additional inline styles
  */
+/**
+ * ResponsiveAd component for displaying responsive Google AdSense ads
+ * with predefined, commonly used ad format
+ */
+export function ResponsiveAd({ className = '' }: { className?: string }) {
+  // Using a standard responsive ad slot
+  return (
+    <div className={`responsive-ad-container ${className}`}>
+      <AdUnit 
+        slot="5198775482" 
+        format="auto" 
+        responsive={true} 
+        className="w-full" 
+        style={{ display: 'block', minHeight: '280px' }}
+      />
+    </div>
+  );
+}
+
+/**
+ * SidebarAd component for displaying vertical ads in sidebars
+ */
+export function SidebarAd({ className = '' }: { className?: string }) {
+  return (
+    <div className={`sidebar-ad-container ${className}`}>
+      <AdUnit 
+        slot="7389144625" 
+        format="vertical" 
+        responsive={false} 
+        className="w-full" 
+        style={{ display: 'block', minHeight: '600px' }}
+      />
+    </div>
+  );
+}
+
+/**
+ * InlineAd component for displaying horizontal ads inline with content
+ */
+export function InlineAd({ className = '' }: { className?: string }) {
+  return (
+    <div className={`inline-ad-container ${className}`}>
+      <AdUnit 
+        slot="9287452186" 
+        format="horizontal" 
+        responsive={true} 
+        className="w-full" 
+        style={{ display: 'block', minHeight: '90px' }}
+      />
+    </div>
+  );
+}
+
 export function AdUnit({
   slot,
   format = 'auto',
