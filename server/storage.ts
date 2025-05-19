@@ -4,6 +4,7 @@ import {
   wishlists, Wishlist, InsertWishlist,
   wishlistItems, WishlistItem, InsertWishlistItem
 } from "@shared/schema";
+import { DatabaseStorage } from "./storage.db";
 
 export interface IStorage {
   // User methods
@@ -204,4 +205,5 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+// Create and export an instance of DatabaseStorage
+export const storage = new DatabaseStorage();
