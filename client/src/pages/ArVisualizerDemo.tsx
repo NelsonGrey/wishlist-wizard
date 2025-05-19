@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import { ArVisualizationHelp } from '@/components/help/ArVisualizationHelp';
 import { 
   Card, 
   CardContent, 
@@ -212,7 +213,10 @@ const ArVisualizerDemo = () => {
 
   return (
     <div className="container mx-auto py-8">
-      <h1 className="text-3xl font-bold mb-8 text-center">Augmented Reality Product Visualizer</h1>
+      <div className="flex items-center justify-center gap-3 mb-8">
+        <h1 className="text-3xl font-bold text-center">Augmented Reality Product Visualizer</h1>
+        <ArVisualizationHelp />
+      </div>
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Product Selection */}
