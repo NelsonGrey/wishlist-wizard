@@ -16,20 +16,20 @@ export default function Header() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center py-4">
           <div className="flex items-center">
-            <Link href="/">
-              <a className="text-2xl font-bold text-primary">WishKeeper</a>
+            <Link href="/" className="text-2xl font-bold text-primary">
+              WishKeeper
             </Link>
           </div>
           
           {/* Desktop menu */}
           <div className="hidden md:flex items-center space-x-4">
-            <Link href="/">
-              <a className="text-gray-600 hover:text-gray-900 font-medium">Home</a>
+            <Link href="/" className="text-gray-600 hover:text-gray-900 font-medium">
+              Home
             </Link>
             {isLoggedIn ? (
               <>
-                <Link href="/dashboard">
-                  <a className="text-gray-600 hover:text-gray-900 font-medium">My Wishlists</a>
+                <Link href="/dashboard" className="text-gray-600 hover:text-gray-900 font-medium">
+                  My Wishlists
                 </Link>
                 {isHome ? (
                   <Button
@@ -78,23 +78,21 @@ export default function Header() {
               </SheetTrigger>
               <SheetContent side="right">
                 <nav className="flex flex-col gap-4 mt-8">
-                  <Link href="/">
-                    <a 
-                      className="text-lg font-medium hover:text-primary" 
-                      onClick={() => setIsMenuOpen(false)}
-                    >
-                      Home
-                    </a>
+                  <Link 
+                    href="/"
+                    className="text-lg font-medium hover:text-primary" 
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    Home
                   </Link>
                   {isLoggedIn ? (
                     <>
-                      <Link href="/dashboard">
-                        <a 
-                          className="text-lg font-medium hover:text-primary"
-                          onClick={() => setIsMenuOpen(false)}
-                        >
-                          My Wishlists
-                        </a>
+                      <Link 
+                        href="/dashboard"
+                        className="text-lg font-medium hover:text-primary"
+                        onClick={() => setIsMenuOpen(false)}
+                      >
+                        My Wishlists
                       </Link>
                       <a 
                         href="https://chrome.google.com/webstore/detail/wishkeeper/placeholder"
