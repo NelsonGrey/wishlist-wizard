@@ -188,9 +188,14 @@ export async function updateGiftParticipation(
     }
 
     // Update the reservation
+    const updatesWithStringAmount = {
+      ...updates,
+      contributionAmount: updates.contributionAmount ? updates.contributionAmount.toString() : undefined
+    };
+
     const [updatedReservation] = await db
       .update(giftReservations)
-      .set(updates)
+      .set(updatesWithStringAmount)
       .where(
         and(
           eq(giftReservations.wishlistItemId, itemId),
@@ -434,9 +439,9 @@ export async function markGiftAsPurchased(
         title: "Group Gift Purchased",
         message: `The group gift "${item.title}" has been purchased by ${purchaserName}.`,
         isRead: false,
-        relatedItemId: itemId,
-        relatedWishlistId: item.wishlistId,
-        createdAt: new Date()
+        relatedEntityId: itemId,
+        relatedEntityType: "item",
+        actionUrl: `/wishlist/${item.wishlistId}`
       };
 
       await db.insert(notifications).values(notification);
