@@ -11,6 +11,11 @@
     <div class="header">
       <img src="../icons/icon48.png" alt="WishKeeper Logo" class="logo">
       <h1>WishKeeper</h1>
+      <div class="nav-tabs">
+        <button id="tab-product" class="tab-button active">Product</button>
+        <button id="tab-price" class="tab-button">Compare</button>
+        <button id="tab-coupon" class="tab-button">Coupons</button>
+      </div>
     </div>
 
     <!-- Login Screen -->
@@ -75,6 +80,16 @@
           <input type="text" id="edit-price" class="form-input">
         </div>
         
+        <div class="form-group">
+          <label for="edit-store">Store:</label>
+          <input type="text" id="edit-store" class="form-input">
+        </div>
+        
+        <div class="form-group">
+          <label for="edit-image-url">Image URL:</label>
+          <input type="text" id="edit-image-url" class="form-input">
+        </div>
+        
         <button id="update-product-button" class="secondary-button">Update Information</button>
       </div>
       
@@ -90,9 +105,92 @@
         <textarea id="note-input" class="note-textarea" placeholder="Why do you want this item?"></textarea>
       </div>
       
+      <div class="quick-add-options">
+        <button id="enable-quick-add-button" class="option-button">
+          <span class="option-icon">⚡</span>
+          <span class="option-text">Enable One-Click Add</span>
+        </button>
+      </div>
+      
       <div class="button-group">
         <button id="add-button" class="primary-button">Add to Wishlist</button>
         <button id="cancel-button" class="secondary-button">Cancel</button>
+      </div>
+    </div>
+
+    <!-- Price Comparison Screen -->
+    <div id="price-comparison-screen" class="screen hidden">
+      <h2>Price Comparison</h2>
+      <div id="comparison-loading" class="spinner"></div>
+      
+      <div id="best-deal-container" class="best-deal hidden">
+        <h3>Best Deal Found!</h3>
+        <div id="best-deal-details" class="deal-details">
+          <span class="deal-store"></span>
+          <span class="deal-price"></span>
+          <span class="deal-savings"></span>
+        </div>
+        <a id="best-deal-link" class="primary-button" target="_blank">Go to Deal</a>
+      </div>
+      
+      <div class="comparison-results">
+        <div id="comparison-list"></div>
+      </div>
+      
+      <template id="comparison-item-template">
+        <div class="comparison-item">
+          <div class="comparison-details">
+            <span class="store-name"></span>
+            <span class="price"></span>
+            <span class="price-difference"></span>
+            <div class="comparison-badges">
+              <span class="in-stock-badge"></span>
+              <span class="free-shipping-badge"></span>
+            </div>
+          </div>
+          <a class="view-button" target="_blank">View</a>
+        </div>
+      </template>
+      
+      <div class="button-group">
+        <button id="refresh-comparison-button" class="secondary-button">Refresh Prices</button>
+      </div>
+    </div>
+
+    <!-- Coupon Finder Screen -->
+    <div id="coupon-screen" class="screen hidden">
+      <h2>Available Coupons</h2>
+      <div id="coupon-loading" class="spinner"></div>
+      
+      <div class="coupon-results">
+        <div id="coupon-list"></div>
+      </div>
+      
+      <template id="coupon-item-template">
+        <div class="coupon-item">
+          <div class="coupon-details">
+            <div class="coupon-code"></div>
+            <div class="coupon-discount"></div>
+            <div class="coupon-description"></div>
+            <div class="coupon-expiry"></div>
+            <div class="coupon-source"></div>
+            <div class="coupon-verification"></div>
+          </div>
+          <div class="coupon-actions">
+            <button class="copy-button">Copy</button>
+            <button class="apply-button">Apply</button>
+          </div>
+        </div>
+      </template>
+      
+      <div id="no-coupons-message" class="message-box hidden">
+        <p>No coupons found for this store.</p>
+        <p class="small-text">Try checking these coupon websites:</p>
+        <div id="coupon-links" class="link-list"></div>
+      </div>
+      
+      <div class="button-group">
+        <button id="refresh-coupons-button" class="secondary-button">Find More Coupons</button>
       </div>
     </div>
 
@@ -121,6 +219,9 @@
   </div>
 
   <script src="popup-auth.js"></script>
+  <script src="coupons.js"></script>
+  <script src="comparison.js"></script>
+  <script src="quick-add.js"></script>
   <script src="popup.js"></script>
 </body>
 </html>
