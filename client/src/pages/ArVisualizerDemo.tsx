@@ -19,8 +19,8 @@ import {
   Sofa, 
   Bed, 
   Table, 
-  Move3d, 
-  Furniture,
+  Move, 
+  Armchair,
   RotateCcw,
   RotateCw,
   ZoomIn,
@@ -267,7 +267,7 @@ const ArVisualizerDemo = () => {
             <Tabs defaultValue="room" className="mb-4" onValueChange={(value) => setVisMode(value as VisMode)}>
               <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="room" className="flex gap-2 items-center">
-                  <Furniture size={16} />
+                  <Armchair size={16} />
                   Room View
                 </TabsTrigger>
                 <TabsTrigger value="size" className="flex gap-2 items-center">
@@ -275,7 +275,7 @@ const ArVisualizerDemo = () => {
                   Size Compare
                 </TabsTrigger>
                 <TabsTrigger value="fit" className="flex gap-2 items-center">
-                  <Move3d size={16} />
+                  <Move size={16} />
                   Space Fit
                 </TabsTrigger>
               </TabsList>

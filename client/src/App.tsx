@@ -14,6 +14,7 @@ import ExtensionPage from "@/pages/ExtensionPage";
 import Notifications from "@/pages/Notifications";
 import MobileAppDemo from "@/pages/MobileAppDemo";
 import ArVisualizerDemo from "@/pages/ArVisualizerDemo";
+import SocialSharingDemo from "@/pages/SocialSharingDemo";
 
 function Router() {
   return (
@@ -29,6 +30,7 @@ function Router() {
       <Route path="/notifications" component={Notifications} />
       <Route path="/mobile-demo" component={MobileAppDemo} />
       <Route path="/ar-visualizer" component={ArVisualizerDemo} />
+      <Route path="/social-sharing" component={SocialSharingDemo} />
       <Route component={NotFound} />
     </Switch>
   );
