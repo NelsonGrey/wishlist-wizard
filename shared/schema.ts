@@ -421,6 +421,40 @@ export const groupGiftContributionsRelations = relations(groupGiftContributions,
   })
 }));
 
+// Gift reservations for Social Gifting Coordination
+export const giftReservations = pgTable("gift_reservations", {
+  id: serial("id").primaryKey(),
+  wishlistItemId: integer("wishlist_item_id").notNull().references(() => wishlistItems.id),
+  userId: integer("user_id").notNull().references(() => users.id),
+  contributionAmount: decimal("contribution_amount", { precision: 10, scale: 2 }).notNull(),
+  message: text("message"),
+  status: text("status").default("active").notNull(), // active, ready, purchased, cancelled
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at")
+});
+
+export const giftReservationsRelations = relations(giftReservations, ({ one }) => ({
+  item: one(wishlistItems, {
+    fields: [giftReservations.wishlistItemId],
+    references: [wishlistItems.id]
+  }),
+  user: one(users, {
+    fields: [giftReservations.userId],
+    references: [users.id]
+  })
+}));
+
+export const insertGiftReservationSchema = createInsertSchema(giftReservations).pick({
+  wishlistItemId: true,
+  userId: true,
+  contributionAmount: true,
+  message: true,
+  status: true
+});
+
+export type InsertGiftReservation = z.infer<typeof insertGiftReservationSchema>;
+export type GiftReservation = typeof giftReservations.$inferSelect;
+
 // Insert schemas for group gifting
 export const insertGroupGiftSchema = createInsertSchema(groupGifts).pick({
   itemId: true,
