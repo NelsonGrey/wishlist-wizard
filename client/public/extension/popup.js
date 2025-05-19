@@ -2,10 +2,13 @@
 let currentProductInfo = null;
 let wishlists = [];
 let currentActiveScreen = 'loading-screen';
+let currentActiveTab = 'product';
 let currentTab = null;
 let isLoggedIn = false;
 let userId = null;
 let username = null;
+let comparisonResults = [];
+let coupons = [];
 
 // Show a specific screen and hide all others
 function showScreen(screenId) {
