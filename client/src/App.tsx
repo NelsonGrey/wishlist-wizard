@@ -15,7 +15,7 @@ import Notifications from "@/pages/Notifications";
 import MobileAppDemo from "@/pages/MobileAppDemo";
 import ArVisualizerDemo from "@/pages/ArVisualizerDemo";
 import SocialSharingDemo from "@/pages/SocialSharingDemo";
-import PriceTrackingDemo from "@/pages/PriceTrackingDemo";
+import PriceTracking from "@/pages/PriceTracking";
 import UserProfile from "@/pages/UserProfile";
 import Recommendations from "@/pages/Recommendations";
 import Calendar from "@/pages/Calendar";
@@ -35,7 +35,7 @@ function Router() {
       <Route path="/mobile-demo" component={MobileAppDemo} />
       <Route path="/ar-visualizer" component={ArVisualizerDemo} />
       <Route path="/social-sharing" component={SocialSharingDemo} />
-      <Route path="/price-tracking" component={PriceTrackingDemo} />
+      <Route path="/price-tracking" component={PriceTracking} />
       <Route path="/user-profile" component={UserProfile} />
       <Route path="/recommendations" component={Recommendations} />
       <Route path="/calendar" component={Calendar} />
