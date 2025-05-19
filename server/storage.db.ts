@@ -4,7 +4,8 @@ import {
   users, User, InsertUser,
   beneficiaries, Beneficiary, InsertBeneficiary,
   wishlists, Wishlist, InsertWishlist,
-  wishlistItems, WishlistItem, InsertWishlistItem
+  wishlistItems, WishlistItem, InsertWishlistItem,
+  wishlistCollaborators, WishlistCollaborator, InsertWishlistCollaborator
 } from "@shared/schema";
 import { IStorage } from "./storage";
 import { eq, and } from "drizzle-orm";
@@ -108,6 +109,44 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(wishlists)
       .where(eq(wishlists.beneficiaryId, beneficiaryId));
+  }
+
+  async getCollaborativeWishlists(userId: number): Promise<Wishlist[]> {
+    // Find all wishlists where user is a collaborator
+    const collaborations = await db
+      .select()
+      .from(wishlistCollaborators)
+      .where(eq(wishlistCollaborators.userId, userId));
+    
+    if (collaborations.length === 0) {
+      return [];
+    }
+    
+    // Get the wishlist IDs
+    const wishlistIds = collaborations.map(c => c.wishlistId);
+    
+    // Get the actual wishlists by using a query with OR conditions for each ID
+    if (wishlistIds.length === 1) {
+      return await db
+        .select()
+        .from(wishlists)
+        .where(eq(wishlists.id, wishlistIds[0]));
+    }
+    
+    // For multiple IDs, construct multiple conditions
+    const results = [];
+    for (const wishlistId of wishlistIds) {
+      const [wishlist] = await db
+        .select()
+        .from(wishlists)
+        .where(eq(wishlists.id, wishlistId));
+      
+      if (wishlist) {
+        results.push(wishlist);
+      }
+    }
+    
+    return results;
   }
 
   async getWishlistById(id: number): Promise<Wishlist | undefined> {
@@ -247,5 +286,92 @@ export class DatabaseStorage implements IStorage {
       .returning();
     
     return updatedItem || undefined;
+  }
+
+  // Wishlist collaborator methods
+  async addCollaborator(collaborator: InsertWishlistCollaborator): Promise<WishlistCollaborator> {
+    const now = new Date();
+    
+    // Set defaults for any missing fields
+    const collaboratorData: InsertWishlistCollaborator = {
+      ...collaborator,
+      role: collaborator.role || 'editor',
+      lastActive: collaborator.lastActive || now
+    };
+    
+    // Add the collaborator
+    const [newCollaborator] = await db
+      .insert(wishlistCollaborators)
+      .values(collaboratorData)
+      .returning();
+    
+    return newCollaborator;
+  }
+  
+  async removeCollaborator(wishlistId: number, userId: number): Promise<boolean> {
+    const [deleted] = await db
+      .delete(wishlistCollaborators)
+      .where(
+        and(
+          eq(wishlistCollaborators.wishlistId, wishlistId),
+          eq(wishlistCollaborators.userId, userId)
+        )
+      )
+      .returning();
+    
+    return !!deleted;
+  }
+  
+  async getCollaborators(wishlistId: number): Promise<WishlistCollaborator[]> {
+    return await db
+      .select()
+      .from(wishlistCollaborators)
+      .where(eq(wishlistCollaborators.wishlistId, wishlistId));
+  }
+  
+  async updateCollaboratorRole(wishlistId: number, userId: number, role: string): Promise<WishlistCollaborator | undefined> {
+    const [updatedCollaborator] = await db
+      .update(wishlistCollaborators)
+      .set({ role })
+      .where(
+        and(
+          eq(wishlistCollaborators.wishlistId, wishlistId),
+          eq(wishlistCollaborators.userId, userId)
+        )
+      )
+      .returning();
+    
+    return updatedCollaborator || undefined;
+  }
+  
+  async isCollaborator(wishlistId: number, userId: number): Promise<boolean> {
+    const [collaborator] = await db
+      .select()
+      .from(wishlistCollaborators)
+      .where(
+        and(
+          eq(wishlistCollaborators.wishlistId, wishlistId),
+          eq(wishlistCollaborators.userId, userId)
+        )
+      );
+    
+    return !!collaborator;
+  }
+  
+  async updateCollaboratorActivity(wishlistId: number, userId: number): Promise<boolean> {
+    const now = new Date();
+    
+    const [updated] = await db
+      .update(wishlistCollaborators)
+      .set({ lastActive: now })
+      .where(
+        and(
+          eq(wishlistCollaborators.wishlistId, wishlistId),
+          eq(wishlistCollaborators.userId, userId)
+        )
+      )
+      .returning();
+    
+    return !!updated;
   }
 }

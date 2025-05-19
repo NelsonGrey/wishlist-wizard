@@ -371,6 +371,80 @@ export class MemStorage implements IStorage {
     this.wishlistItems.set(itemId, updatedItem);
     return updatedItem;
   }
+
+  // Wishlist collaborator methods
+  async addCollaborator(collaboratorData: InsertWishlistCollaborator): Promise<WishlistCollaborator> {
+    const id = this.collaboratorIdCounter++;
+    const now = new Date();
+    
+    const collaborator: WishlistCollaborator = {
+      id,
+      wishlistId: collaboratorData.wishlistId,
+      userId: collaboratorData.userId,
+      role: collaboratorData.role || 'editor',
+      addedAt: now,
+      addedBy: collaboratorData.addedBy || null,
+      lastActive: collaboratorData.lastActive || null
+    };
+    
+    this.wishlistCollaborators.set(id, collaborator);
+    return collaborator;
+  }
+  
+  async removeCollaborator(wishlistId: number, userId: number): Promise<boolean> {
+    const collaborator = Array.from(this.wishlistCollaborators.values()).find(
+      c => c.wishlistId === wishlistId && c.userId === userId
+    );
+    
+    if (!collaborator) return false;
+    
+    return this.wishlistCollaborators.delete(collaborator.id);
+  }
+  
+  async getCollaborators(wishlistId: number): Promise<WishlistCollaborator[]> {
+    return Array.from(this.wishlistCollaborators.values()).filter(
+      c => c.wishlistId === wishlistId
+    );
+  }
+  
+  async updateCollaboratorRole(wishlistId: number, userId: number, role: string): Promise<WishlistCollaborator | undefined> {
+    const collaborator = Array.from(this.wishlistCollaborators.values()).find(
+      c => c.wishlistId === wishlistId && c.userId === userId
+    );
+    
+    if (!collaborator) return undefined;
+    
+    const updatedCollaborator: WishlistCollaborator = {
+      ...collaborator,
+      role
+    };
+    
+    this.wishlistCollaborators.set(collaborator.id, updatedCollaborator);
+    return updatedCollaborator;
+  }
+  
+  async isCollaborator(wishlistId: number, userId: number): Promise<boolean> {
+    return Array.from(this.wishlistCollaborators.values()).some(
+      c => c.wishlistId === wishlistId && c.userId === userId
+    );
+  }
+  
+  async updateCollaboratorActivity(wishlistId: number, userId: number): Promise<boolean> {
+    const collaborator = Array.from(this.wishlistCollaborators.values()).find(
+      c => c.wishlistId === wishlistId && c.userId === userId
+    );
+    
+    if (!collaborator) return false;
+    
+    const now = new Date();
+    const updatedCollaborator: WishlistCollaborator = {
+      ...collaborator,
+      lastActive: now
+    };
+    
+    this.wishlistCollaborators.set(collaborator.id, updatedCollaborator);
+    return true;
+  }
 }
 
 // Create and export an instance of DatabaseStorage

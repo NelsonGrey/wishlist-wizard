@@ -550,5 +550,239 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ==================== COLLABORATIVE WISHLIST ROUTES ====================
+  
+  // Get wishlists where the user is a collaborator
+  app.get("/api/collaborative-wishlists", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const userId = req.session.userId!;
+      
+      const wishlists = await storage.getCollaborativeWishlists(userId);
+      
+      // Get item counts for each wishlist
+      const wishlistsWithCounts = await Promise.all(
+        wishlists.map(async (wishlist) => {
+          const items = await storage.getWishlistItems(wishlist.id);
+          return {
+            ...wishlist,
+            itemCount: items.length
+          };
+        })
+      );
+      
+      res.json(wishlistsWithCounts);
+    } catch (error) {
+      console.error("Error fetching collaborative wishlists:", error);
+      res.status(500).json({ message: "Failed to retrieve collaborative wishlists" });
+    }
+  });
+  
+  // Get collaborators for a wishlist
+  app.get("/api/wishlists/:id/collaborators", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid wishlist ID" });
+      }
+      
+      // Check if user owns or is a collaborator on this wishlist
+      const wishlist = await storage.getWishlistById(id);
+      const isOwner = wishlist?.userId === req.session.userId;
+      const isCollaborator = await storage.isCollaborator(id, req.session.userId!);
+      
+      if (!wishlist || (!isOwner && !isCollaborator)) {
+        return res.status(403).json({ message: "You don't have access to this wishlist" });
+      }
+      
+      // Get collaborators and add user details
+      const collaborators = await storage.getCollaborators(id);
+      const collaboratorsWithDetails = await Promise.all(
+        collaborators.map(async (collaborator) => {
+          const user = await storage.getUser(collaborator.userId);
+          return {
+            ...collaborator,
+            user: user ? {
+              id: user.id,
+              username: user.username,
+              displayName: user.displayName,
+              avatarUrl: user.avatarUrl
+            } : null
+          };
+        })
+      );
+      
+      res.json(collaboratorsWithDetails);
+    } catch (error) {
+      console.error("Error fetching collaborators:", error);
+      res.status(500).json({ message: "Failed to retrieve collaborators" });
+    }
+  });
+  
+  // Add a collaborator to a wishlist
+  app.post("/api/wishlists/:id/collaborators", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const wishlistId = parseInt(req.params.id);
+      if (isNaN(wishlistId)) {
+        return res.status(400).json({ message: "Invalid wishlist ID" });
+      }
+      
+      // Check that the current user is the owner of the wishlist
+      const wishlist = await storage.getWishlistById(wishlistId);
+      if (!wishlist || wishlist.userId !== req.session.userId) {
+        return res.status(403).json({ message: "You don't have permission to add collaborators to this wishlist" });
+      }
+      
+      // Make sure the wishlist is collaborative
+      if (!wishlist.isCollaborative) {
+        return res.status(400).json({ message: "This wishlist is not set up for collaboration" });
+      }
+      
+      // Validate request data
+      const schema = z.object({
+        userId: z.number(),
+        role: z.string().optional()
+      });
+      
+      const result = schema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ 
+          message: "Invalid collaborator data", 
+          errors: result.error.format() 
+        });
+      }
+      
+      // Check that the target user exists
+      const targetUser = await storage.getUser(result.data.userId);
+      if (!targetUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Check if the user is already a collaborator
+      const isAlreadyCollaborator = await storage.isCollaborator(wishlistId, result.data.userId);
+      if (isAlreadyCollaborator) {
+        return res.status(400).json({ message: "User is already a collaborator on this wishlist" });
+      }
+      
+      // Add the collaborator
+      const collaborator = await storage.addCollaborator({
+        wishlistId,
+        userId: result.data.userId,
+        role: result.data.role || 'editor',
+        addedBy: req.session.userId,
+        lastActive: new Date()
+      });
+      
+      res.status(201).json(collaborator);
+    } catch (error) {
+      console.error("Error adding collaborator:", error);
+      res.status(500).json({ message: "Failed to add collaborator" });
+    }
+  });
+  
+  // Remove a collaborator from a wishlist
+  app.delete("/api/wishlists/:id/collaborators/:userId", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const wishlistId = parseInt(req.params.id);
+      const collaboratorId = parseInt(req.params.userId);
+      
+      if (isNaN(wishlistId) || isNaN(collaboratorId)) {
+        return res.status(400).json({ message: "Invalid ID format" });
+      }
+      
+      // Check that the current user is the owner of the wishlist
+      const wishlist = await storage.getWishlistById(wishlistId);
+      if (!wishlist || wishlist.userId !== req.session.userId) {
+        return res.status(403).json({ message: "You don't have permission to remove collaborators from this wishlist" });
+      }
+      
+      // Remove the collaborator
+      const success = await storage.removeCollaborator(wishlistId, collaboratorId);
+      if (!success) {
+        return res.status(404).json({ message: "Collaborator not found" });
+      }
+      
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error removing collaborator:", error);
+      res.status(500).json({ message: "Failed to remove collaborator" });
+    }
+  });
+  
+  // Update a collaborator's role
+  app.patch("/api/wishlists/:id/collaborators/:userId", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const wishlistId = parseInt(req.params.id);
+      const collaboratorId = parseInt(req.params.userId);
+      
+      if (isNaN(wishlistId) || isNaN(collaboratorId)) {
+        return res.status(400).json({ message: "Invalid ID format" });
+      }
+      
+      // Check that the current user is the owner of the wishlist
+      const wishlist = await storage.getWishlistById(wishlistId);
+      if (!wishlist || wishlist.userId !== req.session.userId) {
+        return res.status(403).json({ message: "You don't have permission to update collaborator roles for this wishlist" });
+      }
+      
+      // Validate the role
+      const schema = z.object({
+        role: z.string()
+      });
+      
+      const result = schema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ 
+          message: "Invalid role data", 
+          errors: result.error.format() 
+        });
+      }
+      
+      // Update the collaborator's role
+      const updatedCollaborator = await storage.updateCollaboratorRole(wishlistId, collaboratorId, result.data.role);
+      if (!updatedCollaborator) {
+        return res.status(404).json({ message: "Collaborator not found" });
+      }
+      
+      res.json(updatedCollaborator);
+    } catch (error) {
+      console.error("Error updating collaborator role:", error);
+      res.status(500).json({ message: "Failed to update collaborator role" });
+    }
+  });
+  
+  // Update a collaborator's last activity time (used to track who is currently active)
+  app.post("/api/wishlists/:id/collaborators/:userId/activity", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const wishlistId = parseInt(req.params.id);
+      const collaboratorId = parseInt(req.params.userId);
+      
+      if (isNaN(wishlistId) || isNaN(collaboratorId)) {
+        return res.status(400).json({ message: "Invalid ID format" });
+      }
+      
+      // Only the user themselves should update their own activity
+      if (collaboratorId !== req.session.userId) {
+        return res.status(403).json({ message: "You can only update your own activity status" });
+      }
+      
+      // Make sure the user is a collaborator on this wishlist
+      const isCollaborator = await storage.isCollaborator(wishlistId, collaboratorId);
+      if (!isCollaborator) {
+        return res.status(403).json({ message: "You are not a collaborator on this wishlist" });
+      }
+      
+      // Update the activity timestamp
+      const success = await storage.updateCollaboratorActivity(wishlistId, collaboratorId);
+      if (!success) {
+        return res.status(404).json({ message: "Failed to update activity" });
+      }
+      
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error updating collaborator activity:", error);
+      res.status(500).json({ message: "Failed to update collaborator activity" });
+    }
+  });
+
   return httpServer;
 }
