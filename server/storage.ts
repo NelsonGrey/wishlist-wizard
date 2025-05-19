@@ -162,11 +162,23 @@ export class MemStorage implements IStorage {
     const now = new Date();
     
     const user: User = {
-      ...insertUser,
       id,
+      username: insertUser.username,
+      email: insertUser.email,
+      password: insertUser.password,
       displayName: insertUser.displayName || insertUser.username,
       avatarUrl: insertUser.avatarUrl || null,
-      createdAt: now
+      role: insertUser.role || 'user',
+      createdAt: now,
+      lastLogin: null,
+      emailVerified: insertUser.emailVerified || false,
+      verificationToken: insertUser.verificationToken || null,
+      verificationExpires: insertUser.verificationExpires || null,
+      passwordResetToken: insertUser.passwordResetToken || null,
+      passwordResetExpires: insertUser.passwordResetExpires || null,
+      active: insertUser.active ?? true,
+      twoFactorEnabled: insertUser.twoFactorEnabled || false,
+      twoFactorSecret: insertUser.twoFactorSecret || null
     };
     
     this.users.set(id, user);

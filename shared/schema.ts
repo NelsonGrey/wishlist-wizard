@@ -11,7 +11,17 @@ export const users = pgTable("users", {
   password: text("password").notNull(),
   displayName: text("display_name"),
   avatarUrl: text("avatar_url"),
+  role: text("role").default("user").notNull(), // 'user', 'admin', 'moderator'
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  lastLogin: timestamp("last_login"),
+  emailVerified: boolean("email_verified").default(false).notNull(),
+  verificationToken: text("verification_token"),
+  verificationExpires: timestamp("verification_expires"),
+  passwordResetToken: text("password_reset_token"),
+  passwordResetExpires: timestamp("password_reset_expires"),
+  active: boolean("active").default(true).notNull(),
+  twoFactorEnabled: boolean("two_factor_enabled").default(false).notNull(),
+  twoFactorSecret: text("two_factor_secret"),
 });
 
 export const usersRelations = relations(users, ({ many }) => ({
@@ -133,6 +143,15 @@ export const insertUserSchema = createInsertSchema(users).pick({
   password: true,
   displayName: true,
   avatarUrl: true,
+  role: true,
+  emailVerified: true,
+  verificationToken: true,
+  verificationExpires: true,
+  passwordResetToken: true,
+  passwordResetExpires: true,
+  active: true,
+  twoFactorEnabled: true,
+  twoFactorSecret: true,
 });
 
 export const insertBeneficiarySchema = createInsertSchema(beneficiaries).pick({
