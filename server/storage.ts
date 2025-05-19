@@ -48,7 +48,10 @@ export class MemStorage implements IStorage {
     // Add a demo user
     this.createUser({
       username: "demo",
-      password: "password123"
+      email: "demo@example.com",
+      password: "password123",
+      displayName: "Demo User",
+      avatarUrl: null
     });
     
     // Create sample wishlists for demo user
@@ -104,12 +107,36 @@ export class MemStorage implements IStorage {
       (user) => user.username === username,
     );
   }
+  
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    return Array.from(this.users.values()).find(
+      (user) => user.email === email,
+    );
+  }
 
   async createUser(insertUser: InsertUser): Promise<User> {
     const id = this.userIdCounter++;
-    const user: User = { ...insertUser, id };
+    const now = new Date();
+    
+    const user: User = {
+      ...insertUser,
+      id,
+      displayName: insertUser.displayName || insertUser.username,
+      avatarUrl: insertUser.avatarUrl || null,
+      createdAt: now
+    };
+    
     this.users.set(id, user);
     return user;
+  }
+  
+  async updateUser(id: number, userData: Partial<InsertUser>): Promise<User | undefined> {
+    const user = await this.getUser(id);
+    if (!user) return undefined;
+    
+    const updatedUser = { ...user, ...userData };
+    this.users.set(id, updatedUser);
+    return updatedUser;
   }
 
   // Wishlist methods
