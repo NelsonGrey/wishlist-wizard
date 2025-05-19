@@ -934,6 +934,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // AI-Powered Product Recommendations
+  app.get("/api/recommendations", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const userId = req.session.userId as number;
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 5;
+      
+      // Import the recommendation service
+      const { getRecommendationsForUser } = await import("./services/recommendationService");
+      
+      // Get personalized recommendations
+      const recommendations = await getRecommendationsForUser(userId, limit);
+      
+      return res.json(recommendations);
+    } catch (error) {
+      console.error("Error getting recommendations:", error);
+      return res.status(500).json({ error: "Failed to generate recommendations" });
+    }
+  });
+
   // Get recent notifications for the current user
   app.get("/api/notifications", isAuthenticated, async (req: Request, res: Response) => {
     try {
