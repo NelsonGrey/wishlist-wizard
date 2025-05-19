@@ -623,7 +623,7 @@ const Calendar: React.FC = () => {
                 <div className="col-span-3">
                   <DatePicker
                     selected={formData.startDate}
-                    onSelect={(date) => handleChange('startDate', date)}
+                    onSelect={(date) => date && handleChange('startDate', date)}
                   />
                 </div>
               </div>
