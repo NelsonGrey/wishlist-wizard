@@ -13,7 +13,7 @@ import { z } from "zod";
 import { register, login, logout, getCurrentUser, isAuthenticated, verifyEmail, requestPasswordReset, resetPassword } from "./auth";
 import { issueToken } from "./jwt-auth";
 import { initializeSessionTable } from "./session";
-import { verifyExtensionAuth, getExtensionWishlists, addItemFromExtension } from "./extension";
+import { verifyExtensionAuth, getExtensionWishlists, addItemFromExtension, verifyExtensionJWT } from "./extension";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
@@ -952,14 +952,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // ==================== BROWSER EXTENSION ROUTES ====================
   
-  // Verify extension authentication
+  // Legacy extension authentication
   app.get("/api/extension/auth", verifyExtensionAuth);
   
-  // Get wishlists for extension
-  app.get("/api/extension/wishlists", getExtensionWishlists);
+  // Enhanced JWT authentication for extension
+  app.post("/api/extension/jwt-auth", async (req, res) => {
+    // Import dynamically to avoid circular dependencies
+    const { authenticateExtension } = require('./extension-auth');
+    await authenticateExtension(req, res);
+  });
   
-  // Add item from extension
-  app.post("/api/extension/items", isAuthenticated, addItemFromExtension);
+  // Token refresh endpoint for extension
+  app.post("/api/extension/refresh-token", async (req, res) => {
+    const { refreshExtensionToken } = require('./extension-auth');
+    await refreshExtensionToken(req, res);
+  });
+  
+  // Get wishlists for extension (supports both JWT and session auth)
+  app.get("/api/extension/wishlists", verifyExtensionJWT, getExtensionWishlists);
+  
+  // Add item from extension (supports both JWT and session auth)
+  app.post("/api/extension/items", verifyExtensionJWT, addItemFromExtension);
   
   // Delete a notification
   app.delete("/api/notifications/:id", isAuthenticated, async (req: Request, res: Response) => {

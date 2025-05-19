@@ -1,5 +1,6 @@
-import { Request, Response } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import { storage } from './storage';
+import { verifyToken } from './jwt-auth';
 
 /**
  * Handles extension-specific authentication functionality
@@ -32,12 +33,45 @@ export async function verifyExtensionAuth(req: Request, res: Response) {
 }
 
 /**
+ * Middleware to verify JWT or session authentication for extension API endpoints
+ * This supports both cookie-based sessions and JWT token authentication
+ */
+export function verifyExtensionJWT(req: Request, res: Response, next: NextFunction) {
+  try {
+    // First check for JWT token in Authorization header
+    const authHeader = req.headers.authorization;
+    
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const token = authHeader.split(' ')[1]; // Format: "Bearer TOKEN"
+      const decoded = verifyToken(token);
+      
+      if (decoded) {
+        // Set user ID in session for compatibility with existing code
+        req.session.userId = decoded.sub;
+        return next();
+      }
+    }
+    
+    // Fall back to session-based authentication
+    if (req.session.userId) {
+      return next();
+    }
+    
+    // Neither JWT nor session authentication found
+    return res.status(401).json({ error: 'Authentication required' });
+  } catch (error) {
+    console.error('Extension JWT verification error:', error);
+    return res.status(401).json({ error: 'Invalid authentication' });
+  }
+}
+
+/**
  * Gets wishlists for the extension
  * Returns a simplified list of wishlists that the user has access to
  */
 export async function getExtensionWishlists(req: Request, res: Response) {
   try {
-    // Check if user is authenticated
+    // User is already authenticated by middleware
     if (!req.session.userId) {
       return res.status(401).json({ error: 'Not authenticated' });
     }
@@ -68,7 +102,7 @@ export async function getExtensionWishlists(req: Request, res: Response) {
  */
 export async function addItemFromExtension(req: Request, res: Response) {
   try {
-    // Check if user is authenticated
+    // User is already authenticated by middleware
     if (!req.session.userId) {
       return res.status(401).json({ error: 'Not authenticated' });
     }
