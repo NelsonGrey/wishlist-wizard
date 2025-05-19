@@ -8,11 +8,15 @@ import Home from "@/pages/Home";
 import Dashboard from "@/pages/Dashboard";
 import WishlistDetail from "@/pages/WishlistDetail";
 import SharedWishlist from "@/pages/SharedWishlist";
+import Login from "@/pages/Login";
+import Register from "@/pages/Register";
 
 function Router() {
   return (
     <Switch>
       <Route path="/" component={Home} />
+      <Route path="/login" component={Login} />
+      <Route path="/register" component={Register} />
       <Route path="/dashboard" component={Dashboard} />
       <Route path="/wishlist/:id" component={WishlistDetail} />
       <Route path="/shared/:shareId" component={SharedWishlist} />

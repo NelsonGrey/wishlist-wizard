@@ -222,10 +222,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get recently added items (across all wishlists for a user)
-  app.get("/api/recent-items", async (req: Request, res: Response) => {
+  app.get("/api/recent-items", isAuthenticated, async (req: Request, res: Response) => {
     try {
-      // For demo purposes, use user ID 1
-      const userId = 1;
+      const userId = req.session.userId!;
       
       const wishlists = await storage.getWishlists(userId);
       
