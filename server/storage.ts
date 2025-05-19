@@ -53,9 +53,11 @@ export class MemStorage implements IStorage {
 
   constructor() {
     this.users = new Map();
+    this.beneficiaries = new Map();
     this.wishlists = new Map();
     this.wishlistItems = new Map();
     this.userIdCounter = 1;
+    this.beneficiaryIdCounter = 1;
     this.wishlistIdCounter = 1;
     this.wishlistItemIdCounter = 1;
     
@@ -153,10 +155,58 @@ export class MemStorage implements IStorage {
     return updatedUser;
   }
 
+  // Beneficiary methods
+  async getBeneficiaries(ownerId: number): Promise<Beneficiary[]> {
+    return Array.from(this.beneficiaries.values()).filter(
+      (beneficiary) => beneficiary.ownerId === ownerId
+    );
+  }
+
+  async getBeneficiary(id: number): Promise<Beneficiary | undefined> {
+    return this.beneficiaries.get(id);
+  }
+
+  async createBeneficiary(beneficiaryData: InsertBeneficiary): Promise<Beneficiary> {
+    const id = this.beneficiaryIdCounter++;
+    const now = new Date();
+    
+    const beneficiary: Beneficiary = {
+      id,
+      name: beneficiaryData.name,
+      ownerId: beneficiaryData.ownerId,
+      relationship: beneficiaryData.relationship || null,
+      birthdate: beneficiaryData.birthdate || null,
+      notes: beneficiaryData.notes || null,
+      createdAt: now
+    };
+    
+    this.beneficiaries.set(id, beneficiary);
+    return beneficiary;
+  }
+
+  async updateBeneficiary(id: number, data: Partial<InsertBeneficiary>): Promise<Beneficiary | undefined> {
+    const beneficiary = await this.getBeneficiary(id);
+    if (!beneficiary) return undefined;
+    
+    const updatedBeneficiary = { ...beneficiary, ...data };
+    this.beneficiaries.set(id, updatedBeneficiary);
+    return updatedBeneficiary;
+  }
+
+  async deleteBeneficiary(id: number): Promise<boolean> {
+    return this.beneficiaries.delete(id);
+  }
+
   // Wishlist methods
   async getWishlists(userId: number): Promise<Wishlist[]> {
     return Array.from(this.wishlists.values()).filter(
       (wishlist) => wishlist.userId === userId
+    );
+  }
+
+  async getWishlistsByBeneficiary(beneficiaryId: number): Promise<Wishlist[]> {
+    return Array.from(this.wishlists.values()).filter(
+      (wishlist) => wishlist.beneficiaryId === beneficiaryId
     );
   }
 
@@ -179,7 +229,11 @@ export class MemStorage implements IStorage {
       id,
       name: wishlistData.name,
       userId: wishlistData.userId,
+      beneficiaryId: wishlistData.beneficiaryId || null,
       shareId,
+      isPublic: wishlistData.isPublic || false,
+      occasion: wishlistData.occasion || null,
+      occasionDate: wishlistData.occasionDate || null,
       createdAt: now
     };
     
@@ -187,11 +241,11 @@ export class MemStorage implements IStorage {
     return wishlist;
   }
 
-  async updateWishlist(id: number, name: string): Promise<Wishlist | undefined> {
+  async updateWishlist(id: number, data: Partial<Omit<InsertWishlist, "userId">>): Promise<Wishlist | undefined> {
     const wishlist = this.wishlists.get(id);
     if (!wishlist) return undefined;
     
-    const updatedWishlist = { ...wishlist, name };
+    const updatedWishlist = { ...wishlist, ...data };
     this.wishlists.set(id, updatedWishlist);
     return updatedWishlist;
   }
@@ -235,16 +289,58 @@ export class MemStorage implements IStorage {
       imageUrl: itemData.imageUrl,
       productUrl: itemData.productUrl,
       store: itemData.store,
-      note: itemData.note || "",
-      createdAt: now
+      note: itemData.note || null,
+      createdAt: now,
+      reservedByUserId: itemData.reservedByUserId || null,
+      purchasedByUserId: itemData.purchasedByUserId || null,
+      purchasedAt: itemData.purchasedAt || null
     };
     
     this.wishlistItems.set(id, item);
     return item;
   }
 
+  async updateWishlistItem(id: number, data: Partial<InsertWishlistItem>): Promise<WishlistItem | undefined> {
+    const item = await this.getWishlistItem(id);
+    if (!item) return undefined;
+    
+    const updatedItem = { ...item, ...data };
+    this.wishlistItems.set(id, updatedItem);
+    return updatedItem;
+  }
+
   async deleteWishlistItem(id: number): Promise<boolean> {
     return this.wishlistItems.delete(id);
+  }
+
+  async reserveWishlistItem(itemId: number, userId: number): Promise<WishlistItem | undefined> {
+    const item = await this.getWishlistItem(itemId);
+    if (!item || item.reservedByUserId || item.purchasedByUserId) return undefined;
+    
+    const updatedItem: WishlistItem = { 
+      ...item, 
+      reservedByUserId: userId 
+    };
+    
+    this.wishlistItems.set(itemId, updatedItem);
+    return updatedItem;
+  }
+
+  async markItemPurchased(itemId: number, userId: number): Promise<WishlistItem | undefined> {
+    const item = await this.getWishlistItem(itemId);
+    if (!item || item.purchasedByUserId) return undefined;
+    
+    const now = new Date();
+    const updatedItem: WishlistItem = { 
+      ...item, 
+      purchasedByUserId: userId,
+      purchasedAt: now,
+      // Clear reservation if it was reserved before
+      reservedByUserId: null
+    };
+    
+    this.wishlistItems.set(itemId, updatedItem);
+    return updatedItem;
   }
 }
 
