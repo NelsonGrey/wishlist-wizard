@@ -107,7 +107,9 @@ export default function Features() {
               </p>
             </CardContent>
             <CardFooter>
-              <Button variant="outline" className="w-full" disabled>Coming Soon</Button>
+              <Link href="/price-tracking">
+                <Button variant="outline" className="w-full">Try Price Tracking</Button>
+              </Link>
             </CardFooter>
           </Card>
           
