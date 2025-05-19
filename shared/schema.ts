@@ -661,10 +661,21 @@ export const insertUserCalendarSchema = createInsertSchema(userCalendars).pick({
   settings: true
 });
 
-export const insertCalendarEventSchema = createInsertSchema(calendarEvents).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true
+export const insertCalendarEventSchema = createInsertSchema(calendarEvents).pick({
+  userId: true,
+  title: true,
+  description: true,
+  startDate: true,
+  endDate: true,
+  location: true,
+  isAllDay: true,
+  eventType: true,
+  reminderDays: true,
+  color: true,
+  recurrence: true,
+  beneficiaryId: true,
+  wishlistId: true,
+  metadata: true
 });
 
 // Types for the new additions
