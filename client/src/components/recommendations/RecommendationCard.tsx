@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   Card,
   CardContent,
@@ -9,9 +9,19 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ExternalLink, ShoppingCart, Star } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { ExternalLink, ShoppingCart, Star, ThumbsUp, ThumbsDown, MoreHorizontal } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { apiRequest } from "@/lib/queryClient";
+import { queryClient } from "@/lib/queryClient";
 
 interface Recommendation {
+  id?: number;
   title: string;
   imageUrl: string;
   price: string;
@@ -20,18 +30,30 @@ interface Recommendation {
   description: string;
   relevanceScore: number;
   matchReason: string;
+  category?: string;
+  isViewed?: boolean;
+  isSaved?: boolean;
+  isRejected?: boolean;
 }
 
 interface RecommendationCardProps {
   recommendation: Recommendation;
   onAddToWishlist?: (recommendation: Recommendation) => void;
+  onStatusChange?: (id: number, status: {isViewed?: boolean, isSaved?: boolean, isRejected?: boolean}) => void;
 }
 
 export default function RecommendationCard({ 
   recommendation, 
-  onAddToWishlist 
+  onAddToWishlist,
+  onStatusChange
 }: RecommendationCardProps) {
+  const { toast } = useToast();
+  const [isSaving, setIsSaving] = useState(false);
+  const [isRejecting, setIsRejecting] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  
   const {
+    id,
     title,
     imageUrl,
     price,
@@ -39,11 +61,111 @@ export default function RecommendationCard({
     store,
     description,
     relevanceScore,
-    matchReason
+    matchReason,
+    isSaved,
+    isRejected
   } = recommendation;
 
   // Generate stars based on relevance score (0-100 converted to 0-5 stars)
   const stars = Math.round((relevanceScore / 100) * 5);
+  
+  // Handle marking a recommendation as viewed when opened
+  const handleView = async () => {
+    // Only track view if we have an ID (stored in database)
+    if (id && !recommendation.isViewed) {
+      try {
+        await apiRequest(`/api/recommendations/${id}/status`, {
+          method: 'PATCH',
+          body: { isViewed: true }
+        });
+        
+        // Update the local state if onStatusChange exists
+        if (onStatusChange) {
+          onStatusChange(id, { isViewed: true });
+        }
+      } catch (error) {
+        console.error('Error marking recommendation as viewed:', error);
+      }
+    }
+    
+    window.open(productUrl, "_blank");
+  };
+  
+  // Handle saving or rejecting a recommendation
+  const handleStatusUpdate = async (status: {isSaved?: boolean, isRejected?: boolean}) => {
+    if (!id) return;
+    
+    // Don't allow saving if already rejected or rejecting if already saved
+    if ((status.isSaved && isRejected) || (status.isRejected && isSaved)) {
+      return;
+    }
+    
+    try {
+      if (status.isSaved) setIsSaving(true);
+      if (status.isRejected) setIsRejecting(true);
+      
+      await apiRequest(`/api/recommendations/${id}/status`, {
+        method: 'PATCH',
+        body: status
+      });
+      
+      // Show feedback toast
+      if (status.isSaved) {
+        toast({
+          title: "Recommendation saved",
+          description: "We'll remember that you liked this suggestion.",
+        });
+      } else if (status.isRejected) {
+        toast({
+          title: "Recommendation hidden",
+          description: "We won't show this item again.",
+        });
+      }
+      
+      // Update the local state if onStatusChange exists
+      if (onStatusChange) {
+        onStatusChange(id, status);
+      }
+      
+      // Force a refetch of recommendations if needed
+      if (status.isRejected) {
+        queryClient.invalidateQueries({queryKey: ['/api/recommendations']});
+      }
+    } catch (error) {
+      console.error('Error updating recommendation status:', error);
+      toast({
+        title: "Failed to update",
+        description: "There was an error updating your preference.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
+      setIsRejecting(false);
+    }
+  };
+  
+  // Handle adding to wishlist
+  const handleAddToWishlist = async () => {
+    setIsLoading(true);
+    try {
+      // Call the parent handler
+      if (onAddToWishlist) {
+        await onAddToWishlist(recommendation);
+      }
+      
+      // If this is a stored recommendation, also mark it as saved
+      if (id) {
+        await handleStatusUpdate({ isSaved: true });
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Skip rendering if marked as rejected
+  if (isRejected) {
+    return null;
+  }
 
   return (
     <Card className="h-full flex flex-col overflow-hidden hover:shadow-lg transition-shadow">
@@ -62,6 +184,35 @@ export default function RecommendationCard({
         >
           {store}
         </Badge>
+        
+        {id && (
+          <div className="absolute top-2 left-2">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm" className="h-8 w-8 p-0 bg-white/80 hover:bg-white/90 rounded-full">
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start">
+                <DropdownMenuItem 
+                  onClick={() => handleStatusUpdate({ isSaved: true })}
+                  disabled={isSaving || isSaved}
+                >
+                  <ThumbsUp className="mr-2 h-4 w-4" />
+                  <span>{isSaved ? "Saved" : "Save suggestion"}</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem 
+                  onClick={() => handleStatusUpdate({ isRejected: true })}
+                  disabled={isRejecting}
+                  className="text-red-600"
+                >
+                  <ThumbsDown className="mr-2 h-4 w-4" />
+                  <span>Don't show again</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        )}
       </div>
       
       <CardHeader className="pb-2">
@@ -96,17 +247,19 @@ export default function RecommendationCard({
           variant="outline" 
           size="sm" 
           className="flex-1"
-          onClick={() => window.open(productUrl, "_blank")}
+          onClick={handleView}
         >
           <ExternalLink size={16} className="mr-1" /> View
         </Button>
         {onAddToWishlist && (
           <Button 
-            onClick={() => onAddToWishlist(recommendation)} 
+            onClick={handleAddToWishlist} 
             size="sm" 
             className="flex-1 bg-gradient-to-r from-purple-600 to-blue-500 hover:from-purple-700 hover:to-blue-600"
+            disabled={isLoading}
           >
-            <ShoppingCart size={16} className="mr-1" /> Add
+            <ShoppingCart size={16} className="mr-1" /> 
+            {isLoading ? "Adding..." : "Add"}
           </Button>
         )}
       </CardFooter>
