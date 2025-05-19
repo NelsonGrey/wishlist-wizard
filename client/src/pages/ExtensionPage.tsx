@@ -12,7 +12,6 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 // Using alternative icons from the React Icons library
 import { FaChrome, FaFirefox, FaEdge } from 'react-icons/fa';
-import { QuestionMarkCircledIcon } from '@radix-ui/react-icons';
 import { ResponsiveAd } from '@/components/ads/AdUnit';
 import { ExtensionHelp } from '@/components/help/ExtensionHelp';
 
@@ -21,9 +20,12 @@ const ExtensionPage = () => {
     <div className="container mx-auto py-8 px-4">
       <div className="max-w-5xl mx-auto">
         <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-indigo-600 to-indigo-400 bg-clip-text text-transparent mb-4">
-            WishKeeper Browser Extension
-          </h1>
+          <div className="flex justify-center items-center gap-3 mb-4">
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-indigo-600 to-indigo-400 bg-clip-text text-transparent">
+              WishKeeper Browser Extension
+            </h1>
+            <ExtensionHelp />
+          </div>
           <p className="text-xl text-gray-600 max-w-3xl mx-auto">
             Add products to your wishlists from any online retailer with a single click
           </p>
