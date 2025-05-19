@@ -4,6 +4,11 @@
 // Base URL for the WishKeeper website API
 let baseUrl = 'https://wishkeeper.replit.app';
 
+// Auth token storage for JWT-based authentication
+let authToken = null;
+let tokenExpiry = null;
+const TOKEN_REFRESH_THRESHOLD = 15 * 60 * 1000; // 15 minutes in milliseconds
+
 // Get API base URL
 async function getApiUrl() {
   // For development environments, can be changed to use localhost
@@ -11,6 +16,151 @@ async function getApiUrl() {
     return 'http://localhost:5000';
   }
   return baseUrl;
+}
+
+// Get the base URL for the website (not the API)
+async function getBaseUrl() {
+  return baseUrl;
+}
+
+// Initialize authentication state from storage
+async function initAuthState() {
+  return new Promise((resolve) => {
+    chrome.storage.local.get(['authToken', 'tokenExpiry', 'userData'], (result) => {
+      if (result.authToken) {
+        authToken = result.authToken;
+        tokenExpiry = result.tokenExpiry ? new Date(result.tokenExpiry) : null;
+        console.log('Auth token loaded from storage, expires:', tokenExpiry);
+      }
+      resolve();
+    });
+  });
+}
+
+// Save authentication state to storage
+async function saveAuthState(token, expiry, userData) {
+  return new Promise((resolve) => {
+    chrome.storage.local.set({
+      authToken: token,
+      tokenExpiry: expiry ? expiry.toISOString() : null,
+      userData: userData || null
+    }, resolve);
+  });
+}
+
+// Clear authentication state
+async function clearAuthState() {
+  authToken = null;
+  tokenExpiry = null;
+  return new Promise((resolve) => {
+    chrome.storage.local.remove(['authToken', 'tokenExpiry', 'userData'], resolve);
+  });
+}
+
+// Check if token needs refresh
+function needsTokenRefresh() {
+  if (!authToken || !tokenExpiry) return true;
+  
+  const now = new Date();
+  const timeUntilExpiry = tokenExpiry.getTime() - now.getTime();
+  
+  return timeUntilExpiry < TOKEN_REFRESH_THRESHOLD;
+}
+
+// Refresh the authentication token if needed
+async function refreshTokenIfNeeded() {
+  if (!needsTokenRefresh()) return authToken;
+  
+  try {
+    const apiUrl = await getApiUrl();
+    
+    // If we don't have a token at all, we can't refresh
+    if (!authToken) {
+      return null;
+    }
+    
+    const response = await fetch(`${apiUrl}/api/extension/refresh-token`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${authToken}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    if (!response.ok) {
+      console.warn('Token refresh failed, clearing auth state');
+      await clearAuthState();
+      return null;
+    }
+    
+    const data = await response.json();
+    
+    // Parse JWT to get expiration
+    const payload = JSON.parse(atob(data.token.split('.')[1]));
+    const newExpiry = new Date(payload.exp * 1000);
+    
+    // Save the new token
+    authToken = data.token;
+    tokenExpiry = newExpiry;
+    await saveAuthState(authToken, tokenExpiry);
+    
+    console.log('Token refreshed successfully, new expiry:', newExpiry);
+    return authToken;
+  } catch (error) {
+    console.error('Error refreshing token:', error);
+    return null;
+  }
+}
+
+// Check authentication status
+async function isAuthenticated() {
+  await initAuthState();
+  
+  if (!authToken) return false;
+  
+  if (needsTokenRefresh()) {
+    // Try to refresh the token
+    const refreshedToken = await refreshTokenIfNeeded();
+    return !!refreshedToken;
+  }
+  
+  return true;
+}
+
+// Authenticate with the server using username/password
+async function authenticate(username, password) {
+  try {
+    const apiUrl = await getApiUrl();
+    const response = await fetch(`${apiUrl}/api/extension/jwt-auth`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ username, password })
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Authentication failed');
+    }
+    
+    const data = await response.json();
+    
+    // Parse JWT to get expiration
+    const payload = JSON.parse(atob(data.token.split('.')[1]));
+    const expiry = new Date(payload.exp * 1000);
+    
+    // Save auth data
+    authToken = data.token;
+    tokenExpiry = expiry;
+    await saveAuthState(authToken, tokenExpiry, data.user);
+    
+    console.log('Authentication successful, token expires:', expiry);
+    return data;
+  } catch (error) {
+    console.error('Authentication error:', error);
+    throw error;
+  }
 }
 
 // Listen for extension installation or update
@@ -235,44 +385,91 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   return true; // Keep sendResponse valid for async operations
 });
 
-// Fetch wishlists from the API
-async function fetchWishlists() {
-  const apiUrl = await getApiUrl();
-  const response = await fetch(`${apiUrl}/api/extension/wishlists`, {
-    method: 'GET',
-    credentials: 'include',
-    headers: {
-      'Accept': 'application/json'
-    }
-  });
+// Make authenticated API request
+async function makeAuthenticatedRequest(url, options = {}) {
+  // Initialize authentication if not done yet
+  await initAuthState();
   
-  if (!response.ok) {
-    const errorData = await response.json();
-    throw new Error(errorData.error || 'Failed to fetch wishlists');
+  // Ensure we have a valid token
+  const token = await refreshTokenIfNeeded();
+  
+  // Set up headers with authentication
+  const headers = {
+    'Accept': 'application/json',
+    'Content-Type': 'application/json',
+    ...options.headers
+  };
+  
+  // Add authorization header if we have a token
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
   }
   
-  return await response.json();
+  // Build the request options
+  const requestOptions = {
+    ...options,
+    headers,
+    // Include credentials for cookie-based auth as fallback
+    credentials: 'include'
+  };
+  
+  // Make the request
+  const response = await fetch(url, requestOptions);
+  
+  // Handle authentication errors
+  if (response.status === 401) {
+    // Clear auth state and throw error
+    await clearAuthState();
+    const errorData = await response.json();
+    throw new Error(errorData.error || 'Authentication required');
+  }
+  
+  // Handle other errors
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.error || `Request failed with status ${response.status}`);
+  }
+  
+  return response.json();
+}
+
+// Fetch wishlists from the API
+async function fetchWishlists() {
+  try {
+    const apiUrl = await getApiUrl();
+    
+    // Check if we're authenticated
+    const authenticated = await isAuthenticated();
+    if (!authenticated) {
+      throw new Error('Authentication required');
+    }
+    
+    return await makeAuthenticatedRequest(`${apiUrl}/api/extension/wishlists`);
+  } catch (error) {
+    console.error('Error fetching wishlists:', error);
+    throw error;
+  }
 }
 
 // Add item to wishlist
 async function addItemToWishlist(itemData) {
-  const apiUrl = await getApiUrl();
-  const response = await fetch(`${apiUrl}/api/extension/add-item`, {
-    method: 'POST',
-    credentials: 'include',
-    headers: {
-      'Content-Type': 'application/json',
-      'Accept': 'application/json'
-    },
-    body: JSON.stringify(itemData)
-  });
-  
-  if (!response.ok) {
-    const errorData = await response.json();
-    throw new Error(errorData.error || 'Failed to add item to wishlist');
+  try {
+    const apiUrl = await getApiUrl();
+    
+    // Check if we're authenticated
+    const authenticated = await isAuthenticated();
+    if (!authenticated) {
+      throw new Error('Authentication required');
+    }
+    
+    return await makeAuthenticatedRequest(`${apiUrl}/api/extension/items`, {
+      method: 'POST',
+      body: JSON.stringify(itemData)
+    });
+  } catch (error) {
+    console.error('Error adding item to wishlist:', error);
+    throw error;
   }
-  
-  return await response.json();
 }
 
 // Initialize browser action icon
