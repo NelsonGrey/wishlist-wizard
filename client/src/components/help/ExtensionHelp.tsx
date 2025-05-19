@@ -5,172 +5,137 @@ export function ExtensionHelp() {
   return (
     <HelpDialog title="Browser Extension Help">
       <p className="text-sm text-muted-foreground mb-4">
-        The WishKeeper Chrome Extension enhances your online shopping experience.
-        Learn how to get the most out of it:
+        The WishKeeper browser extension makes it easy to add items to your wishlists while shopping online.
+        Here's how to get the most out of this powerful tool:
       </p>
 
       <Accordion type="single" collapsible className="w-full">
-        <AccordionItem value="install">
-          <AccordionTrigger>Installing the Extension</AccordionTrigger>
-          <AccordionContent>
-            <ol className="text-sm list-decimal pl-5 space-y-2">
-              <li>
-                Click the "Install Extension" button on the Extension page
-              </li>
-              <li>
-                Confirm the installation in Chrome when prompted
-              </li>
-              <li>
-                The WishKeeper icon will appear in your browser toolbar
-              </li>
-              <li>
-                Click the icon to access extension features on any shopping page
-              </li>
-              <li>
-                You'll need to log in with your WishKeeper account to use the extension
-              </li>
-            </ol>
-          </AccordionContent>
-        </AccordionItem>
-
-        <AccordionItem value="one-click">
+        <AccordionItem value="one-click-add">
           <AccordionTrigger>One-Click Add to Wishlist</AccordionTrigger>
           <AccordionContent>
             <p className="text-sm mb-2">
-              Easily add products to your wishlists while browsing online:
+              Quickly add items to your wishlists with a single click:
             </p>
             <ol className="text-sm list-decimal pl-5 space-y-2">
               <li>
-                Browse to any product page on a supported shopping website
+                When viewing a product on any shopping website, click the WishKeeper icon in your browser toolbar
               </li>
               <li>
-                Click the WishKeeper extension icon in your toolbar
+                The extension will automatically detect the product information (title, price, image)
               </li>
               <li>
-                Select the "Add to Wishlist" tab
+                Select which wishlist you want to add the item to
               </li>
               <li>
-                Choose which wishlist to add the item to
+                Add optional notes or customize the product information if needed
               </li>
               <li>
-                The product details (title, price, image) will be automatically detected
-              </li>
-              <li>
-                Add an optional note if desired
-              </li>
-              <li>
-                Click "Add to Wishlist" to complete the process
+                Click "Add to Wishlist" to save the item
               </li>
             </ol>
             <p className="text-sm mt-2">
-              The extension works on most major shopping sites. If product detection doesn't work
-              correctly, you can manually adjust the information before saving.
+              The extension works on thousands of online retailers including Amazon, Target, Walmart, 
+              Best Buy, Etsy, and many more.
             </p>
           </AccordionContent>
         </AccordionItem>
 
-        <AccordionItem value="price-compare">
+        <AccordionItem value="price-comparison">
           <AccordionTrigger>Price Comparison Feature</AccordionTrigger>
           <AccordionContent>
             <p className="text-sm mb-2">
-              Find the best deals with our price comparison tool:
+              Find the best deals across different retailers:
             </p>
             <ol className="text-sm list-decimal pl-5 space-y-2">
               <li>
-                Browse to a product page
+                When viewing a product, click the WishKeeper icon and select the "Compare Prices" tab
               </li>
               <li>
-                Click the WishKeeper extension icon
+                The extension will search for the same or similar products across other major retailers
               </li>
               <li>
-                Select the "Compare Prices" tab
+                View a list of prices from different stores
               </li>
               <li>
-                The extension will search for the same or similar products across multiple retailers
+                Click on any result to open that product page
               </li>
               <li>
-                View a list of alternative options sorted by price
-              </li>
-              <li>
-                Click any option to open that retailer in a new tab
-              </li>
-              <li>
-                Save any of the alternatives directly to your wishlist
+                Use the "Add to Wishlist" button to save the item from any of the comparison results
               </li>
             </ol>
             <p className="text-sm mt-2">
-              Price comparison works best for products with clear identifiers like model numbers, ISBNs, 
-              or UPCs. For more generic items, you may need to refine the results.
+              Price comparison helps you find the best deals before making a purchase, potentially saving 
+              you money on items you want.
             </p>
           </AccordionContent>
         </AccordionItem>
 
-        <AccordionItem value="coupons">
-          <AccordionTrigger>Coupon Finder</AccordionTrigger>
+        <AccordionItem value="coupon-finder">
+          <AccordionTrigger>Coupon Finder Feature</AccordionTrigger>
           <AccordionContent>
             <p className="text-sm mb-2">
-              Never miss a discount with automatic coupon detection:
+              Discover valid coupon codes for additional savings:
             </p>
             <ol className="text-sm list-decimal pl-5 space-y-2">
               <li>
-                Browse to any shopping website
-              </li>
-              <li>
-                Click the WishKeeper extension icon
+                While on a retailer's website, click the WishKeeper icon
               </li>
               <li>
                 Select the "Find Coupons" tab
               </li>
               <li>
-                The extension will search for available promo codes and discounts
+                The extension will search for valid coupon codes for that specific retailer
               </li>
               <li>
-                Click "Copy" next to any coupon to copy the code to your clipboard
+                See coupon details including the discount amount and any restrictions
               </li>
               <li>
-                During checkout, paste the coupon code in the appropriate field
+                Click "Copy Code" to copy a coupon code to your clipboard
               </li>
               <li>
-                Try multiple codes if needed—some may be expired or have restrictions
+                Paste the code during checkout to apply the discount
               </li>
             </ol>
             <p className="text-sm mt-2">
-              Coupon availability varies by retailer and region. For some sites, you may also see 
-              cashback offers or loyalty program information.
+              The coupon finder regularly updates its database to ensure you have access to the 
+              most current discount codes available.
             </p>
           </AccordionContent>
         </AccordionItem>
 
-        <AccordionItem value="notifications">
-          <AccordionTrigger>Price Drop Alerts</AccordionTrigger>
+        <AccordionItem value="installation">
+          <AccordionTrigger>Installation Guide</AccordionTrigger>
           <AccordionContent>
             <p className="text-sm mb-2">
-              Get notified when items on your wishlist drop in price:
+              How to install the WishKeeper extension:
             </p>
-            <ol className="text-sm list-decimal pl-5 space-y-2">
-              <li>
-                Add items to your wishlist using the extension
-              </li>
-              <li>
-                Enable price tracking by toggling the "Track Price" option when adding an item
-              </li>
-              <li>
-                Set a target price or percentage discount (optional)
-              </li>
-              <li>
-                The extension will periodically check prices in the background
-              </li>
-              <li>
-                Receive notifications when prices drop below your target or any significant discount
-              </li>
-              <li>
-                View price history graphs for any tracked item in your wishlist
-              </li>
+            
+            <h4 className="text-sm font-medium mt-3 mb-1">For Chrome/Chromium Browsers:</h4>
+            <ol className="text-sm list-decimal pl-5 space-y-1">
+              <li>Click the "Install for Chrome" button on the extension page</li>
+              <li>In the Chrome Web Store, click "Add to Chrome"</li>
+              <li>When prompted, confirm by clicking "Add extension"</li>
+              <li>Once installed, the WishKeeper icon will appear in your browser toolbar</li>
+              <li>Click the icon and log in to your WishKeeper account</li>
             </ol>
-            <p className="text-sm mt-2">
-              Price tracking works even when your browser is closed. You'll receive notifications
-              through the WishKeeper website and email (if enabled in settings).
-            </p>
+
+            <h4 className="text-sm font-medium mt-3 mb-1">For Firefox:</h4>
+            <ol className="text-sm list-decimal pl-5 space-y-1">
+              <li>Click the "Install for Firefox" button on the extension page</li>
+              <li>In the Firefox Add-ons page, click "Add to Firefox"</li>
+              <li>When prompted, click "Add"</li>
+              <li>The WishKeeper icon will appear in your browser toolbar</li>
+              <li>Click the icon and log in to your WishKeeper account</li>
+            </ol>
+
+            <h4 className="text-sm font-medium mt-3 mb-1">For Microsoft Edge:</h4>
+            <ol className="text-sm list-decimal pl-5 space-y-1">
+              <li>Click the "Install for Edge" button on the extension page</li>
+              <li>In the Edge Add-ons page, click "Get"</li>
+              <li>When prompted, click "Add extension"</li>
+              <li>The WishKeeper icon will appear in your browser toolbar</li>
+              <li>Click the icon and log in to your WishKeeper account</li>
+            </ol>
           </AccordionContent>
         </AccordionItem>
 
@@ -178,30 +143,66 @@ export function ExtensionHelp() {
           <AccordionTrigger>Troubleshooting</AccordionTrigger>
           <AccordionContent>
             <p className="text-sm mb-2">
-              If you encounter issues with the extension:
+              Solutions for common extension issues:
+            </p>
+            
+            <h4 className="text-sm font-medium mt-3 mb-1">Product Information Not Detected:</h4>
+            <ul className="text-sm list-disc pl-5 space-y-1">
+              <li>Refresh the page and try again</li>
+              <li>Make sure you're on a product page, not a category or search results page</li>
+              <li>Some websites with unusual layouts may require manual input</li>
+              <li>Use the manual input option to enter product details</li>
+            </ul>
+
+            <h4 className="text-sm font-medium mt-3 mb-1">Extension Not Working:</h4>
+            <ul className="text-sm list-disc pl-5 space-y-1">
+              <li>Check that the extension is enabled in your browser settings</li>
+              <li>Log out and log back into your WishKeeper account</li>
+              <li>Try reinstalling the extension</li>
+              <li>Make sure your browser is updated to the latest version</li>
+            </ul>
+
+            <h4 className="text-sm font-medium mt-3 mb-1">Price Comparison Not Working:</h4>
+            <ul className="text-sm list-disc pl-5 space-y-1">
+              <li>Some unique or specialized products may not have matches on other sites</li>
+              <li>Try using more generic product terms for better matching</li>
+              <li>Wait a few moments for the search to complete</li>
+            </ul>
+
+            <h4 className="text-sm font-medium mt-3 mb-1">No Coupon Codes Found:</h4>
+            <ul className="text-sm list-disc pl-5 space-y-1">
+              <li>Not all retailers have active coupon codes at all times</li>
+              <li>Try again later as coupon availability changes frequently</li>
+              <li>Some retailer websites may block coupon code detection</li>
+            </ul>
+          </AccordionContent>
+        </AccordionItem>
+
+        <AccordionItem value="privacy">
+          <AccordionTrigger>Privacy & Data Collection</AccordionTrigger>
+          <AccordionContent>
+            <p className="text-sm mb-2">
+              The WishKeeper extension respects your privacy:
             </p>
             <ul className="text-sm list-disc pl-5 space-y-2">
               <li>
-                <strong>Extension not detecting products correctly:</strong> Try refreshing the page or manually entering details.
+                <strong>What we collect:</strong> The extension only collects product information (title, price, image, URL) from pages where you explicitly choose to save an item
               </li>
               <li>
-                <strong>Not signed in:</strong> Click "Sign In" in the extension popup and login with your WishKeeper account.
+                <strong>What we don't collect:</strong> We do not track your browsing history, collect personal information, or monitor your behavior on non-product pages
               </li>
               <li>
-                <strong>Extension not appearing:</strong> Right-click the extensions icon in Chrome and pin WishKeeper.
+                <strong>Permissions:</strong> The extension requests permissions to read content on retail sites to identify product information when you click the extension button
               </li>
               <li>
-                <strong>Slow performance:</strong> Disable other extensions temporarily to check for conflicts.
+                <strong>Data storage:</strong> All wishlist data is stored securely on WishKeeper servers and is protected by your account credentials
               </li>
               <li>
-                <strong>Extension crashes:</strong> Try uninstalling and reinstalling the extension.
-              </li>
-              <li>
-                <strong>Price tracking not working:</strong> Ensure you have background processes enabled in your browser settings.
+                <strong>Third parties:</strong> For price comparison and coupon features, we may send anonymized product identifiers to our price comparison service
               </li>
             </ul>
             <p className="text-sm mt-2">
-              For continued issues, contact support through the main WishKeeper website.
+              You can view our complete privacy policy on the WishKeeper website.
             </p>
           </AccordionContent>
         </AccordionItem>

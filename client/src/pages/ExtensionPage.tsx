@@ -12,7 +12,9 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 // Using alternative icons from the React Icons library
 import { FaChrome, FaFirefox, FaEdge } from 'react-icons/fa';
+import { QuestionMarkCircledIcon } from '@radix-ui/react-icons';
 import { ResponsiveAd } from '@/components/ads/AdUnit';
+import { ExtensionHelp } from '@/components/help/ExtensionHelp';
 
 const ExtensionPage = () => {
   return (
