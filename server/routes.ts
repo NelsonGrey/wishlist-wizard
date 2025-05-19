@@ -5,7 +5,8 @@ import {
   insertUserSchema, 
   insertWishlistSchema, 
   insertWishlistItemSchema,
-  insertBeneficiarySchema 
+  insertBeneficiarySchema,
+  insertNotificationSchema
 } from "@shared/schema";
 import { z } from "zod";
 import { register, login, logout, getCurrentUser, isAuthenticated } from "./auth";
@@ -313,6 +314,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const updatedItem = await storage.reserveWishlistItem(id, userId);
       if (!updatedItem) {
         return res.status(500).json({ message: "Failed to reserve item" });
+      }
+      
+      // Create a notification for the wishlist owner if the reserver isn't the owner
+      const wishlist = await storage.getWishlistById(updatedItem.wishlistId);
+      if (wishlist && wishlist.userId !== userId) {
+        // The current user is reserving someone else's item
+        const reserver = await storage.getUser(userId);
+        
+        // Create notification for the wishlist owner
+        await storage.createNotification({
+          userId: wishlist.userId,
+          type: "item_reserved",
+          title: "Item Reserved",
+          message: `${reserver?.displayName || reserver?.username || "Someone"} reserved "${updatedItem.name}" from your wishlist`,
+          relatedEntityId: updatedItem.id,
+          relatedEntityType: "wishlist_item",
+          isRead: false,
+          actionUrl: `/wishlist/${wishlist.id}`
+        });
       }
       
       res.json(updatedItem);
@@ -672,6 +692,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         lastActive: new Date()
       });
       
+      // Create a notification for the added user
+      const addedUser = await storage.getUser(result.data.userId);
+      if (addedUser) {
+        // Notification for the user who was added to the wishlist
+        await storage.createNotification({
+          userId: result.data.userId,
+          type: "added_as_collaborator",
+          title: "Added to Collaborative Wishlist",
+          message: `You were added as a ${result.data.role || 'editor'} to the wishlist "${wishlist.name}"`,
+          relatedEntityId: wishlistId,
+          relatedEntityType: "wishlist",
+          isRead: false,
+          actionUrl: `/wishlist/${wishlistId}`
+        });
+      }
+      
       res.status(201).json(collaborator);
     } catch (error) {
       console.error("Error adding collaborator:", error);
@@ -781,6 +817,94 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error updating collaborator activity:", error);
       res.status(500).json({ message: "Failed to update collaborator activity" });
+    }
+  });
+  
+  // ==================== NOTIFICATIONS ROUTES ====================
+  
+  // Get recent notifications for the current user
+  app.get("/api/notifications", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const userId = req.session.userId!;
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 10;
+      
+      // Get recent notifications for the user
+      const notifications = await storage.getNotifications(userId, limit);
+      
+      // Get count of unread notifications
+      const unreadCount = await storage.getUnreadNotificationCount(userId);
+      
+      res.json({ 
+        notifications,
+        unreadCount
+      });
+    } catch (error) {
+      console.error("Error getting notifications:", error);
+      res.status(500).json({ message: "Failed to retrieve notifications" });
+    }
+  });
+  
+  // Mark a notification as read
+  app.patch("/api/notifications/:id/read", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid notification ID" });
+      }
+      
+      // Verify ownership of the notification
+      const notifications = await storage.getNotifications(req.session.userId!);
+      const notification = notifications.find(n => n.id === id);
+      
+      if (!notification) {
+        return res.status(404).json({ message: "Notification not found" });
+      }
+      
+      const updatedNotification = await storage.markNotificationAsRead(id);
+      
+      res.json(updatedNotification);
+    } catch (error) {
+      console.error("Error marking notification as read:", error);
+      res.status(500).json({ message: "Failed to mark notification as read" });
+    }
+  });
+  
+  // Mark all notifications as read
+  app.post("/api/notifications/mark-all-read", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const userId = req.session.userId!;
+      
+      await storage.markAllNotificationsAsRead(userId);
+      
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error marking all notifications as read:", error);
+      res.status(500).json({ message: "Failed to mark all notifications as read" });
+    }
+  });
+  
+  // Delete a notification
+  app.delete("/api/notifications/:id", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid notification ID" });
+      }
+      
+      // Verify ownership of the notification
+      const notifications = await storage.getNotifications(req.session.userId!);
+      const notification = notifications.find(n => n.id === id);
+      
+      if (!notification) {
+        return res.status(404).json({ message: "Notification not found" });
+      }
+      
+      await storage.deleteNotification(id);
+      
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting notification:", error);
+      res.status(500).json({ message: "Failed to delete notification" });
     }
   });
 
