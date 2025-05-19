@@ -159,6 +159,19 @@ export default function Header() {
                       >
                         Download Extension
                       </a>
+                      <div className="mt-4">
+                        <Button 
+                          onClick={() => {
+                            handleLogout();
+                            setIsMenuOpen(false);
+                          }}
+                          variant="outline"
+                          className="flex items-center gap-1 w-full"
+                        >
+                          <LogOut className="h-4 w-4" />
+                          Logout
+                        </Button>
+                      </div>
                     </>
                   ) : (
                     <>
