@@ -15,8 +15,24 @@
 
     <!-- Login Screen -->
     <div id="login-screen" class="screen">
-      <p>Sign in to add items to your wishlists</p>
-      <button id="login-button" class="primary-button">Sign In</button>
+      <h2>Sign In</h2>
+      <div id="login-error" class="error-message hidden"></div>
+      <form id="login-form">
+        <div class="form-group">
+          <label for="username-input">Username</label>
+          <input type="text" id="username-input" class="form-input" required>
+        </div>
+        <div class="form-group">
+          <label for="password-input">Password</label>
+          <input type="password" id="password-input" class="form-input" required>
+        </div>
+        <button id="login-button" type="submit" class="primary-button">Sign In</button>
+        <div class="login-options">
+          <p>Or</p>
+          <button type="button" id="web-login-button" class="secondary-button">Sign In via Website</button>
+        </div>
+      </form>
+      <div id="login-loading" class="spinner hidden"></div>
     </div>
 
     <!-- Loading Screen -->
@@ -104,6 +120,7 @@
     </div>
   </div>
 
+  <script src="popup-auth.js"></script>
   <script src="popup.js"></script>
 </body>
 </html>

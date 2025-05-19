@@ -266,8 +266,89 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     
     console.log(`Message received ${senderInfo}`);
     
-    // Handle different message types
-    if (message.action === 'login') {
+    // JWT Auth Methods
+    if (message.action === 'isAuthenticated') {
+      // Initialize auth and check status
+      initAuthState().then(async () => {
+        const isAuth = await isAuthenticated();
+        
+        // Get user data if we have it
+        let userData = null;
+        try {
+          chrome.storage.local.get(['userData'], (result) => {
+            userData = result.userData;
+            
+            sendResponse({
+              success: true,
+              authenticated: isAuth,
+              userData: userData
+            });
+          });
+        } catch (error) {
+          // In case of storage error, just return auth status
+          sendResponse({
+            success: true,
+            authenticated: isAuth
+          });
+        }
+      });
+      
+      return true; // Keep sendResponse valid
+    }
+    
+    else if (message.action === 'authenticate') {
+      // Authenticate with username/password
+      const { username, password } = message;
+      
+      if (!username || !password) {
+        sendResponse({
+          success: false,
+          error: 'Username and password are required'
+        });
+        return true;
+      }
+      
+      // Call authenticate method
+      authenticate(username, password)
+        .then(result => {
+          sendResponse({
+            success: true,
+            user: result.user,
+            token: result.token
+          });
+        })
+        .catch(error => {
+          const trackingInfo = trackError(error, 'authenticate');
+          sendResponse({
+            success: false,
+            error: error.message,
+            errorId: trackingInfo.timestamp
+          });
+        });
+      
+      return true; // Keep sendResponse valid
+    }
+    
+    else if (message.action === 'logout') {
+      // Clear auth state
+      clearAuthState()
+        .then(() => {
+          sendResponse({ success: true });
+        })
+        .catch(error => {
+          const trackingInfo = trackError(error, 'logout');
+          sendResponse({
+            success: false,
+            error: error.message,
+            errorId: trackingInfo.timestamp
+          });
+        });
+      
+      return true; // Keep sendResponse valid
+    }
+    
+    // Original login action (open web login page)
+    else if (message.action === 'login') {
       try {
         // Open login page in new tab
         chrome.tabs.create({
