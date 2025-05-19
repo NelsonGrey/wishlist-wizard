@@ -12,6 +12,7 @@ import Login from "@/pages/Login";
 import Register from "@/pages/Register";
 import ExtensionPage from "@/pages/ExtensionPage";
 import Notifications from "@/pages/Notifications";
+import MobileAppDemo from "@/pages/MobileAppDemo";
 
 function Router() {
   return (
@@ -25,6 +26,7 @@ function Router() {
       <Route path="/extension" component={ExtensionPage} />
       <Route path="/extension-welcome" component={ExtensionPage} />
       <Route path="/notifications" component={Notifications} />
+      <Route path="/mobile-demo" component={MobileAppDemo} />
       <Route component={NotFound} />
     </Switch>
   );
