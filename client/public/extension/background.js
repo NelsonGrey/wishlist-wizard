@@ -596,6 +596,59 @@ async function addItemToWishlist(itemData) {
   }
 }
 
+// Track analytics events
+async function trackAnalyticsEvent(action, category, label, value) {
+  try {
+    const apiUrl = await getApiUrl();
+    const url = `${apiUrl}/api/extension/track-event`;
+    
+    // Get the current tab URL to track where the event happened
+    let tabUrl = null;
+    try {
+      const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+      if (tabs && tabs.length > 0) {
+        tabUrl = tabs[0].url;
+      }
+    } catch (err) {
+      console.warn('Could not get current tab URL for analytics', err);
+    }
+    
+    // Prepare the event data
+    const eventData = {
+      action,
+      category: category || 'extension',
+      label: label || null,
+      value: value || null,
+      url: tabUrl,
+      timestamp: new Date().toISOString()
+    };
+    
+    // Send the event to the server
+    if (await isAuthenticated()) {
+      await makeAuthenticatedRequest(url, {
+        method: 'POST',
+        body: JSON.stringify(eventData)
+      });
+    } else {
+      // For anonymous tracking, we still send the event but without authentication
+      await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(eventData)
+      });
+    }
+    
+    console.log(`Analytics event tracked: ${category} - ${action}`);
+    return true;
+  } catch (error) {
+    console.warn('Failed to track analytics event:', error);
+    // Don't let analytics failures break extension functionality
+    return false;
+  }
+}
+
 // Initialize browser action icon
 chrome.action.setIcon({
   path: {
@@ -606,34 +659,25 @@ chrome.action.setIcon({
   }
 });
 
-// Handle events from popup for analytics tracking
+// Handle events from popup and content scripts
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === 'TRACK_EVENT') {
-    try {
-      // Get the API URL to send the analytics event to our server
-      getBaseUrl().then(baseUrl => {
-        // Send event data to our server which will forward to Google Analytics
-        fetch(`${baseUrl}/api/extension/track-event`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': authToken ? `Bearer ${authToken}` : undefined
-          },
-          body: JSON.stringify({
-            action: message.payload.action,
-            category: message.payload.category || 'extension',
-            label: message.payload.label,
-            value: message.payload.value,
-            url: sender.tab ? sender.tab.url : undefined,
-            timestamp: new Date().toISOString()
-          })
-        }).catch(err => {
-          console.warn('Failed to send analytics event to server:', err);
-        });
-      });
-    } catch (error) {
-      console.warn('Error processing analytics event:', error);
-    }
+    // Use our analytics tracking function
+    trackAnalyticsEvent(
+      message.payload.action,
+      message.payload.category,
+      message.payload.label,
+      message.payload.value
+    ).then(success => {
+      if (sendResponse) {
+        sendResponse({ success });
+      }
+    }).catch(error => {
+      console.warn('Failed to track analytics event:', error);
+      if (sendResponse) {
+        sendResponse({ success: false, error: error.message });
+      }
+    });
     
     return true; // Keep sendResponse valid for async operations
   }

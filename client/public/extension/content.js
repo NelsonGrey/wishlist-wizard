@@ -1,6 +1,24 @@
 // WishKeeper Extension - Content Script
 // This script runs on supported shopping websites and extracts product information
 
+// Function to track content script events
+function trackContentEvent(action, category = 'content', label = null, value = null) {
+  try {
+    chrome.runtime.sendMessage({
+      type: 'TRACK_EVENT',
+      payload: {
+        action,
+        category,
+        label,
+        value
+      }
+    });
+    console.log(`Content script tracked: ${category} - ${action}`);
+  } catch (error) {
+    console.warn('Failed to track content script event:', error);
+  }
+}
+
 // Listen for messages from the background script or popup
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   console.log('Content script received message:', message);
@@ -17,6 +35,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           
           // Validate that we have sufficient product information
           if (!productInfo.success || !productInfo.productInfo.title) {
+            // Track failed product extraction
+            trackContentEvent('product_extraction_failed', 'product', 'insufficient_info');
+            
             sendResponse({ 
               success: false, 
               error: 'Could not extract sufficient product information', 
@@ -25,6 +46,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             });
             return true;
           }
+          
+          // Track successful product extraction
+          trackContentEvent('product_extraction_success', 'product', 
+            productInfo.productInfo.store || window.location.hostname);
           
           sendResponse(productInfo);
         } catch (error) {
