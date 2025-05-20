@@ -209,14 +209,15 @@ export type Wishlist = typeof wishlists.$inferSelect;
 export const notifications = pgTable("notifications", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().references(() => users.id),
-  type: text("type").notNull(), // e.g., "wishlist_updated", "item_added", "collaborator_added"
+  type: text("type").notNull(), // e.g., "price_drop", "wishlist_activity", "item_purchased", "wishlist_shared"
   title: text("title").notNull(),
-  message: text("message").notNull(),
-  relatedEntityId: integer("related_entity_id"), // ID of the related wishlist, item, etc.
-  relatedEntityType: text("related_entity_type"), // "wishlist", "item", "collaborator", etc.
+  content: text("content").notNull(), // The main message text of the notification
+  data: jsonb("data").default('{}'), // Additional data needed for email templates and action context
   createdAt: timestamp("created_at").defaultNow().notNull(),
   isRead: boolean("is_read").default(false).notNull(),
   actionUrl: text("action_url"), // URL to direct users to when they click on the notification
+  emailSent: boolean("email_sent").default(false), // Track if an email was sent for this notification
+  emailStatus: text("email_status"), // Success, failure, or error message from email service
 });
 
 export const notificationsRelations = relations(notifications, ({ one }) => ({
@@ -230,11 +231,12 @@ export const insertNotificationSchema = createInsertSchema(notifications).pick({
   userId: true,
   type: true,
   title: true,
-  message: true,
-  relatedEntityId: true,
-  relatedEntityType: true,
+  content: true,
+  data: true,
   isRead: true,
   actionUrl: true,
+  emailSent: true,
+  emailStatus: true
 });
 
 export type InsertWishlistCollaborator = z.infer<typeof insertWishlistCollaboratorSchema>;
