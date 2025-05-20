@@ -149,9 +149,13 @@ export async function addItemFromExtension(req: Request, res: Response) {
         userId: wishlist.userId,
         type: 'item_added',
         title: 'New Item Added',
-        message: `A collaborator added "${title}" to your wishlist "${wishlist.name}"`,
-        relatedEntityId: newItem.id,
-        relatedEntityType: 'wishlist_item',
+        content: `A collaborator added "${title}" to your wishlist "${wishlist.name}"`,
+        data: {
+          itemId: newItem.id,
+          wishlistId: wishlist.id,
+          title: title,
+          addedBy: req.session.userId
+        },
         isRead: false,
         actionUrl: `/wishlist/${wishlist.id}`
       });
