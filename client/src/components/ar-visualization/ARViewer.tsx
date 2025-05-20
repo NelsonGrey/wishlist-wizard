@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Loader2, Cube, ChevronsUpDown, RotateCw } from 'lucide-react';
+import { Loader2, Box, ChevronsUpDown, RotateCw } from 'lucide-react';
 
 // Props for the AR Viewer component
 interface ARViewerProps {
@@ -67,7 +67,7 @@ export function ARViewer({
             <div className="absolute top-2 right-2 flex flex-col gap-2">
               <div className="bg-black/40 text-white text-xs px-2 py-1 rounded-md backdrop-blur-sm">
                 <div className="flex items-center gap-1">
-                  <Cube className="h-3 w-3" />
+                  <Box className="h-3 w-3" />
                   <span>3D Model: {modelType.charAt(0).toUpperCase() + modelType.slice(1)}</span>
                 </div>
               </div>
