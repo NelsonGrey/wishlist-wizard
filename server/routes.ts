@@ -1498,6 +1498,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/extension/download", downloadExtension);
   app.get("/api/extension/metadata", getExtensionMetadata);
   app.post("/api/extension/package", packageExtensions);
+  
+  // Register e-commerce routes for platform integration
+  registerEcommerceRoutes(app);
 
   return httpServer;
 }
