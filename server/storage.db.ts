@@ -6,10 +6,11 @@ import {
   wishlists, Wishlist, InsertWishlist,
   wishlistItems, WishlistItem, InsertWishlistItem,
   wishlistCollaborators, WishlistCollaborator, InsertWishlistCollaborator,
-  notifications, Notification, InsertNotification
+  notifications, Notification, InsertNotification,
+  priceAlerts, PriceAlert, InsertPriceAlert
 } from "@shared/schema";
 import { IStorage } from "./storage";
-import { eq, and, desc, sql } from "drizzle-orm";
+import { eq, and, desc, sql, lt, gt } from "drizzle-orm";
 
 export class DatabaseStorage implements IStorage {
   // User methods
