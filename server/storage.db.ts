@@ -449,4 +449,87 @@ export class DatabaseStorage implements IStorage {
     
     return !!deleted;
   }
+
+  // Price Alert methods
+  async getPriceAlerts(userId: number): Promise<PriceAlert[]> {
+    return await db
+      .select()
+      .from(priceAlerts)
+      .where(eq(priceAlerts.userId, userId))
+      .orderBy(desc(priceAlerts.createdAt));
+  }
+
+  async getPriceAlertsByItem(itemId: number): Promise<PriceAlert[]> {
+    return await db
+      .select()
+      .from(priceAlerts)
+      .where(eq(priceAlerts.itemId, itemId))
+      .orderBy(desc(priceAlerts.createdAt));
+  }
+
+  async getPriceAlertsExpiringBefore(date: Date): Promise<PriceAlert[]> {
+    return await db
+      .select()
+      .from(priceAlerts)
+      .where(
+        and(
+          lt(priceAlerts.expiresAt, date),
+          eq(priceAlerts.triggered, false)
+        )
+      );
+  }
+
+  async createPriceAlert(alertData: InsertPriceAlert): Promise<PriceAlert> {
+    const [alert] = await db
+      .insert(priceAlerts)
+      .values(alertData)
+      .returning();
+    
+    return alert;
+  }
+
+  async markPriceAlertTriggered(alertId: number): Promise<boolean> {
+    const now = new Date();
+    
+    const [updated] = await db
+      .update(priceAlerts)
+      .set({ 
+        triggered: true,
+        triggeredAt: now
+      })
+      .where(eq(priceAlerts.id, alertId))
+      .returning();
+    
+    return !!updated;
+  }
+
+  async deletePriceAlert(id: number): Promise<boolean> {
+    const [deleted] = await db
+      .delete(priceAlerts)
+      .where(eq(priceAlerts.id, id))
+      .returning();
+    
+    return !!deleted;
+  }
+
+  async getRecentPriceDrops(userId: number, days: number): Promise<any[]> {
+    // For now, return an empty array as this would typically involve
+    // a more complex query with joins across wishlist_items and price_history
+    return [];
+  }
+
+  // Missing user methods
+  async getUserByVerificationToken(token: string): Promise<User[]> {
+    return await db
+      .select()
+      .from(users)
+      .where(eq(users.verificationToken, token));
+  }
+
+  async getUserByResetToken(token: string): Promise<User[]> {
+    return await db
+      .select()
+      .from(users)
+      .where(eq(users.passwordResetToken, token));
+  }
 }
