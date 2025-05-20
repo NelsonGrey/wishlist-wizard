@@ -200,7 +200,7 @@ describe('Schema Validation', () => {
         userId: 1,
         // Missing type
         // Missing title
-        message: 'A wishlist has been created.'
+        content: 'A wishlist has been created.'
       };
       
       // Act
@@ -219,7 +219,7 @@ describe('Schema Validation', () => {
         userId: 1,
         type: 'wishlist_created',
         title: 'New Wishlist Created',
-        message: 'A wishlist has been created.'
+        content: 'A wishlist has been created.'
         // Optional fields omitted
       };
       
