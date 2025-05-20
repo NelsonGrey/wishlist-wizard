@@ -1504,6 +1504,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Register calendar integration routes
   registerCalendarRoutes(app);
+  
+  // Register external calendar connection routes
+  const { registerCalendarConnectionRoutes } = require('./routes/calendarConnections');
+  registerCalendarConnectionRoutes(app);
 
   return httpServer;
 }
