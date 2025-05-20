@@ -605,3 +605,36 @@ chrome.action.setIcon({
     "128": "icons/icon128.png"
   }
 });
+
+// Handle events from popup for analytics tracking
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.type === 'TRACK_EVENT') {
+    try {
+      // Get the API URL to send the analytics event to our server
+      getBaseUrl().then(baseUrl => {
+        // Send event data to our server which will forward to Google Analytics
+        fetch(`${baseUrl}/api/extension/track-event`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': authToken ? `Bearer ${authToken}` : undefined
+          },
+          body: JSON.stringify({
+            action: message.payload.action,
+            category: message.payload.category || 'extension',
+            label: message.payload.label,
+            value: message.payload.value,
+            url: sender.tab ? sender.tab.url : undefined,
+            timestamp: new Date().toISOString()
+          })
+        }).catch(err => {
+          console.warn('Failed to send analytics event to server:', err);
+        });
+      });
+    } catch (error) {
+      console.warn('Error processing analytics event:', error);
+    }
+    
+    return true; // Keep sendResponse valid for async operations
+  }
+});
