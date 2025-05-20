@@ -142,7 +142,13 @@ async function authenticate(username, password) {
     });
     
     if (!response.ok) {
-      const errorData = await response.json();
+      let errorData;
+      try {
+        errorData = await response.json();
+      } catch (e) {
+        // If response is not JSON, use status text
+        throw new Error(`Authentication failed: ${response.status} ${response.statusText}`);
+      }
       throw new Error(errorData.error || 'Authentication failed');
     }
     
@@ -473,8 +479,13 @@ async function makeAuthenticatedRequest(url, options = {}) {
   // Initialize authentication if not done yet
   await initAuthState();
   
-  // Ensure we have a valid token
-  const token = await refreshTokenIfNeeded();
+  // Check if we need to refresh the token and do so if necessary
+  await refreshTokenIfNeeded();
+  
+  // If we don't have a token after refresh attempt, authentication has failed
+  if (!authToken) {
+    throw new Error('Not authenticated. Please log in again.');
+  }
   
   // Set up headers with authentication
   const headers = {
@@ -484,8 +495,8 @@ async function makeAuthenticatedRequest(url, options = {}) {
   };
   
   // Add authorization header if we have a token
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
+  if (authToken) {
+    headers['Authorization'] = `Bearer ${authToken}`;
   }
   
   // Build the request options
