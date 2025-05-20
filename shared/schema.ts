@@ -692,6 +692,8 @@ export const insertUserCalendarSchema = createInsertSchema(userCalendars).pick({
 
 export const insertCalendarEventSchema = createInsertSchema(calendarEvents).pick({
   userId: true,
+  calendarId: true,
+  externalEventId: true,
   title: true,
   description: true,
   startDate: true,
