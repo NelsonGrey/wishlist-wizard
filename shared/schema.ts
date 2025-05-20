@@ -254,9 +254,11 @@ export const priceAlerts = pgTable("price_alerts", {
   userId: integer("user_id").notNull().references(() => users.id),
   itemId: integer("item_id").notNull().references(() => wishlistItems.id),
   targetPrice: decimal("target_price", { precision: 10, scale: 2 }).notNull(),
-  notified: boolean("notified").default(false).notNull(),
+  triggered: boolean("triggered").default(false).notNull(), // Whether price has dropped below target and notification sent
+  triggeredAt: timestamp("triggered_at"), // When the price alert was triggered
   createdAt: timestamp("created_at").defaultNow().notNull(),
-  expiresAt: timestamp("expires_at"),
+  expiresAt: timestamp("expires_at"), // When the alert expires
+  emailSent: boolean("email_sent").default(false).notNull(), // Whether an email notification was sent
 });
 
 export const priceAlertsRelations = relations(priceAlerts, ({ one }) => ({
@@ -274,7 +276,10 @@ export const insertPriceAlertSchema = createInsertSchema(priceAlerts).pick({
   userId: true,
   itemId: true,
   targetPrice: true,
-  expiresAt: true
+  expiresAt: true,
+  triggered: true,
+  triggeredAt: true,
+  emailSent: true
 });
 
 export type InsertPriceAlert = z.infer<typeof insertPriceAlertSchema>;
