@@ -659,15 +659,24 @@ function addWishKeeperButton() {
   
   // Add click event
   button.onclick = () => {
+    // Track the button click event
+    trackContentEvent('wishkeeper_button_clicked', 'engagement', window.location.hostname);
+    
     // Send message to background script to handle adding to wishlist
     chrome.runtime.sendMessage({
       action: 'extractProductInfo'
     }, response => {
       if (response && response.success) {
+        // Track successful product detection
+        trackContentEvent('product_detected', 'product', response.productInfo.store || window.location.hostname);
+        
         chrome.runtime.sendMessage({
           action: 'openPopup',
           data: response.productInfo
         });
+      } else {
+        // Track failed product detection
+        trackContentEvent('product_detection_failed', 'product', window.location.hostname);
       }
     });
   };
