@@ -93,12 +93,14 @@ export class MemStorage implements IStorage {
     this.wishlistItems = new Map();
     this.wishlistCollaborators = new Map();
     this.notifications = new Map();
+    this.priceAlerts = new Map();
     this.userIdCounter = 1;
     this.beneficiaryIdCounter = 1;
     this.wishlistIdCounter = 1;
     this.wishlistItemIdCounter = 1;
     this.collaboratorIdCounter = 1;
     this.notificationIdCounter = 1;
+    this.priceAlertIdCounter = 1;
     
     // Add a demo user
     this.createUser({

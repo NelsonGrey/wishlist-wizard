@@ -974,9 +974,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           userId: result.data.userId,
           type: "added_as_collaborator",
           title: "Added to Collaborative Wishlist",
-          message: `You were added as a ${result.data.role || 'editor'} to the wishlist "${wishlist.name}"`,
-          relatedEntityId: wishlistId,
-          relatedEntityType: "wishlist",
+          content: `You were added as a ${result.data.role || 'editor'} to the wishlist "${wishlist.name}"`,
+          data: {
+            wishlistId,
+            wishlistName: wishlist.name,
+            role: result.data.role || 'editor'
+          },
           isRead: false,
           actionUrl: `/wishlist/${wishlistId}`
         });
