@@ -43,7 +43,7 @@ const NotificationItem = ({ notification, onRead }: NotificationItemProps) => {
           <div className="h-2 w-2 rounded-full bg-primary"></div>
         )}
       </div>
-      <p className="text-xs text-muted-foreground">{notification.message}</p>
+      <p className="text-xs text-muted-foreground">{notification.content}</p>
       <div className="flex justify-between items-center mt-2">
         <span className="text-xs text-muted-foreground">
           {new Date(notification.createdAt).toLocaleDateString('en-US', {

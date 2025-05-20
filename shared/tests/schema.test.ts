@@ -181,9 +181,8 @@ describe('Schema Validation', () => {
         userId: 1,
         type: 'wishlist_created',
         title: 'New Wishlist Created',
-        message: 'A wishlist "Birthday Wishlist" has been created.',
-        relatedEntityId: 123,
-        relatedEntityType: 'wishlist',
+        content: 'A wishlist "Birthday Wishlist" has been created.',
+        data: { wishlistId: 123, wishlistName: 'Birthday Wishlist' },
         isRead: false,
         actionUrl: '/wishlists/123'
       };
