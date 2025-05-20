@@ -4,26 +4,8 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Camera, Share2, Download } from 'lucide-react';
+import { Camera, Share2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-
-// Static list of 3D model URLs for different product categories
-// In a real implementation, these would come from your product database
-const MODEL_URLS = {
-  furniture: {
-    chair: 'https://modelviewer.dev/shared-assets/models/chair.glb',
-    sofa: 'https://modelviewer.dev/shared-assets/models/sofa.glb',
-    table: 'https://modelviewer.dev/shared-assets/models/table.glb',
-  },
-  electronics: {
-    headphones: 'https://modelviewer.dev/shared-assets/models/Headphones.glb',
-    speaker: 'https://modelviewer.dev/shared-assets/models/speaker.glb',
-  },
-  homeDecor: {
-    vase: 'https://modelviewer.dev/shared-assets/models/vase.glb',
-    lamp: 'https://modelviewer.dev/shared-assets/models/lamp.glb',
-  }
-};
 
 // Props for the product AR viewer
 interface ARProductViewerProps {
@@ -44,32 +26,40 @@ export function ARProductViewer({ product, className = "" }: ARProductViewerProp
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState('view3d');
   
-  // If no specific model URL is provided, attempt to find a default based on product title
-  const getModelUrl = () => {
-    if (product?.modelUrl) return product.modelUrl;
+  // Determine which model type to use based on product category or title
+  const getModelType = () => {
+    if (!product) return 'chair';
     
-    // Fall back to a default model based on product category or title
-    const title = product?.title?.toLowerCase() || '';
-    const category = product?.category?.toLowerCase() || '';
+    const title = product.title?.toLowerCase() || '';
+    const category = product.category?.toLowerCase() || '';
     
     if (category.includes('chair') || title.includes('chair')) {
-      return MODEL_URLS.furniture.chair;
-    } else if (category.includes('sofa') || title.includes('sofa') || title.includes('couch')) {
-      return MODEL_URLS.furniture.sofa;
+      return 'chair';
     } else if (category.includes('table') || title.includes('table')) {
-      return MODEL_URLS.furniture.table;
-    } else if (category.includes('headphone') || title.includes('headphone')) {
-      return MODEL_URLS.electronics.headphones;
-    } else if (category.includes('speaker') || title.includes('speaker')) {
-      return MODEL_URLS.electronics.speaker;
-    } else if (category.includes('vase') || title.includes('vase')) {
-      return MODEL_URLS.homeDecor.vase;
+      return 'table';
     } else if (category.includes('lamp') || title.includes('lamp')) {
-      return MODEL_URLS.homeDecor.lamp;
+      return 'lamp';
     }
     
-    // Default to a chair as fallback
-    return MODEL_URLS.furniture.chair;
+    // Default to a chair
+    return 'chair';
+  };
+
+  // Determine model color based on product info
+  const getModelColor = () => {
+    // This could be more sophisticated, extracting dominant colors from product images
+    // For now using a simple mapping based on categories
+    const category = product?.category?.toLowerCase() || '';
+    
+    if (category.includes('modern') || category.includes('contemporary')) {
+      return '#424242'; // dark gray for modern furniture
+    } else if (category.includes('vintage') || category.includes('antique')) {
+      return '#8d6e63'; // brown for vintage
+    } else if (category.includes('colorful') || category.includes('kids')) {
+      return '#1e88e5'; // blue for colorful items
+    }
+    
+    return undefined; // use default colors
   };
 
   // Share AR view with others
@@ -137,8 +127,9 @@ export function ARProductViewer({ product, className = "" }: ARProductViewerProp
           
           <TabsContent value="view3d" className="mt-0">
             <ARViewer 
-              modelUrl={getModelUrl()}
+              modelType={getModelType()}
               scale={1.5}
+              color={getModelColor()}
             />
           </TabsContent>
           
