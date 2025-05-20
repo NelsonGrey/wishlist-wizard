@@ -2,7 +2,9 @@
 // This script handles communication between the extension and the website
 
 // Base URL for the WishKeeper website API
-let baseUrl = 'https://wishkeeper.replit.app';
+let baseUrl = window.location.hostname.includes('localhost') 
+  ? 'http://localhost:3000' 
+  : 'https://wishkeeper.replit.app';
 
 // Auth token storage for JWT-based authentication
 let authToken = null;
@@ -11,9 +13,9 @@ const TOKEN_REFRESH_THRESHOLD = 15 * 60 * 1000; // 15 minutes in milliseconds
 
 // Get API base URL
 async function getApiUrl() {
-  // For development environments, can be changed to use localhost
-  if (process.env.NODE_ENV === 'development') {
-    return 'http://localhost:5000';
+  // For development environments, can be detected automatically
+  if (baseUrl.includes('localhost')) {
+    return baseUrl;
   }
   return baseUrl;
 }
