@@ -1,173 +1,243 @@
-import React from 'react';
-import { ARProductViewer } from '@/components/ar-visualization/ARProductViewer';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import React, { useState } from 'react';
+import { Helmet } from 'react-helmet';
+import { 
+  Tabs, 
+  TabsContent, 
+  TabsList, 
+  TabsTrigger 
+} from '@/components/ui/tabs';
+import { 
+  Card, 
+  CardContent, 
+  CardDescription, 
+  CardFooter, 
+  CardHeader, 
+  CardTitle 
+} from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Link } from 'wouter';
-import { Box, ShoppingBag, LayoutGrid, Phone } from 'lucide-react';
-
-// Sample products for the AR demo
-const SAMPLE_PRODUCTS = [
-  {
-    id: 1,
-    title: 'Modern Accent Chair',
-    price: '249.99',
-    category: 'furniture',
-    imageUrl: 'https://images.unsplash.com/photo-1592078615290-033ee584e267?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1160&q=80',
-    brand: 'Comfy Living',
-    store: 'HomeStyle',
-  },
-  {
-    id: 2,
-    title: 'Premium Wireless Headphones',
-    price: '199.99',
-    category: 'electronics',
-    imageUrl: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80',
-    brand: 'SoundMaster',
-    store: 'ElectroWorld',
-  },
-  {
-    id: 3,
-    title: 'Contemporary Coffee Table',
-    price: '349.99',
-    category: 'furniture',
-    imageUrl: 'https://images.unsplash.com/photo-1533090481720-856c6e3c1fdc?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=688&q=80',
-    brand: 'UrbanDwelling',
-    store: 'FurnitureExpress',
-  },
-  {
-    id: 4,
-    title: 'Designer Table Lamp',
-    price: '89.99',
-    category: 'homeDecor',
-    imageUrl: 'https://images.unsplash.com/photo-1534291641485-883c841b6406?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=627&q=80',
-    brand: 'LuminaDesign',
-    store: 'HomeDecorPlus',
-  }
-];
+import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { ARSimpleViewer } from '../components/ar-visualization/ARSimpleViewer';
+import { trackEvent } from '../lib/analytics';
 
 export default function ArVisualizerDemo() {
-  const [selectedProduct, setSelectedProduct] = React.useState(SAMPLE_PRODUCTS[0]);
+  const [selectedProduct, setSelectedProduct] = useState<'chair' | 'table' | 'lamp' | 'default'>('chair');
+  
+  const handleProductChange = (value: string) => {
+    setSelectedProduct(value as 'chair' | 'table' | 'lamp' | 'default');
+    trackEvent('ar_product_change', 'ar_viewer', value);
+  };
+  
+  const handleViewButtonClick = () => {
+    trackEvent('view_in_ar_clicked', 'ar_viewer', selectedProduct);
+    // In a real app, this would trigger the AR view on a mobile device
+    alert('In a real app, this would launch the AR view on your mobile device!');
+  };
   
   return (
-    <div className="container py-8">
+    <div className="container mx-auto px-4 py-8">
+      <Helmet>
+        <title>AR Product Visualizer | WishKeeper</title>
+        <meta name="description" content="Try AR visualization to see how products would look in your space before adding them to your wishlist." />
+      </Helmet>
+      
       <div className="max-w-4xl mx-auto">
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold tracking-tight mb-3 bg-clip-text text-transparent bg-gradient-to-r from-blue-500 to-indigo-600">
-            AR Product Visualizer
-          </h1>
-          <p className="text-muted-foreground text-lg">
-            See how items from your wishlist would look in your space before purchasing
-          </p>
-        </div>
+        <h1 className="text-3xl font-bold tracking-tight mb-2">AR Product Visualizer</h1>
+        <p className="text-muted-foreground mb-8">
+          See how products would look in your space before adding them to your wishlist.
+        </p>
         
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <Card className="md:col-span-2">
-            <CardHeader className="pb-2">
-              <CardTitle>Visualize in 3D and AR</CardTitle>
-              <CardDescription>
-                Explore products from multiple angles or place them in your space with AR
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ARProductViewer product={selectedProduct} />
-            </CardContent>
-          </Card>
+        <Tabs defaultValue="demo" className="mb-8">
+          <TabsList className="mb-4">
+            <TabsTrigger value="demo">Demo</TabsTrigger>
+            <TabsTrigger value="how-it-works">How It Works</TabsTrigger>
+            <TabsTrigger value="supported-products">Supported Products</TabsTrigger>
+          </TabsList>
           
-          <div className="space-y-6">
+          <TabsContent value="demo">
             <Card>
-              <CardHeader className="pb-2">
-                <CardTitle>How It Works</CardTitle>
+              <CardHeader>
+                <CardTitle>AR Product Preview</CardTitle>
+                <CardDescription>
+                  Select a product to visualize and explore it from different angles.
+                </CardDescription>
               </CardHeader>
+              
               <CardContent>
-                <ol className="space-y-3 text-sm">
-                  <li className="flex gap-2">
-                    <span className="bg-primary text-primary-foreground rounded-full w-6 h-6 flex items-center justify-center text-xs">1</span>
-                    <div>Select a product from your wishlist</div>
-                  </li>
-                  <li className="flex gap-2">
-                    <span className="bg-primary text-primary-foreground rounded-full w-6 h-6 flex items-center justify-center text-xs">2</span>
-                    <div>Explore the item in 3D from all angles</div>
-                  </li>
-                  <li className="flex gap-2">
-                    <span className="bg-primary text-primary-foreground rounded-full w-6 h-6 flex items-center justify-center text-xs">3</span>
-                    <div>Use AR mode to place it in your room</div>
-                  </li>
-                  <li className="flex gap-2">
-                    <span className="bg-primary text-primary-foreground rounded-full w-6 h-6 flex items-center justify-center text-xs">4</span>
-                    <div>Take pictures to share or save for later</div>
-                  </li>
-                </ol>
+                <div className="mb-6">
+                  <label className="block text-sm font-medium mb-2">Select Product</label>
+                  <Select
+                    value={selectedProduct}
+                    onValueChange={handleProductChange}
+                  >
+                    <SelectTrigger className="w-full max-w-xs">
+                      <SelectValue placeholder="Select a product" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="chair">Modern Accent Chair</SelectItem>
+                      <SelectItem value="table">Coffee Table</SelectItem>
+                      <SelectItem value="lamp">Floor Lamp</SelectItem>
+                      <SelectItem value="default">Generic Product</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
                 
-                <div className="mt-4 pt-4 border-t">
-                  <Link href="/wishlist">
-                    <Button className="w-full">Try with Your Wishlist</Button>
-                  </Link>
-                </div>
+                <ARSimpleViewer modelType={selectedProduct} />
               </CardContent>
+              
+              <CardFooter className="flex justify-between">
+                <Button variant="outline">Add to Wishlist</Button>
+                <Button onClick={handleViewButtonClick}>
+                  View in Your Space
+                </Button>
+              </CardFooter>
             </Card>
-            
+          </TabsContent>
+          
+          <TabsContent value="how-it-works">
             <Card>
-              <CardHeader className="pb-2">
-                <CardTitle>Try More Features</CardTitle>
+              <CardHeader>
+                <CardTitle>How AR Visualization Works</CardTitle>
+                <CardDescription>
+                  Understanding the technology behind our AR features
+                </CardDescription>
               </CardHeader>
-              <CardContent className="grid grid-cols-2 gap-2">
-                <Link href="/mobile-app-demo">
-                  <Button variant="outline" className="w-full h-auto py-4 flex flex-col gap-2 items-center justify-center">
-                    <Phone className="h-5 w-5" />
-                    <span>Mobile App</span>
-                  </Button>
-                </Link>
-                <Link href="/social-sharing-demo">
-                  <Button variant="outline" className="w-full h-auto py-4 flex flex-col gap-2 items-center justify-center">
-                    <LayoutGrid className="h-5 w-5" />
-                    <span>Social Sharing</span>
-                  </Button>
-                </Link>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-        
-        <Card>
-          <CardHeader>
-            <CardTitle>Sample Products</CardTitle>
-            <CardDescription>
-              Select a product to visualize in 3D and AR
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {SAMPLE_PRODUCTS.map(product => (
-                <div 
-                  key={product.id}
-                  className={`cursor-pointer border rounded-lg overflow-hidden transition-all ${selectedProduct.id === product.id ? 'ring-2 ring-primary' : 'hover:border-primary'}`}
-                  onClick={() => setSelectedProduct(product)}
-                >
-                  <div className="aspect-square bg-muted relative overflow-hidden">
-                    <img 
-                      src={product.imageUrl} 
-                      alt={product.title}
-                      className="object-cover w-full h-full"
-                    />
-                    <div className="absolute bottom-2 right-2">
-                      <div className="bg-primary text-white p-1 rounded-full">
-                        <Box className="h-4 w-4" />
-                      </div>
+              
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="grid md:grid-cols-2 gap-6">
+                    <div>
+                      <h3 className="text-lg font-medium mb-2">Step 1: Select a Product</h3>
+                      <p className="text-muted-foreground">
+                        Browse through your wishlist items or search for products you're interested in.
+                      </p>
                     </div>
-                  </div>
-                  <div className="p-3">
-                    <h3 className="font-medium text-sm line-clamp-1">{product.title}</h3>
-                    <div className="flex justify-between items-center mt-1">
-                      <span className="text-sm font-bold">${product.price}</span>
-                      <span className="text-xs text-muted-foreground">{product.store}</span>
+                    <div>
+                      <h3 className="text-lg font-medium mb-2">Step 2: Preview in 3D</h3>
+                      <p className="text-muted-foreground">
+                        Use our interactive 3D viewer to examine the product from multiple angles before placing it.
+                      </p>
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-medium mb-2">Step 3: Launch AR View</h3>
+                      <p className="text-muted-foreground">
+                        On mobile devices, tap "View in Your Space" to open the camera and place the product in your environment.
+                      </p>
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-medium mb-2">Step 4: Adjust and Share</h3>
+                      <p className="text-muted-foreground">
+                        Move and scale the product to fit your space, then take screenshots to share with friends or family.
+                      </p>
                     </div>
                   </div>
                 </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          <TabsContent value="supported-products">
+            <Card>
+              <CardHeader>
+                <CardTitle>Supported Product Categories</CardTitle>
+                <CardDescription>
+                  We're continually expanding our library of AR-compatible products
+                </CardDescription>
+              </CardHeader>
+              
+              <CardContent>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div className="border rounded-lg p-4">
+                    <h3 className="font-medium mb-2">Furniture</h3>
+                    <ul className="list-disc pl-5 text-sm text-muted-foreground">
+                      <li>Chairs & Sofas</li>
+                      <li>Tables & Desks</li>
+                      <li>Beds & Mattresses</li>
+                      <li>Storage & Shelving</li>
+                    </ul>
+                  </div>
+                  
+                  <div className="border rounded-lg p-4">
+                    <h3 className="font-medium mb-2">Home Decor</h3>
+                    <ul className="list-disc pl-5 text-sm text-muted-foreground">
+                      <li>Lamps & Lighting</li>
+                      <li>Rugs & Mats</li>
+                      <li>Artwork & Mirrors</li>
+                      <li>Decorative Accents</li>
+                    </ul>
+                  </div>
+                  
+                  <div className="border rounded-lg p-4">
+                    <h3 className="font-medium mb-2">Electronics</h3>
+                    <ul className="list-disc pl-5 text-sm text-muted-foreground">
+                      <li>TVs & Monitors</li>
+                      <li>Speakers & Audio</li>
+                      <li>Gaming Consoles</li>
+                      <li>Smart Home Devices</li>
+                    </ul>
+                  </div>
+                  
+                  <div className="border rounded-lg p-4">
+                    <h3 className="font-medium mb-2">Kitchen</h3>
+                    <ul className="list-disc pl-5 text-sm text-muted-foreground">
+                      <li>Appliances</li>
+                      <li>Cookware & Bakeware</li>
+                      <li>Dining Sets</li>
+                      <li>Storage Solutions</li>
+                    </ul>
+                  </div>
+                  
+                  <div className="border rounded-lg p-4">
+                    <h3 className="font-medium mb-2">Outdoor</h3>
+                    <ul className="list-disc pl-5 text-sm text-muted-foreground">
+                      <li>Patio Furniture</li>
+                      <li>Grills & Accessories</li>
+                      <li>Planters & Gardening</li>
+                      <li>Outdoor Lighting</li>
+                    </ul>
+                  </div>
+                  
+                  <div className="border rounded-lg p-4 bg-muted/50">
+                    <h3 className="font-medium mb-2">Coming Soon</h3>
+                    <ul className="list-disc pl-5 text-sm text-muted-foreground">
+                      <li>Clothing & Accessories</li>
+                      <li>Fitness Equipment</li>
+                      <li>Toys & Games</li>
+                      <li>Pet Supplies</li>
+                    </ul>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+        
+        <div className="bg-muted/30 rounded-lg p-6 mb-6">
+          <h2 className="text-xl font-semibold mb-3">Tips for Using AR Visualization</h2>
+          <ul className="space-y-2">
+            <li className="flex items-start gap-2">
+              <span className="bg-primary text-white rounded-full w-5 h-5 flex items-center justify-center flex-shrink-0 mt-0.5">1</span>
+              <span>Ensure you have good lighting for optimal AR performance</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="bg-primary text-white rounded-full w-5 h-5 flex items-center justify-center flex-shrink-0 mt-0.5">2</span>
+              <span>Clear some space to properly visualize larger items</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="bg-primary text-white rounded-full w-5 h-5 flex items-center justify-center flex-shrink-0 mt-0.5">3</span>
+              <span>Use a recent mobile device for the best AR experience</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="bg-primary text-white rounded-full w-5 h-5 flex items-center justify-center flex-shrink-0 mt-0.5">4</span>
+              <span>Take screenshots to share visualization with friends and family</span>
+            </li>
+          </ul>
+        </div>
       </div>
     </div>
   );
