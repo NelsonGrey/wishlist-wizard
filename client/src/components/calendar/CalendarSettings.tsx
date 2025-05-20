@@ -145,7 +145,7 @@ export function CalendarSettings() {
       case 'google':
         return <SiGoogle className="h-5 w-5 text-blue-500" />;
       case 'outlook':
-        return <SiMicrosoft className="h-5 w-5 text-blue-500" />;
+        return <FaMicrosoft className="h-5 w-5 text-blue-500" />;
       case 'apple':
         return <SiApple className="h-5 w-5 text-gray-800" />;
       default:
@@ -206,7 +206,7 @@ export function CalendarSettings() {
                     onClick={() => handleSync(calendar.id)}
                     disabled={syncMutation.isPending}
                   >
-                    <LuCloudSync className="h-4 w-4 mr-2" />
+                    <LuCloudSun className="h-4 w-4 mr-2" />
                     Sync
                   </Button>
                   <Button 
