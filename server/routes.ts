@@ -15,6 +15,7 @@ import { issueToken } from "./jwt-auth";
 import { initializeSessionTable } from "./session";
 import { verifyExtensionAuth, getExtensionWishlists, addItemFromExtension, verifyExtensionJWT, trackExtensionEvent } from "./extension";
 import { notificationService } from "./services/notificationService";
+import { registerEcommerceRoutes } from "./routes/ecommerce";
 
 import { 
   addGiftParticipant, 

@@ -118,6 +118,10 @@ export const wishlistItems = pgTable("wishlist_items", {
   note: text("note"),
   category: text("category"), // For better recommendation and categorization
   brand: text("brand"), // For brand recognition and filtering
+  description: text("description"), // Product description from the e-commerce platform
+  availability: text("availability"), // In stock, out of stock, etc.
+  rating: decimal("rating", { precision: 3, scale: 1 }), // Product rating (e.g., 4.5 out of 5)
+  reviewCount: integer("review_count"), // Number of reviews
   priceHistory: jsonb("price_history").default('[]'), // To track price changes over time
   metadata: jsonb("metadata").default('{}'), // For additional product data
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -185,10 +189,19 @@ export const insertWishlistItemSchema = createInsertSchema(wishlistItems).pick({
   wishlistId: true,
   title: true,
   price: true,
+  numericPrice: true,
   imageUrl: true,
   productUrl: true,
   store: true,
+  brand: true,
+  category: true,
+  description: true,
   note: true,
+  metadata: true,
+  productIdentifier: true,
+  availability: true,
+  rating: true,
+  reviewCount: true,
   reservedByUserId: true,
   purchasedByUserId: true,
   purchasedAt: true,
