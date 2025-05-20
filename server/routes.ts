@@ -13,7 +13,7 @@ import { z } from "zod";
 import { register, login, logout, getCurrentUser, isAuthenticated, verifyEmail, requestPasswordReset, resetPassword } from "./auth";
 import { issueToken } from "./jwt-auth";
 import { initializeSessionTable } from "./session";
-import { verifyExtensionAuth, getExtensionWishlists, addItemFromExtension, verifyExtensionJWT } from "./extension";
+import { verifyExtensionAuth, getExtensionWishlists, addItemFromExtension, verifyExtensionJWT, trackExtensionEvent } from "./extension";
 import { 
   notifyWishlistCreated, 
   notifyItemAdded, 
@@ -1278,6 +1278,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Add item from extension (supports both JWT and session auth)
   app.post("/api/extension/items", verifyExtensionJWT, addItemFromExtension);
+  
+  // Track analytics events from extension
+  app.post("/api/extension/track-event", verifyExtensionJWT, trackExtensionEvent);
   
   // Delete a notification
   app.delete("/api/notifications/:id", isAuthenticated, async (req: Request, res: Response) => {

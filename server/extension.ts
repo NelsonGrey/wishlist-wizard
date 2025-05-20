@@ -98,8 +98,38 @@ export async function getExtensionWishlists(req: Request, res: Response) {
 }
 
 /**
- * Adds an item to a wishlist from the extension
+ * Tracks analytics events from the browser extension
  */
+export async function trackExtensionEvent(req: Request, res: Response) {
+  try {
+    // Event data from the extension
+    const { action, category, label, value, url } = req.body;
+    
+    if (!action) {
+      return res.status(400).json({ error: 'Missing required event action' });
+    }
+    
+    // Log the event data for debugging
+    console.log('Extension analytics event:', {
+      action,
+      category: category || 'extension',
+      label: label || null,
+      value: value || null,
+      userId: req.session.userId || 'anonymous',
+      url: url || null,
+      timestamp: new Date().toISOString()
+    });
+    
+    // In a production environment, you would integrate with Google Analytics
+    // using the Measurement Protocol or another server-side tracking method
+    
+    return res.status(200).json({ success: true });
+  } catch (error) {
+    console.error('Error tracking extension event:', error);
+    return res.status(500).json({ error: 'Failed to track event' });
+  }
+}
+
 export async function addItemFromExtension(req: Request, res: Response) {
   try {
     // User is already authenticated by middleware
