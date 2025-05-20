@@ -656,15 +656,16 @@ function addWishKeeperButton() {
 
 // Determine if current page is likely a product page
 function checkIfProductPage() {
-  // Score-based approach to identify product pages
+  // Enhanced score-based approach to identify product pages with multiple strategies
   let score = 0;
   
-  // Check URL patterns common for product pages
+  // Strategy 1: Check URL patterns common for product pages
   const url = window.location.href.toLowerCase();
   const urlPatterns = [
     '/product/', '/p/', '/dp/', '/item/', '/pd/', '/ip/',
     '/shop/product', '/products/', '/product-', '/product_',
-    '/catalog/', '/detail/', '/buy/', '/purchase/'
+    '/catalog/', '/detail/', '/buy/', '/purchase/', 
+    '/goods/', '/offer/', '/prod/', '/sku/', '/shop/item'
   ];
   
   for (const pattern of urlPatterns) {
@@ -709,12 +710,14 @@ function checkIfProductPage() {
     }
   }
   
-  // Check for common product page elements
+  // Check for common product page elements (enhanced for better detection)
   const productPageElements = [
     'add to cart', 'add to basket', 'add to bag', 'buy now', 'purchase now',
     'checkout', 'shopping cart', 'product details', 'specifications',
     'product description', 'reviews', 'rating', 'shop now', 'shipping',
-    'delivery', 'in stock', 'out of stock', 'availability'
+    'delivery', 'in stock', 'out of stock', 'availability', 'add to wishlist',
+    'save for later', 'price match', 'installment', 'payment options',
+    'color options', 'size guide', 'dimensions', 'product options', 'quantity'
   ];
   
   const pageText = document.body.innerText.toLowerCase();
