@@ -2,6 +2,7 @@ import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { downloadExtension, getExtensionMetadata, packageExtensions } from "./extension-deploy";
+import { registerCalendarRoutes } from "./routes/calendar";
 import { 
   insertUserSchema, 
   insertWishlistSchema, 
@@ -1501,6 +1502,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Register e-commerce routes for platform integration
   registerEcommerceRoutes(app);
+  
+  // Register calendar integration routes
+  registerCalendarRoutes(app);
 
   return httpServer;
 }
