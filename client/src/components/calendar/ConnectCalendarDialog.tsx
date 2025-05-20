@@ -13,7 +13,8 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
-import { SiGoogle, SiMicrosoft, SiApple } from 'react-icons/si';
+import { SiGoogle, SiApple } from 'react-icons/si';
+import { FaMicrosoft } from 'react-icons/fa';
 import { LuCalendarPlus } from 'react-icons/lu';
 
 // Calendar provider types that match the backend enum
@@ -138,7 +139,7 @@ export function ConnectCalendarDialog({ onConnect }: ConnectCalendarDialogProps)
           
           <TabsContent value="outlook" className="py-4">
             <div className="flex flex-col items-center space-y-4">
-              <SiMicrosoft className="h-16 w-16 text-blue-500" />
+              <FaMicrosoft className="h-16 w-16 text-blue-500" />
               <h3 className="text-lg font-medium">Connect Outlook Calendar</h3>
               <p className="text-sm text-gray-500 text-center">
                 Sync your events with Microsoft Outlook Calendar. You'll be asked to grant
