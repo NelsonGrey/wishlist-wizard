@@ -7,8 +7,9 @@ import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { ConnectCalendarDialog, CalendarProvider } from './ConnectCalendarDialog';
-import { LuCalendarClock, LuCloudSync, LuTrash2 } from 'react-icons/lu';
-import { SiGoogle, SiMicrosoft, SiApple } from 'react-icons/si';
+import { LuCalendarClock, LuCloudSun, LuTrash2 } from 'react-icons/lu';
+import { SiGoogle, SiApple } from 'react-icons/si';
+import { FaMicrosoft } from 'react-icons/fa';
 import { format } from 'date-fns';
 
 // Calendar interface matching the backend structure
