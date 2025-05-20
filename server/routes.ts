@@ -14,16 +14,7 @@ import { register, login, logout, getCurrentUser, isAuthenticated, verifyEmail, 
 import { issueToken } from "./jwt-auth";
 import { initializeSessionTable } from "./session";
 import { verifyExtensionAuth, getExtensionWishlists, addItemFromExtension, verifyExtensionJWT, trackExtensionEvent } from "./extension";
-import { 
-  notifyWishlistCreated, 
-  notifyItemAdded, 
-  notifyItemReserved, 
-  notifyItemPurchased,
-  notifyWishlistShared,
-  notifyCollaboratorAdded,
-  notifyCollaboratorRemoved,
-  notifyWishlistCollaborators
-} from "./services/notificationService";
+import { notificationService } from "./services/notificationService";
 
 import { 
   addGiftParticipant, 
@@ -148,7 +139,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const creatorName = creator?.displayName || creator?.username || "Someone";
       
       // Notify the creator about their new wishlist
-      await notifyWishlistCreated(req.session.userId!, wishlist, creatorName);
+      await notificationService.createSystemNotification(
+        req.session.userId!,
+        'Wishlist Created',
+        `Your wishlist "${wishlist.name}" has been created successfully`,
+        { wishlistId: wishlist.id, wishlistName: wishlist.name }
+      );
       
       res.status(201).json(wishlist);
     } catch (error) {
