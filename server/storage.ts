@@ -5,7 +5,8 @@ import {
   wishlists, Wishlist, InsertWishlist,
   wishlistItems, WishlistItem, InsertWishlistItem,
   wishlistCollaborators, WishlistCollaborator, InsertWishlistCollaborator,
-  notifications, Notification, InsertNotification
+  notifications, Notification, InsertNotification,
+  priceAlerts, PriceAlert, InsertPriceAlert
 } from "@shared/schema";
 import { DatabaseStorage } from "./storage.db";
 
@@ -60,6 +61,15 @@ export interface IStorage {
   markNotificationAsRead(id: number): Promise<Notification | undefined>;
   markAllNotificationsAsRead(userId: number): Promise<boolean>;
   deleteNotification(id: number): Promise<boolean>;
+  
+  // Price alert methods
+  getPriceAlerts(userId: number): Promise<PriceAlert[]>;
+  getPriceAlertsByItem(itemId: number): Promise<PriceAlert[]>;
+  getPriceAlertsExpiringBefore(date: Date): Promise<PriceAlert[]>;
+  createPriceAlert(alert: InsertPriceAlert): Promise<PriceAlert>;
+  markPriceAlertTriggered(alertId: number): Promise<boolean>;
+  deletePriceAlert(id: number): Promise<boolean>;
+  getRecentPriceDrops(userId: number, days: number): Promise<any[]>;
 }
 
 export class MemStorage implements IStorage {
@@ -515,12 +525,13 @@ export class MemStorage implements IStorage {
       userId: notificationData.userId,
       type: notificationData.type,
       title: notificationData.title,
-      message: notificationData.message,
-      relatedEntityId: notificationData.relatedEntityId || null,
-      relatedEntityType: notificationData.relatedEntityType || null,
+      content: notificationData.content,
+      data: notificationData.data || {},
       createdAt: now,
       isRead: notificationData.isRead || false,
-      actionUrl: notificationData.actionUrl || null
+      actionUrl: notificationData.actionUrl || null,
+      emailSent: notificationData.emailSent || false,
+      emailStatus: notificationData.emailStatus || null
     };
     
     this.notifications.set(id, notification);
@@ -560,6 +571,90 @@ export class MemStorage implements IStorage {
   
   async deleteNotification(id: number): Promise<boolean> {
     return this.notifications.delete(id);
+  }
+
+  // Price Alert methods
+  private priceAlerts: Map<number, PriceAlert>;
+  private priceAlertIdCounter: number;
+
+  async getPriceAlerts(userId: number): Promise<PriceAlert[]> {
+    return Array.from(this.priceAlerts.values())
+      .filter(alert => alert.userId === userId)
+      .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+  }
+
+  async getPriceAlertsByItem(itemId: number): Promise<PriceAlert[]> {
+    return Array.from(this.priceAlerts.values())
+      .filter(alert => alert.itemId === itemId);
+  }
+
+  async getPriceAlertsExpiringBefore(date: Date): Promise<PriceAlert[]> {
+    return Array.from(this.priceAlerts.values())
+      .filter(alert => {
+        return alert.expiresAt && new Date(alert.expiresAt) <= date && !alert.triggered;
+      });
+  }
+
+  async createPriceAlert(alertData: InsertPriceAlert): Promise<PriceAlert> {
+    const id = this.priceAlertIdCounter++;
+    const now = new Date();
+
+    const alert: PriceAlert = {
+      id,
+      userId: alertData.userId,
+      itemId: alertData.itemId,
+      targetPrice: alertData.targetPrice,
+      triggered: alertData.triggered || false,
+      triggeredAt: alertData.triggeredAt || null,
+      createdAt: now,
+      expiresAt: alertData.expiresAt || null,
+      emailSent: alertData.emailSent || false
+    };
+
+    this.priceAlerts.set(id, alert);
+    return alert;
+  }
+
+  async markPriceAlertTriggered(alertId: number): Promise<boolean> {
+    const alert = this.priceAlerts.get(alertId);
+    if (!alert) return false;
+
+    const now = new Date();
+    const updatedAlert: PriceAlert = {
+      ...alert,
+      triggered: true,
+      triggeredAt: now
+    };
+
+    this.priceAlerts.set(alertId, updatedAlert);
+    return true;
+  }
+
+  async deletePriceAlert(id: number): Promise<boolean> {
+    return this.priceAlerts.delete(id);
+  }
+
+  async getRecentPriceDrops(userId: number, days: number): Promise<any[]> {
+    // This is a simplified implementation
+    // In a real database, we would query items with price changes in the last X days
+    const userWishlists = await this.getWishlists(userId);
+    const wishlistIds = userWishlists.map(w => w.id);
+    
+    // Get all items from user's wishlists
+    const allItems = Array.from(this.wishlistItems.values())
+      .filter(item => wishlistIds.includes(item.wishlistId));
+    
+    // Simulate recent price drops (in a real implementation, this would use priceHistory)
+    return allItems.slice(0, 2).map(item => ({
+      id: item.id,
+      title: item.title,
+      oldPrice: parseFloat(item.price) * 1.2,
+      newPrice: parseFloat(item.price),
+      imageUrl: item.imageUrl,
+      productUrl: item.productUrl,
+      dropPercentage: 20,
+      dropDate: new Date(Date.now() - Math.random() * days * 24 * 60 * 60 * 1000)
+    }));
   }
 }
 
