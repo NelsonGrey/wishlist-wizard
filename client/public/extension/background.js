@@ -535,12 +535,22 @@ async function fetchWishlists() {
     // Check if we're authenticated
     const authenticated = await isAuthenticated();
     if (!authenticated) {
-      throw new Error('Authentication required');
+      throw new Error('Authentication required. Please sign in to your WishKeeper account.');
     }
     
-    return await makeAuthenticatedRequest(`${apiUrl}/api/extension/wishlists`);
+    // Get wishlists from the server
+    const response = await makeAuthenticatedRequest(`${apiUrl}/api/extension/wishlists`);
+    
+    // Log for debugging
+    console.log('Fetched wishlists:', response);
+    
+    // Return the wishlists sorted by name
+    return Array.isArray(response) ? 
+      response.sort((a, b) => a.name.localeCompare(b.name)) : 
+      [];
   } catch (error) {
     console.error('Error fetching wishlists:', error);
+    trackError(error, 'fetchWishlists'); // Track for debugging
     throw error;
   }
 }
@@ -553,15 +563,35 @@ async function addItemToWishlist(itemData) {
     // Check if we're authenticated
     const authenticated = await isAuthenticated();
     if (!authenticated) {
-      throw new Error('Authentication required');
+      throw new Error('Authentication required. Please sign in to your WishKeeper account.');
     }
     
-    return await makeAuthenticatedRequest(`${apiUrl}/api/extension/items`, {
+    // Validate item data before sending to server
+    if (!itemData.title || !itemData.price || !itemData.productUrl) {
+      throw new Error('Invalid product data. Missing required fields.');
+    }
+    
+    // Add timestamp to track when the item was added
+    const enrichedItemData = {
+      ...itemData,
+      addedAt: new Date().toISOString(),
+      clientTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone
+    };
+    
+    // Log what we're sending for debugging
+    console.log('Adding item to wishlist:', enrichedItemData);
+    
+    // Send the request
+    const response = await makeAuthenticatedRequest(`${apiUrl}/api/extension/items`, {
       method: 'POST',
-      body: JSON.stringify(itemData)
+      body: JSON.stringify(enrichedItemData)
     });
+    
+    console.log('Item added successfully:', response);
+    return response;
   } catch (error) {
     console.error('Error adding item to wishlist:', error);
+    trackError(error, 'addItemToWishlist'); // Track for debugging
     throw error;
   }
 }

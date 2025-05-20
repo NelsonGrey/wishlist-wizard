@@ -10,6 +10,27 @@ let username = null;
 let comparisonResults = [];
 let coupons = [];
 
+// Track extension events
+function trackExtensionEvent(action, category, label, value) {
+  try {
+    // Send the event to the background script to forward to GA
+    chrome.runtime.sendMessage({
+      type: 'TRACK_EVENT',
+      payload: {
+        action,
+        category,
+        label,
+        value
+      }
+    });
+    
+    // Also log to console for debugging
+    console.log(`Analytics Event: ${category} - ${action} - ${label || 'N/A'}`);
+  } catch (error) {
+    console.warn('Failed to track analytics event:', error);
+  }
+}
+
 // Show a specific screen and hide all others
 function showScreen(screenId) {
   // Hide all screens
@@ -450,6 +471,9 @@ async function addToWishlist() {
     if (!currentProductInfo) {
       throw new Error('No product information available to add');
     }
+    
+    // Track this action in analytics
+    trackExtensionEvent('add_to_wishlist_started', 'extension', 'product_button');
     
     // Get server URL
     const baseUrl = await getBaseUrl();
