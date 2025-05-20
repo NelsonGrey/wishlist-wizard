@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Link } from 'wouter';
-import { Cube, ShoppingBag, LayoutGrid, Phone } from 'lucide-react';
+import { Box, ShoppingBag, LayoutGrid, Phone } from 'lucide-react';
 
 // Sample products for the AR demo
 const SAMPLE_PRODUCTS = [
@@ -152,7 +152,7 @@ export default function ArVisualizerDemo() {
                     />
                     <div className="absolute bottom-2 right-2">
                       <div className="bg-primary text-white p-1 rounded-full">
-                        <Cube className="h-4 w-4" />
+                        <Box className="h-4 w-4" />
                       </div>
                     </div>
                   </div>
