@@ -146,7 +146,7 @@ export default function Notifications() {
                   </Button>
                 </div>
               </div>
-              <p className="text-sm text-muted-foreground mb-2">{notification.message}</p>
+              <p className="text-sm text-muted-foreground mb-2">{notification.content}</p>
               <div className="flex justify-between items-center mt-4">
                 <span className="text-xs text-muted-foreground">
                   {format(new Date(notification.createdAt), 'MMM d, yyyy h:mm a')}
