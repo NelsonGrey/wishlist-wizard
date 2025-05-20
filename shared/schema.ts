@@ -603,31 +603,6 @@ export const userCalendars = pgTable("user_calendars", {
   settings: jsonb("settings").default('{}'),
 });
 
-export const userCalendarsRelations = relations(userCalendars, ({ one }) => ({
-  user: one(users, {
-    fields: [userCalendars.userId],
-    references: [users.id]
-  })
-}));
-
-// User calendars table for external calendar integration
-export const userCalendars = pgTable("user_calendars", {
-  id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull().references(() => users.id),
-  calendarType: text("calendar_type").notNull(), // google, outlook, apple, etc.
-  displayName: text("display_name").notNull(),
-  externalCalendarId: text("external_calendar_id"), // ID from external calendar service
-  accessToken: text("access_token"), // OAuth token for external calendar
-  refreshToken: text("refresh_token"), // OAuth refresh token
-  tokenExpiresAt: timestamp("token_expires_at"),
-  lastSyncedAt: timestamp("last_synced_at"),
-  isActive: boolean("is_active").default(true).notNull(),
-  syncEnabled: boolean("sync_enabled").default(true).notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-  metadata: jsonb("metadata").default('{}'),
-});
-
 export const userCalendarsRelations = relations(userCalendars, ({ one, many }) => ({
   user: one(users, {
     fields: [userCalendars.userId],
@@ -636,10 +611,14 @@ export const userCalendarsRelations = relations(userCalendars, ({ one, many }) =
   events: many(calendarEvents)
 }));
 
+// Calendar features already have a userCalendars table defined earlier in the file
+
 // Simple calendar events table
 export const calendarEvents = pgTable("calendar_events", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().references(() => users.id),
+  calendarId: integer("calendar_id").references(() => userCalendars.id),
+  externalEventId: text("external_event_id"),
   title: text("title").notNull(),
   description: text("description"),
   startDate: timestamp("start_date").notNull(),
@@ -661,6 +640,10 @@ export const calendarEventsRelations = relations(calendarEvents, ({ one }) => ({
   user: one(users, {
     fields: [calendarEvents.userId],
     references: [users.id]
+  }),
+  calendar: one(userCalendars, {
+    fields: [calendarEvents.calendarId],
+    references: [userCalendars.id]
   }),
   beneficiary: one(beneficiaries, {
     fields: [calendarEvents.beneficiaryId],
