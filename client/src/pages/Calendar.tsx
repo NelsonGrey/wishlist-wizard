@@ -34,6 +34,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
+import { CalendarSettings } from '@/components/calendar/CalendarSettings';
 
 // Set up the localizer for react-big-calendar
 const locales = { 'en-US': enUS };
@@ -544,10 +545,11 @@ const Calendar: React.FC = () => {
         <div>
           <div className="bg-white p-4 rounded-lg shadow">
             <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="grid w-full grid-cols-3">
+              <TabsList className="grid w-full grid-cols-4">
                 <TabsTrigger value="upcoming">Upcoming</TabsTrigger>
                 <TabsTrigger value="birthdays">Birthdays</TabsTrigger>
                 <TabsTrigger value="wishlists">Deadlines</TabsTrigger>
+                <TabsTrigger value="connections">Connections</TabsTrigger>
               </TabsList>
               <TabsContent value="upcoming" className="pt-4">
                 {renderUpcomingEvents()}
@@ -557,6 +559,9 @@ const Calendar: React.FC = () => {
               </TabsContent>
               <TabsContent value="wishlists" className="pt-4">
                 {renderWishlistDeadlines()}
+              </TabsContent>
+              <TabsContent value="connections" className="pt-4">
+                <CalendarSettings />
               </TabsContent>
             </Tabs>
           </div>
