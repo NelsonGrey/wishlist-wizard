@@ -1,6 +1,6 @@
-# WishKeeper - Wishlist Management Platform
+# Wishlist Wizard - Wishlist Management Platform
 
-WishKeeper is a comprehensive wishlist management platform that empowers users to create, share, and collaborate on wishlists with advanced social and tracking capabilities. It offers a seamless experience across web, mobile, and browser extension platforms.
+Wishlist Wizard is a comprehensive wishlist management platform that empowers users to create, share, and collaborate on wishlists with advanced social and tracking capabilities. It offers a seamless experience across web, mobile, and browser extension platforms.
 
 ## 🌟 Key Features
 
