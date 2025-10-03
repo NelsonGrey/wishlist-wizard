@@ -15,6 +15,7 @@
     "moduleResolution": "bundler",
     "baseUrl": ".",
     "types": ["node", "vite/client"],
+    "ignoreDeprecations": "6.0", // silence baseUrl deprecation until migration
     "forceConsistentCasingInFileNames": true,
     "paths": {
       "@/*": ["./client/src/*"],
