@@ -1,0 +1,39 @@
+npm verb cli /usr/local/share/nvm/versions/node/v22.17.0/bin/node /home/codespace/nvm/current/bin/npm
+npm info using npm@9.8.1
+npm info using node@v22.17.0
+npm verb title npm install
+npm verb argv "install" "--loglevel" "verbose"
+npm verb logfile logs-max:10 dir:/home/codespace/.npm/_logs/2025-10-03T20_25_16_520Z-
+npm verb logfile /home/codespace/.npm/_logs/2025-10-03T20_25_16_520Z-debug-0.log
+npm http fetch GET 200 https://registry.npmjs.org/firebase 364ms (cache revalidated)
+npm http fetch GET 200 https://registry.npmjs.org/@tanstack-query-firebase%2freact 366ms (cache revalidated)
+npm http fetch GET 200 https://registry.npmjs.org/@tanstack%2freact-query 67ms (cache revalidated)
+npm http fetch GET 200 https://registry.npmjs.org/react 101ms (cache revalidated)
+npm http fetch GET 200 https://registry.npmjs.org/@firebase%2fstorage-compat 261ms (cache revalidated)
+npm http fetch GET 200 https://registry.npmjs.org/@firebase%2fanalytics 319ms (cache revalidated)
+npm http fetch GET 200 https://registry.npmjs.org/@firebase%2fauth-compat 392ms (cache revalidated)
+npm http fetch GET 200 https://registry.npmjs.org/@firebase%2fperformance 463ms (cache revalidated)
+npm http fetch GET 200 https://registry.npmjs.org/@firebase%2fapp-check 732ms (cache revalidated)
+npm http fetch GET 200 https://registry.npmjs.org/@firebase%2finstallations 877ms (cache revalidated)
+npm http fetch GET 200 https://registry.npmjs.org/@firebase%2fapp-types 1100ms (cache revalidated)
+npm http fetch GET 200 https://registry.npmjs.org/@firebase%2futil 1259ms (cache revalidated)
+npm http fetch GET 200 https://registry.npmjs.org/@firebase%2ffirestore 1360ms (cache revalidated)
+npm http fetch GET 200 https://registry.npmjs.org/@firebase%2fai 1488ms (cache revalidated)
+npm http fetch GET 200 https://registry.npmjs.org/@firebase%2fmessaging 1506ms (cache revalidated)
+npm http fetch GET 200 https://registry.npmjs.org/@firebase%2fapp-check-compat 1624ms (cache revalidated)
+npm http fetch GET 200 https://registry.npmjs.org/@firebase%2fanalytics-compat 1664ms (cache revalidated)
+npm http fetch GET 200 https://registry.npmjs.org/@firebase%2fperformance-compat 1698ms (cache revalidated)
+npm http fetch GET 200 https://registry.npmjs.org/@firebase%2fdatabase-compat 1720ms (cache revalidated)
+npm http fetch GET 200 https://registry.npmjs.org/@firebase%2fdata-connect 1740ms (cache revalidated)
+npm http fetch GET 200 https://registry.npmjs.org/@firebase%2finstallations-compat 1774ms (cache revalidated)
+npm http fetch GET 200 https://registry.npmjs.org/@firebase%2fapp-compat 1834ms (cache revalidated)
+npm http fetch GET 200 https://registry.npmjs.org/@firebase%2fstorage 1961ms (cache revalidated)
+npm http fetch GET 200 https://registry.npmjs.org/@firebase%2ffunctions-compat 2032ms (cache revalidated)
+npm http fetch GET 200 https://registry.npmjs.org/@firebase%2ffirestore-compat 2074ms (cache revalidated)
+npm http fetch GET 200 https://registry.npmjs.org/@firebase%2fremote-config 2200ms (cache revalidated)
+npm http fetch GET 200 https://registry.npmjs.org/@firebase%2fdatabase 2411ms (cache revalidated)
+npm http fetch GET 200 https://registry.npmjs.org/@firebase%2fapp 2504ms (cache revalidated)
+npm http fetch GET 200 https://registry.npmjs.org/@firebase%2fmessaging-compat 2577ms (cache revalidated)
+npm http fetch GET 200 https://registry.npmjs.org/@firebase%2fremote-config-compat 2593ms (cache revalidated)
+npm http fetch GET 200 https://registry.npmjs.org/@firebase%2fauth 2707ms (cache revalidated)
+npm http fetch GET 200 https://registry.npmjs.org/@firebase%2ffunctions 2849ms (cache revalidated)

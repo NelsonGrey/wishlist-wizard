@@ -23,6 +23,7 @@ import Analytics from "@/pages/Analytics";
 import { useEffect } from "react";
 import { initGA } from "./lib/analytics";
 import { useAnalytics } from "./hooks/use-analytics";
+import { initFirebase } from "./lib/firebase";
 
 function Router() {
   // Track page views when routes change
@@ -61,6 +62,9 @@ function App() {
     } else {
       initGA();
     }
+
+    // Initialize Firebase (only if env vars provided)
+    initFirebase({ enableAnalytics: true, enableMessaging: false });
   }, []);
 
   return (
