@@ -32,7 +32,7 @@ Wishlist Wizard is a comprehensive wishlist management platform that empowers us
 ## 🚀 Getting Started
 
 ### Account Creation
-1. Visit the WishKeeper website
+1. Visit the Wishlist Wizard website
 2. Click "Sign Up" in the top-right corner
 3. Fill in your details and create an account
 4. Verify your email address
@@ -60,9 +60,9 @@ Wishlist Wizard is a comprehensive wishlist management platform that empowers us
 
 ### Browser Extension Installation
 1. Visit your browser's extension store
-2. Search for "WishKeeper"
+2. Search for "Wishlist Wizard"
 3. Click "Add to Browser"
-4. Sign in with your WishKeeper account
+4. Sign in with your Wishlist Wizard account
 
 ## 💫 Advanced Usage
 
@@ -78,7 +78,7 @@ Wishlist Wizard is a comprehensive wishlist management platform that empowers us
 3. Select which calendar service you want to connect (Google, Outlook, Apple)
 4. Follow the authentication steps
 5. Choose which events to sync (birthdays, wishlist deadlines, etc.)
-6. Your WishKeeper events will now appear in your external calendar
+6. Your Wishlist Wizard events will now appear in your external calendar
 
 ### Collaborative Wishlists
 1. Open an existing wishlist or create a new one
@@ -108,12 +108,33 @@ Wishlist Wizard is a comprehensive wishlist management platform that empowers us
 - **Internet Connection**: Required for real-time price tracking and collaboration
 
 ### API Integration
-WishKeeper integrates with the following external APIs:
+Wishlist Wizard integrates with the following external APIs:
 - **E-commerce APIs**: Amazon, eBay, Etsy, Walmart, Target, Best Buy
 - **Calendar APIs**: Google Calendar, Microsoft Outlook, Apple Calendar
 - **Payment Processing**: For group gifting contributions
 - **Social Media**: For advanced sharing capabilities
 - **OpenAI**: For AI-powered recommendations
+- **Firebase** (Optional): Analytics, Cloud Messaging (push notifications), future real-time features
+
+### Firebase (Optional Setup)
+The project includes an optional Firebase client scaffold.
+
+1. Add the following variables to your `.env` (prefix with `VITE_` for Vite exposure):
+```
+VITE_FIREBASE_API_KEY=
+VITE_FIREBASE_AUTH_DOMAIN=
+VITE_FIREBASE_PROJECT_ID=
+VITE_FIREBASE_STORAGE_BUCKET=
+VITE_FIREBASE_MESSAGING_SENDER_ID=
+VITE_FIREBASE_APP_ID=
+VITE_FIREBASE_MEASUREMENT_ID=
+VITE_FIREBASE_AUTO_INIT=true
+```
+2. (Optional) Enable FCM Web Push:
+   - Provide a VAPID key in code where `getFcmToken()` is called.
+   - Uncomment and configure `client/public/firebase-messaging-sw.js`.
+3. Import helpers from `client/src/lib/firebase.ts` for advanced usage.
+4. Future server enhancement: Store FCM tokens in a user devices table for targeted push notifications.
 
 ### Data Privacy
 - All personal data is encrypted and stored securely
@@ -122,8 +143,8 @@ WishKeeper integrates with the following external APIs:
 
 ## 🤝 Getting Help
 
-- **Support**: Email support@wishkeeper.com
-- **Documentation**: https://docs.wishkeeper.com
+- **Support**: Email support@wishlistwizard.com
+- **Documentation**: https://docs.wishlistwizard.com
 - **FAQ**: Available in the Help section of the app
 
 ## 🔮 Upcoming Features
@@ -136,4 +157,4 @@ WishKeeper integrates with the following external APIs:
 
 ---
 
-© 2024 WishKeeper. All rights reserved.
+© 2024 Wishlist Wizard. All rights reserved.
