@@ -1,0 +1,16 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "ESNext",
+    "lib": ["ES2020"],
+    "baseUrl": ".",
+    "paths": {
+      "@wishlist-wizard/shared": ["../shared/src"],
+      "@wishlist-wizard/shared/*": ["../shared/src/*"]
+    },
+    "typeRoots": ["./types", "./node_modules/@types"]
+  },
+  "include": ["server/**/*", "drizzle.config.ts", "types/**/*"],
+  "exclude": ["dist", "node_modules"]
+}

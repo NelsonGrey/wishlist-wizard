@@ -1,5 +1,5 @@
 {
-  "include": ["client/src/**/*", "shared/**/*", "server/**/*"],
+  "include": ["packages/*/src/**/*"],
   "exclude": ["node_modules", "build", "dist", "**/*.test.ts"],
   "compilerOptions": {
     "incremental": true,
@@ -14,11 +14,10 @@
     "allowImportingTsExtensions": true,
     "moduleResolution": "bundler",
     "baseUrl": ".",
-    "ignoreDeprecations": "6.0", // silence baseUrl deprecation until migration
     "forceConsistentCasingInFileNames": true,
     "paths": {
-      "@/*": ["./client/src/*"],
-      "@shared/*": ["./shared/*"]
+      "@wishlist-wizard/shared": ["./packages/shared/src"],
+      "@wishlist-wizard/shared/*": ["./packages/shared/src/*"]
     }
   }
 }

@@ -1,0 +1,17 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./client-src/*"],
+      "@/components/*": ["./client-src/components/*"],
+      "@/lib/*": ["./client-src/lib/*"],
+      "@/hooks/*": ["./client-src/hooks/*"],
+      "@/pages/*": ["./client-src/pages/*"],
+      "@wishlist-wizard/shared": ["../shared/src"],
+      "@wishlist-wizard/shared/*": ["../shared/src/*"]
+    }
+  },
+  "include": ["src/**/*", "client-src/**/*"],
+  "exclude": ["dist", "node_modules"]
+}
