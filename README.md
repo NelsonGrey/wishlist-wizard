@@ -31,9 +31,58 @@ Wishlist Wizard is a comprehensive wishlist management platform that empowers us
 
 ## 🚀 Getting Started
 
+### Development Setup
+
+This project consists of:
+- **Web App**: React frontend with TypeScript (`client/`)
+- **Backend**: Express.js API (`server/`)
+- **Mobile App**: Flutter app for iOS and Android (`mobile/`)
+- **Browser Extension**: Chrome/Firefox extension (`client/public/extension/`)
+
+#### Prerequisites
+- Node.js v18+ 
+- npm or yarn
+- Flutter SDK 3.8+
+- Xcode (for iOS development)
+- Android Studio (for Android development)
+
+#### Quick Start
+```bash
+# Install dependencies
+npm install
+
+# Start development server (serves both frontend and API)
+npm run dev
+
+# Build for production
+npm run build
+
+# Start production server
+npm run start
+```
+
+#### Flutter Mobile App
+```bash
+# Navigate to mobile directory
+cd mobile
+
+# Install Flutter dependencies
+flutter pub get
+
+# Run on iOS simulator
+flutter run -d ios
+
+# Run on Android emulator
+flutter run -d android
+
+# Build for release
+flutter build ios --release
+flutter build apk --release
+```
+
 ### Account Creation
 1. Visit the Wishlist Wizard website
-2. Click "Sign Up" in the top-right corner
+2. Click "Sign Up" in the top-right corner  
 3. Fill in your details and create an account
 4. Verify your email address
 
@@ -102,10 +151,28 @@ Wishlist Wizard is a comprehensive wishlist management platform that empowers us
 
 ## 🛠️ Technical Details
 
+### Architecture
+- **Frontend**: React 19 + TypeScript + Vite
+- **Backend**: Express.js + TypeScript + Drizzle ORM  
+- **Database**: PostgreSQL (via DATABASE_URL)
+- **Mobile**: Flutter 3.8+ with Provider state management
+- **Styling**: Tailwind CSS (web), Material Design (mobile)
+
 ### System Requirements
 - **Browser Support**: Chrome, Firefox, Safari, Edge (latest versions)
-- **Mobile Support**: iOS 13+ and Android 8.0+
+- **Mobile Support**: iOS 13+ and Android 8.0+ (Flutter app)
 - **Internet Connection**: Required for real-time price tracking and collaboration
+
+### Environment Setup
+Required environment variables (add to `.env`):
+```env
+DATABASE_URL=postgresql://...
+JWT_SECRET=your-jwt-secret
+SESSION_SECRET=your-session-secret
+OPENAI_API_KEY=sk-...
+SENDGRID_API_KEY=SG...
+VITE_GA_MEASUREMENT_ID=G-...
+```
 
 ### API Integration
 Wishlist Wizard integrates with the following external APIs:

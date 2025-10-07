@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "WishKeeper",
+  "name": "Wishlist Wizard",
   "version": "1.0.0",
   "description": "Create wishlists from your favorite shopping sites with just one click",
   "icons": {

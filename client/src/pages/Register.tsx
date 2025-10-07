@@ -78,7 +78,7 @@ export default function Register() {
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl font-bold text-center">Create an account</CardTitle>
           <CardDescription className="text-center">
-            Enter your details to create a WishKeeper account
+            Enter your details to create a Wishlist Wizard account
           </CardDescription>
         </CardHeader>
         <CardContent>
