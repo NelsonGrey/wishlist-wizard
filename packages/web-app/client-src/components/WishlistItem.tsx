@@ -2,6 +2,7 @@ import { useState } from "react";
 import { ExternalLink, Trash2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { WishlistItem as DbWishlistItem } from "@wishlist-wizard/shared";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -13,17 +14,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-type WishlistItem = {
-  id: number;
-  wishlistId: number;
-  title: string;
-  price: string;
-  imageUrl: string;
-  productUrl: string;
-  store: string;
-  note: string;
-  createdAt: string;
-};
+type WishlistItem = DbWishlistItem;
 
 interface WishlistItemProps {
   item: WishlistItem;

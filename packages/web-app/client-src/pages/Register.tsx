@@ -47,11 +47,10 @@ export default function Register() {
       // Remove confirmPassword before sending to API
       const { confirmPassword, ...registerData } = data;
       
-      const response = await apiRequest(
-        "POST",
-        "/api/auth/register", 
-        registerData
-      );
+      const response = await apiRequest('/api/auth/register', {
+        method: 'POST',
+        body: registerData
+      });
       
       toast({
         title: "Registration successful",

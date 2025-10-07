@@ -12,12 +12,13 @@ import {
 import { HelpCircle, InboxIcon } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { RecommendationsHelp } from "@/components/help/RecommendationsHelp";
+import { Wishlist } from "@wishlist-wizard/shared";
 
 export default function Recommendations() {
   const [selectedWishlistId, setSelectedWishlistId] = useState<string>("");
 
   // Fetch the user's wishlists
-  const { data: wishlists } = useQuery({ 
+  const { data: wishlists } = useQuery<Wishlist[]>({ 
     queryKey: ['/api/wishlists'],
   });
 

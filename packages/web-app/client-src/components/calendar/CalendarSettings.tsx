@@ -37,13 +37,13 @@ export function CalendarSettings() {
     refetch: refetchCalendars
   } = useQuery({ 
     queryKey: ['/api/calendar/connections'],
-    queryFn: () => apiRequest('/api/calendar/connections', 'GET')
+    queryFn: () => apiRequest('/api/calendar/connections')
   });
   
   // Disconnect calendar mutation
   const disconnectMutation = useMutation({
     mutationFn: (calendarId: number) => {
-      return apiRequest(`/api/calendar/connections/${calendarId}`, 'DELETE');
+      return apiRequest(`/api/calendar/connections/${calendarId}`, { method: 'DELETE' });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/calendar/connections'] });
@@ -65,7 +65,7 @@ export function CalendarSettings() {
   // Sync calendar mutation
   const syncMutation = useMutation({
     mutationFn: (calendarId: number) => {
-      return apiRequest(`/api/calendar/connections/${calendarId}/sync`, 'POST');
+      return apiRequest(`/api/calendar/connections/${calendarId}/sync`, { method: 'POST' });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/calendar/connections'] });
@@ -87,7 +87,7 @@ export function CalendarSettings() {
   // Update settings mutation
   const updateSettingsMutation = useMutation({
     mutationFn: ({ calendarId, settings }: { calendarId: number, settings: any }) => {
-      return apiRequest(`/api/calendar/connections/${calendarId}/settings`, 'PATCH', { settings });
+      return apiRequest(`/api/calendar/connections/${calendarId}/settings`, { method: 'PATCH', body: { settings } });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/calendar/connections'] });

@@ -299,9 +299,10 @@ const UserProfile = () => {
 
   // Remove gift preference item (for array-based preferences)
   const removeGiftPreferenceItem = (category: keyof typeof profile.giftPreferences, item: string) => {
-    if (Array.isArray(editedProfile.giftPreferences[category])) {
+    const categoryValue = editedProfile.giftPreferences[category];
+    if (Array.isArray(categoryValue)) {
       const updatedPreferences = { ...editedProfile.giftPreferences };
-      updatedPreferences[category] = updatedPreferences[category].filter(i => i !== item);
+      updatedPreferences[category] = (categoryValue as string[]).filter((i: string) => i !== item) as any;
       
       setEditedProfile({
         ...editedProfile,
