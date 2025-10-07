@@ -67,7 +67,7 @@ class GetMyListsLists {
     return json;
   }
 
-  GetMyListsLists({
+  const GetMyListsLists({
     required this.id,
     required this.name,
     this.description,
@@ -108,7 +108,7 @@ class GetMyListsData {
     return json;
   }
 
-  GetMyListsData({
+  const GetMyListsData({
     required this.lists,
   });
 }
