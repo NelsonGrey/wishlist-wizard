@@ -4,15 +4,43 @@ generate:
     - outputDir: ../../src/dataconnect-generated
       package: "@dataconnect/generated"
       packageJsonDir: ../..
-      react: true
-      angular: false
-    - outputDir: ../../mobile/src/dataconnect-generated
-      package: "@dataconnect/generated"
-      packageJsonDir: ../../mobile
-      react: true
-      angular: false
-    - outputDir: ../../client/public/extension/src/dataconnect-generated
-      package: "@dataconnect/generated"
-      packageJsonDir: ../../client/public/extension
       react: false
       angular: false
+    - outputDir: ../../wishlist-wizard-react-project/src/dataconnect-generated
+      package: "@dataconnect/generated"
+      packageJsonDir: ../../wishlist-wizard-react-project
+      react: false
+      angular: false
+    - outputDir: ../../functions/src/dataconnect-generated
+      package: "@dataconnect/generated"
+      packageJsonDir: ../../functions
+      react: false
+      angular: false
+    - outputDir: ../../packages/web-app/src/dataconnect-generated
+      package: "@dataconnect/generated"
+      packageJsonDir: ../../packages/web-app
+      react: true
+      angular: false
+    - outputDir: ../../packages/shared/src/dataconnect-generated
+      package: "@dataconnect/generated"
+      packageJsonDir: ../../packages/shared
+      react: false
+      angular: false
+    - outputDir: ../../packages/browser-extension/src/dataconnect-generated
+      package: "@dataconnect/generated"
+      packageJsonDir: ../../packages/browser-extension
+      react: false
+      angular: false
+    - outputDir: ../../packages/api-server/src/dataconnect-generated
+      package: "@dataconnect/generated"
+      packageJsonDir: ../../packages/api-server
+      react: false
+      angular: false
+    - outputDir: ../../packages/browser-extension/src/src/dataconnect-generated
+      package: "@dataconnect/generated"
+      packageJsonDir: ../../packages/browser-extension/src
+      react: false
+      angular: false
+  dartSdk:
+    - outputDir: ../../mobile/lib/dataconnect_generated
+      package: dataconnect_generated

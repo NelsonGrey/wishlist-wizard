@@ -2,7 +2,7 @@ import { pgTable, text, serial, integer, boolean, timestamp, varchar, primaryKey
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { relations } from "drizzle-orm";
-export type { InferSelectModel } from 'drizzle-orm';
+export type { InferSelectModel, InferInsertModel } from 'drizzle-orm';
 
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
@@ -814,3 +814,5 @@ export type ArSession = typeof arSessions.$inferSelect;
 
 export type InsertBarcodeScanLog = z.infer<typeof insertBarcodeScanLogSchema>;
 export type BarcodeScanLog = typeof barcodeScanLogs.$inferSelect;
+
+// Main entity types - already exported above

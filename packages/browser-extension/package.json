@@ -8,6 +8,7 @@
     "dev": "vite build --watch"
   },
   "dependencies": {
+    "@dataconnect/generated": "file:src/dataconnect-generated",
     "@wishlist-wizard/shared": "file:../shared"
   },
   "devDependencies": {
