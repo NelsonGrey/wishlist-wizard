@@ -42,7 +42,7 @@ export default function ArVisualizerDemo() {
   return (
     <div className="container mx-auto px-4 py-8">
       <Helmet>
-        <title>AR Product Visualizer | WishKeeper</title>
+        <title>AR Product Visualizer | Wishlist Wizard</title>
         <meta name="description" content="Try AR visualization to see how products would look in your space before adding them to your wishlist." />
       </Helmet>
       

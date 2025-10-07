@@ -107,7 +107,7 @@ export function ExtensionHelp() {
           <AccordionTrigger>Installation Guide</AccordionTrigger>
           <AccordionContent>
             <p className="text-sm mb-2">
-              How to install the WishKeeper extension:
+              How to install the Wishlist Wizard extension:
             </p>
             
             <h4 className="text-sm font-medium mt-3 mb-1">For Chrome/Chromium Browsers:</h4>
@@ -182,7 +182,7 @@ export function ExtensionHelp() {
           <AccordionTrigger>Privacy & Data Collection</AccordionTrigger>
           <AccordionContent>
             <p className="text-sm mb-2">
-              The WishKeeper extension respects your privacy:
+              The Wishlist Wizard extension respects your privacy:
             </p>
             <ul className="text-sm list-disc pl-5 space-y-2">
               <li>

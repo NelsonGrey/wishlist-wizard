@@ -1,36 +1,16 @@
-# WishKeeper Mobile
+# mobile
 
-This directory contains the React Native mobile application for WishKeeper.
+A new Flutter project.
 
-## Features
+## Getting Started
 
-- Cross-platform (iOS and Android) wishlist management
-- Synchronized data with web application
-- Push notifications for price drops and wishlist updates
-- Camera integration for adding items
-- Social sharing capabilities
-- AR visualization on compatible devices
+This project is a starting point for a Flutter application.
 
-## Project Structure
+A few resources to get you started if this is your first Flutter project:
 
-- `/src`: Main application code
-  - `/components`: Reusable UI components
-  - `/screens`: Application screens
-  - `/navigation`: Navigation configuration
-  - `/services`: API and data services
-  - `/hooks`: Custom React hooks
-  - `/utils`: Utility functions
-  - `/assets`: Images, fonts, and other static assets
-  - `/constants`: Constants and configuration
-- `/ios`: iOS-specific code
-- `/android`: Android-specific code
+- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
+- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
 
-## Development
-
-To start developing the mobile app, follow these steps:
-
-1. Set up your environment according to the [React Native documentation](https://reactnative.dev/docs/environment-setup)
-2. Install dependencies: `npm install`
-3. Start the Metro bundler: `npm start`
-4. Run on iOS: `npm run ios`
-5. Run on Android: `npm run android`
+For help getting started with Flutter development, view the
+[online documentation](https://docs.flutter.dev/), which offers tutorials,
+samples, guidance on mobile development, and a full API reference.
