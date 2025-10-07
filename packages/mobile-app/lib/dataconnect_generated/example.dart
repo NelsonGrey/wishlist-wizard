@@ -1,4 +1,4 @@
-library dataconnect_generated;
+library;
 
 import 'package:firebase_data_connect/firebase_data_connect.dart';
 import 'package:flutter/foundation.dart';
