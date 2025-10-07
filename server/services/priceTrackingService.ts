@@ -127,7 +127,8 @@ export async function getUserPriceAlerts(userId: number): Promise<any[]> {
         id: priceAlerts.id,
         itemId: priceAlerts.itemId,
         targetPrice: priceAlerts.targetPrice,
-        notified: priceAlerts.notified,
+  // triggered field indicates whether the alert fired
+  triggered: priceAlerts.triggered,
         createdAt: priceAlerts.createdAt,
         expiresAt: priceAlerts.expiresAt,
         // Include item details
@@ -196,7 +197,7 @@ async function checkPriceAlerts(
   itemTitle: string
 ): Promise<void> {
   try {
-    // Get all active, non-expired, non-notified alerts for this item
+  // Get all active, non-expired, non-triggered alerts for this item
     // where the current price is at or below the target price
     const now = new Date();
     
@@ -210,7 +211,7 @@ async function checkPriceAlerts(
       .where(
         and(
           eq(priceAlerts.itemId, itemId),
-          eq(priceAlerts.notified, false),
+          eq(priceAlerts.triggered, false),
           // Either no expiration or not expired yet
           (priceAlerts.expiresAt.isNull().or(gt(priceAlerts.expiresAt, now))),
           // Current price must be at or below target price
@@ -224,22 +225,23 @@ async function checkPriceAlerts(
 
     // Process each alert
     for (const alert of alerts) {
-      // Mark the alert as notified
+  // Mark the alert as triggered
       await db.update(priceAlerts)
-        .set({ notified: true })
+        .set({ triggered: true, triggeredAt: new Date() })
         .where(eq(priceAlerts.id, alert.id));
 
       // Create a notification for the user
       await db.insert(notifications)
         .values({
           userId: alert.userId,
-          type: "price_alert",
+          type: "price_drop",
           title: "Price Drop Alert",
-          message: `The price of "${itemTitle}" has dropped to or below your target price of ${alert.targetPrice}!`,
+          content: `The price of "${itemTitle}" has dropped to or below your target price of ${alert.targetPrice}!`,
           relatedEntityId: itemId,
           relatedEntityType: "wishlist_item",
           actionUrl: `/item/${itemId}`,
-          isRead: false
+          isRead: false,
+          data: { itemId, currentPrice, targetPrice: alert.targetPrice }
         });
     }
 
