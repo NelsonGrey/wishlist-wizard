@@ -226,6 +226,8 @@ export const notifications = pgTable("notifications", {
   title: text("title").notNull(),
   content: text("content").notNull(), // The main message text of the notification
   data: jsonb("data").default('{}'), // Additional data needed for email templates and action context
+  relatedEntityId: integer("related_entity_id"), // Optional: ID of related wishlist/item/etc
+  relatedEntityType: text("related_entity_type"), // Optional discriminator e.g. wishlist, wishlist_item, group_gift
   createdAt: timestamp("created_at").defaultNow().notNull(),
   isRead: boolean("is_read").default(false).notNull(),
   actionUrl: text("action_url"), // URL to direct users to when they click on the notification
@@ -246,6 +248,8 @@ export const insertNotificationSchema = createInsertSchema(notifications).pick({
   title: true,
   content: true,
   data: true,
+  relatedEntityId: true,
+  relatedEntityType: true,
   isRead: true,
   actionUrl: true,
   emailSent: true,
