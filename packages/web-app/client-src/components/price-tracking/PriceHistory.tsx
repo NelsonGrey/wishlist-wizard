@@ -21,6 +21,13 @@ import {
 import { AlertCircle, TrendingDown, TrendingUp } from "lucide-react";
 import { format } from "date-fns";
 
+// Type for price history data point
+type PriceHistoryPoint = {
+  date: string;
+  price: number;
+  store?: string;
+};
+
 interface PriceHistoryProps {
   itemId: number;
   currentPrice: string;
@@ -28,7 +35,7 @@ interface PriceHistoryProps {
 
 export default function PriceHistory({ itemId, currentPrice }: PriceHistoryProps) {
   // Fetch price history data
-  const { data: priceHistory, isLoading, isError } = useQuery({
+  const { data: priceHistory, isLoading, isError } = useQuery<PriceHistoryPoint[]>({
     queryKey: [`/api/items/${itemId}/price-history`],
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
@@ -91,11 +98,11 @@ export default function PriceHistory({ itemId, currentPrice }: PriceHistoryProps
   }
 
   // Process data for the chart
-  const chartData = priceHistory.map((point: any) => ({
+  const chartData = priceHistory?.map((point: PriceHistoryPoint) => ({
     date: new Date(point.date),
-    price: typeof point.price === 'number' ? point.price : parseFloat(point.price),
-    formattedPrice: point.formattedPrice || point.price,
-  }));
+    price: typeof point.price === 'number' ? point.price : parseFloat(point.price as unknown as string),
+    formattedPrice: `$${point.price}`,
+  })) || [];
 
   // Calculate price trends
   const firstPrice = chartData[0]?.price || 0;

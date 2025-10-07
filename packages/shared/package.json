@@ -21,6 +21,7 @@
     "check": "tsc --noEmit"
   },
   "dependencies": {
+    "@dataconnect/generated": "file:src/dataconnect-generated",
     "drizzle-orm": "^0.39.3",
     "drizzle-zod": "^0.7.1",
     "firebase": "^12.3.0",

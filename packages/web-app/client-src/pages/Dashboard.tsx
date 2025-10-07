@@ -10,13 +10,10 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { SidebarAd } from "@/components/ads";
+import { Wishlist as DbWishlist } from "@wishlist-wizard/shared";
 
-type Wishlist = {
-  id: number;
-  name: string;
-  userId: number;
-  shareId: string;
-  createdAt: string;
+// Extended type for UI purposes that includes computed fields
+type Wishlist = DbWishlist & {
   itemCount: number;
 };
 
@@ -33,11 +30,14 @@ export default function Dashboard() {
   // Create wishlist mutation
   const createWishlistMutation = useMutation({
     mutationFn: async (name: string) => {
-      const res = await apiRequest('POST', '/api/wishlists', {
-        name,
-        userId: 1 // For demo purposes
+      const res = await apiRequest('/api/wishlists', {
+        method: 'POST',
+        body: {
+          name,
+          userId: 1 // For demo purposes
+        }
       });
-      return res.json();
+      return res;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/wishlists'] });

@@ -24,6 +24,19 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { apiRequest } from "@/lib/queryClient";
+import { User as DbUser } from "@wishlist-wizard/shared";
+
+// Type for the current user with additional UI properties
+type CurrentUser = Pick<DbUser, 'id' | 'username' | 'email' | 'displayName' | 'avatarUrl'>;
+
+// Type for notifications
+type Notification = {
+  id: number;
+  read: boolean;
+  title: string;
+  message: string;
+  createdAt: Date;
+};
 
 interface MainLayoutProps {
   children: React.ReactNode;
@@ -33,7 +46,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
   const [location] = useLocation();
   
   // Fetch current user
-  const { data: currentUser } = useQuery({
+  const { data: currentUser } = useQuery<CurrentUser | null>({
     queryKey: ['/api/auth/me'],
   });
   
@@ -48,12 +61,12 @@ export default function MainLayout({ children }: MainLayoutProps) {
   };
   
   // Get notification count
-  const { data: notifications } = useQuery({
+  const { data: notifications } = useQuery<Notification[]>({
     queryKey: ['/api/notifications'],
     enabled: !!currentUser,
   });
   
-  const unreadCount = notifications?.filter((n: any) => !n.read)?.length || 0;
+  const unreadCount = notifications?.filter((n: Notification) => !n.read)?.length || 0;
   
   // Define navigation items
   const navItems = [
@@ -113,9 +126,9 @@ export default function MainLayout({ children }: MainLayoutProps) {
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" className="gap-2 flex items-center">
                       <Avatar className="h-8 w-8">
-                        <AvatarImage src={currentUser.profileImage} alt={currentUser.name} />
+                        <AvatarImage src={currentUser.avatarUrl || undefined} alt={currentUser.displayName || currentUser.username} />
                         <AvatarFallback>
-                          {currentUser.name?.charAt(0) || currentUser.username?.charAt(0) || 'U'}
+                          {currentUser.displayName?.charAt(0) || currentUser.username?.charAt(0) || 'U'}
                         </AvatarFallback>
                       </Avatar>
                       <ChevronDown className="h-4 w-4 opacity-50" />
@@ -123,7 +136,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-56">
                     <div className="px-3 py-2">
-                      <div className="font-medium">{currentUser.name || currentUser.username}</div>
+                      <div className="font-medium">{currentUser.displayName || currentUser.username}</div>
                       <div className="text-xs text-muted-foreground truncate">{currentUser.email}</div>
                     </div>
                     <DropdownMenuSeparator />

@@ -78,7 +78,7 @@ export function NotificationDropdown() {
   // Mark a notification as read
   const markAsReadMutation = useMutation({
     mutationFn: (id: number) => 
-      apiRequest('PATCH', `/api/notifications/${id}/read`),
+      apiRequest(`/api/notifications/${id}/read`, { method: 'PATCH' }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/notifications'] });
     },
@@ -94,7 +94,7 @@ export function NotificationDropdown() {
   // Mark all notifications as read
   const markAllAsReadMutation = useMutation({
     mutationFn: () => 
-      apiRequest('POST', '/api/notifications/mark-all-read'),
+      apiRequest('/api/notifications/mark-all-read', { method: 'POST' }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/notifications'] });
       toast({

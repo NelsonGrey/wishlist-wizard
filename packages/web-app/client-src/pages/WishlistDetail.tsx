@@ -10,26 +10,10 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Wishlist as DbWishlist, WishlistItem as DbWishlistItem } from "@wishlist-wizard/shared";
 
-type Wishlist = {
-  id: number;
-  name: string;
-  userId: number;
-  shareId: string;
-  createdAt: string;
-};
-
-type WishlistItem = {
-  id: number;
-  wishlistId: number;
-  title: string;
-  price: string;
-  imageUrl: string;
-  productUrl: string;
-  store: string;
-  note: string;
-  createdAt: string;
-};
+type Wishlist = DbWishlist;
+type WishlistItem = DbWishlistItem;
 
 export default function WishlistDetail() {
   const [match, params] = useRoute('/wishlist/:id');
@@ -58,7 +42,7 @@ export default function WishlistDetail() {
   // Delete item mutation
   const deleteItemMutation = useMutation({
     mutationFn: async (itemId: number) => {
-      await apiRequest('DELETE', `/api/items/${itemId}`);
+      await apiRequest(`/api/items/${itemId}`, { method: 'DELETE' });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/wishlists/${id}/items`] });

@@ -9,9 +9,22 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Skeleton } from "@/components/ui/skeleton";
 import { LineChartIcon, TrendingDown, AlertTriangle } from "lucide-react";
 
+// Type for price drop items
+type PriceDropItem = {
+  id: number;
+  title: string;
+  imageUrl?: string;
+  price: string;
+  currentPrice: string;
+  previousPrice: string;
+  dropPercentage: number;
+  percentDrop: number;
+  store?: string;
+};
+
 export default function PriceTracking() {
   // Fetch price drops
-  const { data: priceDrops, isLoading: isLoadingDrops } = useQuery({
+  const { data: priceDrops, isLoading: isLoadingDrops } = useQuery<PriceDropItem[]>({
     queryKey: ['/api/price-drops'],
     staleTime: 60 * 60 * 1000, // 1 hour
   });

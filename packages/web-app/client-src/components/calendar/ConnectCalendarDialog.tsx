@@ -33,19 +33,19 @@ export function ConnectCalendarDialog({ onConnect }: ConnectCalendarDialogProps)
   // Fetch auth URLs for each provider
   const { data: googleAuthData, isLoading: isGoogleLoading } = useQuery({
     queryKey: ['/api/calendar/auth/google'],
-    queryFn: () => apiRequest('/api/calendar/auth/google', 'GET'),
+    queryFn: () => apiRequest('/api/calendar/auth/google'),
     enabled: isOpen, // Only fetch when dialog is open
   });
   
   const { data: outlookAuthData, isLoading: isOutlookLoading } = useQuery({
     queryKey: ['/api/calendar/auth/outlook'],
-    queryFn: () => apiRequest('/api/calendar/auth/outlook', 'GET'),
+    queryFn: () => apiRequest('/api/calendar/auth/outlook'),
     enabled: isOpen, // Only fetch when dialog is open
   });
   
   const { data: appleAuthData, isLoading: isAppleLoading } = useQuery({
     queryKey: ['/api/calendar/auth/apple'],
-    queryFn: () => apiRequest('/api/calendar/auth/apple', 'GET'),
+    queryFn: () => apiRequest('/api/calendar/auth/apple'),
     enabled: isOpen, // Only fetch when dialog is open
   });
   

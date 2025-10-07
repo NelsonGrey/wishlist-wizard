@@ -127,7 +127,7 @@ const Calendar: React.FC = () => {
   const { data: events = [], isLoading: eventsLoading } = useQuery({ 
     queryKey: ['/api/calendar/events'],
     queryFn: async () => {
-      const data = await apiRequest('/api/calendar/events', 'GET');
+      const data = await apiRequest('GET', { method: '/api/calendar/events' });
       // Parse date strings into Date objects
       return data.map((event: any) => ({
         ...event,
@@ -140,38 +140,41 @@ const Calendar: React.FC = () => {
   // Query to fetch beneficiaries
   const { data: beneficiaries = [] } = useQuery({ 
     queryKey: ['/api/beneficiaries'],
-    queryFn: () => apiRequest('/api/beneficiaries', 'GET')
+    queryFn: () => apiRequest('GET', { method: '/api/beneficiaries' })
   });
 
   // Query to fetch wishlists
   const { data: wishlists = [] } = useQuery({ 
     queryKey: ['/api/wishlists'],
-    queryFn: () => apiRequest('/api/wishlists', 'GET')
+    queryFn: () => apiRequest('GET', { method: '/api/wishlists' })
   });
 
   // Query to fetch calendar sync settings
   const { data: syncSettings } = useQuery({ 
     queryKey: ['/api/calendar/sync-settings'],
-    queryFn: () => apiRequest('/api/calendar/sync-settings', 'GET')
+    queryFn: () => apiRequest('GET', { method: '/api/calendar/sync-settings' })
   });
 
   // Create event mutation
   const createEventMutation = useMutation({
     mutationFn: (eventData: EventFormData) => {
-      return apiRequest('/api/calendar/events', 'POST', {
-        title: eventData.title,
-        description: eventData.description,
-        startDate: eventData.startDate.toISOString(),
-        endDate: eventData.endDate?.toISOString(),
-        allDay: eventData.allDay,
-        location: eventData.location,
-        type: eventData.type,
-        recurYearly: eventData.recurYearly,
-        reminderDays: eventData.reminderDays,
-        beneficiaryId: eventData.beneficiaryId,
-        wishlistId: eventData.wishlistId,
-        color: eventData.color,
-        sharedWith: eventData.sharedWith
+      return apiRequest('/api/calendar/events', { 
+        method: 'POST', 
+        body: {
+          title: eventData.title,
+          description: eventData.description,
+          startDate: eventData.startDate.toISOString(),
+          endDate: eventData.endDate?.toISOString(),
+          allDay: eventData.allDay,
+          location: eventData.location,
+          type: eventData.type,
+          recurYearly: eventData.recurYearly,
+          reminderDays: eventData.reminderDays,
+          beneficiaryId: eventData.beneficiaryId,
+          wishlistId: eventData.wishlistId,
+          color: eventData.color,
+          sharedWith: eventData.sharedWith
+        }
       });
     },
     onSuccess: () => {
@@ -196,20 +199,23 @@ const Calendar: React.FC = () => {
   // Update event mutation
   const updateEventMutation = useMutation({
     mutationFn: (eventData: EventFormData & { id: number }) => {
-      return apiRequest(`/api/calendar/events/${eventData.id}`, 'PATCH', {
-        title: eventData.title,
-        description: eventData.description,
-        startDate: eventData.startDate.toISOString(),
-        endDate: eventData.endDate?.toISOString(),
-        allDay: eventData.allDay,
-        location: eventData.location,
-        type: eventData.type,
-        recurYearly: eventData.recurYearly,
-        reminderDays: eventData.reminderDays,
-        beneficiaryId: eventData.beneficiaryId,
-        wishlistId: eventData.wishlistId,
-        color: eventData.color,
-        sharedWith: eventData.sharedWith
+      return apiRequest(`/api/calendar/events/${eventData.id}`, { 
+        method: 'PATCH', 
+        body: {
+          title: eventData.title,
+          description: eventData.description,
+          startDate: eventData.startDate.toISOString(),
+          endDate: eventData.endDate?.toISOString(),
+          allDay: eventData.allDay,
+          location: eventData.location,
+          type: eventData.type,
+          recurYearly: eventData.recurYearly,
+          reminderDays: eventData.reminderDays,
+          beneficiaryId: eventData.beneficiaryId,
+          wishlistId: eventData.wishlistId,
+          color: eventData.color,
+          sharedWith: eventData.sharedWith
+        }
       });
     },
     onSuccess: () => {
@@ -235,7 +241,7 @@ const Calendar: React.FC = () => {
   // Delete event mutation
   const deleteEventMutation = useMutation({
     mutationFn: (eventId: number) => {
-      return apiRequest(`/api/calendar/events/${eventId}`, 'DELETE');
+      return apiRequest(`/api/calendar/events/${eventId}`, { method: 'DELETE' });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/calendar/events'] });
@@ -260,7 +266,7 @@ const Calendar: React.FC = () => {
   // Save sync settings mutation
   const saveSyncSettingsMutation = useMutation({
     mutationFn: (settings: any) => {
-      return apiRequest('/api/calendar/sync-settings', 'POST', settings);
+      return apiRequest('POST', { method: '/api/calendar/sync-settings', body: settings });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/calendar/sync-settings'] });
@@ -283,7 +289,7 @@ const Calendar: React.FC = () => {
   // Sync now mutation
   const syncNowMutation = useMutation({
     mutationFn: () => {
-      return apiRequest('/api/calendar/sync', 'POST');
+      return apiRequest('POST', { method: '/api/calendar/sync' });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/calendar/events'] });

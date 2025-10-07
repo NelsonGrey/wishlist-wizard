@@ -5,6 +5,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Wishlist as DbWishlist, WishlistItem as DbWishlistItem } from "@wishlist-wizard/shared";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -22,26 +23,12 @@ import {
 import { Input } from "@/components/ui/input";
 import { useQuery, useMutation } from "@tanstack/react-query";
 
-type Wishlist = {
-  id: number;
-  name: string;
-  userId: number;
-  shareId: string;
-  createdAt: string;
+// Extended type for UI purposes that includes computed fields
+type Wishlist = DbWishlist & {
   itemCount: number;
 };
 
-type WishlistItem = {
-  id: number;
-  wishlistId: number;
-  title: string;
-  price: string;
-  imageUrl: string;
-  productUrl: string;
-  store: string;
-  note: string;
-  createdAt: string;
-};
+type WishlistItem = DbWishlistItem;
 
 interface WishlistCardProps {
   wishlist: Wishlist;
