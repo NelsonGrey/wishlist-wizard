@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+    <title>WishKeeper - Save Items from Anywhere</title>
+    <meta name="description" content="Create wishlists from your favorite shopping sites with just one click. WishKeeper makes tracking, organizing, and sharing your shopping lists effortless." />
+    <meta property="og:title" content="WishKeeper - Save Items from Anywhere" />
+    <meta property="og:description" content="Create wishlists from your favorite shopping sites with just one click." />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://wishlistwizard.app" />
+    <link rel="icon" type="image/png" href="/icons/icon48.png" />
+    <!-- Google AdSense Script -->
+    <script id="google-adsense-script" async src="" crossorigin="anonymous"></script>
+    <script>
+      // Set the AdSense script src with the publisher ID from environment variable
+      fetch('/api/config/adsense')
+        .then(response => response.json())
+        .then(data => {
+          const script = document.getElementById('google-adsense-script');
+          script.src = `https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${data.publisherId}`;
+        })
+        .catch(error => console.error('Error loading AdSense config:', error));
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/client-src/main.tsx"></script>
+    <!-- This is a replit script which adds a banner on the top of the page when opened in development mode outside the replit environment -->
+    <script type="text/javascript" src="https://replit.com/public/js/replit-dev-banner.js"></script>
+  </body>
+</html>
