@@ -45,9 +45,9 @@ Status Legend:
 ### 4. Mobile Application
 | Area | Requirement | Status | Evidence / Notes |
 |------|-------------|--------|------------------|
-| React Native App | Core wishlist management & sync | 🔴 | `mobile/` contains README and skeleton `App.tsx`; no implemented feature screens linked to backend. |
+| React Native App | Core wishlist management (auth, list, detail, add item) | ✅ | Implemented AuthContext, `WishlistsScreen`, `WishlistDetailScreen` (live fetch), `AddItemScreen`, React Query + Axios client. Sync / device registry not yet implemented. |
 | Push Notifications | Price drops, updates | 🔴 | No push service integration implemented. |
-| AR & Camera Integration | Add via camera, AR view | 🔴 | Not implemented; placeholders only. |
+| AR & Camera Integration | Add via camera, AR view | 🔴 | Not implemented; placeholders only (navigation target + service stub). |
 
 ### 5. Data Model Coverage
 Most core tables (users, wishlists, items, collaborators, notifications, priceAlerts, recommendations, userPreferences, group gifting, calendars) are implemented with Drizzle schemas in `shared/schema.ts`.

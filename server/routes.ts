@@ -11,6 +11,10 @@ import {
 } from "@shared/schema";
 import { z } from "zod";
 import { register, login, logout, getCurrentUser, isAuthenticated, verifyEmail, requestPasswordReset, resetPassword } from "./auth";
+import { db } from "./db";
+import { users } from "@shared/schema";
+import { ilike, or } from "drizzle-orm";
+import { GroupGiftingService } from "./services/groupGiftingService";
 import { issueToken } from "./jwt-auth";
 import { initializeSessionTable } from "./session";
 import { verifyExtensionAuth, getExtensionWishlists, addItemFromExtension, verifyExtensionJWT, trackExtensionEvent } from "./extension";
@@ -64,6 +68,66 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const wishlistsWithCounts = await Promise.all(
         wishlists.map(async (wishlist) => {
           const items = await storage.getWishlistItems(wishlist.id);
+
+  // Lightweight user search for inviting collaborators
+  // Query param: q (min length 2) — matches username, email, or displayName
+  app.get("/api/users/search", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const q = String(req.query.q || "").trim();
+      if (!q || q.length < 2) {
+        return res.status(400).json({ message: "Query 'q' must be at least 2 characters" });
+      }
+
+      // Limit results to avoid large payloads
+      const MAX_RESULTS = 10;
+      const pattern = `%${q}%`;
+
+      // Search by username, email, or displayName (case-insensitive)
+      const results = await db
+        .select({ id: users.id, username: users.username, email: users.email, displayName: users.displayName, avatarUrl: users.avatarUrl })
+        .from(users)
+        .where(
+          or(
+            ilike(users.username, pattern),
+            ilike(users.email, pattern),
+            ilike(users.displayName, pattern)
+          )
+        )
+        .limit(MAX_RESULTS);
+
+      // Trim email display for privacy in UI if needed; return as-is for now
+      res.json({ users: results });
+    } catch (error) {
+      console.error("Error searching users:", error);
+      res.status(500).json({ message: "Failed to search users" });
+    }
+  });
+
+  // Start a group gift for a specific item
+  app.post("/api/gifts/:itemId/start", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const itemId = Number(req.params.itemId);
+      const { targetAmount } = req.body;
+      if (!itemId || itemId <= 0) return res.status(400).json({ message: "Invalid itemId" });
+      const amountNum = Number(targetAmount);
+      if (!amountNum || amountNum <= 0) return res.status(400).json({ message: "Valid targetAmount is required" });
+
+      const svc = new GroupGiftingService(storage);
+      const newId = await svc.createGroupGift({
+        itemId,
+        initiatedByUserId: (req as any).user?.id,
+        targetAmount: amountNum,
+        status: "active",
+        currentAmount: 0,
+      } as any);
+
+      if (!newId) return res.status(500).json({ message: "Failed to start group gift" });
+      return res.json({ id: newId });
+    } catch (error) {
+      console.error("Error starting group gift:", error);
+      res.status(500).json({ message: "Failed to start group gift" });
+    }
+  });
           return {
             ...wishlist,
             itemCount: items.length

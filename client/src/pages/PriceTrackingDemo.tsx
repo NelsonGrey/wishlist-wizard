@@ -57,15 +57,15 @@ export default function PriceTrackingDemo() {
   return (
     <div className="min-h-screen bg-gray-50">
       <Helmet>
-        <title>Price Tracking Demo - WishKeeper</title>
-        <meta name="description" content="Demonstration of WishKeeper's price tracking and alert capabilities" />
+        <title>Price Tracking Demo - Wishlist Wizard</title>
+        <meta name="description" content="Demonstration of Wishlist Wizard's price tracking and alert capabilities" />
       </Helmet>
 
       <div className="container py-8 mx-auto max-w-6xl">
         <div className="mb-6">
           <h1 className="text-3xl font-bold tracking-tight">Price Tracking Demo</h1>
           <p className="mt-1 text-muted-foreground">
-            See how WishKeeper's price tracking and alert features work
+            See how Wishlist Wizard's price tracking and alert features work
           </p>
         </div>
 
@@ -158,7 +158,7 @@ export default function PriceTrackingDemo() {
                 <CardHeader>
                   <CardTitle>About Price Tracking</CardTitle>
                   <CardDescription>
-                    WishKeeper's comprehensive price tracking capabilities
+                    Wishlist Wizard's comprehensive price tracking capabilities
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -215,7 +215,7 @@ export default function PriceTrackingDemo() {
           </CardHeader>
           <CardContent>
             <p className="mb-4">
-              Price tracking is available for all WishKeeper users. Start tracking prices and setting alerts 
+              Price tracking is available for all Wishlist Wizard users. Start tracking prices and setting alerts 
               on your favorite items today to save money on your purchases.
             </p>
             <div className="flex flex-col sm:flex-row gap-3">

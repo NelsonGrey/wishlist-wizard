@@ -1,4 +1,4 @@
-// Content script for WishKeeper extension
+// Content script for Wishlist Wizard extension
 // This script runs in the context of the web page and extracts product information
 
 // Helper functions to extract product details from different sites

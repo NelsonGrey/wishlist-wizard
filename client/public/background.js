@@ -1,4 +1,4 @@
-// Background script for WishKeeper extension
+// Background script for Wishlist Wizard extension
 // This runs in the background and handles communication between content scripts and the popup
 
 // Base URL for API requests - in a real extension, this would be configurable
@@ -6,7 +6,7 @@ const API_BASE_URL = "http://localhost:5000/api";
 
 // Initialize extension when installed
 chrome.runtime.onInstalled.addListener(() => {
-  console.log("WishKeeper extension installed");
+  console.log("Wishlist Wizard extension installed");
   
   // Set default state
   chrome.storage.local.set({

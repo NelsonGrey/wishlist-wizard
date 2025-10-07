@@ -66,7 +66,7 @@ export default function Login() {
     <div className="container flex items-center justify-center min-h-[80vh] py-8">
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold text-center">Sign in to WishKeeper</CardTitle>
+          <CardTitle className="text-2xl font-bold text-center">Sign in to Wishlist Wizard</CardTitle>
           <CardDescription className="text-center">
             Enter your username and password to access your wishlists
           </CardDescription>

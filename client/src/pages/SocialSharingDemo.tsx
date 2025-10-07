@@ -101,9 +101,9 @@ const GROUP_GIFT_ORGANIZERS = [
 const SocialSharingDemo = () => {
   const [selectedWishlist, setSelectedWishlist] = useState(DEMO_WISHLISTS[0]);
   const [shareMode, setShareMode] = useState<'public' | 'private' | 'group'>('public');
-  const [shareUrl, setShareUrl] = useState(`https://wishkeeper.app/share/${selectedWishlist.shareId}`);
+  const [shareUrl, setShareUrl] = useState(`https://wishlistwizard.app/share/${selectedWishlist.shareId}`);
   const [selectedFriends, setSelectedFriends] = useState<number[]>([]);
-  const [customMessage, setCustomMessage] = useState(`Check out my "${selectedWishlist.name}" wishlist on WishKeeper!`);
+  const [customMessage, setCustomMessage] = useState(`Check out my "${selectedWishlist.name}" wishlist on Wishlist Wizard!`);
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
   const [showCollaborators, setShowCollaborators] = useState(false);
   

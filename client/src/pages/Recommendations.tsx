@@ -24,7 +24,7 @@ export default function Recommendations() {
   return (
     <>
       <Helmet>
-        <title>AI Recommendations | WishKeeper</title>
+        <title>AI Recommendations | Wishlist Wizard</title>
         <meta 
           name="description" 
           content="Get personalized product recommendations powered by AI based on your wishlist items and preferences."
