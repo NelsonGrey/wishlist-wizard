@@ -45,7 +45,7 @@ class AddNewListListInsert {
     return json;
   }
 
-  AddNewListListInsert({
+  const AddNewListListInsert({
     required this.id,
   });
 }
@@ -79,7 +79,7 @@ class AddNewListData {
     return json;
   }
 
-  AddNewListData({
+  const AddNewListData({
     required this.list_insert,
   });
 }
