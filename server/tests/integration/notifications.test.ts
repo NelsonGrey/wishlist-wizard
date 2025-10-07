@@ -79,7 +79,7 @@ describe('Notification API Endpoints', () => {
           userId: 1, 
           type: 'wishlist_created', 
           title: 'Test Notification',
-          message: 'This is a test notification',
+          content: 'This is a test notification',
           isRead: false,
           createdAt: new Date()
         }
@@ -118,7 +118,7 @@ describe('Notification API Endpoints', () => {
           userId: 1, 
           type: 'wishlist_created', 
           title: 'Test Notification',
-          message: 'This is a test notification',
+          content: 'This is a test notification',
           isRead: false,
           createdAt: new Date()
         }
@@ -188,7 +188,7 @@ describe('Notification API Endpoints', () => {
           userId: 1, 
           type: 'wishlist_created', 
           title: 'Test Notification',
-          message: 'This is a test notification',
+          content: 'This is a test notification',
           isRead: false,
           createdAt: new Date()
         }
