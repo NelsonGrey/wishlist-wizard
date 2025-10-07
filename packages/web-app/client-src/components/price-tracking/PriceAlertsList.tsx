@@ -24,6 +24,23 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { BellRing, Trash2, AlertCircle } from "lucide-react";
 
+// Type for price alerts
+type PriceAlert = {
+  id: number;
+  itemId: number;
+  targetPrice: string;
+  currentPrice: string;
+  createdAt: Date;
+  status: 'active' | 'triggered' | 'paused';
+  notified: boolean;
+  item: {
+    title: string;
+    price: string;
+    imageUrl?: string;
+    store?: string;
+  };
+};
+
 interface PriceAlertsListProps {
   limit?: number;
 }
@@ -33,7 +50,7 @@ export default function PriceAlertsList({ limit }: PriceAlertsListProps) {
   const queryClient = useQueryClient();
 
   // Fetch user's price alerts
-  const { data: alerts, isLoading, isError } = useQuery({
+  const { data: alerts, isLoading, isError } = useQuery<PriceAlert[]>({
     queryKey: ['/api/price-alerts'],
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
