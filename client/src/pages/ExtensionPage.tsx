@@ -22,7 +22,7 @@ const ExtensionPage = () => {
         <div className="text-center mb-12">
           <div className="flex justify-center items-center gap-3 mb-4">
             <h1 className="text-4xl font-bold bg-gradient-to-r from-indigo-600 to-indigo-400 bg-clip-text text-transparent">
-              WishKeeper Browser Extension
+              Wishlist Wizard Browser Extension
             </h1>
             <ExtensionHelp />
           </div>
@@ -73,7 +73,7 @@ const ExtensionPage = () => {
           <div className="flex items-center justify-center">
             <img 
               src="/extension/screenshot.png" 
-              alt="WishKeeper Extension Screenshot" 
+              alt="Wishlist Wizard Extension Screenshot" 
               className="rounded-lg shadow-lg w-full max-w-md"
             />
           </div>
@@ -103,7 +103,7 @@ const ExtensionPage = () => {
               <CardContent>
                 <div className="space-y-4">
                   <p className="text-gray-700">
-                    Add the WishKeeper extension to Chrome with just a few clicks. The extension will help you save products to your wishlists while shopping online.
+                    Add the Wishlist Wizard extension to Chrome with just a few clicks. The extension will help you save products to your wishlists while shopping online.
                   </p>
                   
                   <div className="bg-gray-50 p-4 rounded-md">
@@ -111,8 +111,8 @@ const ExtensionPage = () => {
                     <ol className="list-decimal list-inside space-y-2 text-gray-700">
                       <li>Click the "Install for Chrome" button below</li>
                       <li>When prompted, click "Add to Chrome"</li>
-                      <li>The WishKeeper icon will appear in your browser toolbar</li>
-                      <li>Sign in to your WishKeeper account when prompted</li>
+                      <li>The Wishlist Wizard icon will appear in your browser toolbar</li>
+                      <li>Sign in to your Wishlist Wizard account when prompted</li>
                     </ol>
                   </div>
                 </div>

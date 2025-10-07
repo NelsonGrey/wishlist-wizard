@@ -18,7 +18,7 @@ export default function Analytics() {
     <div className="container mx-auto py-8">
       <h1 className="text-3xl font-bold mb-6">Analytics Integration</h1>
       <p className="text-lg mb-8">
-        WishKeeper now includes Google Analytics integration to help track user behavior and provide valuable insights.
+        Wishlist Wizard now includes Google Analytics integration to help track user behavior and provide valuable insights.
       </p>
 
       <Tabs defaultValue="overview" value={tabValue} onValueChange={handleTabChange}>
@@ -32,12 +32,12 @@ export default function Analytics() {
           <Card>
             <CardHeader>
               <CardTitle>Analytics Overview</CardTitle>
-              <CardDescription>How analytics enhance WishKeeper</CardDescription>
+              <CardDescription>How analytics enhance Wishlist Wizard</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
                 <p>
-                  Our analytics integration helps us understand how users interact with WishKeeper, allowing us to:
+                  Our analytics integration helps us understand how users interact with Wishlist Wizard, allowing us to:
                 </p>
                 <ul className="list-disc pl-5 space-y-2">
                   <li>Understand which features are most valuable to users</li>
@@ -81,7 +81,7 @@ export default function Analytics() {
             <CardContent>
               <div className="space-y-4">
                 <p>
-                  WishKeeper includes special components with built-in analytics tracking:
+                  Wishlist Wizard includes special components with built-in analytics tracking:
                 </p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
                   <Card className="p-4">

@@ -1,4 +1,4 @@
-// Popup script for WishKeeper extension
+// Popup script for Wishlist Wizard extension
 document.addEventListener("DOMContentLoaded", function() {
   // DOM elements
   const myListsTab = document.querySelector('[data-tab="my-lists"]');

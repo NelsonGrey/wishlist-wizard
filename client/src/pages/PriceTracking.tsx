@@ -19,7 +19,7 @@ export default function PriceTracking() {
   return (
     <MainLayout>
       <Helmet>
-        <title>Price Tracking - WishKeeper</title>
+        <title>Price Tracking - Wishlist Wizard</title>
         <meta name="description" content="Track prices of your wishlist items and get notified when prices drop." />
       </Helmet>
 
