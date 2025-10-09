@@ -16,21 +16,37 @@ export default function Header() {
 
   const isHome = location === "/";
   
-  // Fetch current user to determine login status
+  // Skip auth API calls until backend is deployed
+  const currentUser = null;
+  const isLoading = false;
+  
+  /* This code is disabled until backend APIs are deployed
   const { data: currentUser, isLoading } = useQuery({
     queryKey: ['/api/auth/me'],
     queryFn: async () => {
       try {
         const res = await fetch('/api/auth/me', { credentials: 'include' });
         if (res.status === 401) return null;
-        if (!res.ok) throw new Error('Failed to fetch user');
-        return res.json();
+        if (!res.ok) {
+          // Silently return null for API unavailability
+          return null;
+        }
+        
+        // Check if response is JSON
+        const contentType = res.headers.get("content-type");
+        if (contentType && contentType.includes("application/json")) {
+          return res.json();
+        } else {
+          // If not JSON (HTML 404 page), return null silently
+          return null;
+        }
       } catch (error) {
-        console.error('Error fetching current user:', error);
+        // Silently handle auth errors in development
         return null;
       }
     }
   });
+  */
   
   const isLoggedIn = !!currentUser;
   
@@ -65,7 +81,7 @@ export default function Header() {
         <div className="flex justify-between items-center py-4">
           <div className="flex items-center">
             <Link href="/" className="text-2xl font-bold text-primary">
-              WishKeeper
+              Wishlist Wizard
             </Link>
           </div>
           

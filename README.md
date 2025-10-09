@@ -183,25 +183,46 @@ Wishlist Wizard integrates with the following external APIs:
 - **OpenAI**: For AI-powered recommendations
 - **Firebase** (Optional): Analytics, Cloud Messaging (push notifications), future real-time features
 
-### Firebase (Optional Setup)
-The project includes an optional Firebase client scaffold.
+### 🔥 Firebase Integration (Primary Infrastructure)
+**Wishlist Wizard leverages Firebase as the primary infrastructure platform** for authentication, data storage, serverless functions, hosting, and analytics.
 
-1. Add the following variables to your `.env` (prefix with `VITE_` for Vite exposure):
+#### Required Firebase Setup:
+1. **Firebase Project Configuration**: Already configured with project ID `wishlist-wizard`
 ```
-VITE_FIREBASE_API_KEY=
-VITE_FIREBASE_AUTH_DOMAIN=
-VITE_FIREBASE_PROJECT_ID=
-VITE_FIREBASE_STORAGE_BUCKET=
-VITE_FIREBASE_MESSAGING_SENDER_ID=
-VITE_FIREBASE_APP_ID=
-VITE_FIREBASE_MEASUREMENT_ID=
-VITE_FIREBASE_AUTO_INIT=true
+VITE_FIREBASE_API_KEY=AIzaSyDXBMWTCbNDi2MhWxhZL9BQA3xEnGDEf70
+VITE_FIREBASE_AUTH_DOMAIN=wishlist-wizard.firebaseapp.com
+VITE_FIREBASE_PROJECT_ID=wishlist-wizard
+VITE_FIREBASE_STORAGE_BUCKET=wishlist-wizard.appspot.app
+VITE_FIREBASE_MESSAGING_SENDER_ID=1000918568663
+VITE_FIREBASE_APP_ID=1:1000918568663:web:143b262fb4bd8fd904ea92
+VITE_FIREBASE_MEASUREMENT_ID=G-75WET6CFDE
+VITE_FIREBASE_AUTO_INIT=false
 ```
-2. (Optional) Enable FCM Web Push:
-   - Provide a VAPID key in code where `getFcmToken()` is called.
-   - Uncomment and configure `client/public/firebase-messaging-sw.js`.
-3. Import helpers from `client/src/lib/firebase.ts` for advanced usage.
-4. Future server enhancement: Store FCM tokens in a user devices table for targeted push notifications.
+
+2. **Firebase Services Enabled**:
+   - ✅ **Firestore Database**: Primary data storage with security rules
+   - ✅ **Firebase Functions**: Serverless API and background operations  
+   - ✅ **Firebase Hosting**: Web app deployment with CDN
+   - ✅ **Firebase Authentication**: User management (planned migration)
+   - ✅ **Cloud Messaging**: Push notifications
+   - ✅ **Firebase Analytics**: User behavior tracking
+   - ✅ **Firebase Storage**: Media and file uploads
+   - ✅ **Cloud Scheduler**: Automated price tracking
+
+3. **Development with Firebase Emulators**:
+```bash
+npm run firebase:emulators  # Start all Firebase emulators
+npm run firebase:deploy     # Deploy to Firebase hosting
+```
+
+4. **Firebase-Native Features**:
+   - **Price Tracking**: Implemented as Firebase Functions with Cloud Scheduler
+   - **Real-time Updates**: Firestore real-time subscriptions
+   - **Push Notifications**: FCM for web and mobile
+   - **Serverless Architecture**: Firebase Functions v2 for all API operations
+   - **Secure Authentication**: Firebase Auth with custom claims
+
+See `FIREBASE_STRATEGY.md` for comprehensive Firebase integration details.
 
 ### Data Privacy
 - All personal data is encrypted and stored securely

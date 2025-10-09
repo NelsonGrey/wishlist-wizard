@@ -45,10 +45,8 @@ interface MainLayoutProps {
 export default function MainLayout({ children }: MainLayoutProps) {
   const [location] = useLocation();
   
-  // Fetch current user
-  const { data: currentUser } = useQuery<CurrentUser | null>({
-    queryKey: ['/api/auth/me'],
-  });
+  // Skip user API calls until backend is deployed
+  const currentUser = null as CurrentUser | null;
   
   // Handle logout
   const handleLogout = async () => {
@@ -60,11 +58,8 @@ export default function MainLayout({ children }: MainLayoutProps) {
     }
   };
   
-  // Get notification count
-  const { data: notifications } = useQuery<Notification[]>({
-    queryKey: ['/api/notifications'],
-    enabled: !!currentUser,
-  });
+  // Skip notifications API calls until backend is deployed
+  const notifications: Notification[] = [];
   
   const unreadCount = notifications?.filter((n: Notification) => !n.read)?.length || 0;
   
@@ -85,7 +80,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
           <Link href="/">
             <a className="flex items-center">
               <Gift className="h-6 w-6 text-primary mr-2" />
-              <span className="font-bold text-xl tracking-tight">WishKeeper</span>
+              <span className="font-bold text-xl tracking-tight">Wishlist Wizard</span>
             </a>
           </Link>
           
@@ -126,9 +121,9 @@ export default function MainLayout({ children }: MainLayoutProps) {
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" className="gap-2 flex items-center">
                       <Avatar className="h-8 w-8">
-                        <AvatarImage src={currentUser.avatarUrl || undefined} alt={currentUser.displayName || currentUser.username} />
+                        <AvatarImage src={currentUser?.avatarUrl || undefined} alt={currentUser?.displayName || currentUser?.username || 'User'} />
                         <AvatarFallback>
-                          {currentUser.displayName?.charAt(0) || currentUser.username?.charAt(0) || 'U'}
+                          {currentUser?.displayName?.charAt(0) || currentUser?.username?.charAt(0) || 'U'}
                         </AvatarFallback>
                       </Avatar>
                       <ChevronDown className="h-4 w-4 opacity-50" />
@@ -136,8 +131,8 @@ export default function MainLayout({ children }: MainLayoutProps) {
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-56">
                     <div className="px-3 py-2">
-                      <div className="font-medium">{currentUser.displayName || currentUser.username}</div>
-                      <div className="text-xs text-muted-foreground truncate">{currentUser.email}</div>
+                      <div className="font-medium">{currentUser?.displayName || currentUser?.username}</div>
+                      <div className="text-xs text-muted-foreground truncate">{currentUser?.email}</div>
                     </div>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem asChild>
@@ -195,7 +190,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
               <Link href="/">
                 <a className="flex items-center">
                   <Gift className="h-5 w-5 text-primary mr-2" />
-                  <span className="font-bold text-lg">WishKeeper</span>
+                  <span className="font-bold text-lg">Wishlist Wizard</span>
                 </a>
               </Link>
               <p className="mt-2 text-sm text-gray-600">
@@ -233,7 +228,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
           </div>
           
           <div className="mt-8 pt-6 border-t text-sm text-center text-gray-600">
-            © {new Date().getFullYear()} WishKeeper. All rights reserved.
+            © {new Date().getFullYear()} Wishlist Wizard. All rights reserved.
           </div>
         </div>
       </footer>

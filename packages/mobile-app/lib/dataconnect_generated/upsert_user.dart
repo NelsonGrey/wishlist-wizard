@@ -63,6 +63,7 @@ class UpsertUserUserUpsert {
 
 @immutable
 class UpsertUserData {
+  // ignore: non_constant_identifier_names
   final UpsertUserUserUpsert user_upsert;
   UpsertUserData.fromJson(dynamic json):
   
@@ -91,6 +92,7 @@ class UpsertUserData {
   }
 
   const UpsertUserData({
+    // ignore: non_constant_identifier_names
     required this.user_upsert,
   });
 }
@@ -98,23 +100,21 @@ class UpsertUserData {
 @immutable
 class UpsertUserVariables {
   final String displayName;
-  late final Optional<String>email;
-  late final Optional<String>photoUrl;
+  final Optional<String> email;
+  final Optional<String> photoUrl;
   @Deprecated('fromJson is deprecated for Variable classes as they are no longer required for deserialization.')
-  UpsertUserVariables.fromJson(Map<String, dynamic> json):
-  
-  displayName = nativeFromJson<String>(json['displayName']) {
-  
-  
-  
-    email = Optional.optional(nativeFromJson, nativeToJson);
-    email.value = json['email'] == null ? null : nativeFromJson<String>(json['email']);
-  
-  
-    photoUrl = Optional.optional(nativeFromJson, nativeToJson);
-    photoUrl.value = json['photoUrl'] == null ? null : nativeFromJson<String>(json['photoUrl']);
-  
-  }
+  UpsertUserVariables.fromJson(Map<String, dynamic> json)
+      : displayName = nativeFromJson<String>(json['displayName']),
+        email = (() {
+          final opt = Optional<String>.optional(nativeFromJson, nativeToJson);
+          opt.value = json['email'] == null ? null : nativeFromJson<String>(json['email']);
+          return opt;
+        })(),
+        photoUrl = (() {
+          final opt = Optional<String>.optional(nativeFromJson, nativeToJson);
+          opt.value = json['photoUrl'] == null ? null : nativeFromJson<String>(json['photoUrl']);
+          return opt;
+        })();
   @override
   bool operator ==(Object other) {
     if(identical(this, other)) {
@@ -152,4 +152,3 @@ class UpsertUserVariables {
     required this.photoUrl,
   });
 }
-

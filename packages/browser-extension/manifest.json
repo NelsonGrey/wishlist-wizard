@@ -19,24 +19,63 @@
   "permissions": [
     "activeTab",
     "storage",
-    "scripting"
+    "scripting",
+    "notifications"
   ],
   "host_permissions": [
     "*://*.amazon.com/*",
+    "*://*.amazon.ca/*",
+    "*://*.amazon.co.uk/*",
     "*://*.target.com/*",
-    "*://*.walmart.com/*"
+    "*://*.walmart.com/*",
+    "*://*.ebay.com/*",
+    "*://*.bestbuy.com/*",
+    "*://*.etsy.com/*",
+    "*://*.wayfair.com/*",
+    "*://*.overstock.com/*",
+    "*://*.homedepot.com/*",
+    "*://*.lowes.com/*",
+    "*://*.macys.com/*",
+    "*://*.nordstrom.com/*",
+    "*://*.kohls.com/*",
+    "*://*.costco.com/*",
+    "*://*.samsclub.com/*"
   ],
   "background": {
     "service_worker": "background.js"
   },
+  "web_accessible_resources": [
+    {
+      "resources": ["firebase-messaging-sw.js"],
+      "matches": ["<all_urls>"]
+    }
+  ],
   "content_scripts": [
     {
       "matches": [
         "*://*.amazon.com/*",
+        "*://*.amazon.ca/*",
+        "*://*.amazon.co.uk/*",
         "*://*.target.com/*",
-        "*://*.walmart.com/*"
+        "*://*.walmart.com/*",
+        "*://*.ebay.com/*",
+        "*://*.bestbuy.com/*",
+        "*://*.etsy.com/*",
+        "*://*.wayfair.com/*",
+        "*://*.overstock.com/*",
+        "*://*.homedepot.com/*",
+        "*://*.lowes.com/*",
+        "*://*.macys.com/*",
+        "*://*.nordstrom.com/*",
+        "*://*.kohls.com/*",
+        "*://*.costco.com/*",
+        "*://*.samsclub.com/*"
       ],
-      "js": ["content.js"]
+      "js": [
+        "src/enhanced-product-extractor.js",
+        "src/content.js"
+      ],
+      "run_at": "document_end"
     }
   ]
 }

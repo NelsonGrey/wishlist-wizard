@@ -4,16 +4,16 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
+import { useAuth } from "@/contexts/AuthContext";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 
-// Define form validation schema
+// Define form validation schema - Updated for Firebase Auth
 const registerSchema = z.object({
-  username: z.string().min(3, "Username must be at least 3 characters"),
+  displayName: z.string().min(2, "Display name must be at least 2 characters").optional(),
   email: z.string().email("Please enter a valid email address"),
   password: z.string().min(6, "Password must be at least 6 characters"),
   confirmPassword: z.string(),
@@ -28,42 +28,55 @@ export default function Register() {
   const [isLoading, setIsLoading] = useState(false);
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const { signUp } = useAuth();
 
   // Initialize form with react-hook-form
   const form = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
-      username: "",
+      displayName: "",
       email: "",
       password: "",
       confirmPassword: "",
     },
   });
 
-  // Handle form submission
+  // Handle form submission with Firebase Auth
   const onSubmit = async (data: RegisterFormValues) => {
     setIsLoading(true);
     try {
-      // Remove confirmPassword before sending to API
-      const { confirmPassword, ...registerData } = data;
-      
-      const response = await apiRequest('/api/auth/register', {
-        method: 'POST',
-        body: registerData
-      });
+      await signUp(data.email, data.password, data.displayName || undefined);
       
       toast({
         title: "Registration successful",
-        description: "Your account has been created. You are now logged in.",
+        description: "Your account has been created successfully!",
       });
       
-      // Redirect to dashboard
-      setLocation("/dashboard");
-    } catch (error) {
+      // Redirect will be handled by ProtectedRoute and auth state change
+    } catch (error: any) {
       console.error("Registration error:", error);
+      
+      let errorMessage = "Failed to create account";
+      switch (error.code) {
+        case 'auth/email-already-in-use':
+          errorMessage = "An account with this email already exists";
+          break;
+        case 'auth/invalid-email':
+          errorMessage = "Invalid email address";
+          break;
+        case 'auth/weak-password':
+          errorMessage = "Password is too weak. Please choose a stronger password";
+          break;
+        case 'auth/operation-not-allowed':
+          errorMessage = "Email/password accounts are not enabled";
+          break;
+        default:
+          errorMessage = error.message || "Failed to create account";
+      }
+      
       toast({
         title: "Registration failed",
-        description: error instanceof Error ? error.message : "Failed to create account",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -85,12 +98,12 @@ export default function Register() {
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <FormField
                 control={form.control}
-                name="username"
+                name="displayName"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Username</FormLabel>
+                    <FormLabel>Display Name (optional)</FormLabel>
                     <FormControl>
-                      <Input placeholder="Choose a username" {...field} />
+                      <Input placeholder="Your display name" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

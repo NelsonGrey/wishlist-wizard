@@ -53,7 +53,7 @@ const manifestAdjustments = {
     // Add Firefox-specific keys
     manifest.browser_specific_settings = {
       gecko: {
-        id: "wishkeeper@replit.app",
+        id: "wishkeeper@wishlist-wizard.web.app",
         strict_min_version: "57.0"
       }
     };

@@ -157,7 +157,7 @@ const MobileAppDemo = () => {
 
   return (
     <div className="container mx-auto py-8">
-      <h1 className="text-3xl font-bold mb-8 text-center">WishKeeper Mobile App Demo</h1>
+      <h1 className="text-3xl font-bold mb-8 text-center">Wishlist Wizard Mobile App Demo</h1>
       
       <div className="flex flex-col items-center">
         <Card className="w-full max-w-sm shadow-lg border-2 relative">
@@ -480,7 +480,7 @@ const MobileAppDemo = () => {
               </CardHeader>
               <CardContent>
                 <p>
-                  WishKeeper mobile app works even without an internet connection. 
+                  Wishlist Wizard mobile app works even without an internet connection. 
                   All your changes are stored locally and automatically synced when 
                   you're back online.
                 </p>

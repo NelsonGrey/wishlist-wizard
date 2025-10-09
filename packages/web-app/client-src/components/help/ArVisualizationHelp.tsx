@@ -53,7 +53,7 @@ export function ArVisualizationHelp() {
                 <strong>Sufficient space:</strong> Open area to properly visualize larger items
               </li>
               <li>
-                <strong>Latest WishKeeper app:</strong> Make sure you're using the most updated version
+                <strong>Latest Wishlist Wizard app:</strong> Make sure you're using the most updated version
               </li>
             </ul>
             <p className="text-sm mt-2">
@@ -104,7 +104,7 @@ export function ArVisualizationHelp() {
           <AccordionTrigger>AR Visualization Modes</AccordionTrigger>
           <AccordionContent>
             <p className="text-sm mb-2">
-              WishKeeper offers three AR visualization modes:
+              Wishlist Wizard offers three AR visualization modes:
             </p>
             <ul className="text-sm list-disc pl-5 space-y-2">
               <li>

@@ -1,4 +1,4 @@
-// WishKeeper Extension - Content Script
+// Wishlist Wizard Extension - Content Script
 // This script runs on supported shopping websites and extracts product information
 
 // Function to track content script events
@@ -178,8 +178,37 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   return true;
 });
 
-// Extract product information based on the current website
+// Extract product information using the enhanced extractor
 function extractProductInfo() {
+  try {
+    // Use the enhanced product extractor if available
+    if (typeof window.EnhancedProductExtractor !== 'undefined') {
+      const extractor = new window.EnhancedProductExtractor();
+      const result = extractor.extract();
+      
+      if (result.success) {
+        return {
+          success: true,
+          productInfo: result.productInfo,
+          extractionMethod: result.extractionMethod
+        };
+      }
+      
+      // If enhanced extractor failed, fall back to legacy methods
+      console.warn('Enhanced extractor failed, falling back to legacy extraction:', result.error);
+    }
+    
+    // Legacy extraction fallback
+    return extractProductInfoLegacy();
+    
+  } catch (error) {
+    console.error('Error with enhanced product extraction, falling back to legacy:', error);
+    return extractProductInfoLegacy();
+  }
+}
+
+// Legacy extraction method as fallback
+function extractProductInfoLegacy() {
   try {
     const url = window.location.href;
     let productInfo = null;
@@ -194,7 +223,7 @@ function extractProductInfo() {
     if (url.includes('amazon.com') && url.includes('/dp/')) {
       try {
         productInfo = extractAmazonProductInfo();
-        extractionMethod = 'amazon';
+        extractionMethod = 'amazon-legacy';
       } catch (err) {
         console.warn('Amazon-specific extraction failed, falling back to generic extraction', err);
       }
@@ -202,7 +231,7 @@ function extractProductInfo() {
     else if (url.includes('target.com') && url.includes('/p/')) {
       try {
         productInfo = extractTargetProductInfo();
-        extractionMethod = 'target';
+        extractionMethod = 'target-legacy';
       } catch (err) {
         console.warn('Target-specific extraction failed, falling back to generic extraction', err);
       }
@@ -210,7 +239,7 @@ function extractProductInfo() {
     else if (url.includes('walmart.com') && url.includes('/ip/')) {
       try {
         productInfo = extractWalmartProductInfo();
-        extractionMethod = 'walmart';
+        extractionMethod = 'walmart-legacy';
       } catch (err) {
         console.warn('Walmart-specific extraction failed, falling back to generic extraction', err);
       }
@@ -220,7 +249,7 @@ function extractProductInfo() {
     if (!productInfo) {
       try {
         productInfo = extractGenericProductInfo();
-        extractionMethod = 'generic';
+        extractionMethod = 'generic-legacy';
       } catch (err) {
         console.error('Generic extraction failed:', err);
         throw new Error('Failed to extract product information: ' + err.message);
@@ -596,100 +625,260 @@ function extractGenericProductInfo() {
   };
 }
 
-// Add a WishKeeper button to product pages
-function addWishKeeperButton() {
+// Add a Wishlist Wizard button with enhanced features
+function addWishlistWizardButton() {
+  // Check if button already exists to avoid duplicates
+  if (document.getElementById('wishlist-wizard-button-container')) {
+    return;
+  }
+  
   // Check if we're on a product page
-  const productInfo = extractProductInfo();
-  
-  // Only proceed if we've successfully extracted product information
-  // This helps ensure we only show the button on actual product pages
-  if (!productInfo.success || !productInfo.productInfo.title) return;
-  
-  // Additional validation to avoid adding button on non-product pages
-  // Check if this looks like a product page by various signals
   const isLikelyProductPage = checkIfProductPage();
   
   // Only show the button if we're confident this is a product page
   if (!isLikelyProductPage) return;
   
-  // Create button container
+  // Pre-extract product info for faster response
+  const productInfo = extractProductInfo();
+  
+  // Create floating action button with modern design
   const buttonContainer = document.createElement('div');
-  buttonContainer.id = 'wishkeeper-button-container';
+  buttonContainer.id = 'wishlist-wizard-button-container';
   buttonContainer.style.cssText = `
     position: fixed;
     bottom: 20px;
     right: 20px;
-    z-index: 9999;
-    background-color: #ffffff;
-    border-radius: 50%;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
-    transition: transform 0.3s ease;
+    z-index: 10000;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   `;
   
-  // Create button
+  // Create main button
   const button = document.createElement('button');
-  button.id = 'wishkeeper-add-button';
+  button.id = 'wishlist-wizard-add-button';
   button.style.cssText = `
-    width: 60px;
-    height: 60px;
+    width: 64px;
+    height: 64px;
     border-radius: 50%;
     border: none;
     outline: none;
-    background-color: #6366f1;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
-    font-size: 24px;
+    font-size: 28px;
     cursor: pointer;
     display: flex;
     justify-content: center;
     align-items: center;
-    transition: background-color 0.2s ease;
+    box-shadow: 0 4px 20px rgba(102, 126, 234, 0.4);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
   `;
-  button.innerHTML = '♥';
-  button.title = 'Add to WishKeeper';
+  button.innerHTML = '♡';
+  button.title = 'Add to Wishlist Wizard';
   
-  // Add hover effect
-  button.onmouseover = () => {
-    button.style.backgroundColor = '#4f46e5';
-    buttonContainer.style.transform = 'scale(1.1)';
-  };
-  button.onmouseout = () => {
-    button.style.backgroundColor = '#6366f1';
-    buttonContainer.style.transform = 'scale(1)';
-  };
+  // Create ripple effect element
+  const ripple = document.createElement('div');
+  ripple.style.cssText = `
+    position: absolute;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.6);
+    transform: scale(0);
+    animation: ripple 0.6s linear;
+    pointer-events: none;
+  `;
   
-  // Add click event
-  button.onclick = () => {
-    // Track the button click event
-    trackContentEvent('wishkeeper_button_clicked', 'engagement', window.location.hostname);
+  // Add ripple animation CSS
+  const style = document.createElement('style');
+  style.textContent = `
+    @keyframes ripple {
+      to {
+        transform: scale(4);
+        opacity: 0;
+      }
+    }
     
-    // Send message to background script to handle adding to wishlist
-    chrome.runtime.sendMessage({
-      action: 'extractProductInfo'
-    }, response => {
-      if (response && response.success) {
+    @keyframes wishlist-pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+    }
+    
+    .wishlist-button-loading {
+      animation: wishlist-pulse 1s infinite ease-in-out;
+    }
+    
+    .wishlist-button-success {
+      background: linear-gradient(135deg, #4ade80 0%, #22c55e 100%) !important;
+    }
+    
+    .wishlist-button-error {
+      background: linear-gradient(135deg, #f87171 0%, #ef4444 100%) !important;
+    }
+  `;
+  document.head.appendChild(style);
+  
+  // Add hover and interaction effects
+  button.onmouseenter = () => {
+    if (!button.disabled) {
+      button.style.transform = 'scale(1.1) translateY(-2px)';
+      button.style.boxShadow = '0 8px 30px rgba(102, 126, 234, 0.6)';
+    }
+  };
+  
+  button.onmouseleave = () => {
+    if (!button.disabled) {
+      button.style.transform = 'scale(1) translateY(0px)';
+      button.style.boxShadow = '0 4px 20px rgba(102, 126, 234, 0.4)';
+    }
+  };
+  
+  // Enhanced click handler with visual feedback
+  button.onclick = async (e) => {
+    // Create ripple effect
+    const rect = button.getBoundingClientRect();
+    const size = Math.max(rect.width, rect.height);
+    const x = e.clientX - rect.left - size / 2;
+    const y = e.clientY - rect.top - size / 2;
+    
+    const newRipple = ripple.cloneNode();
+    newRipple.style.width = newRipple.style.height = size + 'px';
+    newRipple.style.left = x + 'px';
+    newRipple.style.top = y + 'px';
+    
+    button.appendChild(newRipple);
+    setTimeout(() => newRipple.remove(), 600);
+    
+    // Disable button and show loading state
+    button.disabled = true;
+    button.classList.add('wishlist-button-loading');
+    button.innerHTML = '⏳';
+    
+    // Track the button click event
+    trackContentEvent('wishlist_wizard_button_clicked', 'engagement', window.location.hostname);
+    
+    try {
+      // Extract product info (use cached if available)
+      const extractedInfo = productInfo.success ? productInfo : extractProductInfo();
+      
+      if (extractedInfo.success) {
         // Track successful product detection
-        trackContentEvent('product_detected', 'product', response.productInfo.store || window.location.hostname);
+        trackContentEvent('product_detected', 'product', extractedInfo.productInfo.store || window.location.hostname);
         
+        // Show success state
+        button.classList.remove('wishlist-button-loading');
+        button.classList.add('wishlist-button-success');
+        button.innerHTML = '✓';
+        
+        // Open popup with product info
         chrome.runtime.sendMessage({
           action: 'openPopup',
-          data: response.productInfo
+          data: extractedInfo.productInfo
         });
+        
+        // Reset button after delay
+        setTimeout(() => {
+          button.disabled = false;
+          button.classList.remove('wishlist-button-success');
+          button.innerHTML = '♡';
+        }, 2000);
+        
       } else {
+        // Show error state
+        button.classList.remove('wishlist-button-loading');
+        button.classList.add('wishlist-button-error');
+        button.innerHTML = '✕';
+        
         // Track failed product detection
         trackContentEvent('product_detection_failed', 'product', window.location.hostname);
+        
+        // Show error tooltip
+        showTemporaryTooltip(buttonContainer, 'Could not detect product information');
+        
+        // Reset button after delay
+        setTimeout(() => {
+          button.disabled = false;
+          button.classList.remove('wishlist-button-error');
+          button.innerHTML = '♡';
+        }, 3000);
       }
-    });
+    } catch (error) {
+      console.error('Error handling button click:', error);
+      
+      // Show error state
+      button.classList.remove('wishlist-button-loading');
+      button.classList.add('wishlist-button-error');
+      button.innerHTML = '✕';
+      
+      showTemporaryTooltip(buttonContainer, 'An error occurred');
+      
+      // Reset button after delay
+      setTimeout(() => {
+        button.disabled = false;
+        button.classList.remove('wishlist-button-error');
+        button.innerHTML = '♡';
+      }, 3000);
+    }
   };
   
   // Add button to container
   buttonContainer.appendChild(button);
   
-  // Add container to page
-  document.body.appendChild(buttonContainer);
+  // Add container to page with slight delay to ensure DOM is ready
+  setTimeout(() => {
+    if (document.body) {
+      document.body.appendChild(buttonContainer);
+    }
+  }, 100);
+}
+
+// Show temporary tooltip for user feedback
+function showTemporaryTooltip(container, message) {
+  const tooltip = document.createElement('div');
+  tooltip.style.cssText = `
+    position: absolute;
+    bottom: 70px;
+    right: 0;
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    white-space: nowrap;
+    z-index: 10001;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  `;
+  tooltip.textContent = message;
+  
+  container.appendChild(tooltip);
+  
+  // Fade in
+  setTimeout(() => tooltip.style.opacity = '1', 10);
+  
+  // Remove after delay
+  setTimeout(() => {
+    tooltip.style.opacity = '0';
+    setTimeout(() => tooltip.remove(), 300);
+  }, 2500);
 }
 
 // Determine if current page is likely a product page
 function checkIfProductPage() {
+  // Use enhanced extractor if available for better product page detection
+  if (typeof window.EnhancedProductExtractor !== 'undefined') {
+    try {
+      const extractor = new window.EnhancedProductExtractor();
+      return extractor.isProductPage();
+    } catch (error) {
+      console.warn('Error using enhanced product page detection, falling back to legacy:', error);
+    }
+  }
+  
+  // Legacy product page detection as fallback
+  return checkIfProductPageLegacy();
+}
+
+// Legacy product page detection method
+function checkIfProductPageLegacy() {
   // Enhanced score-based approach to identify product pages with multiple strategies
   let score = 0;
   
@@ -786,13 +975,282 @@ function checkIfProductPage() {
   }
   
   // Log score for debugging
-  console.log(`WishKeeper: Product page detection score: ${score}`);
+  console.log(`Wishlist Wizard: Product page detection score: ${score}`);
   
   // Consider it a product page if score is above threshold
   return score >= 5;
 }
 
+// Apply coupon code to the current page
+function applyCouponCode(code) {
+  try {
+    // Common coupon/promo code input selectors
+    const couponSelectors = [
+      // Generic selectors
+      'input[name*="coupon"]',
+      'input[name*="promo"]',
+      'input[name*="discount"]',
+      'input[id*="coupon"]',
+      'input[id*="promo"]',
+      'input[id*="discount"]',
+      'input[placeholder*="coupon" i]',
+      'input[placeholder*="promo" i]',
+      'input[placeholder*="discount" i]',
+      
+      // Site-specific selectors
+      // Amazon
+      '#gc-ui-form input',
+      'input[name="promotionCode"]',
+      
+      // Target
+      'input[data-test*="promo"]',
+      'input[data-test*="coupon"]',
+      
+      // Walmart
+      'input[data-automation*="promo"]',
+      'input[data-automation*="coupon"]',
+      
+      // eBay
+      'input[data-testid*="coupon"]',
+      'input[data-testid*="promo"]',
+      
+      // Generic e-commerce patterns
+      '.coupon-input',
+      '.promo-input',
+      '.discount-input',
+      '.promotional-code-input'
+    ];
+    
+    let couponInput = null;
+    
+    // Find coupon input field
+    for (const selector of couponSelectors) {
+      couponInput = document.querySelector(selector);
+      if (couponInput && couponInput.type === 'text') {
+        break;
+      }
+    }
+    
+    if (!couponInput) {
+      return {
+        success: false,
+        message: 'Could not find coupon code input field on this page'
+      };
+    }
+    
+    // Fill in the coupon code
+    couponInput.value = code;
+    couponInput.dispatchEvent(new Event('input', { bubbles: true }));
+    couponInput.dispatchEvent(new Event('change', { bubbles: true }));
+    
+    // Try to find and click the apply button
+    const applyButtonSelectors = [
+      // Generic patterns
+      'button[type="submit"]',
+      'input[type="submit"]',
+      'button:contains("Apply")',
+      'button:contains("Submit")',
+      'button[value*="apply" i]',
+      'button[name*="apply" i]',
+      
+      // Look for buttons near the coupon input
+      couponInput.parentElement?.querySelector('button'),
+      couponInput.closest('form')?.querySelector('button[type="submit"]'),
+      couponInput.closest('form')?.querySelector('input[type="submit"]'),
+      
+      // Site-specific selectors
+      'button[data-test*="apply"]',
+      'button[data-automation*="apply"]',
+      'button[data-testid*="apply"]'
+    ].filter(Boolean);
+    
+    let applyButton = null;
+    for (const selector of applyButtonSelectors) {
+      if (typeof selector === 'string') {
+        applyButton = document.querySelector(selector);
+      } else {
+        applyButton = selector;
+      }
+      
+      if (applyButton && applyButton.offsetParent !== null) { // Check if visible
+        break;
+      }
+    }
+    
+    if (applyButton) {
+      // Click the apply button
+      applyButton.click();
+      
+      return {
+        success: true,
+        message: `Coupon code "${code}" has been applied. Please check if it was accepted.`
+      };
+    } else {
+      return {
+        success: true,
+        message: `Coupon code "${code}" has been entered. Please manually submit it.`
+      };
+    }
+    
+  } catch (error) {
+    console.error('Error applying coupon code:', error);
+    return {
+      success: false,
+      message: `Error applying coupon: ${error.message}`
+    };
+  }
+}
+
+// Inject quick-add button functionality
+function injectQuickAddButton(baseUrl, productInfo) {
+  try {
+    // Check if quick-add button already exists
+    if (document.getElementById('wishlist-wizard-quick-add')) {
+      return {
+        success: true,
+        message: 'Quick-add button already active'
+      };
+    }
+    
+    // Find suitable location for quick-add button (near add to cart)
+    const addToCartSelectors = [
+      // Common add to cart patterns
+      'button[name*="add-to-cart" i]',
+      'button[id*="add-to-cart" i]',
+      'input[name*="add-to-cart" i]',
+      'input[id*="add-to-cart" i]',
+      'button:contains("Add to Cart")',
+      'button:contains("Add to Basket")',
+      'button:contains("Add to Bag")',
+      
+      // Site-specific selectors
+      '#add-to-cart-button', // Amazon
+      '[data-test="chooseOptionsButton"]', // Target
+      '[data-automation="add-to-cart"]', // Walmart
+      '.notranslate[data-testid="bin-add-button"]', // eBay
+      '.add-to-cart-button' // Generic
+    ];
+    
+    let targetElement = null;
+    for (const selector of addToCartSelectors) {
+      targetElement = document.querySelector(selector);
+      if (targetElement) break;
+    }
+    
+    if (!targetElement) {
+      return {
+        success: false,
+        message: 'Could not find suitable location for quick-add button'
+      };
+    }
+    
+    // Create quick-add button
+    const quickAddButton = document.createElement('button');
+    quickAddButton.id = 'wishlist-wizard-quick-add';
+    quickAddButton.style.cssText = `
+      margin-left: 8px;
+      padding: 8px 16px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    `;
+    quickAddButton.innerHTML = '♡ Quick Add to Wishlist';
+    
+    // Add hover effect
+    quickAddButton.onmouseenter = () => {
+      quickAddButton.style.transform = 'translateY(-1px)';
+      quickAddButton.style.boxShadow = '0 4px 12px rgba(102, 126, 234, 0.4)';
+    };
+    
+    quickAddButton.onmouseleave = () => {
+      quickAddButton.style.transform = 'translateY(0)';
+      quickAddButton.style.boxShadow = 'none';
+    };
+    
+    // Add click handler
+    quickAddButton.onclick = async () => {
+      quickAddButton.disabled = true;
+      quickAddButton.innerHTML = '⏳ Adding...';
+      
+      try {
+        // Send product to API
+        const response = await fetch(`${baseUrl}/api/wishlist/items`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            // Add auth headers if available
+          },
+          body: JSON.stringify({
+            title: productInfo.title,
+            price: productInfo.price,
+            imageUrl: productInfo.imageUrl,
+            productUrl: productInfo.productUrl,
+            store: productInfo.store,
+            quickAdd: true
+          })
+        });
+        
+        if (response.ok) {
+          quickAddButton.innerHTML = '✓ Added!';
+          quickAddButton.style.background = 'linear-gradient(135deg, #4ade80 0%, #22c55e 100%)';
+          
+          setTimeout(() => {
+            quickAddButton.disabled = false;
+            quickAddButton.innerHTML = '♡ Quick Add to Wishlist';
+            quickAddButton.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+          }, 2000);
+        } else {
+          throw new Error('Failed to add to wishlist');
+        }
+      } catch (error) {
+        console.error('Quick add error:', error);
+        quickAddButton.innerHTML = '✕ Error';
+        quickAddButton.style.background = 'linear-gradient(135deg, #f87171 0%, #ef4444 100%)';
+        
+        setTimeout(() => {
+          quickAddButton.disabled = false;
+          quickAddButton.innerHTML = '♡ Quick Add to Wishlist';
+          quickAddButton.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+        }, 3000);
+      }
+    };
+    
+    // Insert button next to add to cart
+    targetElement.parentNode.insertBefore(quickAddButton, targetElement.nextSibling);
+    
+    return {
+      success: true,
+      message: 'Quick-add button successfully injected'
+    };
+    
+  } catch (error) {
+    console.error('Error injecting quick-add button:', error);
+    return {
+      success: false,
+      message: `Error injecting quick-add button: ${error.message}`
+    };
+  }
+}
+
 // Run when the page is fully loaded
 window.addEventListener('load', () => {
-  setTimeout(addWishKeeperButton, 1000); // Slight delay to ensure page elements are loaded
+  setTimeout(addWishlistWizardButton, 1000); // Slight delay to ensure page elements are loaded
+});
+
+// Also run when DOM content is loaded for faster initialization
+document.addEventListener('DOMContentLoaded', () => {
+  // Only add button if page load hasn't happened yet
+  setTimeout(() => {
+    if (!document.getElementById('wishlist-wizard-button-container')) {
+      addWishlistWizardButton();
+    }
+  }, 500);
 });

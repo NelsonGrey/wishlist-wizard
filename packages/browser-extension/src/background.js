@@ -1,10 +1,10 @@
-// WishKeeper Extension - Background Script
+// Wishlist Wizard Extension - Background Script
 // This script handles communication between the extension and the website
 
-// Base URL for the WishKeeper website API
+// Base URL for the Wishlist Wizard website API
 let baseUrl = window.location.hostname.includes('localhost') 
-  ? 'http://localhost:3000' 
-  : 'https://wishkeeper.replit.app';
+  ? 'http://localhost:3001' 
+  : 'https://wishlist-wizard.web.app';
 
 // Auth token storage for JWT-based authentication
 let authToken = null;
@@ -373,7 +373,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       }
     }
     
-    else if (message.action === 'getWishlists') {
+    else if (message.action === 'fetchWishlists') {
       fetchWishlists()
         .then(data => {
           if (!data) {
@@ -382,7 +382,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           sendResponse({ success: true, wishlists: data });
         })
         .catch(error => {
-          const trackingInfo = trackError(error, 'getWishlists');
+          const trackingInfo = trackError(error, 'fetchWishlists');
           sendResponse({ 
             success: false, 
             error: error.message,
@@ -393,11 +393,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       return true; // Keep sendResponse valid after async operation
     }
     
-    else if (message.action === 'addToWishlist') {
+    else if (message.action === 'addItemToWishlist') {
       // Validate data
-      if (!message.data || !message.data.wishlistId || !message.data.title) {
+      if (!message.item || !message.wishlistId || !message.item.title) {
         const error = new Error('Invalid item data');
-        const trackingInfo = trackError(error, 'addToWishlist-validation');
+        const trackingInfo = trackError(error, 'addItemToWishlist-validation');
         sendResponse({ 
           success: false, 
           error: error.message,
@@ -406,14 +406,21 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         return true;
       }
       
-      addItemToWishlist(message.data)
+      // Prepare item data for API
+      const itemData = {
+        ...message.item,
+        wishlistId: message.wishlistId,
+        note: message.note || ''
+      };
+      
+      addItemToWishlist(itemData)
         .then(data => {
           // Reset error count on success
           errorCount = Math.max(0, errorCount - 1);
           sendResponse({ success: true, item: data });
         })
         .catch(error => {
-          const trackingInfo = trackError(error, 'addToWishlist');
+          const trackingInfo = trackError(error, 'addItemToWishlist');
           sendResponse({ 
             success: false, 
             error: error.message,
@@ -425,6 +432,147 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           });
         });
       return true; // Keep sendResponse valid after async operation
+    }
+    
+    else if (message.action === 'extractProductInfo') {
+      // Get current tab and extract product info
+      chrome.tabs.query({ active: true, currentWindow: true }, function(tabs) {
+        if (!tabs || tabs.length === 0) {
+          sendResponse({ 
+            success: false, 
+            error: 'No active tab found' 
+          });
+          return;
+        }
+        
+        const tab = tabs[0];
+        
+        // Send message to content script to extract product info
+        chrome.tabs.sendMessage(tab.id, { action: 'extractProductInfo' }, function(response) {
+          if (chrome.runtime.lastError) {
+            sendResponse({
+              success: false,
+              error: 'Could not communicate with page. Please refresh and try again.'
+            });
+            return;
+          }
+          
+          sendResponse(response || { success: false, error: 'No response from page' });
+        });
+      });
+      return true; // Keep sendResponse valid for async operation
+    }
+    
+    else if (message.action === 'fetchRecentItems') {
+      fetchRecentItems()
+        .then(data => {
+          sendResponse({ success: true, items: data });
+        })
+        .catch(error => {
+          const trackingInfo = trackError(error, 'fetchRecentItems');
+          sendResponse({ 
+            success: false, 
+            error: error.message,
+            errorId: trackingInfo.timestamp
+          });
+        });
+      return true;
+    }
+    
+    else if (message.action === 'fetchWishlistItems') {
+      if (!message.wishlistId) {
+        sendResponse({ 
+          success: false, 
+          error: 'Wishlist ID is required' 
+        });
+        return true;
+      }
+      
+      fetchWishlistItems(message.wishlistId)
+        .then(data => {
+          sendResponse({ success: true, items: data });
+        })
+        .catch(error => {
+          const trackingInfo = trackError(error, 'fetchWishlistItems');
+          sendResponse({ 
+            success: false, 
+            error: error.message,
+            errorId: trackingInfo.timestamp
+          });
+        });
+      return true;
+    }
+    
+    else if (message.action === 'createWishlist') {
+      if (!message.name) {
+        sendResponse({ 
+          success: false, 
+          error: 'Wishlist name is required' 
+        });
+        return true;
+      }
+      
+      createWishlist(message.name)
+        .then(data => {
+          sendResponse({ success: true, wishlist: data });
+        })
+        .catch(error => {
+          const trackingInfo = trackError(error, 'createWishlist');
+          sendResponse({ 
+            success: false, 
+            error: error.message,
+            errorId: trackingInfo.timestamp
+          });
+        });
+      return true;
+    }
+    
+    else if (message.action === 'removeItem') {
+      if (!message.itemId) {
+        sendResponse({ 
+          success: false, 
+          error: 'Item ID is required' 
+        });
+        return true;
+      }
+      
+      removeItem(message.itemId)
+        .then(() => {
+          sendResponse({ success: true });
+        })
+        .catch(error => {
+          const trackingInfo = trackError(error, 'removeItem');
+          sendResponse({ 
+            success: false, 
+            error: error.message,
+            errorId: trackingInfo.timestamp
+          });
+        });
+      return true;
+    }
+    
+    else if (message.action === 'shareWishlist') {
+      if (!message.wishlistId) {
+        sendResponse({ 
+          success: false, 
+          error: 'Wishlist ID is required' 
+        });
+        return true;
+      }
+      
+      shareWishlist(message.wishlistId)
+        .then(shareUrl => {
+          sendResponse({ success: true, shareUrl });
+        })
+        .catch(error => {
+          const trackingInfo = trackError(error, 'shareWishlist');
+          sendResponse({ 
+            success: false, 
+            error: error.message,
+            errorId: trackingInfo.timestamp
+          });
+        });
+      return true;
     }
     
     else if (message.action === 'getErrorStatus') {
@@ -592,6 +740,128 @@ async function addItemToWishlist(itemData) {
   } catch (error) {
     console.error('Error adding item to wishlist:', error);
     trackError(error, 'addItemToWishlist'); // Track for debugging
+    throw error;
+  }
+}
+
+// Fetch recent items from the API
+async function fetchRecentItems() {
+  try {
+    const apiUrl = await getApiUrl();
+    
+    // Check if we're authenticated
+    const authenticated = await isAuthenticated();
+    if (!authenticated) {
+      throw new Error('Authentication required. Please sign in to your Wishlist Wizard account.');
+    }
+    
+    // Get recent items from the server
+    const response = await makeAuthenticatedRequest(`${apiUrl}/api/extension/recent-items`);
+    
+    console.log('Fetched recent items:', response);
+    return Array.isArray(response) ? response : [];
+  } catch (error) {
+    console.error('Error fetching recent items:', error);
+    trackError(error, 'fetchRecentItems');
+    throw error;
+  }
+}
+
+// Fetch items for a specific wishlist
+async function fetchWishlistItems(wishlistId) {
+  try {
+    const apiUrl = await getApiUrl();
+    
+    // Check if we're authenticated
+    const authenticated = await isAuthenticated();
+    if (!authenticated) {
+      throw new Error('Authentication required. Please sign in to your Wishlist Wizard account.');
+    }
+    
+    // Get wishlist items from the server
+    const response = await makeAuthenticatedRequest(`${apiUrl}/api/extension/wishlists/${wishlistId}/items`);
+    
+    console.log('Fetched wishlist items:', response);
+    return Array.isArray(response) ? response : [];
+  } catch (error) {
+    console.error('Error fetching wishlist items:', error);
+    trackError(error, 'fetchWishlistItems');
+    throw error;
+  }
+}
+
+// Create a new wishlist
+async function createWishlist(name) {
+  try {
+    const apiUrl = await getApiUrl();
+    
+    // Check if we're authenticated
+    const authenticated = await isAuthenticated();
+    if (!authenticated) {
+      throw new Error('Authentication required. Please sign in to your Wishlist Wizard account.');
+    }
+    
+    // Create wishlist on the server
+    const response = await makeAuthenticatedRequest(`${apiUrl}/api/extension/wishlists`, {
+      method: 'POST',
+      body: JSON.stringify({ name })
+    });
+    
+    console.log('Created wishlist:', response);
+    return response;
+  } catch (error) {
+    console.error('Error creating wishlist:', error);
+    trackError(error, 'createWishlist');
+    throw error;
+  }
+}
+
+// Remove an item from a wishlist
+async function removeItem(itemId) {
+  try {
+    const apiUrl = await getApiUrl();
+    
+    // Check if we're authenticated
+    const authenticated = await isAuthenticated();
+    if (!authenticated) {
+      throw new Error('Authentication required. Please sign in to your Wishlist Wizard account.');
+    }
+    
+    // Remove item from the server
+    await makeAuthenticatedRequest(`${apiUrl}/api/extension/items/${itemId}`, {
+      method: 'DELETE'
+    });
+    
+    console.log('Removed item:', itemId);
+    return true;
+  } catch (error) {
+    console.error('Error removing item:', error);
+    trackError(error, 'removeItem');
+    throw error;
+  }
+}
+
+// Share a wishlist
+async function shareWishlist(wishlistId) {
+  try {
+    const apiUrl = await getApiUrl();
+    
+    // Check if we're authenticated
+    const authenticated = await isAuthenticated();
+    if (!authenticated) {
+      throw new Error('Authentication required. Please sign in to your Wishlist Wizard account.');
+    }
+    
+    // Get share URL from the server
+    const response = await makeAuthenticatedRequest(`${apiUrl}/api/extension/wishlists/${wishlistId}/share`, {
+      method: 'POST'
+    });
+    
+    console.log('Generated share URL:', response);
+    return response.shareUrl || response.url;
+  } catch (error) {
+    console.error('Error sharing wishlist:', error);
+    trackError(error, 'shareWishlist');
     throw error;
   }
 }

@@ -69,6 +69,7 @@ export async function authenticateExtension(req: Request, res: Response) {
  * Generate a long-lived JWT token for extension use
  */
 function generateExtensionToken(user: User): string {
+  // Use the standard generateToken function but override expiration
   const jwt = require('jsonwebtoken');
   const secret = process.env.JWT_SECRET || 'wishkeeper-jwt-secret-key';
   

@@ -27,7 +27,8 @@ This document provides technical information for developers working on the WishK
 ### Other Tools
 - **Build System**: Vite
 - **Package Management**: npm
-- **Development Environment**: Replit
+- **Development Environment**: VS Code
+- **Cloud Platform**: Firebase (Hosting, Firestore)
 - **Analytics**: Google Analytics
 - **External APIs**: Various e-commerce APIs, calendar providers
 
@@ -187,7 +188,10 @@ The following environment variables need to be set:
    - Frontend tests use Testing Library and Vitest
 
 5. **Deployment**
-   - The application is deployed using Replit's deployment feature
+   - The web application is deployed to Firebase Hosting
+   - The database uses Firebase Firestore
+   - Deploy with `firebase deploy --only hosting` for web app
+   - Deploy with `firebase deploy --only firestore` for database rules
    - Ensure all environment variables are set before deployment
 
 ## Extension Development

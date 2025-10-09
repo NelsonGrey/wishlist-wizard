@@ -88,9 +88,22 @@ export function AdUnit({
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Fetch the publisher ID from our API
+    // Skip API calls entirely - ads will be configured when backend is ready
+    setError('Ads not configured');
+    setLoading(false);
+    
+    /* This code is disabled until backend APIs are deployed
     fetch('/api/config/adsense')
-      .then(response => response.json())
+      .then(response => {
+        // Check if the response is actually JSON before trying to parse it
+        const contentType = response.headers.get("content-type");
+        if (contentType && contentType.includes("application/json")) {
+          return response.json();
+        } else {
+          // If it's not JSON (e.g., HTML 404 page), treat as unavailable
+          throw new Error('AdSense configuration not available');
+        }
+      })
       .then(data => {
         if (data.publisherId) {
           setPublisherId(data.publisherId);
@@ -100,10 +113,11 @@ export function AdUnit({
         setLoading(false);
       })
       .catch(err => {
-        console.error('Error fetching AdSense config:', err);
-        setError('Failed to load ad configuration');
+        // Silently handle AdSense config errors
+        setError('AdSense not configured');
         setLoading(false);
       });
+    */
   }, []);
 
   useEffect(() => {

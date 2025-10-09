@@ -101,7 +101,7 @@ function reportError(errorInfo) {
     console.debug('Reporting error to server:', errorInfo);
     
     // This would be an actual API call in production
-    // fetch('https://wishkeeper.replit.app/api/extension/errors', {
+    // fetch('https://wishlist-wizard.web.app/api/extension/errors', {
     //   method: 'POST',
     //   headers: { 'Content-Type': 'application/json' },
     //   body: JSON.stringify(errorInfo)

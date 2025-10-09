@@ -106,7 +106,7 @@ export function ConnectCalendarDialog({ onConnect }: ConnectCalendarDialogProps)
         <DialogHeader>
           <DialogTitle>Connect Calendar</DialogTitle>
           <DialogDescription>
-            Connect your external calendar to sync events with WishKeeper.
+            Connect your external calendar to sync events with Wishlist Wizard.
             This allows you to see important dates like birthdays and wishlist
             deadlines in your preferred calendar app.
           </DialogDescription>

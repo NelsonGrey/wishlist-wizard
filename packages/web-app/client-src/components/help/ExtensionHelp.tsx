@@ -5,7 +5,7 @@ export function ExtensionHelp() {
   return (
     <HelpDialog title="Browser Extension Help">
       <p className="text-sm text-muted-foreground mb-4">
-        The WishKeeper browser extension makes it easy to add items to your wishlists while shopping online.
+        The Wishlist Wizard browser extension makes it easy to add items to your wishlists while shopping online.
         Here's how to get the most out of this powerful tool:
       </p>
 
@@ -18,7 +18,7 @@ export function ExtensionHelp() {
             </p>
             <ol className="text-sm list-decimal pl-5 space-y-2">
               <li>
-                When viewing a product on any shopping website, click the WishKeeper icon in your browser toolbar
+                When viewing a product on any shopping website, click the Wishlist Wizard icon in your browser toolbar
               </li>
               <li>
                 The extension will automatically detect the product information (title, price, image)
@@ -48,7 +48,7 @@ export function ExtensionHelp() {
             </p>
             <ol className="text-sm list-decimal pl-5 space-y-2">
               <li>
-                When viewing a product, click the WishKeeper icon and select the "Compare Prices" tab
+                When viewing a product, click the Wishlist Wizard icon and select the "Compare Prices" tab
               </li>
               <li>
                 The extension will search for the same or similar products across other major retailers
@@ -78,7 +78,7 @@ export function ExtensionHelp() {
             </p>
             <ol className="text-sm list-decimal pl-5 space-y-2">
               <li>
-                While on a retailer's website, click the WishKeeper icon
+                While on a retailer's website, click the Wishlist Wizard icon
               </li>
               <li>
                 Select the "Find Coupons" tab
@@ -115,8 +115,8 @@ export function ExtensionHelp() {
               <li>Click the "Install for Chrome" button on the extension page</li>
               <li>In the Chrome Web Store, click "Add to Chrome"</li>
               <li>When prompted, confirm by clicking "Add extension"</li>
-              <li>Once installed, the WishKeeper icon will appear in your browser toolbar</li>
-              <li>Click the icon and log in to your WishKeeper account</li>
+              <li>Once installed, the Wishlist Wizard icon will appear in your browser toolbar</li>
+              <li>Click the icon and log in to your Wishlist Wizard account</li>
             </ol>
 
             <h4 className="text-sm font-medium mt-3 mb-1">For Firefox:</h4>
@@ -124,8 +124,8 @@ export function ExtensionHelp() {
               <li>Click the "Install for Firefox" button on the extension page</li>
               <li>In the Firefox Add-ons page, click "Add to Firefox"</li>
               <li>When prompted, click "Add"</li>
-              <li>The WishKeeper icon will appear in your browser toolbar</li>
-              <li>Click the icon and log in to your WishKeeper account</li>
+              <li>The Wishlist Wizard icon will appear in your browser toolbar</li>
+              <li>Click the icon and log in to your Wishlist Wizard account</li>
             </ol>
 
             <h4 className="text-sm font-medium mt-3 mb-1">For Microsoft Edge:</h4>
@@ -133,8 +133,8 @@ export function ExtensionHelp() {
               <li>Click the "Install for Edge" button on the extension page</li>
               <li>In the Edge Add-ons page, click "Get"</li>
               <li>When prompted, click "Add extension"</li>
-              <li>The WishKeeper icon will appear in your browser toolbar</li>
-              <li>Click the icon and log in to your WishKeeper account</li>
+              <li>The Wishlist Wizard icon will appear in your browser toolbar</li>
+              <li>Click the icon and log in to your Wishlist Wizard account</li>
             </ol>
           </AccordionContent>
         </AccordionItem>
@@ -157,7 +157,7 @@ export function ExtensionHelp() {
             <h4 className="text-sm font-medium mt-3 mb-1">Extension Not Working:</h4>
             <ul className="text-sm list-disc pl-5 space-y-1">
               <li>Check that the extension is enabled in your browser settings</li>
-              <li>Log out and log back into your WishKeeper account</li>
+              <li>Log out and log back into your Wishlist Wizard account</li>
               <li>Try reinstalling the extension</li>
               <li>Make sure your browser is updated to the latest version</li>
             </ul>
@@ -195,14 +195,14 @@ export function ExtensionHelp() {
                 <strong>Permissions:</strong> The extension requests permissions to read content on retail sites to identify product information when you click the extension button
               </li>
               <li>
-                <strong>Data storage:</strong> All wishlist data is stored securely on WishKeeper servers and is protected by your account credentials
+                <strong>Data storage:</strong> All wishlist data is stored securely on Wishlist Wizard servers and is protected by your account credentials
               </li>
               <li>
                 <strong>Third parties:</strong> For price comparison and coupon features, we may send anonymized product identifiers to our price comparison service
               </li>
             </ul>
             <p className="text-sm mt-2">
-              You can view our complete privacy policy on the WishKeeper website.
+              You can view our complete privacy policy on the Wishlist Wizard website.
             </p>
           </AccordionContent>
         </AccordionItem>
