@@ -2,6 +2,7 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { sessionMiddleware, initializeSessionTable } from "./session";
+import { initializePricePolling, shutdownPricePolling } from "./services/pricePollingService.js";
 import "./types";
 
 const app = express();
@@ -59,15 +60,37 @@ app.use((req, res, next) => {
     serveStatic(app);
   }
 
-  // ALWAYS serve the app on port 5000
-  // this serves both the API and the client.
-  // It is the only port that is not firewalled.
-  const port = 5000;
-  server.listen({
-    port,
-    host: "0.0.0.0",
-    reusePort: true,
-  }, () => {
+  // Use port 3001 for development to avoid macOS AirPlay conflicts
+  // Port 5000 is often reserved for AirPlay on macOS
+  const port = process.env.PORT || 3001;
+  server.listen(port, () => {
     log(`serving on port ${port}`);
+    
+    // Initialize price polling service after server starts
+    try {
+      initializePricePolling();
+      log("Price polling service initialized");
+    } catch (error) {
+      log(`Failed to initialize price polling: ${error}`);
+    }
+  });
+
+  // Graceful shutdown
+  process.on('SIGTERM', () => {
+    log('SIGTERM received, shutting down gracefully');
+    shutdownPricePolling();
+    server.close(() => {
+      log('Process terminated');
+      process.exit(0);
+    });
+  });
+
+  process.on('SIGINT', () => {
+    log('SIGINT received, shutting down gracefully');
+    shutdownPricePolling();
+    server.close(() => {
+      log('Process terminated');
+      process.exit(0);
+    });
   });
 })();

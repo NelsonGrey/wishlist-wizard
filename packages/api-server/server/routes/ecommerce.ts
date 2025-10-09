@@ -271,9 +271,9 @@ export async function getAffiliateLink(req: Request, res: Response) {
 }
 
 // Register e-commerce routes
-export function registerEcommerceRoutes(app: any) {
+export async function registerEcommerceRoutes(app: any) {
   // Import notification service here to avoid circular dependency
-  const { notificationService } = require("../services/notificationService");
+  const { notificationService } = await import("../services/notificationService");
   
   // Get supported platforms (public endpoint)
   app.get("/api/ecommerce/platforms", getSupportedPlatforms);

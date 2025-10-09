@@ -4,16 +4,16 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
+import { useAuth } from "@/contexts/AuthContext";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 
-// Define form validation schema
+// Define form validation schema - Updated for Firebase Auth (email instead of username)
 const loginSchema = z.object({
-  username: z.string().min(1, "Username is required"),
+  email: z.string().email("Please enter a valid email address"),
   password: z.string().min(6, "Password must be at least 6 characters"),
 });
 
@@ -23,37 +23,53 @@ export default function Login() {
   const [isLoading, setIsLoading] = useState(false);
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const { signIn } = useAuth();
 
   // Initialize form with react-hook-form
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      username: "",
+      email: "",
       password: "",
     },
   });
 
-  // Handle form submission
+  // Handle form submission with Firebase Auth
   const onSubmit = async (data: LoginFormValues) => {
     setIsLoading(true);
     try {
-      const response = await apiRequest('/api/auth/login', {
-        method: 'POST',
-        body: data
-      });
+      await signIn(data.email, data.password);
       
       toast({
         title: "Login successful",
         description: "You are now logged in.",
       });
       
-      // Redirect to dashboard
-      setLocation("/dashboard");
-    } catch (error) {
+      // Redirect will be handled by ProtectedRoute and auth state change
+    } catch (error: any) {
       console.error("Login error:", error);
+      
+      let errorMessage = "Failed to sign in";
+      switch (error.code) {
+        case 'auth/user-not-found':
+          errorMessage = "No account found with this email address";
+          break;
+        case 'auth/wrong-password':
+          errorMessage = "Incorrect password";
+          break;
+        case 'auth/invalid-email':
+          errorMessage = "Invalid email address";
+          break;
+        case 'auth/too-many-requests':
+          errorMessage = "Too many failed attempts. Please try again later";
+          break;
+        default:
+          errorMessage = error.message || "Failed to sign in";
+      }
+      
       toast({
         title: "Login failed",
-        description: error instanceof Error ? error.message : "Invalid username or password",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -67,7 +83,7 @@ export default function Login() {
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl font-bold text-center">Sign in to Wishlist Wizard</CardTitle>
           <CardDescription className="text-center">
-            Enter your username and password to access your wishlists
+            Enter your email and password to access your wishlists
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -75,12 +91,12 @@ export default function Login() {
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <FormField
                 control={form.control}
-                name="username"
+                name="email"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Username</FormLabel>
+                    <FormLabel>Email</FormLabel>
                     <FormControl>
-                      <Input placeholder="Enter your username" {...field} />
+                      <Input type="email" placeholder="Enter your email" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -108,6 +124,11 @@ export default function Login() {
           </Form>
         </CardContent>
         <CardFooter className="flex flex-col space-y-4">
+          <div className="text-center text-sm">
+            <Button variant="link" className="p-0" onClick={() => setLocation("/forgot-password")}>
+              Forgot your password?
+            </Button>
+          </div>
           <div className="text-center text-sm">
             Don't have an account?{" "}
             <Button variant="link" className="p-0" onClick={() => setLocation("/register")}>

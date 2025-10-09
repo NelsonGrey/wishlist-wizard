@@ -70,7 +70,7 @@ document.addEventListener("DOMContentLoaded", function() {
   
   // Open website button
   openWebsiteBtn.addEventListener("click", function() {
-    chrome.tabs.create({ url: "http://localhost:5000/dashboard" });
+    chrome.tabs.create({ url: "https://wishlist-wizard.web.app/dashboard" });
   });
   
   // Cancel add to list

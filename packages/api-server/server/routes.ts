@@ -20,6 +20,8 @@ import { initializeSessionTable } from "./session";
 import { verifyExtensionAuth, getExtensionWishlists, addItemFromExtension, verifyExtensionJWT, trackExtensionEvent } from "./extension";
 import { notificationService } from "./services/notificationService";
 import { registerEcommerceRoutes } from "./routes/ecommerce";
+import { priceTrackingRoutes } from "./routes/priceTracking";
+import pricePollingRoutes from "./routes/pricePolling.js";
 
 import { 
   addGiftParticipant, 
@@ -34,6 +36,8 @@ import {
 // Import API routes
 import mobileRoutes from "./routes/mobileApi";
 import { registerCalendarRoutes } from "./routes/calendar";
+import privacyRoutes from "./routes/privacy";
+import recommendationsRoutes from "./routes/recommendations";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Apply mobile API routes
@@ -1337,6 +1341,173 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Track analytics events from extension
   app.post("/api/extension/track-event", verifyExtensionJWT, trackExtensionEvent);
   
+  // Get recent items for extension
+  app.get("/api/extension/recent-items", verifyExtensionJWT, async (req: Request, res: Response) => {
+    try {
+      if (!req.session.userId) {
+        return res.status(401).json({ error: 'Not authenticated' });
+      }
+      
+      // Get user's wishlists and their recent items
+      const wishlists = await storage.getWishlists(req.session.userId);
+      const allItems = [];
+      
+      for (const wishlist of wishlists) {
+        const items = await storage.getWishlistItems(wishlist.id);
+        const itemsWithWishlistName = items.map(item => ({
+          ...item,
+          wishlistName: wishlist.name
+        }));
+        allItems.push(...itemsWithWishlistName);
+      }
+      
+      // Sort by created date and limit to 20 most recent
+      const recentItems = allItems
+        .sort((a, b) => new Date(b.id).getTime() - new Date(a.id).getTime())
+        .slice(0, 20);
+      
+      res.json(recentItems);
+    } catch (error) {
+      console.error('Error getting recent items for extension:', error);
+      res.status(500).json({ error: 'Failed to retrieve recent items' });
+    }
+  });
+  
+  // Get items for a specific wishlist
+  app.get("/api/extension/wishlists/:id/items", verifyExtensionJWT, async (req: Request, res: Response) => {
+    try {
+      if (!req.session.userId) {
+        return res.status(401).json({ error: 'Not authenticated' });
+      }
+      
+      const wishlistId = parseInt(req.params.id);
+      if (isNaN(wishlistId)) {
+        return res.status(400).json({ error: 'Invalid wishlist ID' });
+      }
+      
+      // Check if user has access to this wishlist
+      const wishlist = await storage.getWishlistById(wishlistId);
+      if (!wishlist) {
+        return res.status(404).json({ error: 'Wishlist not found' });
+      }
+      
+      const isOwner = wishlist.userId === req.session.userId;
+      const isCollaborator = !isOwner && await storage.isCollaborator(wishlistId, req.session.userId);
+      
+      if (!isOwner && !isCollaborator) {
+        return res.status(403).json({ error: 'You do not have permission to view this wishlist' });
+      }
+      
+      const items = await storage.getWishlistItems(wishlistId);
+      res.json(items);
+    } catch (error) {
+      console.error('Error getting wishlist items for extension:', error);
+      res.status(500).json({ error: 'Failed to retrieve wishlist items' });
+    }
+  });
+  
+  // Create a new wishlist from extension
+  app.post("/api/extension/wishlists", verifyExtensionJWT, async (req: Request, res: Response) => {
+    try {
+      if (!req.session.userId) {
+        return res.status(401).json({ error: 'Not authenticated' });
+      }
+      
+      const { name } = req.body;
+      if (!name || name.trim().length === 0) {
+        return res.status(400).json({ error: 'Wishlist name is required' });
+      }
+      
+      const wishlist = await storage.createWishlist({
+        userId: req.session.userId,
+        name: name.trim(),
+        description: '',
+        isPublic: false,
+        isCollaborative: false
+      });
+      
+      res.status(201).json(wishlist);
+    } catch (error) {
+      console.error('Error creating wishlist from extension:', error);
+      res.status(500).json({ error: 'Failed to create wishlist' });
+    }
+  });
+  
+  // Delete an item from extension
+  app.delete("/api/extension/items/:id", verifyExtensionJWT, async (req: Request, res: Response) => {
+    try {
+      if (!req.session.userId) {
+        return res.status(401).json({ error: 'Not authenticated' });
+      }
+      
+      const itemId = parseInt(req.params.id);
+      if (isNaN(itemId)) {
+        return res.status(400).json({ error: 'Invalid item ID' });
+      }
+      
+      // Get the item to verify ownership
+      const item = await storage.getWishlistItem(itemId);
+      if (!item) {
+        return res.status(404).json({ error: 'Item not found' });
+      }
+      
+      // Check if user has permission to delete this item
+      const wishlist = await storage.getWishlistById(item.wishlistId);
+      if (!wishlist) {
+        return res.status(404).json({ error: 'Wishlist not found' });
+      }
+      
+      const isOwner = wishlist.userId === req.session.userId;
+      const isCollaborator = !isOwner && await storage.isCollaborator(item.wishlistId, req.session.userId);
+      
+      if (!isOwner && !isCollaborator) {
+        return res.status(403).json({ error: 'You do not have permission to delete this item' });
+      }
+      
+      await storage.deleteWishlistItem(itemId);
+      res.status(204).send();
+    } catch (error) {
+      console.error('Error deleting item from extension:', error);
+      res.status(500).json({ error: 'Failed to delete item' });
+    }
+  });
+  
+  // Share a wishlist from extension
+  app.post("/api/extension/wishlists/:id/share", verifyExtensionJWT, async (req: Request, res: Response) => {
+    try {
+      if (!req.session.userId) {
+        return res.status(401).json({ error: 'Not authenticated' });
+      }
+      
+      const wishlistId = parseInt(req.params.id);
+      if (isNaN(wishlistId)) {
+        return res.status(400).json({ error: 'Invalid wishlist ID' });
+      }
+      
+      // Check if user owns this wishlist
+      const wishlist = await storage.getWishlistById(wishlistId);
+      if (!wishlist) {
+        return res.status(404).json({ error: 'Wishlist not found' });
+      }
+      
+      if (wishlist.userId !== req.session.userId) {
+        return res.status(403).json({ error: 'You do not have permission to share this wishlist' });
+      }
+      
+      // Generate share URL
+      const baseUrl = process.env.NODE_ENV === 'production' 
+        ? 'https://wishlist-wizard.web.app'
+        : 'http://localhost:5000';
+      
+      const shareUrl = `${baseUrl}/shared/${wishlist.id}`;
+      
+      res.json({ shareUrl });
+    } catch (error) {
+      console.error('Error sharing wishlist from extension:', error);
+      res.status(500).json({ error: 'Failed to share wishlist' });
+    }
+  });
+  
   // Delete a notification
   app.delete("/api/notifications/:id", isAuthenticated, async (req: Request, res: Response) => {
     try {
@@ -1558,14 +1729,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/extension/package", packageExtensions);
   
   // Register e-commerce routes for platform integration
-  registerEcommerceRoutes(app);
+  await registerEcommerceRoutes(app);
+  
+  // Register price tracking routes
+  app.use("/api/price-tracking", priceTrackingRoutes);
+  
+  // Register price polling routes (automated price updates)
+  app.use("/api/price-polling", pricePollingRoutes);
   
   // Register calendar integration routes
   registerCalendarRoutes(app);
   
   // Register external calendar connection routes
-  const { registerCalendarConnectionRoutes } = require('./routes/calendarConnections');
+  const { registerCalendarConnectionRoutes } = await import('./routes/calendarConnections');
   registerCalendarConnectionRoutes(app);
+  
+  // Register privacy settings routes
+  app.use("/api/privacy", privacyRoutes);
+  
+  // Register enhanced recommendations routes
+  app.use("/api/recommendations", recommendationsRoutes);
 
   return httpServer;
 }

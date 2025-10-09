@@ -5,8 +5,10 @@ import 'services/services.dart';
 import 'screens/login_screen.dart';
 import 'screens/home_screen.dart';
 
-void main() {
-  // Initialize API client
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize API client (for non-auth requests)
   ApiClient().initialize();
 
   runApp(const WishlistWizardApp());

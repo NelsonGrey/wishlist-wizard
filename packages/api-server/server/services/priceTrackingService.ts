@@ -1,13 +1,11 @@
-import { db } from "../db";
-import { eq, and, lt, gt, inArray } from "drizzle-orm";
+import { storage } from "../storage";
+import { emailService } from "./emailService";
 import { 
-  wishlistItems, 
-  priceAlerts,
-  users,
-  notifications,
   insertPriceAlertSchema,
   type InsertPriceAlert,
-  type WishlistItem
+  type WishlistItem,
+  type PriceAlert,
+  type InsertNotification
 } from "@wishlist-wizard/shared";
 
 /**
@@ -23,16 +21,7 @@ export async function updateItemPrice(
 ): Promise<void> {
   try {
     // Get current item to access its price history
-    const [item] = await db
-      .select({
-        id: wishlistItems.id,
-        title: wishlistItems.title,
-        price: wishlistItems.price,
-        numericPrice: wishlistItems.numericPrice,
-        priceHistory: wishlistItems.priceHistory
-      })
-      .from(wishlistItems)
-      .where(eq(wishlistItems.id, itemId));
+    const item = await storage.getWishlistItem(itemId);
 
     if (!item) {
       throw new Error(`Item with ID ${itemId} not found`);
@@ -42,9 +31,9 @@ export async function updateItemPrice(
     let priceHistory = [];
     try {
       if (item.priceHistory) {
-        priceHistory = typeof item.priceHistory === 'string' 
-          ? JSON.parse(item.priceHistory) 
-          : item.priceHistory;
+        priceHistory = Array.isArray(item.priceHistory) 
+          ? item.priceHistory 
+          : [];
       }
     } catch (err) {
       console.error("Error parsing price history:", err);
@@ -74,13 +63,10 @@ export async function updateItemPrice(
     }
 
     // Update the item with the new price and history
-    await db.update(wishlistItems)
-      .set({
-        price: newPrice,
-        numericPrice: newNumericPrice.toString(),
-        priceHistory: JSON.stringify(priceHistory)
-      })
-      .where(eq(wishlistItems.id, itemId));
+    await storage.updateWishlistItem(itemId, {
+      price: newPrice,
+      numericPrice: newNumericPrice.toString(),
+    });
 
     // Check alerts for this item
     await checkPriceAlerts(itemId, newNumericPrice, item.title);
@@ -93,20 +79,15 @@ export async function updateItemPrice(
 
 /**
  * Create a price alert for a specific item
- * @param userId The user ID
- * @param itemId The item ID
- * @param targetPrice The target price to alert at
- * @param expiresAt Optional expiration date for the alert
+ * @param alertData The price alert data
  */
-export async function createPriceAlert(alertData: InsertPriceAlert): Promise<any> {
+export async function createPriceAlert(alertData: InsertPriceAlert): Promise<PriceAlert> {
   try {
     // Validate the input using Zod schema
     const validatedData = insertPriceAlertSchema.parse(alertData);
     
-    // Create the alert in the database
-    const [newAlert] = await db.insert(priceAlerts)
-      .values(validatedData)
-      .returning();
+    // Create the alert using storage interface
+    const newAlert = await storage.createPriceAlert(validatedData);
     
     return newAlert;
   } catch (error) {
@@ -116,36 +97,40 @@ export async function createPriceAlert(alertData: InsertPriceAlert): Promise<any
 }
 
 /**
- * Get all price alerts for a user
+ * Get all price alerts for a user with item details
  * @param userId The user ID
  */
 export async function getUserPriceAlerts(userId: number): Promise<any[]> {
   try {
-    // Get alerts from the database
-    const alerts = await db
-      .select({
-        id: priceAlerts.id,
-        itemId: priceAlerts.itemId,
-        targetPrice: priceAlerts.targetPrice,
-  // triggered field indicates whether the alert fired
-  triggered: priceAlerts.triggered,
-        createdAt: priceAlerts.createdAt,
-        expiresAt: priceAlerts.expiresAt,
-        // Include item details
-        item: {
-          title: wishlistItems.title,
-          price: wishlistItems.price,
-          numericPrice: wishlistItems.numericPrice,
-          imageUrl: wishlistItems.imageUrl,
-          productUrl: wishlistItems.productUrl,
-          store: wishlistItems.store
-        }
+    // Get alerts from storage
+    const alerts = await storage.getPriceAlerts(userId);
+    
+    // Enhance alerts with item details
+    const enrichedAlerts = await Promise.all(
+      alerts.map(async (alert) => {
+        const item = await storage.getWishlistItem(alert.itemId);
+        return {
+          id: alert.id,
+          itemId: alert.itemId,
+          targetPrice: alert.targetPrice,
+          triggered: alert.triggered,
+          triggeredAt: alert.triggeredAt,
+          createdAt: alert.createdAt,
+          expiresAt: alert.expiresAt,
+          emailSent: alert.emailSent,
+          item: item ? {
+            title: item.title,
+            price: item.price,
+            numericPrice: item.numericPrice,
+            imageUrl: item.imageUrl,
+            productUrl: item.productUrl,
+            store: item.store
+          } : null
+        };
       })
-      .from(priceAlerts)
-      .leftJoin(wishlistItems, eq(priceAlerts.itemId, wishlistItems.id))
-      .where(eq(priceAlerts.userId, userId));
+    );
 
-    return alerts;
+    return enrichedAlerts;
   } catch (error) {
     console.error("Error fetching user price alerts:", error);
     throw new Error("Failed to fetch price alerts");
@@ -159,26 +144,17 @@ export async function getUserPriceAlerts(userId: number): Promise<any[]> {
  */
 export async function deletePriceAlert(alertId: number, userId: number): Promise<boolean> {
   try {
-    // Verify the alert belongs to the user
-    const [alert] = await db
-      .select()
-      .from(priceAlerts)
-      .where(
-        and(
-          eq(priceAlerts.id, alertId),
-          eq(priceAlerts.userId, userId)
-        )
-      );
+    // Get all alerts for the user to verify ownership
+    const userAlerts = await storage.getPriceAlerts(userId);
+    const alert = userAlerts.find(a => a.id === alertId);
 
     if (!alert) {
-      return false;
+      return false; // Alert doesn't exist or doesn't belong to user
     }
 
-    // Delete the alert
-    await db.delete(priceAlerts)
-      .where(eq(priceAlerts.id, alertId));
-
-    return true;
+    // Delete the alert using storage interface
+    const success = await storage.deletePriceAlert(alertId);
+    return success;
   } catch (error) {
     console.error("Error deleting price alert:", error);
     throw new Error("Failed to delete price alert");
@@ -197,56 +173,76 @@ async function checkPriceAlerts(
   itemTitle: string
 ): Promise<void> {
   try {
-  // Get all active, non-expired, non-triggered alerts for this item
-    // where the current price is at or below the target price
-    const now = new Date();
+    // Get all alerts for this item
+    const itemAlerts = await storage.getPriceAlertsByItem(itemId);
     
-    const alerts = await db
-      .select({
-        id: priceAlerts.id,
-        userId: priceAlerts.userId,
-        targetPrice: priceAlerts.targetPrice
-      })
-      .from(priceAlerts)
-      .where(
-        and(
-          eq(priceAlerts.itemId, itemId),
-          eq(priceAlerts.triggered, false),
-          // Either no expiration or not expired yet
-          (priceAlerts.expiresAt.isNull().or(gt(priceAlerts.expiresAt, now))),
-          // Current price must be at or below target price
-          lt(currentPrice, priceAlerts.targetPrice)
-        )
-      );
+    // Filter for active, non-expired, non-triggered alerts where current price is at or below target
+    const now = new Date();
+    const triggeredAlerts = itemAlerts.filter(alert => {
+      // Skip if already triggered
+      if (alert.triggered) return false;
+      
+      // Skip if expired
+      if (alert.expiresAt && new Date(alert.expiresAt) <= now) return false;
+      
+      // Check if current price is at or below target price
+      const targetPrice = typeof alert.targetPrice === 'string' 
+        ? parseFloat(alert.targetPrice) 
+        : Number(alert.targetPrice);
+      
+      return currentPrice <= targetPrice;
+    });
 
-    if (alerts.length === 0) {
+    if (triggeredAlerts.length === 0) {
       return; // No alerts to process
     }
 
-    // Process each alert
-    for (const alert of alerts) {
-  // Mark the alert as triggered
-      await db.update(priceAlerts)
-        .set({ triggered: true, triggeredAt: new Date() })
-        .where(eq(priceAlerts.id, alert.id));
+    // Process each triggered alert
+    for (const alert of triggeredAlerts) {
+      // Mark the alert as triggered
+      await storage.markPriceAlertTriggered(alert.id);
 
       // Create a notification for the user
-      await db.insert(notifications)
-        .values({
-          userId: alert.userId,
-          type: "price_drop",
-          title: "Price Drop Alert",
-          content: `The price of "${itemTitle}" has dropped to or below your target price of ${alert.targetPrice}!`,
-          relatedEntityId: itemId,
-          relatedEntityType: "wishlist_item",
-          actionUrl: `/item/${itemId}`,
-          isRead: false,
-          data: { itemId, currentPrice, targetPrice: alert.targetPrice }
-        });
-    }
+      const targetPrice = String(alert.targetPrice);
+        
+      await storage.createNotification({
+        userId: alert.userId,
+        type: "price_drop",
+        title: "Price Drop Alert",
+        content: `The price of "${itemTitle}" has dropped to or below your target price of $${targetPrice}!`,
+        relatedEntityId: itemId,
+        relatedEntityType: "wishlist_item",
+        actionUrl: `/item/${itemId}`,
+        isRead: false,
+        data: { itemId, currentPrice, targetPrice: alert.targetPrice }
+      });
 
-    // If needed, you could also send email notifications here
-    // This would require integrating with an email service like SendGrid
+      // Send email notification
+      try {
+        const user = await storage.getUser(alert.userId);
+        if (user && user.email) {
+          const item = await storage.getWishlistItem(itemId);
+          if (item) {
+            const oldPrice = `$${targetPrice}`;
+            const newPrice = `$${currentPrice.toFixed(2)}`;
+            
+            await emailService.sendPriceDropNotification(
+              user.email,
+              itemTitle,
+              oldPrice,
+              newPrice,
+              item.productUrl,
+              item.imageUrl
+            );
+            
+            console.log(`[PriceTracking] Email sent to ${user.email} for price drop on ${itemTitle}`);
+          }
+        }
+      } catch (emailError) {
+        console.error(`[PriceTracking] Failed to send email for price alert ${alert.id}:`, emailError);
+        // Don't throw - we still want the in-app notification to work
+      }
+    }
   } catch (error) {
     console.error("Error checking price alerts:", error);
     // Don't throw here to prevent blocking the price update
@@ -279,30 +275,14 @@ export async function updateMultipleItemPrices(
  */
 export async function getItemPriceHistory(itemId: number): Promise<any[]> {
   try {
-    const [item] = await db
-      .select({
-        priceHistory: wishlistItems.priceHistory
-      })
-      .from(wishlistItems)
-      .where(eq(wishlistItems.id, itemId));
+    const item = await storage.getWishlistItem(itemId);
 
     if (!item) {
       return [];
     }
 
-    // Parse the price history
-    let priceHistory = [];
-    try {
-      if (item.priceHistory) {
-        priceHistory = typeof item.priceHistory === 'string' 
-          ? JSON.parse(item.priceHistory) 
-          : item.priceHistory;
-      }
-    } catch (err) {
-      console.error("Error parsing price history:", err);
-      return [];
-    }
-
+    // Return the price history - it should already be parsed as an array from storage
+    const priceHistory = item.priceHistory;
     return Array.isArray(priceHistory) ? priceHistory : [];
   } catch (error) {
     console.error("Error getting item price history:", error);
@@ -314,30 +294,36 @@ export async function getItemPriceHistory(itemId: number): Promise<any[]> {
  * Find items with significant price drops in the last day
  * This can be used for a daily digest email or recommendations
  * @param threshold Percentage threshold for significant drops (e.g. 10 for 10%)
+ * @param userId Optional user ID to limit search to user's items
  * @returns Array of items with significant price drops
  */
-export async function findSignificantPriceDrops(threshold: number = 10): Promise<WishlistItem[]> {
+export async function findSignificantPriceDrops(
+  threshold: number = 10, 
+  userId?: number
+): Promise<WishlistItem[]> {
   try {
-    // Get all items
-    const items = await db
-      .select()
-      .from(wishlistItems);
+    let items: WishlistItem[] = [];
+    
+    if (userId) {
+      // Get items from user's wishlists only
+      const userWishlists = await storage.getWishlists(userId);
+      for (const wishlist of userWishlists) {
+        const wishlistItems = await storage.getWishlistItems(wishlist.id);
+        items.push(...wishlistItems);
+      }
+    } else {
+      // This would require a method to get all items from storage
+      // For now, let's use the recent price drops method as a fallback
+      const recentDrops = await storage.getRecentPriceDrops(userId || 1, 1);
+      return recentDrops as WishlistItem[];
+    }
 
     const significantDrops: WishlistItem[] = [];
     
     // Process each item
     for (const item of items) {
-      let priceHistory = [];
-      try {
-        if (item.priceHistory) {
-          priceHistory = typeof item.priceHistory === 'string' 
-            ? JSON.parse(item.priceHistory) 
-            : item.priceHistory;
-        }
-      } catch (err) {
-        continue; // Skip items with invalid price history
-      }
-
+      const priceHistory = item.priceHistory;
+      
       if (!Array.isArray(priceHistory) || priceHistory.length < 2) {
         continue; // Skip items with insufficient price history
       }
@@ -348,8 +334,8 @@ export async function findSignificantPriceDrops(threshold: number = 10): Promise
       oneDayAgo.setDate(now.getDate() - 1);
 
       const recentPrices = priceHistory
-        .filter(p => new Date(p.date) >= oneDayAgo)
-        .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+        .filter((p: any) => new Date(p.date) >= oneDayAgo)
+        .sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
       if (recentPrices.length < 2) {
         continue; // Skip if not enough recent price points

@@ -98,107 +98,254 @@ async function checkLoginStatus() {
   }
 }
 
-// Check if current page is a product page
+// Check if current page is a product page with enhanced detection
 async function checkProductPage() {
   try {
-    // Show loading screen during processing
-    showScreen('loading-screen');
+    // Track the page check attempt
+    trackExtensionEvent('check_product_page', 'detection', currentTab.url);
     
-    // Check if we have a valid tab
-    if (!currentTab || !currentTab.id) {
-      throw new Error('No active tab found');
-    }
-    
-    // Check if the URL is reachable and the tab is available
-    if (!currentTab.url || currentTab.url.startsWith('chrome://') || 
-        currentTab.url.startsWith('chrome-extension://') || 
-        currentTab.url.startsWith('about:')) {
-      // Current tab cannot be accessed by extension
-      showErrorScreen('This page cannot be accessed by the extension', 'permission');
-      return;
-    }
-    
+    // Inject enhanced product extractor first if not already present
     try {
-      // Execute content script to get product info
-      const result = await chrome.tabs.sendMessage(currentTab.id, { action: 'getProductInfo' });
+      await chrome.scripting.executeScript({
+        target: { tabId: currentTab.id },
+        files: ['src/enhanced-product-extractor.js']
+      });
+    } catch (scriptError) {
+      console.warn('Enhanced extractor may already be loaded:', scriptError.message);
+    }
+    
+    // Send message to content script to extract product info
+    const result = await chrome.tabs.sendMessage(currentTab.id, { action: 'getProductInfo' });
+    
+    if (result && result.success) {
+      // Product info was extracted successfully
+      currentProductInfo = result.productInfo;
       
-      if (result && result.success) {
-        // Product info was successfully extracted
-        currentProductInfo = result.productInfo;
-        
-        // Log the extraction method for analytics
-        console.log(`Product extracted using ${result.extractionMethod || 'unknown'} method`);
-        
-        // Validate we have the minimum required product information
-        if (!currentProductInfo || !currentProductInfo.title) {
-          showErrorScreen('Incomplete product information was extracted', 'parsing');
-          console.warn('Incomplete product info:', currentProductInfo);
-          return;
-        }
-        
-        // Populate product details
-        populateProductDetails();
-        
-        try {
-          // Get user's wishlists
-          await getWishlists();
-          
-          // Show product screen
-          showScreen('product-screen');
-        } catch (wishlitError) {
-          // Handle errors getting wishlists
-          console.error('Error getting wishlists:', wishlitError);
-          showErrorScreen(
-            'Could not load your wishlists. Please check your connection and try again.', 
-            'network'
-          );
-        }
-      } else {
-        // Handle specific error types from content script
-        if (result && result.errorType) {
-          switch (result.errorType) {
-            case 'detection':
-              // Not a product page
-              showScreen('not-product-screen');
-              break;
-            case 'parsing':
-              // Failed to parse product information
-              showErrorScreen(
-                'Could not extract product information from this page. Try manual entry.', 
-                'parsing'
-              );
-              // Store any partial info we may have received
-              if (result.partialInfo) {
-                currentProductInfo = result.partialInfo;
-                populateProductDetails(true); // True indicates partial data
-              }
-              break;
-            default:
-              // General error
-              showErrorScreen(result.error || 'Unknown error occurred', 'unknown');
-          }
-        } else {
-          // Generic error or not a product page
-          showScreen('not-product-screen');
-        }
+      // Track successful detection with extraction method
+      trackExtensionEvent('product_detected', 'detection', 
+        `${result.extractionMethod || 'unknown'}: ${result.productInfo.store || currentTab.url}`);
+      
+      // Populate product details in the UI
+      populateProductDetails();
+      
+      // Get user's wishlists
+      await getWishlists();
+      
+      // Show the product screen with enhanced features
+      showEnhancedProductScreen();
+    } else {
+      // Show error based on the type of failure
+      let errorMessage = 'This doesn\'t appear to be a product page.';
+      let errorType = 'detection';
+      
+      if (result && result.error) {
+        errorMessage = result.error;
+        errorType = result.errorType || 'unknown';
       }
-    } catch (messageError) {
-      // Handle error communicating with content script
-      console.error('Error communicating with content script:', messageError);
       
-      // Check if this is due to content script not being injected
-      if (messageError.message && messageError.message.includes('Could not establish connection')) {
-        showErrorScreen(
-          'Extension cannot access this page. Refresh the page and try again.', 
-          'permission'
-        );
+      // Track the failed detection with more context
+      trackExtensionEvent('product_detection_failed', 'detection', 
+        `${errorType}: ${errorMessage} (URL: ${currentTab.url})`);
+      
+      // For parsing errors, offer forced detection
+      if (errorType === 'parsing') {
+        showErrorScreenWithForce(errorMessage, errorType);
       } else {
-        showScreen('not-product-screen');
+        showErrorScreen(errorMessage, errorType);
       }
     }
+  } catch (contentScriptError) {
+    console.error('Content script error:', contentScriptError);
+    
+    // Handle content script injection errors
+    if (contentScriptError.message && contentScriptError.message.includes('Could not establish connection')) {
+      // Track content script connection issue
+      trackExtensionEvent('content_script_error', 'detection', 'connection_failed');
+      
+      // Try to inject both scripts
+      try {
+        await chrome.scripting.executeScript({
+          target: { tabId: currentTab.id },
+          files: ['src/enhanced-product-extractor.js', 'src/content.js']
+        });
+        
+        // Retry product detection after injection
+        setTimeout(checkProductPage, 1500);
+        return;
+      } catch (injectionError) {
+        console.error('Failed to inject content scripts:', injectionError);
+        showErrorScreen('Unable to analyze this page. Please try refreshing.', 'permission');
+        return;
+      }
+    }
+    
+    // Other content script errors
+    showErrorScreen('Error analyzing page content.', 'unknown');
   } catch (error) {
     console.error('Unexpected error in checkProductPage:', error);
     showErrorScreen('An unexpected error occurred: ' + error.message, 'unknown');
+  }
+}
+
+// Show enhanced product screen with additional features
+function showEnhancedProductScreen() {
+  // Show the regular product screen first
+  showScreen('product-screen');
+  
+  // Add store-specific enhancements
+  if (currentProductInfo && currentProductInfo.store) {
+    addStoreSpecificFeatures(currentProductInfo.store.toLowerCase());
+  }
+  
+  // Show extraction method for debugging
+  if (currentProductInfo && currentProductInfo.extractionMethod) {
+    const debugInfo = document.getElementById('debug-info');
+    if (debugInfo) {
+      debugInfo.textContent = `Detected via: ${currentProductInfo.extractionMethod}`;
+      debugInfo.classList.remove('hidden');
+    }
+  }
+  
+  // Enable enhanced price comparison if available
+  enableEnhancedPriceComparison();
+}
+
+// Add store-specific features and optimizations
+function addStoreSpecificFeatures(storeName) {
+  const storeIndicator = document.getElementById('store-indicator');
+  if (storeIndicator) {
+    // Add store-specific styling or badges
+    const storeClasses = {
+      'amazon': 'store-amazon',
+      'target': 'store-target', 
+      'walmart': 'store-walmart',
+      'ebay': 'store-ebay',
+      'bestbuy': 'store-bestbuy',
+      'etsy': 'store-etsy',
+      'wayfair': 'store-wayfair'
+    };
+    
+    const storeClass = storeClasses[storeName] || 'store-generic';
+    storeIndicator.className = `store-indicator ${storeClass}`;
+    storeIndicator.textContent = currentProductInfo.store;
+  }
+  
+  // Store-specific functionality
+  switch (storeName) {
+    case 'amazon':
+      enableAmazonSpecificFeatures();
+      break;
+    case 'ebay':
+      enableEbaySpecificFeatures();
+      break;
+    case 'etsy':
+      enableEtsySpecificFeatures();
+      break;
+    default:
+      enableGenericStoreFeatures();
+  }
+}
+
+// Enable Amazon-specific features
+function enableAmazonSpecificFeatures() {
+  // Amazon Prime badge detection
+  if (currentProductInfo.title && currentProductInfo.title.includes('Prime')) {
+    const primeIndicator = document.createElement('span');
+    primeIndicator.className = 'prime-badge';
+    primeIndicator.textContent = 'Prime';
+    document.getElementById('product-title')?.appendChild(primeIndicator);
+  }
+  
+  // ASIN extraction for better tracking
+  const asinMatch = currentTab.url.match(/\/dp\/([A-Z0-9]{10})/);
+  if (asinMatch) {
+    currentProductInfo.asin = asinMatch[1];
+  }
+}
+
+// Enable eBay-specific features  
+function enableEbaySpecificFeatures() {
+  // Auction vs Buy It Now detection
+  const url = currentTab.url.toLowerCase();
+  if (url.includes('auction')) {
+    currentProductInfo.listingType = 'auction';
+  } else if (url.includes('bin') || url.includes('buy-it-now')) {
+    currentProductInfo.listingType = 'buy-it-now';
+  }
+}
+
+// Enable Etsy-specific features
+function enableEtsySpecificFeatures() {
+  // Handmade indicator
+  const handmadeIndicator = document.createElement('span');
+  handmadeIndicator.className = 'handmade-badge';
+  handmadeIndicator.textContent = 'Handmade';
+  document.getElementById('product-title')?.appendChild(handmadeIndicator);
+}
+
+// Enable generic store features
+function enableGenericStoreFeatures() {
+  // Add generic enhanced functionality
+  console.log('Using generic store features for:', currentProductInfo.store);
+}
+
+// Show error screen with force detection option
+function showErrorScreenWithForce(message, errorType) {
+  document.getElementById('error-message').textContent = message;
+  
+  const retryButton = document.getElementById('retry-button');
+  const forceButton = document.getElementById('force-button') || createForceButton();
+  
+  retryButton.textContent = 'Try Again';
+  retryButton.onclick = checkProductPage;
+  
+  forceButton.textContent = 'Force Detection';
+  forceButton.onclick = forceProductDetection;
+  forceButton.classList.remove('hidden');
+  
+  showScreen('error-screen');
+}
+
+// Create force detection button if it doesn't exist
+function createForceButton() {
+  const forceButton = document.createElement('button');
+  forceButton.id = 'force-button';
+  forceButton.className = 'btn btn-secondary mt-2';
+  forceButton.textContent = 'Force Detection';
+  
+  const retryButton = document.getElementById('retry-button');
+  retryButton.parentNode.insertBefore(forceButton, retryButton.nextSibling);
+  
+  return forceButton;
+}
+
+// Enable enhanced price comparison with multiple sources
+function enableEnhancedPriceComparison() {
+  const compareButton = document.getElementById('compare-prices-button');
+  if (compareButton && currentProductInfo) {
+    compareButton.onclick = async () => {
+      try {
+        compareButton.disabled = true;
+        compareButton.textContent = 'Comparing...';
+        
+        // Use enhanced product info for better comparison
+        const comparisonData = {
+          title: currentProductInfo.title,
+          store: currentProductInfo.store,
+          price: currentProductInfo.price,
+          imageUrl: currentProductInfo.imageUrl,
+          asin: currentProductInfo.asin, // Amazon-specific
+          listingType: currentProductInfo.listingType // eBay-specific
+        };
+        
+        await performEnhancedPriceComparison(comparisonData);
+        
+      } catch (error) {
+        console.error('Enhanced price comparison error:', error);
+        compareButton.textContent = 'Compare Prices';
+        compareButton.disabled = false;
+      }
+    };
   }
 }
 
@@ -657,10 +804,10 @@ async function getBaseUrl() {
   // Check if we're in development or production
   if (extensionUrl.includes('chrome-extension://')) {
     // Production mode - use the actual website
-    return "https://wishkeeper.replit.app";
+    return "https://wishlist-wizard.web.app";
   } else {
     // Development mode - use localhost
-    return "http://localhost:5000";
+    return "http://localhost:3001";
   }
 }
 

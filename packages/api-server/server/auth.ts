@@ -4,6 +4,7 @@ import { storage } from "./storage";
 import { User, InsertUser } from "@wishlist-wizard/shared";
 import { validatePasswordStrength, generateSecurityToken } from "./auth-utils";
 import { generateToken } from "./jwt-auth";
+import { emailService } from "./services/emailService";
 
 // Helper function to hash passwords
 export async function hashPassword(password: string): Promise<string> {
@@ -73,8 +74,17 @@ export async function register(req: Request, res: Response) {
     // Update last login time
     await storage.updateUser(user.id, { lastLogin: new Date() });
     
-    // TODO: Send verification email with the token
-    // This would be done with a separate email service
+    // Send verification email
+    try {
+      const verificationUrl = `${process.env.FRONTEND_URL || 'https://wishlist-wizard.web.app'}/verify-email/${verificationToken}`;
+      await emailService.sendVerificationEmail(user.email, user.displayName || user.username, verificationUrl);
+      
+      // Also send welcome email
+      await emailService.sendWelcomeEmail(user.email, user.displayName || user.username);
+    } catch (emailError) {
+      console.error("Failed to send verification email:", emailError);
+      // Don't fail registration if email fails - user can request resend
+    }
     
     res.status(201).json({
       user: userWithoutPassword,
@@ -232,8 +242,14 @@ export async function requestPasswordReset(req: Request, res: Response) {
       passwordResetExpires: expirationDate
     });
     
-    // TODO: Send password reset email with the token
-    // This would be done with a separate email service
+    // Send password reset email
+    try {
+      const resetUrl = `${process.env.FRONTEND_URL || 'https://wishlist-wizard.web.app'}/reset-password/${resetToken}`;
+      await emailService.sendPasswordResetEmail(user.email, resetUrl);
+    } catch (emailError) {
+      console.error("Failed to send password reset email:", emailError);
+      // Don't fail the request if email fails - security through obscurity
+    }
     
     res.json({ message: "If the email exists, a password reset link has been sent" });
   } catch (error) {

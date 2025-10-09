@@ -67,6 +67,13 @@ export class NotificationService {
       }
     });
 
+    // Send email notification
+    try {
+      await this.sendEmailForNotification(notification);
+    } catch (error) {
+      console.error('Failed to send price drop email:', error);
+    }
+
     return notification;
   }
 
@@ -111,6 +118,13 @@ export class NotificationService {
         activityType
       }
     });
+
+    // Send email notification
+    try {
+      await this.sendEmailForNotification(notification);
+    } catch (error) {
+      console.error('Failed to send wishlist activity email:', error);
+    }
 
     return notification;
   }
@@ -187,6 +201,13 @@ export class NotificationService {
       }
     });
 
+    // Send email notification
+    try {
+      await this.sendEmailForNotification(notification);
+    } catch (error) {
+      console.error('Failed to send wishlist shared email:', error);
+    }
+
     return notification;
   }
 
@@ -231,6 +252,13 @@ export class NotificationService {
         acceptUrl
       }
     });
+
+    // Send email notification
+    try {
+      await this.sendEmailForNotification(notification);
+    } catch (error) {
+      console.error('Failed to send collaboration invite email:', error);
+    }
 
     return notification;
   }
@@ -342,8 +370,9 @@ export class NotificationService {
   }
 
   private async sendWishlistActivityEmail(user: User, notification: Notification): Promise<boolean> {
-    const { actorUsername, wishlistName, activityType } = notification.data as any;
-    const wishlistUrl = `${process.env.APP_URL || 'https://wishkeeper.com'}/wishlist/${notification.data.wishlistId}`;
+    const data = notification.data as any;
+    const { actorUsername, wishlistName, activityType, wishlistId } = data;
+    const wishlistUrl = `${process.env.APP_URL || 'https://wishkeeper.com'}/wishlist/${wishlistId}`;
 
     return emailService.sendWishlistActivityNotification(
       user.email,

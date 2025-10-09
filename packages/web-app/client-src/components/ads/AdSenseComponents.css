@@ -1,0 +1,279 @@
+/**
+ * AdSense Components Styles
+ * CSS for Google AdSense ad components and containers
+ */
+
+/* Base ad container styles */
+.adsense-container {
+  display: block;
+  width: 100%;
+  min-height: 90px;
+}
+
+/* Ad placeholder for test mode */
+.ad-placeholder {
+  background: #f0f0f0;
+  border: 2px dashed #ccc;
+  color: #666;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 90px;
+  font-size: 14px;
+  font-family: Arial, sans-serif;
+  border-radius: 4px;
+}
+
+/* AdSense ins element styles */
+.adsbygoogle {
+  display: block !important;
+}
+
+/* Header banner ad styles */
+.header-banner-ad {
+  margin-bottom: 20px;
+}
+
+.header-banner-ad .adsense-container {
+  max-width: 728px;
+  margin: 0 auto;
+}
+
+/* Sidebar rectangle ad styles */
+.sidebar-rectangle-ad {
+  margin: 20px 0;
+}
+
+.sidebar-rectangle-ad .adsense-container {
+  width: 300px;
+  height: 250px;
+}
+
+/* Footer banner ad styles */
+.footer-banner-ad {
+  margin-top: 20px;
+}
+
+.footer-banner-ad .adsense-container {
+  max-width: 728px;
+  margin: 0 auto;
+}
+
+/* In-content ad styles */
+.in-content-ad {
+  margin: 30px 0;
+}
+
+.in-content-ad .adsense-container {
+  max-width: 100%;
+}
+
+/* Mobile banner ad styles */
+.mobile-banner-ad {
+  margin: 10px 0;
+}
+
+.mobile-banner-ad .adsense-container {
+  max-width: 320px;
+  height: 50px;
+  margin: 0 auto;
+}
+
+/* Skyscraper ad styles */
+.skyscraper-ad {
+  margin: 20px 0;
+}
+
+.skyscraper-ad .adsense-container {
+  width: 160px;
+  height: 600px;
+}
+
+/* Ad container with loading and error states */
+.ad-container {
+  margin: 15px 0;
+  text-align: center;
+}
+
+.ad-label {
+  font-size: 10px;
+  color: #666;
+  text-align: center;
+  margin-bottom: 5px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-family: Arial, sans-serif;
+}
+
+.ad-content {
+  position: relative;
+}
+
+.ad-loading {
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 4px;
+  padding: 20px;
+  text-align: center;
+  color: #6c757d;
+  font-size: 14px;
+  font-family: Arial, sans-serif;
+  min-height: 90px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Ad blocker notice styles */
+.ad-blocker-notice {
+  background: #fff3cd;
+  border: 1px solid #ffeaa7;
+  border-radius: 4px;
+  padding: 15px;
+  margin: 20px 0;
+  color: #856404;
+  font-size: 14px;
+  text-align: center;
+  font-family: Arial, sans-serif;
+}
+
+.ad-blocker-notice p {
+  margin: 8px 0 0 0;
+  line-height: 1.4;
+}
+
+.ad-blocker-notice button {
+  background: transparent;
+  border: none;
+  color: #856404;
+  text-decoration: underline;
+  cursor: pointer;
+  font-size: 12px;
+  margin-top: 8px;
+  padding: 4px 8px;
+  border-radius: 3px;
+  transition: background-color 0.2s ease;
+}
+
+.ad-blocker-notice button:hover {
+  background-color: rgba(133, 100, 4, 0.1);
+}
+
+.ad-blocker-notice button:focus {
+  outline: 2px solid #856404;
+  outline-offset: 2px;
+}
+
+/* Responsive styles */
+@media (max-width: 768px) {
+  .header-banner-ad .adsense-container,
+  .footer-banner-ad .adsense-container {
+    max-width: 320px;
+    height: auto;
+  }
+  
+  .sidebar-rectangle-ad {
+    text-align: center;
+  }
+  
+  .sidebar-rectangle-ad .adsense-container {
+    width: 100%;
+    max-width: 300px;
+    margin: 0 auto;
+  }
+  
+  .skyscraper-ad {
+    display: none; /* Hide skyscraper on mobile */
+  }
+}
+
+@media (max-width: 480px) {
+  .in-content-ad {
+    margin: 20px 0;
+  }
+  
+  .ad-container {
+    margin: 10px 0;
+  }
+  
+  .ad-blocker-notice {
+    margin: 15px 0;
+    padding: 12px;
+    font-size: 13px;
+  }
+}
+
+/* Dark mode styles */
+@media (prefers-color-scheme: dark) {
+  .ad-placeholder {
+    background: #2a2a2a;
+    border-color: #555;
+    color: #ccc;
+  }
+  
+  .ad-loading {
+    background: #2a2a2a;
+    border-color: #555;
+    color: #ccc;
+  }
+  
+  .ad-label {
+    color: #999;
+  }
+  
+  .ad-blocker-notice {
+    background: #3d3d3d;
+    border-color: #666;
+    color: #f0f0f0;
+  }
+  
+  .ad-blocker-notice button {
+    color: #f0f0f0;
+  }
+  
+  .ad-blocker-notice button:hover {
+    background-color: rgba(240, 240, 240, 0.1);
+  }
+}
+
+/* Accessibility improvements */
+.ad-container:focus-within {
+  outline: 2px solid transparent;
+}
+
+.ad-container[aria-label] {
+  position: relative;
+}
+
+/* High contrast mode */
+@media (prefers-contrast: high) {
+  .ad-placeholder {
+    border-color: #000;
+    color: #000;
+  }
+  
+  .ad-loading {
+    border-color: #000;
+    color: #000;
+  }
+  
+  .ad-label {
+    color: #000;
+  }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .ad-blocker-notice button {
+    transition: none;
+  }
+}
+
+/* Print styles */
+@media print {
+  .ad-container,
+  .adsense-container,
+  .ad-blocker-notice {
+    display: none !important;
+  }
+}
