@@ -244,6 +244,149 @@ export class EmailService {
   }
 
   /**
+   * Send a contribution confirmation email
+   */
+  async sendContributionConfirmation(
+    to: string,
+    userName: string,
+    contributionDetails: {
+      itemTitle: string;
+      contributionAmount: number;
+      totalRaised: number;
+      targetAmount: number;
+      percentComplete: number;
+    }
+  ): Promise<boolean> {
+    if (!this.initialized) return false;
+
+    const subject = `Group Gift Contribution Confirmed - ${contributionDetails.itemTitle}`;
+    const text = `Thank you ${userName}! Your contribution of $${contributionDetails.contributionAmount} to "${contributionDetails.itemTitle}" has been confirmed. The group gift has raised $${contributionDetails.totalRaised} of the $${contributionDetails.targetAmount} goal (${contributionDetails.percentComplete}% complete).`;
+    const html = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #4f46e5;">Contribution Confirmed!</h2>
+        <p>Thank you ${userName}!</p>
+        <p>Your group gift contribution has been successfully processed.</p>
+        <div style="border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; margin: 16px 0;">
+          <h3 style="margin: 0 0 8px 0;">${contributionDetails.itemTitle}</h3>
+          <p><strong>Your contribution:</strong> $${contributionDetails.contributionAmount}</p>
+          <p><strong>Total raised:</strong> $${contributionDetails.totalRaised} of $${contributionDetails.targetAmount}</p>
+          <div style="background-color: #f3f4f6; border-radius: 4px; padding: 8px; margin: 12px 0;">
+            <div style="background-color: #10b981; height: 8px; border-radius: 4px; width: ${contributionDetails.percentComplete}%;"></div>
+            <p style="margin: 4px 0 0 0; font-size: 14px;">${contributionDetails.percentComplete}% complete</p>
+          </div>
+        </div>
+        <p>Thank you for participating in group gifting!</p>
+        <p>- The Wishlist Wizard Team</p>
+      </div>
+    `;
+
+    return this.sendEmail(to, subject, text, html);
+  }
+
+  /**
+   * Send a payment failure notification email
+   */
+  async sendPaymentFailureNotification(
+    to: string,
+    userName: string,
+    itemTitle: string
+  ): Promise<boolean> {
+    if (!this.initialized) return false;
+
+    const subject = `Payment Failed - ${itemTitle}`;
+    const text = `Hi ${userName}, we were unable to process your payment for the group gift contribution to "${itemTitle}". Please try again or use a different payment method.`;
+    const html = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #ef4444;">Payment Failed</h2>
+        <p>Hi ${userName},</p>
+        <p>We were unable to process your payment for the group gift contribution:</p>
+        <div style="border: 1px solid #fee2e2; border-radius: 8px; padding: 16px; margin: 16px 0; background-color: #fef2f2;">
+          <h3 style="margin: 0 0 8px 0; color: #dc2626;">${itemTitle}</h3>
+          <p>Your payment could not be processed. This may be due to:</p>
+          <ul style="padding-left: 20px;">
+            <li>Insufficient funds</li>
+            <li>Card expired or invalid</li>
+            <li>Bank security restrictions</li>
+          </ul>
+        </div>
+        <p>Please try again with a different payment method or contact your bank if the issue persists.</p>
+        <p>- The Wishlist Wizard Team</p>
+      </div>
+    `;
+
+    return this.sendEmail(to, subject, text, html);
+  }
+
+  /**
+   * Send a refund notification email
+   */
+  async sendRefundNotification(
+    to: string,
+    userName: string,
+    refundDetails: {
+      itemTitle: string;
+      refundAmount: number;
+    }
+  ): Promise<boolean> {
+    if (!this.initialized) return false;
+
+    const subject = `Refund Processed - ${refundDetails.itemTitle}`;
+    const text = `Hi ${userName}, your refund of $${refundDetails.refundAmount} for "${refundDetails.itemTitle}" has been processed. It may take 3-5 business days to appear in your account.`;
+    const html = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #4f46e5;">Refund Processed</h2>
+        <p>Hi ${userName},</p>
+        <p>Your refund has been successfully processed:</p>
+        <div style="border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; margin: 16px 0;">
+          <h3 style="margin: 0 0 8px 0;">${refundDetails.itemTitle}</h3>
+          <p><strong>Refund amount:</strong> $${refundDetails.refundAmount}</p>
+          <p style="color: #6b7280; font-size: 14px;">This refund may take 3-5 business days to appear in your account, depending on your payment method and bank.</p>
+        </div>
+        <p>If you have any questions about this refund, please contact our support team.</p>
+        <p>- The Wishlist Wizard Team</p>
+      </div>
+    `;
+
+    return this.sendEmail(to, subject, text, html);
+  }
+
+  /**
+   * Send a group gift completed notification email
+   */
+  async sendGroupGiftCompletedNotification(
+    to: string,
+    userName: string,
+    completionDetails: {
+      itemTitle: string;
+      totalRaised: number;
+      contributorCount: number;
+    }
+  ): Promise<boolean> {
+    if (!this.initialized) return false;
+
+    const subject = `Group Gift Complete! - ${completionDetails.itemTitle}`;
+    const text = `Great news ${userName}! The group gift for "${completionDetails.itemTitle}" has reached its goal! $${completionDetails.totalRaised} was raised by ${completionDetails.contributorCount} contributors.`;
+    const html = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #10b981;">🎉 Group Gift Complete!</h2>
+        <p>Great news ${userName}!</p>
+        <p>The group gift you contributed to has reached its goal:</p>
+        <div style="border: 1px solid #dcfce7; border-radius: 8px; padding: 16px; margin: 16px 0; background-color: #f0fdf4;">
+          <h3 style="margin: 0 0 8px 0; color: #15803d;">${completionDetails.itemTitle}</h3>
+          <p><strong>Total raised:</strong> $${completionDetails.totalRaised}</p>
+          <p><strong>Contributors:</strong> ${completionDetails.contributorCount} amazing people</p>
+          <div style="background-color: #10b981; height: 8px; border-radius: 4px; width: 100%; margin: 12px 0;"></div>
+          <p style="margin: 4px 0 0 0; font-weight: bold; color: #15803d;">100% Complete! 🎉</p>
+        </div>
+        <p>Thank you for being part of this group gift! The recipient will be delighted.</p>
+        <p>- The Wishlist Wizard Team</p>
+      </div>
+    `;
+
+    return this.sendEmail(to, subject, text, html);
+  }
+
+  /**
    * General method to send an email
    */
   private async sendEmail(

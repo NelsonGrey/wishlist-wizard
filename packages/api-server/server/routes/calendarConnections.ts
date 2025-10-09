@@ -10,18 +10,29 @@
  */
 
 import { Request, Response } from 'express';
-import { isAuthenticated } from '../auth';
+import { verifyJWT } from '../middlewares/auth-middleware';
 import { externalCalendarService, CalendarProvider } from '../services/externalCalendarService';
 import { db } from '../db';
 import { userCalendars, calendarEvents } from '@wishlist-wizard/shared';
 import { eq, and } from 'drizzle-orm';
 
+// Firebase-first authenticated request interface
+interface AuthenticatedRequest extends Request {
+  firebaseUser?: {
+    uid: string;
+    email?: string;
+    displayName?: string;
+    emailVerified: boolean;
+  };
+  userId?: number;
+}
+
 /**
  * Get OAuth URL for a specific calendar provider
  */
-export async function getCalendarAuthUrl(req: Request, res: Response) {
+export async function getCalendarAuthUrl(req: AuthenticatedRequest, res: Response) {
   try {
-    const userId = req.session.userId;
+    const userId = req.userId;
     if (!userId) {
       return res.status(401).json({ error: 'Not authenticated' });
     }
@@ -49,9 +60,9 @@ export async function getCalendarAuthUrl(req: Request, res: Response) {
 /**
  * Handle OAuth callback from calendar provider
  */
-export async function handleCalendarCallback(req: Request, res: Response) {
+export async function handleCalendarCallback(req: AuthenticatedRequest, res: Response) {
   try {
-    const userId = req.session.userId;
+    const userId = req.userId;
     if (!userId) {
       return res.status(401).json({ error: 'Not authenticated' });
     }
@@ -94,9 +105,9 @@ export async function handleCalendarCallback(req: Request, res: Response) {
 /**
  * Get all connected calendars for a user
  */
-export async function getConnectedCalendars(req: Request, res: Response) {
+export async function getConnectedCalendars(req: AuthenticatedRequest, res: Response) {
   try {
-    const userId = req.session.userId;
+    const userId = req.userId;
     if (!userId) {
       return res.status(401).json({ error: 'Not authenticated' });
     }
@@ -108,7 +119,7 @@ export async function getConnectedCalendars(req: Request, res: Response) {
       ));
     
     // Don't send the access and refresh tokens to the client
-    const safeCalendars = connectedCalendars.map(calendar => ({
+    const safeCalendars = connectedCalendars.map((calendar: any) => ({
       id: calendar.id,
       calendarType: calendar.calendarType,
       displayName: calendar.displayName,
@@ -127,9 +138,9 @@ export async function getConnectedCalendars(req: Request, res: Response) {
 /**
  * Disconnect a calendar
  */
-export async function disconnectCalendar(req: Request, res: Response) {
+export async function disconnectCalendar(req: AuthenticatedRequest, res: Response) {
   try {
-    const userId = req.session.userId;
+    const userId = req.userId;
     if (!userId) {
       return res.status(401).json({ error: 'Not authenticated' });
     }
@@ -165,9 +176,9 @@ export async function disconnectCalendar(req: Request, res: Response) {
 /**
  * Sync events with external calendar
  */
-export async function syncCalendar(req: Request, res: Response) {
+export async function syncCalendar(req: AuthenticatedRequest, res: Response) {
   try {
-    const userId = req.session.userId;
+    const userId = req.userId;
     if (!userId) {
       return res.status(401).json({ error: 'Not authenticated' });
     }
@@ -210,9 +221,9 @@ export async function syncCalendar(req: Request, res: Response) {
 /**
  * Update calendar settings
  */
-export async function updateCalendarSettings(req: Request, res: Response) {
+export async function updateCalendarSettings(req: AuthenticatedRequest, res: Response) {
   try {
-    const userId = req.session.userId;
+    const userId = req.userId;
     if (!userId) {
       return res.status(401).json({ error: 'Not authenticated' });
     }
@@ -253,9 +264,9 @@ export async function updateCalendarSettings(req: Request, res: Response) {
 /**
  * Push a specific event to external calendar
  */
-export async function pushEventToExternal(req: Request, res: Response) {
+export async function pushEventToExternal(req: AuthenticatedRequest, res: Response) {
   try {
-    const userId = req.session.userId;
+    const userId = req.userId;
     if (!userId) {
       return res.status(401).json({ error: 'Not authenticated' });
     }
@@ -295,15 +306,15 @@ export async function pushEventToExternal(req: Request, res: Response) {
  */
 export function registerCalendarConnectionRoutes(app: any) {
   // OAuth routes
-  app.get('/api/calendar/auth/:provider', isAuthenticated, getCalendarAuthUrl);
+  app.get('/api/calendar/auth/:provider', verifyJWT, getCalendarAuthUrl);
   app.get('/api/calendar/auth/callback/:provider', handleCalendarCallback);
   
   // Calendar management routes
-  app.get('/api/calendar/connections', isAuthenticated, getConnectedCalendars);
-  app.delete('/api/calendar/connections/:id', isAuthenticated, disconnectCalendar);
-  app.post('/api/calendar/connections/:id/sync', isAuthenticated, syncCalendar);
-  app.patch('/api/calendar/connections/:id/settings', isAuthenticated, updateCalendarSettings);
+  app.get('/api/calendar/connections', verifyJWT, getConnectedCalendars);
+  app.delete('/api/calendar/connections/:id', verifyJWT, disconnectCalendar);
+  app.post('/api/calendar/connections/:id/sync', verifyJWT, syncCalendar);
+  app.patch('/api/calendar/connections/:id/settings', verifyJWT, updateCalendarSettings);
   
   // Event sync routes
-  app.post('/api/calendar/events/:eventId/push', isAuthenticated, pushEventToExternal);
+  app.post('/api/calendar/events/:eventId/push', verifyJWT, pushEventToExternal);
 }

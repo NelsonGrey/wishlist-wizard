@@ -8,6 +8,17 @@ import fs from 'fs';
 import { Request, Response } from 'express';
 import { storage } from './storage';
 
+// Firebase-first authenticated request interface
+interface AuthenticatedRequest extends Request {
+  firebaseUser?: {
+    uid: string;
+    email?: string;
+    displayName?: string;
+    emailVerified: boolean;
+  };
+  userId?: number;
+}
+
 // Directory where extension files are stored
 const EXTENSION_DIR = path.join(process.cwd(), 'client', 'public', 'extension');
 
@@ -31,7 +42,7 @@ function getBrowserFromUserAgent(userAgent: string): string {
 /**
  * Handle extension download request
  */
-export async function downloadExtension(req: Request, res: Response) {
+export async function downloadExtension(req: AuthenticatedRequest, res: Response) {
   try {
     // Get browser from query param or user agent
     const requestedBrowser = req.query.browser as string || 
@@ -77,9 +88,9 @@ export async function downloadExtension(req: Request, res: Response) {
     }
     
     // Track download analytics if user is logged in
-    if (req.session.userId) {
+    if (req.userId) {
       try {
-        const userId = req.session.userId;
+        const userId = req.userId;
         // Record download in analytics (implemented in future)
         console.log(`User ${userId} downloaded ${filename}`);
       } catch (error) {
@@ -155,9 +166,9 @@ export async function getExtensionMetadata(req: Request, res: Response) {
  * Simple endpoint to trigger extension packaging
  * This would typically be protected and only accessible to admins
  */
-export async function packageExtensions(req: Request, res: Response) {
+export async function packageExtensions(req: AuthenticatedRequest, res: Response) {
   // This would be protected by admin authentication in a real app
-  if (!req.session.userId) {
+  if (!req.userId) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
   

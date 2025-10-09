@@ -1,14 +1,13 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
-import { sessionMiddleware, initializeSessionTable } from "./session";
 import { initializePricePolling, shutdownPricePolling } from "./services/pricePollingService.js";
 import "./types";
 
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
-app.use(sessionMiddleware);
+// Session middleware removed in favor of Firebase-first authentication
 
 app.use((req, res, next) => {
   const start = Date.now();

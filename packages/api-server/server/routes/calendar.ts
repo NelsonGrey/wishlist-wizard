@@ -1,16 +1,27 @@
 import { Request, Response } from 'express';
 import { db } from '../db';
 import { calendarEvents, insertCalendarEventSchema } from '@wishlist-wizard/shared';
-import { isAuthenticated } from '../auth';
+import { verifyJWT } from '../middlewares/auth-middleware';
 import { eq, and, gte } from 'drizzle-orm';
 import { addDays } from 'date-fns';
+
+// Firebase-first authenticated request interface
+interface AuthenticatedRequest extends Request {
+  firebaseUser?: {
+    uid: string;
+    email?: string;
+    displayName?: string;
+    emailVerified: boolean;
+  };
+  userId?: number;
+}
 
 /**
  * Get all calendar events for the authenticated user
  */
-export async function getEvents(req: Request, res: Response) {
+export async function getEvents(req: AuthenticatedRequest, res: Response) {
   try {
-    const userId = req.session.userId;
+    const userId = req.userId;
     if (!userId) {
       return res.status(401).json({ error: 'Not authenticated' });
     }
@@ -28,9 +39,9 @@ export async function getEvents(req: Request, res: Response) {
 /**
  * Get a single calendar event by ID
  */
-export async function getEventById(req: Request, res: Response) {
+export async function getEventById(req: AuthenticatedRequest, res: Response) {
   try {
-    const userId = req.session.userId;
+    const userId = req.userId;
     if (!userId) {
       return res.status(401).json({ error: 'Not authenticated' });
     }
@@ -60,9 +71,9 @@ export async function getEventById(req: Request, res: Response) {
 /**
  * Create a new calendar event
  */
-export async function createEvent(req: Request, res: Response) {
+export async function createEvent(req: AuthenticatedRequest, res: Response) {
   try {
-    const userId = req.session.userId;
+    const userId = req.userId;
     if (!userId) {
       return res.status(401).json({ error: 'Not authenticated' });
     }
@@ -89,9 +100,9 @@ export async function createEvent(req: Request, res: Response) {
 /**
  * Update an existing calendar event
  */
-export async function updateEvent(req: Request, res: Response) {
+export async function updateEvent(req: AuthenticatedRequest, res: Response) {
   try {
-    const userId = req.session.userId;
+    const userId = req.userId;
     if (!userId) {
       return res.status(401).json({ error: 'Not authenticated' });
     }
@@ -133,9 +144,9 @@ export async function updateEvent(req: Request, res: Response) {
 /**
  * Delete a calendar event
  */
-export async function deleteEvent(req: Request, res: Response) {
+export async function deleteEvent(req: AuthenticatedRequest, res: Response) {
   try {
-    const userId = req.session.userId;
+    const userId = req.userId;
     if (!userId) {
       return res.status(401).json({ error: 'Not authenticated' });
     }
@@ -173,9 +184,9 @@ export async function deleteEvent(req: Request, res: Response) {
 /**
  * Get upcoming events (next 30 days)
  */
-export async function getUpcomingEvents(req: Request, res: Response) {
+export async function getUpcomingEvents(req: AuthenticatedRequest, res: Response) {
   try {
-    const userId = req.session.userId;
+    const userId = req.userId;
     if (!userId) {
       return res.status(401).json({ error: 'Not authenticated' });
     }
@@ -211,9 +222,9 @@ export async function getUpcomingEvents(req: Request, res: Response) {
  * Dummy implementation for sync settings
  * In a real implementation, this would connect to external calendar providers
  */
-export async function getSyncSettings(req: Request, res: Response) {
+export async function getSyncSettings(req: AuthenticatedRequest, res: Response) {
   try {
-    const userId = req.session.userId;
+    const userId = req.userId;
     if (!userId) {
       return res.status(401).json({ error: 'Not authenticated' });
     }
@@ -229,9 +240,9 @@ export async function getSyncSettings(req: Request, res: Response) {
 /**
  * Dummy implementation for saving sync settings
  */
-export async function saveSyncSettings(req: Request, res: Response) {
+export async function saveSyncSettings(req: AuthenticatedRequest, res: Response) {
   try {
-    const userId = req.session.userId;
+    const userId = req.userId;
     if (!userId) {
       return res.status(401).json({ error: 'Not authenticated' });
     }
@@ -247,9 +258,9 @@ export async function saveSyncSettings(req: Request, res: Response) {
 /**
  * Dummy implementation for syncing calendars
  */
-export async function syncCalendars(req: Request, res: Response) {
+export async function syncCalendars(req: AuthenticatedRequest, res: Response) {
   try {
-    const userId = req.session.userId;
+    const userId = req.userId;
     if (!userId) {
       return res.status(401).json({ error: 'Not authenticated' });
     }
@@ -266,15 +277,15 @@ export async function syncCalendars(req: Request, res: Response) {
  * Register all calendar routes
  */
 export function registerCalendarRoutes(app: any) {
-  app.get('/api/calendar/events', isAuthenticated, getEvents);
-  app.get('/api/calendar/events/upcoming', isAuthenticated, getUpcomingEvents);
-  app.get('/api/calendar/events/:id', isAuthenticated, getEventById);
-  app.post('/api/calendar/events', isAuthenticated, createEvent);
-  app.patch('/api/calendar/events/:id', isAuthenticated, updateEvent);
-  app.delete('/api/calendar/events/:id', isAuthenticated, deleteEvent);
+  app.get('/api/calendar/events', verifyJWT, getEvents);
+  app.get('/api/calendar/events/upcoming', verifyJWT, getUpcomingEvents);
+  app.get('/api/calendar/events/:id', verifyJWT, getEventById);
+  app.post('/api/calendar/events', verifyJWT, createEvent);
+  app.patch('/api/calendar/events/:id', verifyJWT, updateEvent);
+  app.delete('/api/calendar/events/:id', verifyJWT, deleteEvent);
   
   // Calendar sync routes (stub implementations)
-  app.get('/api/calendar/sync-settings', isAuthenticated, getSyncSettings);
-  app.post('/api/calendar/sync-settings', isAuthenticated, saveSyncSettings);
-  app.post('/api/calendar/sync', isAuthenticated, syncCalendars);
+  app.get('/api/calendar/sync-settings', verifyJWT, getSyncSettings);
+  app.post('/api/calendar/sync-settings', verifyJWT, saveSyncSettings);
+  app.post('/api/calendar/sync', verifyJWT, syncCalendars);
 }

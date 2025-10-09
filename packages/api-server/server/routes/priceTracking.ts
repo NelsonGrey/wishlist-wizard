@@ -3,7 +3,7 @@ import { storage } from "../storage";
 import { PriceScraper } from "../services/priceScrapingService";
 import { priceTrackingService } from "../services/priceTrackingService.firestore";
 import { priceTrackingScheduler } from "../services/priceTrackingScheduler";
-import { isAuthenticated } from "../auth";
+import { firebaseAuthMiddleware as isAuthenticated } from "../firebase-auth-simple";
 
 const router = Router();
 
