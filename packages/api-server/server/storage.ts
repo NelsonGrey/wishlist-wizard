@@ -1,15 +1,16 @@
 import { v4 as uuidv4 } from "uuid";
-import { 
-  users, User, InsertUser, UpdateUser,
-  beneficiaries, Beneficiary, InsertBeneficiary,
-  wishlists, Wishlist, InsertWishlist,
-  wishlistItems, WishlistItem, InsertWishlistItem,
-  wishlistCollaborators, WishlistCollaborator, InsertWishlistCollaborator,
-  notifications, Notification, InsertNotification,
-  priceAlerts, PriceAlert, InsertPriceAlert,
-  privacySettings, PrivacySettings, InsertPrivacySettings
+// Import types from shared package (Firebase-compatible types)
+import type { 
+  User, InsertUser, UpdateUser,
+  Beneficiary, InsertBeneficiary,
+  Wishlist, InsertWishlist,
+  WishlistItem, InsertWishlistItem,
+  WishlistCollaborator, InsertWishlistCollaborator,
+  Notification, InsertNotification,
+  PriceAlert, InsertPriceAlert,
+  PrivacySettings, InsertPrivacySettings
 } from "@wishlist-wizard/shared";
-import { DatabaseStorage } from "./storage.db";
+// DatabaseStorage removed in favor of Firebase-first architecture
 
 export interface IStorage {
   // User methods
@@ -20,6 +21,8 @@ export interface IStorage {
   getUserByResetToken(token: string): Promise<User[]>;
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: number, userData: Partial<UpdateUser>): Promise<User | undefined>;
+  // Firebase-compatible user search
+  searchUsers(query: string, maxResults?: number): Promise<Array<{id: number, username: string, email: string, displayName: string | null, avatarUrl: string | null}>>;
 
   // Beneficiary methods
   getBeneficiaries(ownerId: number): Promise<Beneficiary[]>;
@@ -229,6 +232,25 @@ export class MemStorage implements IStorage {
     const updatedUser = { ...user, ...userData };
     this.users.set(id, updatedUser);
     return updatedUser;
+  }
+
+  // Firebase-compatible user search
+  async searchUsers(query: string, maxResults = 10): Promise<Array<{id: number, username: string, email: string, displayName: string | null, avatarUrl: string | null}>> {
+    const lowerQuery = query.toLowerCase();
+    return Array.from(this.users.values())
+      .filter(user => 
+        user.username.toLowerCase().includes(lowerQuery) ||
+        user.email.toLowerCase().includes(lowerQuery) ||
+        (user.displayName && user.displayName.toLowerCase().includes(lowerQuery))
+      )
+      .slice(0, maxResults)
+      .map(user => ({
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        displayName: user.displayName,
+        avatarUrl: user.avatarUrl
+      }));
   }
 
   // Beneficiary methods
@@ -749,15 +771,21 @@ import { firestoreStorage } from './storage.firestore';
 // - Firebase Auth integration
 // - Cloud Messaging for notifications
 
-const useFirestore = process.env.NODE_ENV === 'production' || process.env.USE_FIRESTORE === 'true';
+// 🔥 FIREBASE-FIRST: Always use Firestore in production and development
+// Use Firebase Emulators for local development instead of memory storage
+const useFirestore = process.env.NODE_ENV === 'production' || 
+                    process.env.USE_FIRESTORE === 'true' ||
+                    !process.env.DISABLE_FIRESTORE; // Default to Firestore unless explicitly disabled
 
 let storageInstance: IStorage;
 
 if (useFirestore) {
   console.log('🔥 Using Firebase Firestore for data storage - Firebase-First Architecture');
+  console.log('📊 Firestore provides real-time updates, offline support, and scalable NoSQL database');
   storageInstance = firestoreStorage;
 } else {
-  console.log('Using memory storage for development - Consider Firebase Emulators for local development');
+  console.log('⚠️  Using memory storage for development - This is temporary and data will not persist');
+  console.log('💡 Tip: Use Firebase Emulators for local development: firebase emulators:start');
   storageInstance = new MemStorage();
 }
 

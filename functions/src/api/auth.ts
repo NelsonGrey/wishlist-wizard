@@ -9,13 +9,7 @@ import { logger } from 'firebase-functions/v2';
 const auth = getAuth();
 const db = getFirestore();
 
-interface AuthUser {
-  uid: string;
-  email: string;
-  displayName?: string;
-  photoURL?: string;
-  emailVerified: boolean;
-}
+// Removed unused AuthUser interface - using Firebase Auth types directly
 
 /**
  * Get Current User Profile

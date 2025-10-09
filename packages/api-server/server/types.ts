@@ -1,8 +1,15 @@
-import 'express-session';
+import { Request } from 'express';
 
-// Extend the Express session namespace with our custom properties
-declare module 'express-session' {
-  interface Session {
-    userId?: number;
-  }
+// Firebase-first authentication types
+// Note: Session-based authentication has been replaced with Firebase authentication
+// The req.userId property is now set by Firebase middleware instead of sessions
+
+export interface AuthenticatedRequest extends Request {
+  firebaseUser?: {
+    uid: string;
+    email?: string;
+    displayName?: string;
+    emailVerified: boolean;
+  };
+  userId?: number;
 }

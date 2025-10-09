@@ -10,9 +10,15 @@ import {
   insertRecommendationSchema
 } from "@wishlist-wizard/shared";
 
-// Initialize the OpenAI client
+// Initialize the OpenAI client conditionally
 // The newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+let openai: OpenAI | null = null;
+
+if (process.env.OPENAI_API_KEY) {
+  openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+} else {
+  console.warn('⚠️  OpenAI API key not found. AI recommendations will be disabled.');
+}
 
 // Rate limiting and cost controls
 interface RateLimitEntry {
@@ -366,7 +372,6 @@ async function getCachedOrStoredRecommendations(userId: number, limit: number): 
 
   // Last resort: return empty array
   return [];
-}
 }
 
 /**

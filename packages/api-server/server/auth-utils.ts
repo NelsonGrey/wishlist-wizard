@@ -13,6 +13,17 @@ import { Request, Response, NextFunction } from 'express';
 import { storage } from './storage';
 import { User } from '@wishlist-wizard/shared';
 
+// Firebase-first authenticated request interface
+interface AuthenticatedRequest extends Request {
+  firebaseUser?: {
+    uid: string;
+    email?: string;
+    displayName?: string;
+    emailVerified: boolean;
+  };
+  userId?: number;
+}
+
 // Password policy settings
 export const PASSWORD_POLICY = {
   minLength: 8,
@@ -112,14 +123,14 @@ export function isValidToken(token: string, createdAt: Date, expiresInHours: num
  * Middleware to check for specific permissions
  */
 export function hasPermission(permission: Permission) {
-  return async (req: Request, res: Response, next: NextFunction) => {
+  return async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
-      if (!req.session.userId) {
+      if (!req.userId) {
         return res.status(401).json({ error: "Authentication required" });
       }
       
       // Get the user
-      const user = await storage.getUser(req.session.userId);
+      const user = await storage.getUser(req.userId);
       if (!user) {
         return res.status(401).json({ error: "User not found" });
       }
@@ -145,9 +156,9 @@ export function hasPermission(permission: Permission) {
  * Middleware to check if a user is the owner of a resource
  */
 export function isResourceOwner(resourceType: 'wishlist' | 'beneficiary' | 'item') {
-  return async (req: Request, res: Response, next: NextFunction) => {
+  return async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
-      if (!req.session.userId) {
+      if (!req.userId) {
         return res.status(401).json({ error: "Authentication required" });
       }
       
@@ -161,17 +172,17 @@ export function isResourceOwner(resourceType: 'wishlist' | 'beneficiary' | 'item
       switch (resourceType) {
         case 'wishlist':
           const wishlist = await storage.getWishlistById(resourceId);
-          isOwner = wishlist?.userId === req.session.userId;
+          isOwner = wishlist?.userId === req.userId;
           break;
         case 'beneficiary':
           const beneficiary = await storage.getBeneficiary(resourceId);
-          isOwner = beneficiary?.ownerId === req.session.userId;
+          isOwner = beneficiary?.ownerId === req.userId;
           break;
         case 'item':
           const item = await storage.getWishlistItem(resourceId);
           if (item) {
             const itemWishlist = await storage.getWishlistById(item.wishlistId);
-            isOwner = itemWishlist?.userId === req.session.userId;
+            isOwner = itemWishlist?.userId === req.userId;
           }
           break;
       }
@@ -192,9 +203,9 @@ export function isResourceOwner(resourceType: 'wishlist' | 'beneficiary' | 'item
  * Middleware to check if a user can access a resource (as owner or collaborator)
  */
 export function canAccessResource(resourceType: 'wishlist' | 'item') {
-  return async (req: Request, res: Response, next: NextFunction) => {
+  return async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
-      if (!req.session.userId) {
+      if (!req.userId) {
         return res.status(401).json({ error: "Authentication required" });
       }
       
@@ -211,13 +222,13 @@ export function canAccessResource(resourceType: 'wishlist' | 'item') {
           wishlistId = resourceId;
           // Check if owner
           const wishlist = await storage.getWishlistById(wishlistId);
-          if (wishlist?.userId === req.session.userId) {
+          if (wishlist?.userId === req.userId) {
             hasAccess = true;
             break;
           }
           
           // Check if collaborator
-          hasAccess = await storage.isCollaborator(wishlistId, req.session.userId);
+          hasAccess = await storage.isCollaborator(wishlistId, req.userId);
           break;
           
         case 'item':
@@ -226,13 +237,13 @@ export function canAccessResource(resourceType: 'wishlist' | 'item') {
             wishlistId = item.wishlistId;
             // Check if owner of the wishlist
             const itemWishlist = await storage.getWishlistById(wishlistId);
-            if (itemWishlist?.userId === req.session.userId) {
+            if (itemWishlist?.userId === req.userId) {
               hasAccess = true;
               break;
             }
             
             // Check if collaborator
-            hasAccess = await storage.isCollaborator(wishlistId, req.session.userId);
+            hasAccess = await storage.isCollaborator(wishlistId, req.userId);
           }
           break;
       }
@@ -255,18 +266,17 @@ export function canAccessResource(resourceType: 'wishlist' | 'item') {
 /**
  * Enhanced authentication check with rate limiting and security headers
  */
-export function enhancedAuthCheck(req: Request, res: Response, next: NextFunction) {
+export function enhancedAuthCheck(req: AuthenticatedRequest, res: Response, next: NextFunction) {
   // Add security headers
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'DENY');
   res.setHeader('X-XSS-Protection', '1; mode=block');
   
-  if (!req.session.userId) {
+  if (!req.userId) {
     return res.status(401).json({ error: "Authentication required" });
   }
   
-  // Record login time for session activity monitoring
-  req.session.lastActive = new Date();
+  // User is authenticated via Firebase - no session management needed
   
   next();
 }

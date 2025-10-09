@@ -2,19 +2,30 @@ import { Request, Response, NextFunction } from 'express';
 import { storage } from './storage';
 import { verifyToken } from './jwt-auth';
 
+// Firebase-first authenticated request interface
+interface AuthenticatedRequest extends Request {
+  firebaseUser?: {
+    uid: string;
+    email?: string;
+    displayName?: string;
+    emailVerified: boolean;
+  };
+  userId?: number;
+}
+
 /**
  * Handles extension-specific authentication functionality
  * Verifies that the extension is allowed to access the user's data
  */
-export async function verifyExtensionAuth(req: Request, res: Response) {
+export async function verifyExtensionAuth(req: AuthenticatedRequest, res: Response) {
   try {
     // Check if user is authenticated
-    if (!req.session.userId) {
+    if (!req.userId) {
       return res.status(401).json({ error: 'Not authenticated' });
     }
 
     // Get user information
-    const user = await storage.getUser(req.session.userId);
+    const user = await storage.getUser(req.userId);
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
@@ -36,7 +47,7 @@ export async function verifyExtensionAuth(req: Request, res: Response) {
  * Middleware to verify JWT or session authentication for extension API endpoints
  * This supports both cookie-based sessions and JWT token authentication
  */
-export function verifyExtensionJWT(req: Request, res: Response, next: NextFunction) {
+export function verifyExtensionJWT(req: AuthenticatedRequest, res: Response, next: NextFunction) {
   try {
     // First check for JWT token in Authorization header
     const authHeader = req.headers.authorization;
@@ -46,14 +57,14 @@ export function verifyExtensionJWT(req: Request, res: Response, next: NextFuncti
       const decoded = verifyToken(token);
       
       if (decoded) {
-        // Set user ID in session for compatibility with existing code
-        req.session.userId = decoded.sub;
+        // Set user ID for Firebase-first authentication
+        req.userId = parseInt(decoded.sub);
         return next();
       }
     }
     
-    // Fall back to session-based authentication
-    if (req.session.userId) {
+    // Fall back to checking Firebase authentication
+    if (req.userId) {
       return next();
     }
     
@@ -69,24 +80,24 @@ export function verifyExtensionJWT(req: Request, res: Response, next: NextFuncti
  * Gets wishlists for the extension
  * Returns a simplified list of wishlists that the user has access to
  */
-export async function getExtensionWishlists(req: Request, res: Response) {
+export async function getExtensionWishlists(req: AuthenticatedRequest, res: Response) {
   try {
     // User is already authenticated by middleware
-    if (!req.session.userId) {
+    if (!req.userId) {
       return res.status(401).json({ error: 'Not authenticated' });
     }
 
     // Get user's wishlists
-    const wishlists = await storage.getWishlists(req.session.userId);
+    const wishlists = await storage.getWishlists(req.userId);
     
     // Also get collaborative wishlists
-    const collaborativeWishlists = await storage.getCollaborativeWishlists(req.session.userId);
+    const collaborativeWishlists = await storage.getCollaborativeWishlists(req.userId);
     
     // Combine and format the wishlists
     const allWishlists = [...wishlists, ...collaborativeWishlists].map(wishlist => ({
       id: wishlist.id,
       name: wishlist.name,
-      isOwner: wishlist.userId === req.session.userId,
+      isOwner: wishlist.userId === req.userId,
       isCollaborative: wishlist.isCollaborative
     }));
 
@@ -100,7 +111,7 @@ export async function getExtensionWishlists(req: Request, res: Response) {
 /**
  * Tracks analytics events from the browser extension
  */
-export async function trackExtensionEvent(req: Request, res: Response) {
+export async function trackExtensionEvent(req: AuthenticatedRequest, res: Response) {
   try {
     // Event data from the extension
     const { action, category, label, value, url } = req.body;
@@ -115,7 +126,7 @@ export async function trackExtensionEvent(req: Request, res: Response) {
       category: category || 'extension',
       label: label || null,
       value: value || null,
-      userId: req.session.userId || 'anonymous',
+      userId: req.userId || 'anonymous',
       url: url || null,
       timestamp: new Date().toISOString()
     });
@@ -130,10 +141,10 @@ export async function trackExtensionEvent(req: Request, res: Response) {
   }
 }
 
-export async function addItemFromExtension(req: Request, res: Response) {
+export async function addItemFromExtension(req: AuthenticatedRequest, res: Response) {
   try {
     // User is already authenticated by middleware
-    if (!req.session.userId) {
+    if (!req.userId) {
       return res.status(401).json({ error: 'Not authenticated' });
     }
 
@@ -152,8 +163,8 @@ export async function addItemFromExtension(req: Request, res: Response) {
     }
     
     // Check if user is owner or collaborator
-    const isOwner = wishlist.userId === req.session.userId;
-    const isCollaborator = !isOwner && await storage.isCollaborator(wishlistId, req.session.userId);
+    const isOwner = wishlist.userId === req.userId;
+    const isCollaborator = !isOwner && await storage.isCollaborator(wishlistId, req.userId);
     
     if (!isOwner && !isCollaborator) {
       return res.status(403).json({ error: 'You do not have permission to add items to this wishlist' });
@@ -184,7 +195,7 @@ export async function addItemFromExtension(req: Request, res: Response) {
           itemId: newItem.id,
           wishlistId: wishlist.id,
           title: title,
-          addedBy: req.session.userId
+          addedBy: req.userId
         },
         isRead: false,
         actionUrl: `/wishlist/${wishlist.id}`

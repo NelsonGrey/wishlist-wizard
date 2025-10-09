@@ -1,7 +1,18 @@
-import { Router } from 'express';
+import { Router, Request, Response } from 'express';
 import { z } from 'zod';
 import { privacyService } from '../services/privacyService';
-import { isAuthenticated } from '../auth';
+import { firebaseAuthMiddleware as isAuthenticated } from '../firebase-auth-simple';
+
+// Firebase-first authenticated request interface
+interface AuthenticatedRequest extends Request {
+  firebaseUser?: {
+    uid: string;
+    email?: string;
+    displayName?: string;
+    emailVerified: boolean;
+  };
+  userId?: number;
+}
 
 const router = Router();
 
