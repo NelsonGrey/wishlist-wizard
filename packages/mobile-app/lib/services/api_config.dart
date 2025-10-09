@@ -1,10 +1,10 @@
 class ApiConfig {
-  static const String _baseUrl = 'http://localhost:5000/api';
+  static const String _baseUrl = 'http://10.10.10.178:5000/api';
 
   // For Android emulator, localhost should be 10.0.2.2
   static String get baseUrl {
     // In a real app, you might detect platform or use flavors
-    // For now, defaulting to localhost for iOS Simulator
+    // For now, using the Mac's IP address for iOS Simulator
     return _baseUrl;
   }
 

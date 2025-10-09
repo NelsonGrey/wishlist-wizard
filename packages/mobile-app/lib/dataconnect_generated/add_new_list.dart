@@ -52,6 +52,7 @@ class AddNewListListInsert {
 
 @immutable
 class AddNewListData {
+  // ignore: non_constant_identifier_names
   final AddNewListListInsert list_insert;
   AddNewListData.fromJson(dynamic json):
   
@@ -80,6 +81,7 @@ class AddNewListData {
   }
 
   const AddNewListData({
+    // ignore: non_constant_identifier_names
     required this.list_insert,
   });
 }

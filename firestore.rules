@@ -2,8 +2,112 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /{document=**} {
-      allow read, write: if false;
+    // Helper functions for better security
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(resource) {
+      return request.auth.uid == resource.data.userId;
+    }
+    
+    function isOwnerId(resource) {
+      return request.auth.uid == resource.data.ownerId;
+    }
+    
+    function isCollaborator(wishlistId) {
+      return exists(/databases/$(database)/documents/collaborators/$(wishlistId + '_' + request.auth.uid));
+    }
+    
+    function canAccessWishlist(wishlistId) {
+      let wishlist = get(/databases/$(database)/documents/wishlists/$(wishlistId));
+      return wishlist.data.userId == request.auth.uid ||
+             wishlist.data.isPublic == true ||
+             isCollaborator(wishlistId);
+    }
+    
+    // Users collection - users can only read/write their own document
+    match /users/{userId} {
+      allow read, write: if isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    // Wishlists - users can access their own or collaborative/public wishlists
+    match /wishlists/{wishlistId} {
+      allow read: if isAuthenticated() && 
+        (isOwner(resource) || 
+         resource.data.isPublic == true ||
+         isCollaborator(wishlistId));
+      
+      allow create: if isAuthenticated() && 
+        request.auth.uid == request.resource.data.userId;
+      
+      allow update: if isAuthenticated() && 
+        (isOwner(resource) || isCollaborator(wishlistId));
+      
+      allow delete: if isAuthenticated() && isOwner(resource);
+    }
+    
+    // Wishlist items - access based on wishlist permissions
+    match /wishlistItems/{itemId} {
+      allow read: if isAuthenticated() && canAccessWishlist(resource.data.wishlistId);
+      
+      allow create: if isAuthenticated() && canAccessWishlist(request.resource.data.wishlistId);
+      
+      allow update: if isAuthenticated() && canAccessWishlist(resource.data.wishlistId);
+      
+      allow delete: if isAuthenticated() && canAccessWishlist(resource.data.wishlistId);
+    }
+    
+    // Beneficiaries - users can only access their own beneficiaries
+    match /beneficiaries/{beneficiaryId} {
+      allow read, write: if isAuthenticated() && isOwnerId(resource);
+      allow create: if isAuthenticated() && request.auth.uid == request.resource.data.ownerId;
+    }
+    
+    // Notifications - users can only access their own notifications
+    match /notifications/{notificationId} {
+      allow read, write: if isAuthenticated() && request.auth.uid == resource.data.userId;
+      allow create: if isAuthenticated() && request.auth.uid == request.resource.data.userId;
+    }
+    
+    // Price alerts - users can only access their own price alerts
+    match /priceAlerts/{alertId} {
+      allow read, write: if isAuthenticated() && request.auth.uid == resource.data.userId;
+      allow create: if isAuthenticated() && request.auth.uid == request.resource.data.userId;
+    }
+    
+    // Collaborators - readable by authenticated users, writable by wishlist owners
+    match /collaborators/{collaboratorId} {
+      allow read: if isAuthenticated();
+      
+      allow create: if isAuthenticated() && 
+        get(/databases/$(database)/documents/wishlists/$(request.resource.data.wishlistId)).data.userId == request.auth.uid;
+      
+      allow update: if isAuthenticated() && 
+        (get(/databases/$(database)/documents/wishlists/$(resource.data.wishlistId)).data.userId == request.auth.uid ||
+         request.auth.uid == resource.data.userId);
+      
+      allow delete: if isAuthenticated() && 
+        (get(/databases/$(database)/documents/wishlists/$(resource.data.wishlistId)).data.userId == request.auth.uid ||
+         request.auth.uid == resource.data.userId);
+    }
+    
+    // Group gifts / gift coordination (if you have this collection)
+    match /giftReservations/{reservationId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && request.auth.uid == request.resource.data.userId;
+      allow update, delete: if isAuthenticated() && request.auth.uid == resource.data.userId;
+    }
+    
+    // Analytics events (write-only for authenticated users, admin read)
+    match /analyticsEvents/{eventId} {
+      allow create: if isAuthenticated();
+      // Admin read access would be handled by server-side code with admin SDK
+    }
+    
+    // User sessions (for session management if needed)
+    match /userSessions/{sessionId} {
+      allow read, write: if isAuthenticated() && request.auth.uid == resource.data.userId;
     }
   }
 }

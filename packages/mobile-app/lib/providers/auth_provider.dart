@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import '../models/models.dart';
-import '../services/services.dart';
+import '../services/firebase_auth_service.dart';
 
 class AuthProvider extends ChangeNotifier {
-  final AuthService _authService = AuthService();
+  final FirebaseAuthService _authService = FirebaseAuthService();
 
   User? _user;
   bool _isLoading = false;
@@ -15,12 +15,21 @@ class AuthProvider extends ChangeNotifier {
   bool get isLoggedIn => _user != null;
 
   AuthProvider() {
-    _checkAuthStatus();
+    _initializeAuth();
   }
 
-  Future<void> _checkAuthStatus() async {
+  Future<void> _initializeAuth() async {
     _setLoading(true);
     try {
+      // Listen to auth state changes
+      _authService.authStateChanges.listen((user) {
+        _setUser(user);
+        if (!_isLoading) {
+          _setLoading(false);
+        }
+      });
+
+      // Get initial auth state
       final user = await _authService.getCurrentUser();
       _setUser(user);
     } catch (e) {

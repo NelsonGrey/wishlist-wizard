@@ -3,9 +3,9 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 
 export function GeneralHelp() {
   return (
-    <HelpDialog title="WishKeeper Help Center">
+    <HelpDialog title="Wishlist Wizard Help Center">
       <p className="text-sm text-muted-foreground mb-4">
-        Welcome to WishKeeper! This guide will help you navigate the platform
+        Welcome to Wishlist Wizard! This guide will help you navigate the platform
         and make the most of all its features.
       </p>
 
@@ -14,7 +14,7 @@ export function GeneralHelp() {
           <AccordionTrigger>Getting Started</AccordionTrigger>
           <AccordionContent>
             <p className="text-sm mb-2">
-              To get started with WishKeeper:
+              To get started with Wishlist Wizard:
             </p>
             <ol className="text-sm list-decimal pl-5 space-y-2">
               <li>
@@ -40,7 +40,7 @@ export function GeneralHelp() {
           <AccordionTrigger>Managing Wishlists</AccordionTrigger>
           <AccordionContent>
             <p className="text-sm mb-2">
-              WishKeeper lets you organize items into different wishlists:
+              Wishlist Wizard lets you organize items into different wishlists:
             </p>
             <ul className="text-sm list-disc pl-5 space-y-2">
               <li>
@@ -103,7 +103,7 @@ export function GeneralHelp() {
           <AccordionTrigger>Notifications</AccordionTrigger>
           <AccordionContent>
             <p className="text-sm mb-2">
-              Stay updated with WishKeeper's notification system:
+              Stay updated with Wishlist Wizard's notification system:
             </p>
             <ul className="text-sm list-disc pl-5 space-y-2">
               <li>
@@ -136,7 +136,7 @@ export function GeneralHelp() {
           <AccordionTrigger>Account Settings</AccordionTrigger>
           <AccordionContent>
             <p className="text-sm mb-2">
-              Manage your WishKeeper account settings:
+              Manage your Wishlist Wizard account settings:
             </p>
             <ul className="text-sm list-disc pl-5 space-y-2">
               <li>
@@ -168,7 +168,7 @@ export function GeneralHelp() {
           <AccordionTrigger>Mobile App Features</AccordionTrigger>
           <AccordionContent>
             <p className="text-sm mb-2">
-              The WishKeeper mobile app offers additional features:
+              The Wishlist Wizard mobile app offers additional features:
             </p>
             <ul className="text-sm list-disc pl-5 space-y-2">
               <li>

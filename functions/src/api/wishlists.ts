@@ -1,0 +1,487 @@
+// Firebase Functions - Wishlist API
+// Replaces Express.js wishlist routes with Firebase Functions and Firestore
+
+import { onCall, HttpsError, CallableRequest } from 'firebase-functions/v2/https';
+import { getFirestore, FieldValue, Timestamp } from 'firebase-admin/firestore';
+import { logger } from 'firebase-functions/v2';
+import { generateId } from '../utils/helpers';
+
+const db = getFirestore();
+
+interface WishlistData {
+  name: string;
+  description?: string;
+  isPublic?: boolean;
+  isCollaborative?: boolean;
+  beneficiaryId?: string;
+  occasion?: string;
+  occasionDate?: Date;
+}
+
+interface WishlistItemData {
+  wishlistId: string;
+  title: string;
+  description?: string;
+  price?: string;
+  productUrl?: string;
+  imageUrl?: string;
+  store?: string;
+  priority?: number;
+  note?: string;
+}
+
+/**
+ * Get User's Wishlists
+ * Replaces: GET /api/wishlists
+ */
+export const getUserWishlists = onCall(async (request: CallableRequest) => {
+  if (!request.auth) {
+    throw new HttpsError('unauthenticated', 'User must be authenticated');
+  }
+
+  try {
+    const userId = request.auth.uid;
+    const wishlistsSnapshot = await db
+      .collection('wishlists')
+      .where('userId', '==', userId)
+      .orderBy('createdAt', 'desc')
+      .get();
+
+    const wishlists = [];
+    for (const doc of wishlistsSnapshot.docs) {
+      const wishlistData = doc.data();
+      
+      // Get item count for each wishlist
+      const itemsSnapshot = await db
+        .collection('wishlistItems')
+        .where('wishlistId', '==', doc.id)
+        .count()
+        .get();
+
+      wishlists.push({
+        id: doc.id,
+        ...wishlistData,
+        itemCount: itemsSnapshot.data().count
+      });
+    }
+
+    return wishlists;
+  } catch (error) {
+    logger.error('Error getting user wishlists:', error);
+    throw new HttpsError('internal', 'Failed to get wishlists');
+  }
+});
+
+/**
+ * Get Wishlist by ID
+ * Replaces: GET /api/wishlists/:id
+ */
+export const getWishlistById = onCall(async (request: CallableRequest) => {
+  if (!request.auth) {
+    throw new HttpsError('unauthenticated', 'User must be authenticated');
+  }
+
+  const { wishlistId } = request.data;
+  if (!wishlistId) {
+    throw new HttpsError('invalid-argument', 'Wishlist ID is required');
+  }
+
+  try {
+    const wishlistDoc = await db.collection('wishlists').doc(wishlistId).get();
+    
+    if (!wishlistDoc.exists) {
+      throw new HttpsError('not-found', 'Wishlist not found');
+    }
+
+    const wishlistData = wishlistDoc.data();
+    
+    // Check if user has access to this wishlist
+    const userId = request.auth.uid;
+    const isOwner = wishlistData?.userId === userId;
+    const isCollaborator = wishlistData?.isCollaborative && 
+      await isUserCollaborator(wishlistId, userId);
+
+    if (!isOwner && !isCollaborator && !wishlistData?.isPublic) {
+      throw new HttpsError('permission-denied', 'Access denied to this wishlist');
+    }
+
+    return { id: wishlistDoc.id, ...wishlistData };
+  } catch (error) {
+    logger.error('Error getting wishlist by ID:', error);
+    if (error instanceof HttpsError) throw error;
+    throw new HttpsError('internal', 'Failed to get wishlist');
+  }
+});
+
+/**
+ * Get Shared Wishlist by Share ID
+ * Replaces: GET /api/shared/:shareId
+ */
+export const getSharedWishlist = onCall(async (request: CallableRequest) => {
+  const { shareId } = request.data;
+  if (!shareId) {
+    throw new HttpsError('invalid-argument', 'Share ID is required');
+  }
+
+  try {
+    const wishlistSnapshot = await db
+      .collection('wishlists')
+      .where('shareId', '==', shareId)
+      .limit(1)
+      .get();
+
+    if (wishlistSnapshot.empty) {
+      throw new HttpsError('not-found', 'Shared wishlist not found');
+    }
+
+    const wishlistDoc = wishlistSnapshot.docs[0];
+    const wishlistData = wishlistDoc.data();
+
+    // Get items for this wishlist
+    const itemsSnapshot = await db
+      .collection('wishlistItems')
+      .where('wishlistId', '==', wishlistDoc.id)
+      .orderBy('createdAt', 'desc')
+      .get();
+
+    const items = itemsSnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+
+    return {
+      wishlist: { id: wishlistDoc.id, ...wishlistData },
+      items
+    };
+  } catch (error) {
+    logger.error('Error getting shared wishlist:', error);
+    if (error instanceof HttpsError) throw error;
+    throw new HttpsError('internal', 'Failed to get shared wishlist');
+  }
+});
+
+/**
+ * Create New Wishlist
+ * Replaces: POST /api/wishlists
+ */
+export const createWishlist = onCall(async (request: CallableRequest) => {
+  if (!request.auth) {
+    throw new HttpsError('unauthenticated', 'User must be authenticated');
+  }
+
+  const { name, description, isPublic, isCollaborative, beneficiaryId, occasion, occasionDate } = request.data;
+
+  if (!name || name.trim().length === 0) {
+    throw new HttpsError('invalid-argument', 'Wishlist name is required');
+  }
+
+  try {
+    const wishlistData = {
+      userId: request.auth.uid,
+      name: name.trim(),
+      description: description || '',
+      isPublic: !!isPublic,
+      isCollaborative: !!isCollaborative,
+      beneficiaryId: beneficiaryId || null,
+      occasion: occasion || null,
+      occasionDate: occasionDate ? new Date(occasionDate) : null,
+      shareId: generateId(),
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+
+    const docRef = await db.collection('wishlists').add(wishlistData);
+    
+    // Create notification for wishlist creation
+    await createNotification(request.auth.uid, {
+      type: 'wishlist_created',
+      title: 'Wishlist Created',
+      content: `Your wishlist "${name}" has been created successfully`,
+      data: { wishlistId: docRef.id, wishlistName: name }
+    });
+
+    return { id: docRef.id, ...wishlistData };
+  } catch (error) {
+    logger.error('Error creating wishlist:', error);
+    throw new HttpsError('internal', 'Failed to create wishlist');
+  }
+});
+
+/**
+ * Update Wishlist
+ * Replaces: PATCH /api/wishlists/:id
+ */
+export const updateWishlist = onCall(async (request: CallableRequest) => {
+  if (!request.auth) {
+    throw new HttpsError('unauthenticated', 'User must be authenticated');
+  }
+
+  const { wishlistId, ...updateData } = request.data;
+  if (!wishlistId) {
+    throw new HttpsError('invalid-argument', 'Wishlist ID is required');
+  }
+
+  try {
+    const wishlistDoc = await db.collection('wishlists').doc(wishlistId).get();
+    
+    if (!wishlistDoc.exists) {
+      throw new HttpsError('not-found', 'Wishlist not found');
+    }
+
+    const wishlistData = wishlistDoc.data();
+    if (wishlistData?.userId !== request.auth.uid) {
+      throw new HttpsError('permission-denied', 'You can only update your own wishlists');
+    }
+
+    const validFields = ['name', 'description', 'isPublic', 'isCollaborative', 'beneficiaryId', 'occasion', 'occasionDate'];
+    const filteredUpdateData: any = {};
+
+    for (const [key, value] of Object.entries(updateData)) {
+      if (validFields.includes(key)) {
+        filteredUpdateData[key] = value;
+      }
+    }
+
+    if (Object.keys(filteredUpdateData).length === 0) {
+      throw new HttpsError('invalid-argument', 'No valid fields to update');
+    }
+
+    filteredUpdateData.updatedAt = new Date();
+
+    await db.collection('wishlists').doc(wishlistId).update(filteredUpdateData);
+
+    return { id: wishlistId, ...wishlistData, ...filteredUpdateData };
+  } catch (error) {
+    logger.error('Error updating wishlist:', error);
+    if (error instanceof HttpsError) throw error;
+    throw new HttpsError('internal', 'Failed to update wishlist');
+  }
+});
+
+/**
+ * Delete Wishlist
+ * Replaces: DELETE /api/wishlists/:id
+ */
+export const deleteWishlist = onCall(async (request: CallableRequest) => {
+  if (!request.auth) {
+    throw new HttpsError('unauthenticated', 'User must be authenticated');
+  }
+
+  const { wishlistId } = request.data;
+  if (!wishlistId) {
+    throw new HttpsError('invalid-argument', 'Wishlist ID is required');
+  }
+
+  try {
+    const wishlistDoc = await db.collection('wishlists').doc(wishlistId).get();
+    
+    if (!wishlistDoc.exists) {
+      throw new HttpsError('not-found', 'Wishlist not found');
+    }
+
+    const wishlistData = wishlistDoc.data();
+    if (wishlistData?.userId !== request.auth.uid) {
+      throw new HttpsError('permission-denied', 'You can only delete your own wishlists');
+    }
+
+    // Delete all items in the wishlist
+    const itemsSnapshot = await db
+      .collection('wishlistItems')
+      .where('wishlistId', '==', wishlistId)
+      .get();
+
+    const batch = db.batch();
+    itemsSnapshot.docs.forEach(doc => {
+      batch.delete(doc.ref);
+    });
+
+    // Delete the wishlist
+    batch.delete(db.collection('wishlists').doc(wishlistId));
+
+    await batch.commit();
+
+    return { success: true };
+  } catch (error) {
+    logger.error('Error deleting wishlist:', error);
+    if (error instanceof HttpsError) throw error;
+    throw new HttpsError('internal', 'Failed to delete wishlist');
+  }
+});
+
+/**
+ * Get Wishlist Items
+ * Replaces: GET /api/wishlists/:id/items
+ */
+export const getWishlistItems = onCall(async (request: CallableRequest) => {
+  if (!request.auth) {
+    throw new HttpsError('unauthenticated', 'User must be authenticated');
+  }
+
+  const { wishlistId } = request.data;
+  if (!wishlistId) {
+    throw new HttpsError('invalid-argument', 'Wishlist ID is required');
+  }
+
+  try {
+    // Verify user has access to this wishlist
+    const wishlistDoc = await db.collection('wishlists').doc(wishlistId).get();
+    if (!wishlistDoc.exists) {
+      throw new HttpsError('not-found', 'Wishlist not found');
+    }
+
+    const wishlistData = wishlistDoc.data();
+    const userId = request.auth.uid;
+    const isOwner = wishlistData?.userId === userId;
+    const isCollaborator = wishlistData?.isCollaborative && 
+      await isUserCollaborator(wishlistId, userId);
+
+    if (!isOwner && !isCollaborator && !wishlistData?.isPublic) {
+      throw new HttpsError('permission-denied', 'Access denied to this wishlist');
+    }
+
+    const itemsSnapshot = await db
+      .collection('wishlistItems')
+      .where('wishlistId', '==', wishlistId)
+      .orderBy('createdAt', 'desc')
+      .get();
+
+    const items = itemsSnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+
+    return items;
+  } catch (error) {
+    logger.error('Error getting wishlist items:', error);
+    if (error instanceof HttpsError) throw error;
+    throw new HttpsError('internal', 'Failed to get wishlist items');
+  }
+});
+
+/**
+ * Add Item to Wishlist
+ * Replaces: POST /api/items
+ */
+export const addWishlistItem = onCall(async (request: CallableRequest) => {
+  if (!request.auth) {
+    throw new HttpsError('unauthenticated', 'User must be authenticated');
+  }
+
+  const { wishlistId, title, description, price, productUrl, imageUrl, store, priority, note } = request.data;
+
+  if (!wishlistId || !title) {
+    throw new HttpsError('invalid-argument', 'Wishlist ID and title are required');
+  }
+
+  try {
+    // Verify user has permission to add items to this wishlist
+    const wishlistDoc = await db.collection('wishlists').doc(wishlistId).get();
+    if (!wishlistDoc.exists) {
+      throw new HttpsError('not-found', 'Wishlist not found');
+    }
+
+    const wishlistData = wishlistDoc.data();
+    const userId = request.auth.uid;
+    const isOwner = wishlistData?.userId === userId;
+    const isCollaborator = wishlistData?.isCollaborative && 
+      await isUserCollaborator(wishlistId, userId);
+
+    if (!isOwner && !isCollaborator) {
+      throw new HttpsError('permission-denied', 'You do not have permission to add items to this wishlist');
+    }
+
+    const itemData = {
+      wishlistId,
+      title: title.trim(),
+      description: description || '',
+      price: price || null,
+      productUrl: productUrl || null,
+      imageUrl: imageUrl || null,
+      store: store || null,
+      priority: priority || 1,
+      note: note || null,
+      addedBy: userId,
+      reservedBy: null,
+      purchasedBy: null,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+
+    const docRef = await db.collection('wishlistItems').add(itemData);
+
+    // Create notifications for collaborative wishlists
+    if (wishlistData?.isCollaborative && !isOwner) {
+      await notifyWishlistCollaborators(
+        wishlistId,
+        userId,
+        `New item "${title}" was added to the wishlist "${wishlistData.name}"`,
+        'item_added'
+      );
+    }
+
+    return { id: docRef.id, ...itemData };
+  } catch (error) {
+    logger.error('Error adding wishlist item:', error);
+    if (error instanceof HttpsError) throw error;
+    throw new HttpsError('internal', 'Failed to add wishlist item');
+  }
+});
+
+// Helper Functions
+
+async function isUserCollaborator(wishlistId: string, userId: string): Promise<boolean> {
+  const collaboratorSnapshot = await db
+    .collection('collaborators')
+    .where('wishlistId', '==', wishlistId)
+    .where('userId', '==', userId)
+    .limit(1)
+    .get();
+
+  return !collaboratorSnapshot.empty;
+}
+
+async function createNotification(userId: string, notificationData: any) {
+  await db.collection('notifications').add({
+    userId,
+    ...notificationData,
+    isRead: false,
+    createdAt: new Date()
+  });
+}
+
+async function notifyWishlistCollaborators(
+  wishlistId: string, 
+  actorUserId: string, 
+  message: string, 
+  type: string
+) {
+  const collaboratorsSnapshot = await db
+    .collection('collaborators')
+    .where('wishlistId', '==', wishlistId)
+    .get();
+
+  const notifications = [];
+  for (const doc of collaboratorsSnapshot.docs) {
+    const collaboratorData = doc.data();
+    if (collaboratorData.userId !== actorUserId) {
+      notifications.push({
+        userId: collaboratorData.userId,
+        type,
+        title: 'Wishlist Update',
+        content: message,
+        data: { wishlistId },
+        isRead: false,
+        createdAt: new Date()
+      });
+    }
+  }
+
+  if (notifications.length > 0) {
+    const batch = db.batch();
+    notifications.forEach(notification => {
+      const docRef = db.collection('notifications').doc();
+      batch.set(docRef, notification);
+    });
+    await batch.commit();
+  }
+}

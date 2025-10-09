@@ -169,7 +169,7 @@ export function CalendarSettings() {
           <LuCalendarClock className="h-12 w-12 mx-auto text-gray-400" />
           <h3 className="mt-4 text-lg font-medium">No calendars connected</h3>
           <p className="mt-2 text-sm text-gray-500 max-w-md mx-auto">
-            Connect your external calendars to sync events with WishKeeper.
+            Connect your external calendars to sync events with Wishlist Wizard.
             This allows you to see important dates like birthdays and wishlist
             deadlines in your preferred calendar app.
           </p>

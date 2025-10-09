@@ -6,7 +6,8 @@ import {
   wishlistItems, WishlistItem, InsertWishlistItem,
   wishlistCollaborators, WishlistCollaborator, InsertWishlistCollaborator,
   notifications, Notification, InsertNotification,
-  priceAlerts, PriceAlert, InsertPriceAlert
+  priceAlerts, PriceAlert, InsertPriceAlert,
+  privacySettings, PrivacySettings, InsertPrivacySettings
 } from "@wishlist-wizard/shared";
 import { DatabaseStorage } from "./storage.db";
 
@@ -70,6 +71,12 @@ export interface IStorage {
   markPriceAlertTriggered(alertId: number): Promise<boolean>;
   deletePriceAlert(id: number): Promise<boolean>;
   getRecentPriceDrops(userId: number, days: number): Promise<any[]>;
+
+  // Privacy settings methods
+  getPrivacySettings(entityType: string, entityId: number): Promise<PrivacySettings | null>;
+  createPrivacySettings(settings: InsertPrivacySettings): Promise<PrivacySettings>;
+  updatePrivacySettings(id: number, settings: Partial<InsertPrivacySettings>): Promise<PrivacySettings>;
+  deletePrivacySettings(id: number): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
@@ -79,12 +86,14 @@ export class MemStorage implements IStorage {
   private wishlistItems: Map<number, WishlistItem>;
   private wishlistCollaborators: Map<number, WishlistCollaborator>;
   private notifications: Map<number, Notification>;
+  private privacySettings: Map<number, PrivacySettings>;
   private userIdCounter: number;
   private beneficiaryIdCounter: number;
   private wishlistIdCounter: number;
   private wishlistItemIdCounter: number;
   private collaboratorIdCounter: number;
   private notificationIdCounter: number;
+  private privacySettingsIdCounter: number;
 
   constructor() {
     this.users = new Map();
@@ -94,6 +103,7 @@ export class MemStorage implements IStorage {
     this.wishlistCollaborators = new Map();
     this.notifications = new Map();
     this.priceAlerts = new Map();
+    this.privacySettings = new Map();
     this.userIdCounter = 1;
     this.beneficiaryIdCounter = 1;
     this.wishlistIdCounter = 1;
@@ -101,6 +111,7 @@ export class MemStorage implements IStorage {
     this.collaboratorIdCounter = 1;
     this.notificationIdCounter = 1;
     this.priceAlertIdCounter = 1;
+    this.privacySettingsIdCounter = 1;
     
     // Add a demo user
     this.createUser({
@@ -366,14 +377,26 @@ export class MemStorage implements IStorage {
       wishlistId: itemData.wishlistId,
       title: itemData.title,
       price: itemData.price,
+      numericPrice: itemData.numericPrice || null,
       imageUrl: itemData.imageUrl,
       productUrl: itemData.productUrl,
       store: itemData.store,
       note: itemData.note || null,
+      category: itemData.category || null,
+      brand: itemData.brand || null,
+      description: itemData.description || null,
+      availability: itemData.availability || null,
+      rating: itemData.rating || null,
+      reviewCount: itemData.reviewCount || null,
+      priceHistory: [],
+      metadata: {},
       createdAt: now,
       reservedByUserId: itemData.reservedByUserId || null,
+      reservedAt: null,
       purchasedByUserId: itemData.purchasedByUserId || null,
-      purchasedAt: itemData.purchasedAt || null
+      purchasedAt: itemData.purchasedAt || null,
+      popularity: 0,
+      productIdentifier: null
     };
     
     this.wishlistItems.set(id, item);
@@ -529,6 +552,8 @@ export class MemStorage implements IStorage {
       title: notificationData.title,
       content: notificationData.content,
       data: notificationData.data || {},
+      relatedEntityId: notificationData.relatedEntityId || null,
+      relatedEntityType: notificationData.relatedEntityType || null,
       createdAt: now,
       isRead: notificationData.isRead || false,
       actionUrl: notificationData.actionUrl || null,
@@ -658,7 +683,82 @@ export class MemStorage implements IStorage {
       dropDate: new Date(Date.now() - Math.random() * days * 24 * 60 * 60 * 1000)
     }));
   }
+
+  // Privacy settings methods
+  async getPrivacySettings(entityType: string, entityId: number): Promise<PrivacySettings | null> {
+    const settings = Array.from(this.privacySettings.values())
+      .find(setting => setting.entityType === entityType && setting.entityId === entityId);
+    return settings || null;
+  }
+
+  async createPrivacySettings(settingsData: InsertPrivacySettings): Promise<PrivacySettings> {
+    const id = this.privacySettingsIdCounter++;
+    const now = new Date();
+
+    const settings: PrivacySettings = {
+      id,
+      userId: settingsData.userId,
+      entityType: settingsData.entityType,
+      entityId: settingsData.entityId,
+      visibilityLevel: settingsData.visibilityLevel || 'public',
+      customAccessList: settingsData.customAccessList || [],
+      expirationDate: settingsData.expirationDate || null,
+      allowComments: settingsData.allowComments ?? true,
+      allowReservations: settingsData.allowReservations ?? true,
+      requireApproval: settingsData.requireApproval ?? false,
+      createdAt: now,
+      updatedAt: now
+    };
+
+    this.privacySettings.set(id, settings);
+    return settings;
+  }
+
+  async updatePrivacySettings(id: number, settingsData: Partial<InsertPrivacySettings>): Promise<PrivacySettings> {
+    const existingSettings = this.privacySettings.get(id);
+    if (!existingSettings) {
+      throw new Error(`Privacy settings with ID ${id} not found`);
+    }
+
+    const now = new Date();
+    const updatedSettings: PrivacySettings = {
+      ...existingSettings,
+      ...settingsData,
+      updatedAt: now
+    };
+
+    this.privacySettings.set(id, updatedSettings);
+    return updatedSettings;
+  }
+
+  async deletePrivacySettings(id: number): Promise<boolean> {
+    return this.privacySettings.delete(id);
+  }
 }
 
-// Create and export an instance of DatabaseStorage
-export const storage = new DatabaseStorage();
+import { firestoreStorage } from './storage.firestore';
+
+// 🔥 FIREBASE-FIRST ARCHITECTURE 🔥
+// Prioritize Firestore as the primary database with Firebase Functions for serverless operations
+// The new Firebase-native price tracking service (functions/src/firebase-price-tracking.ts) 
+// demonstrates the full Firebase integration approach with:
+// - Firebase Functions v2 for serverless execution
+// - Cloud Scheduler for automated price checks  
+// - Firebase Admin SDK for secure operations
+// - Firestore real-time subscriptions
+// - Firebase Auth integration
+// - Cloud Messaging for notifications
+
+const useFirestore = process.env.NODE_ENV === 'production' || process.env.USE_FIRESTORE === 'true';
+
+let storageInstance: IStorage;
+
+if (useFirestore) {
+  console.log('🔥 Using Firebase Firestore for data storage - Firebase-First Architecture');
+  storageInstance = firestoreStorage;
+} else {
+  console.log('Using memory storage for development - Consider Firebase Emulators for local development');
+  storageInstance = new MemStorage();
+}
+
+export const storage = storageInstance;

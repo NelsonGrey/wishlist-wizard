@@ -158,6 +158,35 @@ export class EmailService {
   }
 
   /**
+   * Send an email verification email
+   */
+  async sendVerificationEmail(
+    to: string,
+    userName: string,
+    verificationUrl: string
+  ): Promise<boolean> {
+    if (!this.initialized) return false;
+
+    const subject = `Please verify your Wishlist Wizard email`;
+    const text = `Hi ${userName}, please verify your email address by clicking this link: ${verificationUrl}. If you didn't create this account, please ignore this email.`;
+    const html = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #4f46e5;">Verify Your Email Address</h2>
+        <p>Hi ${userName},</p>
+        <p>Thanks for signing up for Wishlist Wizard! Please verify your email address to complete your account setup.</p>
+        <div style="border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; margin: 16px 0;">
+          <p>Click the button below to verify your email:</p>
+          <a href="${verificationUrl}" style="display: inline-block; background-color: #4f46e5; color: white; padding: 10px 16px; text-decoration: none; border-radius: 4px; margin-top: 16px;">Verify Email Address</a>
+        </div>
+        <p>This link will expire in 24 hours. If you didn't create this account, please ignore this email.</p>
+        <p>- The Wishlist Wizard Team</p>
+      </div>
+    `;
+
+    return this.sendEmail(to, subject, text, html);
+  }
+
+  /**
    * Send a password reset email
    */
   async sendPasswordResetEmail(
