@@ -1,6 +1,6 @@
 import express from 'express';
 import { pricePollingService } from '../services/pricePollingService.js';
-import { isAuthenticated } from '../auth.js';
+import { firebaseAuthMiddleware as isAuthenticated } from '../firebase-auth-simple';
 
 const router = express.Router();
 

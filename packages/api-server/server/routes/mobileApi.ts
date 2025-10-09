@@ -154,28 +154,20 @@ mobileRouter.post("/sync", async (req: Request, res: Response) => {
       return res.status(401).json({ error: "Unauthorized" });
     }
     
+    // Import sync service
+    const { syncService } = await import("../services/syncService");
+    
     // Process offline actions first if any
     let offlineResults = null;
     if (offlineActions && Array.isArray(offlineActions) && offlineActions.length > 0) {
-      offlineResults = await mobileAppService.processOfflineActions(req.user.id, offlineActions);
+      offlineResults = await syncService.processOfflineActions(req.user.id, offlineActions);
     }
     
     // Get changes since last sync
-    const syncData = await mobileAppService.getChangesSinceLastSync(
-      req.user.id, 
-      parseInt(deviceId),
+    const syncData = await syncService.getChangesSinceTimestamp(
+      req.user.id,
       new Date(lastSyncTime || 0)
     );
-    
-    // Log the sync
-    await mobileAppService.logSync({
-      userId: req.user.id,
-      deviceId: parseInt(deviceId),
-      entityType: "all",
-      action: "sync",
-      syncStatus: "completed",
-      details: { offlineActions: offlineActions?.length || 0 }
-    });
     
     res.json({
       success: true,
@@ -219,20 +211,14 @@ mobileRouter.get("/wishlists", async (req: Request, res: Response) => {
     }
     
     // Get wishlists with minimal data for mobile display
-    const userWishlists = await db.query.wishlists.findMany({
-      where: eq(wishlists.userId, req.user.id)
-    });
+    const userWishlists = await storage.getWishlists(req.user.id);
     
     // Get count of items for each wishlist
     const wishlistsWithCounts = await Promise.all(userWishlists.map(async (wishlist) => {
-      const items = await db.query.wishlistItems.findMany({
-        where: eq(wishlistItems.wishlistId, wishlist.id)
-      });
+      const items = await storage.getWishlistItems(wishlist.id);
       
       const beneficiary = wishlist.beneficiaryId ? 
-        await db.query.beneficiaries.findFirst({
-          where: eq(db.schema.beneficiaries.id, wishlist.beneficiaryId)
-        }) : null;
+        await storage.getBeneficiary(wishlist.beneficiaryId) : null;
       
       return {
         id: wishlist.id,
@@ -244,7 +230,7 @@ mobileRouter.get("/wishlists", async (req: Request, res: Response) => {
         shareId: wishlist.shareId,
         createdAt: wishlist.createdAt,
         itemCount: items.length,
-        beneficiaryName: beneficiary?.name
+        beneficiaryName: beneficiary?.name || null
       };
     }));
     
@@ -268,13 +254,7 @@ mobileRouter.get("/wishlists/:id", async (req: Request, res: Response) => {
     }
     
     // Get wishlist with items
-    const wishlist = await db.query.wishlists.findFirst({
-      where: eq(wishlists.id, parseInt(id)),
-      with: {
-        items: true,
-        beneficiary: true
-      }
-    });
+    const wishlist = await storage.getWishlistById(parseInt(id));
     
     if (!wishlist) {
       return res.status(404).json({ error: "Wishlist not found" });
@@ -284,37 +264,24 @@ mobileRouter.get("/wishlists/:id", async (req: Request, res: Response) => {
     const isOwner = wishlist.userId === req.user.id;
     
     if (!isOwner) {
-      const isCollaborator = await db.query.wishlistCollaborators.findFirst({
-        where: and(
-          eq(wishlistCollaborators.wishlistId, parseInt(id)),
-          eq(wishlistCollaborators.userId, req.user.id)
-        )
-      });
+      const isCollaborator = await storage.isCollaborator(parseInt(id), req.user.id);
       
       if (!isCollaborator && !wishlist.isPublic) {
         return res.status(403).json({ error: "Access denied" });
       }
     }
     
+    // Get items for this wishlist
+    const items = await storage.getWishlistItems(parseInt(id));
+    
     // Get collaborators if any
-    const collaborators = await db.query.wishlistCollaborators.findMany({
-      where: eq(wishlistCollaborators.wishlistId, parseInt(id)),
-      with: {
-        user: {
-          columns: {
-            id: true,
-            username: true,
-            displayName: true,
-            avatarUrl: true
-          }
-        }
-      }
-    });
+    const collaborators = await storage.getCollaborators(parseInt(id));
     
     res.json({
       success: true,
       wishlist: {
         ...wishlist,
+        items,
         collaborators,
         isOwner
       }

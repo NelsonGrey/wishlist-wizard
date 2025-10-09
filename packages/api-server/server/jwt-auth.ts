@@ -9,6 +9,17 @@ import { Request, Response, NextFunction } from 'express';
 import { storage } from './storage';
 import { User } from '@wishlist-wizard/shared';
 
+// Firebase-first authenticated request interface
+interface AuthenticatedRequest extends Request {
+  firebaseUser?: {
+    uid: string;
+    email?: string;
+    displayName?: string;
+    emailVerified: boolean;
+  };
+  userId?: number;
+}
+
 // JWT secret key should be stored in environment variables in production
 const JWT_SECRET = process.env.JWT_SECRET || 'wishkeeper-jwt-secret-key';
 const JWT_EXPIRES_IN = '24h'; // Token expiration time
@@ -41,7 +52,7 @@ export function verifyToken(token: string): any {
 /**
  * Middleware to authenticate API requests using JWT
  */
-export function authenticateJWT(req: Request, res: Response, next: NextFunction) {
+export function authenticateJWT(req: AuthenticatedRequest, res: Response, next: NextFunction) {
   // Get the token from Authorization header
   const authHeader = req.headers.authorization;
   
@@ -52,15 +63,15 @@ export function authenticateJWT(req: Request, res: Response, next: NextFunction)
       const decoded = jwt.verify(token, JWT_SECRET) as any;
       
       // Set the user ID in the request for use in route handlers
-      req.session.userId = decoded.sub;
+      req.userId = parseInt(decoded.sub);
       
       next();
     } catch (error) {
       return res.status(401).json({ error: 'Invalid or expired token' });
     }
   } else {
-    // Check if authenticated through session
-    if (req.session.userId) {
+    // Check if authenticated through Firebase
+    if (req.userId) {
       next();
     } else {
       return res.status(401).json({ error: 'Authentication required' });
@@ -71,13 +82,13 @@ export function authenticateJWT(req: Request, res: Response, next: NextFunction)
 /**
  * Generate a new token for a user and send it in the response
  */
-export function issueToken(req: Request, res: Response) {
+export function issueToken(req: AuthenticatedRequest, res: Response) {
   try {
-    if (!req.session.userId) {
+    if (!req.userId) {
       return res.status(401).json({ error: 'Not authenticated' });
     }
     
-    storage.getUser(req.session.userId)
+    storage.getUser(req.userId)
       .then(user => {
         if (!user) {
           return res.status(404).json({ error: 'User not found' });

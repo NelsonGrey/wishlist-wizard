@@ -7,13 +7,7 @@ import { logger } from 'firebase-functions/v2';
 
 const db = getFirestore();
 
-interface NotificationData {
-  type: string;
-  title: string;
-  content: string;
-  data?: any;
-  actionUrl?: string;
-}
+// Removed unused NotificationData interface - using Firestore document structure directly
 
 /**
  * Get User Notifications

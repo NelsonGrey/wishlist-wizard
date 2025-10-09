@@ -1,10 +1,21 @@
 import { Request, Response } from "express";
-import { isAuthenticated } from "../auth";
+import { verifyJWT } from "../middlewares/auth-middleware";
 import { ecommerceService, EcommercePlatform } from "../services/ecommerceIntegrationService";
 import { storage } from "../storage";
 import { notificationService } from "../services/notificationService";
 import { getErrorMessage } from "../utils/errors";
 import { z } from "zod";
+
+// Firebase-first authenticated request interface
+interface AuthenticatedRequest extends Request {
+  firebaseUser?: {
+    uid: string;
+    email?: string;
+    displayName?: string;
+    emailVerified: boolean;
+  };
+  userId?: number;
+}
 
 // Get supported e-commerce platforms
 export async function getSupportedPlatforms(req: Request, res: Response) {
@@ -105,7 +116,7 @@ export async function getProductFromUrl(req: Request, res: Response) {
 }
 
 // Add a product from a URL directly to a wishlist
-export async function addProductToWishlist(req: Request, res: Response) {
+export async function addProductToWishlist(req: AuthenticatedRequest, res: Response) {
   try {
     // Validate request body
     const schema = z.object({
@@ -131,12 +142,10 @@ export async function addProductToWishlist(req: Request, res: Response) {
     }
     
     // Check if user owns the wishlist or is a collaborator
-    const isOwner = wishlist.userId === req.session.userId;
-    const isCollaborator = !isOwner 
-      ? await storage.isCollaborator(wishlistId, req.session.userId!)
-      : false;
-    
-    if (!isOwner && !isCollaborator) {
+    const isOwner = wishlist.userId === (req as any).userId;
+    const isCollaborator = !isOwner
+      ? await storage.isCollaborator(wishlistId, (req as any).userId!)
+      : false;    if (!isOwner && !isCollaborator) {
       return res.status(403).json({ message: "You don't have permission to add items to this wishlist" });
     }
     
@@ -144,7 +153,7 @@ export async function addProductToWishlist(req: Request, res: Response) {
     const item = await ecommerceService.addItemFromUrl(wishlistId, url, note || '');
     
     // Get user info for notification
-    const user = await storage.getUser(req.session.userId!);
+    const user = await storage.getUser(req.userId!);
     const userName = user?.displayName || user?.username || "Someone";
     
     // If this is a collaborative wishlist, notify collaborators
@@ -154,10 +163,10 @@ export async function addProductToWishlist(req: Request, res: Response) {
       
       // Notify each collaborator (except the current user)
       for (const collaborator of collaborators) {
-        if (collaborator.userId !== req.session.userId) {
+        if (collaborator.userId !== req.userId) {
           await notificationService.createWishlistActivityNotification(
             collaborator.userId,
-            req.session.userId!,
+            req.userId!,
             wishlist.id,
             `added item "${item.title}"`
           );
@@ -196,7 +205,7 @@ export async function addProductToWishlist(req: Request, res: Response) {
 }
 
 // Update product pricing for a wishlist item
-export async function updateProductPricing(req: Request, res: Response) {
+export async function updateProductPricing(req: AuthenticatedRequest, res: Response) {
   try {
     // Validate request parameters
     const schema = z.object({
@@ -225,9 +234,9 @@ export async function updateProductPricing(req: Request, res: Response) {
       return res.status(404).json({ message: "Associated wishlist not found" });
     }
     
-    const isOwner = wishlist.userId === req.session.userId;
+    const isOwner = wishlist.userId === req.userId;
     const isCollaborator = !isOwner 
-      ? await storage.isCollaborator(wishlist.id, req.session.userId!)
+      ? await storage.isCollaborator(wishlist.id, req.userId!)
       : false;
     
     if (!isOwner && !isCollaborator) {
@@ -279,16 +288,16 @@ export async function registerEcommerceRoutes(app: any) {
   app.get("/api/ecommerce/platforms", getSupportedPlatforms);
   
   // Search products across platforms
-  app.post("/api/ecommerce/search", isAuthenticated, searchProducts);
+  app.post("/api/ecommerce/search", verifyJWT, searchProducts);
   
-  // Get product data from URL
-  app.get("/api/ecommerce/product", isAuthenticated, getProductFromUrl);
+  // Get product information from URL
+  app.get("/api/ecommerce/product", verifyJWT, getProductFromUrl);
   
   // Add product to wishlist
-  app.post("/api/ecommerce/add-to-wishlist", isAuthenticated, addProductToWishlist);
+  app.post("/api/ecommerce/add-to-wishlist", verifyJWT, addProductToWishlist);
   
   // Update product pricing
-  app.patch("/api/ecommerce/items/:itemId/pricing", isAuthenticated, updateProductPricing);
+  app.patch("/api/ecommerce/items/:itemId/pricing", verifyJWT, updateProductPricing);
   
   // Get affiliate link
   app.get("/api/ecommerce/affiliate-link", isAuthenticated, getAffiliateLink);

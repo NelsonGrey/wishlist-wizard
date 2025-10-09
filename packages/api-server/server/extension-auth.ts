@@ -10,6 +10,17 @@ import { verifyToken, generateToken } from "./jwt-auth";
 import { storage } from "./storage";
 import { User } from "@wishlist-wizard/shared";
 
+// Firebase-first authenticated request interface
+interface AuthenticatedRequest extends Request {
+  firebaseUser?: {
+    uid: string;
+    email?: string;
+    displayName?: string;
+    emailVerified: boolean;
+  };
+  userId?: number;
+}
+
 /**
  * Authenticate a user for extension API access using JWT
  */
@@ -88,7 +99,7 @@ function generateExtensionToken(user: User): string {
 /**
  * Middleware to verify extension JWT token
  */
-export function verifyExtensionToken(req: Request, res: Response, next: NextFunction) {
+export function verifyExtensionToken(req: AuthenticatedRequest, res: Response, next: NextFunction) {
   // Get token from Authorization header
   const authHeader = req.headers.authorization;
   if (!authHeader) {
@@ -107,8 +118,8 @@ export function verifyExtensionToken(req: Request, res: Response, next: NextFunc
     return res.status(401).json({ error: "Invalid token type" });
   }
   
-  // Set user ID in request for use in route handlers
-  req.session.userId = decoded.sub;
+  // Set user ID for Firebase-first authentication
+  req.userId = parseInt(decoded.sub);
   
   // Attach user info to request for use in route handlers
   (req as any).user = {

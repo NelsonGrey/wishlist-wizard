@@ -293,6 +293,72 @@ export class FirestoreStorage implements IStorage {
     return this.getUser(id);
   }
 
+  // Firebase-compatible user search
+  async searchUsers(queryStr: string, maxResults = 10): Promise<Array<{id: number, username: string, email: string, displayName: string | null, avatarUrl: string | null}>> {
+    try {
+      // Note: Firestore doesn't support case-insensitive text search natively
+      // For production, consider using Firebase Extensions like Search with Algolia
+      // This is a simplified implementation that searches by exact prefix matches
+      
+      const usersRef = collection(db, 'users');
+      const results: Array<{id: number, username: string, email: string, displayName: string | null, avatarUrl: string | null}> = [];
+      
+      // Search by username prefix
+      const usernameQuery = query(
+        usersRef,
+        where('username', '>=', queryStr),
+        where('username', '<=', queryStr + '\uf8ff'),
+        orderBy('username'),
+        limit(maxResults)
+      );
+      
+      const usernameSnapshot = await getDocs(usernameQuery);
+      usernameSnapshot.forEach(doc => {
+        const data = doc.data();
+        results.push({
+          id: parseInt(doc.id),
+          username: data.username,
+          email: data.email,
+          displayName: data.displayName || null,
+          avatarUrl: data.avatarUrl || null
+        });
+      });
+      
+      // If we need more results, search by email prefix
+      if (results.length < maxResults) {
+        const emailQuery = query(
+          usersRef,
+          where('email', '>=', queryStr),
+          where('email', '<=', queryStr + '\uf8ff'),
+          orderBy('email'),
+          limit(maxResults - results.length)
+        );
+        
+        const emailSnapshot = await getDocs(emailQuery);
+        const existingIds = new Set(results.map(r => r.id));
+        
+        emailSnapshot.forEach(doc => {
+          const id = parseInt(doc.id);
+          if (!existingIds.has(id)) {
+            const data = doc.data();
+            results.push({
+              id,
+              username: data.username,
+              email: data.email,
+              displayName: data.displayName || null,
+              avatarUrl: data.avatarUrl || null
+            });
+          }
+        });
+      }
+      
+      return results.slice(0, maxResults);
+    } catch (error) {
+      console.error('Error searching users in Firestore:', error);
+      return [];
+    }
+  }
+
   // ===========================
   // BENEFICIARY MANAGEMENT
   // ===========================

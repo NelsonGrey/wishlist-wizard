@@ -2,6 +2,17 @@ import { Request, Response, NextFunction } from 'express';
 import { privacyService } from '../services/privacyService';
 import { storage } from '../storage';
 
+// Firebase-first authenticated request interface
+interface AuthenticatedRequest extends Request {
+  firebaseUser?: {
+    uid: string;
+    email?: string;
+    displayName?: string;
+    emailVerified: boolean;
+  };
+  userId?: number;
+}
+
 /**
  * Middleware to check privacy access for wishlist entities
  */
@@ -10,9 +21,9 @@ export const checkPrivacyAccess = (
   paramName: string = 'id',
   interactionType: 'view' | 'comment' | 'reserve' = 'view'
 ) => {
-  return async (req: Request, res: Response, next: NextFunction) => {
+  return async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
-      if (!req.session.userId) {
+      if (!req.userId) {
         return res.status(401).json({ error: 'Authentication required' });
       }
 
@@ -53,14 +64,14 @@ export const checkPrivacyAccess = (
         hasAccess = await privacyService.hasViewAccess(
           entityType,
           entityId,
-          req.session.userId,
+          req.userId,
           entityOwnerId
         );
       } else {
         hasAccess = await privacyService.hasInteractionAccess(
           entityType,
           entityId,
-          req.session.userId,
+          req.userId,
           interactionType,
           entityOwnerId
         );
@@ -76,7 +87,7 @@ export const checkPrivacyAccess = (
       const requiresApproval = await privacyService.requiresApproval(
         entityType,
         entityId,
-        req.session.userId,
+        req.userId,
         entityOwnerId
       );
 
@@ -84,7 +95,7 @@ export const checkPrivacyAccess = (
       (req as any).privacyInfo = {
         entityOwnerId,
         requiresApproval,
-        isOwner: req.session.userId === entityOwnerId
+        isOwner: req.userId === entityOwnerId
       };
 
       next();
@@ -102,9 +113,9 @@ export const requireEntityOwnership = (
   entityType: 'wishlist' | 'item',
   paramName: string = 'id'
 ) => {
-  return async (req: Request, res: Response, next: NextFunction) => {
+  return async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
-      if (!req.session.userId) {
+      if (!req.userId) {
         return res.status(401).json({ error: 'Authentication required' });
       }
 
@@ -120,7 +131,7 @@ export const requireEntityOwnership = (
         if (!wishlist) {
           return res.status(404).json({ error: 'Wishlist not found' });
         }
-        isOwner = wishlist.userId === req.session.userId;
+        isOwner = wishlist.userId === req.userId;
       } else if (entityType === 'item') {
         const item = await storage.getWishlistItem(entityId);
         if (!item) {
@@ -130,7 +141,7 @@ export const requireEntityOwnership = (
         if (!wishlist) {
           return res.status(404).json({ error: 'Wishlist not found' });
         }
-        isOwner = wishlist.userId === req.session.userId;
+        isOwner = wishlist.userId === req.userId;
       }
 
       if (!isOwner) {
@@ -151,18 +162,18 @@ export const requireEntityOwnership = (
  * Middleware to automatically set default privacy settings for new entities
  */
 export const setDefaultPrivacySettings = (entityType: 'wishlist' | 'item') => {
-  return async (req: Request, res: Response, next: NextFunction) => {
+  return async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     // This middleware should be used after the entity has been created
     // It will be called in the response handler
     const originalJson = res.json.bind(res);
     
     res.json = function(body: any) {
       // Set default privacy settings asynchronously after response
-      if (res.statusCode === 201 && body && body.id && req.session.userId) {
+      if (res.statusCode === 201 && body && body.id && req.userId) {
         setImmediate(async () => {
           try {
             await privacyService.setDefaultPrivacySettings(
-              req.session.userId!,
+              req.userId!,
               entityType,
               body.id
             );

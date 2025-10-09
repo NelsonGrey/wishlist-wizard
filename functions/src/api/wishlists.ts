@@ -2,33 +2,13 @@
 // Replaces Express.js wishlist routes with Firebase Functions and Firestore
 
 import { onCall, HttpsError, CallableRequest } from 'firebase-functions/v2/https';
-import { getFirestore, FieldValue, Timestamp } from 'firebase-admin/firestore';
+import { getFirestore } from 'firebase-admin/firestore';
 import { logger } from 'firebase-functions/v2';
 import { generateId } from '../utils/helpers';
 
 const db = getFirestore();
 
-interface WishlistData {
-  name: string;
-  description?: string;
-  isPublic?: boolean;
-  isCollaborative?: boolean;
-  beneficiaryId?: string;
-  occasion?: string;
-  occasionDate?: Date;
-}
-
-interface WishlistItemData {
-  wishlistId: string;
-  title: string;
-  description?: string;
-  price?: string;
-  productUrl?: string;
-  imageUrl?: string;
-  store?: string;
-  priority?: number;
-  note?: string;
-}
+// Removed unused interfaces - using Firestore document structure and shared types directly
 
 /**
  * Get User's Wishlists

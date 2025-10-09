@@ -425,13 +425,15 @@ export const groupGiftContributions = pgTable("group_gift_contributions", {
   id: serial("id").primaryKey(),
   groupGiftId: integer("group_gift_id").notNull().references(() => groupGifts.id),
   userId: integer("user_id").notNull().references(() => users.id),
+  paymentId: integer("payment_id").references(() => payments.id),
   amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
   message: text("message"),
   isAnonymous: boolean("is_anonymous").default(false).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   paymentStatus: text("payment_status").default("pending").notNull(), // pending, completed, refunded
   paymentMethod: text("payment_method"),
-  transactionId: text("transaction_id"),
+  transactionId: text("transaction_id"), // Legacy field
+  refundedAt: timestamp("refunded_at"),
 });
 
 export const groupGiftContributionsRelations = relations(groupGiftContributions, ({ one }) => ({
@@ -439,9 +441,13 @@ export const groupGiftContributionsRelations = relations(groupGiftContributions,
     fields: [groupGiftContributions.groupGiftId],
     references: [groupGifts.id]
   }),
-  contributor: one(users, {
+  user: one(users, {
     fields: [groupGiftContributions.userId],
     references: [users.id]
+  }),
+  payment: one(payments, {
+    fields: [groupGiftContributions.paymentId],
+    references: [payments.id]
   })
 }));
 
@@ -493,10 +499,12 @@ export const insertGroupGiftSchema = createInsertSchema(groupGifts).pick({
 export const insertGroupGiftContributionSchema = createInsertSchema(groupGiftContributions).pick({
   groupGiftId: true,
   userId: true,
+  paymentId: true,
   amount: true,
   message: true,
   isAnonymous: true,
-  paymentMethod: true
+  paymentMethod: true,
+  paymentStatus: true
 });
 
 export type InsertGroupGift = z.infer<typeof insertGroupGiftSchema>;
@@ -504,6 +512,55 @@ export type GroupGift = typeof groupGifts.$inferSelect;
 
 export type InsertGroupGiftContribution = z.infer<typeof insertGroupGiftContributionSchema>;
 export type GroupGiftContribution = typeof groupGiftContributions.$inferSelect;
+
+// Payment Processing table for Stripe integration
+export const payments = pgTable("payments", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  stripePaymentIntentId: text("stripe_payment_intent_id"),
+  stripeSessionId: text("stripe_session_id"),
+  stripeEventId: text("stripe_event_id"),
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  currency: text("currency").default("usd").notNull(),
+  status: text("status").notNull(), // pending, completed, failed, refunded
+  paymentType: text("payment_type").notNull(), // group_gift_contribution, direct_purchase, etc.
+  relatedEntityId: integer("related_entity_id"), // Group gift ID, etc.
+  relatedEntityType: text("related_entity_type"), // group_gift, etc.
+  metadata: jsonb("metadata").default('{}'),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  completedAt: timestamp("completed_at"),
+  refundedAt: timestamp("refunded_at"),
+});
+
+export const paymentsRelations = relations(payments, ({ one }) => ({
+  user: one(users, {
+    fields: [payments.userId],
+    references: [users.id]
+  }),
+  groupGiftContribution: one(groupGiftContributions, {
+    fields: [payments.id],
+    references: [groupGiftContributions.id]
+  })
+}));
+
+export const insertPaymentSchema = createInsertSchema(payments).pick({
+  userId: true,
+  stripePaymentIntentId: true,
+  stripeSessionId: true,
+  stripeEventId: true,
+  amount: true,
+  currency: true,
+  status: true,
+  paymentType: true,
+  relatedEntityId: true,
+  relatedEntityType: true,
+  metadata: true,
+  completedAt: true,
+  refundedAt: true
+});
+
+export type InsertPayment = z.infer<typeof insertPaymentSchema>;
+export type Payment = typeof payments.$inferSelect;
 
 // Enhanced Privacy Controls
 export const privacySettings = pgTable("privacy_settings", {

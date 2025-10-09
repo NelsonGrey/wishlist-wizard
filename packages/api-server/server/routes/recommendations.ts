@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { z } from "zod";
-import { isAuthenticated } from "../auth";
+import { firebaseAuthMiddleware as isAuthenticated } from "../firebase-auth-simple";
 import {
   getRecommendationsForUser,
   getRecommendationsForBeneficiary,
