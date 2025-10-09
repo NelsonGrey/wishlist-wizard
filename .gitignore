@@ -1,6 +1,123 @@
-node_modules
-dist
-.DS_Store
-server/public
-vite.config.ts.*
+# Dependencies
+node_modules/
+*/node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Build outputs
+dist/
+build/
+*.tgz
 *.tar.gz
+server/public
+
+# Database files
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+
+# iOS build files
+packages/mobile-app/ios/build/
+packages/mobile-app/ios/Pods/
+packages/mobile-app/ios/Runner.xcworkspace/xcuserdata/
+packages/mobile-app/ios/Runner.xcodeproj/xcuserdata/
+packages/mobile-app/ios/Runner.xcodeproj/project.xcworkspace/xcuserdata/
+packages/mobile-app/ios/*.ipa
+packages/mobile-app/ios/*.xcarchive
+
+# Android build files
+packages/mobile-app/android/app/build/
+packages/mobile-app/android/build/
+packages/mobile-app/android/.gradle/
+packages/mobile-app/android/local.properties
+packages/mobile-app/android/key.properties
+packages/mobile-app/android/app/release/
+
+# Flutter/Dart
+packages/mobile-app/.dart_tool/
+packages/mobile-app/.packages
+packages/mobile-app/.pub-cache/
+packages/mobile-app/.pub/
+packages/mobile-app/pubspec.lock
+
+# Firebase
+.firebase/
+firebase-debug.log
+firestore-debug.log
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Logs
+logs
+*.log
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage directory used by tools like istanbul
+coverage/
+*.lcov
+
+# TypeScript cache
+*.tsbuildinfo
+vite.config.ts.*
+
+# Optional npm cache directory
+.npm
+
+# Optional eslint cache
+.eslintcache
+
+# Test files
+coverage/
+*.coverage
+junit.xml
+
+# Browser extension builds
+packages/browser-extension/dist/
+packages/browser-extension/build/
+
+# Web app builds
+packages/web-app/dist/
+packages/web-app/build/
+
+# API server builds
+packages/api-server/dist/
+packages/api-server/build/
+
+# Development files
+*.dev.js
+*.test.js
+*.spec.js
+test-*.js
+mock-*.js
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.temp
