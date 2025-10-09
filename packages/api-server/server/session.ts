@@ -1,21 +1,18 @@
 import session from "express-session";
-import ConnectPgSimple from "connect-pg-simple";
-import { pool } from "./db";
+import MemoryStore from "memorystore";
 
-// Initialize PostgreSQL session store
-const PgSession = ConnectPgSimple(session);
+// Initialize memory session store for development
+const SessionMemoryStore = MemoryStore(session);
 
 // Create the session store
-const sessionStore = new PgSession({
-  pool,
-  tableName: "session", // Default session table name
-  createTableIfMissing: true,
+const sessionStore = new SessionMemoryStore({
+  checkPeriod: 86400000, // prune expired entries every 24h
 });
 
 // Session configuration
 export const sessionConfig = {
   store: sessionStore,
-  secret: process.env.SESSION_SECRET || "wishkeeper-secret-key",
+  secret: process.env.SESSION_SECRET || "wishlist-wizard-secret-key",
   resave: false,
   saveUninitialized: false,
   cookie: {
@@ -28,20 +25,7 @@ export const sessionConfig = {
 // Export middleware
 export const sessionMiddleware = session(sessionConfig);
 
-// Create the session table (if it doesn't exist)
+// Initialize session table (no-op for memory store)
 export const initializeSessionTable = async () => {
-  try {
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS "session" (
-        "sid" varchar NOT NULL COLLATE "default",
-        "sess" json NOT NULL,
-        "expire" timestamp(6) NOT NULL,
-        CONSTRAINT "session_pkey" PRIMARY KEY ("sid")
-      );
-      CREATE INDEX IF NOT EXISTS "IDX_session_expire" ON "session" ("expire");
-    `);
-    console.log("Session table initialized");
-  } catch (error) {
-    console.error("Error initializing session table:", error);
-  }
+  console.log("Using memory session store for development");
 };

@@ -1,5 +1,5 @@
 class User {
-  final int id;
+  final String id; // Changed from int to String to support Firebase UIDs
   final String email;
   final String? name;
   final String? profileImageUrl;
@@ -15,7 +15,7 @@ class User {
 
   factory User.fromJson(Map<String, dynamic> json) {
     return User(
-      id: json['id'] as int,
+      id: json['id'].toString(), // Handle both string and int IDs
       email: json['email'] as String,
       name: json['name'] as String?,
       profileImageUrl: json['profileImageUrl'] as String?,

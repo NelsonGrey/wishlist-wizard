@@ -9,7 +9,7 @@ This guide provides step-by-step instructions for installing and using the WishK
 #### Method 1: Quick Installation (Recommended)
 
 1. **Download the Extension**
-   - Visit [wishkeeper.replit.app/extension](https://wishkeeper.replit.app/extension)
+   - Visit [wishlist-wizard.web.app/extension](https://wishlist-wizard.web.app/extension)
    - Click the "Download Extension" button
    - The file `wishkeeper-extension.zip` will be downloaded to your computer
 
@@ -124,9 +124,9 @@ Note: Uninstalling the extension does not delete your WishKeeper account or any 
 
 If you encounter any issues with the WishKeeper extension:
 
-- Visit our [Help Center](https://wishkeeper.replit.app/help)
-- Email our support team at support@wishkeeper.replit.app
-- Check our [FAQ page](https://wishkeeper.replit.app/faq) for common questions
+- Visit our [Help Center](https://wishlist-wizard.web.app/help)
+- Email our support team at support@wishlist-wizard.web.app
+- Check our [FAQ page](https://wishlist-wizard.web.app/faq) for common questions
 
 ## Privacy Information
 
@@ -136,4 +136,4 @@ The WishKeeper extension:
 - Does not sell your data to third parties
 - Only sends data to WishKeeper servers when you choose to add an item
 
-For more details, please review our [Privacy Policy](https://wishkeeper.replit.app/privacy).
+For more details, please review our [Privacy Policy](https://wishlist-wizard.web.app/privacy).

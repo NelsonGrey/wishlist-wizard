@@ -1,7 +1,6 @@
 {
-  "main": "lib/index.js",
+  "name": "functions",
   "scripts": {
-    "genkit:start": "genkit start -- tsx --watch src/genkit-sample.ts",
     "lint": "eslint --ext .js,.ts .",
     "build": "tsc",
     "build:watch": "tsc --watch",
@@ -11,29 +10,26 @@
     "deploy": "firebase deploy --only functions",
     "logs": "firebase functions:log"
   },
-  "name": "functions",
   "engines": {
     "node": "22"
   },
+  "main": "lib/index.js",
   "dependencies": {
-    "@dataconnect/generated": "file:src/dataconnect-generated",
-    "@genkit-ai/firebase": "^1.21.0",
-    "@genkit-ai/googleai": "^1.21.0",
-    "express": "^5.1.0",
+    "cors": "^2.8.5",
+    "express": "^4.18.2",
     "firebase-admin": "^12.6.0",
-    "firebase-functions": "^6.0.1",
-    "genkit": "^1.21.0"
+    "firebase-functions": "^6.0.1"
   },
   "devDependencies": {
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21",
     "@typescript-eslint/eslint-plugin": "^5.12.0",
     "@typescript-eslint/parser": "^5.12.0",
     "eslint": "^8.9.0",
     "eslint-config-google": "^0.14.0",
     "eslint-plugin-import": "^2.25.4",
     "firebase-functions-test": "^3.1.0",
-    "genkit-cli": "^1.21.0",
-    "tsx": "^4.20.6",
-    "typescript": "^5.9.3"
+    "typescript": "^5.7.3"
   },
   "private": true
 }

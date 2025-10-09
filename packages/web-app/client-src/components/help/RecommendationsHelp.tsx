@@ -24,7 +24,7 @@ export function RecommendationsHelp() {
               <li>Similar items to what you already like</li>
             </ul>
             <p className="text-sm mt-2">
-              The more you use WishKeeper, the better your recommendations will become!
+              The more you use Wishlist Wizard, the better your recommendations will become!
             </p>
           </AccordionContent>
         </AccordionItem>

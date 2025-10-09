@@ -1,5 +1,6 @@
 // Export all services
 export 'api_client.dart';
 export 'api_config.dart';
-export 'auth_service.dart';
+export 'firebase_auth_service.dart';
+export 'firebase_initialization_service.dart';
 export 'wishlist_service.dart';

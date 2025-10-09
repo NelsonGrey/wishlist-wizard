@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Firestore Migration Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .test { margin: 10px 0; padding: 10px; border: 1px solid #ddd; }
+        .success { background-color: #d4edda; }
+        .error { background-color: #f8d7da; }
+        button { padding: 10px 20px; margin: 5px; }
+        pre { background: #f8f9fa; padding: 10px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>🔥 Firestore Migration Test</h1>
+    
+    <div class="test">
+        <h3>Demo User Credentials</h3>
+        <p>Email: demo@example.com</p>
+        <p>Password: password123</p>
+    </div>
+    
+    <button onclick="testLogin()">1. Test Login</button>
+    <button onclick="testWishlists()">2. Test Wishlists</button>
+    <button onclick="testItems()">3. Test Items</button>
+    <button onclick="testRegister()">4. Test Registration</button>
+    
+    <div id="results"></div>
+
+    <script>
+        const API_BASE = 'http://localhost:3001';
+        let authToken = null;
+        
+        function log(message, type = 'info') {
+            const results = document.getElementById('results');
+            const div = document.createElement('div');
+            div.className = `test ${type}`;
+            div.innerHTML = `<strong>${new Date().toLocaleTimeString()}</strong>: ${message}`;
+            results.appendChild(div);
+        }
+        
+        async function testLogin() {
+            log('Testing login with demo user...', 'info');
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        email: 'demo@example.com',
+                        password: 'password123'
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    authToken = result.token;
+                    log(`✅ Login successful! User: ${result.user.displayName}`, 'success');
+                    log(`<pre>${JSON.stringify(result, null, 2)}</pre>`, 'success');
+                } else {
+                    log(`❌ Login failed: ${result.message}`, 'error');
+                }
+            } catch (error) {
+                log(`❌ Login error: ${error.message}`, 'error');
+            }
+        }
+        
+        async function testWishlists() {
+            if (!authToken) {
+                log('❌ Please login first', 'error');
+                return;
+            }
+            
+            log('Testing wishlist retrieval...', 'info');
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/wishlists`, {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+                
+                const wishlists = await response.json();
+                
+                if (response.ok) {
+                    log(`✅ Found ${wishlists.length} wishlists`, 'success');
+                    log(`<pre>${JSON.stringify(wishlists, null, 2)}</pre>`, 'success');
+                } else {
+                    log(`❌ Wishlists error: ${wishlists.message}`, 'error');
+                }
+            } catch (error) {
+                log(`❌ Wishlists error: ${error.message}`, 'error');
+            }
+        }
+        
+        async function testItems() {
+            if (!authToken) {
+                log('❌ Please login first', 'error');
+                return;
+            }
+            
+            log('Testing wishlist items...', 'info');
+            
+            try {
+                // First get wishlists to get an ID
+                const wishlistsResponse = await fetch(`${API_BASE}/api/wishlists`, {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+                
+                const wishlists = await wishlistsResponse.json();
+                
+                if (wishlists.length > 0) {
+                    const firstWishlistId = wishlists[0].id;
+                    
+                    const itemsResponse = await fetch(`${API_BASE}/api/wishlists/${firstWishlistId}/items`, {
+                        headers: {
+                            'Authorization': `Bearer ${authToken}`
+                        }
+                    });
+                    
+                    const items = await itemsResponse.json();
+                    
+                    if (itemsResponse.ok) {
+                        log(`✅ Found ${items.length} items in "${wishlists[0].name}"`, 'success');
+                        log(`<pre>${JSON.stringify(items, null, 2)}</pre>`, 'success');
+                    } else {
+                        log(`❌ Items error: ${items.message}`, 'error');
+                    }
+                } else {
+                    log('❌ No wishlists found', 'error');
+                }
+            } catch (error) {
+                log(`❌ Items error: ${error.message}`, 'error');
+            }
+        }
+        
+        async function testRegister() {
+            log('Testing user registration...', 'info');
+            
+            const randomId = Math.random().toString(36).substr(2, 9);
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/auth/register`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        username: `testuser${randomId}`,
+                        email: `test${randomId}@example.com`,
+                        password: 'password123',
+                        displayName: `Test User ${randomId}`
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    log(`✅ Registration successful! User: ${result.user.displayName}`, 'success');
+                    log(`<pre>${JSON.stringify(result, null, 2)}</pre>`, 'success');
+                } else {
+                    log(`❌ Registration failed: ${result.message}`, 'error');
+                }
+            } catch (error) {
+                log(`❌ Registration error: ${error.message}`, 'error');
+            }
+        }
+    </script>
+</body>
+</html>

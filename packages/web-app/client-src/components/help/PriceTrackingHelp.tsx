@@ -5,7 +5,7 @@ export function PriceTrackingHelp() {
   return (
     <HelpDialog title="Price Tracking Help">
       <p className="text-sm text-muted-foreground mb-4">
-        Never miss a sale with WishKeeper's price tracking feature.
+        Never miss a sale with Wishlist Wizard's price tracking feature.
         Here's how to make the most of this money-saving tool:
       </p>
 
@@ -14,7 +14,7 @@ export function PriceTrackingHelp() {
           <AccordionTrigger>How Price Tracking Works</AccordionTrigger>
           <AccordionContent>
             <p className="text-sm mb-2">
-              WishKeeper's price tracking monitors items on your wishlist and alerts you when prices drop:
+              Wishlist Wizard's price tracking monitors items on your wishlist and alerts you when prices drop:
             </p>
             <ul className="text-sm list-disc pl-5 space-y-1">
               <li>We check prices regularly across supported retailers</li>
@@ -118,7 +118,7 @@ export function PriceTrackingHelp() {
           <AccordionTrigger>Best Time to Buy Predictions</AccordionTrigger>
           <AccordionContent>
             <p className="text-sm mb-2">
-              For items with sufficient price history, WishKeeper can help predict the best time to purchase:
+              For items with sufficient price history, Wishlist Wizard can help predict the best time to purchase:
             </p>
             <ul className="text-sm list-disc pl-5 space-y-2">
               <li>
