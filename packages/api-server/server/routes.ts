@@ -1,5 +1,16 @@
 import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
+
+// Firebase-first authenticated request interface
+interface AuthenticatedRequest extends Request {
+  firebaseUser?: {
+    uid: string;
+    email?: string;
+    displayName?: string;
+    emailVerified: boolean;
+  };
+  userId?: number;
+}
 import { storage } from "./storage";
 import { downloadExtension, getExtensionMetadata, packageExtensions } from "./extension-deploy";
 import { 
@@ -10,13 +21,22 @@ import {
   insertNotificationSchema
 } from "@wishlist-wizard/shared";
 import { z } from "zod";
-import { register, login, logout, getCurrentUser, isAuthenticated, verifyEmail, requestPasswordReset, resetPassword } from "./auth";
-import { db } from "./db";
-import { users } from "@wishlist-wizard/shared";
-import { ilike, or } from "drizzle-orm";
+import { 
+  register, 
+  login, 
+  logout, 
+  getCurrentUser, 
+  updateUserProfile,
+  searchUsers,
+  verifyEmail,
+  requestPasswordReset,
+  resetPassword,
+  firebaseAuthMiddleware 
+} from "./firebase-auth-simple";
+// PostgreSQL/Drizzle removed in favor of Firebase-first architecture
 import { GroupGiftingService } from "./services/groupGiftingService";
-import { issueToken } from "./jwt-auth";
-import { initializeSessionTable } from "./session";
+// JWT removed for web app, still used for browser extension auth
+// Session management removed in favor of Firebase Auth
 import { verifyExtensionAuth, getExtensionWishlists, addItemFromExtension, verifyExtensionJWT, trackExtensionEvent } from "./extension";
 import { notificationService } from "./services/notificationService";
 import { registerEcommerceRoutes } from "./routes/ecommerce";
@@ -47,10 +67,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Register calendar routes
   registerCalendarRoutes(app);
   
-  // Initialize session table if using database storage
-  await initializeSessionTable();
+  // Firebase-First Architecture - No session table needed
+  // Firebase handles authentication state management
   
-  // Authentication routes
+  // Use Firebase authentication middleware consistently
+  const isAuthenticated = firebaseAuthMiddleware;
+  
+  // Firebase-First Authentication routes
   app.post("/api/auth/register", register);
   app.post("/api/auth/login", login);
   app.post("/api/auth/logout", logout);
@@ -60,12 +83,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/auth/verify-email/:token", verifyEmail);
   app.post("/api/auth/forgot-password", requestPasswordReset);
   app.post("/api/auth/reset-password", resetPassword);
-  app.post("/api/auth/token", issueToken);
+  // JWT token endpoint removed - using Firebase Auth tokens instead
 
   // Get all wishlists for a user
-  app.get("/api/wishlists", isAuthenticated, async (req: Request, res: Response) => {
+  app.get("/api/wishlists", isAuthenticated, async (req: AuthenticatedRequest, res: Response) => {
     try {
-      const userId = req.session.userId!;
+      const userId = req.userId!;
       const wishlists = await storage.getWishlists(userId);
       
       // Get item counts for each wishlist
@@ -75,40 +98,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Lightweight user search for inviting collaborators
   // Query param: q (min length 2) — matches username, email, or displayName
-  app.get("/api/users/search", isAuthenticated, async (req: Request, res: Response) => {
-    try {
-      const q = String(req.query.q || "").trim();
-      if (!q || q.length < 2) {
-        return res.status(400).json({ message: "Query 'q' must be at least 2 characters" });
-      }
-
-      // Limit results to avoid large payloads
-      const MAX_RESULTS = 10;
-      const pattern = `%${q}%`;
-
-      // Search by username, email, or displayName (case-insensitive)
-      const results = await db
-        .select({ id: users.id, username: users.username, email: users.email, displayName: users.displayName, avatarUrl: users.avatarUrl })
-        .from(users)
-        .where(
-          or(
-            ilike(users.username, pattern),
-            ilike(users.email, pattern),
-            ilike(users.displayName, pattern)
-          )
-        )
-        .limit(MAX_RESULTS);
-
-      // Trim email display for privacy in UI if needed; return as-is for now
-      res.json({ users: results });
-    } catch (error) {
-      console.error("Error searching users:", error);
-      res.status(500).json({ message: "Failed to search users" });
-    }
-  });
+  // Lightweight user search for inviting collaborators
+  // Query param: q (min length 2) — matches username, email, or displayName
+  // Firebase-First user search
+  app.get("/api/users/search", firebaseAuthMiddleware, searchUsers);
 
   // Start a group gift for a specific item
-  app.post("/api/gifts/:itemId/start", isAuthenticated, async (req: Request, res: Response) => {
+  app.post("/api/gifts/:itemId/start", isAuthenticated, async (req: AuthenticatedRequest, res: Response) => {
     try {
       const itemId = Number(req.params.itemId);
       const { targetAmount } = req.body;
@@ -147,7 +143,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get a specific wishlist by ID
-  app.get("/api/wishlists/:id", async (req: Request, res: Response) => {
+  app.get("/api/wishlists/:id", async (req: AuthenticatedRequest, res: Response) => {
     try {
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
@@ -167,7 +163,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get a shared wishlist by share ID
-  app.get("/api/shared/:shareId", async (req: Request, res: Response) => {
+  app.get("/api/shared/:shareId", async (req: AuthenticatedRequest, res: Response) => {
     try {
       const { shareId } = req.params;
       
@@ -189,7 +185,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Create a new wishlist
-  app.post("/api/wishlists", isAuthenticated, async (req: Request, res: Response) => {
+  app.post("/api/wishlists", isAuthenticated, async (req: AuthenticatedRequest, res: Response) => {
     try {
       const schema = insertWishlistSchema.omit({ shareId: true });
       const result = schema.safeParse(req.body);
@@ -204,12 +200,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const wishlist = await storage.createWishlist(result.data);
       
       // Get creator info for notification
-      const creator = await storage.getUser(req.session.userId!);
+      const creator = await storage.getUser(req.userId!);
       const creatorName = creator?.displayName || creator?.username || "Someone";
       
       // Notify the creator about their new wishlist
       await notificationService.createSystemNotification(
-        req.session.userId!,
+        req.userId!,
         'Wishlist Created',
         `Your wishlist "${wishlist.name}" has been created successfully`,
         { wishlistId: wishlist.id, wishlistName: wishlist.name }
@@ -223,7 +219,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Update a wishlist
-  app.patch("/api/wishlists/:id", isAuthenticated, async (req: Request, res: Response) => {
+  app.patch("/api/wishlists/:id", isAuthenticated, async (req: AuthenticatedRequest, res: Response) => {
     try {
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
@@ -232,7 +228,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Verify the user owns this wishlist
       const existingWishlist = await storage.getWishlistById(id);
-      if (!existingWishlist || existingWishlist.userId !== req.session.userId) {
+      if (!existingWishlist || existingWishlist.userId !== req.userId) {
         return res.status(404).json({ message: "Wishlist not found" });
       }
       
@@ -267,7 +263,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Delete a wishlist
-  app.delete("/api/wishlists/:id", isAuthenticated, async (req: Request, res: Response) => {
+  app.delete("/api/wishlists/:id", isAuthenticated, async (req: AuthenticatedRequest, res: Response) => {
     try {
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
@@ -287,7 +283,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get items in a wishlist
-  app.get("/api/wishlists/:id/items", isAuthenticated, async (req: Request, res: Response) => {
+  app.get("/api/wishlists/:id/items", isAuthenticated, async (req: AuthenticatedRequest, res: Response) => {
     try {
       const wishlistId = parseInt(req.params.id);
       if (isNaN(wishlistId)) {
@@ -308,7 +304,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Add an item to a wishlist
-  app.post("/api/items", isAuthenticated, async (req: Request, res: Response) => {
+  app.post("/api/items", isAuthenticated, async (req: AuthenticatedRequest, res: Response) => {
     try {
       const result = insertWishlistItemSchema.safeParse(req.body);
       
@@ -327,25 +323,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const item = await storage.createWishlistItem(result.data);
       
       // Get user info for notification
-      const addedByUser = await storage.getUser(req.session.userId!);
+      const addedByUser = await storage.getUser(req.userId!);
       const adderName = addedByUser?.displayName || addedByUser?.username || "Someone";
       
       // If this is a collaborative wishlist, notify collaborators
       if (wishlist.isCollaborative) {
         await notificationService.notifyWishlistCollaborators(
           wishlist.id,
-          req.session.userId!, // Actor user ID (already checked by isAuthenticated)
+          req.userId!, // Actor user ID (already checked by isAuthenticated)
           `${adderName} added "${item.title}" to the wishlist "${wishlist.name}"`,
           "item_added"
         );
       } 
       // If this is a regular wishlist owned by someone else (beneficiary wishlist)
-      else if (wishlist.userId !== req.session.userId) {
+      else if (wishlist.userId !== req.userId) {
         // Notify the owner
         await notificationService.notifyItemAdded(
           item.id,
           item.title,
-          req.session.userId!
+          req.userId!
         );
       }
       
@@ -357,7 +353,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Delete an item from a wishlist
-  app.delete("/api/items/:id", isAuthenticated, async (req: Request, res: Response) => {
+  app.delete("/api/items/:id", isAuthenticated, async (req: AuthenticatedRequest, res: Response) => {
     try {
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
@@ -377,7 +373,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Update a wishlist item
-  app.patch("/api/items/:id", isAuthenticated, async (req: Request, res: Response) => {
+  app.patch("/api/items/:id", isAuthenticated, async (req: AuthenticatedRequest, res: Response) => {
     try {
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
@@ -392,7 +388,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Get the wishlist to verify ownership
       const wishlist = await storage.getWishlistById(item.wishlistId);
-      if (!wishlist || wishlist.userId !== req.session.userId) {
+      if (!wishlist || wishlist.userId !== req.userId) {
         return res.status(403).json({ message: "You don't have permission to update this item" });
       }
       
@@ -423,14 +419,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Reserve an item on a wishlist
-  app.post("/api/items/:id/reserve", isAuthenticated, async (req: Request, res: Response) => {
+  app.post("/api/items/:id/reserve", isAuthenticated, async (req: AuthenticatedRequest, res: Response) => {
     try {
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
         return res.status(400).json({ message: "Invalid item ID" });
       }
       
-      const userId = req.session.userId!;
+      const userId = req.userId!;
       
       // Get the item to check if it's already reserved or purchased
       const item = await storage.getWishlistItem(id);
@@ -487,14 +483,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Mark an item as purchased
-  app.post("/api/items/:id/purchase", isAuthenticated, async (req: Request, res: Response) => {
+  app.post("/api/items/:id/purchase", isAuthenticated, async (req: AuthenticatedRequest, res: Response) => {
     try {
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
         return res.status(400).json({ message: "Invalid item ID" });
       }
       
-      const userId = req.session.userId!;
+      const userId = req.userId!;
       
       // Get the item to check if it's already purchased
       const item = await storage.getWishlistItem(id);
@@ -547,9 +543,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get recently added items (across all wishlists for a user)
-  app.get("/api/recent-items", isAuthenticated, async (req: Request, res: Response) => {
+  app.get("/api/recent-items", isAuthenticated, async (req: AuthenticatedRequest, res: Response) => {
     try {
-      const userId = req.session.userId!;
+      const userId = req.userId!;
       
       const wishlists = await storage.getWishlists(userId);
       
@@ -577,7 +573,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ==================== PRICE TRACKING ROUTES ====================
   
   // Get price history for an item
-  app.get("/api/items/:id/price-history", isAuthenticated, async (req: Request, res: Response) => {
+  app.get("/api/items/:id/price-history", isAuthenticated, async (req: AuthenticatedRequest, res: Response) => {
     try {
       const itemId = parseInt(req.params.id);
       
@@ -599,9 +595,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Create a price alert for an item
-  app.post("/api/price-alerts", isAuthenticated, async (req: Request, res: Response) => {
+  app.post("/api/price-alerts", isAuthenticated, async (req: AuthenticatedRequest, res: Response) => {
     try {
-      const userId = req.session.userId!;
+      const userId = req.userId!;
       
       // Validate request body
       const alertSchema = z.object({
@@ -638,9 +634,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Get all price alerts for the current user
-  app.get("/api/price-alerts", isAuthenticated, async (req: Request, res: Response) => {
+  app.get("/api/price-alerts", isAuthenticated, async (req: AuthenticatedRequest, res: Response) => {
     try {
-      const userId = req.session.userId!;
+      const userId = req.userId!;
       
       // Import the price tracking service
       const { getUserPriceAlerts } = await import("./services/priceTrackingService");
@@ -656,9 +652,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Delete a price alert
-  app.delete("/api/price-alerts/:id", isAuthenticated, async (req: Request, res: Response) => {
+  app.delete("/api/price-alerts/:id", isAuthenticated, async (req: AuthenticatedRequest, res: Response) => {
     try {
-      const userId = req.session.userId!;
+      const userId = req.userId!;
       const alertId = parseInt(req.params.id);
       
       if (isNaN(alertId)) {
@@ -683,7 +679,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Update an item's price (for testing or manual updates)
-  app.patch("/api/items/:id/price", isAuthenticated, async (req: Request, res: Response) => {
+  app.patch("/api/items/:id/price", isAuthenticated, async (req: AuthenticatedRequest, res: Response) => {
     try {
       const itemId = parseInt(req.params.id);
       
@@ -718,7 +714,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Get items with significant price drops
-  app.get("/api/price-drops", isAuthenticated, async (req: Request, res: Response) => {
+  app.get("/api/price-drops", isAuthenticated, async (req: AuthenticatedRequest, res: Response) => {
     try {
       const threshold = req.query.threshold ? parseInt(req.query.threshold as string) : 10;
       
@@ -738,9 +734,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ==================== BENEFICIARY ROUTES ====================
   
   // Get all beneficiaries for a user
-  app.get("/api/beneficiaries", isAuthenticated, async (req: Request, res: Response) => {
+  app.get("/api/beneficiaries", isAuthenticated, async (req: AuthenticatedRequest, res: Response) => {
     try {
-      const userId = req.session.userId!;
+      const userId = req.userId!;
       const beneficiaries = await storage.getBeneficiaries(userId);
       res.json(beneficiaries);
     } catch (error) {
@@ -750,7 +746,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get a specific beneficiary
-  app.get("/api/beneficiaries/:id", isAuthenticated, async (req: Request, res: Response) => {
+  app.get("/api/beneficiaries/:id", isAuthenticated, async (req: AuthenticatedRequest, res: Response) => {
     try {
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
@@ -760,7 +756,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const beneficiary = await storage.getBeneficiary(id);
       
       // Ensure the user owns this beneficiary
-      if (!beneficiary || beneficiary.ownerId !== req.session.userId) {
+      if (!beneficiary || beneficiary.ownerId !== req.userId) {
         return res.status(404).json({ message: "Beneficiary not found" });
       }
       
@@ -772,12 +768,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Create a new beneficiary
-  app.post("/api/beneficiaries", isAuthenticated, async (req: Request, res: Response) => {
+  app.post("/api/beneficiaries", isAuthenticated, async (req: AuthenticatedRequest, res: Response) => {
     try {
       // Ensure the beneficiary has the current user as owner
       const beneficiaryData = {
         ...req.body,
-        ownerId: req.session.userId
+        ownerId: req.userId
       };
       
       const schema = insertBeneficiarySchema;
@@ -799,7 +795,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Update a beneficiary
-  app.patch("/api/beneficiaries/:id", isAuthenticated, async (req: Request, res: Response) => {
+  app.patch("/api/beneficiaries/:id", isAuthenticated, async (req: AuthenticatedRequest, res: Response) => {
     try {
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
@@ -808,7 +804,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Verify the user owns this beneficiary
       const existingBeneficiary = await storage.getBeneficiary(id);
-      if (!existingBeneficiary || existingBeneficiary.ownerId !== req.session.userId) {
+      if (!existingBeneficiary || existingBeneficiary.ownerId !== req.userId) {
         return res.status(404).json({ message: "Beneficiary not found" });
       }
       
@@ -842,7 +838,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Delete a beneficiary
-  app.delete("/api/beneficiaries/:id", isAuthenticated, async (req: Request, res: Response) => {
+  app.delete("/api/beneficiaries/:id", isAuthenticated, async (req: AuthenticatedRequest, res: Response) => {
     try {
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
@@ -851,7 +847,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Verify the user owns this beneficiary
       const beneficiary = await storage.getBeneficiary(id);
-      if (!beneficiary || beneficiary.ownerId !== req.session.userId) {
+      if (!beneficiary || beneficiary.ownerId !== req.userId) {
         return res.status(404).json({ message: "Beneficiary not found" });
       }
       
@@ -870,7 +866,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get wishlists for a specific beneficiary
-  app.get("/api/beneficiaries/:id/wishlists", isAuthenticated, async (req: Request, res: Response) => {
+  app.get("/api/beneficiaries/:id/wishlists", isAuthenticated, async (req: AuthenticatedRequest, res: Response) => {
     try {
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
@@ -879,7 +875,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Verify the user owns this beneficiary
       const beneficiary = await storage.getBeneficiary(id);
-      if (!beneficiary || beneficiary.ownerId !== req.session.userId) {
+      if (!beneficiary || beneficiary.ownerId !== req.userId) {
         return res.status(404).json({ message: "Beneficiary not found" });
       }
       
@@ -906,9 +902,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ==================== COLLABORATIVE WISHLIST ROUTES ====================
   
   // Get wishlists where the user is a collaborator
-  app.get("/api/collaborative-wishlists", isAuthenticated, async (req: Request, res: Response) => {
+  app.get("/api/collaborative-wishlists", isAuthenticated, async (req: AuthenticatedRequest, res: Response) => {
     try {
-      const userId = req.session.userId!;
+      const userId = req.userId!;
       
       const wishlists = await storage.getCollaborativeWishlists(userId);
       
@@ -931,7 +927,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Get collaborators for a wishlist
-  app.get("/api/wishlists/:id/collaborators", isAuthenticated, async (req: Request, res: Response) => {
+  app.get("/api/wishlists/:id/collaborators", isAuthenticated, async (req: AuthenticatedRequest, res: Response) => {
     try {
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
@@ -940,8 +936,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Check if user owns or is a collaborator on this wishlist
       const wishlist = await storage.getWishlistById(id);
-      const isOwner = wishlist?.userId === req.session.userId;
-      const isCollaborator = await storage.isCollaborator(id, req.session.userId!);
+      const isOwner = wishlist?.userId === req.userId;
+      const isCollaborator = await storage.isCollaborator(id, req.userId!);
       
       if (!wishlist || (!isOwner && !isCollaborator)) {
         return res.status(403).json({ message: "You don't have access to this wishlist" });
@@ -972,7 +968,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Add a collaborator to a wishlist
-  app.post("/api/wishlists/:id/collaborators", isAuthenticated, async (req: Request, res: Response) => {
+  app.post("/api/wishlists/:id/collaborators", isAuthenticated, async (req: AuthenticatedRequest, res: Response) => {
     try {
       const wishlistId = parseInt(req.params.id);
       if (isNaN(wishlistId)) {
@@ -981,7 +977,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Check that the current user is the owner of the wishlist
       const wishlist = await storage.getWishlistById(wishlistId);
-      if (!wishlist || wishlist.userId !== req.session.userId) {
+      if (!wishlist || wishlist.userId !== req.userId) {
         return res.status(403).json({ message: "You don't have permission to add collaborators to this wishlist" });
       }
       
@@ -1021,7 +1017,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         wishlistId,
         userId: result.data.userId,
         role: result.data.role || 'editor',
-        addedBy: req.session.userId,
+        addedBy: req.userId,
         lastActive: new Date()
       });
       
@@ -1052,7 +1048,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Remove a collaborator from a wishlist
-  app.delete("/api/wishlists/:id/collaborators/:userId", isAuthenticated, async (req: Request, res: Response) => {
+  app.delete("/api/wishlists/:id/collaborators/:userId", isAuthenticated, async (req: AuthenticatedRequest, res: Response) => {
     try {
       const wishlistId = parseInt(req.params.id);
       const collaboratorId = parseInt(req.params.userId);
@@ -1063,7 +1059,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Check that the current user is the owner of the wishlist
       const wishlist = await storage.getWishlistById(wishlistId);
-      if (!wishlist || wishlist.userId !== req.session.userId) {
+      if (!wishlist || wishlist.userId !== req.userId) {
         return res.status(403).json({ message: "You don't have permission to remove collaborators from this wishlist" });
       }
       
@@ -1081,7 +1077,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Update a collaborator's role
-  app.patch("/api/wishlists/:id/collaborators/:userId", isAuthenticated, async (req: Request, res: Response) => {
+  app.patch("/api/wishlists/:id/collaborators/:userId", isAuthenticated, async (req: AuthenticatedRequest, res: Response) => {
     try {
       const wishlistId = parseInt(req.params.id);
       const collaboratorId = parseInt(req.params.userId);
@@ -1092,7 +1088,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Check that the current user is the owner of the wishlist
       const wishlist = await storage.getWishlistById(wishlistId);
-      if (!wishlist || wishlist.userId !== req.session.userId) {
+      if (!wishlist || wishlist.userId !== req.userId) {
         return res.status(403).json({ message: "You don't have permission to update collaborator roles for this wishlist" });
       }
       
@@ -1123,7 +1119,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Update a collaborator's last activity time (used to track who is currently active)
-  app.post("/api/wishlists/:id/collaborators/:userId/activity", isAuthenticated, async (req: Request, res: Response) => {
+  app.post("/api/wishlists/:id/collaborators/:userId/activity", isAuthenticated, async (req: AuthenticatedRequest, res: Response) => {
     try {
       const wishlistId = parseInt(req.params.id);
       const collaboratorId = parseInt(req.params.userId);
@@ -1133,7 +1129,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Only the user themselves should update their own activity
-      if (collaboratorId !== req.session.userId) {
+      if (collaboratorId !== req.userId) {
         return res.status(403).json({ message: "You can only update your own activity status" });
       }
       
@@ -1172,9 +1168,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // AI-Powered Product Recommendations
-  app.get("/api/recommendations", isAuthenticated, async (req: Request, res: Response) => {
+  app.get("/api/recommendations", isAuthenticated, async (req: AuthenticatedRequest, res: Response) => {
     try {
-      const userId = req.session.userId as number;
+      const userId = req.userId as number;
       const limit = req.query.limit ? parseInt(req.query.limit as string) : 5;
       
       // Import the recommendation service
@@ -1191,9 +1187,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get recommendations for a specific beneficiary
-  app.get("/api/recommendations/beneficiary/:id", isAuthenticated, async (req: Request, res: Response) => {
+  app.get("/api/recommendations/beneficiary/:id", isAuthenticated, async (req: AuthenticatedRequest, res: Response) => {
     try {
-      const userId = req.session.userId as number;
+      const userId = req.userId as number;
       const beneficiaryId = parseInt(req.params.id);
       const limit = req.query.limit ? parseInt(req.query.limit as string) : 5;
       
@@ -1215,9 +1211,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Update recommendation status (viewed, saved, or rejected)
-  app.patch("/api/recommendations/:id/status", isAuthenticated, async (req: Request, res: Response) => {
+  app.patch("/api/recommendations/:id/status", isAuthenticated, async (req: AuthenticatedRequest, res: Response) => {
     try {
-      const userId = req.session.userId as number;
+      const userId = req.userId as number;
       const recommendationId = parseInt(req.params.id);
       
       if (isNaN(recommendationId)) {
@@ -1254,9 +1250,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get recent notifications for the current user
-  app.get("/api/notifications", isAuthenticated, async (req: Request, res: Response) => {
+  app.get("/api/notifications", isAuthenticated, async (req: AuthenticatedRequest, res: Response) => {
     try {
-      const userId = req.session.userId!;
+      const userId = req.userId!;
       const limit = req.query.limit ? parseInt(req.query.limit as string) : 10;
       
       // Get recent notifications for the user
@@ -1276,7 +1272,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Mark a notification as read
-  app.patch("/api/notifications/:id/read", isAuthenticated, async (req: Request, res: Response) => {
+  app.patch("/api/notifications/:id/read", isAuthenticated, async (req: AuthenticatedRequest, res: Response) => {
     try {
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
@@ -1284,7 +1280,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Verify ownership of the notification
-      const notifications = await storage.getNotifications(req.session.userId!);
+      const notifications = await storage.getNotifications(req.userId!);
       const notification = notifications.find(n => n.id === id);
       
       if (!notification) {
@@ -1301,9 +1297,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Mark all notifications as read
-  app.post("/api/notifications/mark-all-read", isAuthenticated, async (req: Request, res: Response) => {
+  app.post("/api/notifications/mark-all-read", isAuthenticated, async (req: AuthenticatedRequest, res: Response) => {
     try {
-      const userId = req.session.userId!;
+      const userId = req.userId!;
       
       await storage.markAllNotificationsAsRead(userId);
       
@@ -1342,14 +1338,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/extension/track-event", verifyExtensionJWT, trackExtensionEvent);
   
   // Get recent items for extension
-  app.get("/api/extension/recent-items", verifyExtensionJWT, async (req: Request, res: Response) => {
+  app.get("/api/extension/recent-items", verifyExtensionJWT, async (req: AuthenticatedRequest, res: Response) => {
     try {
-      if (!req.session.userId) {
+      if (!req.userId) {
         return res.status(401).json({ error: 'Not authenticated' });
       }
       
       // Get user's wishlists and their recent items
-      const wishlists = await storage.getWishlists(req.session.userId);
+      const wishlists = await storage.getWishlists(req.userId);
       const allItems = [];
       
       for (const wishlist of wishlists) {
@@ -1374,9 +1370,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Get items for a specific wishlist
-  app.get("/api/extension/wishlists/:id/items", verifyExtensionJWT, async (req: Request, res: Response) => {
+  app.get("/api/extension/wishlists/:id/items", verifyExtensionJWT, async (req: AuthenticatedRequest, res: Response) => {
     try {
-      if (!req.session.userId) {
+      if (!req.userId) {
         return res.status(401).json({ error: 'Not authenticated' });
       }
       
@@ -1391,8 +1387,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: 'Wishlist not found' });
       }
       
-      const isOwner = wishlist.userId === req.session.userId;
-      const isCollaborator = !isOwner && await storage.isCollaborator(wishlistId, req.session.userId);
+      const isOwner = wishlist.userId === req.userId;
+      const isCollaborator = !isOwner && await storage.isCollaborator(wishlistId, req.userId);
       
       if (!isOwner && !isCollaborator) {
         return res.status(403).json({ error: 'You do not have permission to view this wishlist' });
@@ -1407,9 +1403,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Create a new wishlist from extension
-  app.post("/api/extension/wishlists", verifyExtensionJWT, async (req: Request, res: Response) => {
+  app.post("/api/extension/wishlists", verifyExtensionJWT, async (req: AuthenticatedRequest, res: Response) => {
     try {
-      if (!req.session.userId) {
+      if (!req.userId) {
         return res.status(401).json({ error: 'Not authenticated' });
       }
       
@@ -1419,7 +1415,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const wishlist = await storage.createWishlist({
-        userId: req.session.userId,
+        userId: req.userId,
         name: name.trim(),
         description: '',
         isPublic: false,
@@ -1434,9 +1430,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Delete an item from extension
-  app.delete("/api/extension/items/:id", verifyExtensionJWT, async (req: Request, res: Response) => {
+  app.delete("/api/extension/items/:id", verifyExtensionJWT, async (req: AuthenticatedRequest, res: Response) => {
     try {
-      if (!req.session.userId) {
+      if (!req.userId) {
         return res.status(401).json({ error: 'Not authenticated' });
       }
       
@@ -1457,8 +1453,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: 'Wishlist not found' });
       }
       
-      const isOwner = wishlist.userId === req.session.userId;
-      const isCollaborator = !isOwner && await storage.isCollaborator(item.wishlistId, req.session.userId);
+      const isOwner = wishlist.userId === req.userId;
+      const isCollaborator = !isOwner && await storage.isCollaborator(item.wishlistId, req.userId);
       
       if (!isOwner && !isCollaborator) {
         return res.status(403).json({ error: 'You do not have permission to delete this item' });
@@ -1473,9 +1469,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Share a wishlist from extension
-  app.post("/api/extension/wishlists/:id/share", verifyExtensionJWT, async (req: Request, res: Response) => {
+  app.post("/api/extension/wishlists/:id/share", verifyExtensionJWT, async (req: AuthenticatedRequest, res: Response) => {
     try {
-      if (!req.session.userId) {
+      if (!req.userId) {
         return res.status(401).json({ error: 'Not authenticated' });
       }
       
@@ -1490,7 +1486,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: 'Wishlist not found' });
       }
       
-      if (wishlist.userId !== req.session.userId) {
+      if (wishlist.userId !== req.userId) {
         return res.status(403).json({ error: 'You do not have permission to share this wishlist' });
       }
       
@@ -1509,7 +1505,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Delete a notification
-  app.delete("/api/notifications/:id", isAuthenticated, async (req: Request, res: Response) => {
+  app.delete("/api/notifications/:id", isAuthenticated, async (req: AuthenticatedRequest, res: Response) => {
     try {
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
@@ -1517,7 +1513,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Verify ownership of the notification
-      const notifications = await storage.getNotifications(req.session.userId!);
+      const notifications = await storage.getNotifications(req.userId!);
       const notification = notifications.find(n => n.id === id);
       
       if (!notification) {
@@ -1536,7 +1532,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Social Gifting Coordination endpoints
 
   // Get all participants for a gift
-  app.get("/api/gifts/:itemId/participants", isAuthenticated, async (req: Request, res: Response) => {
+  app.get("/api/gifts/:itemId/participants", isAuthenticated, async (req: AuthenticatedRequest, res: Response) => {
     try {
       const itemId = parseInt(req.params.itemId);
       if (isNaN(itemId)) {
@@ -1558,14 +1554,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Add a participant to a gift
-  app.post("/api/gifts/:itemId/participants", isAuthenticated, async (req: Request, res: Response) => {
+  app.post("/api/gifts/:itemId/participants", isAuthenticated, async (req: AuthenticatedRequest, res: Response) => {
     try {
       const itemId = parseInt(req.params.itemId);
       if (isNaN(itemId)) {
         return res.status(400).json({ message: "Invalid item ID" });
       }
       
-      const userId = req.session.userId!;
+      const userId = req.userId!;
       const { contributionAmount, message } = req.body;
       
       if (!contributionAmount || contributionAmount <= 0) {
@@ -1588,14 +1584,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Remove a participant from a gift
-  app.delete("/api/gifts/:itemId/participants", isAuthenticated, async (req: Request, res: Response) => {
+  app.delete("/api/gifts/:itemId/participants", isAuthenticated, async (req: AuthenticatedRequest, res: Response) => {
     try {
       const itemId = parseInt(req.params.itemId);
       if (isNaN(itemId)) {
         return res.status(400).json({ message: "Invalid item ID" });
       }
       
-      const userId = req.session.userId!;
+      const userId = req.userId!;
       
       const success = await removeGiftParticipant(itemId, userId);
       
@@ -1612,14 +1608,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Update a participant's contribution
-  app.patch("/api/gifts/:itemId/participants", isAuthenticated, async (req: Request, res: Response) => {
+  app.patch("/api/gifts/:itemId/participants", isAuthenticated, async (req: AuthenticatedRequest, res: Response) => {
     try {
       const itemId = parseInt(req.params.itemId);
       if (isNaN(itemId)) {
         return res.status(400).json({ message: "Invalid item ID" });
       }
       
-      const userId = req.session.userId!;
+      const userId = req.userId!;
       const { contributionAmount, message, status } = req.body;
       
       // Build updates object with only provided fields
@@ -1643,7 +1639,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get total contributed amount for a gift
-  app.get("/api/gifts/:itemId/total", isAuthenticated, async (req: Request, res: Response) => {
+  app.get("/api/gifts/:itemId/total", isAuthenticated, async (req: AuthenticatedRequest, res: Response) => {
     try {
       const itemId = parseInt(req.params.itemId);
       if (isNaN(itemId)) {
@@ -1659,14 +1655,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Mark a gift as ready to purchase
-  app.post("/api/gifts/:itemId/ready", isAuthenticated, async (req: Request, res: Response) => {
+  app.post("/api/gifts/:itemId/ready", isAuthenticated, async (req: AuthenticatedRequest, res: Response) => {
     try {
       const itemId = parseInt(req.params.itemId);
       if (isNaN(itemId)) {
         return res.status(400).json({ message: "Invalid item ID" });
       }
       
-      const userId = req.session.userId!;
+      const userId = req.userId!;
       
       // Verify user is participating in this gift
       const participants = await getGiftParticipantsWithDetails(itemId);
@@ -1691,14 +1687,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Mark a gift as purchased
-  app.post("/api/gifts/:itemId/purchased", isAuthenticated, async (req: Request, res: Response) => {
+  app.post("/api/gifts/:itemId/purchased", isAuthenticated, async (req: AuthenticatedRequest, res: Response) => {
     try {
       const itemId = parseInt(req.params.itemId);
       if (isNaN(itemId)) {
         return res.status(400).json({ message: "Invalid item ID" });
       }
       
-      const userId = req.session.userId!;
+      const userId = req.userId!;
       const { purchaseDetails } = req.body;
       
       // Verify user is participating in this gift
