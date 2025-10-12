@@ -108,6 +108,7 @@ export class PriceScraper {
       
       // Extract price
       const priceText = await page.evaluate(() => {
+        // This code runs in browser context where document is available
         const selectors = [
           '.a-price .a-offscreen',
           '.a-price-current .a-price-amount',
@@ -115,7 +116,7 @@ export class PriceScraper {
         ];
         
         for (const selector of selectors) {
-          const element = document.querySelector(selector);
+          const element = (globalThis as any).document.querySelector(selector);
           if (element) {
             return element.textContent?.trim() || '';
           }
@@ -171,7 +172,7 @@ export class PriceScraper {
       // Try to extract price using common selectors
       const priceText = await page.evaluate((selectors: string[]) => {
         for (const selector of selectors) {
-          const elements = document.querySelectorAll(selector);
+          const elements = (globalThis as any).document.querySelectorAll(selector);
           for (const element of elements) {
             const text = element.textContent?.trim() || '';
             if (text && /[\$£€¥₹]?[\d,]+\.?\d*/.test(text)) {
@@ -188,7 +189,7 @@ export class PriceScraper {
 
       // Fallback: search for any price-like text in the page
       const fallbackPrice = await page.evaluate(() => {
-        const text = document.body.textContent || '';
+        const text = (globalThis as any).document.body.textContent || '';
         const priceMatches = text.match(/[\$£€¥₹][\d,]+\.?\d*/g);
         return priceMatches ? priceMatches[0] : '';
       });

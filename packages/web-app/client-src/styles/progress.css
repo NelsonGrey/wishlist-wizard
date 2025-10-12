@@ -1,0 +1,18 @@
+/* Progress Bar Styles */
+.progress-indicator {
+  height: 100%;
+  width: 100%;
+  flex: 1;
+  background-color: hsl(var(--primary));
+  transition: all 0.3s ease;
+  transform: translateX(calc(-100% + var(--progress-value, 0) * 1%));
+}
+
+/* Contribution Dialog Progress Bar */
+.contribution-progress-bar {
+  background-color: rgb(34 197 94); /* green-600 */
+  height: 0.5rem; /* h-2 */
+  border-radius: 0.25rem; /* rounded-full */
+  transition: width 0.3s ease; /* transition-all duration-300 */
+  width: attr(data-progress number, 0) * 1%;
+}

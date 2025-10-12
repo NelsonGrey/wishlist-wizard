@@ -1,7 +1,7 @@
 import { db } from "../db";
 import { IStorage } from "../storage";
 import { wishlistItems, barcodeScanLogs } from "@wishlist-wizard/shared";
-import { eq, and, like, or } from "drizzle-orm";
+import { eq, and, like, or, sql } from "drizzle-orm";
 
 export class BarcodeScanService {
   private storage: IStorage;
@@ -48,8 +48,8 @@ export class BarcodeScanService {
         where: and(
           like(wishlistItems.productIdentifier || '', `%${barcode.slice(-8)}%`),
           or(
-            like(wishlistItems.metadata.toString(), '%barcode%'),
-            like(wishlistItems.metadata.toString(), '%productId%')
+            sql`${wishlistItems.metadata}::text LIKE '%barcode%'`,
+            sql`${wishlistItems.metadata}::text LIKE '%productId%'`
           )
         ),
         limit: 5
@@ -60,7 +60,7 @@ export class BarcodeScanService {
         return {
           found: true,
           message: "Found similar products based on partial barcode match",
-          similarProducts: similarProducts.map(p => ({
+          similarProducts: similarProducts.map((p: any) => ({
             id: p.id,
             title: p.title,
             price: p.price,
@@ -84,7 +84,7 @@ export class BarcodeScanService {
       return {
         found: false,
         message: "An error occurred while searching for this product.",
-        error: error.message
+        error: (error as Error).message
       };
     }
   }

@@ -25,17 +25,10 @@ function customRender(
   } = options || {};
   
   function AllTheProviders({ children }: PropsWithChildren<{}>) {
-    // Use test routing with a static location
-    const staticNavigator = {
-      hook: () => [pathname, () => {}]
-    };
-    
     return (
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
-          <Router navigator={staticNavigator}>
-            {children}
-          </Router>
+          {children}
         </TooltipProvider>
       </QueryClientProvider>
     );

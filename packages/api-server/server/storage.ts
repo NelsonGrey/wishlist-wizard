@@ -573,6 +573,7 @@ export class MemStorage implements IStorage {
       type: notificationData.type,
       title: notificationData.title,
       content: notificationData.content,
+      message: notificationData.message || null,
       data: notificationData.data || {},
       relatedEntityId: notificationData.relatedEntityId || null,
       relatedEntityType: notificationData.relatedEntityType || null,

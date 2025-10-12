@@ -1,9 +1,8 @@
 import { describe, it, expect, beforeAll, afterAll, vi, beforeEach } from 'vitest';
-import supertest from 'supertest';
+import supertest, { SuperTest, Test } from 'supertest';
 import express from 'express';
 import { registerRoutes } from '../../routes';
 import { storage } from '../../storage';
-import session from 'express-session';
 
 // Mock required modules
 vi.mock('../../storage', () => ({
@@ -35,26 +34,25 @@ vi.mock('../../auth', () => ({
 }));
 
 // Mock express-session
-vi.mock('express-session', () => {
-  return vi.fn(() => (req: any, res: any, next: any) => {
-    req.session = {
-      userId: 1,
-      authenticated: true
-    };
+// Mock Firebase auth middleware
+vi.mock('../../firebase-auth-simple', () => ({
+  firebaseAuthMiddleware: (req: any, res: any, next: any) => {
+    req.userId = 1;
+    req.firebaseUser = { uid: 'test-uid', email: 'test@example.com' };
     next();
-  });
-});
+  }
+}));
 
 describe('Notification Flow E2E', () => {
   let app: express.Express;
-  let request: supertest.SuperTest<supertest.Test>;
+  let request: any;
   let server: any;
   
   beforeAll(async () => {
     // Create Express app
     app = express();
     app.use(express.json());
-    app.use(session());
+    app.use(express.urlencoded({ extended: false }));
     
     // Register routes
     server = await registerRoutes(app);
@@ -97,7 +95,7 @@ describe('Notification Flow E2E', () => {
     (storage.getCollaborators as any).mockResolvedValue([]);
     (storage.getNotifications as any).mockResolvedValue(mockNotifications);
     (storage.getUnreadNotificationCount as any).mockResolvedValue(1);
-    (storage.markNotificationAsRead as any).mockImplementation((id) => {
+    (storage.markNotificationAsRead as any).mockImplementation((id: number) => {
       return {
         ...mockNotifications.find(n => n.id === id),
         isRead: true
