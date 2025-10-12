@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from "express";
+import { emailService } from "./services/emailService";
 
 interface FirebaseUser {
   uid: string;
@@ -190,6 +191,10 @@ export async function register(req: Request, res: Response) {
       firebaseUser: true
     };
     
+    // Send welcome email
+    const userName = username || email.split('@')[0];
+    await emailService.sendWelcomeEmail(email, userName);
+    
     res.status(201).json({
       success: true,
       message: 'User registered successfully (development mode)',
@@ -249,7 +254,35 @@ export async function logout(req: Request, res: Response) {
 }
 
 /**
- * Verify email (placeholder)
+ * Send email verification (placeholder - using Firebase's built-in verification)
+ */
+export async function sendEmailVerification(req: AuthenticatedRequest, res: Response) {
+  try {
+    const userEmail = req.firebaseUser?.email || 'user@example.com';
+    const userName = req.firebaseUser?.displayName || 'User';
+    
+    // Generate a mock verification token for development
+    const verificationToken = `verify-${Date.now()}-${Math.random().toString(36).substring(2)}`;
+    
+    // Create verification URL
+    const baseUrl = process.env.CLIENT_URL || 'http://localhost:3000';
+    const verificationUrl = `${baseUrl}/verify-email/${verificationToken}`;
+    
+    // Send verification email
+    await emailService.sendVerificationEmail(userEmail, userName, verificationUrl);
+    
+    res.json({
+      success: true,
+      message: 'Verification email sent successfully'
+    });
+  } catch (error) {
+    console.error("Send email verification error:", error);
+    res.status(500).json({ error: "Failed to send verification email" });
+  }
+}
+
+/**
+ * Verify email with token (placeholder)
  */
 export async function verifyEmail(req: Request, res: Response) {
   try {
@@ -274,11 +307,19 @@ export async function requestPasswordReset(req: Request, res: Response) {
   try {
     const { email } = req.body;
     
-    console.log('Mock password reset request:', { email });
+    // Generate a mock reset token for development
+    const resetToken = `reset-${Date.now()}-${Math.random().toString(36).substring(2)}`;
+    
+    // Create reset URL
+    const baseUrl = process.env.CLIENT_URL || 'http://localhost:3000';
+    const resetUrl = `${baseUrl}/reset-password/${resetToken}`;
+    
+    // Send password reset email
+    await emailService.sendPasswordResetEmail(email, resetUrl);
     
     res.json({
       success: true,
-      message: 'Password reset email sent (development mode)'
+      message: 'Password reset email sent successfully'
     });
   } catch (error) {
     console.error("Request password reset error:", error);

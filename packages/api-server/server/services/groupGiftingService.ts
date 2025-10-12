@@ -52,7 +52,7 @@ export class GroupGiftingService {
           userId: item.wishlist.owner.id,
           type: "group_gift_created",
           title: "New Group Gift Started",
-          message: `Someone has started a group gift for "${item.title}" on your wishlist`,
+          content: `Someone has started a group gift for "${item.title}" on your wishlist`,
           relatedEntityId: newGroupGift.id,
           relatedEntityType: "group_gift",
           actionUrl: `/group-gifts/${newGroupGift.id}`,
@@ -110,7 +110,7 @@ export class GroupGiftingService {
           userId: groupGift.initiator.id,
           type: "group_gift_contribution",
           title: "New Group Gift Contribution",
-          message: `Someone has contributed $${data.amount} to the group gift for "${groupGift.item?.title}"`,
+          content: `Someone has contributed $${data.amount} to the group gift for "${groupGift.item?.title}"`,
           relatedEntityId: data.groupGiftId,
           relatedEntityType: "group_gift",
           actionUrl: `/group-gifts/${data.groupGiftId}`,
@@ -179,7 +179,7 @@ export class GroupGiftingService {
           userId: groupGift.item.wishlist.owner.id,
           type: "group_gift_completed",
           title: "Group Gift Completed",
-          message: `The group gift for "${groupGift.item.title}" has been fully funded!`,
+          content: `The group gift for "${groupGift.item.title}" has been fully funded!`,
           relatedEntityId: groupGiftId,
           relatedEntityType: "group_gift",
           actionUrl: `/group-gifts/${groupGiftId}`,
@@ -192,16 +192,16 @@ export class GroupGiftingService {
       // Notify all contributors
       const uniqueContributors = new Set(
         groupGift.contributions
-          .map(c => c.userId)
-          .filter(id => id !== groupGift.initiatedByUserId) // Don't notify the initiator twice
+          .map((c: any) => c.userId)
+          .filter((id: any) => id !== groupGift.initiatedByUserId) // Don't notify the initiator twice
       );
       
       for (const contributorId of uniqueContributors) {
         const notification: InsertNotification = {
-          userId: contributorId,
+          userId: contributorId as number,
           type: "group_gift_completed",
           title: "Group Gift Completed",
-          message: `The group gift for "${groupGift.item?.title}" that you contributed to has been fully funded!`,
+          content: `The group gift for "${groupGift.item?.title}" that you contributed to has been fully funded!`,
           relatedEntityId: groupGiftId,
           relatedEntityType: "group_gift",
           actionUrl: `/group-gifts/${groupGiftId}`,
@@ -257,7 +257,7 @@ export class GroupGiftingService {
             userId: contribution.contributor.id,
             type: "group_gift_cancelled",
             title: "Group Gift Cancelled",
-            message: `A group gift you contributed to has been cancelled. Your contribution of $${contribution.amount} will be refunded.`,
+            content: `A group gift you contributed to has been cancelled. Your contribution of $${contribution.amount} will be refunded.`,
             relatedEntityId: groupGiftId,
             relatedEntityType: "group_gift",
             actionUrl: `/group-gifts/${groupGiftId}`,
@@ -304,12 +304,12 @@ export class GroupGiftingService {
     });
     
     // Merge and deduplicate
-    const contributedGiftIds = new Set(contributedGifts.map(c => c.groupGift.id));
+    const contributedGiftIds = new Set(contributedGifts.map((c: any) => c.groupGift.id));
     const mergedGifts = [
       ...initiatedGifts,
       ...contributedGifts
-        .map(c => c.groupGift)
-        .filter(g => !contributedGiftIds.has(g.id))
+        .map((c: any) => c.groupGift)
+        .filter((g: any) => !contributedGiftIds.has(g.id))
     ];
     
     return mergedGifts;
@@ -343,11 +343,11 @@ export class GroupGiftingService {
     if (!groupGift) return null;
     
     // Calculate stats
-    const totalContributors = new Set(groupGift.contributions.map(c => c.userId)).size;
+    const totalContributors = new Set(groupGift.contributions.map((c: any) => c.userId)).size;
     const percentComplete = Math.min(100, Math.round((Number(groupGift.currentAmount) / Number(groupGift.targetAmount)) * 100));
     
     // Format anonymous contributions correctly
-    const contributions = groupGift.contributions.map(c => ({
+    const contributions = groupGift.contributions.map((c: any) => ({
       ...c,
       contributor: c.isAnonymous ? { displayName: "Anonymous" } : c.contributor
     }));
@@ -386,7 +386,7 @@ export class GroupGiftingService {
       where: eq(wishlistItems.wishlistId, wishlistId)
     });
     
-    const itemIds = items.map(item => item.id);
+    const itemIds = items.map((item: any) => item.id);
     
     // Get all active group gifts for these items
     const groupGifts = [];

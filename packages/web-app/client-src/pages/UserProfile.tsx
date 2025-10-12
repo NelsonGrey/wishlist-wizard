@@ -43,7 +43,8 @@ import {
   ShoppingBag,
   Loader2,
   X,
-  UserPlus
+  UserPlus,
+  Receipt
 } from 'lucide-react';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
@@ -623,6 +624,7 @@ const UserProfile = () => {
                             className="w-full border rounded-md p-2"
                             value={editedProfile.giftPreferences.sizes.clothing}
                             onChange={e => updateGiftPreference('sizes', 'clothing', e.target.value)}
+                            title="Select your clothing size"
                           >
                             {CLOTHING_SIZES.map(size => (
                               <option key={size} value={size}>{size}</option>
@@ -640,6 +642,7 @@ const UserProfile = () => {
                             className="w-full border rounded-md p-2"
                             value={editedProfile.giftPreferences.sizes.shoes}
                             onChange={e => updateGiftPreference('sizes', 'shoes', e.target.value)}
+                            title="Select your shoe size"
                           >
                             {SHOE_SIZES.map(size => (
                               <option key={size} value={size}>{size}</option>
@@ -945,90 +948,22 @@ const UserProfile = () => {
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle>Privacy Settings</CardTitle>
-                <CardDescription>Control who can see your wishlists and activity</CardDescription>
+                <CardDescription>Manage who can see your wishlists and activity</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-6">
-                  <div className="space-y-3">
-                    <h3 className="text-base font-medium">Profile Visibility</h3>
-                    <RadioGroup 
-                      defaultValue={editedProfile.privacySettings.profileVisibility} 
-                      onValueChange={(value) => setVisibilityOption('profileVisibility', value)}
-                    >
-                      {VISIBILITY_OPTIONS.map(option => (
-                        <div className="flex items-center space-x-2" key={option.value}>
-                          <RadioGroupItem value={option.value} id={`profile-${option.value}`} />
-                          <Label htmlFor={`profile-${option.value}`} className="font-normal">
-                            <span className="font-medium">{option.label}</span> - {option.description}
-                          </Label>
-                        </div>
-                      ))}
-                    </RadioGroup>
-                  </div>
-                  
-                  <div className="space-y-3">
-                    <h3 className="text-base font-medium">Default Wishlist Visibility</h3>
-                    <RadioGroup 
-                      defaultValue={editedProfile.privacySettings.wishlistDefaultVisibility} 
-                      onValueChange={(value) => setVisibilityOption('wishlistDefaultVisibility', value)}
-                    >
-                      {VISIBILITY_OPTIONS.map(option => (
-                        <div className="flex items-center space-x-2" key={option.value}>
-                          <RadioGroupItem value={option.value} id={`wishlist-${option.value}`} />
-                          <Label htmlFor={`wishlist-${option.value}`} className="font-normal">
-                            <span className="font-medium">{option.label}</span> - {option.description}
-                          </Label>
-                        </div>
-                      ))}
-                    </RadioGroup>
-                  </div>
-                  
-                  <Separator />
-                  
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-0.5">
-                        <Label htmlFor="activity-tracking">Activity Tracking</Label>
-                        <p className="text-sm text-muted-foreground">Allow us to track your browsing activity for better recommendations</p>
-                      </div>
-                      <Switch 
-                        id="activity-tracking" 
-                        checked={editedProfile.privacySettings.activityTracking}
-                        onCheckedChange={() => togglePrivacySetting('activityTracking')}
-                      />
-                    </div>
-                    
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-0.5">
-                        <Label htmlFor="tagging">Allow Tagging</Label>
-                        <p className="text-sm text-muted-foreground">Let friends tag you in their wishlists and gift exchanges</p>
-                      </div>
-                      <Switch 
-                        id="tagging" 
-                        checked={editedProfile.privacySettings.allowTagging}
-                        onCheckedChange={() => togglePrivacySetting('allowTagging')}
-                      />
-                    </div>
-                    
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-0.5">
-                        <Label htmlFor="recommendations">Personalized Recommendations</Label>
-                        <p className="text-sm text-muted-foreground">Receive personalized gift suggestions based on your preferences</p>
-                      </div>
-                      <Switch 
-                        id="recommendations" 
-                        checked={editedProfile.privacySettings.showRecommendations}
-                        onCheckedChange={() => togglePrivacySetting('showRecommendations')}
-                      />
-                    </div>
-                  </div>
-                  
-                  <div className="pt-4">
-                    <Button onClick={handleSaveProfile} disabled={savingProfile}>
-                      {savingProfile && <Loader2 size={16} className="mr-2 animate-spin" />}
-                      Save Privacy Settings
+                <div className="text-center py-12">
+                  <Lock className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
+                  <h3 className="text-lg font-medium mb-2">Advanced Privacy Controls</h3>
+                  <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+                    Manage detailed privacy settings for individual wishlists, items, and your profile.
+                    Control visibility, custom access lists, and interaction permissions.
+                  </p>
+                  <Link href="/privacy-settings">
+                    <Button size="lg">
+                      <Settings className="h-4 w-4 mr-2" />
+                      Open Privacy Settings
                     </Button>
-                  </div>
+                  </Link>
                 </div>
               </CardContent>
             </Card>
@@ -1288,6 +1223,7 @@ const UserProfile = () => {
                       className="border rounded-md p-2"
                       value={editedProfile.theme}
                       onChange={e => setEditedProfile({...editedProfile, theme: e.target.value})}
+                      title="Select your preferred theme"
                     >
                       {THEME_OPTIONS.map(option => (
                         <option key={option.value} value={option.value}>{option.label}</option>
@@ -1307,6 +1243,7 @@ const UserProfile = () => {
                       className="border rounded-md p-2"
                       value={editedProfile.language}
                       onChange={e => setEditedProfile({...editedProfile, language: e.target.value})}
+                      title="Select your preferred language"
                     >
                       {LANGUAGE_OPTIONS.map(option => (
                         <option key={option.value} value={option.value}>{option.label}</option>
@@ -1321,6 +1258,7 @@ const UserProfile = () => {
                       className="border rounded-md p-2"
                       value={editedProfile.currency}
                       onChange={e => setEditedProfile({...editedProfile, currency: e.target.value})}
+                      title="Select your preferred currency"
                     >
                       {CURRENCY_OPTIONS.map(option => (
                         <option key={option.value} value={option.value}>{option.label}</option>
@@ -1371,6 +1309,20 @@ const UserProfile = () => {
                       <CreditCard size={16} className="mr-2" />
                       Add Payment Method
                     </Button>
+                  </div>
+                </div>
+
+                {/* Payment History */}
+                <div className="space-y-3">
+                  <h3 className="text-base font-medium">Payment History</h3>
+
+                  <div className="space-y-2">
+                    {/* This would be populated with actual payment history data */}
+                    <div className="text-center py-8 text-muted-foreground">
+                      <Receipt className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                      <p className="text-sm">No payment history available</p>
+                      <p className="text-xs mt-1">Your contribution and purchase history will appear here</p>
+                    </div>
                   </div>
                 </div>
                 

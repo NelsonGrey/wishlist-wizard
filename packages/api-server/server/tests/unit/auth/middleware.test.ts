@@ -1,24 +1,15 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { isAuthenticated } from '../../../auth';
+import { verifyJWT } from '../../../middlewares/auth-middleware';
 import { Request, Response, NextFunction } from 'express';
 
-describe('Authentication Middleware', () => {
-  let mockRequest: Partial<Request>;
+describe('JWT Authentication Middleware', () => {
+  let mockRequest: any;
   let mockResponse: Partial<Response>;
   let nextFunction: NextFunction;
   
   beforeEach(() => {
     mockRequest = {
-      session: {
-        id: 'test-session',
-        cookie: {} as any,
-        regenerate: vi.fn(),
-        destroy: vi.fn(),
-        reload: vi.fn(),
-        resetMaxAge: vi.fn(),
-        save: vi.fn(),
-        touch: vi.fn()
-      } as any
+      headers: {}
     };
     
     mockResponse = {
@@ -29,74 +20,61 @@ describe('Authentication Middleware', () => {
     nextFunction = vi.fn();
   });
   
-  describe('isAuthenticated', () => {
-    it('should call next() if user is authenticated', () => {
+  describe('verifyJWT', () => {
+    it('should call next() if valid JWT token is provided', async () => {
       // Arrange
-      mockRequest.session = {
-        userId: 1,
-        authenticated: true
+      mockRequest.headers = {
+        authorization: 'Bearer valid-jwt-token'
       };
       
+      // Mock the verifyToken function to return a valid decoded token
+      const mockVerifyToken = vi.fn().mockResolvedValue({ sub: '123' });
+      // Import and mock the verifyToken function
+      vi.doMock('../../../jwt-auth', () => ({
+        verifyToken: mockVerifyToken
+      }));
+      
       // Act
-      isAuthenticated(mockRequest as Request, mockResponse as Response, nextFunction);
+      await verifyJWT(mockRequest as any, mockResponse as Response, nextFunction);
       
       // Assert
       expect(nextFunction).toHaveBeenCalledTimes(1);
+      expect(mockRequest.userId).toBe(123);
       expect(mockResponse.status).not.toHaveBeenCalled();
-      expect(mockResponse.json).not.toHaveBeenCalled();
     });
     
-    it('should return 401 status if user is not authenticated', () => {
+    it('should return 401 if no token is provided', async () => {
       // Arrange
-      mockRequest.session = {
-        // No userId or authenticated flag
+      mockRequest.headers = {};
+      
+      // Act
+      await verifyJWT(mockRequest as any, mockResponse as Response, nextFunction);
+      
+      // Assert
+      expect(nextFunction).not.toHaveBeenCalled();
+      expect(mockResponse.status).toHaveBeenCalledWith(401);
+      expect(mockResponse.json).toHaveBeenCalledWith({ error: 'No token provided' });
+    });
+    
+    it('should return 401 if token verification fails', async () => {
+      // Arrange
+      mockRequest.headers = {
+        authorization: 'Bearer invalid-token'
       };
       
+      // Mock verifyToken to throw an error
+      const mockVerifyToken = vi.fn().mockRejectedValue(new Error('Invalid token'));
+      vi.doMock('../../../jwt-auth', () => ({
+        verifyToken: mockVerifyToken
+      }));
+      
       // Act
-      isAuthenticated(mockRequest as Request, mockResponse as Response, nextFunction);
+      await verifyJWT(mockRequest as any, mockResponse as Response, nextFunction);
       
       // Assert
       expect(nextFunction).not.toHaveBeenCalled();
       expect(mockResponse.status).toHaveBeenCalledWith(401);
-      expect(mockResponse.json).toHaveBeenCalledWith(
-        expect.objectContaining({
-          error: expect.stringMatching(/not authenticated/i)
-        })
-      );
-    });
-    
-    it('should return 401 status if session is undefined', () => {
-      // Arrange
-      mockRequest.session = undefined;
-      
-      // Act
-      isAuthenticated(mockRequest as Request, mockResponse as Response, nextFunction);
-      
-      // Assert
-      expect(nextFunction).not.toHaveBeenCalled();
-      expect(mockResponse.status).toHaveBeenCalledWith(401);
-      expect(mockResponse.json).toHaveBeenCalledWith(
-        expect.objectContaining({
-          error: expect.stringMatching(/not authenticated/i)
-        })
-      );
-    });
-    
-    it('should handle cases where userId exists but authenticated flag is missing', () => {
-      // Arrange
-      mockRequest.session = {
-        userId: 1
-        // Missing authenticated flag
-      };
-      
-      // Act
-      isAuthenticated(mockRequest as Request, mockResponse as Response, nextFunction);
-      
-      // Assert
-      // Behavior depends on implementation, but typically requires both conditions
-      // Assuming implementation requires both userId and authenticated flag:
-      expect(nextFunction).not.toHaveBeenCalled();
-      expect(mockResponse.status).toHaveBeenCalledWith(401);
+      expect(mockResponse.json).toHaveBeenCalledWith({ error: 'Invalid token' });
     });
   });
 });
