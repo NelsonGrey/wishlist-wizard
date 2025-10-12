@@ -1,10 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
 import { useRoute, useLocation } from "wouter";
-import { ArrowLeft, ExternalLink } from "lucide-react";
+import { ArrowLeft, ExternalLink, Lock, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import Footer from "@/components/Footer";
+import { useCheckPrivacyAccess } from "@/hooks/use-privacy";
 
 type Wishlist = {
   id: number;
@@ -47,6 +49,49 @@ export default function SharedWishlist() {
     enabled: !!shareId,
   });
 
+  // Check access to the wishlist
+  const { 
+    data: wishlistAccess,
+    isLoading: accessLoading 
+  } = useQuery({
+    queryKey: ['wishlist-access', shareId],
+    queryFn: async () => {
+      if (!data?.wishlist) return null;
+      
+      // Check if user has access to view this wishlist
+      const response = await fetch('/api/privacy/check-access', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          entityType: 'wishlist',
+          entityId: data.wishlist.id,
+          interactionType: 'view'
+        })
+      });
+      
+      if (response.ok) {
+        return response.json();
+      }
+      
+      // If privacy check fails, assume no access
+      return { hasAccess: false, isOwner: false };
+    },
+    enabled: !!data?.wishlist
+  });
+
+  // Filter items based on access permissions
+  const accessibleItems = data?.items?.filter(item => {
+    // For now, if user has access to wishlist, they can see all items
+    // In the future, we could check individual item privacy settings
+    return wishlistAccess?.hasAccess !== false;
+  }) || [];
+
+  // Determine if user should see content
+  const canViewWishlist = !wishlistAccess || wishlistAccess.hasAccess !== false;
+  const isOwner = wishlistAccess?.isOwner;
+
   if (!match) {
     return (
       <div className="min-h-screen bg-gray-50">
@@ -86,20 +131,24 @@ export default function SharedWishlist() {
             <h1 className="text-2xl font-bold mb-2">
               {isLoading ? (
                 <Skeleton className="h-8 w-64" />
-              ) : (
+              ) : canViewWishlist ? (
                 data?.wishlist.name
+              ) : (
+                "Private Wishlist"
               )}
             </h1>
             <p className="text-gray-500">
               {isLoading ? (
                 <Skeleton className="h-4 w-full" />
+              ) : canViewWishlist ? (
+                `Shared wishlist • ${accessibleItems.length || 0} items`
               ) : (
-                `Shared wishlist • ${data?.items.length || 0} items`
+                "This wishlist is private"
               )}
             </p>
           </div>
 
-          {isLoading ? (
+          {isLoading || accessLoading ? (
             <div className="space-y-4">
               {[1, 2, 3].map((i) => (
                 <Card key={i}>
@@ -117,6 +166,19 @@ export default function SharedWishlist() {
                 </Card>
               ))}
             </div>
+          ) : !canViewWishlist ? (
+            <Alert>
+              <Lock className="h-4 w-4" />
+              <AlertDescription>
+                <div className="space-y-2">
+                  <p className="font-medium">Access Restricted</p>
+                  <p>This wishlist is private and you don't have permission to view it.</p>
+                  <p className="text-sm text-muted-foreground">
+                    The owner may need to adjust the privacy settings or add you to the access list.
+                  </p>
+                </div>
+              </AlertDescription>
+            </Alert>
           ) : error ? (
             <Card>
               <CardContent className="p-8 text-center">
@@ -129,9 +191,9 @@ export default function SharedWishlist() {
                 </Button>
               </CardContent>
             </Card>
-          ) : data?.items && data.items.length > 0 ? (
+          ) : accessibleItems && accessibleItems.length > 0 ? (
             <div className="space-y-4">
-              {data.items.map((item) => (
+              {accessibleItems.map((item) => (
                 <Card key={item.id}>
                   <CardContent className="p-4">
                     <div className="flex space-x-4">
@@ -151,6 +213,7 @@ export default function SharedWishlist() {
                             href={item.productUrl}
                             target="_blank"
                             rel="noopener noreferrer"
+                            title={`View ${item.title} on ${item.store || 'store'}`}
                             className="text-primary hover:text-indigo-700"
                           >
                             <ExternalLink className="h-5 w-5" />
@@ -168,8 +231,13 @@ export default function SharedWishlist() {
           ) : (
             <Card>
               <CardContent className="p-8 text-center">
-                <h3 className="text-lg font-medium mb-2">No items in this wishlist</h3>
-                <p className="text-gray-500">This shared wishlist doesn't have any items yet.</p>
+                <h3 className="text-lg font-medium mb-2">No items available</h3>
+                <p className="text-gray-500">
+                  {canViewWishlist 
+                    ? "This shared wishlist doesn't have any items yet."
+                    : "You don't have access to view items in this wishlist."
+                  }
+                </p>
               </CardContent>
             </Card>
           )}

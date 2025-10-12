@@ -1,7 +1,7 @@
 {
   "extends": "../../tsconfig.json",
   "compilerOptions": {
-    "baseUrl": ".",
+    // "baseUrl": ".",
     "ignoreDeprecations": "5.0",
     "paths": {
       "@/*": ["./client-src/*"],

@@ -23,6 +23,7 @@ import UserProfile from "@/pages/UserProfile";
 import Recommendations from "@/pages/Recommendations";
 import Calendar from "@/pages/Calendar";
 import Analytics from "@/pages/Analytics";
+import PrivacySettings from "@/pages/PrivacySettings";
 import { useEffect } from "react";
 import { initGA } from "./lib/analytics";
 import { useAnalytics } from "./hooks/use-analytics";
@@ -106,6 +107,12 @@ function Router() {
       <Route path="/analytics">
         <ProtectedRoute requireAuth>
           <Analytics />
+        </ProtectedRoute>
+      </Route>
+      
+      <Route path="/privacy-settings">
+        <ProtectedRoute requireAuth>
+          <PrivacySettings />
         </ProtectedRoute>
       </Route>
       

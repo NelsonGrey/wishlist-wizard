@@ -53,10 +53,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         unsubscribe = onAuthStateChange((user) => {
           setUser(user);
           setLoading(false);
-          
-          if (import.meta.env.DEV) {
-            console.log('[AuthContext] Auth state changed:', user ? 'signed in' : 'signed out');
-          }
         });
       } catch (error) {
         console.error('[AuthContext] Failed to initialize auth:', error);

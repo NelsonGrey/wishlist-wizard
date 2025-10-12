@@ -3,7 +3,6 @@ import supertest from 'supertest';
 import express from 'express';
 import { storage } from '../../storage';
 import { registerRoutes } from '../../routes';
-import session from 'express-session';
 
 // Mock storage
 vi.mock('../../storage', () => {
@@ -33,19 +32,18 @@ vi.mock('../../auth', () => {
 });
 
 // Mock session middleware
-vi.mock('express-session', () => {
-  return vi.fn(() => (req: any, res: any, next: any) => {
-    req.session = {
-      userId: 1,
-      authenticated: true
-    };
+// Mock Firebase auth middleware
+vi.mock('../../firebase-auth-simple', () => ({
+  firebaseAuthMiddleware: (req: any, res: any, next: any) => {
+    req.userId = 1;
+    req.firebaseUser = { uid: 'test-uid', email: 'testuser@example.com', displayName: 'Test User' };
     next();
-  });
-});
+  }
+}));
 
 describe('Notification API Endpoints', () => {
   let app: express.Express;
-  let request: supertest.SuperTest<supertest.Test>;
+  let request: ReturnType<typeof supertest>;
   let server: any;
 
   beforeEach(async () => {
@@ -55,7 +53,7 @@ describe('Notification API Endpoints', () => {
     // Create Express app
     app = express();
     app.use(express.json());
-    app.use(session());
+    app.use(express.urlencoded({ extended: false }));
     
     // Register routes
     server = await registerRoutes(app);

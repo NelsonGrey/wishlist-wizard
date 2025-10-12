@@ -155,7 +155,7 @@ export class EcommerceIntegrationService {
       description: productData.description,
       note,
       availability: productData.availability,
-      rating: productData.rating,
+      rating: productData.rating?.toString(),
       reviewCount: productData.reviewCount,
       productIdentifier: productData.productIdentifier,
       metadata: productData.metadata,

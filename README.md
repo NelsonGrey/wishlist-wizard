@@ -224,6 +224,38 @@ npm run firebase:deploy     # Deploy to Firebase hosting
 
 See `FIREBASE_STRATEGY.md` for comprehensive Firebase integration details.
 
+## 🚀 Automated Deployment
+
+Wishlist Wizard includes a comprehensive CI/CD pipeline that automatically builds, tests, and deploys all components:
+
+### Deployment Targets
+- **🌐 Web App**: Vercel (`https://wishlist-wizard.vercel.app`)
+- **🚂 API Server**: Railway (`https://api.wishlist-wizard.railway.app`) 
+- **📱 Mobile PWA**: Firebase Hosting (`https://wishlist-wizard.web.app`)
+- **🔌 Chrome Extension**: Chrome Web Store (manual submission)
+
+### Automated Pipeline
+- **Quality Checks**: TypeScript compilation, tests, security audit
+- **Multi-Platform Builds**: Web, API, mobile, and extension builds
+- **Automated Deployment**: Push to `main` triggers full deployment
+- **Artifact Management**: Build artifacts stored for rollback capability
+
+### Manual Deployment
+```bash
+# Deploy all components
+npm run deploy
+
+# Deploy individual components  
+npm run deploy:web     # Deploy to Vercel
+npm run deploy:api     # Deploy to Railway
+npm run deploy:mobile  # Deploy to Firebase
+
+# Create extension package
+npm run package:extension
+```
+
+See `AUTOMATED_DEPLOYMENT.md` for complete setup and configuration details.
+
 ### Data Privacy
 - All personal data is encrypted and stored securely
 - Wishlists can be set to private, shared with specific people, or public
