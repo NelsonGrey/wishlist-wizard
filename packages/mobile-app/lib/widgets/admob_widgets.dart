@@ -223,11 +223,12 @@ class AdContainer extends StatelessWidget {
     return Container(
       padding: padding,
       decoration: BoxDecoration(
-        color: backgroundColor ?? Theme.of(context).cardColor.withOpacity(0.3),
-        borderRadius: borderRadius ?? BorderRadius.circular(8.0),
+        color:
+            backgroundColor ??
+            Theme.of(context).cardColor.withValues(alpha: 0.3),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: Theme.of(context).dividerColor.withOpacity(0.3),
-          width: 1.0,
+          color: Theme.of(context).dividerColor.withValues(alpha: 0.3),
         ),
       ),
       child: Column(
@@ -301,7 +302,7 @@ class RewardedAdHelper {
     }
 
     final success = await adMobManager.showRewardedAd(
-      onUserEarnedReward: onReward,
+      onUserEarnedReward: (ad, reward) => onReward(reward),
     );
 
     if (success) {

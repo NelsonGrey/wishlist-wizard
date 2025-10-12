@@ -239,7 +239,7 @@ export class ArVisualizationService {
         "door": { width: 91.0, height: 203.0, depth: 4.0 }
       };
       
-      const reference = referenceObjects[referenceObject] || referenceObjects.credit_card;
+      const reference = (referenceObjects as any)[referenceObject] || referenceObjects.credit_card;
       
       // Calculate size comparison
       const productDimensions = typeof model.dimensions === 'string' 

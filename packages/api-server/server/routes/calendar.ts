@@ -201,13 +201,13 @@ export async function getUpcomingEvents(req: AuthenticatedRequest, res: Response
       ));
 
     // Filter to only include events within the next 30 days
-    const upcomingEvents = events.filter(event => {
+    const upcomingEvents = events.filter((event: any) => {
       const eventDate = new Date(event.startDate);
       return eventDate <= thirtyDaysLater;
     });
 
     // Sort by date
-    upcomingEvents.sort((a, b) => {
+    upcomingEvents.sort((a: any, b: any) => {
       return new Date(a.startDate).getTime() - new Date(b.startDate).getTime();
     });
 

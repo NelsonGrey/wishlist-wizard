@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import Stripe from 'stripe';
 import { groupPaymentService } from '../services/groupPaymentService';
 import { storage } from '../storage';
 
@@ -379,22 +380,33 @@ export const handleStripeWebhook = async (req: Request, res: Response) => {
       return res.status(500).json({ error: 'Webhook secret not configured' });
     }
 
-    // TODO: Verify webhook signature with Stripe
-    // For now, we'll process the raw body
-    const event = req.body;
+    if (!sig) {
+      console.error('Stripe webhook signature missing');
+      return res.status(400).json({ error: 'Webhook signature missing' });
+    }
+
+    // Verify webhook signature with Stripe
+    let event: Stripe.Event;
+    try {
+      const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+      event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
+    } catch (err) {
+      console.error('Webhook signature verification failed:', err);
+      return res.status(400).json({ error: 'Webhook signature verification failed' });
+    }
 
     switch (event.type) {
       case 'payment_intent.succeeded':
         await groupPaymentService.handleSuccessfulPayment(
           event.id,
-          event.data.object.id
+          event.data.object.id as string
         );
         break;
 
       case 'payment_intent.payment_failed':
         await groupPaymentService.handleFailedPayment(
           event.id,
-          event.data.object.id
+          event.data.object.id as string
         );
         break;
 
@@ -402,7 +414,7 @@ export const handleStripeWebhook = async (req: Request, res: Response) => {
         await groupPaymentService.handleSuccessfulPayment(
           event.id,
           undefined,
-          event.data.object.id
+          event.data.object.id as string
         );
         break;
 
@@ -410,7 +422,7 @@ export const handleStripeWebhook = async (req: Request, res: Response) => {
         await groupPaymentService.handleFailedPayment(
           event.id,
           undefined,
-          event.data.object.id
+          event.data.object.id as string
         );
         break;
 

@@ -6,6 +6,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Wishlist as DbWishlist, WishlistItem as DbWishlistItem } from "@wishlist-wizard/shared";
+import PrivacyControls from "@/components/privacy/PrivacyControls";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -150,9 +151,17 @@ export default function WishlistCard({ wishlist, onRefresh }: WishlistCardProps)
             <div className="flex justify-between items-center">
               <div>
                 <h3 className="text-lg font-semibold">{wishlist.name}</h3>
-                <p className="text-sm text-gray-500 mt-1">
-                  {wishlist.itemCount} {wishlist.itemCount === 1 ? 'item' : 'items'} • Created {formattedDate}
-                </p>
+                <div className="flex items-center space-x-2 mt-1">
+                  <p className="text-sm text-gray-500">
+                    {wishlist.itemCount} {wishlist.itemCount === 1 ? 'item' : 'items'} • Created {formattedDate}
+                  </p>
+                  <PrivacyControls
+                    entityType="wishlist"
+                    entityId={wishlist.id}
+                    entityName={wishlist.name}
+                    showAsBadge={true}
+                  />
+                </div>
               </div>
               <div className="flex space-x-2">
                 <Button

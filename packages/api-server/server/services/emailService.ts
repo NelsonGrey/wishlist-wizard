@@ -1,4 +1,6 @@
 import sgMail from '@sendgrid/mail';
+import fs from 'fs';
+import path from 'path';
 
 // Email templates for different notification types
 export enum EmailTemplate {
@@ -16,6 +18,7 @@ export class EmailService {
   private initialized = false;
   private defaultFromEmail = 'notifications@wishlistwizard.com';
   private defaultFromName = 'Wishlist Wizard';
+  private emailStyles = '';
 
   constructor() {
     if (process.env.SENDGRID_API_KEY) {
@@ -24,6 +27,40 @@ export class EmailService {
     } else {
       console.warn('SendGrid API key not found. Email notifications will not be sent.');
     }
+    
+    // Load email styles
+    this.loadEmailStyles();
+  }
+
+  /**
+   * Load email styles from CSS file
+   */
+  private loadEmailStyles() {
+    try {
+      const cssPath = path.join(__dirname, '../assets/email-styles.css');
+      this.emailStyles = fs.readFileSync(cssPath, 'utf8');
+    } catch (error) {
+      console.warn('Could not load email styles:', error);
+      this.emailStyles = '';
+    }
+  }
+
+  /**
+   * Wrap HTML content with styles
+   */
+  private wrapWithStyles(content: string): string {
+    return `
+      <html>
+        <head>
+          <style>
+            ${this.emailStyles}
+          </style>
+        </head>
+        <body>
+          ${content}
+        </body>
+      </html>
+    `;
   }
 
   /**
@@ -41,23 +78,25 @@ export class EmailService {
 
     const subject = `Price Drop Alert: ${itemName} is now ${newPrice}!`;
     const text = `The price of ${itemName} has dropped from ${oldPrice} to ${newPrice}. Check it out at ${itemUrl}`;
-    const html = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #4f46e5;">Price Drop Alert!</h2>
-  <p>Good news! An item on your Wishlist Wizard wishlist has dropped in price:</p>
-        <div style="border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; margin: 16px 0;">
-          <img src="${imageUrl}" alt="${itemName}" style="max-width: 200px; max-height: 200px; display: block; margin: 0 auto 16px auto;" />
-          <h3 style="margin: 0 0 8px 0;">${itemName}</h3>
+    const htmlContent = `
+      <div class="email-container">
+        <h2 class="email-header">Price Drop Alert!</h2>
+        <p>Good news! An item on your Wishlist Wizard wishlist has dropped in price:</p>
+        <div class="email-content-box">
+          <img src="${imageUrl}" alt="${itemName}" class="product-image" />
+          <h3 class="product-title">${itemName}</h3>
           <p>
-            <span style="text-decoration: line-through; color: #9ca3af;">${oldPrice}</span>
-            <span style="font-weight: bold; color: #10b981; font-size: 1.2em; margin-left: 8px;">${newPrice}</span>
+            <span class="price-old">${oldPrice}</span>
+            <span class="price-new">${newPrice}</span>
           </p>
-          <a href="${itemUrl}" style="display: inline-block; background-color: #4f46e5; color: white; padding: 10px 16px; text-decoration: none; border-radius: 4px; margin-top: 16px;">View Item</a>
+          <a href="${itemUrl}" class="email-button">View Item</a>
         </div>
         <p>Don't miss out on this deal!</p>
-  <p>- The Wishlist Wizard Team</p>
+        <p>- The Wishlist Wizard Team</p>
       </div>
     `;
+    
+    const html = this.wrapWithStyles(htmlContent);
 
     return this.sendEmail(to, subject, text, html);
   }
@@ -76,19 +115,21 @@ export class EmailService {
 
   const subject = `Wishlist Wizard: New activity on "${wishlistName}"`;
     const text = `${userName} ${activityType} on your wishlist "${wishlistName}". Check it out at ${wishlistUrl}`;
-    const html = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #4f46e5;">Wishlist Activity Update</h2>
-  <p>There's been new activity on your Wishlist Wizard wishlist:</p>
-        <div style="border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; margin: 16px 0;">
-          <h3 style="margin: 0 0 8px 0;">${wishlistName}</h3>
+    const htmlContent = `
+      <div class="email-container">
+        <h2 class="email-header">Wishlist Activity Update</h2>
+        <p>There's been new activity on your Wishlist Wizard wishlist:</p>
+        <div class="email-content-box">
+          <h3 class="product-title">${wishlistName}</h3>
           <p><strong>${userName}</strong> ${activityType}</p>
-          <a href="${wishlistUrl}" style="display: inline-block; background-color: #4f46e5; color: white; padding: 10px 16px; text-decoration: none; border-radius: 4px; margin-top: 16px;">View Wishlist</a>
+          <a href="${wishlistUrl}" class="email-button">View Wishlist</a>
         </div>
         <p>Stay up to date with all your wishlist activities!</p>
-  <p>- The Wishlist Wizard Team</p>
+        <p>- The Wishlist Wizard Team</p>
       </div>
     `;
+    
+    const html = this.wrapWithStyles(htmlContent);
 
     return this.sendEmail(to, subject, text, html);
   }
@@ -104,25 +145,27 @@ export class EmailService {
 
   const subject = `Welcome to Wishlist Wizard!`;
   const text = `Welcome to Wishlist Wizard, ${userName}! We're excited to have you on board. Start creating your wishlists today.`;
-    const html = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-  <h2 style="color: #4f46e5;">Welcome to Wishlist Wizard!</h2>
+    const htmlContent = `
+      <div class="email-container">
+        <h2 class="email-header">Welcome to Wishlist Wizard!</h2>
         <p>Hi ${userName},</p>
         <p>We're thrilled to have you join our community of wishlist enthusiasts!</p>
-        <div style="border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; margin: 16px 0;">
-          <h3 style="margin: 0 0 8px 0;">Get Started with Wishlist Wizard:</h3>
-          <ul style="padding-left: 20px;">
+        <div class="email-content-box">
+          <h3 class="product-title">Get Started with Wishlist Wizard:</h3>
+          <ul class="welcome-list">
             <li>Create your first wishlist</li>
             <li>Add items from any shopping website</li>
             <li>Share your wishlist with friends and family</li>
             <li>Track price drops on your favorite items</li>
           </ul>
-          <a href="https://wishlistwizard.com/dashboard" style="display: inline-block; background-color: #4f46e5; color: white; padding: 10px 16px; text-decoration: none; border-radius: 4px; margin-top: 16px;">Go to Dashboard</a>
+          <a href="https://wishlistwizard.com/dashboard" class="email-button">Go to Dashboard</a>
         </div>
         <p>If you have any questions, feel free to reply to this email!</p>
-  <p>- The Wishlist Wizard Team</p>
+        <p>- The Wishlist Wizard Team</p>
       </div>
     `;
+    
+    const html = this.wrapWithStyles(htmlContent);
 
     return this.sendEmail(to, subject, text, html);
   }
@@ -140,19 +183,21 @@ export class EmailService {
 
   const subject = `Wishlist Wizard: ${inviterName} invited you to collaborate on "${wishlistName}"`;
     const text = `${inviterName} has invited you to collaborate on the wishlist "${wishlistName}". Accept the invitation at ${acceptUrl}`;
-    const html = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #4f46e5;">Collaboration Invitation</h2>
-  <p>${inviterName} has invited you to collaborate on a Wishlist Wizard wishlist:</p>
-        <div style="border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; margin: 16px 0;">
-          <h3 style="margin: 0 0 8px 0;">${wishlistName}</h3>
+    const htmlContent = `
+      <div class="email-container">
+        <h2 class="email-header">Collaboration Invitation</h2>
+        <p>${inviterName} has invited you to collaborate on a Wishlist Wizard wishlist:</p>
+        <div class="email-content-box">
+          <h3 class="product-title">${wishlistName}</h3>
           <p>Collaborate on this wishlist to add items, make comments, and help organize gifts.</p>
-          <a href="${acceptUrl}" style="display: inline-block; background-color: #4f46e5; color: white; padding: 10px 16px; text-decoration: none; border-radius: 4px; margin-top: 16px;">Accept Invitation</a>
+          <a href="${acceptUrl}" class="email-button">Accept Invitation</a>
         </div>
         <p>Working together makes gift planning easier!</p>
-  <p>- The Wishlist Wizard Team</p>
+        <p>- The Wishlist Wizard Team</p>
       </div>
     `;
+    
+    const html = this.wrapWithStyles(htmlContent);
 
     return this.sendEmail(to, subject, text, html);
   }

@@ -312,7 +312,7 @@ class AdMobManager {
 
   /// Show rewarded ad
   Future<bool> showRewardedAd({
-    required Function(RewardItem reward) onUserEarnedReward,
+    required OnUserEarnedRewardCallback onUserEarnedReward,
   }) async {
     if (!_isRewardedAdLoaded || _rewardedAd == null) {
       debugPrint('[AdMob] Rewarded ad not ready to show');

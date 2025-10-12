@@ -9,7 +9,7 @@ import {
   InsertCalendarEvent,
   InsertNotification
 } from "@wishlist-wizard/shared";
-import { eq, and, gte, lte, desc } from "drizzle-orm";
+import { eq, and, gte, lte, desc, isNotNull } from "drizzle-orm";
 import { IStorage } from "../storage";
 import { addDays, format, parse, parseISO } from "date-fns";
 
@@ -93,17 +93,24 @@ export class CalendarIntegrationService {
     if (!wishlist.occasion || !wishlist.occasionDate) return null;
     
     try {
+      // Get the calendar to get userId
+      const calendar = await db.query.userCalendars.findFirst({
+        where: eq(userCalendars.id, calendarId)
+      });
+
+      if (!calendar) return null;
+
       // Create the event data
       const eventData: InsertCalendarEvent = {
+        userId: calendar.userId,
         calendarId,
-        title: `${wishlist.name} - ${wishlist.occasion}`,
+        title: `Wishlist occasion: ${wishlist.name}`,
         description: `Wishlist occasion: ${wishlist.description || wishlist.name}`,
         startDate: new Date(wishlist.occasionDate),
         endDate: new Date(wishlist.occasionDate),
         isAllDay: true,
         eventType: "wishlist_occasion",
-        relatedEntityType: "wishlist",
-        relatedEntityId: wishlist.id,
+        wishlistId: wishlist.id,
         reminderDays: 7, // Default reminder 7 days before
         recurrence: wishlist.occasion === "Birthday" || wishlist.occasion === "Anniversary" ? "yearly" : null
       };
@@ -127,6 +134,13 @@ export class CalendarIntegrationService {
     if (!beneficiary.birthdate) return null;
     
     try {
+      // Get the calendar to get userId
+      const calendar = await db.query.userCalendars.findFirst({
+        where: eq(userCalendars.id, calendarId)
+      });
+
+      if (!calendar) return null;
+
       // Calculate the next birthday from the birthdate
       const birthdate = new Date(beneficiary.birthdate);
       const today = new Date();
@@ -137,6 +151,7 @@ export class CalendarIntegrationService {
       
       // Create the event data
       const eventData: InsertCalendarEvent = {
+        userId: calendar.userId,
         calendarId,
         title: `${beneficiary.name}'s Birthday`,
         description: `Birthday for ${beneficiary.name} (${beneficiary.relationship || 'beneficiary'})`,
@@ -144,8 +159,7 @@ export class CalendarIntegrationService {
         endDate: nextBirthday,
         isAllDay: true,
         eventType: "birthday",
-        relatedEntityType: "beneficiary",
-        relatedEntityId: beneficiary.id,
+        beneficiaryId: beneficiary.id,
         reminderDays: 14, // Default reminder 14 days before
         recurrence: "yearly"
       };
@@ -310,7 +324,7 @@ export class CalendarIntegrationService {
         userId: event.calendar.userId,
         type: "event_reminder",
         title: `Reminder: ${event.title}`,
-        message: `${event.title} is coming up on ${formattedDate} (in ${event.reminderDays} days)`,
+        content: `${event.title} is coming up on ${formattedDate} (in ${event.reminderDays} days)`,
         relatedEntityId: event.id,
         relatedEntityType: "calendar_event",
         actionUrl: `/calendar/${event.id}`,
@@ -318,16 +332,16 @@ export class CalendarIntegrationService {
       };
       
       // If related to a wishlist, add that info
-      if (event.relatedEntityType === "wishlist" && event.relatedEntityId) {
-        notification.actionUrl = `/wishlists/${event.relatedEntityId}`;
+      if (event.wishlistId) {
+        notification.actionUrl = `/wishlists/${event.wishlistId}`;
         
         // Get the wishlist details
         const wishlist = await db.query.wishlists.findFirst({
-          where: eq(wishlists.id, event.relatedEntityId)
+          where: eq(wishlists.id, event.wishlistId)
         });
         
         if (wishlist) {
-          notification.message = `${wishlist.occasion} is coming up in ${event.reminderDays} days! Remember to check the wishlist "${wishlist.name}"`;
+          notification.content = `${wishlist.occasion} is coming up in ${event.reminderDays} days! Remember to check the wishlist "${wishlist.name}"`;
         }
       }
       
@@ -356,7 +370,7 @@ export class CalendarIntegrationService {
    */
   async getUpcomingEvents(userId: number, days: number = 30): Promise<any[]> {
     // Get all user's calendars
-    const userCalendars = await db.query.userCalendars.findMany({
+    const calendars = await db.query.userCalendars.findMany({
       where: eq(userCalendars.userId, userId),
       with: {
         events: {
@@ -369,8 +383,8 @@ export class CalendarIntegrationService {
     });
     
     // Flatten events from all calendars
-    const events = userCalendars.flatMap(calendar => 
-      calendar.events.map(event => ({
+    const events = calendars.flatMap((calendar: any) => 
+      calendar.events.map((event: any) => ({
         ...event,
         calendarName: calendar.displayName,
         calendarType: calendar.calendarType
@@ -378,7 +392,7 @@ export class CalendarIntegrationService {
     );
     
     // Sort by date
-    return events.sort((a, b) => a.startDate.getTime() - b.startDate.getTime());
+    return events.sort((a: any, b: any) => a.startDate.getTime() - b.startDate.getTime());
   }
 
   /**

@@ -5,6 +5,7 @@ import { ArrowLeft, Clipboard, Check, Share2 } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import WishlistItem from "@/components/WishlistItem";
+import PrivacyControls from "@/components/privacy/PrivacyControls";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -128,19 +129,29 @@ export default function WishlistDetail() {
               )}
             </div>
             
-            <Button 
-              variant="outline" 
-              className="flex items-center gap-2"
-              onClick={handleShare}
-              disabled={!wishlist}
-            >
-              {copied ? (
-                <Check className="h-4 w-4" />
-              ) : (
-                <Share2 className="h-4 w-4" />
+            <div className="flex items-center space-x-2">
+              <Button 
+                variant="outline" 
+                className="flex items-center gap-2"
+                onClick={handleShare}
+                disabled={!wishlist}
+              >
+                {copied ? (
+                  <Check className="h-4 w-4" />
+                ) : (
+                  <Share2 className="h-4 w-4" />
+                )}
+                Share
+              </Button>
+              
+              {wishlist && (
+                <PrivacyControls
+                  entityType="wishlist"
+                  entityId={wishlist.id}
+                  entityName={wishlist.name}
+                />
               )}
-              Share
-            </Button>
+            </div>
           </div>
 
           {isLoadingItems ? (

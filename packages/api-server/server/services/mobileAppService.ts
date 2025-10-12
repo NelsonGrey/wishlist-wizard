@@ -3,6 +3,7 @@ import {
   userDevices, 
   syncLogs,
   wishlistItems,
+  wishlists,
   InsertUserDevice,
   InsertSyncLog
 } from "@wishlist-wizard/shared";
@@ -172,7 +173,7 @@ export class MobileAppService {
       // Get updated wishlist items
       const updatedItems = await db.query.wishlistItems.findMany({
         where: and(
-          eq(wishlistItems.wishlist.owner.id, userId),
+          eq(wishlists.userId, userId),
           gt(wishlistItems.createdAt, lastSyncTime)
         ),
         with: {
@@ -271,7 +272,7 @@ export class MobileAppService {
       const results = {
         processed: 0,
         failed: 0,
-        details: []
+        details: [] as any[]
       };
       
       // Process each action sequentially
@@ -331,7 +332,7 @@ export class MobileAppService {
             action: action.type,
             status: "error",
             id: action.id,
-            error: error.message
+            error: (error as Error).message
           });
         }
       }
@@ -342,7 +343,7 @@ export class MobileAppService {
       return {
         processed: 0,
         failed: actions.length,
-        error: error.message
+        error: (error as Error).message
       };
     }
   }

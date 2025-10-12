@@ -661,7 +661,7 @@ class _FCMNotificationHistoryState extends State<FCMNotificationHistory> {
         leading: CircleAvatar(
           backgroundColor: _getNotificationTypeColor(
             notification.type,
-          ).withOpacity(0.1),
+          ).withValues(alpha: 0.1),
           child: Icon(
             _getNotificationTypeIcon(notification.type),
             color: _getNotificationTypeColor(notification.type),
@@ -818,8 +818,8 @@ class _FCMStatusWidgetState extends State<FCMStatusWidget> {
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
         color: _isConnected
-            ? Colors.green.withOpacity(0.1)
-            : Colors.red.withOpacity(0.1),
+            ? Colors.green.withValues(alpha: 0.1)
+            : Colors.red.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: _isConnected ? Colors.green : Colors.red,

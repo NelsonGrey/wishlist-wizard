@@ -29,6 +29,7 @@ import {
   updateUserProfile,
   searchUsers,
   verifyEmail,
+  sendEmailVerification,
   requestPasswordReset,
   resetPassword,
   firebaseAuthMiddleware 
@@ -42,6 +43,7 @@ import { notificationService } from "./services/notificationService";
 import { registerEcommerceRoutes } from "./routes/ecommerce";
 import { priceTrackingRoutes } from "./routes/priceTracking";
 import pricePollingRoutes from "./routes/pricePolling.js";
+import { groupPaymentsRouter } from "./routes/groupPaymentsRouter";
 
 import { 
   addGiftParticipant, 
@@ -58,6 +60,27 @@ import mobileRoutes from "./routes/mobileApi";
 import { registerCalendarRoutes } from "./routes/calendar";
 import privacyRoutes from "./routes/privacy";
 import recommendationsRoutes from "./routes/recommendations";
+
+import { strictRateLimit } from "./middleware/rateLimit";
+import { checkPrivacyAccess } from "./middleware/privacy";
+import { privacyService } from "./services/privacyService";
+
+// Helper function to check privacy access for shared wishlists
+async function checkPrivacyAccessForSharedWishlist(userId: number, wishlistId: number): Promise<boolean> {
+  try {
+    const wishlist = await storage.getWishlistById(wishlistId);
+    if (!wishlist) return false;
+    
+    // Owner always has access
+    if (wishlist.userId === userId) return true;
+    
+    // Check privacy settings
+    return await privacyService.hasViewAccess('wishlist', wishlistId, userId, wishlist.userId);
+  } catch (error) {
+    console.error('Error checking privacy access for shared wishlist:', error);
+    return false;
+  }
+}
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Apply mobile API routes
@@ -81,6 +104,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Enhanced authentication features
   app.get("/api/auth/verify-email/:token", verifyEmail);
+  app.post("/api/auth/send-verification-email", firebaseAuthMiddleware, sendEmailVerification);
   app.post("/api/auth/forgot-password", requestPasswordReset);
   app.post("/api/auth/reset-password", resetPassword);
   // JWT token endpoint removed - using Firebase Auth tokens instead
@@ -170,6 +194,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const wishlist = await storage.getWishlistByShareId(shareId);
       if (!wishlist) {
         return res.status(404).json({ message: "Shared wishlist not found" });
+      }
+      
+      // For shared wishlists, check privacy access
+      if (req.userId) {
+        const hasAccess = await checkPrivacyAccessForSharedWishlist(req.userId, wishlist.id);
+        if (!hasAccess) {
+          return res.status(403).json({ message: "You don't have permission to view this wishlist" });
+        }
       }
       
       const items = await storage.getWishlistItems(wishlist.id);
@@ -283,7 +315,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get items in a wishlist
-  app.get("/api/wishlists/:id/items", isAuthenticated, async (req: AuthenticatedRequest, res: Response) => {
+  app.get("/api/wishlists/:id/items", isAuthenticated, checkPrivacyAccess('wishlist', 'id', 'view'), async (req: AuthenticatedRequest, res: Response) => {
     try {
       const wishlistId = parseInt(req.params.id);
       if (isNaN(wishlistId)) {
@@ -1168,7 +1200,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // AI-Powered Product Recommendations
-  app.get("/api/recommendations", isAuthenticated, async (req: AuthenticatedRequest, res: Response) => {
+  app.get("/api/recommendations", isAuthenticated, strictRateLimit, async (req: AuthenticatedRequest, res: Response) => {
     try {
       const userId = req.userId as number;
       const limit = req.query.limit ? parseInt(req.query.limit as string) : 5;
@@ -1187,7 +1219,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get recommendations for a specific beneficiary
-  app.get("/api/recommendations/beneficiary/:id", isAuthenticated, async (req: AuthenticatedRequest, res: Response) => {
+  app.get("/api/recommendations/beneficiary/:id", isAuthenticated, strictRateLimit, async (req: AuthenticatedRequest, res: Response) => {
     try {
       const userId = req.userId as number;
       const beneficiaryId = parseInt(req.params.id);
@@ -1745,6 +1777,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Register enhanced recommendations routes
   app.use("/api/recommendations", recommendationsRoutes);
+
+  // Register group payment routes
+  app.use("/api/group-payments", groupPaymentsRouter);
 
   return httpServer;
 }

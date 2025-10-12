@@ -60,7 +60,7 @@ describe('JWT Authentication', () => {
     
     it('should include only necessary user information in the token payload', () => {
       // Arrange
-      (jwt.sign as any).mockImplementation((payload) => JSON.stringify(payload));
+      (jwt.sign as any).mockImplementation((payload: any) => JSON.stringify(payload));
       
       // Act
       const token = generateToken({
@@ -81,7 +81,7 @@ describe('JWT Authentication', () => {
     
     it('should set appropriate token expiration time', () => {
       // Arrange
-      (jwt.sign as any).mockImplementation((payload, secret, options) => JSON.stringify({ payload, options }));
+      (jwt.sign as any).mockImplementation((payload: any, secret: any, options: any) => JSON.stringify({ payload, options }));
       
       // Act
       const token = generateToken(mockUser);

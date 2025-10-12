@@ -97,21 +97,22 @@ export async function getProductFromUrl(req: Request, res: Response) {
     console.error("Error fetching product data:", error);
     
     // Special handling for specific errors
-    if (error.message.includes("integration is not configured")) {
+    const errorMessage = getErrorMessage(error);
+    if (errorMessage.includes("integration is not configured")) {
       return res.status(503).json({ 
         message: "E-commerce platform integration is not configured", 
-        error: error.message
+        error: errorMessage
       });
     }
     
-    if (error.message === 'Unsupported e-commerce platform') {
+    if (errorMessage === 'Unsupported e-commerce platform') {
       return res.status(400).json({ 
         message: "Unsupported e-commerce platform", 
         error: "The provided URL is from an unsupported e-commerce platform."
       });
     }
     
-    res.status(500).json({ message: "Error fetching product data", error: error.message });
+    res.status(500).json({ message: "Error fetching product data", error: errorMessage });
   }
 }
 
@@ -179,28 +180,29 @@ export async function addProductToWishlist(req: AuthenticatedRequest, res: Respo
     console.error("Error adding product to wishlist:", error);
     
     // Special handling for specific errors
-    if (error.message.includes("integration is not configured")) {
+    const errorMessage = getErrorMessage(error);
+    if (errorMessage.includes("integration is not configured")) {
       return res.status(503).json({ 
         message: "E-commerce platform integration is not configured", 
-        error: error.message
+        error: errorMessage
       });
     }
     
-    if (error.message === 'Unsupported e-commerce platform') {
+    if (errorMessage === 'Unsupported e-commerce platform') {
       return res.status(400).json({ 
         message: "Unsupported e-commerce platform", 
         error: "The provided URL is from an unsupported e-commerce platform."
       });
     }
     
-    if (error.message === 'Unable to fetch product data from the provided URL') {
+    if (errorMessage === 'Unable to fetch product data from the provided URL') {
       return res.status(400).json({ 
         message: "Unable to fetch product data", 
         error: "Could not extract product information from the provided URL."
       });
     }
     
-    res.status(500).json({ message: "Error adding product to wishlist", error: error.message });
+    res.status(500).json({ message: "Error adding product to wishlist", error: errorMessage });
   }
 }
 
@@ -249,7 +251,7 @@ export async function updateProductPricing(req: AuthenticatedRequest, res: Respo
     res.json(updatedItem);
   } catch (error) {
     console.error("Error updating product pricing:", error);
-    res.status(500).json({ message: "Error updating product pricing", error: error.message });
+    res.status(500).json({ message: "Error updating product pricing", error: getErrorMessage(error) });
   }
 }
 
@@ -275,7 +277,7 @@ export async function getAffiliateLink(req: Request, res: Response) {
     res.json({ originalUrl: url, affiliateUrl: affiliateLink });
   } catch (error) {
     console.error("Error creating affiliate link:", error);
-    res.status(500).json({ message: "Error creating affiliate link", error: error.message });
+    res.status(500).json({ message: "Error creating affiliate link", error: getErrorMessage(error) });
   }
 }
 
@@ -300,5 +302,5 @@ export async function registerEcommerceRoutes(app: any) {
   app.patch("/api/ecommerce/items/:itemId/pricing", verifyJWT, updateProductPricing);
   
   // Get affiliate link
-  app.get("/api/ecommerce/affiliate-link", isAuthenticated, getAffiliateLink);
+  app.get("/api/ecommerce/affiliate-link", verifyJWT, getAffiliateLink);
 }

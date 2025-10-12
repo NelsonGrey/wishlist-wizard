@@ -1,0 +1,51 @@
+/* Ad Unit Styles */
+.ad-unit {
+  display: block;
+  text-align: center;
+}
+
+.ad-unit-loading {
+  min-height: 100px;
+  background-color: #f3f4f6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+}
+
+.ad-unit-error {
+  min-height: 100px;
+  padding: 10px;
+  border: 1px dashed #ccc;
+  background-color: #fef2f2;
+  color: #dc2626;
+  text-align: center;
+  border-radius: 4px;
+}
+
+.ad-unit-error-dev {
+  padding: 10px;
+  border: 1px dashed #ccc;
+  background-color: #fef2f2;
+  color: #dc2626;
+  text-align: center;
+  border-radius: 4px;
+}
+
+/* Responsive Ad Styles */
+.responsive-ad-container .adsbygoogle {
+  display: block;
+  min-height: 280px;
+}
+
+/* Sidebar Ad Styles */
+.sidebar-ad-container .adsbygoogle {
+  display: block;
+  min-height: 600px;
+}
+
+/* Inline Ad Styles */
+.inline-ad-container .adsbygoogle {
+  display: block;
+  min-height: 90px;
+}

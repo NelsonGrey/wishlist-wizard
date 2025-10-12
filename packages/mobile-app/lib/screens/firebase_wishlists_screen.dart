@@ -120,7 +120,7 @@ class _FirebaseWishlistsScreenState extends State<FirebaseWishlistsScreen> {
                   Container(
                     width: double.infinity,
                     padding: const EdgeInsets.all(8),
-                    color: Colors.green.withOpacity(0.1),
+                    color: Colors.green.withValues(alpha: 0.1),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
@@ -156,7 +156,7 @@ class _FirebaseWishlistsScreenState extends State<FirebaseWishlistsScreen> {
                             leading: CircleAvatar(
                               backgroundColor: Theme.of(
                                 context,
-                              ).primaryColor.withOpacity(0.1),
+                              ).primaryColor.withValues(alpha: 0.1),
                               child: Icon(
                                 wishlist.isPublic ? Icons.public : Icons.lock,
                                 color: Theme.of(context).primaryColor,
@@ -344,14 +344,16 @@ class _FirebaseWishlistsScreenState extends State<FirebaseWishlistsScreen> {
                 );
 
                 if (!success && mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        wishlistProvider.error ?? 'Failed to create wishlist',
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          wishlistProvider.error ?? 'Failed to create wishlist',
+                        ),
+                        backgroundColor: Colors.red,
                       ),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
+                    );
+                  }
                 }
               },
               child: const Text('Create'),
@@ -439,14 +441,16 @@ class _FirebaseWishlistsScreenState extends State<FirebaseWishlistsScreen> {
                 );
 
                 if (!success && mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        wishlistProvider.error ?? 'Failed to update wishlist',
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          wishlistProvider.error ?? 'Failed to update wishlist',
+                        ),
+                        backgroundColor: Colors.red,
                       ),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
+                    );
+                  }
                 }
               },
               child: const Text('Update'),
@@ -484,14 +488,16 @@ class _FirebaseWishlistsScreenState extends State<FirebaseWishlistsScreen> {
               );
 
               if (!success && mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      wishlistProvider.error ?? 'Failed to delete wishlist',
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        wishlistProvider.error ?? 'Failed to delete wishlist',
+                      ),
+                      backgroundColor: Colors.red,
                     ),
-                    backgroundColor: Colors.red,
-                  ),
-                );
+                  );
+                }
               }
             },
             child: const Text('Delete'),

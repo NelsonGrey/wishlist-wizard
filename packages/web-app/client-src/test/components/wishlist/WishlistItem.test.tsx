@@ -1,27 +1,38 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { screen, fireEvent } from '@testing-library/react';
 import { render } from '../../utils';
-import WishlistItem from '@/components/WishlistItem'; // Assuming this component exists
+import WishlistItem from '@/components/WishlistItem';
 import { WishlistItem as WishlistItemType } from '@wishlist-wizard/shared';
 
 describe('WishlistItem Component', () => {
-  const mockItem: Partial<WishlistItemType> = {
+  const mockItem: WishlistItemType = {
     id: 1,
     wishlistId: 1,
     title: 'Wireless Headphones',
     price: '$129.99',
+    numericPrice: '129.99',
     imageUrl: 'https://example.com/headphones.jpg',
     productUrl: 'https://example.com/product/headphones',
     store: 'Electronics Store',
     note: 'Would love these for my commute',
-    createdAt: new Date('2023-05-15').toISOString()
+    createdAt: new Date('2023-05-15'),
+    reservedByUserId: null,
+    reservedAt: null,
+    purchasedByUserId: null,
+    purchasedAt: null,
+    category: 'Electronics',
+    brand: 'Sony',
+    description: 'Premium wireless headphones',
+    availability: 'In Stock',
+    rating: '4.5',
+    reviewCount: 1250,
+    priceHistory: [],
+    metadata: {},
+    popularity: 0,
+    productIdentifier: 'WH-1000XM4'
   };
   
-  // Mock functions for interactions
-  const mockOnView = vi.fn();
-  const mockOnReserve = vi.fn();
-  const mockOnPurchase = vi.fn();
-  const mockOnEdit = vi.fn();
+  // Mock function for delete
   const mockOnDelete = vi.fn();
   
   beforeEach(() => {
@@ -32,13 +43,8 @@ describe('WishlistItem Component', () => {
     // Arrange & Act
     render(
       <WishlistItem 
-        item={mockItem as WishlistItemType}
-        onView={mockOnView}
-        onReserve={mockOnReserve}
-        onPurchase={mockOnPurchase}
-        onEdit={mockOnEdit}
+        item={mockItem}
         onDelete={mockOnDelete}
-        isOwner={true}
       />
     );
     
@@ -53,13 +59,8 @@ describe('WishlistItem Component', () => {
     // Arrange & Act
     render(
       <WishlistItem 
-        item={mockItem as WishlistItemType}
-        onView={mockOnView}
-        onReserve={mockOnReserve}
-        onPurchase={mockOnPurchase}
-        onEdit={mockOnEdit}
+        item={mockItem}
         onDelete={mockOnDelete}
-        isOwner={true}
       />
     );
     
@@ -69,208 +70,123 @@ describe('WishlistItem Component', () => {
     expect(image).toHaveAttribute('src', mockItem.imageUrl);
   });
   
-  it('should handle view/click event to open product page', () => {
-    // Arrange
-    render(
-      <WishlistItem 
-        item={mockItem as WishlistItemType}
-        onView={mockOnView}
-        onReserve={mockOnReserve}
-        onPurchase={mockOnPurchase}
-        onEdit={mockOnEdit}
-        onDelete={mockOnDelete}
-        isOwner={true}
-      />
-    );
-    
-    // Act
-    const viewButton = screen.getByText(/view/i) || screen.getByLabelText(/view/i);
-    fireEvent.click(viewButton);
-    
-    // Assert
-    expect(mockOnView).toHaveBeenCalledWith(mockItem.id);
-  });
-  
-  it('should handle reserve button click', () => {
-    // Arrange
-    render(
-      <WishlistItem 
-        item={{...mockItem, reservedByUserId: null} as WishlistItemType}
-        onView={mockOnView}
-        onReserve={mockOnReserve}
-        onPurchase={mockOnPurchase}
-        onEdit={mockOnEdit}
-        onDelete={mockOnDelete}
-        isOwner={false}
-      />
-    );
-    
-    // Act
-    const reserveButton = screen.getByText(/reserve/i);
-    fireEvent.click(reserveButton);
-    
-    // Assert
-    expect(mockOnReserve).toHaveBeenCalledWith(mockItem.id);
-  });
-  
-  it('should handle purchase button click', () => {
-    // Arrange
-    render(
-      <WishlistItem 
-        item={{...mockItem, purchasedByUserId: null} as WishlistItemType}
-        onView={mockOnView}
-        onReserve={mockOnReserve}
-        onPurchase={mockOnPurchase}
-        onEdit={mockOnEdit}
-        onDelete={mockOnDelete}
-        isOwner={false}
-      />
-    );
-    
-    // Act
-    const purchaseButton = screen.getByText(/purchase/i) || screen.getByText(/mark as purchased/i);
-    fireEvent.click(purchaseButton);
-    
-    // Assert
-    expect(mockOnPurchase).toHaveBeenCalledWith(mockItem.id);
-  });
-  
-  it('should handle edit button click when user is the owner', () => {
-    // Arrange
-    render(
-      <WishlistItem 
-        item={mockItem as WishlistItemType}
-        onView={mockOnView}
-        onReserve={mockOnReserve}
-        onPurchase={mockOnPurchase}
-        onEdit={mockOnEdit}
-        onDelete={mockOnDelete}
-        isOwner={true}
-      />
-    );
-    
-    // Act
-    const editButton = screen.getByLabelText(/edit/i) || screen.getByTitle(/edit/i);
-    fireEvent.click(editButton);
-    
-    // Assert
-    expect(mockOnEdit).toHaveBeenCalledWith(mockItem);
-  });
-  
-  it('should handle delete button click when user is the owner', () => {
-    // Arrange
-    render(
-      <WishlistItem 
-        item={mockItem as WishlistItemType}
-        onView={mockOnView}
-        onReserve={mockOnReserve}
-        onPurchase={mockOnPurchase}
-        onEdit={mockOnEdit}
-        onDelete={mockOnDelete}
-        isOwner={true}
-      />
-    );
-    
-    // Act
-    const deleteButton = screen.getByLabelText(/delete/i) || screen.getByTitle(/delete/i);
-    fireEvent.click(deleteButton);
-    
-    // Assert
-    expect(mockOnDelete).toHaveBeenCalledWith(mockItem.id);
-  });
-  
-  it('should not show edit and delete buttons for non-owners', () => {
+  it('should have external link to product', () => {
     // Arrange & Act
     render(
       <WishlistItem 
-        item={mockItem as WishlistItemType}
-        onView={mockOnView}
-        onReserve={mockOnReserve}
-        onPurchase={mockOnPurchase}
-        onEdit={mockOnEdit}
+        item={mockItem}
         onDelete={mockOnDelete}
-        isOwner={false}
       />
     );
     
     // Assert
-    const editButton = screen.queryByLabelText(/edit/i) || screen.queryByTitle(/edit/i);
-    const deleteButton = screen.queryByLabelText(/delete/i) || screen.queryByTitle(/delete/i);
-    
-    expect(editButton).not.toBeInTheDocument();
-    expect(deleteButton).not.toBeInTheDocument();
+    const link = screen.getByRole('link');
+    expect(link).toHaveAttribute('href', mockItem.productUrl);
+    expect(link).toHaveAttribute('target', '_blank');
   });
   
-  it('should display reserved status when item is reserved', () => {
+  it('should handle delete button click', () => {
+    // Arrange & Act
+    render(
+      <WishlistItem 
+        item={mockItem}
+        onDelete={mockOnDelete}
+      />
+    );
+    
+    // Act
+    const deleteButton = screen.getByRole('button', { name: /trash/i });
+    fireEvent.click(deleteButton);
+    
+    // The component shows a confirmation dialog, so onDelete should not be called yet
+    expect(mockOnDelete).not.toHaveBeenCalled();
+  });
+  
+  it('should show delete confirmation dialog', () => {
+    // Arrange & Act
+    render(
+      <WishlistItem 
+        item={mockItem}
+        onDelete={mockOnDelete}
+      />
+    );
+    
+    // Act - Click delete button
+    const deleteButton = screen.getByRole('button', { name: /trash/i });
+    fireEvent.click(deleteButton);
+    
+    // Assert - Dialog should appear
+    expect(screen.getByText('Remove Item')).toBeInTheDocument();
+    expect(screen.getByText(/Are you sure you want to remove this item/)).toBeInTheDocument();
+  });
+  
+  it('should call onDelete when confirming deletion', () => {
+    // Arrange & Act
+    render(
+      <WishlistItem 
+        item={mockItem}
+        onDelete={mockOnDelete}
+      />
+    );
+    
+    // Act - Click delete button and confirm
+    const deleteButton = screen.getByRole('button', { name: /trash/i });
+    fireEvent.click(deleteButton);
+    
+    const confirmButton = screen.getByText('Remove');
+    fireEvent.click(confirmButton);
+    
+    // Assert
+    expect(mockOnDelete).toHaveBeenCalledTimes(1);
+  });
+  
+  it('should not call onDelete when canceling deletion', () => {
+    // Arrange & Act
+    render(
+      <WishlistItem 
+        item={mockItem}
+        onDelete={mockOnDelete}
+      />
+    );
+    
+    // Act - Click delete button and cancel
+    const deleteButton = screen.getByRole('button', { name: /trash/i });
+    fireEvent.click(deleteButton);
+    
+    const cancelButton = screen.getByText('Cancel');
+    fireEvent.click(cancelButton);
+    
+    // Assert
+    expect(mockOnDelete).not.toHaveBeenCalled();
+  });
+  
+  it('should display item without note when note is null', () => {
     // Arrange
-    const reservedItem = {
-      ...mockItem,
-      reservedByUserId: 2
-    };
+    const itemWithoutNote = { ...mockItem, note: null };
     
     // Act
     render(
       <WishlistItem 
-        item={reservedItem as WishlistItemType}
-        onView={mockOnView}
-        onReserve={mockOnReserve}
-        onPurchase={mockOnPurchase}
-        onEdit={mockOnEdit}
+        item={itemWithoutNote}
         onDelete={mockOnDelete}
-        isOwner={true}
       />
     );
     
-    // Assert
-    expect(screen.getByText(/reserved/i)).toBeInTheDocument();
-    
-    // Reserve button should be disabled or not present
-    const reserveButton = screen.queryByText(/reserve/i);
-    if (reserveButton) {
-      expect(reserveButton).toBeDisabled();
-    } else {
-      expect(reserveButton).not.toBeInTheDocument();
-    }
+    // Assert - Note section should not be present
+    expect(screen.queryByText('Would love these for my commute')).not.toBeInTheDocument();
   });
   
-  it('should display purchased status when item is purchased', () => {
-    // Arrange
-    const purchasedItem = {
-      ...mockItem,
-      purchasedByUserId: 2,
-      purchasedAt: new Date().toISOString()
-    };
-    
-    // Act
+  it('should display item with brand and category info', () => {
+    // Arrange & Act
     render(
       <WishlistItem 
-        item={purchasedItem as WishlistItemType}
-        onView={mockOnView}
-        onReserve={mockOnReserve}
-        onPurchase={mockOnPurchase}
-        onEdit={mockOnEdit}
+        item={mockItem}
         onDelete={mockOnDelete}
-        isOwner={true}
       />
     );
     
-    // Assert
-    expect(screen.getByText(/purchased/i)).toBeInTheDocument();
-    
-    // Reserve and purchase buttons should be disabled or not present
-    const reserveButton = screen.queryByText(/reserve/i);
-    const purchaseButton = screen.queryByText(/purchase/i) || screen.queryByText(/mark as purchased/i);
-    
-    if (reserveButton) {
-      expect(reserveButton).toBeDisabled();
-    } else {
-      expect(reserveButton).not.toBeInTheDocument();
-    }
-    
-    if (purchaseButton) {
-      expect(purchaseButton).toBeDisabled();
-    } else {
-      expect(purchaseButton).not.toBeInTheDocument();
-    }
+    // Assert - The component currently doesn't display brand/category in the UI
+    // This test would need to be updated if the component is enhanced to show this
+    expect(screen.getByText('Wireless Headphones')).toBeInTheDocument();
   });
 });

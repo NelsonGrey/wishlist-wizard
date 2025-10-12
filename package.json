@@ -10,10 +10,17 @@
   "scripts": {
     "dev": "npm run dev --workspace=packages/web-app & npm run dev --workspace=packages/api-server",
     "build": "npm run build --workspaces --if-present",
+    "build:mobile": "cd packages/mobile-app && flutter build web --release",
+    "build:all": "npm run build && npm run build:mobile",
     "start": "npm run start --workspace=packages/api-server",
     "test": "npm run test --workspaces --if-present",
     "check": "npm run check --workspaces --if-present",
-    "clean": "rm -rf packages/*/node_modules packages/*/dist node_modules"
+    "clean": "rm -rf packages/*/node_modules packages/*/dist node_modules",
+    "deploy": "./scripts/deploy.sh deploy-all",
+    "deploy:web": "./scripts/deploy.sh deploy-web",
+    "deploy:api": "./scripts/deploy.sh deploy-api",
+    "deploy:mobile": "./scripts/deploy.sh deploy-mobile",
+    "package:extension": "./scripts/deploy.sh package-ext"
   },
   "devDependencies": {
     "@types/node": "^20.16.11",

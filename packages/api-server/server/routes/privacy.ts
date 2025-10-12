@@ -56,10 +56,10 @@ const checkAccessSchema = z.object({
 router.post('/settings', isAuthenticated, async (req, res) => {
   try {
     const validatedData = setPrivacySettingsSchema.parse(req.body);
-    const userId = req.session.userId;
-
+    const userId = (req as AuthenticatedRequest).userId;
+    
     if (!userId) {
-      return res.status(401).json({ error: 'Authentication required' });
+      return res.status(401).json({ message: 'Authentication required' });
     }
 
     // Verify user owns the entity
@@ -105,10 +105,10 @@ router.post('/settings', isAuthenticated, async (req, res) => {
 router.get('/settings/:entityType/:entityId', isAuthenticated, async (req, res) => {
   try {
     const { entityType, entityId } = req.params;
-    const userId = req.session.userId;
-
+    const userId = (req as AuthenticatedRequest).userId;
+    
     if (!userId) {
-      return res.status(401).json({ error: 'Authentication required' });
+      return res.status(401).json({ message: 'Authentication required' });
     }
 
     // Validate entity type
@@ -155,10 +155,10 @@ router.get('/settings/:entityType/:entityId', isAuthenticated, async (req, res) 
 router.delete('/settings/:entityType/:entityId', isAuthenticated, async (req, res) => {
   try {
     const { entityType, entityId } = req.params;
-    const userId = req.session.userId;
-
+    const userId = (req as AuthenticatedRequest).userId;
+    
     if (!userId) {
-      return res.status(401).json({ error: 'Authentication required' });
+      return res.status(401).json({ message: 'Authentication required' });
     }
 
     // Validate entity type
@@ -200,7 +200,7 @@ router.put('/settings/:entityType/:entityId/access-list', isAuthenticated, async
   try {
     const { entityType, entityId } = req.params;
     const validatedData = updateAccessListSchema.parse(req.body);
-    const userId = req.session.userId;
+    const userId = (req as AuthenticatedRequest).userId;
 
     if (!userId) {
       return res.status(401).json({ error: 'Authentication required' });
@@ -255,7 +255,7 @@ router.post('/settings/:entityType/:entityId/access-list/add', isAuthenticated, 
   try {
     const { entityType, entityId } = req.params;
     const validatedData = addUserSchema.parse(req.body);
-    const ownerId = req.session.userId;
+    const ownerId = (req as AuthenticatedRequest).userId;
 
     if (!ownerId) {
       return res.status(401).json({ error: 'Authentication required' });
@@ -309,7 +309,7 @@ router.post('/settings/:entityType/:entityId/access-list/add', isAuthenticated, 
 router.delete('/settings/:entityType/:entityId/access-list/:userId', isAuthenticated, async (req, res) => {
   try {
     const { entityType, entityId, userId: targetUserId } = req.params;
-    const ownerId = req.session.userId;
+    const ownerId = (req as AuthenticatedRequest).userId;
 
     if (!ownerId) {
       return res.status(401).json({ error: 'Authentication required' });
@@ -359,7 +359,7 @@ router.delete('/settings/:entityType/:entityId/access-list/:userId', isAuthentic
 router.post('/check-access', isAuthenticated, async (req, res) => {
   try {
     const validatedData = checkAccessSchema.parse(req.body);
-    const userId = req.session.userId;
+    const userId = (req as AuthenticatedRequest).userId;
 
     if (!userId) {
       return res.status(401).json({ error: 'Authentication required' });
@@ -427,7 +427,7 @@ router.post('/check-access', isAuthenticated, async (req, res) => {
  */
 router.get('/defaults', isAuthenticated, async (req, res) => {
   try {
-    const userId = req.session.userId;
+    const userId = (req as AuthenticatedRequest).userId;
 
     if (!userId) {
       return res.status(401).json({ error: 'Authentication required' });

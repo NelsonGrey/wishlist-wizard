@@ -18,14 +18,11 @@ export class NotificationService {
    * Create an in-app notification and optionally send an email
    */
   async createNotification(
-    notificationData: Omit<InsertNotification, 'createdAt'>,
+    notificationData: InsertNotification,
     sendEmail: boolean = true
   ): Promise<Notification> {
     // Create the in-app notification
-    const notification = await storage.createNotification({
-      ...notificationData,
-      createdAt: new Date()
-    });
+    const notification = await storage.createNotification(notificationData);
 
     // If email is enabled, send the corresponding email notification
     if (sendEmail) {

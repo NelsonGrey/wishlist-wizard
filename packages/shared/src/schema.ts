@@ -225,6 +225,7 @@ export const notifications = pgTable("notifications", {
   type: text("type").notNull(), // e.g., "price_drop", "wishlist_activity", "item_purchased", "wishlist_shared"
   title: text("title").notNull(),
   content: text("content").notNull(), // The main message text of the notification
+  message: text("message"), // Additional message field for compatibility
   data: jsonb("data").default('{}'), // Additional data needed for email templates and action context
   relatedEntityId: integer("related_entity_id"), // Optional: ID of related wishlist/item/etc
   relatedEntityType: text("related_entity_type"), // Optional discriminator e.g. wishlist, wishlist_item, group_gift
@@ -247,6 +248,7 @@ export const insertNotificationSchema = createInsertSchema(notifications).pick({
   type: true,
   title: true,
   content: true,
+  message: true,
   data: true,
   relatedEntityId: true,
   relatedEntityType: true,
@@ -692,6 +694,7 @@ export const calendarEvents = pgTable("calendar_events", {
   recurrence: text("recurrence"), // yearly, monthly, etc.
   beneficiaryId: integer("beneficiary_id").references(() => beneficiaries.id),
   wishlistId: integer("wishlist_id").references(() => wishlists.id),
+  relatedEntityType: text("related_entity_type"), // For linking to wishlists, beneficiaries, etc.
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
   metadata: jsonb("metadata").default('{}'),
@@ -767,6 +770,7 @@ export const insertCalendarEventSchema = createInsertSchema(calendarEvents).pick
   recurrence: true,
   beneficiaryId: true,
   wishlistId: true,
+  relatedEntityType: true,
   metadata: true
 });
 

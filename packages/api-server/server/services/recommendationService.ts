@@ -1,6 +1,6 @@
 import OpenAI from "openai";
 import { db } from "../db";
-import { eq, and, desc, sql, gte } from "drizzle-orm";
+import { eq, and, desc, sql, gte, inArray } from "drizzle-orm";
 import { 
   wishlistItems, 
   wishlists, 
@@ -32,15 +32,32 @@ interface CacheEntry {
   ttl: number;
 }
 
+interface CostTrackingEntry {
+  userId: number;
+  tokens: number;
+  cost: number;
+  timestamp: number;
+  model: string;
+}
+
+interface CircuitBreakerState {
+  failures: number;
+  lastFailureTime: number;
+  state: 'CLOSED' | 'OPEN' | 'HALF_OPEN';
+}
+
 class RecommendationCache {
   private cache: Map<string, CacheEntry> = new Map();
   private rateLimits: Map<string, RateLimitEntry> = new Map();
+  private costTracking: CostTrackingEntry[] = [];
   
   // Configuration
   private readonly MAX_REQUESTS_PER_USER_HOUR = 10;
   private readonly MAX_REQUESTS_PER_USER_DAY = 50;
   private readonly CACHE_TTL_HOURS = 6; // Cache recommendations for 6 hours
   private readonly CLEANUP_INTERVAL = 60 * 60 * 1000; // 1 hour
+  private readonly MAX_COST_PER_USER_DAY = 1.00; // $1.00 per user per day
+  private readonly COST_TRACKING_RETENTION_HOURS = 24; // Keep cost data for 24 hours
   
   constructor() {
     // Periodic cleanup of expired entries
@@ -74,7 +91,65 @@ class RecommendationCache {
       };
     }
     
+    // Check cost limit
+    const dailyCost = this.getUserDailyCost(userId);
+    if (dailyCost >= this.MAX_COST_PER_USER_DAY) {
+      return {
+        allowed: false,
+        reason: `Cost limit exceeded: $${this.MAX_COST_PER_USER_DAY.toFixed(2)} per day`
+      };
+    }
+    
     return { allowed: true };
+  }
+  
+  /**
+   * Check if user has exceeded cost limits
+   */
+  checkCostLimit(userId: number): { allowed: boolean; currentCost: number; limit: number } {
+    const currentCost = this.getUserDailyCost(userId);
+    return {
+      allowed: currentCost < this.MAX_COST_PER_USER_DAY,
+      currentCost,
+      limit: this.MAX_COST_PER_USER_DAY
+    };
+  }
+  
+  /**
+   * Get user's daily cost
+   */
+  getUserDailyCost(userId: number): number {
+    const now = Date.now();
+    const dayStart = new Date(now).setHours(0, 0, 0, 0);
+    
+    return this.costTracking
+      .filter(entry => 
+        entry.userId === userId && 
+        entry.timestamp >= dayStart
+      )
+      .reduce((total, entry) => total + entry.cost, 0);
+  }
+  
+  /**
+   * Track API cost for a user
+   */
+  trackCost(userId: number, tokens: number, model: string = 'gpt-4o'): void {
+    // Estimate cost based on model and tokens
+    // GPT-4o pricing: $2.50 per 1M input tokens, $10.00 per 1M output tokens
+    // Using average of $6.25 per 1M tokens for estimation
+    const costPerMillionTokens = 6.25;
+    const estimatedCost = (tokens / 1000000) * costPerMillionTokens;
+    
+    this.costTracking.push({
+      userId,
+      tokens,
+      cost: estimatedCost,
+      timestamp: Date.now(),
+      model
+    });
+    
+    // Clean up old cost tracking data
+    this.cleanupCostTracking();
   }
   
   /**
@@ -142,6 +217,17 @@ class RecommendationCache {
         this.rateLimits.delete(key);
       }
     }
+    
+    // Clean cost tracking
+    this.cleanupCostTracking();
+  }
+  
+  /**
+   * Clean up old cost tracking data
+   */
+  private cleanupCostTracking(): void {
+    const cutoffTime = Date.now() - (this.COST_TRACKING_RETENTION_HOURS * 60 * 60 * 1000);
+    this.costTracking = this.costTracking.filter(entry => entry.timestamp >= cutoffTime);
   }
   
   /**
@@ -157,10 +243,106 @@ class RecommendationCache {
   generateBeneficiaryKey(userId: number, beneficiaryId: number, limit: number): string {
     return `beneficiary:${userId}:${beneficiaryId}:limit:${limit}`;
   }
+  
+  /**
+   * Get usage statistics for a user
+   */
+  getUserStats(userId: number): {
+    requestsToday: number;
+    requestsThisHour: number;
+    costToday: number;
+    costLimit: number;
+  } {
+    const now = Date.now();
+    const hourStart = Math.floor(now / (60 * 60 * 1000));
+    const dayStart = Math.floor(now / (24 * 60 * 60 * 1000));
+    
+    const hourlyKey = `${userId}:hour:${hourStart}`;
+    const dailyKey = `${userId}:day:${dayStart}`;
+    
+    const hourlyEntry = this.rateLimits.get(hourlyKey);
+    const dailyEntry = this.rateLimits.get(dailyKey);
+    
+    return {
+      requestsToday: dailyEntry?.count || 0,
+      requestsThisHour: hourlyEntry?.count || 0,
+      costToday: this.getUserDailyCost(userId),
+      costLimit: this.MAX_COST_PER_USER_DAY
+    };
+  }
 }
 
-// Global cache instance
+// Circuit breaker for OpenAI API calls
+class CircuitBreaker {
+  private state: CircuitBreakerState = {
+    failures: 0,
+    lastFailureTime: 0,
+    state: 'CLOSED'
+  };
+  
+  private readonly FAILURE_THRESHOLD = 5; // Open circuit after 5 failures
+  private readonly TIMEOUT_MS = 60000; // 1 minute timeout
+  private readonly RESET_TIMEOUT_MS = 300000; // 5 minutes before trying again
+  
+  /**
+   * Execute a function with circuit breaker protection
+   */
+  async execute<T>(fn: () => Promise<T>): Promise<T> {
+    if (this.state.state === 'OPEN') {
+      if (Date.now() - this.state.lastFailureTime > this.RESET_TIMEOUT_MS) {
+        this.state.state = 'HALF_OPEN';
+        console.log('Circuit breaker: Moving to HALF_OPEN state');
+      } else {
+        throw new Error('Circuit breaker is OPEN - OpenAI API temporarily unavailable');
+      }
+    }
+    
+    try {
+      const result = await Promise.race([
+        fn(),
+        new Promise<never>((_, reject) => 
+          setTimeout(() => reject(new Error('Circuit breaker timeout')), this.TIMEOUT_MS)
+        )
+      ]);
+      
+      // Success - reset failure count
+      if (this.state.state === 'HALF_OPEN') {
+        this.state.state = 'CLOSED';
+        this.state.failures = 0;
+        console.log('Circuit breaker: Recovered, moving to CLOSED state');
+      }
+      
+      return result;
+    } catch (error) {
+      this.recordFailure();
+      throw error;
+    }
+  }
+  
+  /**
+   * Record a failure
+   */
+  private recordFailure(): void {
+    this.state.failures++;
+    this.state.lastFailureTime = Date.now();
+    
+    if (this.state.failures >= this.FAILURE_THRESHOLD) {
+      this.state.state = 'OPEN';
+      console.warn(`Circuit breaker: OPEN after ${this.state.failures} failures`);
+    }
+  }
+  
+  /**
+   * Get current circuit breaker status
+   */
+  getStatus(): CircuitBreakerState {
+    return { ...this.state };
+  }
+}
+
+// Global instances
 const cache = new RecommendationCache();
+const circuitBreaker = new CircuitBreaker();
 
 interface RecommendedProduct {
   title: string;
@@ -311,7 +493,16 @@ export async function getRecommendationsForUser(userId: number, limit = 5): Prom
     } catch (fallbackError) {
       console.error('Fallback also failed:', fallbackError);
       // Return basic recommendations as last resort
-      return generateBasicRecommendations({}, [], limit);
+      const basicRecs = generateBasicGiftRecommendations({ name: 'User', relationship: 'self' }, limit);
+      return basicRecs.map((rec: RecommendedProduct) => ({
+        ...rec,
+        userId,
+        isViewed: false,
+        isSaved: false,
+        isRejected: false,
+        createdAt: new Date(),
+        targetWishlistId: null
+      }));
     }
   }
 }
@@ -465,7 +656,7 @@ export async function getRecommendationsForBeneficiary(
       .where(
         and(
           eq(beneficiaries.id, beneficiaryId),
-          eq(beneficiaries.userId, userId)
+          eq(beneficiaries.ownerId, userId)
         )
       );
       
@@ -489,7 +680,7 @@ export async function getRecommendationsForBeneficiary(
       
     if (existingRecommendations.length >= limit) {
       // Return existing recommendations
-      return existingRecommendations.map(rec => ({
+      return existingRecommendations.map((rec: any) => ({
         id: rec.id,
         userId: rec.userId,
         title: rec.itemTitle,
@@ -515,7 +706,7 @@ export async function getRecommendationsForBeneficiary(
       .from(wishlists)
       .where(eq(wishlists.beneficiaryId, beneficiaryId));
       
-    const wishlistIds = beneficiaryWishlists.map(wl => wl.id);
+    const wishlistIds = beneficiaryWishlists.map((wl: any) => wl.id);
     
     // Get items from those wishlists
     const items = await db
@@ -524,7 +715,7 @@ export async function getRecommendationsForBeneficiary(
       .where(
         wishlistIds.length === 1
           ? eq(wishlistItems.wishlistId, wishlistIds[0])
-          : wishlistItems.wishlistId.in(wishlistIds)
+          : inArray(wishlistItems.wishlistId, wishlistIds)
       )
       .limit(20);
       
@@ -632,51 +823,96 @@ async function generateGenericGiftRecommendations(
   limit: number
 ): Promise<RecommendedProduct[]> {
   try {
-    // Create a prompt based on the beneficiary information
+    // Create an enhanced prompt based on beneficiary information and relationship context
+    const relationshipContext = beneficiary.relationship || 'friend/family';
+    const ageRange = beneficiary.ageRange || 'adult';
+    const interests = beneficiary.interests || 'general interests';
+    const occasion = beneficiary.nextOccasion || 'general gifting';
+
     const prompt = `
-      I need gift ideas for someone named ${beneficiary.name}. I don't have much information about their preferences.
-      
-      Please suggest ${limit} gift ideas that would be appropriate for most people. Include a variety of price points and categories.
-      
-      For each gift idea, include:
-      1. A product title
-      2. A product URL (can be fictional but realistic looking)
-      3. An image URL (can be fictional but realistic looking)
-      4. A reasonable price
-      5. A store where this might be purchased
-      6. A brief description
-      7. A relevance score from 0-100
-      8. A brief reason why this would make a good gift
-      
-      Return the results as a JSON array with these fields: title, productUrl, imageUrl, price, store, description, relevanceScore, matchReason, category.
+      I need thoughtful gift recommendations for ${beneficiary.name}, who is my ${relationshipContext}.
+      They are in the ${ageRange} age range and have interests in: ${interests}.
+      The occasion is: ${occasion}.
+
+      Please suggest ${limit} personalized gift ideas that would be meaningful and appreciated. Consider:
+      - Their relationship to me (${relationshipContext})
+      - Their age group (${ageRange})
+      - Their interests (${interests})
+      - The occasion (${occasion})
+      - Appropriate price range for the relationship and occasion
+
+      Focus on gifts that show thoughtfulness and consideration rather than generic items.
+
+      For each gift idea, provide:
+      1. A specific product title
+      2. A realistic product URL (use actual retailer domains like amazon.com, target.com, etc.)
+      3. A realistic image URL (use actual product image URLs or placeholder services)
+      4. A reasonable price appropriate for the relationship
+      5. A real store or retailer name
+      6. A detailed description explaining why this would be a good gift
+      7. A relevance score from 70-95 (higher for more personalized gifts)
+      8. A specific reason why this gift matches their profile and relationship
+
+      Return as JSON with a "recommendations" array containing exactly ${limit} objects with fields: title, productUrl, imageUrl, price, store, description, relevanceScore, matchReason, category.
+
+      Examples of good gifts based on relationship:
+      - For family: Personalized items, comfort items, shared experience gifts
+      - For friends: Fun, trendy items, hobby-related gifts, inside joke items
+      - For colleagues: Professional but personal items, desk accessories, coffee/tea related
+      - For romantic partners: Sentimental items, experience gifts, luxury items
     `;
-    
-    const response = await openai.chat.completions.create({
+
+    const response = await openai!.chat.completions.create({
       model: "gpt-4o",
       messages: [
-        { role: "system", content: "You are a gift recommendation assistant that helps people find good gift ideas." },
+        { role: "system", content: "You are an expert gift recommender who creates thoughtful, personalized gift suggestions based on relationship context, interests, and occasions. Always return valid JSON." },
         { role: "user", content: prompt }
       ],
       response_format: { type: "json_object" },
-      temperature: 0.7
+      temperature: 0.8, // Higher creativity for gift ideas
+      max_tokens: 2500
     });
-    
+
     const content = response.choices[0].message.content;
-    
+
     if (!content) {
       throw new Error("No content in OpenAI response");
     }
-    
+
     try {
       const data = JSON.parse(content);
-      return data.recommendations || [];
+      const recommendations = data.recommendations || [];
+
+      // Validate and enhance the recommendations
+      const validRecommendations = recommendations
+        .filter((rec: any) => rec.title && rec.price)
+        .slice(0, limit)
+        .map((rec: any) => ({
+          title: String(rec.title).substring(0, 200),
+          imageUrl: String(rec.imageUrl || rec.image || 'https://via.placeholder.com/300x300'),
+          price: String(rec.price),
+          productUrl: String(rec.productUrl || rec.url || 'https://example.com/product'),
+          store: String(rec.store || 'Online Store'),
+          description: String(rec.description || '').substring(0, 500),
+          relevanceScore: Math.min(95, Math.max(70, Number(rec.relevanceScore) || 80)),
+          matchReason: String(rec.matchReason || rec.reason || `Thoughtful gift for ${beneficiary.name} based on their ${relationshipContext} relationship`),
+          category: String(rec.category || 'Gifts')
+        }));
+
+      if (validRecommendations.length === 0) {
+        throw new Error("No valid gift recommendations generated");
+      }
+
+      console.log(`Generated ${validRecommendations.length} personalized gift recommendations for ${beneficiary.name}`);
+      return validRecommendations;
+
     } catch (error) {
       console.error("Error parsing OpenAI response for generic recommendations:", error);
-      return generateBasicRecommendations({}, [], limit);
+      return generateBasicGiftRecommendations(beneficiary, limit);
     }
   } catch (error) {
     console.error("Error generating generic gift recommendations:", error);
-    return generateBasicRecommendations({}, [], limit);
+    return generateBasicGiftRecommendations(beneficiary, limit);
   }
 }
 
@@ -721,9 +957,9 @@ export async function updateRecommendationStatus(
  */
 function analyzeWishlistItems(items: any[]): any {
   // Extract categories, brands, price ranges, etc.
-  const categories = {};
-  const brands = {};
-  const stores = {};
+  const categories: Record<string, number> = {};
+  const brands: Record<string, number> = {};
+  const stores: Record<string, number> = {};
   let totalPrice = 0;
   
   items.forEach(item => {
@@ -756,15 +992,15 @@ function analyzeWishlistItems(items: any[]): any {
   
   // Sort categories, brands, etc. by frequency
   const sortedCategories = Object.entries(categories)
-    .sort((a, b) => b[1] - a[1])
+    .sort((a: [string, number], b: [string, number]) => b[1] - a[1])
     .map(([category]) => category);
     
   const sortedBrands = Object.entries(brands)
-    .sort((a, b) => b[1] - a[1])
+    .sort((a: [string, number], b: [string, number]) => b[1] - a[1])
     .map(([brand]) => brand);
     
   const sortedStores = Object.entries(stores)
-    .sort((a, b) => b[1] - a[1])
+    .sort((a: [string, number], b: [string, number]) => b[1] - a[1])
     .map(([store]) => store);
   
   return {
@@ -777,77 +1013,90 @@ function analyzeWishlistItems(items: any[]): any {
 }
 
 /**
+ * Create a structured prompt for AI recommendations
+ */
+function createRecommendationPrompt(userProfile: any, existingItems: any[], limit: number): string {
+  const existingTitles = existingItems.map(item => item.title);
+  const existingBrands = existingItems
+    .filter(item => item.brand)
+    .map(item => item.brand);
+    
+  const itemDescriptions = existingItems.map(item => 
+    `- ${item.title}${item.brand ? ` by ${item.brand}` : ''}${item.price ? ` (${item.price})` : ''}`
+  ).join('\n');
+  
+  return `I need to recommend ${limit} products to a user based on their wishlist. Here's what I know about their preferences:
+
+Top product categories: ${userProfile.topCategories?.join(', ') || 'Not enough data'}
+Preferred brands: ${userProfile.topBrands?.join(', ') || 'Not enough data'}
+Preferred stores: ${userProfile.preferredStores?.join(', ') || 'Various online stores'}
+Average price point: $${userProfile.averagePrice?.toFixed(2) || '50.00'}
+
+Their current wishlist items include:
+${itemDescriptions || 'No items yet'}
+
+Please recommend exactly ${limit} products that would appeal to this user based on their preferences. The recommendations should be different from what they already have, but complementary or similar in style/theme/function.
+
+IMPORTANT: Return the response as a JSON object with a "recommendations" array containing exactly ${limit} objects, each with these fields:
+- title: A realistic product title
+- productUrl: A plausible product URL (use actual retailer domains)
+- imageUrl: A plausible image URL (can be placeholder but realistic)
+- price: A realistic price string (e.g., "$29.99")
+- store: A store name that exists
+- description: A brief product description
+- relevanceScore: A number from 50-95 indicating relevance
+- matchReason: A brief explanation of why this was recommended
+- category: A product category (e.g., "Electronics", "Clothing", "Home & Garden")`;
+}
+
+/**
  * Generate product recommendations using OpenAI API with enhanced error handling and cost controls
  */
 async function generateRecommendationsWithAI(
   userProfile: any, 
   existingItems: any[], 
-  limit: number
+  limit: number,
+  userId?: number
 ): Promise<RecommendedProduct[]> {
-  const maxRetries = 2;
-  const timeout = 30000; // 30 seconds
+  const maxRetries = 3;
+  const baseDelay = 1000; // 1 second base delay
   
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
       console.log(`Generating AI recommendations (attempt ${attempt}/${maxRetries})`);
       
-      // Create a prompt for the AI to generate recommendations
-      const existingTitles = existingItems.map(item => item.title);
-      const existingBrands = existingItems
-        .filter(item => item.brand)
-        .map(item => item.brand);
+      // Use circuit breaker to protect against API failures
+      const aiResponse = await circuitBreaker.execute(async () => {
+        const prompt = createRecommendationPrompt(userProfile, existingItems, limit);
         
-      const itemDescriptions = existingItems.map(item => 
-        `- ${item.title}${item.brand ? ` by ${item.brand}` : ''}${item.price ? ` (${item.price})` : ''}`
-      ).join('\n');
-      
-      const prompt = `
-        I need to recommend ${limit} products to a user based on their wishlist. Here's what I know about their preferences:
+        // Create promise with timeout
+        const aiPromise = openai!.chat.completions.create({
+          model: "gpt-4o",
+          messages: [
+            { role: "system", content: "You are a personalized shopping recommendation assistant. Always return valid JSON with the exact structure requested." },
+            { role: "user", content: prompt }
+          ],
+          response_format: { type: "json_object" },
+          temperature: 0.7,
+          max_tokens: 2000, // Limit tokens to control costs
+        });
         
-        Top product categories: ${userProfile.topCategories?.join(', ') || 'Not enough data'}
-        Preferred brands: ${userProfile.topBrands?.join(', ') || 'Not enough data'}
-        Preferred stores: ${userProfile.preferredStores?.join(', ') || 'Various online stores'}
-        Average price point: $${userProfile.averagePrice?.toFixed(2) || '50.00'}
+        const timeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => reject(new Error('OpenAI request timeout')), 30000);
+        });
         
-        Their current wishlist items include:
-        ${itemDescriptions || 'No items yet'}
-        
-        Please recommend exactly ${limit} products that would appeal to this user based on their preferences. The recommendations should be different from what they already have, but complementary or similar in style/theme/function.
-        
-        IMPORTANT: Return the response as a JSON object with a "recommendations" array containing exactly ${limit} objects, each with these fields:
-        - title: A realistic product title
-        - productUrl: A plausible product URL (use actual retailer domains)
-        - imageUrl: A plausible image URL (can be placeholder but realistic)
-        - price: A realistic price string (e.g., "$29.99")
-        - store: A store name that exists
-        - description: A brief product description
-        - relevanceScore: A number from 50-95 indicating relevance
-        - matchReason: A brief explanation of why this was recommended
-        - category: A product category (e.g., "Electronics", "Clothing", "Home & Garden")
-      `;
-      
-      // Create promise with timeout
-      const aiPromise = openai.chat.completions.create({
-        model: "gpt-4o", // The newest OpenAI model
-        messages: [
-          { role: "system", content: "You are a personalized shopping recommendation assistant. Always return valid JSON with the exact structure requested." },
-          { role: "user", content: prompt }
-        ],
-        response_format: { type: "json_object" },
-        temperature: 0.7,
-        max_tokens: 2000, // Limit tokens to control costs
+        return await Promise.race([aiPromise, timeoutPromise]) as any;
       });
       
-      const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('OpenAI request timeout')), timeout);
-      });
-      
-      const response = await Promise.race([aiPromise, timeoutPromise]) as any;
-      
-      const content = response.choices[0].message.content;
+      const content = aiResponse.choices[0].message.content;
       
       if (!content) {
         throw new Error("No content in OpenAI response");
+      }
+      
+      // Track cost if userId provided
+      if (userId && aiResponse.usage) {
+        cache.trackCost(userId, aiResponse.usage.total_tokens || 0, 'gpt-4o');
       }
       
       try {
@@ -860,9 +1109,9 @@ async function generateRecommendationsWithAI(
         
         // Validate and clean up recommendations
         const validRecommendations = recommendations
-          .filter(rec => rec.title && rec.price)
+          .filter((rec: any) => rec.title && rec.price)
           .slice(0, limit)
-          .map(rec => ({
+          .map((rec: any) => ({
             title: String(rec.title).substring(0, 200),
             imageUrl: String(rec.imageUrl || rec.image || 'https://via.placeholder.com/300x300'),
             price: String(rec.price),
@@ -894,18 +1143,26 @@ async function generateRecommendationsWithAI(
     } catch (error: any) {
       console.error(`AI recommendation attempt ${attempt} failed:`, error.message);
       
-      if (attempt === maxRetries) {
-        console.log("All AI attempts failed, falling back to basic recommendations");
-        return generateBasicRecommendations(userProfile, existingItems, limit);
+      // Check if it's a rate limit or quota error
+      if (error.message.includes('rate limit') || error.message.includes('quota')) {
+        console.warn('OpenAI rate limit or quota exceeded, using fallback immediately');
+        return generateBasicGiftRecommendations({ name: 'User', relationship: 'self' }, limit);
       }
       
-      // Wait before retry (exponential backoff)
-      await new Promise(resolve => setTimeout(resolve, attempt * 1000));
+      if (attempt === maxRetries) {
+        console.log("All AI attempts failed, falling back to basic recommendations");
+        return generateBasicGiftRecommendations({ name: 'User', relationship: 'self' }, limit);
+      }
+      
+      // Exponential backoff with jitter
+      const delay = baseDelay * Math.pow(2, attempt - 1) + Math.random() * 1000;
+      console.log(`Waiting ${Math.round(delay)}ms before retry...`);
+      await new Promise(resolve => setTimeout(resolve, delay));
     }
   }
   
   // This should never be reached, but just in case
-  return generateBasicRecommendations(userProfile, existingItems, limit);
+  return generateBasicGiftRecommendations({ name: 'User', relationship: 'self' }, limit);
 }
 
 /**
@@ -998,5 +1255,100 @@ function generateBasicRecommendations(
     });
   }
   
+  return recommendations.slice(0, limit);
+}
+
+/**
+ * Generate basic gift recommendations as a fallback when AI fails
+ */
+function generateBasicGiftRecommendations(
+  beneficiary: any,
+  limit: number
+): RecommendedProduct[] {
+  const relationshipContext = beneficiary.relationship || 'friend';
+  const recommendations: RecommendedProduct[] = [];
+
+  // Relationship-based gift recommendations
+  if (relationshipContext.includes('family') || relationshipContext.includes('parent')) {
+    recommendations.push({
+      title: 'Personalized Photo Frame',
+      imageUrl: 'https://example.com/photo-frame.jpg',
+      price: '$24.99',
+      productUrl: 'https://example.com/photo-frame',
+      store: 'Bed Bath & Beyond',
+      description: 'Beautiful wooden photo frame perfect for displaying family memories.',
+      relevanceScore: 85,
+      matchReason: `Thoughtful family gift that shows you care about ${beneficiary.name}'s memories.`,
+      category: 'Home & Garden'
+    });
+  }
+
+  if (relationshipContext.includes('friend') || relationshipContext.includes('best friend')) {
+    recommendations.push({
+      title: 'Gourmet Coffee Sampler',
+      imageUrl: 'https://example.com/coffee-sampler.jpg',
+      price: '$34.99',
+      productUrl: 'https://example.com/coffee-sampler',
+      store: 'Williams Sonoma',
+      description: 'Assortment of premium coffees from around the world for the coffee lover.',
+      relevanceScore: 80,
+      matchReason: `Fun and delicious gift for ${beneficiary.name} to enjoy their favorite beverage.`,
+      category: 'Food & Drink'
+    });
+  }
+
+  if (relationshipContext.includes('romantic') || relationshipContext.includes('partner')) {
+    recommendations.push({
+      title: 'Scented Candle Gift Set',
+      imageUrl: 'https://example.com/candle-set.jpg',
+      price: '$39.99',
+      productUrl: 'https://example.com/candle-set',
+      store: 'Bath & Body Works',
+      description: 'Luxurious scented candles in romantic fragrances to create a cozy atmosphere.',
+      relevanceScore: 88,
+      matchReason: `Romantic and thoughtful gift to help ${beneficiary.name} relax and feel special.`,
+      category: 'Home & Garden'
+    });
+  }
+
+  // Generic thoughtful gifts
+  if (recommendations.length < limit) {
+    recommendations.push({
+      title: 'Wireless Charging Pad',
+      imageUrl: 'https://example.com/charger.jpg',
+      price: '$19.99',
+      productUrl: 'https://example.com/charger',
+      store: 'Amazon',
+      description: 'Convenient wireless charger compatible with most smartphones.',
+      relevanceScore: 75,
+      matchReason: `Practical tech gift that ${beneficiary.name} will use every day.`,
+      category: 'Electronics'
+    });
+
+    recommendations.push({
+      title: 'Premium Notebook Set',
+      imageUrl: 'https://example.com/notebook.jpg',
+      price: '$16.99',
+      productUrl: 'https://example.com/notebook',
+      store: 'Paper Source',
+      description: 'High-quality notebooks and journals for writing, planning, or creativity.',
+      relevanceScore: 70,
+      matchReason: `Versatile gift for ${beneficiary.name}'s organizational or creative needs.`,
+      category: 'Office Supplies'
+    });
+
+    recommendations.push({
+      title: 'Bluetooth Wireless Earbuds',
+      imageUrl: 'https://example.com/earbuds.jpg',
+      price: '$49.99',
+      productUrl: 'https://example.com/earbuds',
+      store: 'Best Buy',
+      description: 'Comfortable wireless earbuds with good sound quality for music and calls.',
+      relevanceScore: 78,
+      matchReason: `Modern tech gift that enhances ${beneficiary.name}'s daily audio experience.`,
+      category: 'Electronics'
+    });
+  }
+
   return recommendations.slice(0, limit);
 }

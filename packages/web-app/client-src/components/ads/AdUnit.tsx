@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import '../../styles/ads.css';
 
 interface AdUnitProps {
   slot: string;
@@ -35,8 +36,7 @@ export function ResponsiveAd({ className = '' }: { className?: string }) {
         slot="5198775482" 
         format="auto" 
         responsive={true} 
-        className="w-full" 
-        style={{ display: 'block', minHeight: '280px' }}
+        className="w-full"
       />
     </div>
   );
@@ -52,8 +52,7 @@ export function SidebarAd({ className = '' }: { className?: string }) {
         slot="7389144625" 
         format="vertical" 
         responsive={false} 
-        className="w-full" 
-        style={{ display: 'block', minHeight: '600px' }}
+        className="w-full"
       />
     </div>
   );
@@ -69,8 +68,7 @@ export function InlineAd({ className = '' }: { className?: string }) {
         slot="9287452186" 
         format="horizontal" 
         responsive={true} 
-        className="w-full" 
-        style={{ display: 'block', minHeight: '90px' }}
+        className="w-full"
       />
     </div>
   );
@@ -81,7 +79,7 @@ export function AdUnit({
   format = 'auto',
   responsive = true,
   className = '',
-  style = { display: 'block', textAlign: 'center' },
+
 }: AdUnitProps) {
   const [publisherId, setPublisherId] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(true);
@@ -133,26 +131,25 @@ export function AdUnit({
   }, [publisherId, loading]);
 
   if (loading) {
-    return <div className={`ad-unit-loading ${className}`} style={{ ...style, minHeight: '100px' }}></div>;
+    return <div className={`ad-unit-loading ${className}`}></div>;
   }
 
   if (error) {
     // In development, show an error. In production, just render an empty div
     if (import.meta.env.DEV) {
       return (
-        <div className={`ad-unit-error ${className}`} style={{ ...style, padding: '10px', border: '1px dashed #ccc' }}>
+        <div className={`ad-unit-error-dev ${className}`}>
           <div>Ad unit: {error}</div>
         </div>
       );
     }
-    return <div className={`ad-unit-error ${className}`} style={{ ...style, minHeight: '100px' }}></div>;
+    return <div className={`ad-unit-error ${className}`}></div>;
   }
 
   return (
     <div className={`ad-unit ${className}`}>
       <ins
         className="adsbygoogle"
-        style={style}
         data-ad-client={publisherId}
         data-ad-slot={slot}
         data-ad-format={format}
