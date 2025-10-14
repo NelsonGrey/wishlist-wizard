@@ -8,9 +8,9 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "npm run dev --workspace=packages/web-app & npm run dev --workspace=packages/api-server",
+    "dev": "npm run dev --workspace=packages/web & npm run dev --workspace=packages/api-server",
     "build": "npm run build --workspaces --if-present",
-    "build:mobile": "cd packages/mobile-app && flutter build web --release",
+    "build:mobile": "cd packages/mobile && flutter build web --release",
     "build:all": "npm run build && npm run build:mobile",
     "start": "npm run start --workspace=packages/api-server",
     "test": "npm run test --workspaces --if-present",

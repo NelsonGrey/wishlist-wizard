@@ -11,6 +11,8 @@ yarn-error.log*
 .env.development.local
 .env.test.local
 .env.production.local
+# Environment-specific files (dynamically generated during CI/CD)
+packages/web/.env
 
 # Build outputs
 dist/
@@ -26,28 +28,28 @@ server/public
 *.sqlite3
 
 # iOS build files
-packages/mobile-app/ios/build/
-packages/mobile-app/ios/Pods/
-packages/mobile-app/ios/Runner.xcworkspace/xcuserdata/
-packages/mobile-app/ios/Runner.xcodeproj/xcuserdata/
-packages/mobile-app/ios/Runner.xcodeproj/project.xcworkspace/xcuserdata/
-packages/mobile-app/ios/*.ipa
-packages/mobile-app/ios/*.xcarchive
+packages/mobile/ios/build/
+packages/mobile/ios/Pods/
+packages/mobile/ios/Runner.xcworkspace/xcuserdata/
+packages/mobile/ios/Runner.xcodeproj/xcuserdata/
+packages/mobile/ios/Runner.xcodeproj/project.xcworkspace/xcuserdata/
+packages/mobile/ios/*.ipa
+packages/mobile/ios/*.xcarchive
 
 # Android build files
-packages/mobile-app/android/app/build/
-packages/mobile-app/android/build/
-packages/mobile-app/android/.gradle/
-packages/mobile-app/android/local.properties
-packages/mobile-app/android/key.properties
-packages/mobile-app/android/app/release/
+packages/mobile/android/app/build/
+packages/mobile/android/build/
+packages/mobile/android/.gradle/
+packages/mobile/android/local.properties
+packages/mobile/android/key.properties
+packages/mobile/android/app/release/
 
 # Flutter/Dart
-packages/mobile-app/.dart_tool/
-packages/mobile-app/.packages
-packages/mobile-app/.pub-cache/
-packages/mobile-app/.pub/
-packages/mobile-app/pubspec.lock
+packages/mobile/.dart_tool/
+packages/mobile/.packages
+packages/mobile/.pub-cache/
+packages/mobile/.pub/
+packages/mobile/pubspec.lock
 
 # Firebase
 .firebase/
@@ -102,8 +104,8 @@ packages/browser-extension/dist/
 packages/browser-extension/build/
 
 # Web app builds
-packages/web-app/dist/
-packages/web-app/build/
+packages/web/dist/
+packages/web/build/
 
 # API server builds
 packages/api-server/dist/

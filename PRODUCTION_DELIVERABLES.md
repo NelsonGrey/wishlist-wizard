@@ -7,7 +7,7 @@
 ## 📦 Available Production Assets
 
 ### 1. 🌐 React Web Application
-- **📁 Location**: `packages/web-app/dist/`
+- **📁 Location**: `packages/web/dist/`
 - **💾 Size**: 1.1MB (uncompressed), ~298KB gzipped
 - **🏗️ Build Tool**: Vite 5.4.20
 - **⚡ Build Time**: 10.89s
@@ -101,7 +101,7 @@
 
 ### Deploy Web App to Vercel
 ```bash
-cd packages/web-app
+cd packages/web
 npx vercel --prod
 ```
 

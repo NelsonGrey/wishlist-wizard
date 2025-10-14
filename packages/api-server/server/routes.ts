@@ -1781,5 +1781,63 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Register group payment routes
   app.use("/api/group-payments", groupPaymentsRouter);
 
+  // ==================== COMING SOON PAGE ROUTES ====================
+  
+  // Email signup for launch notifications
+  app.post("/api/coming-soon/signup", async (req: Request, res: Response) => {
+    try {
+      const { email } = req.body;
+      
+      if (!email || !email.includes('@')) {
+        return res.status(400).json({ message: "Valid email address is required" });
+      }
+      
+      // For now, we'll just log the signup and return success
+      // In production, this would save to a database or email service
+      console.log(`Coming soon signup: ${email}`);
+      
+      // TODO: Integrate with email service (Mailchimp, SendGrid, etc.)
+      // TODO: Save to database table for launch notifications
+      
+      res.status(201).json({ 
+        message: "Thank you for signing up! We'll notify you when we launch.",
+        success: true 
+      });
+    } catch (error) {
+      console.error("Error processing coming soon signup:", error);
+      res.status(500).json({ message: "Failed to process signup. Please try again." });
+    }
+  });
+  
+  // Feedback submission from coming soon page
+  app.post("/api/coming-soon/feedback", async (req: Request, res: Response) => {
+    try {
+      const { email, feedback, feature } = req.body;
+      
+      if (!feedback || feedback.trim().length === 0) {
+        return res.status(400).json({ message: "Feedback message is required" });
+      }
+      
+      // For now, we'll just log the feedback
+      // In production, this would save to a database or send to support team
+      console.log(`Coming soon feedback from ${email || 'anonymous'}: ${feedback}`);
+      if (feature) {
+        console.log(`Requested feature: ${feature}`);
+      }
+      
+      // TODO: Save feedback to database
+      // TODO: Send email notification to development team
+      // TODO: Categorize and prioritize feedback
+      
+      res.status(201).json({ 
+        message: "Thank you for your feedback! We appreciate your input.",
+        success: true 
+      });
+    } catch (error) {
+      console.error("Error processing coming soon feedback:", error);
+      res.status(500).json({ message: "Failed to submit feedback. Please try again." });
+    }
+  });
+
   return httpServer;
 }
