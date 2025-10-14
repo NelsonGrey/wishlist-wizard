@@ -286,9 +286,9 @@ jobs:
           path: wishlist-wizard-extension.zip
           retention-days: 30
 
-  # 🚀 Deploy Web App to Vercel
+  # 🚀 Deploy Web App to Firebase Hosting
   deploy-web:
-    name: 🌐 Deploy Web App to Vercel (${{ needs.determine-environment.outputs.environment }})
+    name: 🔥 Deploy Web App to Firebase (${{ needs.determine-environment.outputs.environment }})
     runs-on: ubuntu-latest
     needs: [determine-environment, quality-check, build-packages]
     if: needs.determine-environment.outputs.should-deploy == 'true'
@@ -303,18 +303,18 @@ jobs:
           name: web-build
           path: packages/web/dist/
 
-      - name: 🚀 Deploy to Vercel
-        uses: amondnet/vercel-action@v25
+      - name: � Deploy to Firebase Hosting
+        uses: FirebaseExtended/action-hosting-deploy@v0
         with:
-          vercel-token: ${{ secrets[format('VERCEL_TOKEN_{0}', needs.determine-environment.outputs.environment)] }}
-          vercel-org-id: ${{ secrets[format('VERCEL_ORG_ID_{0}', needs.determine-environment.outputs.environment)] }}
-          vercel-project-id: ${{ secrets[format('VERCEL_PROJECT_ID_{0}', needs.determine-environment.outputs.environment)] }}
-          working-directory: packages/web
-          vercel-args: ${{ needs.determine-environment.outputs.environment == 'production' && '--prod' || '' }}
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets[format('FIREBASE_SERVICE_ACCOUNT_{0}', needs.determine-environment.outputs.environment)] }}
+          channelId: ${{ needs.determine-environment.outputs.environment == 'production' && 'live' || 'preview' }}
+          projectId: ${{ needs.determine-environment.outputs.environment == 'production' && 'wishlist-wizard' || needs.determine-environment.outputs.environment == 'staging' && 'wishlist-wizard-staging' || 'wishlist-wizard-dev' }}
+          entryPoint: ./
 
-  # 🚂 Deploy API Server to Railway
-  deploy-api-server:
-    name: 🚂 Deploy API Server to Railway (${{ needs.determine-environment.outputs.environment }})
+  # � Deploy API Functions to Firebase
+  deploy-api-functions:
+    name: � Deploy API Functions to Firebase (${{ needs.determine-environment.outputs.environment }})
     runs-on: ubuntu-latest
     needs: [determine-environment, quality-check, build-packages]
     if: needs.determine-environment.outputs.should-deploy == 'true'
@@ -327,18 +327,16 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: api-server-build
-          path: packages/api-server/dist/
+          path: functions/dist/
 
-      - name: 🚂 Install Railway CLI
-        run: npm install -g @railway/cli
-
-      - name: 🚂 Deploy to Railway
-        env:
-          RAILWAY_TOKEN: ${{ secrets[format('RAILWAY_TOKEN_{0}', needs.determine-environment.outputs.environment)] }}
-        run: |
-          cd packages/api-server
-          railway login --token $RAILWAY_TOKEN
-          railway deploy --service ${{ secrets[format('RAILWAY_SERVICE_{0}', needs.determine-environment.outputs.environment)] }}
+      - name: � Deploy Firebase Functions
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets[format('FIREBASE_SERVICE_ACCOUNT_{0}', needs.determine-environment.outputs.environment)] }}
+          projectId: ${{ needs.determine-environment.outputs.environment == 'production' && 'wishlist-wizard' || needs.determine-environment.outputs.environment == 'staging' && 'wishlist-wizard-staging' || 'wishlist-wizard-dev' }}
+          entryPoint: ./
+          target: functions
 
   # 📱 Deploy Mobile PWA to Firebase Hosting
   deploy-mobile-pwa:
@@ -393,48 +391,37 @@ jobs:
   deployment-summary:
     name: 📊 Deployment Summary (${{ needs.determine-environment.outputs.environment }})
     runs-on: ubuntu-latest
-    needs: [determine-environment, deploy-web, deploy-api-server, deploy-mobile-pwa]
+    needs: [determine-environment, deploy-web, deploy-api-functions, deploy-mobile-pwa]
     if: always() && needs.determine-environment.outputs.should-deploy == 'true'
     steps:
       - name: 📊 Generate Deployment Report
         run: |
           ENVIRONMENT="${{ needs.determine-environment.outputs.environment }}"
-          echo "## 🚀 Deployment Summary - $ENVIRONMENT Environment" >> $GITHUB_STEP_SUMMARY
+          echo "## � Firebase Deployment Summary - $ENVIRONMENT Environment" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "| Component | Status | URL |" >> $GITHUB_STEP_SUMMARY
           echo "|-----------|--------|-----|" >> $GITHUB_STEP_SUMMARY
           
-          # Web App URLs
+          # Web App URLs (Firebase Hosting)
           if [[ "$ENVIRONMENT" == "production" ]]; then
-            WEB_URL="https://wishlist-wizard.vercel.app"
+            WEB_URL="https://wishlist-wizard.web.app"
+            API_URL="https://us-central1-wishlist-wizard.cloudfunctions.net/api"
           elif [[ "$ENVIRONMENT" == "staging" ]]; then
-            WEB_URL="https://wishlist-wizard-staging.vercel.app"
+            WEB_URL="https://wishlist-wizard-staging.web.app"
+            API_URL="https://us-central1-wishlist-wizard-staging.cloudfunctions.net/api"
           else
-            WEB_URL="https://wishlist-wizard-dev.vercel.app"
+            WEB_URL="https://wishlist-wizard-dev.web.app"
+            API_URL="https://us-central1-wishlist-wizard-dev.cloudfunctions.net/api"
           fi
           
-          # API URLs
-          if [[ "$ENVIRONMENT" == "production" ]]; then
-            API_URL="https://api.wishlist-wizard.railway.app"
-          elif [[ "$ENVIRONMENT" == "staging" ]]; then
-            API_URL="https://api-staging.wishlist-wizard.railway.app"
-          else
-            API_URL="https://api-dev.wishlist-wizard.railway.app"
-          fi
-          
-          # Mobile PWA URLs
-          if [[ "$ENVIRONMENT" == "production" ]]; then
-            MOBILE_URL="https://wishlist-wizard.web.app"
-          elif [[ "$ENVIRONMENT" == "staging" ]]; then
-            MOBILE_URL="https://wishlist-wizard-staging.web.app"
-          else
-            MOBILE_URL="https://wishlist-wizard-dev.web.app"
-          fi
+          # Mobile PWA URLs (same as web for Firebase)
+          MOBILE_URL="$WEB_URL"
           
           echo "| 🌐 Web App | ${{ needs.deploy-web.result }} | $WEB_URL |" >> $GITHUB_STEP_SUMMARY
-          echo "| 🚂 API Server | ${{ needs.deploy-api-server.result }} | $API_URL |" >> $GITHUB_STEP_SUMMARY
+          echo "| � API Functions | ${{ needs.deploy-api-functions.result }} | $API_URL |" >> $GITHUB_STEP_SUMMARY
           echo "| 📱 Mobile PWA | ${{ needs.deploy-mobile-pwa.result }} | $MOBILE_URL |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Build Date**: $(date)" >> $GITHUB_STEP_SUMMARY
           echo "**Commit**: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
           echo "**Environment**: $ENVIRONMENT" >> $GITHUB_STEP_SUMMARY
+          echo "**Platform**: 🔥 Firebase (Hosting + Functions + Firestore)" >> $GITHUB_STEP_SUMMARY
