@@ -140,7 +140,7 @@ npm install -g firebase-tools
 
 #### Web App to Vercel
 ```bash
-cd packages/web-app
+cd packages/web
 npm run build
 vercel --prod
 ```
@@ -153,7 +153,7 @@ railway up
 
 #### Mobile PWA to Firebase
 ```bash
-cd packages/mobile-app
+cd packages/mobile
 flutter build web --release
 firebase deploy --only hosting
 ```

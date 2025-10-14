@@ -5,7 +5,7 @@
 All production-ready builds have been generated and are available in the following locations:
 
 ### 1. 🌐 React Web Application
-- **Location**: `packages/web-app/dist/`
+- **Location**: `packages/web/dist/`
 - **Type**: Single Page Application (SPA)
 - **Deployment**: Ready for static hosting (Vercel, Netlify, AWS S3, etc.)
 - **Entry Point**: `dist/index.html`
@@ -48,7 +48,7 @@ All production-ready builds have been generated and are available in the followi
 npm install -g vercel
 
 # Deploy from project root
-cd packages/web-app
+cd packages/web
 vercel --prod
 ```
 
@@ -58,12 +58,12 @@ vercel --prod
 npm install -g netlify-cli
 
 # Deploy
-cd packages/web-app
+cd packages/web
 netlify deploy --prod --dir=dist
 ```
 
 #### Option 3: Static File Hosting
-Upload the entire `packages/web-app/dist/` directory to your static file host.
+Upload the entire `packages/web/dist/` directory to your static file host.
 
 ### API Server Deployment
 
@@ -162,7 +162,7 @@ FIREBASE_PROJECT_ID=your-project-id
 npm run build
 
 # Test individual packages
-npm run build -w packages/web-app
+npm run build -w packages/web
 npm run build -w packages/api-server
 npm run build -w packages/browser-extension
 npm run build -w packages/shared

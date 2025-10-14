@@ -224,7 +224,7 @@ firebase deploy --only functions
 
 ### 2. Update Web App
 ```bash
-cd packages/web-app
+cd packages/web
 npm run build
 firebase deploy --only hosting
 ```

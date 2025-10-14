@@ -1,24 +1,9 @@
 connectorId: example
 generate:
   javascriptSdk:
-    - outputDir: ../../src/dataconnect-generated
+    - outputDir: ../../packages/web/src/dataconnect-generated
       package: "@dataconnect/generated"
-      packageJsonDir: ../..
-      react: false
-      angular: false
-    - outputDir: ../../wishlist-wizard-react-project/src/dataconnect-generated
-      package: "@dataconnect/generated"
-      packageJsonDir: ../../wishlist-wizard-react-project
-      react: false
-      angular: false
-    - outputDir: ../../functions/src/dataconnect-generated
-      package: "@dataconnect/generated"
-      packageJsonDir: ../../functions
-      react: false
-      angular: false
-    - outputDir: ../../packages/web-app/src/dataconnect-generated
-      package: "@dataconnect/generated"
-      packageJsonDir: ../../packages/web-app
+      packageJsonDir: ../../packages/web
       react: true
       angular: false
     - outputDir: ../../packages/shared/src/dataconnect-generated
@@ -36,11 +21,6 @@ generate:
       packageJsonDir: ../../packages/api-server
       react: false
       angular: false
-    - outputDir: ../../packages/browser-extension/src/src/dataconnect-generated
-      package: "@dataconnect/generated"
-      packageJsonDir: ../../packages/browser-extension/src
-      react: false
-      angular: false
   dartSdk:
-    - outputDir: ../../mobile/lib/dataconnect_generated
+    - outputDir: ../../packages/mobile/lib/dataconnect_generated
       package: dataconnect_generated
