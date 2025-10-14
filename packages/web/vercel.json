@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "name": "wishlist-wizard-web-app",
+  "name": "wishlist-wizard-web",
   "build": {
     "env": {
       "NODE_VERSION": "18"
