@@ -10,12 +10,12 @@ on:
       environment:
         description: 'Environment to deploy to'
         required: true
-        default: 'staging'
+        default: 'STAGING'
         type: choice
         options:
-          - production
-          - staging
-          - development
+          - PRODUCTION
+          - STAGING
+          - DEVELOPMENT
 
 env:
   NODE_VERSION: '18'
@@ -34,7 +34,9 @@ jobs:
         id: set-env
         run: |
           if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            echo "environment=${{ github.event.inputs.environment }}" >> $GITHUB_OUTPUT
+            # Convert uppercase input to lowercase for internal use
+            INPUT_ENV=$(echo "${{ github.event.inputs.environment }}" | tr '[:upper:]' '[:lower:]')
+            echo "environment=$INPUT_ENV" >> $GITHUB_OUTPUT
             echo "should-deploy=true" >> $GITHUB_OUTPUT
           elif [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
             echo "environment=production" >> $GITHUB_OUTPUT
