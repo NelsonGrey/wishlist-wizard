@@ -110,6 +110,7 @@ export default function WishlistItem({ item, onDelete }: WishlistItemProps) {
                     size="icon" 
                     onClick={handleDelete}
                     className="text-gray-500 hover:text-red-500 h-8 w-8"
+                    aria-label="Delete item"
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
