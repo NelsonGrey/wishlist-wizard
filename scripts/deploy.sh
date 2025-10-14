@@ -42,9 +42,9 @@ deploy_component() {
     log_info "Deploying $component to $deploy_target..."
     
     case $component in
-        "web-app")
+        "web")
             if [[ $deploy_target == "vercel" ]]; then
-                cd packages/web-app
+                cd packages/web
                 if command_exists vercel; then
                     vercel --prod
                     log_success "Web app deployed to Vercel"
@@ -66,9 +66,9 @@ deploy_component() {
                 fi
             fi
             ;;
-        "mobile-app")
+        "mobile")
             if [[ $deploy_target == "firebase" ]]; then
-                cd packages/mobile-app
+                cd packages/mobile
                 if command_exists firebase; then
                     firebase deploy --only hosting
                     log_success "Mobile PWA deployed to Firebase Hosting"
@@ -98,7 +98,7 @@ build_all() {
     
     # Build Flutter mobile app
     if command_exists flutter; then
-        cd packages/mobile-app
+        cd packages/mobile
         flutter build web --release
         cd ../..
         log_success "Flutter mobile app built"
@@ -146,7 +146,7 @@ case ${1:-help} in
         ;;
     "deploy-web")
         build_all
-        deploy_component "web-app" "vercel"
+        deploy_component "web" "vercel"
         ;;
     "deploy-api")
         build_all
@@ -154,13 +154,13 @@ case ${1:-help} in
         ;;
     "deploy-mobile")
         build_all
-        deploy_component "mobile-app" "firebase"
+        deploy_component "mobile" "firebase"
         ;;
     "deploy-all")
         build_all
-        deploy_component "web-app" "vercel"
+        deploy_component "web" "vercel"
         deploy_component "api-server" "railway"
-        deploy_component "mobile-app" "firebase"
+        deploy_component "mobile" "firebase"
         deploy_component "extension" "package"
         log_success "All components deployed!"
         ;;
