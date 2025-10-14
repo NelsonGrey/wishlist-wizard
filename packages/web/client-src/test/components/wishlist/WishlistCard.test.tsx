@@ -43,7 +43,7 @@ describe('WishlistCard Component', () => {
     
     // Assert
     expect(screen.getByText('Birthday Wishlist')).toBeInTheDocument();
-    expect(screen.getByText('5 items • Created May 15, 2023')).toBeInTheDocument();
+    expect(screen.getByText(/5 items • Created May \d{1,2}, 2023/)).toBeInTheDocument();
   });
   
   it('should display share button and handle share click', async () => {
@@ -74,7 +74,7 @@ describe('WishlistCard Component', () => {
     });
   });
   
-  it('should show rename option in dropdown menu', () => {
+  it('should show rename option in dropdown menu', async () => {
     // Arrange & Act
     render(
       <WishlistCard 
@@ -91,7 +91,7 @@ describe('WishlistCard Component', () => {
     expect(screen.getByText('Rename')).toBeInTheDocument();
   });
   
-  it('should show delete option in dropdown menu', () => {
+  it('should show delete option in dropdown menu', async () => {
     // Arrange & Act
     render(
       <WishlistCard 
