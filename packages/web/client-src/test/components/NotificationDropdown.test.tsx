@@ -1,3 +1,16 @@
+// Mock useQuery hook
+vi.mock('@tanstack/react-query', async () => {
+  const actual = await vi.importActual('@tanstack/react-query');
+  const mockUseQuery = vi.fn();
+  const mockUseMutation = vi.fn();
+  
+  return {
+    ...actual,
+    useQuery: mockUseQuery,
+    useMutation: mockUseMutation
+  };
+});
+
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -13,25 +26,14 @@ vi.mock('@/lib/queryClient', () => ({
   }
 }));
 
-// Mock useQuery hook
-vi.mock('@tanstack/react-query', async () => {
-  const actual = await vi.importActual('@tanstack/react-query');
-  return {
-    ...actual,
-    useQuery: vi.fn(),
-    useMutation: vi.fn().mockReturnValue({
-      mutate: vi.fn(),
-      isPending: false
-    })
-  };
-});
-
 describe('NotificationDropdown', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     
+    // Get the mocked functions
+    const { useQuery, useMutation } = require('@tanstack/react-query');
+    
     // Default mock implementation for useQuery
-    const { useQuery } = require('@tanstack/react-query');
     useQuery.mockReturnValue({
       data: {
         notifications: [
@@ -47,7 +49,15 @@ describe('NotificationDropdown', () => {
         ],
         unreadCount: 1
       },
-      isLoading: false
+      isLoading: false,
+      error: null
+    });
+    
+    // Default mock implementation for useMutation
+    useMutation.mockReturnValue({
+      mutate: vi.fn(),
+      isPending: false,
+      error: null
     });
   });
 

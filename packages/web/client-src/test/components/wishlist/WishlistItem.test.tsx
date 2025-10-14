@@ -95,7 +95,7 @@ describe('WishlistItem Component', () => {
     );
     
     // Act
-    const deleteButton = screen.getByRole('button', { name: /trash/i });
+    const deleteButton = screen.getByRole('button', { name: /delete/i });
     fireEvent.click(deleteButton);
     
     // The component shows a confirmation dialog, so onDelete should not be called yet
@@ -112,7 +112,7 @@ describe('WishlistItem Component', () => {
     );
     
     // Act - Click delete button
-    const deleteButton = screen.getByRole('button', { name: /trash/i });
+    const deleteButton = screen.getByRole('button', { name: /delete/i });
     fireEvent.click(deleteButton);
     
     // Assert - Dialog should appear
@@ -130,7 +130,7 @@ describe('WishlistItem Component', () => {
     );
     
     // Act - Click delete button and confirm
-    const deleteButton = screen.getByRole('button', { name: /trash/i });
+    const deleteButton = screen.getByRole('button', { name: /delete/i });
     fireEvent.click(deleteButton);
     
     const confirmButton = screen.getByText('Remove');
@@ -150,7 +150,7 @@ describe('WishlistItem Component', () => {
     );
     
     // Act - Click delete button and cancel
-    const deleteButton = screen.getByRole('button', { name: /trash/i });
+    const deleteButton = screen.getByRole('button', { name: /delete/i });
     fireEvent.click(deleteButton);
     
     const cancelButton = screen.getByText('Cancel');

@@ -169,6 +169,7 @@ export default function WishlistCard({ wishlist, onRefresh }: WishlistCardProps)
                   size="icon"
                   onClick={handleShare}
                   className="text-gray-500 hover:text-gray-700"
+                  aria-label="Share wishlist"
                 >
                   <Share2 className="h-5 w-5" />
                 </Button>
@@ -178,6 +179,7 @@ export default function WishlistCard({ wishlist, onRefresh }: WishlistCardProps)
                       variant="ghost"
                       size="icon"
                       className="text-gray-500 hover:text-gray-700"
+                      aria-label="More options"
                     >
                       <MoreVertical className="h-5 w-5" />
                     </Button>

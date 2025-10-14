@@ -1,3 +1,18 @@
+// Mock useQuery hook
+vi.mock('@tanstack/react-query', async () => {
+  const actual = await vi.importActual('@tanstack/react-query');
+  const mockUseQuery = vi.fn();
+  const mockUseMutation = vi.fn();
+  const mockUseQueryClient = vi.fn();
+  
+  return {
+    ...actual,
+    useQuery: mockUseQuery,
+    useMutation: mockUseMutation,
+    useQueryClient: mockUseQueryClient
+  };
+});
+
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -20,22 +35,6 @@ vi.mock('@/hooks/use-toast', () => ({
   })
 }));
 
-// Mock useQuery hook
-vi.mock('@tanstack/react-query', async () => {
-  const actual = await vi.importActual('@tanstack/react-query');
-  return {
-    ...actual,
-    useQuery: vi.fn(),
-    useMutation: vi.fn().mockReturnValue({
-      mutate: vi.fn(),
-      isPending: false
-    }),
-    useQueryClient: vi.fn().mockReturnValue({
-      invalidateQueries: vi.fn()
-    })
-  };
-});
-
 describe('Notifications Page', () => {
   const mockDate = new Date('2023-05-19T12:00:00Z');
   const formattedDate = format(mockDate, 'MMM d, yyyy h:mm a');
@@ -43,8 +42,10 @@ describe('Notifications Page', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     
+    // Get the mocked useQuery function
+    const { useQuery, useMutation } = require('@tanstack/react-query');
+    
     // Default mock implementation for useQuery
-    const { useQuery } = require('@tanstack/react-query');
     useQuery.mockReturnValue({
       data: {
         notifications: [
@@ -72,23 +73,9 @@ describe('Notifications Page', () => {
       isLoading: false
     });
     
-    // Mock useMutation implementations
-    const { useMutation } = require('@tanstack/react-query');
-    
-    // Mark as read mutation
-    useMutation.mockReturnValueOnce({
-      mutate: vi.fn(),
-      isPending: false
-    });
-    
-    // Mark all as read mutation
-    useMutation.mockReturnValueOnce({
-      mutate: vi.fn(),
-      isPending: false
-    });
-    
-    // Delete notification mutation
-    useMutation.mockReturnValueOnce({
+    // Mock useMutation implementations - reset for each test
+    useMutation.mockReset();
+    useMutation.mockReturnValue({
       mutate: vi.fn(),
       isPending: false
     });
@@ -209,9 +196,7 @@ describe('Notifications Page', () => {
     });
     
     const markAsReadMutation = { mutate: vi.fn() };
-    useMutation.mockReturnValueOnce(markAsReadMutation)
-      .mockReturnValueOnce({ mutate: vi.fn(), isPending: false })
-      .mockReturnValueOnce({ mutate: vi.fn(), isPending: false });
+    useMutation.mockReturnValue(markAsReadMutation);
     
     render(<Notifications />, { pathname: '/notifications' });
     const user = userEvent.setup();
