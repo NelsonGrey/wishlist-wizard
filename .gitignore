@@ -102,6 +102,8 @@ junit.xml
 # Browser extension builds
 packages/browser-extension/dist/
 packages/browser-extension/build/
+chrome-extension-package/
+wishlist-wizard-extension.zip
 
 # Web app builds
 packages/web/dist/

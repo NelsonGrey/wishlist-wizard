@@ -7,7 +7,7 @@ All production-ready builds have been generated and are available in the followi
 ### 1. 🌐 React Web Application
 - **Location**: `packages/web/dist/`
 - **Type**: Single Page Application (SPA)
-- **Deployment**: Ready for static hosting (Vercel, Netlify, AWS S3, etc.)
+- **Deployment**: Ready for static hosting (Firebase Hosting, Netlify, AWS S3, etc.)
 - **Entry Point**: `dist/index.html`
 - **Assets**: Optimized CSS and JavaScript bundles
 - **Size**: ~1MB minified + gzipped (~298KB)
@@ -15,7 +15,7 @@ All production-ready builds have been generated and are available in the followi
 ### 2. 🚀 Express API Server
 - **Location**: `packages/api-server/dist/`
 - **Type**: Node.js server bundle
-- **Deployment**: Ready for Node.js hosting (Railway, Heroku, DigitalOcean, etc.)
+- **Deployment**: Ready for serverless hosting (Firebase Functions, AWS Lambda, etc.)
 - **Entry Point**: `dist/index.js`
 - **Runtime**: Node.js 18+
 - **Size**: 266.6KB bundled
@@ -42,14 +42,18 @@ All production-ready builds have been generated and are available in the followi
 
 ### Web Application Deployment
 
-#### Option 1: Vercel (Recommended)
+#### Option 1: Firebase Hosting (Recommended)
 ```bash
-# Install Vercel CLI
-npm install -g vercel
+# Install Firebase CLI
+npm install -g firebase-tools
+
+# Login and initialize (if not done)
+firebase login
+firebase init hosting
 
 # Deploy from project root
 cd packages/web
-vercel --prod
+firebase deploy --only hosting
 ```
 
 #### Option 2: Netlify
@@ -67,18 +71,17 @@ Upload the entire `packages/web/dist/` directory to your static file host.
 
 ### API Server Deployment
 
-#### Option 1: Railway
+#### Option 1: Firebase Functions (Recommended)
 ```bash
-# Install Railway CLI
-npm install -g @railway/cli
+# Install Firebase CLI
+npm install -g firebase-tools
 
-# Deploy
+# Deploy functions
 cd packages/api-server
-railway login
-railway up
+firebase deploy --only functions
 ```
 
-#### Option 2: Heroku
+#### Option 2: AWS Lambda
 ```bash
 # Add Heroku remote
 heroku create your-app-name

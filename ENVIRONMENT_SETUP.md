@@ -110,11 +110,6 @@ VITE_ENABLE_ERROR_REPORTING_DEVELOPMENT
 
 #### Deployment Secrets (Environment-Specific):
 ```
-VERCEL_TOKEN_PRODUCTION / VERCEL_TOKEN_STAGING / VERCEL_TOKEN_DEVELOPMENT
-VERCEL_ORG_ID_PRODUCTION / VERCEL_ORG_ID_STAGING / VERCEL_ORG_ID_DEVELOPMENT
-VERCEL_PROJECT_ID_PRODUCTION / VERCEL_PROJECT_ID_STAGING / VERCEL_PROJECT_ID_DEVELOPMENT
-RAILWAY_TOKEN_PRODUCTION / RAILWAY_TOKEN_STAGING / RAILWAY_TOKEN_DEVELOPMENT
-RAILWAY_SERVICE_PRODUCTION / RAILWAY_SERVICE_STAGING / RAILWAY_SERVICE_DEVELOPMENT
 FIREBASE_SERVICE_ACCOUNT_PRODUCTION / FIREBASE_SERVICE_ACCOUNT_STAGING / FIREBASE_SERVICE_ACCOUNT_DEVELOPMENT
 ```
 
@@ -151,18 +146,18 @@ The CI/CD pipeline will automatically use these secrets to create the `.env` fil
 ## Deployment URLs
 
 ### Production Environment:
-- **Web App**: https://wishlist-wizard.vercel.app
-- **API Server**: https://api.wishlist-wizard.railway.app
+- **Web App**: https://wishlist-wizard.web.app
+- **API Server**: https://api.wishlist-wizard.web.app
 - **Mobile PWA**: https://wishlist-wizard.web.app
 
 ### Staging Environment:
-- **Web App**: https://wishlist-wizard-staging.vercel.app
-- **API Server**: https://api-staging.wishlist-wizard.railway.app
+- **Web App**: https://wishlist-wizard-staging.web.app
+- **API Server**: https://api-staging.wishlist-wizard.web.app
 - **Mobile PWA**: https://wishlist-wizard-staging.web.app
 
 ### Development Environment:
-- **Web App**: https://wishlist-wizard-dev.vercel.app
-- **API Server**: https://api-dev.wishlist-wizard.railway.app
+- **Web App**: https://wishlist-wizard-dev.web.app
+- **API Server**: https://api-dev.wishlist-wizard.web.app
 - **Mobile PWA**: https://wishlist-wizard-dev.web.app
 
 ## CI/CD Pipeline
@@ -217,37 +212,6 @@ For each Firebase project:
 1. Copy the entire JSON content
 2. Add as a GitHub secret with the appropriate name (e.g., `FIREBASE_SERVICE_ACCOUNT_PRODUCTION`)
 3. The CI/CD pipeline will use this to authenticate with Firebase
-
-## Vercel Configuration
-
-### 1. Get Vercel Tokens
-
-For each environment:
-
-1. Go to Vercel Dashboard
-2. Account Settings → Tokens
-3. Create tokens for each environment
-4. Add tokens to GitHub secrets
-
-### 2. Environment-Specific Projects
-
-Create separate Vercel projects for each environment:
-- Production: `wishlist-wizard`
-- Staging: `wishlist-wizard-staging`
-- Development: `wishlist-wizard-dev`
-
-## Railway Configuration
-
-### 1. Get Railway Tokens
-
-1. Go to Railway Dashboard
-2. Account Settings → Tokens
-3. Create tokens for each environment
-4. Add tokens to GitHub secrets
-
-### 2. Environment-Specific Services
-
-Create separate Railway services for each environment with appropriate names.
 
 ## Testing Environment Setup
 
@@ -307,8 +271,6 @@ The application automatically detects the environment based on the hostname and 
 
 1. **Deployment Fails**: Check that all required secrets are set for the target environment
 2. **Firebase Connection Issues**: Verify Firebase config values and service account permissions
-3. **Vercel Deployment Issues**: Check Vercel tokens and project IDs
-4. **Railway Deployment Issues**: Verify Railway tokens and service names
 
 ### Debug Steps:
 
@@ -344,7 +306,6 @@ For CI/CD deployments, the environment variables are automatically created from 
 
 1. **Set up all GitHub secrets** for each environment using the naming convention `{VARIABLE_NAME}_{ENVIRONMENT}`
 2. **Configure Firebase projects** and add service account keys as GitHub secrets
-3. **Set up Vercel & Railway** projects for each environment and add tokens
-4. **Create local development .env file** for development work
-5. **Test deployments** to each environment
-6. **Update documentation** with actual deployment URLs once everything is working
+3. **Create local development .env file** for development work
+4. **Test deployments** to each environment
+5. **Update documentation** with actual deployment URLs once everything is working
