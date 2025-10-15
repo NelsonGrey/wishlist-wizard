@@ -21,7 +21,7 @@
     "check": "tsc --noEmit"
   },
   "dependencies": {
-    "drizzle-orm": "^0.39.3",
+    "drizzle-orm": "^0.44.6",
     "drizzle-zod": "^0.7.1",
     "firebase": "^12.3.0",
     "zod": "^3.25.3"
