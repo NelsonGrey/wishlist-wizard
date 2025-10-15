@@ -1,8 +1,20 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { screen, fireEvent, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { render } from '../../utils';
 import WishlistCard from '@/components/WishlistCard';
 import { Wishlist as DbWishlist } from '@wishlist-wizard/shared';
+
+// Mock Firebase to prevent initialization errors
+vi.mock('firebase/app', () => ({
+  initializeApp: vi.fn(),
+  getApp: vi.fn(),
+  getApps: vi.fn(() => []),
+}));
+
+vi.mock('firebase/auth', () => ({
+  getAuth: vi.fn(() => ({})),
+}));
 
 // Extended type for UI purposes that includes computed fields
 type Wishlist = DbWishlist & {
@@ -77,35 +89,43 @@ describe('WishlistCard Component', () => {
   it('should show rename option in dropdown menu', async () => {
     // Arrange & Act
     render(
-      <WishlistCard 
+      <WishlistCard
         wishlist={mockWishlist}
         onRefresh={mockOnRefresh}
       />
     );
-    
+
+    const user = userEvent.setup();
+
     // Act - Open dropdown menu
     const menuTrigger = screen.getByRole('button', { name: /more/i });
-    fireEvent.click(menuTrigger);
-    
-    // Assert
-    expect(screen.getByText('Rename')).toBeInTheDocument();
+    await user.click(menuTrigger);
+
+    // Assert - Wait for dropdown to open
+    await waitFor(() => {
+      expect(screen.getByText('Rename')).toBeInTheDocument();
+    });
   });
-  
+
   it('should show delete option in dropdown menu', async () => {
     // Arrange & Act
     render(
-      <WishlistCard 
+      <WishlistCard
         wishlist={mockWishlist}
         onRefresh={mockOnRefresh}
       />
     );
-    
+
+    const user = userEvent.setup();
+
     // Act - Open dropdown menu
     const menuTrigger = screen.getByRole('button', { name: /more/i });
-    fireEvent.click(menuTrigger);
-    
-    // Assert
-    expect(screen.getByText('Delete')).toBeInTheDocument();
+    await user.click(menuTrigger);
+
+    // Assert - Wait for dropdown to open
+    await waitFor(() => {
+      expect(screen.getByText('Delete')).toBeInTheDocument();
+    });
   });
   
   it('should display collaborative wishlist indicator', () => {

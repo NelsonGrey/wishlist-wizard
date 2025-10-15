@@ -14,7 +14,7 @@
 - **📋 Contents**:
   - `index.html` - Entry point (1.9KB)
   - `assets/` - Optimized CSS and JS bundles
-- **🚀 Deployment**: Ready for static hosting (Vercel, Netlify, AWS S3)
+- **🚀 Deployment**: Ready for static hosting (Firebase Hosting, Netlify, AWS S3)
 
 ### 2. 🖥️ Express API Server
 - **📁 Location**: `packages/api-server/dist/`
@@ -23,7 +23,7 @@
 - **⚡ Build Time**: 45ms
 - **📋 Contents**:
   - `index.js` - Complete server bundle (267KB)
-- **🚀 Deployment**: Ready for Node.js hosting (Railway, Heroku, DigitalOcean)
+- **🚀 Deployment**: Ready for serverless hosting (Firebase Functions, AWS Lambda)
 
 ### 3. 🔌 Chrome Browser Extension
 - **📁 Build Location**: `packages/browser-extension/dist/`
@@ -99,16 +99,16 @@
 
 ## 🚀 Quick Deployment Commands
 
-### Deploy Web App to Vercel
+### Deploy Web App to Firebase Hosting
 ```bash
 cd packages/web
-npx vercel --prod
+firebase deploy --only hosting
 ```
 
-### Deploy API Server to Railway
+### Deploy API Server to Firebase Functions
 ```bash
 cd packages/api-server
-npx @railway/cli up
+firebase deploy --only functions
 ```
 
 ### Load Extension in Chrome

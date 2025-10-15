@@ -1,0 +1,17 @@
+<svg width="128" height="128" viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background circle for icon -->
+  <circle cx="64" cy="64" r="60" fill="#6366F1" stroke="#4F46E5" stroke-width="4"/>
+
+  <!-- Outer W -->
+  <path d="M20 85 L32 45 L44 75 L56 35 L68 75 L80 45 L92 85" stroke="white" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Inner W (nested) -->
+  <path d="M35 75 L42 55 L49 70 L56 45 L63 70 L70 55 L77 75" stroke="white" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Star on top of inner points -->
+  <polygon points="56,25 58,32 65,32 60,37 62,44 56,39 50,44 52,37 47,32 54,32" fill="#FFD700" stroke="#FFA500" stroke-width="1"/>
+
+  <!-- Wizard hat brim -->
+  <ellipse cx="56" cy="75" rx="25" ry="8" fill="#4F46E5" opacity="0.8"/>
+  <ellipse cx="56" cy="73" rx="23" ry="6" fill="#6366F1"/>
+</svg>

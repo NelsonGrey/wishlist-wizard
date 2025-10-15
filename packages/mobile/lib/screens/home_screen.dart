@@ -286,7 +286,12 @@ class _HomeScreenState extends State<HomeScreen> {
                 icon: Icons.camera_alt,
                 label: 'Scan Item',
                 onTap: () {
-                  // TODO: Navigate to camera
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const CameraScreen(),
+                    ),
+                  );
                 },
               ),
             ),
@@ -297,7 +302,12 @@ class _HomeScreenState extends State<HomeScreen> {
                 icon: Icons.search,
                 label: 'Browse',
                 onTap: () {
-                  // TODO: Navigate to browse
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const BrowseScreen(),
+                    ),
+                  );
                 },
               ),
             ),
@@ -399,6 +409,30 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
+    );
+  }
+}
+
+class CameraScreen extends StatelessWidget {
+  const CameraScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Camera')),
+      body: const Center(child: Text('Camera Screen')),
+    );
+  }
+}
+
+class BrowseScreen extends StatelessWidget {
+  const BrowseScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Browse Products')),
+      body: const Center(child: Text('Browse Products Screen')),
     );
   }
 }

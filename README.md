@@ -229,8 +229,8 @@ See `FIREBASE_STRATEGY.md` for comprehensive Firebase integration details.
 Wishlist Wizard includes a comprehensive CI/CD pipeline that automatically builds, tests, and deploys all components:
 
 ### Deployment Targets
-- **🌐 Web App**: Vercel (`https://wishlist-wizard.vercel.app`)
-- **🚂 API Server**: Railway (`https://api.wishlist-wizard.railway.app`) 
+- **🌐 Web App**: Firebase Hosting (`https://wishlist-wizard.web.app`)
+- **🚂 API Server**: Firebase Functions (`https://api.wishlist-wizard.web.app`)
 - **📱 Mobile PWA**: Firebase Hosting (`https://wishlist-wizard.web.app`)
 - **🔌 Chrome Extension**: Chrome Web Store (manual submission)
 
@@ -246,9 +246,9 @@ Wishlist Wizard includes a comprehensive CI/CD pipeline that automatically build
 npm run deploy
 
 # Deploy individual components  
-npm run deploy:web     # Deploy to Vercel
-npm run deploy:api     # Deploy to Railway
-npm run deploy:mobile  # Deploy to Firebase
+npm run deploy:web     # Deploy to Firebase Hosting
+npm run deploy:api     # Deploy to Firebase Functions
+npm run deploy:mobile  # Deploy to Firebase Hosting
 
 # Create extension package
 npm run package:extension
