@@ -1,8 +1,10 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<svg width="128px" height="128px" viewBox="0 0 128 128" version="1.1" xmlns="http://www.w3.org/2000/svg">
-  <g stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
-    <rect fill="#6366F1" x="0" y="0" width="128" height="128" rx="24"></rect>
-    <path d="M64,24 C85.6,24 105.066667,41.6 104.533333,65.0666667 C104,88.5333333 91.2,97.6 64,117.333333 C36.8,97.6 24,88.5333333 23.4666667,65.0666667 C22.9333333,41.6 42.4,24 64,24 Z" fill="#FFFFFF"></path>
-    <path d="M64,38 C73.9,38 82.5333333,45.9333333 82.2666667,57.1333333 C82,68.3333333 75.8666667,72.6666667 64,82 C52.1333333,72.6666667 46,68.3333333 45.7333333,57.1333333 C45.4666667,45.9333333 54.1,38 64,38 Z" fill="#F0F0FF"></path>
-  </g>
+<svg width="128" height="128" viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background circle for icon -->
+  <circle cx="64" cy="64" r="60" fill="#6366F1"/>
+
+  <!-- Single W - floating shape -->
+  <path d="M42 40 L52 80 L64 30 L76 80 L86 40" stroke="white" stroke-width="5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Second W - copy of primary shifted down 30 pixels -->
+      <path d="M42 70 L52 110 L64 60 L76 110 L86 70" stroke="white" stroke-width="5" fill="none" stroke-linecap="round" stroke-linejoin="round" opacity="0.6"/>
 </svg>

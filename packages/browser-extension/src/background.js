@@ -2,9 +2,11 @@
 // This script handles communication between the extension and the website
 
 // Base URL for the Wishlist Wizard website API
-let baseUrl = window.location.hostname.includes('localhost') 
-  ? 'http://localhost:3001' 
-  : 'https://wishlist-wizard.web.app';
+// Note: Service workers don't have access to window.location, so we hardcode the URLs
+let baseUrl = 'https://wishlist-wizard.web.app';
+
+// For development, you can manually change this to localhost when testing
+// let baseUrl = 'http://localhost:3001';
 
 // Auth token storage for JWT-based authentication
 let authToken = null;

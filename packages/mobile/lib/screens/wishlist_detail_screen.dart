@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../models/models.dart';
 import '../providers/providers.dart';
 import '../main.dart';
@@ -309,7 +311,7 @@ class _WishlistDetailScreenState extends State<WishlistDetailScreen> {
     );
   }
 
-  void _handleItemAction(String action, WishlistItem item) {
+  Future<void> _handleItemAction(String action, WishlistItem item) async {
     switch (action) {
       case 'edit':
         _showEditItemDialog(item);
@@ -318,7 +320,17 @@ class _WishlistDetailScreenState extends State<WishlistDetailScreen> {
         _markAsPurchased(item);
         break;
       case 'open_link':
-        // TODO: Open URL in browser
+        if (item.productUrl != null && item.productUrl!.isNotEmpty) {
+          final uri = Uri.tryParse(item.productUrl!);
+          if (uri != null && await canLaunchUrl(uri)) {
+            await launchUrl(uri, mode: LaunchMode.externalApplication);
+          } else {
+            if (!mounted) return;
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Unable to open link')),
+            );
+          }
+        }
         break;
       case 'delete':
         _confirmDeleteItem(item);
@@ -382,14 +394,64 @@ class _WishlistDetailScreenState extends State<WishlistDetailScreen> {
             child: const Text('Cancel'),
           ),
           ElevatedButton(
-            onPressed: () {
+            onPressed: () async {
               if (nameController.text.trim().isEmpty) return;
 
-              // TODO: Add item to wishlist
-              Navigator.pop(context);
-              ScaffoldMessenger.of(
+              final name = nameController.text.trim();
+              final description = descriptionController.text.trim().isEmpty
+                  ? null
+                  : descriptionController.text.trim();
+              final productUrl = urlController.text.trim().isEmpty
+                  ? null
+                  : urlController.text.trim();
+
+              double? price;
+              if (priceController.text.trim().isNotEmpty) {
+                price = double.tryParse(priceController.text.trim());
+                if (price == null) {
+                  if (!mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Please enter a valid price'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                  return;
+                }
+              }
+
+              final provider = Provider.of<WishlistProvider>(
                 context,
-              ).showSnackBar(const SnackBar(content: Text('Item added!')));
+                listen: false,
+              );
+
+              final success = await provider.addItem(
+                wishlistId: widget.wishlist.id,
+                name: name,
+                description: description,
+                productUrl: productUrl,
+                price: price,
+              );
+
+              if (!mounted) return;
+
+              // ignore: use_build_context_synchronously
+              Navigator.pop(context); // Close dialog
+
+              if (success) {
+                // ignore: use_build_context_synchronously
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Item added successfully!')),
+                );
+              } else {
+                // ignore: use_build_context_synchronously
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(provider.error ?? 'Failed to add item'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
             },
             child: const Text('Add'),
           ),
@@ -399,11 +461,150 @@ class _WishlistDetailScreenState extends State<WishlistDetailScreen> {
   }
 
   void _showEditItemDialog(WishlistItem item) {
-    // TODO: Implement edit item dialog
+    final nameController = TextEditingController(text: item.name);
+    final descriptionController = TextEditingController(text: item.description);
+    final priceController = TextEditingController(
+      text: item.price != null ? item.price!.toStringAsFixed(2) : '',
+    );
+    final urlController = TextEditingController(text: item.productUrl);
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Edit Item'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nameController,
+                decoration: const InputDecoration(
+                  labelText: 'Item Name',
+                  hintText: 'What do you want?',
+                ),
+                autofocus: true,
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: descriptionController,
+                decoration: const InputDecoration(
+                  labelText: 'Description (optional)',
+                ),
+                maxLines: 2,
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: priceController,
+                decoration: const InputDecoration(
+                  labelText: 'Price (optional)',
+                  prefixText: '\$',
+                ),
+                keyboardType: TextInputType.number,
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: urlController,
+                decoration: const InputDecoration(
+                  labelText: 'Product URL (optional)',
+                  hintText: 'https://...',
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              if (nameController.text.trim().isEmpty) return;
+
+              final name = nameController.text.trim();
+              final description = descriptionController.text.trim().isEmpty
+                  ? null
+                  : descriptionController.text.trim();
+              final productUrl = urlController.text.trim().isEmpty
+                  ? null
+                  : urlController.text.trim();
+
+              double? price;
+              if (priceController.text.trim().isNotEmpty) {
+                price = double.tryParse(priceController.text.trim());
+                if (price == null) {
+                  if (!mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Please enter a valid price'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                  return;
+                }
+              }
+
+              final provider = Provider.of<WishlistProvider>(
+                context,
+                listen: false,
+              );
+
+              final success = await provider.updateItem(
+                item.id,
+                name: name,
+                description: description,
+                productUrl: productUrl,
+                price: price,
+              );
+
+              if (!mounted) return;
+
+              // ignore: use_build_context_synchronously
+              Navigator.pop(context); // Close dialog
+
+              if (success) {
+                // ignore: use_build_context_synchronously
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Item updated successfully!')),
+                );
+              } else {
+                // ignore: use_build_context_synchronously
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(provider.error ?? 'Failed to update item'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
+            },
+            child: const Text('Update'),
+          ),
+        ],
+      ),
+    );
   }
 
-  void _markAsPurchased(WishlistItem item) {
-    // TODO: Mark item as purchased
+  void _markAsPurchased(WishlistItem item) async {
+    final provider = Provider.of<WishlistProvider>(context, listen: false);
+
+    final success = await provider.updateItem(item.id, isPurchased: true);
+
+    if (!mounted) return;
+
+    if (success) {
+      // ignore: use_build_context_synchronously
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('${item.name} marked as purchased!')),
+      );
+    } else {
+      // ignore: use_build_context_synchronously
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(provider.error ?? 'Failed to mark item as purchased'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   void _confirmDeleteItem(WishlistItem item) {
@@ -418,9 +619,31 @@ class _WishlistDetailScreenState extends State<WishlistDetailScreen> {
             child: const Text('Cancel'),
           ),
           ElevatedButton(
-            onPressed: () {
-              // TODO: Delete item
-              Navigator.pop(context);
+            onPressed: () async {
+              final provider = Provider.of<WishlistProvider>(
+                context,
+                listen: false,
+              );
+              Navigator.pop(context); // Close confirmation dialog
+
+              final success = await provider.deleteItem(item.id);
+
+              if (!mounted) return;
+
+              if (success) {
+                // ignore: use_build_context_synchronously
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('${item.name} deleted successfully!')),
+                );
+              } else {
+                // ignore: use_build_context_synchronously
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(provider.error ?? 'Failed to delete item'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
             },
             child: const Text('Delete'),
           ),
@@ -430,11 +653,181 @@ class _WishlistDetailScreenState extends State<WishlistDetailScreen> {
   }
 
   void _showEditWishlistDialog() {
-    // TODO: Implement edit wishlist dialog
+    final nameController = TextEditingController(text: widget.wishlist.name);
+    final descriptionController = TextEditingController(
+      text: widget.wishlist.description,
+    );
+    bool isPublic = widget.wishlist.isPublic;
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: const Text('Edit Wishlist'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: nameController,
+                  decoration: const InputDecoration(
+                    labelText: 'Wishlist Name',
+                    hintText: 'My Wishlist',
+                  ),
+                  autofocus: true,
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: descriptionController,
+                  decoration: const InputDecoration(
+                    labelText: 'Description (optional)',
+                    hintText: 'A description of your wishlist',
+                  ),
+                  maxLines: 2,
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    const Text('Visibility:'),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: SegmentedButton<bool>(
+                        segments: const [
+                          ButtonSegment<bool>(
+                            value: false,
+                            label: Text('Private'),
+                            icon: Icon(Icons.lock),
+                          ),
+                          ButtonSegment<bool>(
+                            value: true,
+                            label: Text('Public'),
+                            icon: Icon(Icons.public),
+                          ),
+                        ],
+                        selected: {isPublic},
+                        onSelectionChanged: (Set<bool> selected) {
+                          setState(() {
+                            isPublic = selected.first;
+                          });
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  isPublic
+                      ? 'Public wishlists can be viewed by anyone with the link'
+                      : 'Private wishlists are only visible to you',
+                  style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                if (nameController.text.trim().isEmpty) return;
+
+                final name = nameController.text.trim();
+                final description = descriptionController.text.trim().isEmpty
+                    ? null
+                    : descriptionController.text.trim();
+
+                final provider = Provider.of<WishlistProvider>(
+                  context,
+                  listen: false,
+                );
+
+                final success = await provider.updateWishlist(
+                  widget.wishlist.id,
+                  name: name,
+                  description: description,
+                  isPublic: isPublic,
+                );
+
+                if (!mounted) return;
+
+                // ignore: use_build_context_synchronously
+                Navigator.pop(context); // Close dialog
+
+                if (success) {
+                  // ignore: use_build_context_synchronously
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Wishlist updated successfully!'),
+                    ),
+                  );
+                } else {
+                  // ignore: use_build_context_synchronously
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        provider.error ?? 'Failed to update wishlist',
+                      ),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              },
+              child: const Text('Update'),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   void _shareWishlist() {
-    // TODO: Implement share functionality
+    // Create shareable content
+    final wishlistName = widget.wishlist.name;
+    final itemCount = widget.wishlist.items.length;
+    final isPublic = widget.wishlist.isPublic;
+
+    if (!isPublic) {
+      // Show dialog explaining that private wishlists can't be shared
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Cannot Share Private Wishlist'),
+          content: const Text(
+            'This wishlist is private. To share it with others, first make it public in the wishlist settings.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context); // Close this dialog
+                _showEditWishlistDialog(); // Open edit dialog
+              },
+              child: const Text('Make Public'),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
+    // Create shareable message
+    final shareText =
+        '''
+Check out my wishlist: "$wishlistName"
+
+${widget.wishlist.description != null ? '${widget.wishlist.description}\n\n' : ''}It has $itemCount ${itemCount == 1 ? 'item' : 'items'}.
+
+View it here: https://wishlist-wizard.com/wishlist/${widget.wishlist.id}
+'''
+            .trim();
+
+    // Share using share_plus
+    SharePlus.instance.share(ShareParams(text: shareText));
   }
 
   void _confirmDeleteWishlist() {

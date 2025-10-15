@@ -8,8 +8,8 @@ This project includes a comprehensive CI/CD pipeline that automatically builds, 
 
 | Component | Platform | URL | Auto Deploy |
 |-----------|----------|-----|-------------|
-| 🌐 Web App | Vercel | `https://wishlist-wizard.vercel.app` | ✅ |
-| 🚂 API Server | Railway | `https://api.wishlist-wizard.railway.app` | ✅ |
+| 🌐 Web App | Firebase Hosting | `https://wishlist-wizard.web.app` | ✅ |
+| 🚂 API Server | Firebase Functions | `https://api.wishlist-wizard.web.app` | ✅ |
 | 📱 Mobile PWA | Firebase Hosting | `https://wishlist-wizard.web.app` | ✅ |
 | 🔌 Chrome Extension | Chrome Web Store | Manual submission | 📦 |
 
@@ -42,9 +42,8 @@ This project includes a comprehensive CI/CD pipeline that automatically builds, 
 - Optimized production bundles
 
 #### 4. 🚀 Deploy to Platforms
-- **Vercel**: Web application deployment
-- **Railway**: API server deployment
-- **Firebase**: Mobile PWA deployment
+- **Firebase Hosting**: Web application and Mobile PWA deployment
+- **Firebase Functions**: API server deployment
 - **Chrome Web Store**: Manual submission workflow
 
 ## 🔧 Setup Instructions
@@ -52,18 +51,6 @@ This project includes a comprehensive CI/CD pipeline that automatically builds, 
 ### 1. Repository Secrets Configuration
 
 Add these secrets to your GitHub repository (`Settings > Secrets and variables > Actions`):
-
-#### Vercel Deployment
-```
-VERCEL_TOKEN=your_vercel_token
-VERCEL_ORG_ID=your_org_id
-VERCEL_PROJECT_ID=your_project_id
-```
-
-#### Railway Deployment
-```
-RAILWAY_TOKEN=your_railway_token
-```
 
 #### Firebase Deployment
 ```
@@ -80,22 +67,22 @@ CHROME_REFRESH_TOKEN=your_chrome_refresh_token
 
 ### 2. Environment Variables
 
-#### Vercel Environment Variables
-Set these in your Vercel dashboard:
-```
-VITE_API_URL=https://api.wishlist-wizard.railway.app
-VITE_FIREBASE_API_KEY=your_firebase_api_key
-VITE_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
-VITE_FIREBASE_PROJECT_ID=your_project_id
-```
-
-#### Railway Environment Variables
-Set these in your Railway dashboard:
+#### Firebase Environment Variables
+Set these in your Firebase Functions configuration:
 ```
 NODE_ENV=production
 DATABASE_URL=your_postgresql_connection_string
 FIREBASE_PROJECT_ID=your_project_id
 JWT_SECRET=your_jwt_secret
+```
+
+#### Web App Environment Variables
+Set these in your Firebase Hosting configuration or build process:
+```
+VITE_API_URL=https://api.wishlist-wizard.web.app
+VITE_FIREBASE_API_KEY=your_firebase_api_key
+VITE_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
+VITE_FIREBASE_PROJECT_ID=your_project_id
 ```
 
 ## 📋 Manual Deployment
@@ -110,9 +97,9 @@ JWT_SECRET=your_jwt_secret
 ./scripts/deploy.sh deploy-all
 
 # Deploy individual components
-./scripts/deploy.sh deploy-web      # Deploy to Vercel
-./scripts/deploy.sh deploy-api      # Deploy to Railway
-./scripts/deploy.sh deploy-mobile   # Deploy to Firebase
+./scripts/deploy.sh deploy-web      # Deploy to Firebase Hosting
+./scripts/deploy.sh deploy-api      # Deploy to Firebase Functions
+./scripts/deploy.sh deploy-mobile   # Deploy to Firebase Hosting
 
 # Create Chrome extension package
 ./scripts/deploy.sh package-ext
@@ -123,12 +110,6 @@ JWT_SECRET=your_jwt_secret
 Install the required CLI tools:
 
 ```bash
-# Vercel CLI
-npm install -g vercel
-
-# Railway CLI
-npm install -g @railway/cli
-
 # Firebase CLI
 npm install -g firebase-tools
 
@@ -138,20 +119,21 @@ npm install -g firebase-tools
 
 ### Individual Platform Deployment
 
-#### Web App to Vercel
+#### Web App to Firebase Hosting
 ```bash
 cd packages/web
 npm run build
-vercel --prod
+firebase deploy --only hosting
 ```
 
-#### API Server to Railway
+#### API Server to Firebase Functions
 ```bash
-npm run build --workspace=packages/api-server
-railway up
+cd packages/api-server
+npm run build
+firebase deploy --only functions
 ```
 
-#### Mobile PWA to Firebase
+#### Mobile PWA to Firebase Hosting
 ```bash
 cd packages/mobile
 flutter build web --release
@@ -185,9 +167,7 @@ firebase deploy --only hosting
 - Slack integration available (optional)
 
 ### Platform Monitoring
-- **Vercel**: Built-in analytics and performance monitoring
-- **Railway**: Application logs and metrics
-- **Firebase**: Performance monitoring and crash reporting
+- **Firebase**: Performance monitoring, crash reporting, and analytics
 
 ### Health Checks
 - API server includes health check endpoint (`/health`)
@@ -204,9 +184,7 @@ firebase deploy --only hosting
 3. Ensure all dependencies are properly installed
 
 #### Deployment Failures
-1. **Vercel**: Check build logs in Vercel dashboard
-2. **Railway**: Check deployment logs in Railway dashboard
-3. **Firebase**: Verify Firebase configuration and permissions
+1. **Firebase**: Check deployment logs in Firebase console and verify configuration
 
 #### Chrome Extension Issues
 1. Ensure manifest.json is valid
