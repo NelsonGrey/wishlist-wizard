@@ -125,3 +125,7 @@ tmp/
 temp/
 *.tmp
 *.temp
+# Environment variables
+.env
+.env.*
+!.env.example
