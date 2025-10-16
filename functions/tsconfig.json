@@ -9,7 +9,9 @@
     "sourceMap": true,
     "strict": true,
     "target": "es2017",
-    "forceConsistentCasingInFileNames": true
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true,
+    "types": ["node"]
   },
   "compileOnSave": true,
   "include": [

@@ -10,7 +10,8 @@
       "@wishlist-wizard/shared": ["../shared/src"],
       "@wishlist-wizard/shared/*": ["../shared/src/*"]
     },
-    "typeRoots": ["./types", "./node_modules/@types"]
+    "typeRoots": ["./types"],
+    "skipLibCheck": true
   },
   "include": ["server/**/*", "drizzle.config.ts", "types/**/*"],
   "exclude": ["dist", "node_modules"]
