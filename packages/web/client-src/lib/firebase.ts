@@ -1,18 +1,10 @@
-// Firebase initialization helper
-// This module safely initializes Firebase only when the required environment
-// variables are present. All imports are tree-shakeable.
+// Firebase initialization using shared utilities
+// This module safely initializes Firebase using the shared FirebaseClient.
+// All imports are tree-shakeable.
 
-import type { FirebaseApp } from 'firebase/app';
-import { initializeApp, getApps } from 'firebase/app';
-import type { Analytics } from 'firebase/analytics';
-import { getAnalytics, isSupported as analyticsIsSupported } from 'firebase/analytics';
-import type { Messaging } from 'firebase/messaging';
-import { getMessaging, getToken, onMessage, isSupported as messagingIsSupported } from 'firebase/messaging';
-import type { Auth, User } from 'firebase/auth';
-import type { Firestore } from 'firebase/firestore';
-import { getFirestore } from 'firebase/firestore';
-import { 
-  getAuth, 
+import { FirebaseClient } from '@shared/firebase-utils';
+import type { User } from 'firebase/auth';
+import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   signOut,
@@ -24,6 +16,7 @@ import {
   setPersistence,
   browserLocalPersistence
 } from 'firebase/auth';
+import { getToken, isSupported as messagingIsSupported } from 'firebase/messaging';
 
 // Vite exposes env vars prefixed with VITE_
 const firebaseConfig = {
@@ -40,16 +33,12 @@ function hasAllConfigValues() {
   return Object.values(firebaseConfig).every(v => typeof v === 'string' && v.length > 0);
 }
 
-// Global instances
-let app: FirebaseApp | null = null;
-let analytics: Analytics | null = null;
-let messaging: Messaging | null = null;
-let auth: Auth | null = null;
-let firestore: Firestore | null = null;
+// Global FirebaseClient instance
+let firebaseClient: FirebaseClient | null = null;
 
-export async function initFirebase(options?: { 
-  enableAnalytics?: boolean; 
-  enableMessaging?: boolean; 
+export async function initFirebase(options?: {
+  enableAnalytics?: boolean;
+  enableMessaging?: boolean;
   enableAuth?: boolean;
   enableFirestore?: boolean;
 }) {
@@ -61,16 +50,20 @@ export async function initFirebase(options?: {
     return { app: null, analytics: null, messaging: null, auth: null, firestore: null };
   }
 
-  if (!app) {
-    app = getApps().length ? getApps()[0]! : initializeApp(firebaseConfig);
+  if (!firebaseClient) {
+    firebaseClient = FirebaseClient.initialize(firebaseConfig);
+
+    // Connect to emulators in development
+    if (import.meta.env.DEV) {
+      firebaseClient.connectToEmulators();
+    }
   }
 
   // Initialize Firebase Auth (enabled by default for Firebase-first architecture)
-  if (options?.enableAuth !== false && !auth) {
+  if (options?.enableAuth !== false) {
     try {
-      auth = getAuth(app!);
       // Set persistence to local storage for better UX
-      await setPersistence(auth, browserLocalPersistence);
+      await setPersistence(firebaseClient.auth, browserLocalPersistence);
       if (import.meta.env.DEV) {
         console.log('[firebase] Auth initialized with local persistence');
       }
@@ -80,94 +73,95 @@ export async function initFirebase(options?: {
   }
 
   // Initialize Firestore (enabled by default for Firebase-first architecture)
-  if (options?.enableFirestore !== false && !firestore) {
-    try {
-      firestore = getFirestore(app!);
-      if (import.meta.env.DEV) {
-        console.log('[firebase] Firestore initialized for real-time subscriptions');
-      }
-    } catch (err) {
-      if (import.meta.env.DEV) console.warn('[firebase] Firestore init failed', err);
+  if (options?.enableFirestore !== false) {
+    if (import.meta.env.DEV) {
+      console.log('[firebase] Firestore initialized for real-time subscriptions');
     }
   }
 
-  if (options?.enableAnalytics && !analytics) {
-    try {
-      if (await analyticsIsSupported()) {
-        analytics = getAnalytics(app!);
-      }
-    } catch (err) {
-      if (import.meta.env.DEV) console.warn('[firebase] Analytics init failed', err);
-    }
-  }
-
-  if (options?.enableMessaging && !messaging) {
-    try {
-      if (await messagingIsSupported()) {
-        messaging = getMessaging(app!);
-      }
-    } catch (err) {
-      if (import.meta.env.DEV) console.warn('[firebase] Messaging init failed', err);
-    }
-  }
-
-  return { app, analytics, messaging, auth, firestore };
+  return {
+    app: firebaseClient.app,
+    analytics: null, // Analytics not handled by FirebaseClient yet
+    messaging: null, // Messaging not handled by FirebaseClient yet
+    auth: firebaseClient.auth,
+    firestore: firebaseClient.firestore
+  };
 }
 
 // Web Push (FCM) helper to request permission & acquire token
 export async function getFcmToken(vapidKey?: string): Promise<string | null> {
-  if (!messaging) return null;
+  if (!firebaseClient) return null;
   try {
-    const permission = await Notification.requestPermission();
-    if (permission !== 'granted') return null;
-    const token = await getToken(messaging, vapidKey ? { vapidKey } : undefined);
-    return token || null;
+    // Note: FirebaseClient doesn't handle messaging yet, so we initialize it separately
+    if (await messagingIsSupported()) {
+      const { getMessaging } = await import('firebase/messaging');
+      const messaging = getMessaging(firebaseClient.app);
+      const permission = await Notification.requestPermission();
+      if (permission !== 'granted') return null;
+      const token = await getToken(messaging, vapidKey ? { vapidKey } : undefined);
+      return token || null;
+    }
   } catch (err) {
     if (import.meta.env.DEV) console.warn('[firebase] Unable to get FCM token', err);
     return null;
   }
+  return null;
 }
 
 // Foreground message listener
 export function onForegroundMessage(cb: (payload: unknown) => void) {
-  if (!messaging) return () => void 0;
-  const unsubscribe = onMessage(messaging, (payload) => cb(payload));
-  return unsubscribe;
+  if (!firebaseClient) return () => void 0;
+  try {
+    messagingIsSupported().then(supported => {
+      if (supported) {
+        import('firebase/messaging').then(({ getMessaging, onMessage }) => {
+          const messaging = getMessaging(firebaseClient!.app);
+          const unsubscribe = onMessage(messaging, (payload) => cb(payload));
+          return unsubscribe;
+        });
+      }
+    }).catch(err => {
+      if (import.meta.env.DEV) console.warn('[firebase] Unable to set up foreground messaging', err);
+    });
+  } catch (err) {
+    if (import.meta.env.DEV) console.warn('[firebase] Unable to set up foreground messaging', err);
+  }
+  return () => void 0;
 }
 
 // Firebase Auth utility functions
 export async function signIn(email: string, password: string) {
-  if (!auth) {
-    throw new Error('Firebase Auth not initialized');
+  if (!firebaseClient) {
+    throw new Error('Firebase not initialized');
   }
-  return await signInWithEmailAndPassword(auth, email, password);
+  return await signInWithEmailAndPassword(firebaseClient.auth, email, password);
 }
 
 export async function signUp(email: string, password: string, displayName?: string) {
-  if (!auth) {
-    throw new Error('Firebase Auth not initialized');
+  if (!firebaseClient) {
+    throw new Error('Firebase not initialized');
   }
-  const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-  
+  const userCredential = await createUserWithEmailAndPassword(firebaseClient.auth, email, password);
+
   if (displayName && userCredential.user) {
     await updateProfile(userCredential.user, { displayName });
   }
-  
+
   return userCredential;
 }
 
 export async function signOutUser() {
-  if (!auth) {
-    throw new Error('Firebase Auth not initialized');
+  if (!firebaseClient) {
+    throw new Error('Firebase not initialized');
   }
-  return await signOut(auth);
+  return await signOut(firebaseClient.auth);
 }
 
 export async function resetPassword(email: string) {
-  if (!auth) {
-    throw new Error('Firebase Auth not initialized');
+  if (!firebaseClient) {
+    throw new Error('Firebase not initialized');
   }
-  return await sendPasswordResetEmail(auth, email);
+  return await sendPasswordResetEmail(firebaseClient.auth, email);
 }
 
 export async function verifyEmail(user: User) {
@@ -179,14 +173,14 @@ export async function changePassword(user: User, newPassword: string) {
 }
 
 export function onAuthStateChange(callback: (user: User | null) => void) {
-  if (!auth) {
-    throw new Error('Firebase Auth not initialized');
+  if (!firebaseClient) {
+    throw new Error('Firebase not initialized');
   }
-  return onAuthStateChanged(auth, callback);
+  return onAuthStateChanged(firebaseClient.auth, callback);
 }
 
 export function getCurrentUser(): User | null {
-  return auth?.currentUser || null;
+  return firebaseClient?.auth?.currentUser || null;
 }
 
 // Convenience auto-init (opt-in via env flag)
@@ -194,5 +188,6 @@ if (import.meta.env.VITE_FIREBASE_AUTO_INIT === 'true') {
   initFirebase({ enableAnalytics: true, enableMessaging: false, enableAuth: true });
 }
 
-export const firebaseApp = app;
-export { auth as firebaseAuth, firestore as firebaseFirestore };
+export const firebaseApp = firebaseClient?.app ?? null;
+export const firebaseAuth = firebaseClient?.auth ?? null;
+export const firebaseFirestore = firebaseClient?.firestore ?? null;

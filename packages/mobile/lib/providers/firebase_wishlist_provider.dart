@@ -4,6 +4,7 @@ import '../services/services.dart';
 
 class FirebaseWishlistProvider extends ChangeNotifier {
   final FirebaseFirestoreService _firestoreService = FirebaseFirestoreService();
+  final FirebaseFunctionsService _functionsService = FirebaseFunctionsService();
 
   List<FirebaseWishlist> _wishlists = [];
   List<FirebaseWishlistItem> _currentWishlistItems = [];
@@ -63,7 +64,14 @@ class FirebaseWishlistProvider extends ChangeNotifier {
         updatedAt: DateTime.now(),
       );
 
-      final createdWishlist = await _firestoreService.createWishlist(wishlist);
+      final result = await _functionsService.createWishlist({
+        'name': name,
+        'userId': userId,
+        'description': description,
+        'isPublic': isPublic,
+        'tags': tags,
+      });
+      final createdWishlist = FirebaseWishlist.fromJson(result);
       if (createdWishlist != null) {
         _addWishlistToList(createdWishlist);
         return true;
@@ -85,8 +93,22 @@ class FirebaseWishlistProvider extends ChangeNotifier {
     _clearError();
 
     try {
-      final success = await _firestoreService.updateWishlist(wishlist);
-      if (success) {
+      final result = await _functionsService.updateWishlist(wishlist.id, {
+        'name': wishlist.name,
+        'description': wishlist.description,
+        'isPublic': wishlist.isPublic,
+        'tags': wishlist.tags,
+      });
+      _removeWishlistFromList(wishlistId);
+      if (_currentWishlistId == wishlistId) {
+        _currentWishlistId = null;
+        _currentWishlistItems = [];
+      }
+      return true;
+    } catch (e) {
+      _setError('Failed to delete wishlist: $e');
+      return false;
+    }
         _updateWishlistInList(wishlist);
         return true;
       } else {
@@ -107,8 +129,25 @@ class FirebaseWishlistProvider extends ChangeNotifier {
     _clearError();
 
     try {
-      final success = await _firestoreService.deleteWishlist(wishlistId);
-      if (success) {
+      await _functionsService.deleteWishlist(wishlistId);
+      _removeWishlistFromList(wishlistId);
+      if (_currentWishlistId == wishlistId) {
+        _currentWishlistId = null;
+        _currentWishlistItems = [];
+      }
+      return true;
+    } catch (e) {
+      _setError('Failed to delete wishlist: $e');
+      return false;
+    } finally {
+      _setLoading(false);
+    }
+  }
+      return true;
+    } catch (e) {
+      _setError('Failed to delete wishlist: $e');
+      return false;
+    }
         _removeWishlistFromList(wishlistId);
         if (_currentWishlistId == wishlistId) {
           _currentWishlistId = null;
@@ -206,7 +245,16 @@ class FirebaseWishlistProvider extends ChangeNotifier {
 
     try {
       final success = await _firestoreService.updateWishlistItem(item);
-      if (success) {
+      _removeWishlistFromList(wishlistId);
+      if (_currentWishlistId == wishlistId) {
+        _currentWishlistId = null;
+        _currentWishlistItems = [];
+      }
+      return true;
+    } catch (e) {
+      _setError('Failed to delete wishlist: $e');
+      return false;
+    }
         if (_currentWishlistId == item.wishlistId) {
           _updateItemInCurrentList(item);
         }
@@ -224,13 +272,30 @@ class FirebaseWishlistProvider extends ChangeNotifier {
   }
 
   // Delete wishlist item
-  Future<bool> deleteWishlistItem(String itemId, String wishlistId) async {
+  Future<bool> deleteWishlist(String wishlistId) async {
     _setLoading(true);
     _clearError();
 
     try {
-      final success = await _firestoreService.deleteWishlistItem(itemId);
-      if (success) {
+      await _functionsService.deleteWishlist(wishlistId);
+      _removeWishlistFromList(wishlistId);
+      if (_currentWishlistId == wishlistId) {
+        _currentWishlistId = null;
+        _currentWishlistItems = [];
+      }
+      return true;
+    } catch (e) {
+      _setError('Failed to delete wishlist: $e');
+      return false;
+    } finally {
+      _setLoading(false);
+    }
+  }
+      return true;
+    } catch (e) {
+      _setError('Failed to delete wishlist: $e');
+      return false;
+    }
         if (_currentWishlistId == wishlistId) {
           _removeItemFromCurrentList(itemId);
         }
@@ -305,7 +370,16 @@ class FirebaseWishlistProvider extends ChangeNotifier {
       final success = await _firestoreService.markNotificationAsRead(
         notificationId,
       );
-      if (success) {
+      _removeWishlistFromList(wishlistId);
+      if (_currentWishlistId == wishlistId) {
+        _currentWishlistId = null;
+        _currentWishlistItems = [];
+      }
+      return true;
+    } catch (e) {
+      _setError('Failed to delete wishlist: $e');
+      return false;
+    }
         final index = _notifications.indexWhere((n) => n.id == notificationId);
         if (index != -1) {
           final updatedNotification = FirebaseNotification(
