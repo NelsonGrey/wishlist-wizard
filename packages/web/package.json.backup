@@ -9,11 +9,7 @@
     "preview": "vite preview",
     "test": "vitest",
     "test:ui": "vitest --ui",
-    "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
-    "lint:fix": "eslint . --ext .js,.jsx,.ts,.tsx --fix",
-    "format": "prettier --write .",
-    "check": "tsc --noEmit",
-    "clean": "rm -rf node_modules dist"
+    "check": "tsc --noEmit"
   },
   "dependencies": {
     "@dataconnect/generated": "file:src/dataconnect-generated",
