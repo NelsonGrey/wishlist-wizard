@@ -164,16 +164,9 @@ export const insertBeneficiarySchema = createInsertSchema(beneficiaries).pick({
   notes: true,
 });
 
-export const insertWishlistSchema = createInsertSchema(wishlists).pick({
-  name: true,
-  userId: true,
-  shareId: true,
-  beneficiaryId: true,
-  isPublic: true,
-  isCollaborative: true,
-  occasion: true,
-  occasionDate: true,
-  description: true,
+export const insertWishlistSchema = createInsertSchema(wishlists).omit({
+  id: true,
+  createdAt: true
 });
 
 export const insertWishlistCollaboratorSchema = createInsertSchema(wishlistCollaborators).pick({

@@ -8,9 +8,9 @@ This project includes a comprehensive CI/CD pipeline that automatically builds, 
 
 | Component | Platform | URL | Auto Deploy |
 |-----------|----------|-----|-------------|
-| 🌐 Web App | Firebase Hosting | `https://wishlist-wizard.web.app` | ✅ |
-| 🚂 API Server | Firebase Functions | `https://api.wishlist-wizard.web.app` | ✅ |
-| 📱 Mobile PWA | Firebase Hosting | `https://wishlist-wizard.web.app` | ✅ |
+| 🌐 Web App | Firebase Hosting | `https://wishlist-wizard-prod.web.app` | ✅ |
+| 🚂 API Server | Firebase Functions | `https://api.wishlist-wizard-prod.web.app` | ✅ |
+| 📱 Mobile PWA | Firebase Hosting | `https://wishlist-wizard-prod.web.app` | ✅ |
 | 🔌 Chrome Extension | Chrome Web Store | Manual submission | 📦 |
 
 ## 🔄 Automated CI/CD Pipeline
@@ -79,7 +79,7 @@ JWT_SECRET=your_jwt_secret
 #### Web App Environment Variables
 Set these in your Firebase Hosting configuration or build process:
 ```
-VITE_API_URL=https://api.wishlist-wizard.web.app
+VITE_API_URL=https://api.wishlist-wizard-prod.web.app
 VITE_FIREBASE_API_KEY=your_firebase_api_key
 VITE_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
 VITE_FIREBASE_PROJECT_ID=your_project_id

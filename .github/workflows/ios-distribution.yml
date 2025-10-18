@@ -1,0 +1,96 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
+name: iOS App Distribution
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  workflow_dispatch:
+    inputs:
+      build_type:
+        description: 'Build type to distribute'
+        required: true
+        default: 'debug'
+        type: choice
+        options:
+        - debug
+        - release
+      release_notes:
+        description: 'Release notes for this build'
+        required: false
+        type: string
+
+jobs:
+  distribute-ios:
+    runs-on: macos-latest
+    environment:
+      name: ${{ github.ref == 'refs/heads/main' && 'production' || 'development' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.0'
+
+      - name: Install Fastlane
+        run: gem install fastlane
+
+      - name: Generate iOS platform files
+        run: |
+          cd packages/mobile
+          flutter create --platforms=ios .
+
+      - name: Create service account key file
+        env:
+          IOS_SERVICE_ACCOUNT_KEY: ${{ secrets.IOS_SERVICE_ACCOUNT_KEY }}
+        run: |
+          mkdir -p packages/mobile/ios
+          echo "$IOS_SERVICE_ACCOUNT_KEY" > packages/mobile/ios/service-account-key.json
+
+      - name: Make distribution script executable
+        run: |
+          # Create iOS distribution script if it doesn't exist
+          if [ ! -f "packages/mobile/distribute-ios.sh" ]; then
+            cat > packages/mobile/distribute-ios.sh << 'EOF'
+            #!/bin/bash
+            set -e
+            
+            BUILD_TYPE=$1
+            RELEASE_NOTES=$2
+            
+            echo "Building iOS app with type: $BUILD_TYPE"
+            
+            # Build iOS app
+            flutter build ios --$BUILD_TYPE
+            
+            # For now, just create a placeholder for distribution
+            # TODO: Implement actual distribution to App Store
+            echo "iOS build completed. Manual distribution to App Store required."
+            echo "App location: build/ios/iphoneos/Runner.app"
+            EOF
+            chmod +x packages/mobile/distribute-ios.sh
+          fi
+
+      - name: Build and distribute iOS app
+        env:
+          ENVIRONMENT: ${{ github.ref == 'refs/heads/main' && 'production' || 'development' }}
+        run: |
+          cd packages/mobile
+          BUILD_TYPE="${{ github.event.inputs.build_type || 'debug' }}"
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            RELEASE_NOTES="${{ github.event.inputs.release_notes || format('Build from {0} - {1}', github.ref_name, github.sha) }}"
+          else
+            RELEASE_NOTES="Build from ${{ github.ref_name }} - ${{ github.sha }}"
+          fi
+          ./distribute-ios.sh "$BUILD_TYPE" "$RELEASE_NOTES"
+
+      - name: Clean up service account key
+        if: always()
+        run: rm -f packages/mobile/ios/service-account-key.json
