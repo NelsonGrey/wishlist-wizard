@@ -109,7 +109,7 @@ This document provides instructions for both developers and end-users on how to 
 - The WishKeeper extension only accesses product information on pages you visit
 - Your wishlist data is stored securely on the WishKeeper servers
 - The extension requires permissions to run on shopping sites to detect products
-- For complete details, see our [Privacy Policy](https://wishlist-wizard.web.app/privacy)
+- For complete details, see our [Privacy Policy](https://wishlist-wizard-prod.web.app/privacy)
 
 ## Uninstalling
 

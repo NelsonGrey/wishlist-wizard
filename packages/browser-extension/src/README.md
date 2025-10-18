@@ -22,7 +22,7 @@ Add products to your WishKeeper wishlists from any online retailer with a single
 
 ### Manual Installation (Developer Mode)
 
-1. Download the extension files from [our website](https://wishlist-wizard.web.app/extension)
+1. Download the extension files from [our website](https://wishlist-wizard-prod.web.app/extension)
 2. Unzip the downloaded file to a folder on your computer
 3. Open Chrome and go to `chrome://extensions/`
 4. Enable "Developer mode" by toggling the switch in the top-right corner
@@ -68,21 +68,21 @@ If the extension doesn't detect a product correctly:
 - The WishKeeper extension only accesses and analyzes product information on the pages you visit
 - Your wishlist data is stored securely on WishKeeper servers
 - We do not sell or share your browsing habits or wishlist data with third parties
-- For our complete privacy policy, visit [our website](https://wishlist-wizard.web.app/privacy)
+- For our complete privacy policy, visit [our website](https://wishlist-wizard-prod.web.app/privacy)
 
 ## Support
 
 For help with the WishKeeper extension:
 
-- Visit our [Help Center](https://wishlist-wizard.web.app/help)
-- Email us at support@wishlist-wizard.web.app
-- Check the [FAQ section](https://wishlist-wizard.web.app/faq) on our website
+- Visit our [Help Center](https://wishlist-wizard-prod.web.app/help)
+- Email us at support@wishlist-wizard-prod.web.app
+- Check the [FAQ section](https://wishlist-wizard-prod.web.app/faq) on our website
 
 ## About WishKeeper
 
 WishKeeper is your all-in-one wishlist management platform. Create, share, and collaborate on wishlists for any occasion. Manage gift-giving for friends and family, track purchases, and ensure no one buys the same gift twice.
 
-Visit [wishlist-wizard.web.app](https://wishlist-wizard.web.app) to learn more and start creating your wishlists!
+Visit [wishlist-wizard-prod.web.app](https://wishlist-wizard-prod.web.app) to learn more and start creating your wishlists!
 
 ---
 

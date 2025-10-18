@@ -119,7 +119,7 @@ extension/
 2. Set up an update URL in your manifest.json:
 
    ```json
-   "update_url": "https://wishlist-wizard.web.app/updates/updates.xml"
+   "update_url": "https://wishlist-wizard-prod.web.app/updates/updates.xml"
    ```
 
 3. Create an XML file at that location with update information:
@@ -128,7 +128,7 @@ extension/
    <?xml version='1.0' encoding='UTF-8'?>
    <gupdate xmlns='http://www.google.com/update2/response' protocol='2.0'>
      <app appid='[YOUR_EXTENSION_ID]'>
-       <updatecheck codebase='https://wishlist-wizard.web.app/updates/wishkeeper-extension.zip' version='1.0.0' />
+       <updatecheck codebase='https://wishlist-wizard-prod.web.app/updates/wishkeeper-extension.zip' version='1.0.0' />
      </app>
    </gupdate>
    ```
@@ -200,7 +200,7 @@ When releasing updates:
 
 ## Support Channels
 
-- Email: dev-support@wishlist-wizard.web.app
+- Email: dev-support@wishlist-wizard-prod.web.app
 - GitHub Issues: [Link to GitHub repository]
 - Developer Forum: [Link to forum]
 

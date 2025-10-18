@@ -87,7 +87,7 @@ jobs:
     needs: [determine-environment, quality-check]
     strategy:
       matrix:
-        package: ['web', 'api-server', 'browser-extension', 'shared']
+        package: ['web', 'functions', 'browser-extension', 'shared']
     steps:
       - name: 📥 Checkout Code
         uses: actions/checkout@v4
@@ -310,7 +310,7 @@ jobs:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
           firebaseServiceAccount: ${{ secrets[format('FIREBASE_SERVICE_ACCOUNT_{0}', needs.determine-environment.outputs.environment)] }}
           channelId: ${{ needs.determine-environment.outputs.environment == 'production' && 'live' || 'preview' }}
-          projectId: ${{ needs.determine-environment.outputs.environment == 'production' && 'wishlist-wizard' || needs.determine-environment.outputs.environment == 'staging' && 'wishlist-wizard-staging' || 'wishlist-wizard-dev' }}
+          projectId: ${{ needs.determine-environment.outputs.environment == 'production' && 'wishlist-wizard-prod' || needs.determine-environment.outputs.environment == 'staging' && 'wishlist-wizard-staging' || 'wishlist-wizard-dev' }}
           entryPoint: ./
 
   # 🔥 Deploy API Functions to Firebase
@@ -327,7 +327,7 @@ jobs:
       - name: 📥 Download API Server Build
         uses: actions/download-artifact@v4
         with:
-          name: api-server-build
+          name: functions-build
           path: functions/dist/
 
       - name: 🔥 Deploy Firebase Functions
@@ -335,8 +335,8 @@ jobs:
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
           firebaseServiceAccount: ${{ secrets[format('FIREBASE_SERVICE_ACCOUNT_{0}', needs.determine-environment.outputs.environment)] }}
-          projectId: ${{ needs.determine-environment.outputs.environment == 'production' && 'wishlist-wizard' || needs.determine-environment.outputs.environment == 'staging' && 'wishlist-wizard-staging' || 'wishlist-wizard-dev' }}
-          entryPoint: ./
+          projectId: ${{ needs.determine-environment.outputs.environment == 'production' && 'wishlist-wizard-prod' || needs.determine-environment.outputs.environment == 'staging' && 'wishlist-wizard-staging' || 'wishlist-wizard-dev' }}
+          entryPoint: packages/functions
           target: functions
 
   # 📱 Deploy Mobile PWA to Firebase Hosting
@@ -362,7 +362,7 @@ jobs:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
           firebaseServiceAccount: ${{ secrets[format('FIREBASE_SERVICE_ACCOUNT_{0}', needs.determine-environment.outputs.environment)] }}
           channelId: ${{ needs.determine-environment.outputs.environment == 'production' && 'live' || 'preview' }}
-          projectId: ${{ needs.determine-environment.outputs.environment == 'production' && 'wishlist-wizard' || needs.determine-environment.outputs.environment == 'staging' && 'wishlist-wizard-staging' || 'wishlist-wizard-dev' }}
+          projectId: ${{ needs.determine-environment.outputs.environment == 'production' && 'wishlist-wizard-prod' || needs.determine-environment.outputs.environment == 'staging' && 'wishlist-wizard-staging' || 'wishlist-wizard-dev' }}
           entryPoint: packages/mobile
 
   # 🏪 Submit to Chrome Web Store (Manual Trigger)
@@ -404,8 +404,8 @@ jobs:
           echo "|-----------|--------|-----|" >> $GITHUB_STEP_SUMMARY
           
           if [[ "$ENVIRONMENT" == "production" ]]; then
-            WEB_URL="https://wishlist-wizard.web.app"
-            API_URL="https://us-central1-wishlist-wizard.cloudfunctions.net/api"
+            WEB_URL="https://wishlist-wizard-prod.web.app"
+            API_URL="https://us-central1-wishlist-wizard-prod.cloudfunctions.net/api"
           elif [[ "$ENVIRONMENT" == "staging" ]]; then
             WEB_URL="https://wishlist-wizard-staging.web.app"
             API_URL="https://us-central1-wishlist-wizard-staging.cloudfunctions.net/api"
