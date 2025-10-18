@@ -9,6 +9,8 @@
       "@/lib/*": ["./client-src/lib/*"],
       "@/hooks/*": ["./client-src/hooks/*"],
       "@/pages/*": ["./client-src/pages/*"],
+      "@shared/firebase-utils": ["../firebase-utils/src"],
+      "@shared/firebase-utils/*": ["../firebase-utils/src/*"],
       "@wishlist-wizard/shared": ["../shared/src"],
       "@wishlist-wizard/shared/*": ["../shared/src/*"]
     }
