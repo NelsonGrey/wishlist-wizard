@@ -3,7 +3,9 @@
 // All imports are tree-shakeable.
 
 import { FirebaseClient } from '@shared/firebase-utils';
-import type { User } from 'firebase/auth';
+import type { User, Auth } from 'firebase/auth';
+import type { FirebaseApp } from 'firebase/app';
+import type { Firestore } from 'firebase/firestore';
 import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
@@ -188,6 +190,6 @@ if (import.meta.env.VITE_FIREBASE_AUTO_INIT === 'true') {
   initFirebase({ enableAnalytics: true, enableMessaging: false, enableAuth: true });
 }
 
-export const firebaseApp = firebaseClient?.app ?? null;
-export const firebaseAuth = firebaseClient?.auth ?? null;
-export const firebaseFirestore = firebaseClient?.firestore ?? null;
+export const firebaseApp: FirebaseApp | null = (firebaseClient as FirebaseClient | null)?.app ?? null;
+export const firebaseAuth: Auth | null = (firebaseClient as FirebaseClient | null)?.auth ?? null;
+export const firebaseFirestore: Firestore | null = (firebaseClient as FirebaseClient | null)?.firestore ?? null;

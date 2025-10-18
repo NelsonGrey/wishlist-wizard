@@ -338,7 +338,7 @@ class FirebaseFunctionsService {
     }
 
     try {
-      final data = {'collection': collection};
+      final Map<String, dynamic> data = {'collection': collection};
       if (filters != null) {
         data['filters'] = filters;
       }
