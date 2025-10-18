@@ -7,6 +7,9 @@ import 'services/services.dart';
 import 'screens/login_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/firebase_wishlists_screen.dart';
+import 'screens/coming_soon_screen.dart';
+
+const bool comingSoonEnabled = true; // Set to false to enable the full app
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -77,6 +80,10 @@ class AuthWrapper extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (comingSoonEnabled) {
+      return const ComingSoonScreen();
+    }
+
     return Consumer<AuthProvider>(
       builder: (context, authProvider, child) {
         if (authProvider.isLoading) {
