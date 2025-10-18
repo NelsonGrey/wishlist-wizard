@@ -49,6 +49,13 @@ function showScreen(screenId) {
 
 // Initialize the popup when it's opened
 document.addEventListener('DOMContentLoaded', async () => {
+  // Check if Coming Soon is enabled
+  const result = await chrome.storage.local.get('comingSoonEnabled');
+  if (result.comingSoonEnabled !== false) {
+    showScreen('coming-soon-screen');
+    return;
+  }
+
   // Show loading screen first
   showScreen('loading-screen');
   
