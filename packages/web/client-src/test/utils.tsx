@@ -2,6 +2,46 @@ import React, { PropsWithChildren } from 'react';
 import { render, RenderOptions } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { TooltipProvider } from '@/components/ui/tooltip';
+import { vi } from 'vitest';
+
+// Mock the apiRequest function to prevent real API calls in tests
+vi.mock('@/lib/queryClient', async () => {
+  const actual = await vi.importActual('@/lib/queryClient');
+  return {
+    ...actual,
+    apiRequest: vi.fn(async (url: string) => {
+      // Mock responses based on URL patterns
+      if (url.includes('/api/privacy/settings/')) {
+        return {
+          id: 1,
+          userId: 1,
+          entityType: 'item',
+          entityId: 1,
+          visibilityLevel: 'public',
+          customAccessList: [],
+          allowComments: true,
+          allowReservations: true,
+          requireApproval: false,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+      }
+      
+      if (url.includes('/api/privacy/defaults')) {
+        return {
+          defaultWishlistVisibility: 'public',
+          defaultItemVisibility: 'public',
+          allowComments: true,
+          allowReservations: true,
+          requireApproval: false,
+        };
+      }
+      
+      // Default mock response for any other API calls
+      return {};
+    }),
+  };
+});
 
 // Create a custom render function that includes providers
 function customRender(
