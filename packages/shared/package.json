@@ -23,6 +23,8 @@
     "clean": "rm -rf node_modules dist"
   },
   "dependencies": {
+    "drizzle-orm": "^0.44.6",
+    "drizzle-zod": "^0.8.3",
     "firebase": "^12.3.0",
     "zod": "^3.25.3"
   },
