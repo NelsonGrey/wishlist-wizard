@@ -8,6 +8,7 @@ function customRender(
   ui: React.ReactElement,
   options?: Omit<RenderOptions, 'wrapper'> & { 
     queryClient?: QueryClient;
+    pathname?: string;
   }
 ) {
   const { 
@@ -51,6 +52,7 @@ function customRender(
         },
       },
     }),
+    pathname = '/',
     ...renderOptions
   } = options || {};
   
