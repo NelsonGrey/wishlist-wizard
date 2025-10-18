@@ -57,7 +57,7 @@ deploy_component() {
             ;;
         "api-server")
             if [[ $deploy_target == "firebase" ]]; then
-                cd packages/api-server
+                cd packages/functions
                 if command_exists firebase; then
                     firebase deploy --only functions
                     log_success "API server deployed to Firebase Functions"

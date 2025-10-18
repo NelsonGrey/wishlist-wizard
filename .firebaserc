@@ -1,7 +1,7 @@
 {
   "projects": {
-    "default": "wishlist-wizard",
-    "production": "wishlist-wizard",
+    "default": "wishlist-wizard-prod",
+    "production": "wishlist-wizard-prod",
     "staging": "wishlist-wizard-staging",
     "development": "wishlist-wizard-dev"
   },
