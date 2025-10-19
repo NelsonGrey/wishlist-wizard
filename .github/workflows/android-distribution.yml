@@ -50,7 +50,7 @@ jobs:
 
       - name: Create service account key file
         env:
-          SERVICE_ACCOUNT_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_KEY }}
+          SERVICE_ACCOUNT_KEY: ${{ secrets[format('FIREBASE_SERVICE_ACCOUNT_{0}', github.ref == 'refs/heads/main' && 'PRODUCTION' || 'DEVELOPMENT')] }}
         run: |
           mkdir -p packages/mobile/android/app
           echo "$SERVICE_ACCOUNT_KEY" > packages/mobile/android/app/service-account-key.json
