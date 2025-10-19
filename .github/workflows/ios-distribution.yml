@@ -49,7 +49,7 @@ jobs:
 
       - name: Create service account key file
         env:
-          IOS_SERVICE_ACCOUNT_KEY: ${{ secrets.IOS_SERVICE_ACCOUNT_KEY }}
+          IOS_SERVICE_ACCOUNT_KEY: ${{ secrets[format('FIREBASE_SERVICE_ACCOUNT_{0}', github.ref == 'refs/heads/main' && 'PRODUCTION' || 'DEVELOPMENT')] }}
         run: |
           mkdir -p packages/mobile/ios
           echo "$IOS_SERVICE_ACCOUNT_KEY" > packages/mobile/ios/service-account-key.json
