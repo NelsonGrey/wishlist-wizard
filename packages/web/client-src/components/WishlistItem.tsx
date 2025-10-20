@@ -1,8 +1,7 @@
 import { useState } from "react";
-import { ExternalLink, Trash2, Heart, Users, Bell } from "lucide-react";
+import { ExternalLink, Trash2, Heart, Bell } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { WishlistItem as DbWishlistItem } from "@wishlist-wizard/shared";
 import PrivacyControls from "@/components/privacy/PrivacyControls";
 import {

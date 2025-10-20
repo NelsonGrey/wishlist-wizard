@@ -95,14 +95,14 @@ export async function apiRequest(
     body?: unknown;
     useFirebaseFunctions?: boolean;
   }
-): Promise<any> {
+): Promise<unknown> {
   const { method = "GET", body, useFirebaseFunctions } = options || {};
   
   // Determine if we should use Firebase Functions
   const useFunctions = useFirebaseFunctions ?? shouldUseFirebaseFunctions(url);
   
   let fullUrl: string;
-  let headers: Record<string, string> = {};
+  const headers: Record<string, string> = {};
   
   if (useFunctions) {
     // Use Firebase Functions
@@ -168,47 +168,46 @@ export async function apiRequest(
 }
 
 type UnauthorizedBehavior = "returnNull" | "throw";
-export const getQueryFn: <T>(options: {
+export const getQueryFn = <T,>(options: {
   on401: UnauthorizedBehavior;
   useFirebaseFunctions?: boolean;
-}) => QueryFunction<T> =
-  ({ on401: unauthorizedBehavior, useFirebaseFunctions }) =>
+}): QueryFunction<T> =>
   async ({ queryKey }) => {
     try {
       const url = queryKey[0] as string;
-      
+
       // Use apiRequest for consistent handling of both Express API and Firebase Functions
       try {
-        return await apiRequest(url, { 
+        return await apiRequest(url, {
           method: 'GET',
-          useFirebaseFunctions 
-        });
+          useFirebaseFunctions: options.useFirebaseFunctions
+        }) as T;
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
-        
+
         // Handle 401 errors
         if (errorMessage.includes('401')) {
-          if (unauthorizedBehavior === "returnNull") {
-            return null;
+          if (options.on401 === "returnNull") {
+            return null as T;
           }
           throw error;
         }
-        
+
         // Handle other API errors gracefully
         if (import.meta.env.DEV && !errorMessage.includes('API endpoint not available')) {
           console.warn(`API call failed for ${url}:`, error);
         }
-        
-        return unauthorizedBehavior === "returnNull" ? null : [];
+
+        return (options.on401 === "returnNull" ? null : []) as T;
       }
-      
+
     } catch (error) {
-      // Handle network errors gracefully - only log if it's not an API availability issue  
+      // Handle network errors gracefully - only log if it's not an API availability issue
       const errorMessage = error instanceof Error ? error.message : String(error);
       if (import.meta.env.DEV && !errorMessage.includes('API endpoint not available')) {
         console.warn(`Network error for ${queryKey[0]}:`, error);
       }
-      return unauthorizedBehavior === "returnNull" ? null : [];
+      return (options.on401 === "returnNull" ? null : []) as T;
     }
   };
 

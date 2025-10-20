@@ -1,4 +1,5 @@
 import 'package:cloud_functions/cloud_functions.dart';
+import 'package:logging/logging.dart';
 import 'firebase_initialization_service.dart';
 
 class FirebaseFunctionsService {
@@ -10,6 +11,7 @@ class FirebaseFunctionsService {
   final FirebaseInitializationService _firebaseInit =
       FirebaseInitializationService();
   FirebaseFunctions? _functions;
+  final Logger _logger = Logger('FirebaseFunctionsService');
 
   Future<bool> _ensureFirebaseInitialized() async {
     if (_functions != null) return true;
@@ -20,7 +22,7 @@ class FirebaseFunctionsService {
         _functions = FirebaseFunctions.instance;
         return true;
       } catch (e) {
-        print('Error accessing Firebase Functions: $e');
+        _logger.severe('Error accessing Firebase Functions: $e');
         return false;
       }
     }
@@ -44,7 +46,7 @@ class FirebaseFunctionsService {
           .call(data);
       return Map<String, dynamic>.from(result.data);
     } catch (e) {
-      print('Error calling createUserProfile: $e');
+      _logger.severe('Error calling createUserProfile: $e');
       rethrow;
     }
   }
@@ -60,7 +62,7 @@ class FirebaseFunctionsService {
       });
       return Map<String, dynamic>.from(result.data);
     } catch (e) {
-      print('Error calling getUserProfile: $e');
+      _logger.severe('Error calling getUserProfile: $e');
       rethrow;
     }
   }
@@ -80,7 +82,7 @@ class FirebaseFunctionsService {
           .call(updateData);
       return Map<String, dynamic>.from(result.data);
     } catch (e) {
-      print('Error calling updateUserProfile: $e');
+      _logger.severe('Error calling updateUserProfile: $e');
       rethrow;
     }
   }
@@ -100,7 +102,7 @@ class FirebaseFunctionsService {
           .call(data);
       return Map<String, dynamic>.from(result.data);
     } catch (e) {
-      print('Error calling createWishlist: $e');
+      _logger.severe('Error calling createWishlist: $e');
       rethrow;
     }
   }
@@ -116,7 +118,7 @@ class FirebaseFunctionsService {
       });
       return List<dynamic>.from(result.data);
     } catch (e) {
-      print('Error calling getUserWishlists: $e');
+      _logger.severe('Error calling getUserWishlists: $e');
       rethrow;
     }
   }
@@ -132,7 +134,7 @@ class FirebaseFunctionsService {
       });
       return Map<String, dynamic>.from(result.data);
     } catch (e) {
-      print('Error calling getWishlist: $e');
+      _logger.severe('Error calling getWishlist: $e');
       rethrow;
     }
   }
@@ -152,7 +154,7 @@ class FirebaseFunctionsService {
           .call(updateData);
       return Map<String, dynamic>.from(result.data);
     } catch (e) {
-      print('Error calling updateWishlist: $e');
+      _logger.severe('Error calling updateWishlist: $e');
       rethrow;
     }
   }
@@ -167,7 +169,7 @@ class FirebaseFunctionsService {
         'wishlistId': wishlistId,
       });
     } catch (e) {
-      print('Error calling deleteWishlist: $e');
+      _logger.severe('Error calling deleteWishlist: $e');
       rethrow;
     }
   }
@@ -187,7 +189,7 @@ class FirebaseFunctionsService {
           .call(data);
       return Map<String, dynamic>.from(result.data);
     } catch (e) {
-      print('Error calling addWishlistItem: $e');
+      _logger.severe('Error calling addWishlistItem: $e');
       rethrow;
     }
   }
@@ -207,7 +209,7 @@ class FirebaseFunctionsService {
           .call(data);
       return Map<String, dynamic>.from(result.data);
     } catch (e) {
-      print('Error calling updateWishlistItem: $e');
+      _logger.severe('Error calling updateWishlistItem: $e');
       rethrow;
     }
   }
@@ -222,7 +224,7 @@ class FirebaseFunctionsService {
         'itemId': itemId,
       });
     } catch (e) {
-      print('Error calling deleteWishlistItem: $e');
+      _logger.severe('Error calling deleteWishlistItem: $e');
       rethrow;
     }
   }
@@ -242,7 +244,7 @@ class FirebaseFunctionsService {
           .call(data);
       return Map<String, dynamic>.from(result.data);
     } catch (e) {
-      print('Error calling purchaseWishlistItem: $e');
+      _logger.severe('Error calling purchaseWishlistItem: $e');
       rethrow;
     }
   }
@@ -266,7 +268,7 @@ class FirebaseFunctionsService {
       });
       return Map<String, dynamic>.from(result.data);
     } catch (e) {
-      print('Error calling createDocument: $e');
+      _logger.severe('Error calling createDocument: $e');
       rethrow;
     }
   }
@@ -286,7 +288,7 @@ class FirebaseFunctionsService {
       });
       return Map<String, dynamic>.from(result.data);
     } catch (e) {
-      print('Error calling getDocument: $e');
+      _logger.severe('Error calling getDocument: $e');
       rethrow;
     }
   }
@@ -308,7 +310,7 @@ class FirebaseFunctionsService {
       });
       return Map<String, dynamic>.from(result.data);
     } catch (e) {
-      print('Error calling updateDocument: $e');
+      _logger.severe('Error calling updateDocument: $e');
       rethrow;
     }
   }
@@ -324,7 +326,7 @@ class FirebaseFunctionsService {
         'documentId': documentId,
       });
     } catch (e) {
-      print('Error calling deleteDocument: $e');
+      _logger.severe('Error calling deleteDocument: $e');
       rethrow;
     }
   }
@@ -347,7 +349,7 @@ class FirebaseFunctionsService {
           .call(data);
       return List<dynamic>.from(result.data);
     } catch (e) {
-      print('Error calling listDocuments: $e');
+      _logger.severe('Error calling listDocuments: $e');
       rethrow;
     }
   }

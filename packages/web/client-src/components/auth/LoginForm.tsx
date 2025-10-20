@@ -18,15 +18,16 @@ export const LoginForm: React.FC = () => {
     try {
       await signIn(email, password);
       // ProtectedRoute will handle redirect after auth state change
-    } catch (err: any) {
+    } catch (err: unknown) {
       setError(getErrorMessage(err));
     } finally {
       setLoading(false);
     }
   };
 
-  const getErrorMessage = (error: any): string => {
-    switch (error.code) {
+  const getErrorMessage = (error: unknown): string => {
+    const err = error as { code?: string };
+    switch (err.code) {
       case 'auth/user-not-found':
         return 'No account found with this email address.';
       case 'auth/wrong-password':
@@ -100,7 +101,7 @@ export const LoginForm: React.FC = () => {
       </div>
 
       <div className="mt-2 text-center text-sm">
-        <span className="text-gray-600">Don't have an account? </span>
+        <span className="text-gray-600">Don&apos;t have an account? </span>
         <button
           onClick={() => setLocation('/signup')}
           className="text-blue-600 hover:text-blue-500 font-medium"

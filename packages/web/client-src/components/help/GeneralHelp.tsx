@@ -24,7 +24,7 @@ export function GeneralHelp() {
                 <strong>Set up your profile:</strong> Add preferences to get personalized recommendations
               </li>
               <li>
-                <strong>Create your first wishlist:</strong> Go to "My Wishlists" and click "Create New Wishlist"
+                <strong>Create your first wishlist:</strong> Go to &quot;My Wishlists&quot; and click &quot;Create New Wishlist&quot;
               </li>
               <li>
                 <strong>Install the browser extension:</strong> For seamless adding of items from any website
@@ -103,7 +103,7 @@ export function GeneralHelp() {
           <AccordionTrigger>Notifications</AccordionTrigger>
           <AccordionContent>
             <p className="text-sm mb-2">
-              Stay updated with Wishlist Wizard's notification system:
+              Stay updated with Wishlist Wizard&apos;s notification system:
             </p>
             <ul className="text-sm list-disc pl-5 space-y-2">
               <li>
@@ -178,7 +178,7 @@ export function GeneralHelp() {
                 <strong>AR visualization:</strong> See how items will look in your space
               </li>
               <li>
-                <strong>In-store alerts:</strong> Get notified when you're near a store with wishlisted items
+                <strong>In-store alerts:</strong> Get notified when you&apos;re near a store with wishlisted items
               </li>
               <li>
                 <strong>Offline access:</strong> View your wishlists even without internet connection

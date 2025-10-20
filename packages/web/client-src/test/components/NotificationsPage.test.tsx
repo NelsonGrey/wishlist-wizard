@@ -10,12 +10,12 @@ vi.mock('@tanstack/react-query', async () => {
 });
 
 import { vi, describe, it, expect, beforeEach } from 'vitest';
-import { screen, waitFor } from '@testing-library/react';
+import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { render } from '../utils';
 import Notifications from '@/pages/Notifications';
 import { format } from 'date-fns';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation } from '@tanstack/react-query';
 
 // Mock the API request function
 vi.mock('@/lib/queryClient', () => ({
@@ -40,6 +40,7 @@ describe('Notifications Page', () => {
     vi.clearAllMocks();
     
     // Mock useQuery to return default data
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (useQuery as any).mockReturnValue({
       data: {
         notifications: [
@@ -68,6 +69,7 @@ describe('Notifications Page', () => {
     });
     
     // Mock useMutation
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (useMutation as any).mockReturnValue({
       mutate: vi.fn(),
       isPending: false
@@ -95,6 +97,7 @@ describe('Notifications Page', () => {
 
   it('should not show "Mark all as read" button when all notifications are read', () => {
     // Arrange
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (useQuery as any).mockReturnValue({
       data: {
         notifications: [
@@ -140,6 +143,7 @@ describe('Notifications Page', () => {
 
   it('should show the "Mark as read" button for unread notifications without action URLs', () => {
     // Arrange
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (useQuery as any).mockReturnValue({
       data: {
         notifications: [
@@ -167,6 +171,7 @@ describe('Notifications Page', () => {
 
   it('should trigger mark as read mutation when "Mark as read" button is clicked', async () => {
     // Arrange
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (useQuery as any).mockReturnValue({
       data: {
         notifications: [
@@ -186,6 +191,7 @@ describe('Notifications Page', () => {
     });
     
     const markAsReadMutation = { mutate: vi.fn() };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (useMutation as any).mockReturnValue(markAsReadMutation);
     
     render(<Notifications />, { pathname: '/notifications' });
@@ -200,6 +206,7 @@ describe('Notifications Page', () => {
 
   it('should show loading state when isLoading is true', () => {
     // Arrange
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (useQuery as any).mockReturnValue({
       data: undefined,
       isLoading: true
@@ -218,6 +225,7 @@ describe('Notifications Page', () => {
 
   it('should show empty state when there are no notifications', () => {
     // Arrange
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (useQuery as any).mockReturnValue({
       data: { notifications: [], unreadCount: 0 },
       isLoading: false

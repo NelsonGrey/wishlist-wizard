@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Link, useLocation } from "wouter";
 import { Plus, Database, Cloud } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -13,7 +12,6 @@ import { Badge } from "@/components/ui/badge";
 import { SidebarAd } from "@/components/ads";
 import { Wishlist as DbWishlist } from "@wishlist-wizard/shared";
 import { useWishlists } from "@/hooks/useFirebaseData";
-import { useAuth } from "@/contexts/AuthContext";
 
 // Extended type for UI purposes that includes computed fields
 type Wishlist = DbWishlist & {
@@ -21,13 +19,11 @@ type Wishlist = DbWishlist & {
 };
 
 export default function Dashboard() {
-  const [location, setLocation] = useLocation();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [useFirebase, setUseFirebase] = useState(
     import.meta.env.VITE_USE_FIREBASE_SDK === 'true'
   );
   const { toast } = useToast();
-  const { user } = useAuth();
 
   // Firebase-based data fetching
   const {
@@ -67,7 +63,7 @@ export default function Dashboard() {
         description: "Wishlist created successfully",
       });
     },
-    onError: (error) => {
+    onError: () => {
       toast({
         title: "Error",
         description: "Failed to create wishlist",

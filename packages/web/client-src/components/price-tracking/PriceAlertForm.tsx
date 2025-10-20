@@ -20,7 +20,6 @@ import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -30,7 +29,6 @@ import { BellRing, DollarSign } from "lucide-react";
 
 interface PriceAlertFormProps {
   itemId: number;
-  itemTitle: string;
   currentPrice: string;
   currentNumericPrice: number;
   onSuccess?: () => void;
@@ -38,7 +36,6 @@ interface PriceAlertFormProps {
 
 export default function PriceAlertForm({
   itemId,
-  itemTitle,
   currentPrice,
   currentNumericPrice,
   onSuccess

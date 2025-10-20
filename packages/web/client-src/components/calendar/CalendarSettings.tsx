@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
@@ -24,6 +24,12 @@ interface ConnectedCalendar {
     syncDirection: 'bidirectional' | 'import' | 'export';
     defaultReminders: number[];
   };
+}
+
+interface CalendarSettings {
+  syncEvents: boolean;
+  syncDirection: 'bidirectional' | 'import' | 'export';
+  defaultReminders: number[];
 }
 
 export function CalendarSettings() {
@@ -86,7 +92,7 @@ export function CalendarSettings() {
   
   // Update settings mutation
   const updateSettingsMutation = useMutation({
-    mutationFn: ({ calendarId, settings }: { calendarId: number, settings: any }) => {
+    mutationFn: ({ calendarId, settings }: { calendarId: number, settings: CalendarSettings }) => {
       return apiRequest(`/api/calendar/connections/${calendarId}/settings`, { method: 'PATCH', body: { settings } });
     },
     onSuccess: () => {
@@ -107,7 +113,7 @@ export function CalendarSettings() {
   });
   
   // Handle calendar connection
-  const handleCalendarConnected = (provider: CalendarProvider) => {
+  const handleCalendarConnected = () => {
     // Refresh the calendars list after connecting
     setTimeout(() => {
       refetchCalendars();

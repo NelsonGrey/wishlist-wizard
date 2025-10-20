@@ -19,15 +19,16 @@ export const ForgotPasswordForm: React.FC = () => {
     try {
       await resetPassword(email);
       setMessage('Password reset email sent! Check your inbox.');
-    } catch (err: any) {
+    } catch (err: unknown) {
       setError(getErrorMessage(err));
     } finally {
       setLoading(false);
     }
   };
 
-  const getErrorMessage = (error: any): string => {
-    switch (error.code) {
+  const getErrorMessage = (error: unknown): string => {
+    const err = error as { code?: string };
+    switch (err.code) {
       case 'auth/user-not-found':
         return 'No account found with this email address.';
       case 'auth/invalid-email':
@@ -44,7 +45,7 @@ export const ForgotPasswordForm: React.FC = () => {
       <h2 className="text-2xl font-bold text-center mb-6">Reset Password</h2>
       
       <p className="text-gray-600 text-sm mb-6 text-center">
-        Enter your email address and we'll send you a link to reset your password.
+        Enter your email address and we&apos;ll send you a link to reset your password.
       </p>
 
       <form onSubmit={handleSubmit} className="space-y-4">
@@ -96,7 +97,7 @@ export const ForgotPasswordForm: React.FC = () => {
           onClick={() => setLocation('/signup')}
           className="text-blue-600 hover:text-blue-500"
         >
-          Don't have an account? Sign up
+          Don&apos;t have an account? Sign up
         </button>
       </div>
     </div>

@@ -29,6 +29,7 @@ describe('NotificationDropdown', () => {
     vi.clearAllMocks();
 
     // Mock useQuery to return default data
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (useQuery as any).mockReturnValue({
       data: {
         notifications: [
@@ -49,6 +50,7 @@ describe('NotificationDropdown', () => {
     });
 
     // Mock useMutation
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (useMutation as any).mockReturnValue({
       mutate: vi.fn(),
       isPending: false,
@@ -81,6 +83,7 @@ describe('NotificationDropdown', () => {
 
   it('should show "No notifications yet" when there are no notifications', async () => {
     // Arrange
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (useQuery as any).mockReturnValue({
       data: { notifications: [], unreadCount: 0 },
       isLoading: false
@@ -112,6 +115,7 @@ describe('NotificationDropdown', () => {
 
   it('should not show "Mark all as read" button when all notifications are read', async () => {
     // Arrange
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (useQuery as any).mockReturnValue({
       data: {
         notifications: [
@@ -159,6 +163,7 @@ describe('NotificationDropdown', () => {
 
   it('should handle loading state', async () => {
     // Arrange
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (useQuery as any).mockReturnValue({
       data: undefined,
       isLoading: true

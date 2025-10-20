@@ -6,7 +6,7 @@ export function ArVisualizationHelp() {
     <HelpDialog title="AR Visualization Help">
       <p className="text-sm text-muted-foreground mb-4">
         See how items will look in your space before you buy them with our AR visualization feature.
-        Here's how to use this innovative tool:
+        Here&apos;s how to use this innovative tool:
       </p>
 
       <Accordion type="single" collapsible className="w-full">
@@ -33,7 +33,7 @@ export function ArVisualizationHelp() {
           <AccordionTrigger>Device Requirements</AccordionTrigger>
           <AccordionContent>
             <p className="text-sm mb-2">
-              To use the AR visualization feature, you'll need:
+              To use the AR visualization feature, you&apos;ll need:
             </p>
             <ul className="text-sm list-disc pl-5 space-y-2">
               <li>
@@ -44,7 +44,7 @@ export function ArVisualizationHelp() {
                 </ul>
               </li>
               <li>
-                <strong>Camera access:</strong> You'll need to allow camera permissions
+                <strong>Camera access:</strong> You&apos;ll need to allow camera permissions
               </li>
               <li>
                 <strong>Adequate lighting:</strong> Well-lit environment for better AR tracking
@@ -53,11 +53,11 @@ export function ArVisualizationHelp() {
                 <strong>Sufficient space:</strong> Open area to properly visualize larger items
               </li>
               <li>
-                <strong>Latest Wishlist Wizard app:</strong> Make sure you're using the most updated version
+                <strong>Latest Wishlist Wizard app:</strong> Make sure you&apos;re using the most updated version
               </li>
             </ul>
             <p className="text-sm mt-2">
-              Desktop browsers don't support AR visualization, but you can view 3D models on desktops without the AR component.
+              Desktop browsers don&apos;t support AR visualization, but you can view 3D models on desktops without the AR component.
             </p>
           </AccordionContent>
         </AccordionItem>
@@ -73,7 +73,7 @@ export function ArVisualizationHelp() {
                 Find an AR-compatible item in your wishlist (look for the AR icon)
               </li>
               <li>
-                Tap the "View in AR" button on the product details page
+                Tap the &quot;View in AR&quot; button on the product details page
               </li>
               <li>
                 Allow camera access if prompted
@@ -143,7 +143,7 @@ export function ArVisualizationHelp() {
                 <strong>Good lighting:</strong> Use AR in well-lit environments for better tracking
               </li>
               <li>
-                <strong>Clean surfaces:</strong> Clear clutter from the area where you're placing virtual items
+                <strong>Clean surfaces:</strong> Clear clutter from the area where you&apos;re placing virtual items
               </li>
               <li>
                 <strong>Stable position:</strong> Hold your device steady while scanning and placing items
@@ -172,7 +172,7 @@ export function ArVisualizationHelp() {
             </p>
             <ul className="text-sm list-disc pl-5 space-y-2">
               <li>
-                <strong>AR not working:</strong> Check if your device supports AR and that you've granted camera permissions
+                <strong>AR not working:</strong> Check if your device supports AR and that you&apos;ve granted camera permissions
               </li>
               <li>
                 <strong>Surface detection issues:</strong> Try moving to a better-lit area with more textured surfaces

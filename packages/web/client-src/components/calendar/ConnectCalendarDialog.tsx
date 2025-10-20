@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -124,7 +124,7 @@ export function ConnectCalendarDialog({ onConnect }: ConnectCalendarDialogProps)
               <SiGoogle className="h-16 w-16 text-blue-500" />
               <h3 className="text-lg font-medium">Connect Google Calendar</h3>
               <p className="text-sm text-gray-500 text-center">
-                Sync your events with Google Calendar. You'll be asked to grant
+                Sync your events with Google Calendar. You&apos;ll be asked to grant
                 permission to access your calendars.
               </p>
               <Button 
@@ -142,7 +142,7 @@ export function ConnectCalendarDialog({ onConnect }: ConnectCalendarDialogProps)
               <FaMicrosoft className="h-16 w-16 text-blue-500" />
               <h3 className="text-lg font-medium">Connect Outlook Calendar</h3>
               <p className="text-sm text-gray-500 text-center">
-                Sync your events with Microsoft Outlook Calendar. You'll be asked to grant
+                Sync your events with Microsoft Outlook Calendar. You&apos;ll be asked to grant
                 permission to access your calendars.
               </p>
               <Button 
@@ -160,7 +160,7 @@ export function ConnectCalendarDialog({ onConnect }: ConnectCalendarDialogProps)
               <SiApple className="h-16 w-16 text-gray-800" />
               <h3 className="text-lg font-medium">Connect Apple Calendar</h3>
               <p className="text-sm text-gray-500 text-center">
-                Sync your events with Apple Calendar. You'll be asked to grant
+                Sync your events with Apple Calendar. You&apos;ll be asked to grant
                 permission to access your calendars.
               </p>
               <Button 

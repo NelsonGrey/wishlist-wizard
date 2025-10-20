@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Sparkles, RefreshCw, ListFilter } from "lucide-react";
+import { Sparkles, RefreshCw } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -232,7 +232,7 @@ export default function RecommendationsSection({
         <CardContent>
           <div className="text-center py-8">
             <p className="text-gray-600 mb-4">
-              We couldn't load your recommendations at this time.
+              We couldn&apos;t load your recommendations at this time.
             </p>
             <Button onClick={() => refetch()} variant="outline">
               <RefreshCw className="mr-2 h-4 w-4" /> Try Again

@@ -29,7 +29,6 @@ export function ARSimpleViewer({
   const getImageSrc = () => {
     // These would typically be paths to actual images in your project
     // For this demo, we'll use placeholder URLs
-    const viewType = activeView;
     
     if (modelType === 'chair') {
       return `https://images.unsplash.com/photo-1567538096630-e0c55bd6374c?auto=format&fit=crop&w=500&h=400`;

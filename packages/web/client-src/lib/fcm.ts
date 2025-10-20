@@ -5,7 +5,8 @@ import {
   getMessaging, 
   getToken, 
   onMessage, 
-  isSupported as messagingIsSupported 
+  isSupported as messagingIsSupported,
+  Messaging
 } from 'firebase/messaging';
 import { firebaseApp, getCurrentUser } from './firebase';
 import { getFirestoreDb } from './firestore';
@@ -14,7 +15,16 @@ import { doc, setDoc, getDoc, updateDoc } from 'firebase/firestore';
 // VAPID key for web push - should be set in environment variables
 const VAPID_KEY = import.meta.env.VITE_FIREBASE_VAPID_KEY;
 
-let messaging: any = null;
+interface FCMMessagePayload {
+  notification?: {
+    title?: string;
+    body?: string;
+    icon?: string;
+  };
+  data?: Record<string, string>;
+}
+
+let messaging: Messaging | null = null;
 
 /**
  * Initialize Firebase Cloud Messaging
@@ -66,6 +76,8 @@ export async function requestNotificationPermission(): Promise<string | null> {
     }
 
     // Get FCM token
+    if (!messaging) return null;
+    
     const token = await getToken(messaging, {
       vapidKey: VAPID_KEY
     });
@@ -117,7 +129,7 @@ async function saveTokenToFirestore(token: string): Promise<void> {
  * Set up foreground message listener
  */
 export function setupForegroundMessageListener(
-  onMessageReceived: (payload: any) => void
+  onMessageReceived: (payload: FCMMessagePayload) => void
 ): (() => void) | null {
   try {
     if (!messaging) {
@@ -146,7 +158,7 @@ export function setupForegroundMessageListener(
 /**
  * Handle messages when app is in foreground
  */
-function handleForegroundMessage(payload: any): void {
+function handleForegroundMessage(payload: FCMMessagePayload): void {
   const { notification, data } = payload;
   
   if (!notification) return;
@@ -172,42 +184,6 @@ function handleForegroundMessage(payload: any): void {
   } else {
     // Fallback for browsers without service worker support
     new Notification(notification.title || 'Wishlist Wizard', notificationOptions);
-  }
-}
-
-/**
- * Get notification actions based on type
- */
-function getNotificationActions(type?: string): Array<{ action: string; title: string }> {
-  const baseActions = [
-    { action: 'view', title: '👀 View' },
-    { action: 'dismiss', title: '✖️ Dismiss' }
-  ];
-
-  switch (type) {
-    case 'item_added':
-    case 'item_reserved':
-    case 'item_purchased':
-      return [
-        { action: 'view_wishlist', title: '📝 View Wishlist' },
-        ...baseActions
-      ];
-    
-    case 'collaboration_invite':
-      return [
-        { action: 'accept_invite', title: '✅ Accept' },
-        { action: 'decline_invite', title: '❌ Decline' }
-      ];
-    
-    case 'price_alert':
-      return [
-        { action: 'view_item', title: '👀 View Item' },
-        { action: 'buy_now', title: '🛒 Buy Now' },
-        ...baseActions
-      ];
-    
-    default:
-      return baseActions;
   }
 }
 
@@ -419,6 +395,8 @@ export async function getCurrentFCMToken(): Promise<string | null> {
       const initialized = await initializeFCM();
       if (!initialized) return null;
     }
+
+    if (!messaging) return null;
 
     const token = await getToken(messaging, {
       vapidKey: VAPID_KEY

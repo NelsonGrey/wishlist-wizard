@@ -9,7 +9,7 @@ import {
   SelectTrigger, 
   SelectValue 
 } from "@/components/ui/select";
-import { HelpCircle, InboxIcon } from "lucide-react";
+import { InboxIcon } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { RecommendationsHelp } from "@/components/help/RecommendationsHelp";
 import { Wishlist } from "@wishlist-wizard/shared";
@@ -76,7 +76,7 @@ export default function Recommendations() {
             <CardHeader>
               <CardTitle>How AI Recommendations Work</CardTitle>
               <CardDescription>
-                Our recommendation engine analyzes your wishlists to find products you'll love
+                Our recommendation engine analyzes your wishlists to find products you&apos;ll love
               </CardDescription>
             </CardHeader>
             <CardContent>
