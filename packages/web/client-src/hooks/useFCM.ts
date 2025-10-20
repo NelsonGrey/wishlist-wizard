@@ -190,7 +190,7 @@ export function useFCM() {
 /**
  * Hook for listening to FCM messages
  */
-export function useFCMMessages(callback?: (message: any) => void) {
+export function useFCMMessages(callback?: (message: { data?: Record<string, string>; notification?: { title?: string; body?: string } }) => void) {
   useEffect(() => {
     const handleMessage = (event: CustomEvent) => {
       if (callback) {

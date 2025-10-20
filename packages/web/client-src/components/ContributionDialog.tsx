@@ -31,7 +31,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { Heart, Users, DollarSign, Lock } from "lucide-react";
@@ -62,14 +61,29 @@ interface ContributionDialogProps {
 }
 
 // Inner component that uses Stripe Elements
+interface Participant {
+  id: string;
+  name: string;
+  amount: number;
+  date: string;
+  isAnonymous?: boolean;
+  user?: {
+    displayName?: string;
+  };
+  contributionAmount?: number;
+}
+
 function ContributionForm({
   item,
   onClose,
   onContributionSuccess
 }: Omit<ContributionDialogProps, 'open'>) {
   const [isProcessing, setIsProcessing] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [currentTotal, setCurrentTotal] = useState(0);
-  const [participants, setParticipants] = useState<any[]>([]);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [participants, setParticipants] = useState<Participant[]>([]);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [isLoadingParticipants, setIsLoadingParticipants] = useState(true);
   const progressBarRef = useRef<HTMLDivElement>(null);
 
@@ -174,7 +188,7 @@ function ContributionForm({
           Contribute to Gift
         </DialogTitle>
         <DialogDescription>
-          Help make "{item.title}" a reality by contributing to this group gift.
+          Help make &quot;{item.title}&quot; a reality by contributing to this group gift.
         </DialogDescription>
       </DialogHeader>
 

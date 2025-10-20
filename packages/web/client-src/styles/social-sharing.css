@@ -1,0 +1,17 @@
+/* Social Sharing Demo Styles */
+
+/* Group gift progress bar */
+.group-gift-progress {
+  height: 0.5rem;
+  background-color: hsl(var(--primary));
+  border-radius: 0.25rem;
+  transition: width 0.3s ease;
+}
+
+/* Progress bar container */
+.progress-bar-container {
+  height: 0.5rem;
+  background-color: rgb(229 231 235); /* gray-200 */
+  border-radius: 0.25rem;
+  overflow: hidden;
+}

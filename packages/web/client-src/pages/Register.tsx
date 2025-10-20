@@ -53,11 +53,12 @@ export default function Register() {
       });
       
       // Redirect will be handled by ProtectedRoute and auth state change
-    } catch (error: any) {
-      console.error("Registration error:", error);
+    } catch (error: unknown) {
+      const authError = error as { code?: string; message?: string };
+      console.error("Registration error:", authError);
       
       let errorMessage = "Failed to create account";
-      switch (error.code) {
+      switch (authError.code) {
         case 'auth/email-already-in-use':
           errorMessage = "An account with this email already exists";
           break;
@@ -71,7 +72,7 @@ export default function Register() {
           errorMessage = "Email/password accounts are not enabled";
           break;
         default:
-          errorMessage = error.message || "Failed to create account";
+          errorMessage = authError.message || "Failed to create account";
       }
       
       toast({

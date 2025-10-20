@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Link, useRoute, useLocation } from "wouter";
-import { ArrowLeft, Clipboard, Check, Share2 } from "lucide-react";
+import { useRoute, useLocation } from "wouter";
+import { ArrowLeft, Check, Share2 } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import WishlistItem from "@/components/WishlistItem";
@@ -18,7 +18,7 @@ type WishlistItem = DbWishlistItem;
 
 export default function WishlistDetail() {
   const [match, params] = useRoute('/wishlist/:id');
-  const [location, setLocation] = useLocation();
+  const [, setLocation] = useLocation();
   const [copied, setCopied] = useState(false);
   const { toast } = useToast();
   
@@ -96,7 +96,7 @@ export default function WishlistDetail() {
         <Header />
         <div className="max-w-7xl mx-auto px-4 py-16">
           <h1 className="text-2xl font-bold">Wishlist not found</h1>
-          <p className="mt-4">The wishlist you're looking for doesn't exist or has been removed.</p>
+          <p className="mt-4">The wishlist you&apos;re looking for doesn&apos;t exist or has been removed.</p>
           <Button className="mt-6" onClick={() => setLocation('/dashboard')}>
             Back to Dashboard
           </Button>

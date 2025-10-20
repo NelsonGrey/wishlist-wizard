@@ -12,10 +12,7 @@ import {
   orderBy, 
   limit,
   onSnapshot,
-  Timestamp,
-  DocumentData,
-  QuerySnapshot,
-  DocumentSnapshot
+  Timestamp
 } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 import { firebaseApp, firebaseAuth, firebaseFirestore } from './firebase';
@@ -63,7 +60,7 @@ export interface Notification {
   content: string;
   isRead: boolean;
   actionUrl?: string;
-  data?: any;
+  data?: unknown;
   createdAt: Date;
 }
 

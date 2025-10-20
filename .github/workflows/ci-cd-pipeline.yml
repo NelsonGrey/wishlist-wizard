@@ -95,6 +95,9 @@ jobs:
       - name: 🔐 Create Environment File (Production)
         if: matrix.package == 'web' && needs.determine-environment.outputs.should-deploy == 'true' && needs.determine-environment.outputs.environment == 'production'
         run: |
+          # NOTE: The following secret accesses may show linter warnings in VS Code,
+          # but they are valid and will work correctly at runtime in GitHub Actions.
+          # The linter cannot validate conditional secret access in matrix jobs.
           cat > packages/web/.env << EOF
           # Production Environment Configuration - Generated from GitHub Secrets
           

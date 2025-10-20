@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Loader2, Box, ChevronsUpDown, RotateCw } from 'lucide-react';
+import { Loader2, Box, RotateCw } from 'lucide-react';
+import '@/styles/ar-viewer.css';
 
 // Props for the AR Viewer component
 interface ARViewerProps {
   modelType?: 'chair' | 'table' | 'lamp' | 'default';
   scale?: number;
-  color?: string;
   className?: string;
 }
 
@@ -14,7 +14,6 @@ interface ARViewerProps {
 export function ARViewer({ 
   modelType = 'chair',
   scale = 1.5,
-  color,
   className = ""
 }: ARViewerProps) {
   const [isLoading, setIsLoading] = useState(true);
@@ -76,7 +75,10 @@ export function ARViewer({
             {/* Visual depth indicator */}
             <div className="absolute top-1/2 -translate-y-1/2 left-4 flex flex-col items-center">
               <div className="h-32 w-1 bg-black/10 rounded-full relative overflow-hidden">
-                <div className="absolute bottom-0 w-full bg-primary rounded-full" style={{ height: `${scale * 30}%` }}></div>
+                <div 
+                  className="ar-scale-indicator"
+                  style={{ '--ar-scale-height': `${scale * 30}%` } as React.CSSProperties}
+                ></div>
               </div>
               <span className="text-xs mt-1 text-muted-foreground">Depth</span>
             </div>

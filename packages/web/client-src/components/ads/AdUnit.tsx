@@ -11,7 +11,7 @@ interface AdUnitProps {
 
 declare global {
   interface Window {
-    adsbygoogle: any[];
+    adsbygoogle: unknown[];
   }
 }
 
@@ -81,7 +81,7 @@ export function AdUnit({
   className = '',
 
 }: AdUnitProps) {
-  const [publisherId, setPublisherId] = useState<string>('');
+  const [publisherId] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 

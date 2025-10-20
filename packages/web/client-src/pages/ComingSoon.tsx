@@ -4,7 +4,6 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import { CheckCircle, Mail, MessageSquare, Sparkles, ShoppingCart, Share2, Bell, TrendingUp, Users, Zap, Loader2 } from "lucide-react";
 
 const ComingSoon = () => {
@@ -142,7 +141,7 @@ const ComingSoon = () => {
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600"> Coming Soon</span>
             </h1>
             <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
-              We're building the ultimate wishlist management platform that makes shopping,
+              We&apos;re building the ultimate wishlist management platform that makes shopping,
               sharing, and gifting more delightful than ever before.
             </p>
           </div>
@@ -189,8 +188,8 @@ const ComingSoon = () => {
               ) : (
                 <div className="text-center py-4">
                   <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-2" />
-                  <p className="text-green-700 font-medium">You're on the list!</p>
-                  <p className="text-sm text-gray-600">We'll notify you when we launch.</p>
+                  <p className="text-green-700 font-medium">You&apos;re on the list!</p>
+                  <p className="text-sm text-gray-600">We&apos;ll notify you when we launch.</p>
                 </div>
               )}
             </CardContent>
@@ -206,7 +205,7 @@ const ComingSoon = () => {
               Features Coming to Wishlist Wizard
             </h2>
             <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              We're building powerful features to revolutionize how you create, manage, and share wishlists.
+              We&apos;re building powerful features to revolutionize how you create, manage, and share wishlists.
             </p>
           </div>
 
@@ -240,7 +239,7 @@ const ComingSoon = () => {
               Help Shape the Future
             </h2>
             <p className="text-xl text-gray-600">
-              Your feedback is invaluable! Tell us what features you'd love to see or any issues you've encountered.
+              Your feedback is invaluable! Tell us what features you&apos;d love to see or any issues you&apos;ve encountered.
             </p>
           </div>
 
@@ -272,7 +271,7 @@ const ComingSoon = () => {
                             type="button"
                             variant={feedbackType === type.value ? "default" : "outline"}
                             size="sm"
-                            onClick={() => setFeedbackType(type.value as any)}
+                            onClick={() => setFeedbackType(type.value as "suggestion" | "bug" | "general")}
                             disabled={isSubmittingFeedback}
                           >
                             {type.label}
@@ -318,7 +317,7 @@ const ComingSoon = () => {
             {/* What's Next */}
             <Card>
               <CardHeader>
-                <CardTitle>What's Next?</CardTitle>
+                <CardTitle>What&apos;s Next?</CardTitle>
                 <CardDescription>
                   Our development roadmap and upcoming milestones
                 </CardDescription>

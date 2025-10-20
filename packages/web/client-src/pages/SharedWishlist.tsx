@@ -1,12 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
 import { useRoute, useLocation } from "wouter";
-import { ArrowLeft, ExternalLink, Lock, EyeOff } from "lucide-react";
+import { ExternalLink, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import Footer from "@/components/Footer";
-import { useCheckPrivacyAccess } from "@/hooks/use-privacy";
 
 type Wishlist = {
   id: number;
@@ -35,7 +34,7 @@ type SharedWishlistResponse = {
 
 export default function SharedWishlist() {
   const [match, params] = useRoute('/shared/:shareId');
-  const [location, setLocation] = useLocation();
+  const [, setLocation] = useLocation();
   
   const shareId = match ? params.shareId : '';
 
@@ -82,7 +81,7 @@ export default function SharedWishlist() {
   });
 
   // Filter items based on access permissions
-  const accessibleItems = data?.items?.filter(item => {
+  const accessibleItems = data?.items?.filter(() => {
     // For now, if user has access to wishlist, they can see all items
     // In the future, we could check individual item privacy settings
     return wishlistAccess?.hasAccess !== false;
@@ -90,14 +89,13 @@ export default function SharedWishlist() {
 
   // Determine if user should see content
   const canViewWishlist = !wishlistAccess || wishlistAccess.hasAccess !== false;
-  const isOwner = wishlistAccess?.isOwner;
 
   if (!match) {
     return (
       <div className="min-h-screen bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 py-16">
           <h1 className="text-2xl font-bold">Shared wishlist not found</h1>
-          <p className="mt-4">The wishlist you're looking for doesn't exist or has been removed.</p>
+          <p className="mt-4">The wishlist you&apos;re looking for doesn&apos;t exist or has been removed.</p>
           <Button className="mt-6" onClick={() => setLocation('/')}>
             Back to Home
           </Button>
@@ -172,7 +170,7 @@ export default function SharedWishlist() {
               <AlertDescription>
                 <div className="space-y-2">
                   <p className="font-medium">Access Restricted</p>
-                  <p>This wishlist is private and you don't have permission to view it.</p>
+                  <p>This wishlist is private and you don&apos;t have permission to view it.</p>
                   <p className="text-sm text-muted-foreground">
                     The owner may need to adjust the privacy settings or add you to the access list.
                   </p>

@@ -166,7 +166,7 @@ export function NotificationSettings() {
               <BellOff className="h-4 w-4" />
               <AlertTitle>Push Notifications Not Supported</AlertTitle>
               <AlertDescription>
-                Your browser doesn't support push notifications. You can still receive email notifications.
+                Your browser doesn&apos;t support push notifications. You can still receive email notifications.
               </AlertDescription>
             </Alert>
           )}
@@ -269,7 +269,7 @@ export function NotificationSettings() {
                   <div className="space-y-1">
                     <Label>Price Alerts</Label>
                     <p className="text-sm text-muted-foreground">
-                      When an item's price drops to your target price
+                      When an item&apos;s price drops to your target price
                     </p>
                   </div>
                   <Switch 

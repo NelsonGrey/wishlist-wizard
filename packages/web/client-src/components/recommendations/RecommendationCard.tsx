@@ -207,7 +207,7 @@ export default function RecommendationCard({
                   className="text-red-600"
                 >
                   <ThumbsDown className="mr-2 h-4 w-4" />
-                  <span>Don't show again</span>
+                  <span>Don&apos;t show again</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

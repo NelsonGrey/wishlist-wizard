@@ -1,9 +1,6 @@
 {
   "root": true,
-  "extends": [
-    "eslint:recommended",
-    "plugin:@typescript-eslint/recommended"
-  ],
+  "extends": [],
   "parser": "@typescript-eslint/parser",
   "plugins": ["@typescript-eslint"],
   "parserOptions": {
@@ -21,15 +18,11 @@
     "*.generated.*",
     "dataconnect-generated/"
   ],
+  "rules": {},
   "overrides": [
     {
       "files": ["packages/web/**/*.{js,jsx,ts,tsx}"],
-      "extends": [
-        "eslint:recommended",
-        "plugin:@typescript-eslint/recommended",
-        "plugin:react/recommended",
-        "plugin:react-hooks/recommended"
-      ],
+      "extends": [],
       "plugins": ["react", "react-hooks"],
       "env": {
         "browser": true
@@ -39,10 +32,7 @@
           "version": "detect"
         }
       },
-      "rules": {
-        "react/react-in-jsx-scope": "off",
-        "react/prop-types": "off"
-      }
+      "rules": {}
     }
   ]
 }

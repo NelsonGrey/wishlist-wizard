@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   Card,
@@ -15,8 +15,7 @@ import {
   XAxis,
   YAxis,
   CartesianGrid,
-  Tooltip,
-  Legend
+  Tooltip
 } from "recharts";
 import { AlertCircle, TrendingDown, TrendingUp } from "lucide-react";
 import { format } from "date-fns";
@@ -30,10 +29,9 @@ type PriceHistoryPoint = {
 
 interface PriceHistoryProps {
   itemId: number;
-  currentPrice: string;
 }
 
-export default function PriceHistory({ itemId, currentPrice }: PriceHistoryProps) {
+export default function PriceHistory({ itemId }: PriceHistoryProps) {
   // Fetch price history data
   const { data: priceHistory, isLoading, isError } = useQuery<PriceHistoryPoint[]>({
     queryKey: [`/api/items/${itemId}/price-history`],

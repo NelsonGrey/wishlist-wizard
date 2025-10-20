@@ -17,7 +17,7 @@ type NotificationItemProps = {
 };
 
 const NotificationItem = ({ notification, onRead }: NotificationItemProps) => {
-  const [_, navigate] = useLocation();
+  const [, navigate] = useLocation();
   
   const handleClick = () => {
     // Mark as read

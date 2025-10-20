@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:logging/logging.dart';
 import 'firebase_options.dart';
 import 'providers/providers.dart';
 import 'services/services.dart';
@@ -13,6 +14,17 @@ const bool comingSoonEnabled = true; // Set to false to enable the full app
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize logging
+  Logger.root.level = Level.ALL;
+  Logger.root.onRecord.listen((record) {
+    // In production, you might want to send logs to a service like Firebase Crashlytics
+    // or a logging service instead of printing to console
+    // ignore: avoid_print
+    print(
+      '${record.level.name}: ${record.time}: ${record.loggerName}: ${record.message}',
+    );
+  });
 
   // Initialize Firebase
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);

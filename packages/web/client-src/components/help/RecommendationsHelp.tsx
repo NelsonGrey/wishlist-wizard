@@ -6,7 +6,7 @@ export function RecommendationsHelp() {
     <HelpDialog title="AI-Powered Recommendations Help">
       <p className="text-sm text-muted-foreground mb-4">
         Get personalized gift suggestions with our AI-powered recommendation system.
-        Here's everything you need to know:
+        Here&apos;s everything you need to know:
       </p>
 
       <Accordion type="single" collapsible className="w-full">
@@ -18,8 +18,8 @@ export function RecommendationsHelp() {
             </p>
             <ul className="text-sm list-disc pl-5 space-y-1">
               <li>Your past wishlist items</li>
-              <li>Items you've browsed</li>
-              <li>Preferences you've set in your profile</li>
+              <li>Items you&apos;ve browsed</li>
+              <li>Preferences you&apos;ve set in your profile</li>
               <li>Trending products in your favorite categories</li>
               <li>Similar items to what you already like</li>
             </ul>
@@ -60,7 +60,7 @@ export function RecommendationsHelp() {
             </p>
             <ul className="text-sm list-disc pl-5 space-y-1">
               <li><strong>For You:</strong> Personalized based on your activity and preferences</li>
-              <li><strong>Similar Items:</strong> Products like ones you've shown interest in</li>
+              <li><strong>Similar Items:</strong> Products like ones you&apos;ve shown interest in</li>
               <li><strong>Trending Now:</strong> Popular items in your favorite categories</li>
               <li><strong>Price Drops:</strong> Items you might like that have recently gone on sale</li>
               <li><strong>Occasion-Based:</strong> Tailored for birthdays, holidays, and other events</li>
@@ -82,14 +82,14 @@ export function RecommendationsHelp() {
                 <strong>Specify the recipient:</strong> Connect events to people in your contacts.
               </li>
               <li>
-                <strong>Set your budget:</strong> Indicate how much you're planning to spend.
+                <strong>Set your budget:</strong> Indicate how much you&apos;re planning to spend.
               </li>
               <li>
-                <strong>Check recommendations:</strong> As events approach, we'll suggest appropriate gifts.
+                <strong>Check recommendations:</strong> As events approach, we&apos;ll suggest appropriate gifts.
               </li>
             </ol>
             <p className="text-sm mt-2">
-              You'll receive reminders before important dates with gift suggestions.
+              You&apos;ll receive reminders before important dates with gift suggestions.
             </p>
           </AccordionContent>
         </AccordionItem>
@@ -107,7 +107,7 @@ export function RecommendationsHelp() {
               <li>We never share your browsing or wishlist data with third parties</li>
             </ul>
             <p className="text-sm mt-2">
-              Control your recommendation settings in the "Privacy" section of your profile.
+              Control your recommendation settings in the &quot;Privacy&quot; section of your profile.
             </p>
           </AccordionContent>
         </AccordionItem>

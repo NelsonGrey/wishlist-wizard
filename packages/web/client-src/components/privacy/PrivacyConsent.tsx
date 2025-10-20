@@ -439,7 +439,7 @@ export const PrivacySettings: React.FC<{
             your preferences. You can change these settings anytime.
           </p>
           <p>
-            <strong>Note:</strong> Disabling personalized ads doesn't mean you'll see 
+            <strong>Note:</strong> Disabling personalized ads doesn&apos;t mean you&apos;ll see 
             fewer ads, but they may be less relevant to your interests.
           </p>
         </div>

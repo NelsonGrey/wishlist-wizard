@@ -1,11 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Menu, LogOut } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest, getQueryFn } from "@/lib/queryClient";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import { useQueryClient } from "@tanstack/react-query";
 import { NotificationDropdown } from "@/components/ui/NotificationDropdown";
 
 export default function Header() {
@@ -18,7 +18,6 @@ export default function Header() {
   
   // Skip auth API calls until backend is deployed
   const currentUser = null;
-  const isLoading = false;
   
   /* This code is disabled until backend APIs are deployed
   const { data: currentUser, isLoading } = useQuery({

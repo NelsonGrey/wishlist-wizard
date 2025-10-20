@@ -2,8 +2,6 @@ import React, { useState } from 'react';
 import { 
   Card, 
   CardContent, 
-  CardDescription, 
-  CardFooter, 
   CardHeader, 
   CardTitle 
 } from "@/components/ui/card";
@@ -12,25 +10,25 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
-  Smartphone, 
   QrCode, 
-  ShoppingBag, 
   BellRing, 
   User, 
-  Settings,
-  Menu,
   Home,
-  Search,
   Heart,
-  Clock,
-  CheckCircle2,
   Wifi,
   WifiOff,
   Share2
 } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
+
+// Define interface for pending actions
+interface PendingAction {
+  type: string;
+  barcode?: string;
+  timestamp: string;
+}
 
 // Mobile device screens/modes
 type ScreenMode = 'home' | 'scan' | 'wishlist' | 'profile' | 'notifications';
@@ -42,7 +40,7 @@ const MobileAppDemo = () => {
   const [activeScreen, setActiveScreen] = useState<ScreenMode>('home');
   const [barcode, setBarcode] = useState(SAMPLE_BARCODE);
   const [isOnline, setIsOnline] = useState(true);
-  const [pendingActions, setPendingActions] = useState<any[]>([]);
+  const [pendingActions, setPendingActions] = useState<PendingAction[]>([]);
   const { toast } = useToast();
 
   // Simulate scanning a barcode
@@ -208,7 +206,7 @@ const MobileAppDemo = () => {
                   <Card className="mb-2">
                     <CardContent className="p-3">
                       <p className="text-sm font-medium">Calendar reminder set</p>
-                      <p className="text-xs text-slate-500">Mom's Birthday: July 15th</p>
+                      <p className="text-xs text-slate-500">Mom&apos;s Birthday: July 15th</p>
                     </CardContent>
                   </Card>
                 </div>
@@ -482,7 +480,7 @@ const MobileAppDemo = () => {
                 <p>
                   Wishlist Wizard mobile app works even without an internet connection. 
                   All your changes are stored locally and automatically synced when 
-                  you're back online.
+                  you&apos;re back online.
                 </p>
               </CardContent>
             </Card>
