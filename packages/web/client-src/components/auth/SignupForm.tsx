@@ -2,6 +2,10 @@ import React, { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLocation } from 'wouter';
 
+interface FirebaseAuthError extends Error {
+  code: string;
+}
+
 export const SignupForm: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -33,14 +37,15 @@ export const SignupForm: React.FC = () => {
     try {
       await signUp(email, password, displayName.trim() || undefined);
       // ProtectedRoute will handle redirect after auth state change
-    } catch (err: any) {
-      setError(getErrorMessage(err));
+    } catch (err: unknown) {
+      const error = err as FirebaseAuthError;
+      setError(getErrorMessage(error));
     } finally {
       setLoading(false);
     }
   };
 
-  const getErrorMessage = (error: any): string => {
+  const getErrorMessage = (error: FirebaseAuthError): string => {
     switch (error.code) {
       case 'auth/email-already-in-use':
         return 'An account with this email already exists.';

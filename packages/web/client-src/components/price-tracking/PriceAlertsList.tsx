@@ -2,7 +2,6 @@ import React from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { format } from "date-fns";
 
 import {
   Card,
@@ -149,7 +148,7 @@ export default function PriceAlertsList({ limit }: PriceAlertsListProps) {
             <BellRing className="h-8 w-8 mb-2 text-muted-foreground" />
             <p className="mb-2 font-medium">No price alerts set</p>
             <p className="text-sm text-muted-foreground">
-              Set up price alerts on items you're interested in to be notified when prices drop.
+              Set up price alerts on items you&apos;re interested in to be notified when prices drop.
             </p>
           </div>
         </CardContent>

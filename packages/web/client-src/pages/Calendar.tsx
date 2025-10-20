@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Calendar as CalendarComponent, dateFnsLocalizer } from 'react-big-calendar';
-import { format, parse, startOfWeek, getDay, addMonths } from 'date-fns';
+import { format, parse, startOfWeek, getDay } from 'date-fns';
 import { enUS } from 'date-fns/locale';
 import { parseISO } from 'date-fns';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
+import '@/styles/calendar.css';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -14,13 +15,10 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { 
   Select, 
   SelectContent, 
@@ -35,6 +33,23 @@ import { Badge } from '@/components/ui/badge';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import { CalendarSettings } from '@/components/calendar/CalendarSettings';
+
+// Define interfaces for API responses
+interface CalendarEventResponse {
+  id: number;
+  title: string;
+  description?: string;
+  startDate: string;
+  endDate?: string;
+  allDay: boolean;
+  location?: string;
+  type: string;
+  recurYearly: boolean;
+  reminderDays?: number;
+  beneficiaryId?: number;
+  wishlistId?: number;
+  color: string;
+}
 
 // Set up the localizer for react-big-calendar
 const locales = { 'en-US': enUS };
@@ -108,7 +123,6 @@ const Calendar: React.FC = () => {
   const [isEventDialogOpen, setIsEventDialogOpen] = useState(false);
   const [isSettingsDialogOpen, setIsSettingsDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('upcoming');
-  const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [formData, setFormData] = useState<EventFormData>({
     title: '',
@@ -124,12 +138,12 @@ const Calendar: React.FC = () => {
   });
 
   // Query to fetch events
-  const { data: events = [], isLoading: eventsLoading } = useQuery({ 
+  const { data: events = [] } = useQuery({ 
     queryKey: ['/api/calendar/events'],
     queryFn: async () => {
-      const data = await apiRequest('GET', { method: '/api/calendar/events' });
+      const data = await apiRequest('GET', { method: '/api/calendar/events' }) as CalendarEventResponse[];
       // Parse date strings into Date objects
-      return data.map((event: any) => ({
+      return data.map((event: CalendarEventResponse) => ({
         ...event,
         start: parseISO(event.startDate),
         end: event.endDate ? parseISO(event.endDate) : parseISO(event.startDate),
@@ -140,19 +154,32 @@ const Calendar: React.FC = () => {
   // Query to fetch beneficiaries
   const { data: beneficiaries = [] } = useQuery({ 
     queryKey: ['/api/beneficiaries'],
-    queryFn: () => apiRequest('GET', { method: '/api/beneficiaries' })
+    queryFn: async () => {
+      const data = await apiRequest('GET', { method: '/api/beneficiaries' });
+      return data as Beneficiary[];
+    }
   });
 
   // Query to fetch wishlists
   const { data: wishlists = [] } = useQuery({ 
     queryKey: ['/api/wishlists'],
-    queryFn: () => apiRequest('GET', { method: '/api/wishlists' })
+    queryFn: async () => {
+      const data = await apiRequest('GET', { method: '/api/wishlists' });
+      return data as Wishlist[];
+    }
   });
 
   // Query to fetch calendar sync settings
   const { data: syncSettings } = useQuery({ 
     queryKey: ['/api/calendar/sync-settings'],
-    queryFn: () => apiRequest('GET', { method: '/api/calendar/sync-settings' })
+    queryFn: async () => {
+      const data = await apiRequest('GET', { method: '/api/calendar/sync-settings' });
+      return data as {
+        google?: { connected: boolean };
+        apple?: { connected: boolean };
+        outlook?: { connected: boolean };
+      };
+    }
   });
 
   // Create event mutation
@@ -263,29 +290,6 @@ const Calendar: React.FC = () => {
     }
   });
 
-  // Save sync settings mutation
-  const saveSyncSettingsMutation = useMutation({
-    mutationFn: (settings: any) => {
-      return apiRequest('POST', { method: '/api/calendar/sync-settings', body: settings });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/calendar/sync-settings'] });
-      setIsSettingsDialogOpen(false);
-      toast({
-        title: "Success",
-        description: "Calendar sync settings saved successfully",
-      });
-    },
-    onError: (error) => {
-      console.error('Error saving sync settings:', error);
-      toast({
-        title: "Error",
-        description: "Failed to save sync settings. Please try again.",
-        variant: "destructive",
-      });
-    }
-  });
-
   // Sync now mutation
   const syncNowMutation = useMutation({
     mutationFn: () => {
@@ -325,7 +329,7 @@ const Calendar: React.FC = () => {
   };
 
   // Handle form field changes
-  const handleChange = (field: keyof EventFormData, value: any) => {
+  const handleChange = (field: keyof EventFormData, value: string | number | boolean | Date | undefined | number[]) => {
     setFormData(prevData => ({
       ...prevData,
       [field]: value
@@ -539,7 +543,7 @@ const Calendar: React.FC = () => {
               events={events}
               startAccessor="start"
               endAccessor="end"
-              style={{ height: 500 }}
+              className="calendar-container"
               onSelectEvent={handleSelectEvent}
               onSelectSlot={handleSelectSlot}
               selectable
@@ -786,9 +790,11 @@ const Calendar: React.FC = () => {
                     value={formData.color}
                     onChange={(e) => handleChange('color', e.target.value)}
                     className="p-1 h-10 w-10 border rounded"
+                    aria-label="Event color"
                   />
-                  <div 
-                    className="w-8 h-8 rounded-full" 
+                  {/* eslint-disable-next-line */}
+                  <div
+                    className="calendar-color-preview"
                     style={{ backgroundColor: formData.color }}
                   ></div>
                 </div>

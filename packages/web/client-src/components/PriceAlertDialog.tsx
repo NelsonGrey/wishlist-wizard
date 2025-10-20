@@ -201,7 +201,7 @@ export default function PriceAlertDialog({
                     <TrendingDown className="h-4 w-4 text-blue-600" />
                     <div className="text-sm text-blue-800">
                       {form.watch("targetPrice") < currentPrice ? (
-                        <>You'll be notified when the price drops below <strong>${form.watch("targetPrice").toFixed(2)}</strong></>
+                        <>You&apos;ll be notified when the price drops below <strong>${form.watch("targetPrice").toFixed(2)}</strong></>
                       ) : (
                         <>Current price (${currentPrice.toFixed(2)}) is already below your target</>
                       )}

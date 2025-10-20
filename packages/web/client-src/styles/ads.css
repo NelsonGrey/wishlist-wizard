@@ -49,3 +49,24 @@
   display: block;
   min-height: 90px;
 }
+
+/* AdSense Component Spacing */
+.adsense-header {
+  margin-bottom: 20px;
+}
+
+.adsense-content {
+  margin: 20px 0;
+}
+
+.adsense-footer {
+  margin-top: 20px;
+}
+
+.adsense-sidebar {
+  margin: 30px 0;
+}
+
+.adsense-inline {
+  margin: 10px 0;
+}

@@ -1,5 +1,4 @@
-import React, { useState, useEffect } from 'react';
-import { Link } from 'wouter';
+import React, { useState } from 'react';
 import {
   Card,
   CardContent,
@@ -15,26 +14,21 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
-import {
+import { 
   Lock,
   Users,
   Eye,
-  EyeOff,
   UserPlus,
   UserMinus,
-  Clock,
   Settings,
   Shield,
   Globe,
   UserCheck,
   AlertTriangle,
   Check,
-  X,
   Loader2,
-  ChevronDown,
   Search,
   Filter
 } from 'lucide-react';
@@ -42,11 +36,6 @@ import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
-  usePrivacySettings,
-  useUpdatePrivacySettings,
-  useUpdateAccessList,
-  useDeletePrivacySettings,
-  useDefaultPrivacySettings,
   type PrivacySettings
 } from '@/hooks/use-privacy';
 
@@ -59,11 +48,18 @@ interface EntityWithPrivacy {
   isOwner: boolean;
 }
 
-interface User {
+interface WishlistResponse {
   id: number;
-  username: string;
-  displayName?: string;
-  email: string;
+  name: string;
+  userId: number;
+}
+
+interface ItemResponse {
+  id: number;
+  title: string;
+  wishlist?: {
+    userId: number;
+  };
 }
 
 const VISIBILITY_OPTIONS = [
@@ -117,14 +113,14 @@ const PrivacySettingsPage = () => {
       ]);
 
       const entities: EntityWithPrivacy[] = [
-        ...wishlistsRes.map((w: any) => ({
+        ...wishlistsRes.map((w: WishlistResponse) => ({
           id: w.id,
           name: w.name,
           type: 'wishlist' as const,
           ownerId: w.userId,
           isOwner: true // Assuming current user owns these
         })),
-        ...itemsRes.map((i: any) => ({
+        ...itemsRes.map((i: ItemResponse) => ({
           id: i.id,
           name: i.title,
           type: 'item' as const,
@@ -432,7 +428,7 @@ const PrivacySettingsPage = () => {
                     />
                   </div>
                 </div>
-                <Select value={filterType} onValueChange={(value: any) => setFilterType(value)}>
+                <Select value={filterType} onValueChange={(value: 'all' | 'wishlist' | 'item') => setFilterType(value)}>
                   <SelectTrigger className="w-[180px]">
                     <Filter className="h-4 w-4 mr-2" />
                     <SelectValue />
@@ -660,7 +656,7 @@ const PrivacySettingsPage = () => {
                 <RadioGroup
                   value={selectedEntity.privacySettings?.visibilityLevel || 'public'}
                   onValueChange={(value) =>
-                    handlePrivacyUpdate(selectedEntity, { visibilityLevel: value as any })
+                    handlePrivacyUpdate(selectedEntity, { visibilityLevel: value as 'public' | 'friends' | 'private' | 'custom' })
                   }
                   className="mt-3"
                 >

@@ -23,8 +23,28 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   requireUnauth = false,
   fallbackPath = '/'
 }) => {
-  const { user, loading, isAuthenticated } = useAuth();
+  const { loading, isAuthenticated } = useAuth();
   const [location, setLocation] = useLocation();
+
+  // Redirect unauthenticated users to login
+  useEffect(() => {
+    if (requireAuth && !isAuthenticated && !loading) {
+      // Store current location for post-login redirect
+      sessionStorage.setItem('redirectAfterAuth', location);
+      setLocation('/login');
+    }
+  }, [requireAuth, isAuthenticated, loading, location, setLocation]);
+
+  // Redirect authenticated users away from auth pages
+  useEffect(() => {
+    if (requireUnauth && isAuthenticated && !loading) {
+      // Check if there's a stored destination from login redirect
+      const storedRedirect = sessionStorage.getItem('redirectAfterAuth');
+      const redirectTo = storedRedirect || fallbackPath;
+      sessionStorage.removeItem('redirectAfterAuth');
+      setLocation(redirectTo);
+    }
+  }, [requireUnauth, isAuthenticated, loading, fallbackPath, setLocation]);
 
   // Show loading state while Firebase Auth initializes
   if (loading) {
@@ -35,26 +55,6 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
       </div>
     );
   }
-
-  // Redirect unauthenticated users to login
-  useEffect(() => {
-    if (requireAuth && !isAuthenticated) {
-      // Store current location for post-login redirect
-      sessionStorage.setItem('redirectAfterAuth', location);
-      setLocation('/login');
-    }
-  }, [requireAuth, isAuthenticated, location, setLocation]);
-
-  // Redirect authenticated users away from auth pages
-  useEffect(() => {
-    if (requireUnauth && isAuthenticated) {
-      // Check if there's a stored destination from login redirect
-      const storedRedirect = sessionStorage.getItem('redirectAfterAuth');
-      const redirectTo = storedRedirect || fallbackPath;
-      sessionStorage.removeItem('redirectAfterAuth');
-      setLocation(redirectTo);
-    }
-  }, [requireUnauth, isAuthenticated, fallbackPath, setLocation]);
 
   // Don't render children if redirecting
   if (requireAuth && !isAuthenticated) {
@@ -68,18 +68,19 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   return <>{children}</>;
 };
 
-/**
- * Higher-order component for protecting routes
- */
-export const withAuthProtection = (
-  Component: React.ComponentType<any>,
+export const withAuthProtection = <P extends object>(
+  Component: React.ComponentType<P>,
   options: { requireAuth?: boolean; requireUnauth?: boolean; fallbackPath?: string } = {}
 ) => {
-  return (props: any) => (
+  const ProtectedComponent = (props: P) => (
     <ProtectedRoute {...options}>
       <Component {...props} />
     </ProtectedRoute>
   );
+  
+  ProtectedComponent.displayName = `withAuthProtection(${Component.displayName || Component.name || 'Component'})`;
+  
+  return ProtectedComponent;
 };
 
 export default ProtectedRoute;

@@ -92,7 +92,6 @@ function customRender(
         },
       },
     }),
-    pathname = '/',
     ...renderOptions
   } = options || {};
   

@@ -80,7 +80,13 @@ export const AppLayoutWithAds: React.FC<{
 
 // Example Wishlist Page with In-Content Ads
 export const WishlistPageWithAds: React.FC<{
-  wishlistItems: any[];
+  wishlistItems: {
+    id: string;
+    image: string;
+    title: string;
+    description: string;
+    price: number;
+  }[];
 }> = ({ wishlistItems }) => {
   return (
     <div className="wishlist-page">
@@ -117,7 +123,12 @@ export const WishlistPageWithAds: React.FC<{
 
 // Example Product Detail Page with Strategic Ad Placement
 export const ProductDetailWithAds: React.FC<{
-  product: any;
+  product: {
+    image: string;
+    title: string;
+    description: string;
+    price: number;
+  };
 }> = ({ product }) => {
   return (
     <div className="product-detail">

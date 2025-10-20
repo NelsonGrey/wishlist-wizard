@@ -114,7 +114,7 @@ export default function ArVisualizerDemo() {
                     <div>
                       <h3 className="text-lg font-medium mb-2">Step 1: Select a Product</h3>
                       <p className="text-muted-foreground">
-                        Browse through your wishlist items or search for products you're interested in.
+                        Browse through your wishlist items or search for products you&apos;re interested in.
                       </p>
                     </div>
                     <div>
@@ -126,7 +126,7 @@ export default function ArVisualizerDemo() {
                     <div>
                       <h3 className="text-lg font-medium mb-2">Step 3: Launch AR View</h3>
                       <p className="text-muted-foreground">
-                        On mobile devices, tap "View in Your Space" to open the camera and place the product in your environment.
+                        On mobile devices, tap &quot;View in Your Space&quot; to open the camera and place the product in your environment.
                       </p>
                     </div>
                     <div>
@@ -146,7 +146,7 @@ export default function ArVisualizerDemo() {
               <CardHeader>
                 <CardTitle>Supported Product Categories</CardTitle>
                 <CardDescription>
-                  We're continually expanding our library of AR-compatible products
+                  We&apos;re continually expanding our library of AR-compatible products
                 </CardDescription>
               </CardHeader>
               

@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - main
+      - staging
       - develop
   workflow_dispatch:
     inputs:
@@ -25,7 +26,7 @@ jobs:
   distribute-android:
     runs-on: ubuntu-latest
     environment:
-      name: ${{ github.ref == 'refs/heads/main' && 'production' || 'development' }}
+      name: ${{ github.ref == 'refs/heads/main' && 'production' || github.ref == 'refs/heads/staging' && 'staging' || 'development' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -50,7 +51,7 @@ jobs:
 
       - name: Create service account key file
         env:
-          SERVICE_ACCOUNT_KEY: ${{ secrets[format('FIREBASE_SERVICE_ACCOUNT_{0}', github.ref == 'refs/heads/main' && 'PRODUCTION' || 'DEVELOPMENT')] }}
+          SERVICE_ACCOUNT_KEY: ${{ github.ref == 'refs/heads/main' && secrets.FIREBASE_SERVICE_ACCOUNT_PRODUCTION || github.ref == 'refs/heads/staging' && secrets.FIREBASE_SERVICE_ACCOUNT_STAGING || secrets.FIREBASE_SERVICE_ACCOUNT_DEVELOPMENT }}
         run: |
           mkdir -p packages/mobile/android/app
           echo "$SERVICE_ACCOUNT_KEY" > packages/mobile/android/app/service-account-key.json
@@ -81,7 +82,7 @@ jobs:
 
       - name: Build and distribute Android app
         env:
-          ENVIRONMENT: ${{ github.ref == 'refs/heads/main' && 'production' || 'development' }}
+          ENVIRONMENT: ${{ github.ref == 'refs/heads/main' && 'production' || github.ref == 'refs/heads/staging' && 'staging' || 'development' }}
         run: |
           cd packages/mobile
           BUILD_TYPE="${{ github.event.inputs.build_type || 'debug' }}"

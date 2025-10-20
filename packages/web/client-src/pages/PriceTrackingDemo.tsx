@@ -65,7 +65,7 @@ export default function PriceTrackingDemo() {
         <div className="mb-6">
           <h1 className="text-3xl font-bold tracking-tight">Price Tracking Demo</h1>
           <p className="mt-1 text-muted-foreground">
-            See how Wishlist Wizard's price tracking and alert features work
+            See how Wishlist Wizard&apos;s price tracking and alert features work
           </p>
         </div>
 
@@ -128,8 +128,7 @@ export default function PriceTrackingDemo() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
           <div className="lg:col-span-2">
             <PriceHistory 
-              itemId={demoProduct.id} 
-              currentPrice={demoProduct.price} 
+              itemId={demoProduct.id}
             />
           </div>
           <div>
@@ -158,7 +157,7 @@ export default function PriceTrackingDemo() {
                 <CardHeader>
                   <CardTitle>About Price Tracking</CardTitle>
                   <CardDescription>
-                    Wishlist Wizard's comprehensive price tracking capabilities
+                    Wishlist Wizard&apos;s comprehensive price tracking capabilities
                   </CardDescription>
                 </CardHeader>
                 <CardContent>

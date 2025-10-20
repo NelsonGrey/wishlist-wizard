@@ -11,7 +11,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { 
@@ -25,13 +24,23 @@ import {
   MessageCircle, 
   UserPlus,
   Check,
-  X,
   Users,
   Gift
 } from 'lucide-react';
-import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import { useMutation } from '@tanstack/react-query';
+import '@/styles/social-sharing.css';
+
+// Define interfaces for mutation responses
+interface InviteResponse {
+  success: boolean;
+  invitedCount: number;
+}
+
+interface JoinGroupResponse {
+  success: boolean;
+  name?: string;
+}
 
 // Mock wishlist data for our social sharing demo
 const DEMO_WISHLISTS = [
@@ -101,7 +110,7 @@ const GROUP_GIFT_ORGANIZERS = [
 const SocialSharingDemo = () => {
   const [selectedWishlist, setSelectedWishlist] = useState(DEMO_WISHLISTS[0]);
   const [shareMode, setShareMode] = useState<'public' | 'private' | 'group'>('public');
-  const [shareUrl, setShareUrl] = useState(`https://wishlistwizard.app/share/${selectedWishlist.shareId}`);
+  const [shareUrl] = useState(`https://wishlistwizard.app/share/${selectedWishlist.shareId}`);
   const [selectedFriends, setSelectedFriends] = useState<number[]>([]);
   const [customMessage, setCustomMessage] = useState(`Check out my "${selectedWishlist.name}" wishlist on Wishlist Wizard!`);
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
@@ -111,7 +120,7 @@ const SocialSharingDemo = () => {
 
   // Simulate sharing to social media
   const { mutate: shareToSocial, isPending: isSharing } = useMutation({
-    mutationFn: async ({ platform, wishlistId }: { platform: string, wishlistId: number }) => {
+    mutationFn: async ({ platform }: { platform: string }) => {
       // In a real app, this would make an API call
       return await new Promise((resolve) => {
         setTimeout(() => {
@@ -130,15 +139,15 @@ const SocialSharingDemo = () => {
 
   // Simulate sending invites to friends
   const { mutate: inviteFriends, isPending: isInviting } = useMutation({
-    mutationFn: async ({ friendIds, wishlistId, message }: { friendIds: number[], wishlistId: number, message: string }) => {
+    mutationFn: async ({ friendIds }: { friendIds: number[] }) => {
       // In a real app, this would make an API call
-      return await new Promise((resolve) => {
+      return await new Promise<InviteResponse>((resolve) => {
         setTimeout(() => {
           resolve({ success: true, invitedCount: friendIds.length });
         }, 1500);
       });
     },
-    onSuccess: (data: any) => {
+    onSuccess: (data: InviteResponse) => {
       toast({
         title: "Invitations Sent!",
         description: `Sent ${data.invitedCount} invitation${data.invitedCount !== 1 ? 's' : ''} to your friends.`,
@@ -149,17 +158,17 @@ const SocialSharingDemo = () => {
   });
 
   // Simulate joining a group gift
-  const { mutate: joinGroupGift, isPending: isJoining } = useMutation({
-    mutationFn: async ({ organizerId, amount }: { organizerId: number, amount?: number }) => {
+  const { mutate: joinGroupGift } = useMutation({
+    mutationFn: async ({ organizerId }: { organizerId: number }) => {
       // In a real app, this would make an API call
-      return await new Promise((resolve) => {
+      return await new Promise<JoinGroupResponse>((resolve) => {
         setTimeout(() => {
           const organizer = GROUP_GIFT_ORGANIZERS.find(org => org.id === organizerId);
           resolve({ success: true, name: organizer?.name });
         }, 1000);
       });
     },
-    onSuccess: (data: any) => {
+    onSuccess: (data: JoinGroupResponse) => {
       toast({
         title: "Joined Group Gift!",
         description: `You've successfully joined the "${data.name}" group gift.`,
@@ -216,7 +225,7 @@ const SocialSharingDemo = () => {
                   key={platform.id}
                   variant="outline"
                   className={`h-12 w-12 rounded-full flex items-center justify-center p-0 hover:${platform.color} hover:text-white`}
-                  onClick={() => shareToSocial({ platform: platform.name, wishlistId: selectedWishlist.id })}
+                  onClick={() => shareToSocial({ platform: platform.name })}
                   disabled={isSharing}
                 >
                   {platform.icon}
@@ -290,9 +299,7 @@ const SocialSharingDemo = () => {
               className="w-full" 
               disabled={selectedFriends.length === 0 || isInviting}
               onClick={() => inviteFriends({ 
-                friendIds: selectedFriends, 
-                wishlistId: selectedWishlist.id, 
-                message: customMessage 
+                friendIds: selectedFriends
               })}
             >
               {isInviting ? "Sending..." : "Send Invitations"}
@@ -326,9 +333,9 @@ const SocialSharingDemo = () => {
                           <span>Progress</span>
                           <span>${organizer.current} of ${organizer.goal}</span>
                         </div>
-                        <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                        <div className="progress-bar-container">
                           <div 
-                            className="h-full bg-primary rounded-full" 
+                            className="group-gift-progress" 
                             style={{ width: `${(organizer.current / organizer.goal) * 100}%` }}
                           ></div>
                         </div>
@@ -434,9 +441,9 @@ const SocialSharingDemo = () => {
                 </DialogTrigger>
                 <DialogContent className="sm:max-w-md">
                   <DialogHeader>
-                    <DialogTitle>Share "{selectedWishlist.name}"</DialogTitle>
+                    <DialogTitle>Share &quot;{selectedWishlist.name}&quot;</DialogTitle>
                     <DialogDescription>
-                      Choose how you'd like to share your wishlist with others
+                      Choose how you&apos;d like to share your wishlist with others
                     </DialogDescription>
                   </DialogHeader>
                   
@@ -506,7 +513,7 @@ const SocialSharingDemo = () => {
                     <div className="bg-muted p-4 rounded-lg">
                       <h4 className="font-medium mb-2">Public Link</h4>
                       <p className="text-sm text-muted-foreground mb-3">
-                        Share this link with anyone to let them view your wishlist. They won't need an account to view it.
+                        Share this link with anyone to let them view your wishlist. They won&apos;t need an account to view it.
                       </p>
                       <div className="flex gap-2">
                         <Input 
@@ -532,7 +539,7 @@ const SocialSharingDemo = () => {
                             key={platform.id}
                             variant="outline"
                             className="gap-2"
-                            onClick={() => shareToSocial({ platform: platform.name, wishlistId: selectedWishlist.id })}
+                            onClick={() => shareToSocial({ platform: platform.name })}
                           >
                             {platform.icon}
                             {platform.name}
@@ -547,7 +554,7 @@ const SocialSharingDemo = () => {
                       <h4 className="font-medium mb-2">Direct Invitations</h4>
                       <p className="text-sm text-muted-foreground">
                         Send personal invitations to specific friends or family members. 
-                        They'll receive an email with a link to your wishlist.
+                        They&apos;ll receive an email with a link to your wishlist.
                       </p>
                     </div>
                     
@@ -590,9 +597,7 @@ const SocialSharingDemo = () => {
                         className="w-full mt-4" 
                         disabled={selectedFriends.length === 0 || isInviting}
                         onClick={() => inviteFriends({ 
-                          friendIds: selectedFriends, 
-                          wishlistId: selectedWishlist.id, 
-                          message: customMessage 
+                          friendIds: selectedFriends
                         })}
                       >
                         {isInviting ? "Sending..." : `Invite ${selectedFriends.length} Friend${selectedFriends.length !== 1 ? 's' : ''}`}
@@ -631,9 +636,9 @@ const SocialSharingDemo = () => {
                                     <span>Progress</span>
                                     <span>${organizer.current} of ${organizer.goal}</span>
                                   </div>
-                                  <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                                  <div className="progress-bar-container">
                                     <div 
-                                      className="h-full bg-primary rounded-full" 
+                                      className="group-gift-progress" 
                                       style={{ width: `${(organizer.current / organizer.goal) * 100}%` }}
                                     ></div>
                                   </div>

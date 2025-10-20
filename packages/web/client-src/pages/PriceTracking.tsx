@@ -116,7 +116,7 @@ export default function PriceTracking() {
                     <LineChartIcon className="h-12 w-12 text-muted-foreground mb-4" />
                     <h3 className="text-lg font-medium mb-1">No significant price drops found</h3>
                     <p className="text-sm text-muted-foreground text-center max-w-md">
-                      We'll continue monitoring your wishlist items and notify you when we detect price reductions.
+                      We&apos;ll continue monitoring your wishlist items and notify you when we detect price reductions.
                     </p>
                   </div>
                 )}
@@ -138,7 +138,7 @@ export default function PriceTracking() {
                   <LineChartIcon className="h-12 w-12 text-muted-foreground mb-4" />
                   <h3 className="text-lg font-medium mb-1">Price volatility detection coming soon</h3>
                   <p className="text-sm text-muted-foreground text-center max-w-md">
-                    We're enhancing our price tracking algorithm to detect patterns that may lead to future price drops.
+                    We&apos;re enhancing our price tracking algorithm to detect patterns that may lead to future price drops.
                   </p>
                 </div>
               </CardContent>

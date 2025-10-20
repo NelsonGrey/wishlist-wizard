@@ -46,11 +46,12 @@ export default function Login() {
       });
       
       // Redirect will be handled by ProtectedRoute and auth state change
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Login error:", error);
       
       let errorMessage = "Failed to sign in";
-      switch (error.code) {
+      const err = error as { code?: string; message?: string };
+      switch (err.code) {
         case 'auth/user-not-found':
           errorMessage = "No account found with this email address";
           break;
@@ -64,7 +65,7 @@ export default function Login() {
           errorMessage = "Too many failed attempts. Please try again later";
           break;
         default:
-          errorMessage = error.message || "Failed to sign in";
+          errorMessage = err.message || "Failed to sign in";
       }
       
       toast({
@@ -130,7 +131,7 @@ export default function Login() {
             </Button>
           </div>
           <div className="text-center text-sm">
-            Don't have an account?{" "}
+            Don&apos;t have an account?{" "}
             <Button variant="link" className="p-0" onClick={() => setLocation("/register")}>
               Register
             </Button>

@@ -109,8 +109,8 @@ const ExtensionPage = () => {
                   <div className="bg-gray-50 p-4 rounded-md">
                     <h3 className="font-bold mb-2">Installation Steps</h3>
                     <ol className="list-decimal list-inside space-y-2 text-gray-700">
-                      <li>Click the "Install for Chrome" button below</li>
-                      <li>When prompted, click "Add to Chrome"</li>
+                      <li>Click the &quot;Install for Chrome&quot; button below</li>
+                      <li>When prompted, click &quot;Add to Chrome&quot;</li>
                       <li>The Wishlist Wizard icon will appear in your browser toolbar</li>
                       <li>Sign in to your Wishlist Wizard account when prompted</li>
                     </ol>
@@ -150,8 +150,8 @@ const ExtensionPage = () => {
                   <div className="bg-gray-50 p-4 rounded-md">
                     <h3 className="font-bold mb-2">Installation Steps</h3>
                     <ol className="list-decimal list-inside space-y-2 text-gray-700">
-                      <li>Click the "Install for Firefox" button below</li>
-                      <li>When prompted, click "Add to Firefox"</li>
+                      <li>Click the &quot;Install for Firefox&quot; button below</li>
+                      <li>When prompted, click &quot;Add to Firefox&quot;</li>
                       <li>The Wishlist Wizard icon will appear in your browser toolbar</li>
                       <li>Sign in to your Wishlist Wizard account when prompted</li>
                     </ol>
@@ -191,8 +191,8 @@ const ExtensionPage = () => {
                   <div className="bg-gray-50 p-4 rounded-md">
                     <h3 className="font-bold mb-2">Installation Steps</h3>
                     <ol className="list-decimal list-inside space-y-2 text-gray-700">
-                      <li>Click the "Install for Edge" button below</li>
-                      <li>When prompted, click "Add to Edge"</li>
+                      <li>Click the &quot;Install for Edge&quot; button below</li>
+                      <li>When prompted, click &quot;Add to Edge&quot;</li>
                       <li>The Wishlist Wizard icon will appear in your browser toolbar</li>
                       <li>Sign in to your Wishlist Wizard account when prompted</li>
                     </ol>
@@ -305,12 +305,12 @@ const ExtensionPage = () => {
             
             <div className="border-b pb-4">
               <h3 className="font-bold text-lg mb-2">How do I uninstall the extension?</h3>
-              <p className="text-gray-700">To uninstall, right-click on the Wishlist Wizard icon in your browser toolbar and select "Remove from Chrome" (or your browser of choice). Alternatively, you can manage extensions in your browser settings.</p>
+              <p className="text-gray-700">To uninstall, right-click on the Wishlist Wizard icon in your browser toolbar and select &quot;Remove from Chrome&quot; (or your browser of choice). Alternatively, you can manage extensions in your browser settings.</p>
             </div>
             
             <div className="border-b pb-4">
               <h3 className="font-bold text-lg mb-2">Do I need a Wishlist Wizard account to use the extension?</h3>
-              <p className="text-gray-700">Yes, you need a Wishlist Wizard account to save items using the extension. <Link href="/register" className="text-indigo-600 hover:underline">Sign up for free</Link> if you don't have an account yet.</p>
+              <p className="text-gray-700">Yes, you need a Wishlist Wizard account to save items using the extension. <Link href="/register" className="text-indigo-600 hover:underline">Sign up for free</Link> if you don&apos;t have an account yet.</p>
             </div>
           </div>
         </div>

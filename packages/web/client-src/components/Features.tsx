@@ -2,10 +2,8 @@ import { Link } from "wouter";
 import { 
   CameraIcon, 
   Share2, 
-  AlertCircle, 
   CalendarClock, 
   BadgeDollarSign,
-  Smile,
   Smartphone,
   Award,
   User
@@ -81,7 +79,7 @@ export default function Features() {
             </CardHeader>
             <CardContent>
               <p className="text-slate-600">
-                Share wishlists across social media platforms, find friends' wishlists, and collaborate 
+                Share wishlists across social media platforms, find friends&apos; wishlists, and collaborate 
                 on group gifts seamlessly.
               </p>
             </CardContent>

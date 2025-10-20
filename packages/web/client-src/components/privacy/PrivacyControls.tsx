@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Shield, Globe, Users, Lock, UserCheck, Settings } from 'lucide-react';
+import { Shield, Globe, Users, Lock, UserCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -53,7 +53,7 @@ export default function PrivacyControls({
   const { toast } = useToast();
 
   // Fetch current privacy settings
-  const { data: privacySettings, isLoading } = usePrivacySettings(entityType, entityId);
+  const { data: privacySettings } = usePrivacySettings(entityType, entityId);
 
   // Mutations
   const updatePrivacyMutation = useUpdatePrivacySettings();
@@ -223,8 +223,6 @@ interface PrivacySettingsFormProps {
 
 function PrivacySettingsForm({
   privacySettings,
-  entityType,
-  entityName,
   onUpdate,
   onAccessListUpdate,
   onReset,
@@ -235,7 +233,7 @@ function PrivacySettingsForm({
   );
 
   const handleVisibilityChange = (value: string) => {
-    onUpdate({ visibilityLevel: value as any });
+    onUpdate({ visibilityLevel: value as 'public' | 'friends' | 'private' | 'custom' });
   };
 
   const handlePermissionChange = (key: keyof PrivacySettings, value: boolean) => {

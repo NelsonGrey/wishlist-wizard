@@ -6,7 +6,7 @@ export function GiftCoordinationHelp() {
     <HelpDialog title="Group Gift Coordination Help">
       <p className="text-sm text-muted-foreground mb-4">
         Group Gift Coordination helps you organize purchases with friends and family.
-        Here's how to make the most of this feature:
+        Here&apos;s how to make the most of this feature:
       </p>
 
       <Accordion type="single" collapsible className="w-full">
@@ -15,12 +15,12 @@ export function GiftCoordinationHelp() {
           <AccordionContent>
             <p className="text-sm mb-2">
               Gift Coordination makes it easy to organize group gifts when multiple people
-              want to contribute to a single, larger item on someone's wishlist.
+              want to contribute to a single, larger item on someone&apos;s wishlist.
             </p>
             <p className="text-sm">
               Instead of risking duplicate gifts or awkward money conversations, our system
-              lets everyone contribute what they're comfortable with and tracks progress
-              toward the gift's total price.
+              lets everyone contribute what they&apos;re comfortable with and tracks progress
+              toward the gift&apos;s total price.
             </p>
           </AccordionContent>
         </AccordionItem>
@@ -33,10 +33,10 @@ export function GiftCoordinationHelp() {
                 Find the item you want to purchase as a group on a wishlist
               </li>
               <li>
-                Click the "Start Group Gift" button
+                Click the &quot;Start Group Gift&quot; button
               </li>
               <li>
-                Set a target amount (usually the item's price)
+                Set a target amount (usually the item&apos;s price)
               </li>
               <li>
                 Add a personal message (optional)
@@ -56,7 +56,7 @@ export function GiftCoordinationHelp() {
                 Click the group gift link shared with you, or find the gift on the wishlist
               </li>
               <li>
-                Click "Contribute to This Gift"
+                Click &quot;Contribute to This Gift&quot;
               </li>
               <li>
                 Enter your contribution amount
@@ -87,7 +87,7 @@ export function GiftCoordinationHelp() {
               <li>Any messages left by contributors</li>
             </ul>
             <p className="text-sm mt-2">
-              You'll receive notifications when others contribute or when the gift goal is reached.
+              You&apos;ll receive notifications when others contribute or when the gift goal is reached.
             </p>
           </AccordionContent>
         </AccordionItem>
@@ -103,13 +103,13 @@ export function GiftCoordinationHelp() {
                 All contributors receive a notification
               </li>
               <li>
-                The gift organizer (whoever started the group gift) can mark the gift as "Ready to Purchase"
+                The gift organizer (whoever started the group gift) can mark the gift as &quot;Ready to Purchase&quot;
               </li>
               <li>
                 The organizer coordinates the actual purchase
               </li>
               <li>
-                After purchasing, the organizer marks the gift as "Purchased" and can add purchase details
+                After purchasing, the organizer marks the gift as &quot;Purchased&quot; and can add purchase details
               </li>
               <li>
                 All contributors are notified that the gift has been purchased

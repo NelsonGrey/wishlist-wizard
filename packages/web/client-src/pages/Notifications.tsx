@@ -182,7 +182,7 @@ export default function Notifications() {
           <Bell className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
           <h2 className="text-xl font-medium mb-2">No notifications yet</h2>
           <p className="text-muted-foreground">
-            You'll see notifications about activity on your wishlists here.
+            You&apos;ll see notifications about activity on your wishlists here.
           </p>
         </div>
       )}

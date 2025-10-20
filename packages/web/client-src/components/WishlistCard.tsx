@@ -37,11 +37,10 @@ interface WishlistCardProps {
 }
 
 export default function WishlistCard({ wishlist, onRefresh }: WishlistCardProps) {
-  const [location, setLocation] = useLocation();
+  const [, setLocation] = useLocation();
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [newName, setNewName] = useState(wishlist.name);
-  const [copied, setCopied] = useState(false);
   const { toast } = useToast();
 
   // Fetch items for the wishlist preview
@@ -118,14 +117,10 @@ export default function WishlistCard({ wishlist, onRefresh }: WishlistCardProps)
     const shareUrl = `${window.location.origin}/shared/${wishlist.shareId}`;
     navigator.clipboard.writeText(shareUrl).then(
       () => {
-        setCopied(true);
         toast({
           title: "Link copied",
           description: "Wishlist link copied to clipboard",
         });
-        
-        // Reset copied state after 2 seconds
-        setTimeout(() => setCopied(false), 2000);
       },
       () => {
         toast({
@@ -275,7 +270,7 @@ export default function WishlistCard({ wishlist, onRefresh }: WishlistCardProps)
           <DialogHeader>
             <DialogTitle>Delete Wishlist</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete "{wishlist.name}"? This action cannot be undone.
+              Are you sure you want to delete &quot;{wishlist.name}&quot;? This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

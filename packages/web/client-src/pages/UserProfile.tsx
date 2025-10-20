@@ -4,15 +4,12 @@ import {
   Card, 
   CardContent, 
   CardDescription, 
-  CardFooter, 
   CardHeader, 
   CardTitle 
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
@@ -23,11 +20,9 @@ import {
   User,
   Settings,
   Bell,
-  Calendar,
   Gift,
   HeartHandshake,
   Lock,
-  Tags,
   Mail,
   Check,
   ShieldCheck,
@@ -35,18 +30,15 @@ import {
   LogOut,
   ChevronDown,
   BadgeDollarSign,
-  Sparkles,
   Edit3,
   Save,
   CreditCard,
   BarChart3,
-  ShoppingBag,
   Loader2,
   X,
   UserPlus,
   Receipt
 } from 'lucide-react';
-import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import { useMutation } from '@tanstack/react-query';
 
@@ -109,13 +101,6 @@ const USER_PROFILE = {
   favoriteStores: ["Amazon", "Target", "Etsy", "REI", "Nordstrom"]
 };
 
-// Visibility options for sharing
-const VISIBILITY_OPTIONS = [
-  { value: "public", label: "Public", description: "Anyone with the link can view" },
-  { value: "friends", label: "Friends Only", description: "Only people you've connected with" },
-  { value: "private", label: "Private", description: "Only you can view" }
-];
-
 // Theme options
 const THEME_OPTIONS = [
   { value: "light", label: "Light" },
@@ -175,7 +160,7 @@ const UserProfile = () => {
   const { toast } = useToast();
 
   // Update profile settings
-  const { mutate: updateProfile, isPending: isUpdating } = useMutation({
+  const { mutate: updateProfile } = useMutation({
     mutationFn: async (updatedProfile: typeof USER_PROFILE) => {
       // Simulate API call to update profile
       setSavingProfile(true);
@@ -234,30 +219,6 @@ const UserProfile = () => {
     });
   };
 
-  // Toggle privacy settings
-  const togglePrivacySetting = (key: keyof typeof profile.privacySettings) => {
-    if (typeof editedProfile.privacySettings[key] === 'boolean') {
-      setEditedProfile({
-        ...editedProfile,
-        privacySettings: {
-          ...editedProfile.privacySettings,
-          [key]: !editedProfile.privacySettings[key]
-        }
-      });
-    }
-  };
-
-  // Set visibility option
-  const setVisibilityOption = (key: 'profileVisibility' | 'wishlistDefaultVisibility', value: string) => {
-    setEditedProfile({
-      ...editedProfile,
-      privacySettings: {
-        ...editedProfile.privacySettings,
-        [key]: value
-      }
-    });
-  };
-
   // Add favorite store
   const addFavoriteStore = (store: string) => {
     if (store && !editedProfile.favoriteStores.includes(store)) {
@@ -277,7 +238,7 @@ const UserProfile = () => {
   };
 
   // Update gift preference
-  const updateGiftPreference = (category: keyof typeof profile.giftPreferences, key: string, value: any) => {
+  const updateGiftPreference = (category: keyof typeof profile.giftPreferences, key: string, value: string) => {
     const updatedPreferences = { ...editedProfile.giftPreferences };
     
     if (category === 'sizes') {
@@ -303,7 +264,7 @@ const UserProfile = () => {
     const categoryValue = editedProfile.giftPreferences[category];
     if (Array.isArray(categoryValue)) {
       const updatedPreferences = { ...editedProfile.giftPreferences };
-      updatedPreferences[category] = (categoryValue as string[]).filter((i: string) => i !== item) as any;
+      (updatedPreferences as unknown as Record<string, string[]>)[category] = (categoryValue as string[]).filter((i: string) => i !== item);
       
       setEditedProfile({
         ...editedProfile,
@@ -1380,7 +1341,7 @@ const UserProfile = () => {
                         </DialogHeader>
                         <div className="space-y-2 py-4">
                           <p className="text-sm text-muted-foreground">
-                            Please type "delete my account" to confirm:
+                            Please type &quot;delete my account&quot; to confirm:
                           </p>
                           <Input placeholder="delete my account" />
                         </div>

@@ -29,22 +29,26 @@ export default function ForgotPassword() {
     try {
       await resetPassword(email);
       setStatus('success');
-    } catch (error: any) {
+    } catch (error: unknown) {
       setStatus('form');
       
       let errorMessage = 'Failed to send password reset email. Please try again.';
-      switch (error.code) {
-        case 'auth/user-not-found':
-          errorMessage = 'No account found with this email address.';
-          break;
-        case 'auth/invalid-email':
-          errorMessage = 'Invalid email address.';
-          break;
-        case 'auth/too-many-requests':
-          errorMessage = 'Too many requests. Please try again later.';
-          break;
-        default:
-          errorMessage = error.message || 'Failed to send password reset email. Please try again.';
+      if (error && typeof error === 'object' && 'code' in error) {
+        switch ((error as { code: string }).code) {
+          case 'auth/user-not-found':
+            errorMessage = 'No account found with this email address.';
+            break;
+          case 'auth/invalid-email':
+            errorMessage = 'Invalid email address.';
+            break;
+          case 'auth/too-many-requests':
+            errorMessage = 'Too many requests. Please try again later.';
+            break;
+          default:
+            errorMessage = ('message' in error && typeof error.message === 'string') 
+              ? error.message 
+              : 'Failed to send password reset email. Please try again.';
+        }
       }
       
       setMessage(errorMessage);
@@ -66,7 +70,7 @@ export default function ForgotPassword() {
             
             <div className="text-center space-y-2">
               <p className="text-gray-600">
-                If an account with that email exists, we've sent you a password reset link.
+                If an account with that email exists, we&apos;ve sent you a password reset link.
               </p>
               <p className="text-sm text-gray-500">
                 Check your email and click the link to reset your password.
@@ -84,7 +88,7 @@ export default function ForgotPassword() {
                   onClick={() => setStatus('form')}
                   className="text-sm"
                 >
-                  Didn't receive an email? Try again
+                  Didn&apos;t receive an email? Try again
                 </Button>
               </div>
             </div>
@@ -100,7 +104,7 @@ export default function ForgotPassword() {
         <CardHeader className="text-center">
           <CardTitle className="text-2xl font-bold">Forgot Password</CardTitle>
           <CardDescription>
-            Enter your email address and we'll send you a link to reset your password
+            Enter your email address and we&apos;ll send you a link to reset your password
           </CardDescription>
         </CardHeader>
         <CardContent>
