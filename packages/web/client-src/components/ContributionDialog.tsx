@@ -73,6 +73,10 @@ interface Participant {
   contributionAmount?: number;
 }
 
+interface PaymentIntentResponse {
+  clientSecret: string;
+}
+
 function ContributionForm({
   item,
   onClose,
@@ -132,7 +136,7 @@ function ContributionForm({
           message: data.message || "",
           isAnonymous: data.isAnonymous,
         }),
-      });
+      }) as PaymentIntentResponse;
 
       const { clientSecret } = paymentIntentRes;
 

@@ -54,42 +54,73 @@ jobs:
           mkdir -p packages/mobile/ios
           echo "$IOS_SERVICE_ACCOUNT_KEY" > packages/mobile/ios/service-account-key.json
 
-      - name: Make distribution script executable
+      - name: Install Fastlane
+        run: gem install fastlane
+
+      - name: Generate iOS platform files
         run: |
-          # Create iOS distribution script if it doesn't exist
-          if [ ! -f "packages/mobile/distribute-ios.sh" ]; then
-            cat > packages/mobile/distribute-ios.sh << 'EOF'
-            #!/bin/bash
-            set -e
-            
-            BUILD_TYPE=$1
-            RELEASE_NOTES=$2
-            
-            echo "Building iOS app with type: $BUILD_TYPE"
-            
-            # Build iOS app
-            flutter build ios --$BUILD_TYPE
-            
-            # For now, just create a placeholder for distribution
-            # TODO: Implement actual distribution to App Store
-            echo "iOS build completed. Manual distribution to App Store required."
-            echo "App location: build/ios/iphoneos/Runner.app"
-            EOF
-            chmod +x packages/mobile/distribute-ios.sh
-          fi
+          cd packages/mobile
+          flutter create --platforms=ios .
+
+      - name: Create service account key file
+        env:
+          IOS_SERVICE_ACCOUNT_KEY: ${{ secrets[format('FIREBASE_SERVICE_ACCOUNT_{0}', github.ref == 'refs/heads/main' && 'PRODUCTION' || 'DEVELOPMENT')] }}
+        run: |
+          mkdir -p packages/mobile/ios
+          echo "$IOS_SERVICE_ACCOUNT_KEY" > packages/mobile/ios/service-account-key.json
+
+      - name: Set up Fastlane environment
+        env:
+          FASTLANE_APPLE_ID: ${{ secrets.FASTLANE_APPLE_ID }}
+          FASTLANE_TEAM_ID: ${{ secrets.FASTLANE_TEAM_ID }}
+          FASTLANE_ITC_TEAM_ID: ${{ secrets.FASTLANE_ITC_TEAM_ID }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_PRIVATE_KEY: ${{ secrets.ASC_PRIVATE_KEY }}
+          MATCH_GIT_URL: ${{ secrets.MATCH_GIT_URL }}
+          BETA_FEEDBACK_EMAIL: ${{ secrets.BETA_FEEDBACK_EMAIL }}
+        run: |
+          cd packages/mobile/ios
+          # Export environment variables for Fastlane
+          echo "FASTLANE_APPLE_ID=$FASTLANE_APPLE_ID" >> $GITHUB_ENV
+          echo "FASTLANE_TEAM_ID=$FASTLANE_TEAM_ID" >> $GITHUB_ENV
+          echo "FASTLANE_ITC_TEAM_ID=$FASTLANE_ITC_TEAM_ID" >> $GITHUB_ENV
+          echo "ASC_KEY_ID=$ASC_KEY_ID" >> $GITHUB_ENV
+          echo "ASC_ISSUER_ID=$ASC_ISSUER_ID" >> $GITHUB_ENV
+          echo "ASC_PRIVATE_KEY=$ASC_PRIVATE_KEY" >> $GITHUB_ENV
+          echo "MATCH_GIT_URL=$MATCH_GIT_URL" >> $GITHUB_ENV
+          echo "BETA_FEEDBACK_EMAIL=$BETA_FEEDBACK_EMAIL" >> $GITHUB_ENV
 
       - name: Build and distribute iOS app
         env:
           ENVIRONMENT: ${{ github.ref == 'refs/heads/main' && 'production' || 'development' }}
+          FASTLANE_APPLE_ID: ${{ secrets.FASTLANE_APPLE_ID }}
+          FASTLANE_TEAM_ID: ${{ secrets.FASTLANE_TEAM_ID }}
+          FASTLANE_ITC_TEAM_ID: ${{ secrets.FASTLANE_ITC_TEAM_ID }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_PRIVATE_KEY: ${{ secrets.ASC_PRIVATE_KEY }}
+          MATCH_GIT_URL: ${{ secrets.MATCH_GIT_URL }}
+          BETA_FEEDBACK_EMAIL: ${{ secrets.BETA_FEEDBACK_EMAIL }}
         run: |
-          cd packages/mobile
-          BUILD_TYPE="${{ github.event.inputs.build_type || 'debug' }}"
+          cd packages/mobile/ios
           if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
             RELEASE_NOTES="${{ github.event.inputs.release_notes || format('Build from {0} - {1}', github.ref_name, github.sha) }}"
           else
             RELEASE_NOTES="Build from ${{ github.ref_name }} - ${{ github.sha }}"
           fi
-          ./distribute-ios.sh "$BUILD_TYPE" "$RELEASE_NOTES"
+          
+          # Export release notes for Fastlane
+          echo "RELEASE_NOTES=$RELEASE_NOTES" >> $GITHUB_ENV
+          
+          # Run Fastlane pipeline
+          if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+            # Production: Upload to TestFlight (can be changed to release for App Store)
+            fastlane beta
+          else
+            # Development: Just build and test
+            fastlane test_and_build
+          fi
 
       - name: Clean up service account key
         if: always()

@@ -1,6 +1,14 @@
-import {onCall} from "firebase-functions/v2/https";
+import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 import * as logger from "firebase-functions/logger";
+
+// Initialize Firebase Admin
+try {
+  admin.initializeApp();
+} catch (error) {
+  // App might already be initialized
+  logger.info("Firebase Admin already initialized or error:", error);
+}
 
 // Initialize Firestore
 const firestore = admin.firestore();
@@ -36,7 +44,7 @@ export interface WishlistItem {
 /**
  * Create a new wishlist
  */
-export const createWishlist = onCall(async (request) => {
+export const createWishlist = functions.https.onCall(async (request) => {
   const { uid } = request.auth || {};
   const { title, description, isPublic = false } = request.data;
 
@@ -75,7 +83,7 @@ export const createWishlist = onCall(async (request) => {
 /**
  * Get user's wishlists
  */
-export const getUserWishlists = onCall(async (request) => {
+export const getUserWishlists = functions.https.onCall(async (request) => {
   const { uid } = request.auth || {};
 
   if (!uid) {
@@ -108,7 +116,7 @@ export const getUserWishlists = onCall(async (request) => {
 /**
  * Get a specific wishlist with items
  */
-export const getWishlist = onCall(async (request) => {
+export const getWishlist = functions.https.onCall(async (request) => {
   const { uid } = request.auth || {};
   const { wishlistId } = request.data;
 
@@ -161,7 +169,7 @@ export const getWishlist = onCall(async (request) => {
 /**
  * Update a wishlist
  */
-export const updateWishlist = onCall(async (request) => {
+export const updateWishlist = functions.https.onCall(async (request) => {
   const { uid } = request.auth || {};
   const { wishlistId, updates } = request.data;
 
@@ -210,7 +218,7 @@ export const updateWishlist = onCall(async (request) => {
 /**
  * Delete a wishlist
  */
-export const deleteWishlist = onCall(async (request) => {
+export const deleteWishlist = functions.https.onCall(async (request) => {
   const { uid } = request.auth || {};
   const { wishlistId } = request.data;
 
@@ -263,7 +271,7 @@ export const deleteWishlist = onCall(async (request) => {
 /**
  * Add item to wishlist
  */
-export const addWishlistItem = onCall(async (request) => {
+export const addWishlistItem = functions.https.onCall(async (request) => {
   const { uid } = request.auth || {};
   const { wishlistId, item } = request.data;
 
@@ -319,7 +327,7 @@ export const addWishlistItem = onCall(async (request) => {
 /**
  * Update wishlist item
  */
-export const updateWishlistItem = onCall(async (request) => {
+export const updateWishlistItem = functions.https.onCall(async (request) => {
   const { uid } = request.auth || {};
   const { itemId, updates } = request.data;
 
@@ -372,7 +380,7 @@ export const updateWishlistItem = onCall(async (request) => {
 /**
  * Delete wishlist item
  */
-export const deleteWishlistItem = onCall(async (request) => {
+export const deleteWishlistItem = functions.https.onCall(async (request) => {
   const { uid } = request.auth || {};
   const { itemId } = request.data;
 
@@ -415,7 +423,7 @@ export const deleteWishlistItem = onCall(async (request) => {
 /**
  * Mark item as purchased
  */
-export const purchaseWishlistItem = onCall(async (request) => {
+export const purchaseWishlistItem = functions.https.onCall(async (request) => {
   const { uid } = request.auth || {};
   const { itemId } = request.data;
 

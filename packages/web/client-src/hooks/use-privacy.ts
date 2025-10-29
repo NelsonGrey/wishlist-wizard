@@ -33,9 +33,9 @@ export interface UserDefaultPrivacy {
 
 // Hook to get privacy settings for an entity
 export const usePrivacySettings = (entityType: string, entityId: number) => {
-  return useQuery({
+  return useQuery<PrivacySettings | undefined>({
     queryKey: ['privacy-settings', entityType, entityId],
-    queryFn: () => apiRequest(`/api/privacy/settings/${entityType}/${entityId}`),
+    queryFn: () => apiRequest(`/api/privacy/settings/${entityType}/${entityId}`) as Promise<PrivacySettings>,
     enabled: !!entityType && !!entityId
   });
 };
