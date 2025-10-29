@@ -62,6 +62,14 @@ interface ItemResponse {
   };
 }
 
+interface UserDefaultPrivacy {
+  defaultWishlistVisibility: string;
+  defaultItemVisibility: string;
+  allowComments: boolean;
+  allowReservations: boolean;
+  requireApproval: boolean;
+}
+
 const VISIBILITY_OPTIONS = [
   {
     value: 'public',
@@ -104,12 +112,12 @@ const PrivacySettingsPage = () => {
   const queryClient = useQueryClient();
 
   // Fetch user's entities with privacy settings
-  const { data: entities, isLoading: entitiesLoading } = useQuery({
+  const { data: entities, isLoading: entitiesLoading } = useQuery<EntityWithPrivacy[]>({
     queryKey: ['user-entities-privacy'],
-    queryFn: async () => {
+    queryFn: async (): Promise<EntityWithPrivacy[]> => {
       const [wishlistsRes, itemsRes] = await Promise.all([
-        apiRequest('/api/wishlists'),
-        apiRequest('/api/wishlist-items')
+        apiRequest('/api/wishlists') as Promise<WishlistResponse[]>,
+        apiRequest('/api/wishlist-items') as Promise<ItemResponse[]>
       ]);
 
       const entities: EntityWithPrivacy[] = [
@@ -133,9 +141,9 @@ const PrivacySettingsPage = () => {
       const entitiesWithPrivacy = await Promise.all(
         entities.map(async (entity) => {
           try {
-            const privacyRes = await apiRequest(
+            const privacyRes = await (apiRequest(
               `/api/privacy/settings/${entity.type}/${entity.id}`
-            );
+            ) as Promise<PrivacySettings>);
             return { ...entity, privacySettings: privacyRes };
           } catch (error) {
             // No privacy settings exist yet
@@ -149,9 +157,9 @@ const PrivacySettingsPage = () => {
   });
 
   // Fetch user's default privacy preferences
-  const { data: defaultSettings } = useQuery({
+  const { data: defaultSettings } = useQuery<UserDefaultPrivacy>({
     queryKey: ['user-default-privacy'],
-    queryFn: () => apiRequest('/api/privacy/defaults')
+    queryFn: () => apiRequest('/api/privacy/defaults') as Promise<UserDefaultPrivacy>
   });
 
   // Update privacy settings mutation
@@ -482,7 +490,7 @@ const PrivacySettingsPage = () => {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => setSelectedEntity(entity)}
+                          onClick={() => setSelectedEntity(entity as EntityWithPrivacy)}
                         >
                           Manage
                         </Button>

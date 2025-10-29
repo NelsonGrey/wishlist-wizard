@@ -1,0 +1,22 @@
+# Appfile for Wishlist Wizard iOS App
+# This file contains app-specific configuration for Fastlane
+
+# The bundle identifier of your app
+app_identifier("com.wishlistwizard.mobile")
+
+# Your Apple ID email address
+apple_id(ENV["FASTLANE_APPLE_ID"])
+
+# Developer Portal Team ID
+team_id(ENV["FASTLANE_TEAM_ID"])
+
+# App Store Connect Team ID (may be different from Developer Portal Team ID)
+itc_team_id(ENV["FASTLANE_ITC_TEAM_ID"])
+
+# The name of your app as it will appear on the App Store
+app_name("Wishlist Wizard")
+
+# Platform (ios or android)
+platform(:ios) do
+  # iOS specific configuration
+end

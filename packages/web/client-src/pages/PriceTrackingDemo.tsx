@@ -134,7 +134,6 @@ export default function PriceTrackingDemo() {
           <div>
             <PriceAlertForm 
               itemId={demoProduct.id}
-              itemTitle={demoProduct.title}
               currentPrice={demoProduct.price}
               currentNumericPrice={demoProduct.numericPrice}
             />

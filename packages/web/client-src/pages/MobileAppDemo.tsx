@@ -30,6 +30,16 @@ interface PendingAction {
   timestamp: string;
 }
 
+// Define interface for barcode scan response
+interface BarcodeScanResponse {
+  found: boolean;
+  product?: {
+    title: string;
+    price: string;
+    store?: string;
+  };
+}
+
 // Mobile device screens/modes
 type ScreenMode = 'home' | 'scan' | 'wishlist' | 'profile' | 'notifications';
 
@@ -44,8 +54,8 @@ const MobileAppDemo = () => {
   const { toast } = useToast();
 
   // Simulate scanning a barcode
-  const { mutate: scanBarcode, isPending: isScanning } = useMutation({
-    mutationFn: async () => {
+  const { mutate: scanBarcode, isPending: isScanning } = useMutation<BarcodeScanResponse>({
+    mutationFn: async (): Promise<BarcodeScanResponse> => {
       if (!isOnline) {
         // Simulate offline behavior
         toast({
@@ -77,10 +87,10 @@ const MobileAppDemo = () => {
       // In a real implementation, this would be a real API call
       return apiRequest(`/api/mobile/barcode/${barcode}`, {
         method: 'GET'
-      });
+      }) as Promise<BarcodeScanResponse>;
     },
     onSuccess: (data) => {
-      if (data.found) {
+      if (data.found && data.product) {
         toast({
           title: "Product Found",
           description: `Found: ${data.product.title} - ${data.product.price}`,

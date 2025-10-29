@@ -1,10 +1,37 @@
-import {onCall} from "firebase-functions/v2/https";
+import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 import * as logger from "firebase-functions/logger";
-import { FunctionsAuthHelpers } from "@shared/firebase-utils";
 
 // Initialize Firebase Admin
+try {
+  admin.initializeApp();
+} catch (error) {
+  // App might already be initialized
+  logger.info("Firebase Admin already initialized or error:", error);
+}
 const firestore = admin.firestore();
+
+/**
+ * Authentication helpers for Firebase Functions
+ */
+class FunctionsAuthHelpers {
+  /**
+   * Verify user is authenticated and return user info
+   * Throws HttpsError if not authenticated
+   */
+  static verifyAuthenticated(context: any): { uid: string; email?: string; token: any } {
+    if (!context.auth) {
+      const { HttpsError } = require('firebase-functions');
+      throw new HttpsError('unauthenticated', 'User must be authenticated');
+    }
+
+    return {
+      uid: context.auth.uid,
+      email: context.auth.token.email,
+      token: context.auth.token
+    };
+  }
+}
 
 export interface AuthUser {
   uid: string;
@@ -17,7 +44,7 @@ export interface AuthUser {
 /**
  * Create user profile in Firestore when user signs up
  */
-export const createUserProfile = onCall(async (request) => {
+export const createUserProfile = functions.https.onCall(async (request) => {
   // Verify authentication using shared helpers
   const user = FunctionsAuthHelpers.verifyAuthenticated(request);
   const { userId, email, displayName, photoURL } = request.data;
@@ -54,7 +81,7 @@ export const createUserProfile = onCall(async (request) => {
 /**
  * Get user profile from Firestore
  */
-export const getUserProfile = onCall(async (request) => {
+export const getUserProfile = functions.https.onCall(async (request) => {
   // Verify authentication using shared helpers
   const user = FunctionsAuthHelpers.verifyAuthenticated(request);
   const { userId } = request.data;
@@ -85,7 +112,7 @@ export const getUserProfile = onCall(async (request) => {
 /**
  * Update user profile in Firestore
  */
-export const updateUserProfile = onCall(async (request) => {
+export const updateUserProfile = functions.https.onCall(async (request) => {
   // Verify authentication using shared helpers
   const user = FunctionsAuthHelpers.verifyAuthenticated(request);
   const { userId, updates } = request.data;
