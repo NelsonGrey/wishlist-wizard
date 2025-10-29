@@ -34,20 +34,20 @@ jobs:
         id: set-env
         run: |
           if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            INPUT_ENV=$(echo "${{ github.event.inputs.environment }}" | tr '[:upper:]' '[:lower:]')
+            INPUT_ENV=$(echo "${{ github.event.inputs.environment }}" | tr '[:lower:]' '[:upper:]')
             echo "environment=$INPUT_ENV" >> $GITHUB_OUTPUT
             echo "should-deploy=true" >> $GITHUB_OUTPUT
           elif [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
-            echo "environment=production" >> $GITHUB_OUTPUT
+            echo "environment=PRODUCTION" >> $GITHUB_OUTPUT
             echo "should-deploy=true" >> $GITHUB_OUTPUT
           elif [[ "${{ github.ref }}" == "refs/heads/staging" ]]; then
-            echo "environment=staging" >> $GITHUB_OUTPUT
+            echo "environment=STAGING" >> $GITHUB_OUTPUT
             echo "should-deploy=true" >> $GITHUB_OUTPUT
           elif [[ "${{ github.ref }}" == "refs/heads/develop" ]]; then
-            echo "environment=development" >> $GITHUB_OUTPUT
+            echo "environment=DEVELOPMENT" >> $GITHUB_OUTPUT
             echo "should-deploy=true" >> $GITHUB_OUTPUT
           else
-            echo "environment=development" >> $GITHUB_OUTPUT
+            echo "environment=DEVELOPMENT" >> $GITHUB_OUTPUT
             echo "should-deploy=false" >> $GITHUB_OUTPUT
           fi
 
@@ -93,7 +93,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: 🔐 Create Environment File (Production)
-        if: matrix.package == 'web' && needs.determine-environment.outputs.should-deploy == 'true' && needs.determine-environment.outputs.environment == 'production'
+        if: matrix.package == 'web' && needs.determine-environment.outputs.should-deploy == 'true' && needs.determine-environment.outputs.environment == 'PRODUCTION'
         run: |
           # NOTE: The following secret accesses may show linter warnings in VS Code,
           # but they are valid and will work correctly at runtime in GitHub Actions.
@@ -132,7 +132,7 @@ jobs:
           EOF
 
       - name: 🔐 Create Environment File (Staging)
-        if: matrix.package == 'web' && needs.determine-environment.outputs.should-deploy == 'true' && needs.determine-environment.outputs.environment == 'staging'
+        if: matrix.package == 'web' && needs.determine-environment.outputs.should-deploy == 'true' && needs.determine-environment.outputs.environment == 'STAGING'
         run: |
           cat > packages/web/.env << EOF
           # Staging Environment Configuration - Generated from GitHub Secrets
@@ -168,7 +168,7 @@ jobs:
           EOF
 
       - name: 🔐 Create Environment File (Development)
-        if: matrix.package == 'web' && needs.determine-environment.outputs.should-deploy == 'true' && needs.determine-environment.outputs.environment == 'development'
+        if: matrix.package == 'web' && needs.determine-environment.outputs.should-deploy == 'true' && needs.determine-environment.outputs.environment == 'DEVELOPMENT'
         run: |
           cat > packages/web/.env << EOF
           # Development Environment Configuration - Generated from GitHub Secrets
@@ -312,8 +312,8 @@ jobs:
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
           firebaseServiceAccount: ${{ secrets[format('FIREBASE_SERVICE_ACCOUNT_{0}', needs.determine-environment.outputs.environment)] }}
-          channelId: ${{ needs.determine-environment.outputs.environment == 'production' && 'live' || 'preview' }}
-          projectId: ${{ needs.determine-environment.outputs.environment == 'production' && 'wishlist-wizard-prod' || needs.determine-environment.outputs.environment == 'staging' && 'wishlist-wizard-staging' || 'wishlist-wizard-dev' }}
+          channelId: ${{ needs.determine-environment.outputs.environment == 'PRODUCTION' && 'live' || 'preview' }}
+          projectId: ${{ needs.determine-environment.outputs.environment == 'PRODUCTION' && 'wishlist-wizard-prod' || needs.determine-environment.outputs.environment == 'STAGING' && 'wishlist-wizard-staging' || 'wishlist-wizard-dev' }}
           entryPoint: ./
 
   # 🔥 Deploy API Functions to Firebase
@@ -338,7 +338,7 @@ jobs:
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
           firebaseServiceAccount: ${{ secrets[format('FIREBASE_SERVICE_ACCOUNT_{0}', needs.determine-environment.outputs.environment)] }}
-          projectId: ${{ needs.determine-environment.outputs.environment == 'production' && 'wishlist-wizard-prod' || needs.determine-environment.outputs.environment == 'staging' && 'wishlist-wizard-staging' || 'wishlist-wizard-dev' }}
+          projectId: ${{ needs.determine-environment.outputs.environment == 'PRODUCTION' && 'wishlist-wizard-prod' || needs.determine-environment.outputs.environment == 'STAGING' && 'wishlist-wizard-staging' || 'wishlist-wizard-dev' }}
           entryPoint: packages/functions
           target: functions
 
@@ -364,8 +364,8 @@ jobs:
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
           firebaseServiceAccount: ${{ secrets[format('FIREBASE_SERVICE_ACCOUNT_{0}', needs.determine-environment.outputs.environment)] }}
-          channelId: ${{ needs.determine-environment.outputs.environment == 'production' && 'live' || 'preview' }}
-          projectId: ${{ needs.determine-environment.outputs.environment == 'production' && 'wishlist-wizard-prod' || needs.determine-environment.outputs.environment == 'staging' && 'wishlist-wizard-staging' || 'wishlist-wizard-dev' }}
+          channelId: ${{ needs.determine-environment.outputs.environment == 'PRODUCTION' && 'live' || 'preview' }}
+          projectId: ${{ needs.determine-environment.outputs.environment == 'PRODUCTION' && 'wishlist-wizard-prod' || needs.determine-environment.outputs.environment == 'STAGING' && 'wishlist-wizard-staging' || 'wishlist-wizard-dev' }}
           entryPoint: packages/mobile
 
   # 🏪 Submit to Chrome Web Store (Manual Trigger)
@@ -406,10 +406,10 @@ jobs:
           echo "| Component | Status | URL |" >> $GITHUB_STEP_SUMMARY
           echo "|-----------|--------|-----|" >> $GITHUB_STEP_SUMMARY
           
-          if [[ "$ENVIRONMENT" == "production" ]]; then
+          if [[ "$ENVIRONMENT" == "PRODUCTION" ]]; then
             WEB_URL="https://wishlist-wizard-prod.web.app"
             API_URL="https://us-central1-wishlist-wizard-prod.cloudfunctions.net/api"
-          elif [[ "$ENVIRONMENT" == "staging" ]]; then
+          elif [[ "$ENVIRONMENT" == "STAGING" ]]; then
             WEB_URL="https://wishlist-wizard-staging.web.app"
             API_URL="https://us-central1-wishlist-wizard-staging.cloudfunctions.net/api"
           else
