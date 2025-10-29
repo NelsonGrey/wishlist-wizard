@@ -26,7 +26,7 @@ jobs:
   distribute-android:
     runs-on: ubuntu-latest
     environment:
-      name: ${{ github.ref == 'refs/heads/main' && 'production' || github.ref == 'refs/heads/staging' && 'staging' || 'development' }}
+      name: ${{ github.ref == 'refs/heads/main' && 'PRODUCTION' || github.ref == 'refs/heads/staging' && 'STAGING' || 'DEVELOPMENT' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -82,7 +82,7 @@ jobs:
 
       - name: Build and distribute Android app
         env:
-          ENVIRONMENT: ${{ github.ref == 'refs/heads/main' && 'production' || github.ref == 'refs/heads/staging' && 'staging' || 'development' }}
+          ENVIRONMENT: ${{ github.ref == 'refs/heads/main' && 'PRODUCTION' || github.ref == 'refs/heads/staging' && 'STAGING' || 'DEVELOPMENT' }}
         run: |
           cd packages/mobile
           BUILD_TYPE="${{ github.event.inputs.build_type || 'debug' }}"

@@ -25,7 +25,7 @@ jobs:
   distribute-ios:
     runs-on: macos-latest
     environment:
-      name: ${{ github.ref == 'refs/heads/main' && 'production' || 'development' }}
+      name: ${{ github.ref == 'refs/heads/main' && 'PRODUCTION' || 'DEVELOPMENT' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -93,7 +93,7 @@ jobs:
 
       - name: Build and distribute iOS app
         env:
-          ENVIRONMENT: ${{ github.ref == 'refs/heads/main' && 'production' || 'development' }}
+          ENVIRONMENT: ${{ github.ref == 'refs/heads/main' && 'PRODUCTION' || 'DEVELOPMENT' }}
           FASTLANE_APPLE_ID: ${{ secrets.FASTLANE_APPLE_ID }}
           FASTLANE_TEAM_ID: ${{ secrets.FASTLANE_TEAM_ID }}
           FASTLANE_ITC_TEAM_ID: ${{ secrets.FASTLANE_ITC_TEAM_ID }}
