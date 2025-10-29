@@ -20,6 +20,11 @@ import { LuCalendarPlus } from 'react-icons/lu';
 // Calendar provider types that match the backend enum
 export type CalendarProvider = 'google' | 'outlook' | 'apple' | 'other';
 
+interface CalendarAuthData {
+  authUrl: string;
+  provider: CalendarProvider;
+}
+
 interface ConnectCalendarDialogProps {
   onConnect?: (provider: CalendarProvider) => void;
 }
@@ -31,21 +36,21 @@ export function ConnectCalendarDialog({ onConnect }: ConnectCalendarDialogProps)
   const [selectedProvider, setSelectedProvider] = useState<CalendarProvider | null>(null);
   
   // Fetch auth URLs for each provider
-  const { data: googleAuthData, isLoading: isGoogleLoading } = useQuery({
+  const { data: googleAuthData, isLoading: isGoogleLoading } = useQuery<CalendarAuthData>({
     queryKey: ['/api/calendar/auth/google'],
-    queryFn: () => apiRequest('/api/calendar/auth/google'),
+    queryFn: () => apiRequest('/api/calendar/auth/google') as Promise<CalendarAuthData>,
     enabled: isOpen, // Only fetch when dialog is open
   });
   
-  const { data: outlookAuthData, isLoading: isOutlookLoading } = useQuery({
+  const { data: outlookAuthData, isLoading: isOutlookLoading } = useQuery<CalendarAuthData>({
     queryKey: ['/api/calendar/auth/outlook'],
-    queryFn: () => apiRequest('/api/calendar/auth/outlook'),
+    queryFn: () => apiRequest('/api/calendar/auth/outlook') as Promise<CalendarAuthData>,
     enabled: isOpen, // Only fetch when dialog is open
   });
   
-  const { data: appleAuthData, isLoading: isAppleLoading } = useQuery({
+  const { data: appleAuthData, isLoading: isAppleLoading } = useQuery<CalendarAuthData>({
     queryKey: ['/api/calendar/auth/apple'],
-    queryFn: () => apiRequest('/api/calendar/auth/apple'),
+    queryFn: () => apiRequest('/api/calendar/auth/apple') as Promise<CalendarAuthData>,
     enabled: isOpen, // Only fetch when dialog is open
   });
   
@@ -58,13 +63,13 @@ export function ConnectCalendarDialog({ onConnect }: ConnectCalendarDialogProps)
     
     switch (provider) {
       case 'google':
-        authUrl = googleAuthData?.authUrl;
+        authUrl = googleAuthData?.authUrl || '';
         break;
       case 'outlook':
-        authUrl = outlookAuthData?.authUrl;
+        authUrl = outlookAuthData?.authUrl || '';
         break;
       case 'apple':
-        authUrl = appleAuthData?.authUrl;
+        authUrl = appleAuthData?.authUrl || '';
         break;
       default:
         toast({

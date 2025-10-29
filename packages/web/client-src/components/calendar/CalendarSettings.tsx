@@ -41,9 +41,9 @@ export function CalendarSettings() {
     data: connectedCalendars = [], 
     isLoading: isLoadingCalendars,
     refetch: refetchCalendars
-  } = useQuery({ 
+  } = useQuery<ConnectedCalendar[]>({ 
     queryKey: ['/api/calendar/connections'],
-    queryFn: () => apiRequest('/api/calendar/connections')
+    queryFn: () => apiRequest('/api/calendar/connections') as Promise<ConnectedCalendar[]>
   });
   
   // Disconnect calendar mutation

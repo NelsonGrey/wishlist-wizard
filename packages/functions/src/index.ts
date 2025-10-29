@@ -1,7 +1,4 @@
-import {setGlobalOptions} from "firebase-functions/v2";
-
-// Set global options for all functions
-setGlobalOptions({maxInstances: 10});
+// Firebase Functions v1 - no global options needed
 
 // =============================================================================
 // AUTHENTICATION FUNCTIONS

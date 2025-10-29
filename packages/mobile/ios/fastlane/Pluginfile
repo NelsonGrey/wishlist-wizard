@@ -1,0 +1,8 @@
+# Pluginfile for Fastlane
+# This file specifies additional plugins to install
+
+# Uncomment the plugins you need
+# gem 'fastlane-plugin-firebase_app_distribution'
+# gem 'fastlane-plugin-flutter'
+# gem 'fastlane-plugin-versioning'
+# gem 'fastlane-plugin-badge'

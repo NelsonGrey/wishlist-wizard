@@ -7,6 +7,7 @@ import '@/styles/ar-viewer.css';
 interface ARViewerProps {
   modelType?: 'chair' | 'table' | 'lamp' | 'default';
   scale?: number;
+  color?: string;
   className?: string;
 }
 
@@ -14,6 +15,7 @@ interface ARViewerProps {
 export function ARViewer({ 
   modelType = 'chair',
   scale = 1.5,
+  color,
   className = ""
 }: ARViewerProps) {
   const [isLoading, setIsLoading] = useState(true);
@@ -34,15 +36,18 @@ export function ARViewer({
     // For this simplified version, we'll use placeholder URLs for demonstration
     const viewType = activeView === 'front' ? 'front' : activeView === 'side' ? 'side' : 'angle';
     
+    // Use custom color if provided, otherwise use defaults
+    const colorParam = color ? `/${color.replace('#', '')}` : '';
+    
     // Sample placeholder images using simple SVG graphics
     if (modelType === 'chair') {
-      return `https://via.placeholder.com/400x300/8d6e63/FFFFFF?text=Chair+${viewType}+view`;
+      return `https://via.placeholder.com/400x300${colorParam}/FFFFFF?text=Chair+${viewType}+view`;
     } else if (modelType === 'table') {
-      return `https://via.placeholder.com/400x300/a1887f/FFFFFF?text=Table+${viewType}+view`;
+      return `https://via.placeholder.com/400x300${colorParam}/FFFFFF?text=Table+${viewType}+view`;
     } else if (modelType === 'lamp') {
-      return `https://via.placeholder.com/400x300/fdd835/FFFFFF?text=Lamp+${viewType}+view`;
+      return `https://via.placeholder.com/400x300${colorParam}/FFFFFF?text=Lamp+${viewType}+view`;
     } else {
-      return `https://via.placeholder.com/400x300/1e88e5/FFFFFF?text=Product+${viewType}+view`;
+      return `https://via.placeholder.com/400x300${colorParam}/FFFFFF?text=Product+${viewType}+view`;
     }
   };
   

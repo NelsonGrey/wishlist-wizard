@@ -4,7 +4,7 @@
 import { onCall, HttpsError, CallableRequest } from 'firebase-functions/v2/https';
 import { getFirestore } from 'firebase-admin/firestore';
 import { logger } from 'firebase-functions/v2';
-import { generateId } from '../utils/helpers';
+import { generateId } from '../utils/helpers.js';
 
 const db = getFirestore();
 
