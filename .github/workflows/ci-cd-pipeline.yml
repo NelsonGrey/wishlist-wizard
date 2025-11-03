@@ -83,6 +83,12 @@ jobs:
       - name: 📦 Install Dependencies
         run: npm ci
 
+      - name: 🔧 Fix Rollup Dependencies
+        run: |
+          # Clean and reinstall to fix Rollup native binary issues
+          rm -rf node_modules package-lock.json packages/*/node_modules
+          npm install --force
+
       - name: 🔧 TypeScript Check
         run: npm run check --workspaces --if-present
 
@@ -218,6 +224,12 @@ jobs:
 
       - name: 📦 Install Dependencies
         run: npm ci
+
+      - name: 🔧 Fix Rollup Dependencies
+        run: |
+          # Clean and reinstall to fix Rollup native binary issues
+          rm -rf node_modules package-lock.json packages/*/node_modules
+          npm install --force
 
       - name: 🏗️ Build ${{ matrix.package }}
         run: npm run build --workspace=packages/${{ matrix.package }}
