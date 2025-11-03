@@ -16,7 +16,7 @@
     "build": "tsc",
     "dev": "tsc --watch",
     "check": "tsc --noEmit",
-    "test": "vitest",
+    "test": "vitest --run --passWithNoTests",
     "test:ui": "vitest --ui",
     "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
     "lint:fix": "eslint . --ext .js,.jsx,.ts,.tsx --fix",
