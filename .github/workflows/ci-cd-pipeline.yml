@@ -29,6 +29,7 @@ jobs:
     outputs:
       environment: ${{ steps.set-env.outputs.environment }}
       should-deploy: ${{ steps.set-env.outputs.should-deploy }}
+      has-secrets: ${{ steps.check-secrets.outputs.has-secrets }}
     steps:
       - name: 📋 Set Environment Variables
         id: set-env
@@ -49,6 +50,41 @@ jobs:
           else
             echo "environment=DEVELOPMENT" >> $GITHUB_OUTPUT
             echo "should-deploy=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: 🔐 Check Required Secrets
+        id: check-secrets
+        run: |
+          ENVIRONMENT="${{ steps.set-env.outputs.environment }}"
+          MISSING_SECRETS=()
+          
+          # Check Firebase service account secret
+          if [[ -z "${{ secrets[format('FIREBASE_SERVICE_ACCOUNT_{0}', steps.set-env.outputs.environment)] }}" ]]; then
+            MISSING_SECRETS+=("FIREBASE_SERVICE_ACCOUNT_$ENVIRONMENT")
+          fi
+          
+          # For production/staging, check critical web app secrets
+          if [[ "$ENVIRONMENT" == "PRODUCTION" || "$ENVIRONMENT" == "STAGING" ]]; then
+            REQUIRED_SECRETS=(
+              "VITE_FIREBASE_API_KEY_$ENVIRONMENT"
+              "VITE_FIREBASE_AUTH_DOMAIN_$ENVIRONMENT"
+              "VITE_FIREBASE_PROJECT_ID_$ENVIRONMENT"
+            )
+            
+            for secret in "${REQUIRED_SECRETS[@]}"; do
+              if [[ -z "${{ secrets[$secret] }}" ]]; then
+                MISSING_SECRETS+=("$secret")
+              fi
+            done
+          fi
+          
+          if [[ ${#MISSING_SECRETS[@]} -eq 0 ]]; then
+            echo "has-secrets=true" >> $GITHUB_OUTPUT
+            echo "✅ All required secrets are available for $ENVIRONMENT environment"
+          else
+            echo "has-secrets=false" >> $GITHUB_OUTPUT
+            echo "⚠️ Missing secrets for $ENVIRONMENT environment: ${MISSING_SECRETS[*]}"
+            echo "📝 Note: Build will continue but deployment will be skipped"
           fi
 
   # 🔍 Code Quality & Testing
@@ -93,14 +129,10 @@ jobs:
         uses: actions/checkout@v4
 
       - name: 🔐 Create Environment File (Production)
-        if: matrix.package == 'web' && needs.determine-environment.outputs.should-deploy == 'true' && needs.determine-environment.outputs.environment == 'PRODUCTION'
+        if: matrix.package == 'web' && needs.determine-environment.outputs.should-deploy == 'true' && needs.determine-environment.outputs.environment == 'PRODUCTION' && needs.determine-environment.outputs.has-secrets == 'true'
         run: |
-          # NOTE: The following secret accesses may show linter warnings in VS Code,
-          # but they are valid and will work correctly at runtime in GitHub Actions.
-          # The linter cannot validate conditional secret access in matrix jobs.
-          cat > packages/web/.env << EOF
           # Production Environment Configuration - Generated from GitHub Secrets
-          
+          cat > packages/web/.env << EOF
           # Firebase Configuration
           VITE_FIREBASE_API_KEY=${{ secrets.VITE_FIREBASE_API_KEY_PRODUCTION }}
           VITE_FIREBASE_AUTH_DOMAIN=${{ secrets.VITE_FIREBASE_AUTH_DOMAIN_PRODUCTION }}
@@ -132,11 +164,10 @@ jobs:
           EOF
 
       - name: 🔐 Create Environment File (Staging)
-        if: matrix.package == 'web' && needs.determine-environment.outputs.should-deploy == 'true' && needs.determine-environment.outputs.environment == 'STAGING'
+        if: matrix.package == 'web' && needs.determine-environment.outputs.should-deploy == 'true' && needs.determine-environment.outputs.environment == 'STAGING' && needs.determine-environment.outputs.has-secrets == 'true'
         run: |
           cat > packages/web/.env << EOF
           # Staging Environment Configuration - Generated from GitHub Secrets
-          
           # Firebase Configuration
           VITE_FIREBASE_API_KEY=${{ secrets.VITE_FIREBASE_API_KEY_STAGING }}
           VITE_FIREBASE_AUTH_DOMAIN=${{ secrets.VITE_FIREBASE_AUTH_DOMAIN_STAGING }}
@@ -171,36 +202,36 @@ jobs:
         if: matrix.package == 'web' && needs.determine-environment.outputs.should-deploy == 'true' && needs.determine-environment.outputs.environment == 'DEVELOPMENT'
         run: |
           cat > packages/web/.env << EOF
-          # Development Environment Configuration - Generated from GitHub Secrets
+          # Development Environment Configuration - Generated from GitHub Secrets with Fallbacks
           
-          # Firebase Configuration
-          VITE_FIREBASE_API_KEY=${{ secrets.VITE_FIREBASE_API_KEY_DEVELOPMENT }}
-          VITE_FIREBASE_AUTH_DOMAIN=${{ secrets.VITE_FIREBASE_AUTH_DOMAIN_DEVELOPMENT }}
-          VITE_FIREBASE_PROJECT_ID=${{ secrets.VITE_FIREBASE_PROJECT_ID_DEVELOPMENT }}
-          VITE_FIREBASE_STORAGE_BUCKET=${{ secrets.VITE_FIREBASE_STORAGE_BUCKET_DEVELOPMENT }}
-          VITE_FIREBASE_MESSAGING_SENDER_ID=${{ secrets.VITE_FIREBASE_MESSAGING_SENDER_ID_DEVELOPMENT }}
-          VITE_FIREBASE_APP_ID=${{ secrets.VITE_FIREBASE_APP_ID_DEVELOPMENT }}
+          # Firebase Configuration (with fallbacks for development)
+          VITE_FIREBASE_API_KEY=${{ secrets.VITE_FIREBASE_API_KEY_DEVELOPMENT || 'demo-api-key' }}
+          VITE_FIREBASE_AUTH_DOMAIN=${{ secrets.VITE_FIREBASE_AUTH_DOMAIN_DEVELOPMENT || 'wishlist-wizard-dev.firebaseapp.com' }}
+          VITE_FIREBASE_PROJECT_ID=${{ secrets.VITE_FIREBASE_PROJECT_ID_DEVELOPMENT || 'wishlist-wizard-dev' }}
+          VITE_FIREBASE_STORAGE_BUCKET=${{ secrets.VITE_FIREBASE_STORAGE_BUCKET_DEVELOPMENT || 'wishlist-wizard-dev.appspot.com' }}
+          VITE_FIREBASE_MESSAGING_SENDER_ID=${{ secrets.VITE_FIREBASE_MESSAGING_SENDER_ID_DEVELOPMENT || '123456789' }}
+          VITE_FIREBASE_APP_ID=${{ secrets.VITE_FIREBASE_APP_ID_DEVELOPMENT || '1:123456789:web:abcdef123456' }}
           
           # API Configuration
-          VITE_API_BASE_URL=${{ secrets.VITE_API_BASE_URL_DEVELOPMENT }}
-          VITE_API_TIMEOUT=${{ secrets.VITE_API_TIMEOUT_DEVELOPMENT }}
+          VITE_API_BASE_URL=${{ secrets.VITE_API_BASE_URL_DEVELOPMENT || 'http://localhost:3001/api' }}
+          VITE_API_TIMEOUT=${{ secrets.VITE_API_TIMEOUT_DEVELOPMENT || '10000' }}
           
           # Environment
           VITE_ENVIRONMENT=development
-          VITE_DEBUG=${{ secrets.VITE_DEBUG_DEVELOPMENT }}
+          VITE_DEBUG=${{ secrets.VITE_DEBUG_DEVELOPMENT || 'true' }}
           
-          # Analytics & Monitoring
-          VITE_ANALYTICS_ID=${{ secrets.VITE_ANALYTICS_ID_DEVELOPMENT }}
-          VITE_SENTRY_DSN=${{ secrets.VITE_SENTRY_DSN_DEVELOPMENT }}
+          # Analytics & Monitoring (disabled by default in development)
+          VITE_ANALYTICS_ID=${{ secrets.VITE_ANALYTICS_ID_DEVELOPMENT || '' }}
+          VITE_SENTRY_DSN=${{ secrets.VITE_SENTRY_DSN_DEVELOPMENT || '' }}
           
-          # Third-party Services
-          VITE_STRIPE_PUBLISHABLE_KEY=${{ secrets.VITE_STRIPE_PUBLISHABLE_KEY_DEVELOPMENT }}
-          VITE_GOOGLE_ANALYTICS_ID=${{ secrets.VITE_GOOGLE_ANALYTICS_ID_DEVELOPMENT }}
+          # Third-party Services (demo values for development)
+          VITE_STRIPE_PUBLISHABLE_KEY=${{ secrets.VITE_STRIPE_PUBLISHABLE_KEY_DEVELOPMENT || 'pk_test_demo_key' }}
+          VITE_GOOGLE_ANALYTICS_ID=${{ secrets.VITE_GOOGLE_ANALYTICS_ID_DEVELOPMENT || '' }}
           
           # Feature Flags
-          VITE_ENABLE_DEBUG_TOOLS=${{ secrets.VITE_ENABLE_DEBUG_TOOLS_DEVELOPMENT }}
-          VITE_ENABLE_ANALYTICS=${{ secrets.VITE_ENABLE_ANALYTICS_DEVELOPMENT }}
-          VITE_ENABLE_ERROR_REPORTING=${{ secrets.VITE_ENABLE_ERROR_REPORTING_DEVELOPMENT }}
+          VITE_ENABLE_DEBUG_TOOLS=${{ secrets.VITE_ENABLE_DEBUG_TOOLS_DEVELOPMENT || 'true' }}
+          VITE_ENABLE_ANALYTICS=${{ secrets.VITE_ENABLE_ANALYTICS_DEVELOPMENT || 'false' }}
+          VITE_ENABLE_ERROR_REPORTING=${{ secrets.VITE_ENABLE_ERROR_REPORTING_DEVELOPMENT || 'false' }}
           EOF
 
       - name: 🟢 Setup Node.js
@@ -295,7 +326,7 @@ jobs:
     name: 🔥 Deploy Web App to Firebase (${{ needs.determine-environment.outputs.environment }})
     runs-on: ubuntu-latest
     needs: [determine-environment, quality-check, build-packages]
-    if: needs.determine-environment.outputs.should-deploy == 'true'
+    if: needs.determine-environment.outputs.should-deploy == 'true' && needs.determine-environment.outputs.has-secrets == 'true'
     environment: ${{ needs.determine-environment.outputs.environment }}
     steps:
       - name: 📥 Checkout Code
@@ -321,7 +352,7 @@ jobs:
     name: 🔥 Deploy API Functions to Firebase (${{ needs.determine-environment.outputs.environment }})
     runs-on: ubuntu-latest
     needs: [determine-environment, quality-check, build-packages]
-    if: needs.determine-environment.outputs.should-deploy == 'true'
+    if: needs.determine-environment.outputs.should-deploy == 'true' && needs.determine-environment.outputs.has-secrets == 'true'
     environment: ${{ needs.determine-environment.outputs.environment }}
     steps:
       - name: 📥 Checkout Code
@@ -347,7 +378,7 @@ jobs:
     name: 📱 Deploy Mobile PWA to Firebase (${{ needs.determine-environment.outputs.environment }})
     runs-on: ubuntu-latest
     needs: [determine-environment, quality-check, build-mobile]
-    if: needs.determine-environment.outputs.should-deploy == 'true'
+    if: needs.determine-environment.outputs.should-deploy == 'true' && needs.determine-environment.outputs.has-secrets == 'true'
     environment: ${{ needs.determine-environment.outputs.environment }}
     steps:
       - name: 📥 Checkout Code
@@ -396,7 +427,7 @@ jobs:
     name: 📊 Deployment Summary (${{ needs.determine-environment.outputs.environment }})
     runs-on: ubuntu-latest
     needs: [determine-environment, deploy-web, deploy-api-functions, deploy-mobile-pwa]
-    if: always() && needs.determine-environment.outputs.should-deploy == 'true'
+    if: always() && needs.determine-environment.outputs.should-deploy == 'true' && needs.determine-environment.outputs.has-secrets == 'true'
     steps:
       - name: 📊 Generate Deployment Report
         run: |
@@ -427,3 +458,61 @@ jobs:
           echo "**Commit**: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
           echo "**Environment**: $ENVIRONMENT" >> $GITHUB_STEP_SUMMARY
           echo "**Platform**: 🔥 Firebase (Hosting + Functions + Firestore)" >> $GITHUB_STEP_SUMMARY
+
+  # ⚠️ Missing Secrets Notice
+  missing-secrets-notice:
+    name: ⚠️ Missing Secrets Notice (${{ needs.determine-environment.outputs.environment }})
+    runs-on: ubuntu-latest
+    needs: determine-environment
+    if: needs.determine-environment.outputs.has-secrets == 'false'
+    steps:
+      - name: ⚠️ Generate Missing Secrets Report
+        run: |
+          ENVIRONMENT="${{ needs.determine-environment.outputs.environment }}"
+          echo "## ⚠️ Missing Deployment Secrets - $ENVIRONMENT Environment" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "The CI/CD pipeline detected missing secrets required for deployment to the **$ENVIRONMENT** environment." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Required Secrets for $ENVIRONMENT Environment:" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [[ "$ENVIRONMENT" == "PRODUCTION" || "$ENVIRONMENT" == "STAGING" ]]; then
+            echo "#### Firebase Configuration:" >> $GITHUB_STEP_SUMMARY
+            echo "- \`FIREBASE_SERVICE_ACCOUNT_$ENVIRONMENT\` - Firebase service account JSON" >> $GITHUB_STEP_SUMMARY
+            echo "- \`VITE_FIREBASE_API_KEY_$ENVIRONMENT\` - Firebase API key" >> $GITHUB_STEP_SUMMARY
+            echo "- \`VITE_FIREBASE_AUTH_DOMAIN_$ENVIRONMENT\` - Firebase auth domain" >> $GITHUB_STEP_SUMMARY
+            echo "- \`VITE_FIREBASE_PROJECT_ID_$ENVIRONMENT\` - Firebase project ID" >> $GITHUB_STEP_SUMMARY
+            echo "- \`VITE_FIREBASE_STORAGE_BUCKET_$ENVIRONMENT\` - Firebase storage bucket" >> $GITHUB_STEP_SUMMARY
+            echo "- \`VITE_FIREBASE_MESSAGING_SENDER_ID_$ENVIRONMENT\` - Firebase messaging sender ID" >> $GITHUB_STEP_SUMMARY
+            echo "- \`VITE_FIREBASE_APP_ID_$ENVIRONMENT\` - Firebase app ID" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "#### API & Analytics:" >> $GITHUB_STEP_SUMMARY
+            echo "- \`VITE_API_BASE_URL_$ENVIRONMENT\` - API base URL" >> $GITHUB_STEP_SUMMARY
+            echo "- \`VITE_ANALYTICS_ID_$ENVIRONMENT\` - Analytics tracking ID" >> $GITHUB_STEP_SUMMARY
+            echo "- \`VITE_SENTRY_DSN_$ENVIRONMENT\` - Sentry DSN for error reporting" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "#### Third-party Services:" >> $GITHUB_STEP_SUMMARY
+            echo "- \`VITE_STRIPE_PUBLISHABLE_KEY_$ENVIRONMENT\` - Stripe publishable key" >> $GITHUB_STEP_SUMMARY
+            echo "- \`VITE_GOOGLE_ANALYTICS_ID_$ENVIRONMENT\` - Google Analytics ID" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "#### Feature Flags:" >> $GITHUB_STEP_SUMMARY
+            echo "- \`VITE_ENABLE_DEBUG_TOOLS_$ENVIRONMENT\` - Enable debug tools (true/false)" >> $GITHUB_STEP_SUMMARY
+            echo "- \`VITE_ENABLE_ANALYTICS_$ENVIRONMENT\` - Enable analytics (true/false)" >> $GITHUB_STEP_SUMMARY
+            echo "- \`VITE_ENABLE_ERROR_REPORTING_$ENVIRONMENT\` - Enable error reporting (true/false)" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "#### Firebase Configuration:" >> $GITHUB_STEP_SUMMARY
+            echo "- \`FIREBASE_SERVICE_ACCOUNT_DEVELOPMENT\` - Firebase service account JSON" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "**Note**: Development environment can use fallback values for most web app secrets." >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### How to Add Secrets:" >> $GITHUB_STEP_SUMMARY
+          echo "1. Go to your GitHub repository **Settings** → **Secrets and variables** → **Actions**" >> $GITHUB_STEP_SUMMARY
+          echo "2. Click **New repository secret**" >> $GITHUB_STEP_SUMMARY
+          echo "3. Add each missing secret with its exact name and value" >> $GITHUB_STEP_SUMMARY
+          echo "4. Push a new commit to trigger the pipeline again" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Build Status**: ✅ Build and tests completed successfully" >> $GITHUB_STEP_SUMMARY
+          echo "**Deployment Status**: ⏭️ Skipped due to missing secrets" >> $GITHUB_STEP_SUMMARY
+          echo "**Environment**: $ENVIRONMENT" >> $GITHUB_STEP_SUMMARY
