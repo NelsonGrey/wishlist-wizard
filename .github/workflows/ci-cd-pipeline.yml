@@ -58,24 +58,30 @@ jobs:
           ENVIRONMENT="${{ steps.set-env.outputs.environment }}"
           MISSING_SECRETS=()
           
-          # Check Firebase service account secret
-          if [[ -z "${{ secrets[format('FIREBASE_SERVICE_ACCOUNT_{0}', steps.set-env.outputs.environment)] }}" ]]; then
-            MISSING_SECRETS+=("FIREBASE_SERVICE_ACCOUNT_$ENVIRONMENT")
+          # Check Firebase service account secret based on environment
+          if [[ "$ENVIRONMENT" == "PRODUCTION" ]]; then
+            if [[ -z "${{ secrets.FIREBASE_SERVICE_ACCOUNT_PRODUCTION }}" ]]; then
+              MISSING_SECRETS+=("FIREBASE_SERVICE_ACCOUNT_PRODUCTION")
+            fi
+          elif [[ "$ENVIRONMENT" == "STAGING" ]]; then
+            if [[ -z "${{ secrets.FIREBASE_SERVICE_ACCOUNT_STAGING }}" ]]; then
+              MISSING_SECRETS+=("FIREBASE_SERVICE_ACCOUNT_STAGING")
+            fi
+          else
+            if [[ -z "${{ secrets.FIREBASE_SERVICE_ACCOUNT_DEVELOPMENT }}" ]]; then
+              MISSING_SECRETS+=("FIREBASE_SERVICE_ACCOUNT_DEVELOPMENT")
+            fi
           fi
           
           # For production/staging, check critical web app secrets
-          if [[ "$ENVIRONMENT" == "PRODUCTION" || "$ENVIRONMENT" == "STAGING" ]]; then
-            REQUIRED_SECRETS=(
-              "VITE_FIREBASE_API_KEY_$ENVIRONMENT"
-              "VITE_FIREBASE_AUTH_DOMAIN_$ENVIRONMENT"
-              "VITE_FIREBASE_PROJECT_ID_$ENVIRONMENT"
-            )
-            
-            for secret in "${REQUIRED_SECRETS[@]}"; do
-              if [[ -z "${{ secrets[$secret] }}" ]]; then
-                MISSING_SECRETS+=("$secret")
-              fi
-            done
+          if [[ "$ENVIRONMENT" == "PRODUCTION" ]]; then
+            if [[ -z "${{ secrets.VITE_FIREBASE_API_KEY_PRODUCTION }}" ]]; then MISSING_SECRETS+=("VITE_FIREBASE_API_KEY_PRODUCTION"); fi
+            if [[ -z "${{ secrets.VITE_FIREBASE_AUTH_DOMAIN_PRODUCTION }}" ]]; then MISSING_SECRETS+=("VITE_FIREBASE_AUTH_DOMAIN_PRODUCTION"); fi
+            if [[ -z "${{ secrets.VITE_FIREBASE_PROJECT_ID_PRODUCTION }}" ]]; then MISSING_SECRETS+=("VITE_FIREBASE_PROJECT_ID_PRODUCTION"); fi
+          elif [[ "$ENVIRONMENT" == "STAGING" ]]; then
+            if [[ -z "${{ secrets.VITE_FIREBASE_API_KEY_STAGING }}" ]]; then MISSING_SECRETS+=("VITE_FIREBASE_API_KEY_STAGING"); fi
+            if [[ -z "${{ secrets.VITE_FIREBASE_AUTH_DOMAIN_STAGING }}" ]]; then MISSING_SECRETS+=("VITE_FIREBASE_AUTH_DOMAIN_STAGING"); fi
+            if [[ -z "${{ secrets.VITE_FIREBASE_PROJECT_ID_STAGING }}" ]]; then MISSING_SECRETS+=("VITE_FIREBASE_PROJECT_ID_STAGING"); fi
           fi
           
           if [[ ${#MISSING_SECRETS[@]} -eq 0 ]]; then
