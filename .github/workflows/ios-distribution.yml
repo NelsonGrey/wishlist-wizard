@@ -55,38 +55,23 @@ jobs:
           echo "$IOS_SERVICE_ACCOUNT_KEY" > packages/mobile/ios/service-account-key.json
 
       - name: Set up Fastlane environment
-        env:
-          FASTLANE_APPLE_ID: ${{ secrets.FASTLANE_APPLE_ID }}
-          FASTLANE_TEAM_ID: ${{ secrets.FASTLANE_TEAM_ID }}
-          FASTLANE_ITC_TEAM_ID: ${{ secrets.FASTLANE_ITC_TEAM_ID }}
-          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
-          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
-          ASC_PRIVATE_KEY: ${{ secrets.ASC_PRIVATE_KEY }}
-          MATCH_GIT_URL: ${{ secrets.MATCH_GIT_URL }}
-          BETA_FEEDBACK_EMAIL: ${{ secrets.BETA_FEEDBACK_EMAIL }}
         run: |
           cd packages/mobile/ios
-          # Export environment variables for Fastlane
-          echo "FASTLANE_APPLE_ID=$FASTLANE_APPLE_ID" >> $GITHUB_ENV
-          echo "FASTLANE_TEAM_ID=$FASTLANE_TEAM_ID" >> $GITHUB_ENV
-          echo "FASTLANE_ITC_TEAM_ID=$FASTLANE_ITC_TEAM_ID" >> $GITHUB_ENV
-          echo "ASC_KEY_ID=$ASC_KEY_ID" >> $GITHUB_ENV
-          echo "ASC_ISSUER_ID=$ASC_ISSUER_ID" >> $GITHUB_ENV
-          echo "ASC_PRIVATE_KEY=$ASC_PRIVATE_KEY" >> $GITHUB_ENV
-          echo "MATCH_GIT_URL=$MATCH_GIT_URL" >> $GITHUB_ENV
-          echo "BETA_FEEDBACK_EMAIL=$BETA_FEEDBACK_EMAIL" >> $GITHUB_ENV
+          # Create Fastlane environment file
+          cat > .env << EOF
+          FASTLANE_APPLE_ID=${{ secrets.FASTLANE_APPLE_ID }}
+          FASTLANE_TEAM_ID=${{ secrets.FASTLANE_TEAM_ID }}
+          FASTLANE_ITC_TEAM_ID=${{ secrets.FASTLANE_ITC_TEAM_ID }}
+          ASC_KEY_ID=${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID=${{ secrets.ASC_ISSUER_ID }}
+          ASC_PRIVATE_KEY=${{ secrets.ASC_PRIVATE_KEY }}
+          MATCH_GIT_URL=${{ secrets.MATCH_GIT_URL }}
+          BETA_FEEDBACK_EMAIL=${{ secrets.BETA_FEEDBACK_EMAIL }}
+          EOF
 
       - name: Build and distribute iOS app
         env:
           ENVIRONMENT: ${{ github.ref == 'refs/heads/main' && 'PRODUCTION' || 'DEVELOPMENT' }}
-          FASTLANE_APPLE_ID: ${{ secrets.FASTLANE_APPLE_ID }}
-          FASTLANE_TEAM_ID: ${{ secrets.FASTLANE_TEAM_ID }}
-          FASTLANE_ITC_TEAM_ID: ${{ secrets.FASTLANE_ITC_TEAM_ID }}
-          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
-          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
-          ASC_PRIVATE_KEY: ${{ secrets.ASC_PRIVATE_KEY }}
-          MATCH_GIT_URL: ${{ secrets.MATCH_GIT_URL }}
-          BETA_FEEDBACK_EMAIL: ${{ secrets.BETA_FEEDBACK_EMAIL }}
         run: |
           cd packages/mobile/ios
           if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
@@ -109,4 +94,4 @@ jobs:
 
       - name: Clean up service account key
         if: always()
-        run: rm -f packages/mobile/ios/service-account-key.json
+        run: rm -f packages/mobile/ios/service-account-key.json packages/mobile/ios/.env
