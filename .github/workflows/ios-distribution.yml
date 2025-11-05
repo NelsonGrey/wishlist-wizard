@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - main
+      - staging
       - develop
   workflow_dispatch:
     inputs:
@@ -25,7 +26,7 @@ jobs:
   distribute-ios:
     runs-on: macos-latest
     environment:
-      name: ${{ github.ref == 'refs/heads/main' && 'PRODUCTION' || 'DEVELOPMENT' }}
+      name: ${{ github.ref == 'refs/heads/main' && 'PRODUCTION' || github.ref == 'refs/heads/staging' && 'STAGING' || 'DEVELOPMENT' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -49,7 +50,7 @@ jobs:
 
       - name: Create service account key file
         env:
-          IOS_SERVICE_ACCOUNT_KEY: ${{ secrets[format('FIREBASE_SERVICE_ACCOUNT_{0}', github.ref == 'refs/heads/main' && 'PRODUCTION' || 'DEVELOPMENT')] }}
+          IOS_SERVICE_ACCOUNT_KEY: ${{ secrets[format('FIREBASE_SERVICE_ACCOUNT_{0}', github.ref == 'refs/heads/main' && 'PRODUCTION' || github.ref == 'refs/heads/staging' && 'STAGING' || 'DEVELOPMENT')] }}
         run: |
           mkdir -p packages/mobile/ios
           echo "$IOS_SERVICE_ACCOUNT_KEY" > packages/mobile/ios/service-account-key.json
@@ -71,7 +72,7 @@ jobs:
 
       - name: Build and distribute iOS app
         env:
-          ENVIRONMENT: ${{ github.ref == 'refs/heads/main' && 'PRODUCTION' || 'DEVELOPMENT' }}
+          ENVIRONMENT: ${{ github.ref == 'refs/heads/main' && 'PRODUCTION' || github.ref == 'refs/heads/staging' && 'STAGING' || 'DEVELOPMENT' }}
         run: |
           cd packages/mobile/ios
           if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
@@ -83,9 +84,12 @@ jobs:
           # Export release notes for Fastlane
           echo "RELEASE_NOTES=$RELEASE_NOTES" >> $GITHUB_ENV
           
-          # Run Fastlane pipeline
+          # Run Fastlane pipeline based on environment
           if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
             # Production: Upload to TestFlight (can be changed to release for App Store)
+            fastlane beta
+          elif [[ "${{ github.ref }}" == "refs/heads/staging" ]]; then
+            # Staging: Upload to TestFlight for testing
             fastlane beta
           else
             # Development: Just build and test
