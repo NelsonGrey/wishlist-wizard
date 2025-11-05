@@ -18,7 +18,7 @@ on:
           - DEVELOPMENT
 
 env:
-  NODE_VERSION: '18'
+  NODE_VERSION: '20'
   FLUTTER_VERSION: '3.35.5'
 
 jobs:
@@ -105,7 +105,7 @@ jobs:
     needs: [determine-environment, quality-check]
     strategy:
       matrix:
-        package: ['web', 'functions', 'browser-extension', 'shared']
+        package: ['web', 'functions', 'browser-extension', 'shared', 'firebase-utils']
     steps:
       - name: 📥 Checkout Code
         uses: actions/checkout@v4
