@@ -60,23 +60,7 @@ jobs:
         run: |
           # Create Android distribution script if it doesn't exist
           if [ ! -f "packages/mobile/distribute-android.sh" ]; then
-            cat > packages/mobile/distribute-android.sh << 'EOF'
-            #!/bin/bash
-            set -e
-            
-            BUILD_TYPE=$1
-            RELEASE_NOTES=$2
-            
-            echo "Building Android app with type: $BUILD_TYPE"
-            
-            # Build Android APK
-            flutter build apk --$BUILD_TYPE
-            
-            # For now, just create a placeholder for distribution
-            # TODO: Implement actual distribution to Google Play Store
-            echo "Android build completed. Manual distribution to Google Play required."
-            echo "APK location: build/app/outputs/flutter-apk/app-$BUILD_TYPE.apk"
-            EOF
+            printf '#!/bin/bash\nset -e\n\nBUILD_TYPE=$1\nRELEASE_NOTES=$2\n\necho "Building Android app with type: $BUILD_TYPE"\n\n# Build Android APK\nflutter build apk --$BUILD_TYPE\n\n# For now, just create a placeholder for distribution\n# TODO: Implement actual distribution to Google Play Store\necho "Android build completed. Manual distribution to Google Play required."\necho "APK location: build/app/outputs/flutter-apk/app-$BUILD_TYPE.apk"\n' > packages/mobile/distribute-android.sh
             chmod +x packages/mobile/distribute-android.sh
           fi
 
