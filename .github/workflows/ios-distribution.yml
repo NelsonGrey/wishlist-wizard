@@ -45,7 +45,7 @@ jobs:
       - name: Generate iOS platform files
         run: |
           cd packages/mobile
-          flutter create --platforms=ios .
+          flutter create --platforms=ios --org=com.nelsongrey.wishlistwizard.mobile .
 
       - name: Create service account key file
         env:
@@ -60,7 +60,7 @@ jobs:
       - name: Generate iOS platform files
         run: |
           cd packages/mobile
-          flutter create --platforms=ios .
+          flutter create --platforms=ios --org=com.nelsongrey.wishlistwizard.mobile .
 
       - name: Create service account key file
         env:
