@@ -21,9 +21,9 @@ FIREBASE_TOKEN=test_token
 FIREBASE_SERVICE_ACCOUNT_KEY={"test": "key"}
 EOF
 
-# For real testing, create real-secrets with actual values (DO NOT COMMIT)
-cp .act-secrets/test-secrets .act-secrets/real-secrets
-# Edit .act-secrets/real-secrets with your real Firebase credentials
+# For real testing, create secrets with actual values (DO NOT COMMIT)
+cp .act-secrets/test-secrets .act-secrets/secrets
+# Edit .act-secrets/secrets with your real Firebase credentials
 ```
 
 ### 2. Test Workflows
