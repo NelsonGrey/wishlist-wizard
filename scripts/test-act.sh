@@ -39,9 +39,9 @@ check_prerequisites() {
     fi
 
     # Check for .act-secrets
-    if [ ! -f ".act-secrets/real-secrets" ]; then
+    if [ ! -f ".act-secrets/secrets" ]; then
         echo -e "${RED}❌ Real secrets file not found${NC}"
-        echo -e "${YELLOW}Create .act-secrets/real-secrets with your actual secrets${NC}"
+        echo -e "${YELLOW}Create .act-secrets/secrets with your actual secrets${NC}"
         echo -e "${YELLOW}See .act-secrets/test-secrets for the expected format${NC}"
         exit 1
     fi
@@ -82,7 +82,7 @@ test_workflow() {
 
     # Use optimized container options
     local act_cmd="act -W .github/workflows/$workflow.yml"
-    act_cmd="$act_cmd --secret-file .act-secrets/real-secrets"
+    act_cmd="$act_cmd --secret-file .act-secrets/secrets"
     act_cmd="$act_cmd --job $job"
     act_cmd="$act_cmd --container-architecture linux/amd64"
     act_cmd="$act_cmd --pull=false"
