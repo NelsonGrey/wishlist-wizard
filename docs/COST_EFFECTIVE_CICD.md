@@ -74,7 +74,7 @@ FIREBASE_SERVICE_ACCOUNT_KEY={"test": "key"}
 
 #### Real Secrets (Never Commit)
 ```bash
-# .act-secrets/real-secrets (gitignored)
+# .act-secrets/secrets (gitignored)
 FIREBASE_TOKEN=your_real_token
 FIREBASE_SERVICE_ACCOUNT_KEY={"type": "service_account", ...}
 ```
@@ -196,7 +196,7 @@ git push origin develop
 act --secret-file .act-secrets/test-secrets
 
 # Production: real secrets (careful!)
-act --secret-file .act-secrets/real-secrets
+act --secret-file .act-secrets/secrets
 ```
 
 ### 3. Monitor Usage
