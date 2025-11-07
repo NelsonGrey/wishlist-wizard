@@ -15,7 +15,7 @@ on:
 jobs:
   submit-extension:
     name: 🏪 Submit to Chrome Web Store
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     
     steps:
       - name: 📥 Checkout Code
