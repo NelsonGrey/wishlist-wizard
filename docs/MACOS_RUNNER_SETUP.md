@@ -53,7 +53,7 @@ The script will:
 cd /Users/github-runner/actions-runner  # or your runner directory
 ./config.sh \
   --url https://github.com/mnelson3/wishlist-wizard \
-  --token YOUR_TOKEN_HERE \
+  --token AIQEPB7NN7HGN5V4KR7OZLTJBZYMW \
   --labels "self-hosted,macos-latest,macos-arm64,wishlist-wizard" \
   --name "wishlist-wizard-macos-runner-$(hostname)"
 ```
