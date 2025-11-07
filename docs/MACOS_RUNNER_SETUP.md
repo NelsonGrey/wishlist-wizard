@@ -156,7 +156,14 @@ Monitor runner status in:
    ./scripts/manage-macos-runner.sh configure
    ```
 
-2. **Xcode issues**
+2. **User creation fails with password error**
+   ```bash
+   # This happens when macOS password policies reject empty passwords
+   # The setup script automatically uses a secure dummy password
+   # If you encounter issues, the user is created with password: RunnerPass123!
+   ```
+
+3. **Xcode issues**
    ```bash
    # Accept Xcode license
    sudo xcodebuild -license accept
@@ -165,13 +172,13 @@ Monitor runner status in:
    sudo xcode-select -s /Applications/Xcode.app
    ```
 
-3. **Permission issues**
+4. **Permission issues**
    ```bash
    # Fix permissions
    sudo chown -R github-runner:admin /Users/github-runner/actions-runner
    ```
 
-4. **Flutter issues**
+5. **Flutter issues**
    ```bash
    # Run doctor
    flutter doctor
