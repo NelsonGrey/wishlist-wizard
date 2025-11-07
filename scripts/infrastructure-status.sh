@@ -50,13 +50,13 @@ info() {
 check_docker_runner() {
     header "🐳 Linux Runner Status (Docker)"
 
-    if command -v docker &> /dev/null && command -v docker-compose &> /dev/null; then
+    if command -v docker &> /dev/null && docker compose version &> /dev/null; then
         cd "$PROJECT_ROOT"
 
-        if docker-compose -f docker-compose.runner.yml ps | grep -q "Up"; then
+        if docker compose -f "$PROJECT_ROOT/docker-compose.runner.yml" ps | grep -q "Up"; then
             success "Docker runner is running"
             echo ""
-            docker-compose -f docker-compose.runner.yml ps --format "table {{.Name}}\t{{.Status}}\t{{.Ports}}"
+            docker compose -f "$PROJECT_ROOT/docker-compose.runner.yml" ps --format "table {{.Name}}\t{{.Status}}\t{{.Ports}}"
         else
             warning "Docker runner is not running"
             echo ""
@@ -211,7 +211,7 @@ recommendations() {
     local has_macos_runner=false
 
     # Check Docker runner
-    if command -v docker &> /dev/null && [ -f "$PROJECT_ROOT/.env.runner" ]; then
+    if command -v docker &> /dev/null && docker compose version &> /dev/null && [ -f "$PROJECT_ROOT/.env.runner" ]; then
         has_docker_runner=true
     fi
 
@@ -232,7 +232,7 @@ recommendations() {
 
     if [ "$has_docker_runner" = false ]; then
         warning "Set up Linux Docker runner for web/API/Android builds"
-        info "  Run: ./scripts/setup-self-hosted-runner.sh"
+        info "  Run: ./scripts/setup-linux-runner.sh"
         info "  Then: ./scripts/manage-docker-runner.sh configure"
         echo ""
     fi
@@ -251,7 +251,7 @@ recommendations() {
     fi
 
     echo -e "${CYAN}Next steps:${NC}"
-    echo "1. Set up missing runners"
+    echo "1. Update Linux runner token with real GitHub token"
     echo "2. Test workflows with self-hosted runners"
     echo "3. Monitor GitHub billing for cost reductions"
     echo "4. Update team on infrastructure changes"

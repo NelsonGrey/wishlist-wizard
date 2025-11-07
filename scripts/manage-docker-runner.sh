@@ -51,8 +51,8 @@ check_dependencies() {
         exit 1
     fi
 
-    if ! command -v docker-compose &> /dev/null; then
-        error "Docker Compose is not installed or not in PATH"
+    if ! docker compose version &> /dev/null; then
+        error "Docker Compose is not available. Try 'docker compose' instead of 'docker-compose'"
         exit 1
     fi
 }
@@ -64,18 +64,18 @@ start_runner() {
     check_dependencies
 
     cd "$PROJECT_ROOT"
-    docker-compose -f "$COMPOSE_FILE" up -d
+    docker compose -f "$COMPOSE_FILE" up -d
 
     success "Runner started successfully!"
     log "Monitor at: http://localhost:8080"
-    log "Check logs with: docker-compose -f $COMPOSE_FILE logs -f"
+    log "Check logs with: docker compose -f $COMPOSE_FILE logs -f"
 }
 
 # Stop the runner
 stop_runner() {
     log "Stopping GitHub Actions Runner..."
     cd "$PROJECT_ROOT"
-    docker-compose -f "$COMPOSE_FILE" down
+    docker compose -f "$COMPOSE_FILE" down
     success "Runner stopped successfully!"
 }
 
@@ -84,16 +84,16 @@ show_status() {
     log "Checking runner status..."
     cd "$PROJECT_ROOT"
 
-    if docker-compose -f "$COMPOSE_FILE" ps | grep -q "Up"; then
+    if docker compose -f "$COMPOSE_FILE" ps | grep -q "Up"; then
         success "Runner is running"
         echo ""
-        docker-compose -f "$COMPOSE_FILE" ps
+        docker compose -f "$COMPOSE_FILE" ps
         echo ""
         log "Monitor at: http://localhost:8080"
     else
         warn "Runner is not running"
         echo ""
-        docker-compose -f "$COMPOSE_FILE" ps
+        docker compose -f "$COMPOSE_FILE" ps
     fi
 }
 
@@ -101,7 +101,7 @@ show_status() {
 show_logs() {
     log "Showing runner logs..."
     cd "$PROJECT_ROOT"
-    docker-compose -f "$COMPOSE_FILE" logs -f
+    docker compose -f "$COMPOSE_FILE" logs -f
 }
 
 # Restart runner
@@ -116,7 +116,7 @@ restart_runner() {
 cleanup() {
     log "Cleaning up runner containers and volumes..."
     cd "$PROJECT_ROOT"
-    docker-compose -f "$COMPOSE_FILE" down -v --remove-orphans
+    docker compose -f "$COMPOSE_FILE" down -v --remove-orphans
     success "Cleanup completed!"
 }
 
