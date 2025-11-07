@@ -106,6 +106,19 @@ if [[ $REPLY =~ ^[Yy]$ ]]; then
     # Check if user already exists
     if id "$RUNNER_USER" &>/dev/null; then
         echo -e "${YELLOW}⚠️  User $RUNNER_USER already exists, skipping creation${NC}"
+
+        # Ensure home directory exists and has proper permissions
+        if [ ! -d "/Users/$RUNNER_USER" ]; then
+            echo -e "${YELLOW}📁 Creating home directory for existing user...${NC}"
+            sudo createhomedir -c -u $RUNNER_USER
+        fi
+
+        # Ensure user has admin group membership for Xcode access
+        if ! groups "$RUNNER_USER" | grep -q admin; then
+            echo -e "${YELLOW}👥 Adding user to admin group...${NC}"
+            sudo dscl . -append /Groups/admin GroupMembership $RUNNER_USER
+        fi
+
         RUNNER_USER=$RUNNER_USER
         RUNNER_DIR="/Users/${RUNNER_USER}/actions-runner"
     else
@@ -140,8 +153,17 @@ fi
 # Set up runner
 echo -e "${YELLOW}🤖 Setting up GitHub runner...${NC}"
 
-# Create runner directory
-mkdir -p "$RUNNER_DIR"
+# Create runner directory with proper ownership
+echo -e "${YELLOW}📁 Creating runner directory: $RUNNER_DIR${NC}"
+if [ "$RUNNER_USER" = "$USER" ]; then
+    # Running as the runner user
+    mkdir -p "$RUNNER_DIR"
+else
+    # Running as different user, need sudo
+    sudo mkdir -p "$RUNNER_DIR"
+    sudo chown -R $RUNNER_USER:admin "$RUNNER_DIR"
+fi
+
 cd "$RUNNER_DIR"
 
 # Download and extract runner
@@ -164,11 +186,21 @@ rm actions-runner-*.tar.gz
 # Make scripts executable
 chmod +x bin/*.sh
 
+# Ensure proper ownership of all runner files
+if [ "$RUNNER_USER" != "$USER" ]; then
+    sudo chown -R $RUNNER_USER:admin "$RUNNER_DIR"
+fi
+
 echo -e "${GREEN}✅ Runner downloaded and extracted${NC}"
 echo ""
 echo -e "${YELLOW}📝 Next steps:${NC}"
-echo "1. Get a runner token from: $REPO_URL/settings/actions/runners"
-echo "2. Run: cd $RUNNER_DIR"
+if [ "$RUNNER_USER" != "$USER" ]; then
+    echo "1. Switch to runner user: sudo -u $RUNNER_USER -i"
+    echo "2. Navigate to runner: cd $RUNNER_DIR"
+else
+    echo "1. Navigate to runner: cd $RUNNER_DIR"
+fi
+echo "2. Get a runner token from: $REPO_URL/settings/actions/runners"
 echo "3. Run: ./config.sh --url $REPO_URL --token YOUR_TOKEN --labels self-hosted,macos-latest,wishlist-wizard"
 echo "4. Run: ./run.sh"
 echo ""
