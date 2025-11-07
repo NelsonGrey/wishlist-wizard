@@ -4,10 +4,11 @@ services:
   github-runner-wishlist-wizard:
     image: myoung34/github-runner:latest
     container_name: github-runner-wishlist-wizard
+    env_file:
+      - .env.runner
     environment:
       REPO_URL: https://github.com/mnelson3/wishlist-wizard
       RUNNER_NAME: wishlist-wizard-docker-runner
-      RUNNER_TOKEN: ${RUNNER_TOKEN}
       RUNNER_WORKDIR: /tmp/runner/work
       LABELS: self-hosted,linux,x64,wishlist-wizard
     volumes:
