@@ -27,10 +27,10 @@ auto_detect_runner() {
         return 0
     fi
 
-    # Check common locations
+    # Check common locations (prioritize current directory)
     local possible_locations=(
+        "$(pwd)/actions-runner"                  # Current working directory (highest priority)
         "/Users/$USER/actions-runner"           # Current user in home
-        "$(pwd)/actions-runner"                  # Current directory
         "/Users/github-runner/actions-runner"    # Dedicated user
         "$HOME/actions-runner"                   # Home directory
     )
