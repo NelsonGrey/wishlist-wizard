@@ -1,17 +1,15 @@
 # yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
 name: iOS App Distribution
 
-# NOTE: Automatic iOS builds are disabled due to lack of self-hosted macOS runners
-# iOS builds require macOS environment for code signing and App Store deployment
-# To enable automatic builds, set up a self-hosted macOS runner
-# For now, only manual builds are supported via workflow_dispatch
+# iOS builds now use self-hosted macOS runners for cost optimization
+# Automatic builds are enabled when self-hosted macOS runners are available
 
 on:
-  # push:
-  #   branches:
-  #     - main
-  #     - staging
-  #     - develop
+  push:
+    branches:
+      - main
+      - staging
+      - develop
   workflow_dispatch:
     inputs:
       build_type:
@@ -29,16 +27,17 @@ on:
 
 jobs:
   distribute-ios:
-    runs-on: macos-latest  # Requires macOS for iOS builds - self-hosted macOS runner needed for cost optimization
+    runs-on: [self-hosted, macos-latest, wishlist-wizard]  # Self-hosted macOS runner for cost optimization
     environment:
       name: ${{ github.ref == 'refs/heads/main' && 'PRODUCTION' || github.ref == 'refs/heads/staging' && 'STAGING' || 'DEVELOPMENT' }}
     steps:
-      - name: iOS Build Requirements Notice
+      - name: iOS Build Environment Check
         run: |
-          echo "⚠️ iOS builds require macOS runners for code signing and App Store deployment"
-          echo "📝 Current runner: macos-latest (GitHub-hosted)"
-          echo "💰 This may incur costs - consider setting up self-hosted macOS runner"
-          echo "🔧 For self-hosted setup: https://docs.github.com/en/actions/hosting-your-own-runners"
+          echo "🍎 Running on self-hosted macOS runner"
+          echo "📍 Hostname: $(hostname)"
+          echo "� Cost optimization: Using self-hosted runner instead of GitHub-hosted"
+          echo "� macOS version: $(sw_vers -productVersion)"
+          echo "�️  Xcode version: $(xcodebuild -version | head -1)"
 
       - uses: actions/checkout@v4
 
