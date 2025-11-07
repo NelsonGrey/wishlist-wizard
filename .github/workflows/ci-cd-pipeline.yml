@@ -251,10 +251,15 @@ jobs:
         uses: actions/checkout@v4
 
       - name: 🦋 Setup Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          flutter-version: ${{ env.FLUTTER_VERSION }}
-          channel: 'stable'
+        run: |
+          # Skip Flutter setup on self-hosted runners - Flutter is pre-installed
+          if [[ "$RUNNER_ENVIRONMENT" == "self-hosted" ]]; then
+            echo "Using pre-installed Flutter on self-hosted runner"
+            flutter --version
+          else
+            echo "Setting up Flutter via action (GitHub-hosted runner)"
+            exit 1  # This should not happen with our current setup
+          fi
 
       - name: 📦 Install Flutter Dependencies
         run: |
