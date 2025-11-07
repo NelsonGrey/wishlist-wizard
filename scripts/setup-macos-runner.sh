@@ -102,19 +102,36 @@ read -p "Create dedicated runner user? (y/N): " -n 1 -r
 echo
 if [[ $REPLY =~ ^[Yy]$ ]]; then
     echo -e "${YELLOW}👤 Creating runner user...${NC}"
-    sudo dscl . -create /Users/$RUNNER_USER
-    sudo dscl . -create /Users/$RUNNER_USER UserShell /bin/zsh
-    sudo dscl . -create /Users/$RUNNER_USER RealName "GitHub Runner"
-    sudo dscl . -create /Users/$RUNNER_USER UniqueID 1001
-    sudo dscl . -create /Users/$RUNNER_USER PrimaryGroupID 20
-    sudo dscl . -create /Users/$RUNNER_USER NFSHomeDirectory /Users/$RUNNER_USER
-    sudo dscl . -passwd /Users/$RUNNER_USER ""
-    sudo createhomedir -c -u $RUNNER_USER
 
-    # Add to admin group for Xcode access
-    sudo dscl . -append /Groups/admin GroupMembership $RUNNER_USER
+    # Check if user already exists
+    if id "$RUNNER_USER" &>/dev/null; then
+        echo -e "${YELLOW}⚠️  User $RUNNER_USER already exists, skipping creation${NC}"
+        RUNNER_USER=$RUNNER_USER
+        RUNNER_DIR="/Users/${RUNNER_USER}/actions-runner"
+    else
+        # Find an available UID (starting from 1000)
+        local uid=1000
+        while id "$uid" &>/dev/null 2>&1 || [ -d "/Users/$(id -nu $uid 2>/dev/null)" ]; do
+            ((uid++))
+        done
 
-    RUNNER_USER=$RUNNER_USER
+        sudo dscl . -create /Users/$RUNNER_USER
+        sudo dscl . -create /Users/$RUNNER_USER UserShell /bin/zsh
+        sudo dscl . -create /Users/$RUNNER_USER RealName "GitHub Runner"
+        sudo dscl . -create /Users/$RUNNER_USER UniqueID $uid
+        sudo dscl . -create /Users/$RUNNER_USER PrimaryGroupID 20
+        sudo dscl . -create /Users/$RUNNER_USER NFSHomeDirectory /Users/$RUNNER_USER
+        # Set a dummy password that meets macOS complexity requirements
+        # The runner user won't need to log in interactively
+        sudo dscl . -passwd /Users/$RUNNER_USER "RunnerPass123!"
+        sudo createhomedir -c -u $RUNNER_USER
+
+        # Add to admin group for Xcode access
+        sudo dscl . -append /Groups/admin GroupMembership $RUNNER_USER
+
+        echo -e "${GREEN}✅ Created user $RUNNER_USER with UID $uid${NC}"
+        RUNNER_USER=$RUNNER_USER
+    fi
 else
     RUNNER_USER=$USER
     RUNNER_DIR="$HOME/actions-runner"
