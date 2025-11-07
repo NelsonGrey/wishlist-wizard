@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  github-runner-wishlist-wizard:
+    image: myoung34/github-runner:latest
+    container_name: github-runner-wishlist-wizard
+    environment:
+      REPO_URL: https://github.com/mnelson3/wishlist-wizard
+      RUNNER_NAME: wishlist-wizard-docker-runner
+      RUNNER_TOKEN: ${RUNNER_TOKEN}
+      RUNNER_WORKDIR: /tmp/runner/work
+      LABELS: self-hosted,linux,x64,wishlist-wizard
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./actions-runner:/runner
+    networks:
+      - runner-network
+    restart: unless-stopped
+
+  runner-monitor:
+    image: nginx:alpine
+    container_name: wishlist-wizard-runner-monitor
+    ports:
+      - "8080:80"
+    volumes:
+      - ./monitoring/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./monitoring/status.html:/usr/share/nginx/html/index.html:ro
+    networks:
+      - runner-network
+    restart: unless-stopped
+    depends_on:
+      - github-runner-wishlist-wizard
+
+networks:
+  runner-network:
+    driver: bridge
