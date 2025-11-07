@@ -24,7 +24,7 @@ on:
 
 jobs:
   distribute-android:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     environment:
       name: ${{ github.ref == 'refs/heads/main' && 'PRODUCTION' || github.ref == 'refs/heads/staging' && 'STAGING' || 'DEVELOPMENT' }}
     steps:
