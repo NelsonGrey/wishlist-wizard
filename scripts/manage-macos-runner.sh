@@ -20,6 +20,34 @@ RUNNER_USER="${RUNNER_USER:-github-runner}"
 RUNNER_DIR="${RUNNER_DIR:-/Users/$RUNNER_USER/actions-runner}"
 REPO_URL="${REPO_URL:-https://github.com/mnelson3/wishlist-wizard}"
 
+# Auto-detect runner location if not specified
+auto_detect_runner() {
+    # If RUNNER_DIR is already set and exists, use it
+    if [ -n "$RUNNER_DIR" ] && [ -d "$RUNNER_DIR" ] && [ -f "$RUNNER_DIR/config.sh" ]; then
+        return 0
+    fi
+
+    # Check common locations
+    local possible_locations=(
+        "/Users/$USER/actions-runner"           # Current user in home
+        "$(pwd)/actions-runner"                  # Current directory
+        "/Users/github-runner/actions-runner"    # Dedicated user
+        "$HOME/actions-runner"                   # Home directory
+    )
+
+    for location in "${possible_locations[@]}"; do
+        if [ -d "$location" ] && [ -f "$location/config.sh" ]; then
+            RUNNER_DIR="$location"
+            warn "Auto-detected runner at: $RUNNER_DIR"
+            return 0
+        fi
+    done
+
+    # If no runner found, keep default but warn
+    warn "No runner found, using default path: $RUNNER_DIR"
+    return 1
+}
+
 log() {
     echo -e "${BLUE}[$(date +'%Y-%m-%d %H:%M:%S')]${NC} $1"
 }
@@ -46,14 +74,22 @@ check_macos() {
 
 # Check if runner is installed
 check_runner() {
+    # Try to auto-detect runner location first
+    auto_detect_runner
+
     if [ ! -d "$RUNNER_DIR" ]; then
         error "Runner not found at $RUNNER_DIR"
-        error "Run setup-macos-runner.sh first"
+        error "Run setup-macos-runner.sh first, or set RUNNER_DIR environment variable"
+        echo ""
+        echo -e "${YELLOW}Common runner locations:${NC}"
+        echo "  export RUNNER_DIR=/path/to/your/actions-runner"
+        echo "  Or run from the directory containing actions-runner/"
         exit 1
     fi
 
     if [ ! -f "$RUNNER_DIR/config.sh" ]; then
         error "Runner not properly configured at $RUNNER_DIR"
+        error "Run: cd $RUNNER_DIR && ./config.sh ..."
         exit 1
     fi
 }
@@ -134,9 +170,16 @@ show_status() {
 
     check_macos
 
+    # Try to auto-detect runner location
+    auto_detect_runner
+
     if [ ! -d "$RUNNER_DIR" ]; then
         warn "Runner directory not found: $RUNNER_DIR"
         echo "Status: not_installed"
+        echo ""
+        echo -e "${YELLOW}To set up a runner:${NC}"
+        echo "1. Run: ./scripts/setup-macos-runner.sh"
+        echo "2. Or set: export RUNNER_DIR=/path/to/actions-runner"
         return 0
     fi
 
@@ -329,8 +372,14 @@ usage() {
     echo ""
     echo "Environment Variables:"
     echo "  RUNNER_USER  Runner user (default: github-runner)"
-    echo "  RUNNER_DIR   Runner directory (default: /Users/\$RUNNER_USER/actions-runner)"
+    echo "  RUNNER_DIR   Runner directory (auto-detected if not set)"
     echo "  REPO_URL     Repository URL (default: https://github.com/mnelson3/wishlist-wizard)"
+    echo ""
+    echo "Auto-Detection:"
+    echo "  The script automatically detects runner locations in:"
+    echo "  - Current directory (./actions-runner)"
+    echo "  - User home (~/.actions-runner)"
+    echo "  - Dedicated user (/Users/github-runner/actions-runner)"
 }
 
 # Main script logic
