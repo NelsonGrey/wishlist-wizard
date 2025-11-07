@@ -51,7 +51,7 @@ jobs:
 
       - name: Create service account key file
         env:
-          SERVICE_ACCOUNT_KEY: ${{ github.ref == 'refs/heads/main' && secrets.FIREBASE_SERVICE_ACCOUNT_PRODUCTION || github.ref == 'refs/heads/staging' && secrets.FIREBASE_SERVICE_ACCOUNT_STAGING || secrets.FIREBASE_SERVICE_ACCOUNT_DEVELOPMENT }}
+          SERVICE_ACCOUNT_KEY: ${{ github.ref == 'refs/heads/main' && secrets.FIREBASE_SERVICE_ACCOUNT_KEY_PRODUCTION || github.ref == 'refs/heads/staging' && secrets.FIREBASE_SERVICE_ACCOUNT_KEY_STAGING || secrets.FIREBASE_SERVICE_ACCOUNT_KEY_DEVELOPMENT }}
         run: |
           mkdir -p packages/mobile/android/app
           echo "$SERVICE_ACCOUNT_KEY" > packages/mobile/android/app/service-account-key.json

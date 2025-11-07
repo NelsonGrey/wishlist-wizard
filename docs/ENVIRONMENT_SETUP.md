@@ -110,7 +110,7 @@ VITE_ENABLE_ERROR_REPORTING_DEVELOPMENT
 
 #### Deployment Secrets (Environment-Specific):
 ```
-FIREBASE_SERVICE_ACCOUNT_PRODUCTION / FIREBASE_SERVICE_ACCOUNT_STAGING / FIREBASE_SERVICE_ACCOUNT_DEVELOPMENT
+FIREBASE_SERVICE_ACCOUNT_KEY_PRODUCTION / FIREBASE_SERVICE_ACCOUNT_KEY_STAGING / FIREBASE_SERVICE_ACCOUNT_KEY_DEVELOPMENT
 ```
 
 #### Chrome Web Store Secrets (Shared):
@@ -210,7 +210,7 @@ For each Firebase project:
 ### 2. Add to GitHub Secrets
 
 1. Copy the entire JSON content
-2. Add as a GitHub secret with the appropriate name (e.g., `FIREBASE_SERVICE_ACCOUNT_PRODUCTION`)
+2. Add as a GitHub secret with the appropriate name (e.g., `FIREBASE_SERVICE_ACCOUNT_KEY_PRODUCTION`)
 3. The CI/CD pipeline will use this to authenticate with Firebase
 
 ## Testing Environment Setup

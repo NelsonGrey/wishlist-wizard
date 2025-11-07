@@ -330,7 +330,7 @@ jobs:
         uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
-          firebaseServiceAccount: ${{ secrets[format('FIREBASE_SERVICE_ACCOUNT_{0}', needs.determine-environment.outputs.environment)] }}
+          firebaseServiceAccount: ${{ secrets[format('FIREBASE_SERVICE_ACCOUNT_KEY_{0}', needs.determine-environment.outputs.environment)] }}
           channelId: ${{ needs.determine-environment.outputs.environment == 'PRODUCTION' && 'live' || 'preview' }}
           projectId: ${{ needs.determine-environment.outputs.environment == 'PRODUCTION' && 'wishlist-wizard-prod' || needs.determine-environment.outputs.environment == 'STAGING' && 'wishlist-wizard-staging' || 'wishlist-wizard-dev' }}
           entryPoint: ./packages/web
@@ -381,7 +381,7 @@ jobs:
         uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
-          firebaseServiceAccount: ${{ secrets[format('FIREBASE_SERVICE_ACCOUNT_{0}', needs.determine-environment.outputs.environment)] }}
+          firebaseServiceAccount: ${{ secrets[format('FIREBASE_SERVICE_ACCOUNT_KEY_{0}', needs.determine-environment.outputs.environment)] }}
           channelId: ${{ needs.determine-environment.outputs.environment == 'PRODUCTION' && 'live' || 'preview' }}
           projectId: ${{ needs.determine-environment.outputs.environment == 'PRODUCTION' && 'wishlist-wizard-prod' || needs.determine-environment.outputs.environment == 'STAGING' && 'wishlist-wizard-staging' || 'wishlist-wizard-dev' }}
           entryPoint: ./packages/mobile
@@ -465,7 +465,7 @@ jobs:
           
           if [[ "$ENVIRONMENT" == "PRODUCTION" || "$ENVIRONMENT" == "STAGING" ]]; then
             echo "#### Firebase Configuration:" >> $GITHUB_STEP_SUMMARY
-            echo "- \`FIREBASE_SERVICE_ACCOUNT_$ENVIRONMENT\` - Firebase service account JSON" >> $GITHUB_STEP_SUMMARY
+            echo "- \`FIREBASE_SERVICE_ACCOUNT_KEY_$ENVIRONMENT\` - Firebase service account JSON" >> $GITHUB_STEP_SUMMARY
             echo "- \`VITE_FIREBASE_API_KEY_$ENVIRONMENT\` - Firebase API key" >> $GITHUB_STEP_SUMMARY
             echo "- \`VITE_FIREBASE_AUTH_DOMAIN_$ENVIRONMENT\` - Firebase auth domain" >> $GITHUB_STEP_SUMMARY
             echo "- \`VITE_FIREBASE_PROJECT_ID_$ENVIRONMENT\` - Firebase project ID" >> $GITHUB_STEP_SUMMARY
@@ -488,7 +488,7 @@ jobs:
             echo "- \`VITE_ENABLE_ERROR_REPORTING_$ENVIRONMENT\` - Enable error reporting (true/false)" >> $GITHUB_STEP_SUMMARY
           else
             echo "#### Firebase Configuration:" >> $GITHUB_STEP_SUMMARY
-            echo "- \`FIREBASE_SERVICE_ACCOUNT_DEVELOPMENT\` - Firebase service account JSON" >> $GITHUB_STEP_SUMMARY
+            echo "- \`FIREBASE_SERVICE_ACCOUNT_KEY_DEVELOPMENT\` - Firebase service account JSON" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "**Note**: Development environment can use fallback values for most web app secrets." >> $GITHUB_STEP_SUMMARY
           fi

@@ -309,7 +309,7 @@ jobs:
         uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
-          firebaseServiceAccount: ${{ secrets[format('FIREBASE_SERVICE_ACCOUNT_{0}', needs.determine-environment.outputs.environment)] }}
+          firebaseServiceAccount: ${{ secrets[format('FIREBASE_SERVICE_ACCOUNT_KEY_{0}', needs.determine-environment.outputs.environment)] }}
           channelId: ${{ needs.determine-environment.outputs.environment == 'production' && 'live' || 'preview' }}
           projectId: ${{ needs.determine-environment.outputs.environment == 'production' && 'wishlist-wizard' || needs.determine-environment.outputs.environment == 'staging' && 'wishlist-wizard-staging' || 'wishlist-wizard-dev' }}
           entryPoint: ./
@@ -335,7 +335,7 @@ jobs:
         uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
-          firebaseServiceAccount: ${{ secrets[format('FIREBASE_SERVICE_ACCOUNT_{0}', needs.determine-environment.outputs.environment)] }}
+          firebaseServiceAccount: ${{ secrets[format('FIREBASE_SERVICE_ACCOUNT_KEY_{0}', needs.determine-environment.outputs.environment)] }}
           projectId: ${{ needs.determine-environment.outputs.environment == 'production' && 'wishlist-wizard' || needs.determine-environment.outputs.environment == 'staging' && 'wishlist-wizard-staging' || 'wishlist-wizard-dev' }}
           entryPoint: ./
           target: functions
@@ -361,7 +361,7 @@ jobs:
         uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
-          firebaseServiceAccount: ${{ secrets[format('FIREBASE_SERVICE_ACCOUNT_{0}', needs.determine-environment.outputs.environment)] }}
+          firebaseServiceAccount: ${{ secrets[format('FIREBASE_SERVICE_ACCOUNT_KEY_{0}', needs.determine-environment.outputs.environment)] }}
           channelId: ${{ needs.determine-environment.outputs.environment == 'production' && 'live' || 'preview' }}
           projectId: ${{ needs.determine-environment.outputs.environment == 'production' && 'wishlist-wizard' || needs.determine-environment.outputs.environment == 'staging' && 'wishlist-wizard-staging' || 'wishlist-wizard-dev' }}
           entryPoint: packages/mobile

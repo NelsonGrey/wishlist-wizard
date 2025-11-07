@@ -54,7 +54,7 @@ Add these secrets to your GitHub repository (`Settings > Secrets and variables >
 
 #### Firebase Deployment
 ```
-FIREBASE_SERVICE_ACCOUNT_WISHLIST_WIZARD=your_firebase_service_account_json
+FIREBASE_SERVICE_ACCOUNT_KEY_WISHLIST_WIZARD=your_firebase_service_account_json
 ```
 
 #### Chrome Web Store (Optional)

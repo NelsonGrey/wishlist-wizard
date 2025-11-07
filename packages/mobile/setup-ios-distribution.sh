@@ -155,7 +155,7 @@ Add these secrets to your GitHub repository:
 ### Environment-Specific Secrets
 
 For production deployments, create separate secrets with `_PRODUCTION` suffix:
-- `FIREBASE_SERVICE_ACCOUNT_PRODUCTION`
+- `FIREBASE_SERVICE_ACCOUNT_KEY_PRODUCTION`
 - `ASC_PRIVATE_KEY_PRODUCTION` (if different)
 
 ## Available Fastlane Lanes
