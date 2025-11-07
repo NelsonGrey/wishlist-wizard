@@ -35,7 +35,7 @@ jobs:
   # 🔍 Test Environment Determination
   test-environment-determination:
     name: 🔍 Test Environment Determination
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     outputs:
       environment: ${{ steps.set-env.outputs.environment }}
       should-deploy: ${{ steps.set-env.outputs.should-deploy }}
@@ -70,7 +70,7 @@ jobs:
   # 🔍 Test Quality Checks
   test-quality-checks:
     name: 🔍 Test Quality Checks
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     steps:
       - name: 📥 Checkout Code
         uses: actions/checkout@v4
@@ -99,7 +99,7 @@ jobs:
   # 🏗️ Test Package Builds
   test-package-builds:
     name: 🏗️ Test Package Builds
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     needs: test-quality-checks
     if: github.event.inputs.test_scope != 'environment-only'
     strategy:
@@ -134,7 +134,7 @@ jobs:
   # 📱 Test Mobile Build
   test-mobile-build:
     name: 📱 Test Mobile Build
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     needs: test-quality-checks
     if: github.event.inputs.test_scope == 'full'
     steps:
@@ -175,7 +175,7 @@ jobs:
   # 📦 Test Extension Packaging
   test-extension-packaging:
     name: 📦 Test Extension Packaging
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     needs: test-package-builds
     if: github.event.inputs.test_scope == 'full'
     steps:
@@ -207,10 +207,10 @@ jobs:
       - name: ✅ Extension Packaging Test Completed
         run: echo "✅ Extension packaging test passed"
 
-  # 🔐 Test Environment File Generation
+  # � Test Environment Files
   test-environment-files:
-    name: 🔐 Test Environment File Generation
-    runs-on: ubuntu-latest
+    name: � Test Environment Files
+    runs-on: self-hosted
     needs: test-environment-determination
     if: github.event.inputs.test_scope != 'build-only'
     steps:
@@ -340,8 +340,8 @@ jobs:
   # 🚀 Test Deployment Simulation
   test-deployment-simulation:
     name: 🚀 Test Deployment Simulation
-    runs-on: ubuntu-latest
-    needs: [test-environment-determination, test-package-builds, test-mobile-build, test-extension-packaging, test-environment-files]
+    runs-on: self-hosted
+    needs: [test-quality-checks, test-package-builds, test-mobile-build, test-extension-packaging, test-environment-files]
     if: github.event.inputs.test_scope == 'full'
     steps:
       - name: 📥 Checkout Code
@@ -397,8 +397,8 @@ jobs:
   # 🧹 Cleanup Test Artifacts
   cleanup-test-artifacts:
     name: 🧹 Cleanup Test Artifacts
-    runs-on: ubuntu-latest
-    needs: [test-environment-determination, test-quality-checks, test-package-builds, test-mobile-build, test-extension-packaging, test-environment-files, test-deployment-simulation]
+    runs-on: self-hosted
+    needs: test-deployment-simulation
     if: always()
     steps:
       - name: 🧹 Remove Test Artifacts
@@ -417,11 +417,11 @@ jobs:
           
           echo "✅ Test artifacts cleaned up"
 
-  # 📊 Test Results Summary
+    # 📊 Test Results Summary
   test-results-summary:
-    name: 📊 CI/CD Test Results Summary
-    runs-on: ubuntu-latest
-    needs: [test-environment-determination, test-quality-checks, test-package-builds, test-mobile-build, test-extension-packaging, test-environment-files, test-deployment-simulation, cleanup-test-artifacts]
+    name: 📊 Test Results Summary
+    runs-on: self-hosted
+    needs: [test-quality-checks, test-package-builds, test-mobile-build, test-extension-packaging, test-environment-files, test-deployment-simulation, cleanup-test-artifacts]
     if: always()
     steps:
       - name: 📊 Generate Test Report
