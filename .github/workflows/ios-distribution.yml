@@ -44,6 +44,8 @@ jobs:
       - name: Set up Flutter
         run: |
           # Use pre-installed Flutter on macOS self-hosted runner
+          export PATH="/Users/marknelson/Applications/flutter/bin:$PATH"
+          echo "/Users/marknelson/Applications/flutter/bin" >> $GITHUB_PATH
           flutter --version
           flutter config --enable-macos-desktop
 

@@ -33,6 +33,8 @@ jobs:
       - name: Set up Flutter
         run: |
           # Use pre-installed Flutter on self-hosted runner
+          export PATH="/Users/marknelson/Applications/flutter/bin:$PATH"
+          echo "/Users/marknelson/Applications/flutter/bin" >> $GITHUB_PATH
           flutter --version
 
       - name: Set up Java

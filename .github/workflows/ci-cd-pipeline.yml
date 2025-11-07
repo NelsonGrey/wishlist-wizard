@@ -255,6 +255,9 @@ jobs:
           # Skip Flutter setup on self-hosted runners - Flutter is pre-installed
           if [[ "$RUNNER_ENVIRONMENT" == "self-hosted" ]]; then
             echo "Using pre-installed Flutter on self-hosted runner"
+            # Add Flutter to PATH
+            export PATH="/Users/marknelson/Applications/flutter/bin:$PATH"
+            echo "/Users/marknelson/Applications/flutter/bin" >> $GITHUB_PATH
             flutter --version
           else
             echo "Setting up Flutter via action (GitHub-hosted runner)"
