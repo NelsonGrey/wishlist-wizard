@@ -81,42 +81,45 @@ check_docker_runner() {
 check_macos_runner() {
     header "🍎 macOS Runner Status"
 
-    local runner_dir="/Users/github-runner/actions-runner"
-    local current_user_dir="$HOME/actions-runner"
+    # Auto-detect runner location
+    local runner_dir=""
+    local possible_locations=(
+        "$PROJECT_ROOT/actions-runner"
+        "/Users/github-runner/actions-runner"
+        "$HOME/actions-runner"
+        "/opt/actions-runner"
+    )
 
-    # Check for runner in standard locations
-    local found_runner=false
-
-    for dir in "$runner_dir" "$current_user_dir"; do
-        if [ -d "$dir" ] && [ -f "$dir/config.sh" ]; then
-            found_runner=true
-            local runner_location="$dir"
-
-            echo -e "${CYAN}Runner found at: $dir${NC}"
-
-            # Check if running
-            if pgrep -f "Runner.Listener" > /dev/null; then
-                success "macOS runner is running"
-            else
-                warning "macOS runner is not running"
-                info "Start with: ./scripts/manage-macos-runner.sh start"
-            fi
-
-            # Check configuration
-            if [ -f "$dir/.runner" ]; then
-                success "Runner is configured"
-            else
-                warning "Runner is not configured"
-                info "Configure with: ./scripts/manage-macos-runner.sh configure"
-            fi
-
+    for location in "${possible_locations[@]}"; do
+        if [ -d "$location" ] && [ -f "$location/config.sh" ]; then
+            runner_dir="$location"
             break
         fi
     done
 
-    if [ "$found_runner" = false ]; then
+    if [ -z "$runner_dir" ]; then
         warning "macOS runner not found"
         info "Set up with: ./scripts/setup-macos-runner.sh"
+        echo ""
+        return
+    fi
+
+    echo -e "${CYAN}Runner found at: $runner_dir${NC}"
+
+    # Check if running
+    if pgrep -f "Runner.Listener" > /dev/null; then
+        success "macOS runner is running"
+    else
+        warning "macOS runner is not running"
+        info "Start with: ./scripts/manage-macos-runner.sh start"
+    fi
+
+    # Check configuration
+    if [ -f "$runner_dir/.runner" ]; then
+        success "Runner is configured"
+    else
+        warning "Runner is not configured"
+        info "Configure with: ./scripts/manage-macos-runner.sh configure"
     fi
 
     echo ""
@@ -212,10 +215,20 @@ recommendations() {
         has_docker_runner=true
     fi
 
-    # Check macOS runner
-    if [ -d "/Users/github-runner/actions-runner" ] || [ -d "$HOME/actions-runner" ]; then
-        has_macos_runner=true
-    fi
+    # Check macOS runner with auto-detection
+    local possible_locations=(
+        "$PROJECT_ROOT/actions-runner"
+        "/Users/github-runner/actions-runner"
+        "$HOME/actions-runner"
+        "/opt/actions-runner"
+    )
+
+    for location in "${possible_locations[@]}"; do
+        if [ -d "$location" ] && [ -f "$location/config.sh" ] && [ -f "$location/.runner" ]; then
+            has_macos_runner=true
+            break
+        fi
+    done
 
     if [ "$has_docker_runner" = false ]; then
         warning "Set up Linux Docker runner for web/API/Android builds"
