@@ -4,6 +4,15 @@
 
 set -e
 
+# Check if user has sudo access
+check_sudo() {
+    if sudo -n true 2>/dev/null; then
+        return 0  # Has sudo access
+    else
+        return 1  # No sudo access
+    fi
+}
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -101,49 +110,84 @@ fi
 read -p "Create dedicated runner user? (y/N): " -n 1 -r
 echo
 if [[ $REPLY =~ ^[Yy]$ ]]; then
-    echo -e "${YELLOW}👤 Creating runner user...${NC}"
+    # Check sudo access before proceeding
+    if ! check_sudo; then
+        echo -e "${RED}❌ Creating a dedicated runner user requires sudo/admin access${NC}"
+        echo -e "${YELLOW}Choose an option:${NC}"
+        echo "1. Run this script as root/admin user (recommended)"
+        echo "2. Use current user instead (not recommended for production)"
+        echo "3. Cancel and set up manually"
+        echo ""
+        echo -e "${BLUE}For option 1, run: sudo $0${NC}"
+        echo ""
+        read -p "Use current user instead? (Y/n): " -n 1 -r
+        echo
+        if [[ $REPLY =~ ^[Nn]$ ]]; then
+            echo -e "${YELLOW}Manual setup instructions:${NC}"
+            echo "1. Create user: sudo dscl . -create /Users/$RUNNER_USER"
+            echo "2. Set shell: sudo dscl . -create /Users/$RUNNER_USER UserShell /bin/zsh"
+            echo "3. Set name: sudo dscl . -create /Users/$RUNNER_USER RealName \"GitHub Runner\""
+            echo "4. Set UID: sudo dscl . -create /Users/$RUNNER_USER UniqueID 1001"
+            echo "5. Set GID: sudo dscl . -create /Users/$RUNNER_USER PrimaryGroupID 20"
+            echo "6. Set home: sudo dscl . -create /Users/$RUNNER_USER NFSHomeDirectory /Users/$RUNNER_USER"
+            echo "7. Set password: sudo dscl . -passwd /Users/$RUNNER_USER RunnerPass123!"
+            echo "8. Create home: sudo createhomedir -c -u $RUNNER_USER"
+            echo "9. Add to admin: sudo dscl . -append /Groups/admin GroupMembership $RUNNER_USER"
+            echo "10. Run this script again"
+            exit 0
+        else
+            echo -e "${BLUE}👤 Using current user instead${NC}"
+            RUNNER_USER=$USER
+            RUNNER_DIR="$HOME/actions-runner"
+        fi
+    fi
 
-    # Check if user already exists
-    if id "$RUNNER_USER" &>/dev/null; then
-        echo -e "${YELLOW}⚠️  User $RUNNER_USER already exists, skipping creation${NC}"
+    # Only proceed with user creation if we have sudo access
+    if [ "$RUNNER_USER" != "$USER" ] && check_sudo; then
+        echo -e "${YELLOW}� Creating runner user...${NC}"
 
-        # Ensure home directory exists and has proper permissions
-        if [ ! -d "/Users/$RUNNER_USER" ]; then
-            echo -e "${YELLOW}📁 Creating home directory for existing user...${NC}"
+        # Check if user already exists
+        if id "$RUNNER_USER" &>/dev/null; then
+            echo -e "${YELLOW}⚠️  User $RUNNER_USER already exists, skipping creation${NC}"
+
+            # Ensure home directory exists and has proper permissions
+            if [ ! -d "/Users/$RUNNER_USER" ]; then
+                echo -e "${YELLOW}📁 Creating home directory for existing user...${NC}"
+                sudo createhomedir -c -u $RUNNER_USER
+            fi
+
+            # Ensure user has admin group membership for Xcode access
+            if ! groups "$RUNNER_USER" | grep -q admin; then
+                echo -e "${YELLOW}👥 Adding user to admin group...${NC}"
+                sudo dscl . -append /Groups/admin GroupMembership $RUNNER_USER
+            fi
+
+            RUNNER_USER=$RUNNER_USER
+            RUNNER_DIR="/Users/${RUNNER_USER}/actions-runner"
+        else
+            # Find an available UID (starting from 1000)
+            local uid=1000
+            while id "$uid" &>/dev/null 2>&1 || [ -d "/Users/$(id -nu $uid 2>/dev/null)" ]; do
+                ((uid++))
+            done
+
+            sudo dscl . -create /Users/$RUNNER_USER
+            sudo dscl . -create /Users/$RUNNER_USER UserShell /bin/zsh
+            sudo dscl . -create /Users/$RUNNER_USER RealName "GitHub Runner"
+            sudo dscl . -create /Users/$RUNNER_USER UniqueID $uid
+            sudo dscl . -create /Users/$RUNNER_USER PrimaryGroupID 20
+            sudo dscl . -create /Users/$RUNNER_USER NFSHomeDirectory /Users/$RUNNER_USER
+            # Set a dummy password that meets macOS complexity requirements
+            # The runner user won't need to log in interactively
+            sudo dscl . -passwd /Users/$RUNNER_USER "RunnerPass123!"
             sudo createhomedir -c -u $RUNNER_USER
-        fi
 
-        # Ensure user has admin group membership for Xcode access
-        if ! groups "$RUNNER_USER" | grep -q admin; then
-            echo -e "${YELLOW}👥 Adding user to admin group...${NC}"
+            # Add to admin group for Xcode access
             sudo dscl . -append /Groups/admin GroupMembership $RUNNER_USER
+
+            echo -e "${GREEN}✅ Created user $RUNNER_USER with UID $uid${NC}"
+            RUNNER_USER=$RUNNER_USER
         fi
-
-        RUNNER_USER=$RUNNER_USER
-        RUNNER_DIR="/Users/${RUNNER_USER}/actions-runner"
-    else
-        # Find an available UID (starting from 1000)
-        local uid=1000
-        while id "$uid" &>/dev/null 2>&1 || [ -d "/Users/$(id -nu $uid 2>/dev/null)" ]; do
-            ((uid++))
-        done
-
-        sudo dscl . -create /Users/$RUNNER_USER
-        sudo dscl . -create /Users/$RUNNER_USER UserShell /bin/zsh
-        sudo dscl . -create /Users/$RUNNER_USER RealName "GitHub Runner"
-        sudo dscl . -create /Users/$RUNNER_USER UniqueID $uid
-        sudo dscl . -create /Users/$RUNNER_USER PrimaryGroupID 20
-        sudo dscl . -create /Users/$RUNNER_USER NFSHomeDirectory /Users/$RUNNER_USER
-        # Set a dummy password that meets macOS complexity requirements
-        # The runner user won't need to log in interactively
-        sudo dscl . -passwd /Users/$RUNNER_USER "RunnerPass123!"
-        sudo createhomedir -c -u $RUNNER_USER
-
-        # Add to admin group for Xcode access
-        sudo dscl . -append /Groups/admin GroupMembership $RUNNER_USER
-
-        echo -e "${GREEN}✅ Created user $RUNNER_USER with UID $uid${NC}"
-        RUNNER_USER=$RUNNER_USER
     fi
 else
     RUNNER_USER=$USER
@@ -160,8 +204,16 @@ if [ "$RUNNER_USER" = "$USER" ]; then
     mkdir -p "$RUNNER_DIR"
 else
     # Running as different user, need sudo
-    sudo mkdir -p "$RUNNER_DIR"
-    sudo chown -R $RUNNER_USER:admin "$RUNNER_DIR"
+    if check_sudo; then
+        sudo mkdir -p "$RUNNER_DIR"
+        sudo chown -R $RUNNER_USER:admin "$RUNNER_DIR"
+    else
+        echo -e "${RED}❌ Cannot create runner directory without sudo access${NC}"
+        echo -e "${YELLOW}Please create the directory manually:${NC}"
+        echo "  sudo mkdir -p $RUNNER_DIR"
+        echo "  sudo chown -R $RUNNER_USER:admin $RUNNER_DIR"
+        exit 1
+    fi
 fi
 
 cd "$RUNNER_DIR"
@@ -188,7 +240,12 @@ chmod +x bin/*.sh
 
 # Ensure proper ownership of all runner files
 if [ "$RUNNER_USER" != "$USER" ]; then
-    sudo chown -R $RUNNER_USER:admin "$RUNNER_DIR"
+    if check_sudo; then
+        sudo chown -R $RUNNER_USER:admin "$RUNNER_DIR"
+    else
+        echo -e "${YELLOW}⚠️  Cannot set ownership without sudo access${NC}"
+        echo -e "${YELLOW}Please set ownership manually: sudo chown -R $RUNNER_USER:admin $RUNNER_DIR${NC}"
+    fi
 fi
 
 echo -e "${GREEN}✅ Runner downloaded and extracted${NC}"
