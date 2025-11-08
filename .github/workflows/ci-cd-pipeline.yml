@@ -258,7 +258,7 @@ jobs:
             # Add Flutter to PATH
             export PATH="/Users/marknelson/Applications/flutter/bin:$PATH"
             echo "/Users/marknelson/Applications/flutter/bin" >> $GITHUB_PATH
-            flutter --version
+            /Users/marknelson/Applications/flutter/bin/flutter --version
           else
             echo "Setting up Flutter via action (GitHub-hosted runner)"
             exit 1  # This should not happen with our current setup
@@ -267,17 +267,17 @@ jobs:
       - name: 📦 Install Flutter Dependencies
         run: |
           cd packages/mobile
-          flutter pub get
+          /Users/marknelson/Applications/flutter/bin/flutter pub get
 
       - name: 🧪 Run Flutter Tests
         run: |
           cd packages/mobile
-          flutter test
+          /Users/marknelson/Applications/flutter/bin/flutter test
 
       - name: 🏗️ Build Flutter Web
         run: |
           cd packages/mobile
-          flutter build web --release
+          /Users/marknelson/Applications/flutter/bin/flutter build web --release
 
       - name: 📤 Upload Mobile Build
         uses: actions/upload-artifact@v4
