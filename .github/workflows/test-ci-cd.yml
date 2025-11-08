@@ -146,22 +146,22 @@ jobs:
           # Use pre-installed Flutter on self-hosted runner
           export PATH="/Users/marknelson/Applications/flutter/bin:$PATH"
           echo "/Users/marknelson/Applications/flutter/bin" >> $GITHUB_PATH
-          flutter --version
+          /Users/marknelson/Applications/flutter/bin/flutter --version
 
       - name: 📦 Test Flutter Dependencies
         run: |
           cd packages/mobile
-          flutter pub get
+          /Users/marknelson/Applications/flutter/bin/flutter pub get
 
       - name: 🧪 Test Flutter Tests
         run: |
           cd packages/mobile
-          flutter test
+          /Users/marknelson/Applications/flutter/bin/flutter test
 
       - name: 🏗️ Test Flutter Web Build
         run: |
           cd packages/mobile
-          flutter build web --release
+          /Users/marknelson/Applications/flutter/bin/flutter build web --release
 
       - name: 📤 Test Mobile Artifact Upload
         uses: actions/upload-artifact@v4

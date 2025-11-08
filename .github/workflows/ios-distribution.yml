@@ -46,8 +46,8 @@ jobs:
           # Use pre-installed Flutter on macOS self-hosted runner
           export PATH="/Users/marknelson/Applications/flutter/bin:$PATH"
           echo "/Users/marknelson/Applications/flutter/bin" >> $GITHUB_PATH
-          flutter --version
-          flutter config --enable-macos-desktop
+          /Users/marknelson/Applications/flutter/bin/flutter --version
+          /Users/marknelson/Applications/flutter/bin/flutter config --enable-macos-desktop
 
       - name: Set up Ruby
         uses: ruby/setup-ruby@v1
@@ -60,7 +60,7 @@ jobs:
       - name: Generate iOS platform files
         run: |
           cd packages/mobile
-          flutter create --platforms=ios --org=com.nelsongrey.wishlistwizard.mobile .
+          /Users/marknelson/Applications/flutter/bin/flutter create --platforms=ios --org=com.nelsongrey.wishlistwizard.mobile .
 
       - name: Create service account key file
         env:
