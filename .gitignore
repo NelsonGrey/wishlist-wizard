@@ -129,3 +129,6 @@ temp/
 .env
 .env.*
 !.env.example
+
+# Self-hosted runner files (contains sensitive credentials)
+actions-runner/
