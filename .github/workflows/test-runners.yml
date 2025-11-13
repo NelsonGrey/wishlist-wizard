@@ -1,0 +1,27 @@
+name: 🧪 Test Self-Hosted Runners
+
+on:
+  push:
+    branches: [ develop ]
+  workflow_dispatch:
+
+jobs:
+  test-linux:
+    name: Test Linux Runner
+    runs-on: self-hosted
+    steps:
+      - name: Hello from Linux
+        run: |
+          echo "Hello from Linux self-hosted runner!"
+          uname -a
+          date
+
+  test-macos:
+    name: Test macOS Runner
+    runs-on: self-hosted
+    steps:
+      - name: Hello from macOS
+        run: |
+          echo "Hello from macOS self-hosted runner!"
+          uname -a
+          date
