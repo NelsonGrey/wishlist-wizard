@@ -98,12 +98,11 @@ jobs:
           # Export release notes for Fastlane
           echo "RELEASE_NOTES=$RELEASE_NOTES" >> $GITHUB_ENV
           
-          # Run Fastlane pipeline based on environment
-          if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
-            # Production: Upload to TestFlight (can be changed to release for App Store)
-            fastlane beta
-          elif [[ "${{ github.ref }}" == "refs/heads/staging" ]]; then
-            # Staging: Upload to TestFlight for testing
+          # Run Fastlane pipeline based on environment and build type
+          BUILD_TYPE="${{ github.event.inputs.build_type || 'debug' }}"
+          
+          if [[ "${{ github.ref }}" == "refs/heads/main" ]] || [[ "${{ github.ref }}" == "refs/heads/staging" ]] || [[ "$BUILD_TYPE" == "release" ]]; then
+            # Production/Staging OR manual release: Upload to TestFlight
             fastlane beta
           else
             # Development: Just build and test
