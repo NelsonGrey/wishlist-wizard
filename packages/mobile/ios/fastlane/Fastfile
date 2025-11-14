@@ -63,7 +63,8 @@ platform :ios do
     # Sync certificates and profiles using match
     match(
       type: "appstore",
-      readonly: true
+      readonly: true,  # Back to true for CI safety
+      force_for_new_certificates: false
     )
   end
 
@@ -95,17 +96,14 @@ platform :ios do
     # Sync signing certificates
     sync_signing
 
-    Dir.chdir("../../") do
-      # Build the app with proper code signing
-      sh("flutter build ios --release")
+    # Install CocoaPods dependencies
+    Dir.chdir("..") do
+      sh("pod install")
+    end
 
-      # Build the Xcode project for TestFlight
-      build_app(
-        scheme: "Runner",
-        configuration: "Release",
-        export_method: "app-store",
-        clean: true
-      )
+    # Build the iOS app using Flutter (includes Xcode build and IPA creation)
+    Dir.chdir("../../") do
+      sh("flutter build ipa --release")
     end
   end
 
@@ -119,8 +117,8 @@ platform :ios do
 
     # Upload to TestFlight
     upload_to_testflight(
+      ipa: "../build/ios/ipa/Wishlist Wizard.ipa",
       skip_waiting_for_build_processing: true,
-      apple_id: ENV["FASTLANE_APPLE_ID"],
       team_id: ENV["FASTLANE_TEAM_ID"],
       beta_app_description: "Wishlist Wizard iOS Beta",
       beta_app_feedback_email: ENV["BETA_FEEDBACK_EMAIL"],
@@ -182,10 +180,12 @@ platform :ios do
   end
 
   error do |lane, exception|
-    # Handle errors
-    puts "Lane #{lane} failed with exception: #{exception.message}"
-
-    # Clean up on failure
-    clean
+    # Handle errors - don't clean for beta lane to preserve IPA
+    if lane != :beta
+      puts "Lane #{lane} failed with exception: #{exception.message}"
+      clean
+    else
+      puts "Lane #{lane} failed with exception: #{exception.message}"
+    end
   end
 end
