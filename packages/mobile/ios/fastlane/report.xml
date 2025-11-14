@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites>
+  <testsuite name="fastlane.lanes">
+    
+    
+    
+      
+      <testcase classname="fastlane.lanes" name="00: default_platform" time="0.000146">
+        
+      </testcase>
+    
+      
+      <testcase classname="fastlane.lanes" name="01: Switch to ios load_asc_api_key lane" time="6.6e-05">
+        
+      </testcase>
+    
+      
+      <testcase classname="fastlane.lanes" name="02: app_store_connect_api_key" time="0.002069">
+        
+      </testcase>
+    
+      
+      <testcase classname="fastlane.lanes" name="03: Switch to ios build_testflight lane" time="8.4e-05">
+        
+      </testcase>
+    
+      
+      <testcase classname="fastlane.lanes" name="04: Switch to ios flutter_deps lane" time="6.4e-05">
+        
+      </testcase>
+    
+      
+      <testcase classname="fastlane.lanes" name="05: flutter pub get" time="1.38517">
+        
+      </testcase>
+    
+      
+      <testcase classname="fastlane.lanes" name="06: Switch to ios sync_signing lane" time="0.000139">
+        
+      </testcase>
+    
+      
+      <testcase classname="fastlane.lanes" name="07: match" time="5.939162">
+        
+      </testcase>
+    
+      
+      <testcase classname="fastlane.lanes" name="08: pod install" time="14.321457">
+        
+      </testcase>
+    
+      
+      <testcase classname="fastlane.lanes" name="09: flutter build ipa --release" time="177.140699">
+        
+      </testcase>
+    
+      
+      <testcase classname="fastlane.lanes" name="10: upload_to_testflight" time="5808.334403">
+        
+      </testcase>
+    
+  </testsuite>
+</testsuites>
