@@ -31,12 +31,30 @@ project-root/
 └── ZERO_TOUCH_DEVOPS_IMPLEMENTATION_GUIDE.md  # Full documentation
 ```
 
-### 3. **Core Components Priority Order**
+### 3. **Mobile App Deployment** (NEW!)
+**iOS App Store & Android Play Store automation**
+
+```bash
+# Deploy iOS app to TestFlight/App Store
+./automate.sh deploy ios development    # TestFlight
+./automate.sh deploy ios production     # App Store
+
+# Deploy Android app to Play Store
+./automate.sh deploy android staging    # Internal/Beta track
+./automate.sh deploy android production # Production track
+```
+
+**Fastlane Integration:**
+- iOS: `packages/mobile/ios/fastlane/` (TestFlight + App Store)
+- Android: `packages/mobile/android/fastlane/` (Google Play)
+
+### 4. **Core Components Priority Order**
 1. **Master Controller** (`automate.sh`) - Unified interface
 2. **Environment Manager** - Multi-environment setup
 3. **Monitoring System** - Health checks and alerts
 4. **GitHub Runners** - CI/CD execution
 5. **Token Rotation** - Automated credential management
+6. **Mobile Deployment** - iOS/Android app stores
 
 ## 🛠️ Implementation Checklist
 
@@ -57,11 +75,13 @@ project-root/
 - [ ] Configure deployment pipelines
 - [ ] Set up alerting (email/Slack)
 - [ ] Enable token rotation
+- [ ] **Configure mobile app deployment (iOS/Android)**
 
 ### Phase 4: Validation
 - [ ] Test full deployment cycle
 - [ ] Verify monitoring alerts
 - [ ] Confirm auto-healing works
+- [ ] **Test mobile app deployment to stores**
 - [ ] Document customizations
 
 ## 🔧 Key Technical Patterns
@@ -156,6 +176,7 @@ log_error() { echo "$(date '+%Y-%m-%d %H:%M:%S') [ERROR] $1" | tee -a "$LOG_FILE
 - [ ] Monitoring system detects issues and sends alerts
 - [ ] Environment configurations deploy successfully
 - [ ] Token rotation works automatically
+- [ ] **Mobile apps deploy to app stores successfully**
 
 ### Compatibility Requirements
 - [ ] Runs on macOS (Bash 3.2)

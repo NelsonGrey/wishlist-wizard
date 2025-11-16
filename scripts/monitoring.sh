@@ -290,6 +290,40 @@ monitor_api_endpoints() {
         "$HEALTH_FILE" > "${HEALTH_FILE}.tmp" && mv "${HEALTH_FILE}.tmp" "$HEALTH_FILE"
 }
 
+# Mobile app monitoring
+monitor_mobile_apps() {
+    log_info "Monitoring mobile apps..."
+
+    # Check iOS App Store availability
+    ios_app_id="6441234567"  # Replace with actual App Store ID
+    ios_lookup_url="https://itunes.apple.com/lookup?id=$ios_app_id"
+
+    ios_response=$(curl -s --max-time 10 "$ios_lookup_url" 2>/dev/null)
+    if echo "$ios_response" | grep -q '"resultCount":1'; then
+        log_success "iOS App Store: Available"
+    else
+        send_alert "WARNING" "Mobile Apps" "iOS app not found in App Store" "App ID: $ios_app_id"
+    fi
+
+    # Check Android Play Store availability
+    android_package="com.nelsongrey.wishlistwizard.mobile"
+    android_url="https://play.google.com/store/apps/details?id=$android_package"
+
+    android_response=$(curl -s --max-time 10 "$android_url" 2>/dev/null)
+    if echo "$android_response" | grep -q "Wishlist Wizard"; then
+        log_success "Android Play Store: Available"
+    else
+        send_alert "WARNING" "Mobile Apps" "Android app not found in Play Store" "Package: $android_package"
+    fi
+
+    # Check TestFlight beta availability (requires App Store Connect API)
+    log_info "TestFlight monitoring requires App Store Connect API setup"
+
+    # Update health status
+    jq '.mobile = {ios_app_store: "monitored", android_play_store: "monitored", testflight: "pending", timestamp: now | todate}' \
+        "$HEALTH_FILE" > "${HEALTH_FILE}.tmp" && mv "${HEALTH_FILE}.tmp" "$HEALTH_FILE"
+}
+
 # Certificate monitoring
 monitor_certificates() {
     log_info "Monitoring SSL certificates..."
@@ -385,6 +419,7 @@ main() {
         monitor_firebase
         monitor_docker
         monitor_api_endpoints
+        monitor_mobile_apps
         monitor_certificates
         auto_heal
         generate_report
@@ -400,6 +435,7 @@ main() {
             monitor_firebase
             monitor_docker
             monitor_api_endpoints
+            monitor_mobile_apps
             monitor_certificates
             auto_heal
 

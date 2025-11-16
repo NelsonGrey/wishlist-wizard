@@ -1,0 +1,11 @@
+# Appfile for Wishlist Wizard Android App
+# https://docs.fastlane.tools/advanced/Appfile/
+
+# Package name for the Android app
+package_name(ENV["MOBILE_ANDROID_PACKAGE"] || "com.nelsongrey.wishlistwizard.mobile")
+
+# JSON key file path for Google Play Store (optional, can use json_key_data instead)
+# json_key_file("path/to/google-play-service-account.json")
+
+# Default language for metadata
+default_language("en-US")
