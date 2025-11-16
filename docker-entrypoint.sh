@@ -19,6 +19,12 @@ fi
 # Use ACCESS_TOKEN if available, otherwise use RUNNER_TOKEN
 TOKEN="${ACCESS_TOKEN:-$RUNNER_TOKEN}"
 
+# Check if runner is already configured
+if [ -f ".runner" ]; then
+    echo "Runner is already configured, removing old configuration..."
+    ./config.sh remove --token "$TOKEN" || echo "Failed to remove old configuration, continuing..."
+fi
+
 # Configure the runner
 echo "Configuring GitHub Actions runner..."
 ./config.sh \
