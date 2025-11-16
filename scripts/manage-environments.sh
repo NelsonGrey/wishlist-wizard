@@ -22,11 +22,10 @@ ENVIRONMENT="${1:-development}"
 ACTION="${2:-status}"
 SECRET_NAME="${3:-}"
 
-# Environment configurations
-declare -A ENV_CONFIGS
-ENV_CONFIGS[development]="wishlist-wizard-dev"
-ENV_CONFIGS[staging]="wishlist-wizard-staging"
-ENV_CONFIGS[production]="wishlist-wizard-prod"
+# Environment configurations (Bash 3.2 compatible)
+ENV_CONFIGS_development="wishlist-wizard-dev"
+ENV_CONFIGS_staging="wishlist-wizard-staging"
+ENV_CONFIGS_production="wishlist-wizard-prod"
 
 # Helper functions
 log_info() {
@@ -52,16 +51,17 @@ log_header() {
 
 # Validate environment
 validate_environment() {
-    if [[ ! " ${!ENV_CONFIGS[@]} " =~ " $ENVIRONMENT " ]]; then
+    local valid_envs="development staging production"
+    if [[ ! "$valid_envs" =~ "$ENVIRONMENT" ]]; then
         log_error "Invalid environment: $ENVIRONMENT"
-        echo "Valid environments: ${!ENV_CONFIGS[@]}"
+        echo "Valid environments: development, staging, production"
         exit 1
     fi
 }
 
 # Get Firebase project ID
 get_firebase_project() {
-    echo "${ENV_CONFIGS[$ENVIRONMENT]}"
+    eval "echo \$ENV_CONFIGS_$ENVIRONMENT"
 }
 
 # Generate secure random values
@@ -216,51 +216,46 @@ manage_github_secrets() {
     # Load environment variables
     source ".env.${ENVIRONMENT}"
 
-    # Define secrets to sync
-    declare -A GITHUB_SECRETS
-
-    # Firebase secrets
-    GITHUB_SECRETS["FIREBASE_SERVICE_ACCOUNT_KEY_${ENVIRONMENT}"]="$FIREBASE_SERVICE_ACCOUNT_KEY"
-    GITHUB_SECRETS["VITE_FIREBASE_API_KEY_${ENVIRONMENT}"]="$FIREBASE_API_KEY"
-    GITHUB_SECRETS["VITE_FIREBASE_AUTH_DOMAIN_${ENVIRONMENT}"]="$FIREBASE_AUTH_DOMAIN"
-    GITHUB_SECRETS["VITE_FIREBASE_PROJECT_ID_${ENVIRONMENT}"]="$FIREBASE_PROJECT_ID"
-    GITHUB_SECRETS["VITE_FIREBASE_STORAGE_BUCKET_${ENVIRONMENT}"]="$FIREBASE_STORAGE_BUCKET"
-    GITHUB_SECRETS["VITE_FIREBASE_MESSAGING_SENDER_ID_${ENVIRONMENT}"]="$FIREBASE_MESSAGING_SENDER_ID"
-    GITHUB_SECRETS["VITE_FIREBASE_APP_ID_${ENVIRONMENT}"]="$FIREBASE_APP_ID"
-
-    # API secrets
-    GITHUB_SECRETS["VITE_API_BASE_URL_${ENVIRONMENT}"]="$VITE_API_BASE_URL"
-    GITHUB_SECRETS["DATABASE_URL_${ENVIRONMENT}"]="$DATABASE_URL"
-    GITHUB_SECRETS["JWT_SECRET_${ENVIRONMENT}"]="$JWT_SECRET"
-    GITHUB_SECRETS["ENCRYPTION_KEY_${ENVIRONMENT}"]="$ENCRYPTION_KEY"
-
-    # Third-party secrets
-    GITHUB_SECRETS["VITE_STRIPE_PUBLISHABLE_KEY_${ENVIRONMENT}"]="$VITE_STRIPE_PUBLISHABLE_KEY"
-    GITHUB_SECRETS["STRIPE_SECRET_KEY_${ENVIRONMENT}"]="$STRIPE_SECRET_KEY"
-    GITHUB_SECRETS["STRIPE_WEBHOOK_SECRET_${ENVIRONMENT}"]="$STRIPE_WEBHOOK_SECRET"
+    # Define secrets to sync (Bash 3.2 compatible)
+    GITHUB_SECRETS_FIREBASE_SERVICE_ACCOUNT_KEY="${FIREBASE_SERVICE_ACCOUNT_KEY}"
+    GITHUB_SECRETS_VITE_FIREBASE_API_KEY="${VITE_FIREBASE_API_KEY}"
+    GITHUB_SECRETS_VITE_FIREBASE_AUTH_DOMAIN="${VITE_FIREBASE_AUTH_DOMAIN}"
+    GITHUB_SECRETS_VITE_FIREBASE_PROJECT_ID="${VITE_FIREBASE_PROJECT_ID}"
+    GITHUB_SECRETS_VITE_FIREBASE_STORAGE_BUCKET="${VITE_FIREBASE_STORAGE_BUCKET}"
+    GITHUB_SECRETS_VITE_FIREBASE_MESSAGING_SENDER_ID="${VITE_FIREBASE_MESSAGING_SENDER_ID}"
+    GITHUB_SECRETS_VITE_FIREBASE_APP_ID="${VITE_FIREBASE_APP_ID}"
+    GITHUB_SECRETS_VITE_API_BASE_URL="${VITE_API_BASE_URL}"
+    GITHUB_SECRETS_DATABASE_URL="${DATABASE_URL}"
+    GITHUB_SECRETS_JWT_SECRET="${JWT_SECRET}"
+    GITHUB_SECRETS_ENCRYPTION_KEY="${ENCRYPTION_KEY}"
+    GITHUB_SECRETS_VITE_STRIPE_PUBLISHABLE_KEY="${VITE_STRIPE_PUBLISHABLE_KEY}"
+    GITHUB_SECRETS_STRIPE_SECRET_KEY="${STRIPE_SECRET_KEY}"
+    GITHUB_SECRETS_STRIPE_WEBHOOK_SECRET="${STRIPE_WEBHOOK_SECRET}"
 
     # Mobile app secrets (production/staging only)
     if [[ "$ENVIRONMENT" == "production" || "$ENVIRONMENT" == "staging" ]]; then
-        GITHUB_SECRETS["ASC_KEY_ID"]="$ASC_KEY_ID"
-        GITHUB_SECRETS["ASC_ISSUER_ID"]="$ASC_ISSUER_ID"
-        GITHUB_SECRETS["ASC_PRIVATE_KEY"]="$ASC_PRIVATE_KEY"
-        GITHUB_SECRETS["FASTLANE_APPLE_ID"]="$FASTLANE_APPLE_ID"
-        GITHUB_SECRETS["FASTLANE_TEAM_ID"]="$FASTLANE_TEAM_ID"
-        GITHUB_SECRETS["FASTLANE_ITC_TEAM_ID"]="$FASTLANE_ITC_TEAM_ID"
-        GITHUB_SECRETS["GOOGLE_PLAY_SERVICE_ACCOUNT_KEY"]="$GOOGLE_PLAY_SERVICE_ACCOUNT_KEY"
+        GITHUB_SECRETS_ASC_KEY_ID="${ASC_KEY_ID}"
+        GITHUB_SECRETS_ASC_ISSUER_ID="${ASC_ISSUER_ID}"
+        GITHUB_SECRETS_ASC_PRIVATE_KEY="${ASC_PRIVATE_KEY}"
+        GITHUB_SECRETS_FASTLANE_APPLE_ID="${FASTLANE_APPLE_ID}"
+        GITHUB_SECRETS_FASTLANE_TEAM_ID="${FASTLANE_TEAM_ID}"
+        GITHUB_SECRETS_FASTLANE_ITC_TEAM_ID="${FASTLANE_ITC_TEAM_ID}"
+        GITHUB_SECRETS_GOOGLE_PLAY_SERVICE_ACCOUNT_KEY="${GOOGLE_PLAY_SERVICE_ACCOUNT_KEY}"
     fi
 
     # Chrome extension secrets
-    GITHUB_SECRETS["CHROME_EXTENSION_ID"]="$CHROME_EXTENSION_ID"
-    GITHUB_SECRETS["CHROME_CLIENT_ID"]="$CHROME_CLIENT_ID"
-    GITHUB_SECRETS["CHROME_CLIENT_SECRET"]="$CHROME_CLIENT_SECRET"
-    GITHUB_SECRETS["CHROME_REFRESH_TOKEN"]="$CHROME_REFRESH_TOKEN"
+    GITHUB_SECRETS_CHROME_EXTENSION_ID="${CHROME_EXTENSION_ID}"
+    GITHUB_SECRETS_CHROME_CLIENT_ID="${CHROME_CLIENT_ID}"
+    GITHUB_SECRETS_CHROME_CLIENT_SECRET="${CHROME_CLIENT_SECRET}"
+    GITHUB_SECRETS_CHROME_REFRESH_TOKEN="${CHROME_REFRESH_TOKEN}"
 
     # Sync secrets to GitHub
-    for secret_name in "${!GITHUB_SECRETS[@]}"; do
-        secret_value="${GITHUB_SECRETS[$secret_name]}"
+    for secret_var in $(env | grep "^GITHUB_SECRETS_" | cut -d= -f1); do
+        secret_name=$(echo "$secret_var" | sed 's/GITHUB_SECRETS_//')
+        secret_value=$(eval "echo \$$secret_var")
 
         if [ -n "$secret_value" ] && [ "$secret_value" != "your_"* ]; then
+            echo -n "$secret_value" | gh secret set "${secret_name}_${ENVIRONMENT}" --repo mnelson3/wishlist-wizard 2>/dev/null || \
             echo -n "$secret_value" | gh secret set "$secret_name" --repo mnelson3/wishlist-wizard
             log_success "Updated GitHub secret: $secret_name"
         else
@@ -382,9 +377,9 @@ show_status() {
         log_success "Environment file exists: $ENV_FILE"
 
         # Count configured secrets
-        total_secrets=$(grep -c "^[A-Z_][A-Z0-9_]*=" "$ENV_FILE" || echo "0")
-        placeholder_secrets=$(grep -c "your_" "$ENV_FILE" || echo "0")
-        configured_secrets=$((total_secrets - placeholder_secrets))
+        total_secrets=$(grep -c "^[A-Z_][A-Z0-9_]*=" "$ENV_FILE" 2>/dev/null | tr -d '\n' || echo "0")
+        placeholder_secrets=$(grep -c "your_" "$ENV_FILE" 2>/dev/null | tr -d '\n' || echo "0")
+        configured_secrets=$(( ${total_secrets:-0} - ${placeholder_secrets:-0} ))
 
         echo "Secrets configured: $configured_secrets / $total_secrets"
         echo ""
@@ -463,7 +458,7 @@ main() {
             echo "  status         Show environment status"
             echo "  full-setup     Complete environment setup"
             echo ""
-            echo "Environments: ${!ENV_CONFIGS[@]}"
+            echo "Environments: development, staging, production"
             exit 1
             ;;
     esac
