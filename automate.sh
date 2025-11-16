@@ -119,9 +119,15 @@ cmd_deploy() {
             firebase use "wishlist-wizard-${ENVIRONMENT}"
             firebase deploy --only hosting --project "wishlist-wizard-${ENVIRONMENT}"
             ;;
+        "ios")
+            deploy_mobile_ios "$ENVIRONMENT"
+            ;;
+        "android")
+            deploy_mobile_android "$ENVIRONMENT"
+            ;;
         *)
             log_error "Invalid deployment target: $SUBCOMMAND"
-            echo "Usage: $0 deploy [full|web|api|mobile] [environment]"
+            echo "Usage: $0 deploy [full|web|api|mobile|ios|android] [environment]"
             exit 1
             ;;
     esac
@@ -313,6 +319,127 @@ cmd_docker() {
     esac
 }
 
+# Mobile deployment functions
+deploy_mobile_ios() {
+    local env="$1"
+    log_header "iOS Mobile App Deployment - $env"
+
+    # Check prerequisites
+    if ! command -v flutter &> /dev/null; then
+        log_error "Flutter not found. Please install Flutter SDK."
+        exit 1
+    fi
+
+    if ! command -v fastlane &> /dev/null; then
+        log_error "Fastlane not found. Please install Fastlane."
+        exit 1
+    fi
+
+    # Navigate to mobile project
+    cd packages/mobile
+
+    log_info "Building iOS app for $env..."
+
+    # Set environment variables for Fastlane
+    export FASTLANE_APPLE_ID="$ASC_APPLE_ID"
+    export FASTLANE_TEAM_ID="$ASC_TEAM_ID"
+    export FASTLANE_ITC_TEAM_ID="$ASC_ITC_TEAM_ID"
+    export ASC_KEY_ID="$ASC_KEY_ID"
+    export ASC_ISSUER_ID="$ASC_ISSUER_ID"
+    export ASC_PRIVATE_KEY="$ASC_PRIVATE_KEY"
+    export MATCH_GIT_URL="$MATCH_GIT_URL"
+    export BETA_FEEDBACK_EMAIL="$BETA_FEEDBACK_EMAIL"
+
+    # Build and deploy based on environment
+    case $env in
+        "development")
+            log_info "Deploying to TestFlight (Development)..."
+            cd ios
+            fastlane beta
+            ;;
+        "staging")
+            log_info "Deploying to TestFlight (Staging)..."
+            cd ios
+            fastlane beta
+            ;;
+        "production")
+            log_info "Deploying to App Store (Production)..."
+            cd ios
+            fastlane release
+            ;;
+    esac
+
+    cd "$PROJECT_ROOT"
+    log_success "iOS deployment completed for $env!"
+}
+
+deploy_mobile_android() {
+    local env="$1"
+    log_header "Android Mobile App Deployment - $env"
+
+    # Check prerequisites
+    if ! command -v flutter &> /dev/null; then
+        log_error "Flutter not found. Please install Flutter SDK."
+        exit 1
+    fi
+
+    # Navigate to mobile project
+    cd packages/mobile
+
+    log_info "Building Android app for $env..."
+
+    # Set build configuration
+    export MOBILE_BUILD_MODE="${MOBILE_BUILD_MODE:-release}"
+    export MOBILE_BUILD_NUMBER="${MOBILE_BUILD_NUMBER:-1}"
+    export MOBILE_VERSION_NAME="${MOBILE_VERSION_NAME:-1.0.0}"
+    export MOBILE_VERSION_CODE="${MOBILE_VERSION_CODE:-1}"
+
+    # Build APK/AAB
+    log_info "Building Flutter app..."
+    flutter clean
+    flutter pub get
+
+    case $env in
+        "development")
+            flutter build apk --debug --build-name="$MOBILE_VERSION_NAME" --build-number="$MOBILE_BUILD_NUMBER"
+            ;;
+        "staging")
+            flutter build appbundle --build-name="$MOBILE_VERSION_NAME" --build-number="$MOBILE_BUILD_NUMBER"
+            ;;
+        "production")
+            flutter build appbundle --build-name="$MOBILE_VERSION_NAME" --build-number="$MOBILE_BUILD_NUMBER"
+            ;;
+    esac
+
+    # Deploy to Google Play
+    log_info "Deploying to Google Play Store..."
+
+    # Set Google Play configuration
+    export GOOGLE_PLAY_SERVICE_ACCOUNT_KEY="$GOOGLE_PLAY_SERVICE_ACCOUNT_KEY"
+    export ANDROID_TRACK="${ANDROID_TRACK:-internal}"
+    export ANDROID_IN_APP_UPDATE_PRIORITY="${ANDROID_IN_APP_UPDATE_PRIORITY:-3}"
+
+    # Use fastlane or direct upload
+    if command -v fastlane &> /dev/null; then
+        cd android
+        case $env in
+            "development"|"staging")
+                fastlane internal
+                ;;
+            "production")
+                fastlane production
+                ;;
+        esac
+    else
+        log_warning "Fastlane not available, skipping automated upload"
+        log_info "Manual upload required to Google Play Console"
+        log_info "APK/AAB location: build/app/outputs/"
+    fi
+
+    cd "$PROJECT_ROOT"
+    log_success "Android deployment completed for $env!"
+}
+
 cmd_help() {
     show_banner
 
@@ -322,7 +449,7 @@ cmd_help() {
 
     echo -e "${WHITE}COMMANDS:${NC}"
     echo -e "${CYAN}  setup${NC}                    Complete system setup and configuration"
-    echo -e "${CYAN}  deploy${NC}     <target>      Deploy to specified target (full|web|api|mobile)"
+    echo -e "${CYAN}  deploy${NC}     <target>      Deploy to specified target (full|web|api|mobile|ios|android)"
     echo -e "${CYAN}  monitor${NC}    <action>      Monitoring system (start|stop|status|once)"
     echo -e "${CYAN}  tokens${NC}     <action>      Token management (rotate|status|github)"
     echo -e "${CYAN}  environment${NC} <action>     Environment management (setup|sync|status|rotate)"
@@ -338,6 +465,8 @@ cmd_help() {
     echo -e "${WHITE}EXAMPLES:${NC}"
     echo "  ./automate.sh setup                    # Complete setup"
     echo "  ./automate.sh deploy full production   # Full production deployment"
+    echo "  ./automate.sh deploy ios production    # Deploy iOS app to App Store"
+    echo "  ./automate.sh deploy android staging   # Deploy Android app to Play Store"
     echo "  ./automate.sh monitor start            # Start monitoring"
     echo "  ./automate.sh tokens rotate            # Rotate all tokens"
     echo "  ./automate.sh environment setup staging # Setup staging environment"
