@@ -36,5 +36,8 @@
   "certificates": {
     "status": "missing",
     "timestamp": "2025-11-16T20:26:38Z"
-  }
+  },
+  "report_generated": "Sun Nov 16 14:26:38 CST 2025",
+  "system_uptime": "14:26  up  3:05, 1 user, load averages: 14.01 12.03 11.18",
+  "system_load": ""
 }
