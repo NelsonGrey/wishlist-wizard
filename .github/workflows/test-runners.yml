@@ -8,20 +8,25 @@ on:
 jobs:
   test-linux:
     name: Test Linux Runner
-    runs-on: self-hosted
+    runs-on: [self-hosted, ARM64, Linux, x64, wishlist-wizard]
     steps:
       - name: Hello from Linux
         run: |
-          echo "Hello from Linux self-hosted runner!"
+          echo "🐧 Hello from Linux self-hosted runner!"
           uname -a
+          echo "🏠 Hostname: $(hostname)"
+          echo "💰 Cost savings: Using self-hosted runner"
           date
 
   test-macos:
     name: Test macOS Runner
-    runs-on: self-hosted
+    runs-on: [self-hosted, macos-latest, wishlist-wizard]
     steps:
       - name: Hello from macOS
         run: |
-          echo "Hello from macOS self-hosted runner!"
+          echo "🍎 Hello from macOS self-hosted runner!"
           uname -a
+          echo "🏠 Hostname: $(hostname)"
+          echo "💰 Cost savings: Using self-hosted runner"
+          sw_vers
           date
