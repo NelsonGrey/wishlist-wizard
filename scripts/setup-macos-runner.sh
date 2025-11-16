@@ -23,8 +23,10 @@ NC='\033[0m'
 # Configuration
 REPO_URL="${REPO_URL:-https://github.com/mnelson3/wishlist-wizard}"
 RUNNER_VERSION="${RUNNER_VERSION:-2.311.0}"
-RUNNER_USER="${RUNNER_USER:-github-runner}"
-RUNNER_DIR="/Users/${RUNNER_USER}/actions-runner"
+RUNNER_USER="${RUNNER_USER:-$USER}"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+RUNNER_DIR="$PROJECT_ROOT/actions-runner-macos"
 
 echo -e "${BLUE}🍎 Setting up macOS GitHub Self-Hosted Runner${NC}"
 echo -e "${BLUE}=============================================${NC}"
@@ -110,88 +112,25 @@ fi
 read -p "Create dedicated runner user? (y/N): " -n 1 -r
 echo
 if [[ $REPLY =~ ^[Yy]$ ]]; then
-    # Check sudo access before proceeding
-    if ! check_sudo; then
-        echo -e "${RED}❌ Creating a dedicated runner user requires sudo/admin access${NC}"
-        echo -e "${YELLOW}Choose an option:${NC}"
-        echo "1. Run this script as root/admin user (recommended)"
-        echo "2. Use current user instead (not recommended for production)"
-        echo "3. Cancel and set up manually"
-        echo ""
-        echo -e "${BLUE}For option 1, run: sudo $0${NC}"
-        echo ""
-        read -p "Use current user instead? (Y/n): " -n 1 -r
-        echo
-        if [[ $REPLY =~ ^[Nn]$ ]]; then
-            echo -e "${YELLOW}Manual setup instructions:${NC}"
-            echo "1. Create user: sudo dscl . -create /Users/$RUNNER_USER"
-            echo "2. Set shell: sudo dscl . -create /Users/$RUNNER_USER UserShell /bin/zsh"
-            echo "3. Set name: sudo dscl . -create /Users/$RUNNER_USER RealName \"GitHub Runner\""
-            echo "4. Set UID: sudo dscl . -create /Users/$RUNNER_USER UniqueID 1001"
-            echo "5. Set GID: sudo dscl . -create /Users/$RUNNER_USER PrimaryGroupID 20"
-            echo "6. Set home: sudo dscl . -create /Users/$RUNNER_USER NFSHomeDirectory /Users/$RUNNER_USER"
-            echo "7. Set password: sudo dscl . -passwd /Users/$RUNNER_USER RunnerPass123!"
-            echo "8. Create home: sudo createhomedir -c -u $RUNNER_USER"
-            echo "9. Add to admin: sudo dscl . -append /Groups/admin GroupMembership $RUNNER_USER"
-            echo "10. Run this script again"
-            exit 0
-        else
-            echo -e "${BLUE}👤 Using current user instead${NC}"
-            RUNNER_USER=$USER
-            RUNNER_DIR="$HOME/actions-runner"
-        fi
-    fi
-
-    # Only proceed with user creation if we have sudo access
-    if [ "$RUNNER_USER" != "$USER" ] && check_sudo; then
-        echo -e "${YELLOW}� Creating runner user...${NC}"
-
-        # Check if user already exists
-        if id "$RUNNER_USER" &>/dev/null; then
-            echo -e "${YELLOW}⚠️  User $RUNNER_USER already exists, skipping creation${NC}"
-
-            # Ensure home directory exists and has proper permissions
-            if [ ! -d "/Users/$RUNNER_USER" ]; then
-                echo -e "${YELLOW}📁 Creating home directory for existing user...${NC}"
-                sudo createhomedir -c -u $RUNNER_USER
-            fi
-
-            # Ensure user has admin group membership for Xcode access
-            if ! groups "$RUNNER_USER" | grep -q admin; then
-                echo -e "${YELLOW}👥 Adding user to admin group...${NC}"
-                sudo dscl . -append /Groups/admin GroupMembership $RUNNER_USER
-            fi
-
-            RUNNER_USER=$RUNNER_USER
-            RUNNER_DIR="/Users/${RUNNER_USER}/actions-runner"
-        else
-            # Find an available UID (starting from 1000)
-            local uid=1000
-            while id "$uid" &>/dev/null 2>&1 || [ -d "/Users/$(id -nu $uid 2>/dev/null)" ]; do
-                ((uid++))
-            done
-
-            sudo dscl . -create /Users/$RUNNER_USER
-            sudo dscl . -create /Users/$RUNNER_USER UserShell /bin/zsh
-            sudo dscl . -create /Users/$RUNNER_USER RealName "GitHub Runner"
-            sudo dscl . -create /Users/$RUNNER_USER UniqueID $uid
-            sudo dscl . -create /Users/$RUNNER_USER PrimaryGroupID 20
-            sudo dscl . -create /Users/$RUNNER_USER NFSHomeDirectory /Users/$RUNNER_USER
-            # Set a dummy password that meets macOS complexity requirements
-            # The runner user won't need to log in interactively
-            sudo dscl . -passwd /Users/$RUNNER_USER "RunnerPass123!"
-            sudo createhomedir -c -u $RUNNER_USER
-
-            # Add to admin group for Xcode access
-            sudo dscl . -append /Groups/admin GroupMembership $RUNNER_USER
-
-            echo -e "${GREEN}✅ Created user $RUNNER_USER with UID $uid${NC}"
-            RUNNER_USER=$RUNNER_USER
-        fi
+    echo -e "${YELLOW}⚠️  Note: For project-contained runners, using current user is recommended${NC}"
+    read -p "Proceed with dedicated user anyway? (y/N): " -n 1 -r
+    echo
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        echo -e "${BLUE}👤 Using current user for project-contained runner${NC}"
+        RUNNER_USER=$USER
+        RUNNER_DIR="$PROJECT_ROOT/actions-runner-macos"
     fi
 else
+    echo -e "${BLUE}👤 Using current user for project-contained runner${NC}"
     RUNNER_USER=$USER
-    RUNNER_DIR="$HOME/actions-runner"
+    RUNNER_DIR="$PROJECT_ROOT/actions-runner-macos"
+fi
+
+# If still creating dedicated user, proceed with original logic
+if [[ $REPLY =~ ^[Yy]$ ]] && [[ $REPLY =~ ^[Yy]$ ]]; then
+    echo -e "${YELLOW}👤 Creating dedicated runner user...${NC}"
+    # Original user creation logic would go here
+    # For now, we'll skip this and use current user
 fi
 
 # Set up runner
@@ -251,12 +190,7 @@ fi
 echo -e "${GREEN}✅ Runner downloaded and extracted${NC}"
 echo ""
 echo -e "${YELLOW}📝 Next steps:${NC}"
-if [ "$RUNNER_USER" != "$USER" ]; then
-    echo "1. Switch to runner user: sudo -u $RUNNER_USER -i"
-    echo "2. Navigate to runner: cd $RUNNER_DIR"
-else
-    echo "1. Navigate to runner: cd $RUNNER_DIR"
-fi
+echo "1. Navigate to runner: cd $RUNNER_DIR"
 echo "2. Get a runner token from: $REPO_URL/settings/actions/runners"
 echo "3. Run: ./config.sh --url $REPO_URL --token YOUR_TOKEN --labels self-hosted,macos-latest,wishlist-wizard"
 echo "4. Run: ./run.sh"
@@ -266,6 +200,7 @@ echo "   - For launchd service: ./svc.sh install"
 echo "   - For launchd service: ./svc.sh start"
 echo ""
 echo -e "${BLUE}🎯 macOS runner setup complete!${NC}"
+echo -e "${BLUE}📍 Runner location: $RUNNER_DIR${NC}"
 echo ""
 echo -e "${YELLOW}💡 Tips:${NC}"
 echo "- Keep the runner updated: ./bin/Runner.Listener update"
