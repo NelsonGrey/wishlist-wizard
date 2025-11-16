@@ -47,6 +47,11 @@ log_error() {
     echo "$(date '+%Y-%m-%d %H:%M:%S') [ERROR] $1" | tee -a "$LOG_FILE"
 }
 
+log_header() {
+    echo -e "${PURPLE}🚀 $1${NC}"
+    echo -e "${PURPLE}$(printf '%.0s=' {1..50})${NC}"
+}
+
 # Send alert notifications
 send_alert() {
     local level="$1"
@@ -131,6 +136,14 @@ monitor_system_resources() {
 monitor_github_actions() {
     log_info "Monitoring GitHub Actions..."
 
+    # Check if GitHub CLI is authenticated
+    if ! gh auth status > /dev/null 2>&1; then
+        log_warning "GitHub CLI not authenticated - skipping GitHub Actions monitoring"
+        jq '.github = {status: "not_authenticated", timestamp: now | todate}' \
+            "$HEALTH_FILE" > "${HEALTH_FILE}.tmp" && mv "${HEALTH_FILE}.tmp" "$HEALTH_FILE"
+        return
+    fi
+
     # Check runner status
     RUNNERS=$(gh api repos/mnelson3/wishlist-wizard/actions/runners --jq '.runners[] | select(.status == "online") | .name' 2>/dev/null)
 
@@ -142,7 +155,7 @@ monitor_github_actions() {
     fi
 
     # Check recent workflow runs
-    FAILED_RUNS=$(gh run list --repo mnelson3/wishlist-wizard --limit 5 --json status,conclusion | jq '.[] | select(.status == "completed" and .conclusion == "failure") | .databaseId' | wc -l)
+    FAILED_RUNS=$(gh run list --repo mnelson3/wishlist-wizard --limit 5 --json status,conclusion | jq '.[] | select(.status == "completed" and .conclusion == "failure") | .databaseId' | wc -l 2>/dev/null || echo "0")
 
     if [ "$FAILED_RUNS" -gt 0 ]; then
         send_alert "WARNING" "GitHub Actions" "Recent workflow failures detected" "$FAILED_RUNS workflows failed in the last 5 runs"
@@ -240,13 +253,17 @@ monitor_docker() {
 monitor_api_endpoints() {
     log_info "Monitoring API endpoints..."
 
-    declare -A ENDPOINTS
-    ENDPOINTS["production"]="https://api.wishlist-wizard-prod.web.app"
-    ENDPOINTS["staging"]="https://api.wishlist-wizard-staging.web.app"
-    ENDPOINTS["development"]="http://localhost:5001/wishlist-wizard-dev/us-central1/api"
+    ENDPOINTS_production="https://api.wishlist-wizard-prod.web.app"
+    ENDPOINTS_staging="https://api.wishlist-wizard-staging.web.app"
+    ENDPOINTS_development="http://localhost:5001/wishlist-wizard-dev/us-central1/api"
 
-    for env in "${!ENDPOINTS[@]}"; do
-        url="${ENDPOINTS[$env]}"
+    for env in production staging development; do
+        url=""
+        case $env in
+            production) url="$ENDPOINTS_production" ;;
+            staging) url="$ENDPOINTS_staging" ;;
+            development) url="$ENDPOINTS_development" ;;
+        esac
 
         # Health check
         start_time=$(date +%s%3N)
