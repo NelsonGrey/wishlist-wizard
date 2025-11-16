@@ -62,6 +62,17 @@ EOF
     echo -e "${NC}"
 }
 
+# Load environment variables from .env.automation if it exists
+if [ -f ".env.automation" ]; then
+    log_info "Loading configuration from .env.automation"
+    set -a
+    source .env.automation
+    set +a
+else
+    log_warning ".env.automation file not found. Some features may not work."
+    log_info "Copy .env.automation.example to .env.automation and configure it."
+fi
+
 # Validate environment
 validate_environment() {
     local valid_envs=("development" "staging" "production")
@@ -72,12 +83,63 @@ validate_environment() {
     fi
 }
 
+# Setup GitHub CLI authentication (CRITICAL for zero-touch operation)
+setup_github_cli() {
+    log_header "GitHub CLI Authentication Setup"
+
+    # Check if GH_TOKEN is provided
+    if [ -z "$GH_TOKEN" ]; then
+        log_error "GH_TOKEN environment variable is required for GitHub CLI authentication"
+        log_info "Please set GH_TOKEN in your .env.automation file"
+        log_info "Get a token from: https://github.com/settings/tokens"
+        exit 1
+    fi
+
+    # Check if GitHub CLI is installed
+    if ! command -v gh &> /dev/null; then
+        log_info "Installing GitHub CLI..."
+        if command -v brew &> /dev/null; then
+            brew install gh
+        elif command -v apt &> /dev/null; then
+            curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
+            echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
+            sudo apt update
+            sudo apt install gh
+        else
+            log_error "GitHub CLI installation not supported on this system"
+            log_info "Please install GitHub CLI manually: https://cli.github.com/"
+            exit 1
+        fi
+    fi
+
+    # Configure GitHub CLI with token
+    log_info "Configuring GitHub CLI authentication..."
+    echo "$GH_TOKEN" | gh auth login --with-token
+
+    # Verify authentication
+    if gh auth status &> /dev/null; then
+        log_success "GitHub CLI authentication successful"
+        # Set Git config for commits (optional)
+        if [ -n "$GIT_USER_NAME" ] && [ -n "$GIT_USER_EMAIL" ]; then
+            git config --global user.name "$GIT_USER_NAME"
+            git config --global user.email "$GIT_USER_EMAIL"
+            log_info "Git user configured: $GIT_USER_NAME <$GIT_USER_EMAIL>"
+        fi
+    else
+        log_error "GitHub CLI authentication failed"
+        exit 1
+    fi
+}
+
 # Automation commands
 cmd_setup() {
     log_header "Complete System Setup"
     validate_environment
 
     log_info "Running complete automation setup for $ENVIRONMENT..."
+
+    # GitHub CLI authentication (CRITICAL for zero-touch operation)
+    setup_github_cli
 
     # Environment setup
     ./scripts/manage-environments.sh "$ENVIRONMENT" setup
