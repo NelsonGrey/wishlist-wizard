@@ -1,0 +1,397 @@
+#!/bin/bash
+
+# 🎯 Master Automation Controller
+# Unified interface for all Wishlist Wizard automation tasks
+
+set -e
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+PURPLE='\033[0;35m'
+CYAN='\033[0;36m'
+WHITE='\033[1;37m'
+NC='\033[0m' # No Color
+
+# Configuration
+COMMAND="${1:-help}"
+SUBCOMMAND="${2:-}"
+ENVIRONMENT="${3:-development}"
+
+# Helper functions
+log_header() {
+    echo -e "${PURPLE}🎯 $1${NC}"
+    echo -e "${PURPLE}$(printf '%.0s=' {1..60})${NC}"
+}
+
+log_info() {
+    echo -e "${BLUE}ℹ️  $1${NC}"
+}
+
+log_success() {
+    echo -e "${GREEN}✅ $1${NC}"
+}
+
+log_warning() {
+    echo -e "${YELLOW}⚠️  $1${NC}"
+}
+
+log_error() {
+    echo -e "${RED}❌ $1${NC}"
+}
+
+# Show banner
+show_banner() {
+    echo -e "${CYAN}"
+    cat << 'EOF'
+╔══════════════════════════════════════════════════════════════╗
+║                    🎯 Wishlist Wizard                       ║
+║                   Master Automation                        ║
+║                                                              ║
+║  🚀 Complete automation for CI/CD, deployments, monitoring  ║
+║  🔐 Token management, environment configuration, security   ║
+║  📊 Health monitoring, alerting, and auto-healing           ║
+║  🔄 Zero-touch operations for all services                  ║
+╚══════════════════════════════════════════════════════════════╝
+EOF
+    echo -e "${NC}"
+}
+
+# Validate environment
+validate_environment() {
+    local valid_envs=("development" "staging" "production")
+    if [[ ! " ${valid_envs[@]} " =~ " $ENVIRONMENT " ]]; then
+        log_error "Invalid environment: $ENVIRONMENT"
+        echo "Valid environments: ${valid_envs[*]}"
+        exit 1
+    fi
+}
+
+# Automation commands
+cmd_setup() {
+    log_header "Complete System Setup"
+    validate_environment
+
+    log_info "Running complete automation setup for $ENVIRONMENT..."
+
+    # Environment setup
+    ./scripts/manage-environments.sh "$ENVIRONMENT" setup
+
+    # Token management
+    ./scripts/token-rotation.sh --force
+
+    # Docker setup
+    ./scripts/automate-all.sh "$ENVIRONMENT" true false
+
+    # Initial deployment
+    ./scripts/automate-all.sh "$ENVIRONMENT" false false
+
+    log_success "Complete setup finished!"
+    log_info "Run './automate.sh monitor start' to begin monitoring"
+}
+
+cmd_deploy() {
+    log_header "Automated Deployment"
+    validate_environment
+
+    case $SUBCOMMAND in
+        "full")
+            log_info "Running full deployment for $ENVIRONMENT..."
+            ./scripts/automate-all.sh "$ENVIRONMENT" false false
+            ;;
+        "web")
+            log_info "Deploying web application..."
+            firebase use "wishlist-wizard-${ENVIRONMENT}"
+            firebase deploy --only hosting --project "wishlist-wizard-${ENVIRONMENT}"
+            ;;
+        "api")
+            log_info "Deploying API functions..."
+            firebase use "wishlist-wizard-${ENVIRONMENT}"
+            firebase deploy --only functions --project "wishlist-wizard-${ENVIRONMENT}"
+            ;;
+        "mobile")
+            log_info "Deploying mobile PWA..."
+            firebase use "wishlist-wizard-${ENVIRONMENT}"
+            firebase deploy --only hosting --project "wishlist-wizard-${ENVIRONMENT}"
+            ;;
+        *)
+            log_error "Invalid deployment target: $SUBCOMMAND"
+            echo "Usage: $0 deploy [full|web|api|mobile] [environment]"
+            exit 1
+            ;;
+    esac
+
+    log_success "Deployment completed!"
+}
+
+cmd_monitor() {
+    log_header "Monitoring & Alerting"
+
+    case $SUBCOMMAND in
+        "start")
+            log_info "Starting monitoring system..."
+            nohup ./scripts/monitoring.sh > monitoring.out 2>&1 &
+            echo $! > monitoring.pid
+            log_success "Monitoring started (PID: $(cat monitoring.pid))"
+            ;;
+        "stop")
+            if [ -f "monitoring.pid" ]; then
+                kill "$(cat monitoring.pid)" 2>/dev/null || true
+                rm monitoring.pid
+                log_success "Monitoring stopped"
+            else
+                log_warning "No monitoring process found"
+            fi
+            ;;
+        "status")
+            if [ -f "monitoring.pid" ] && kill -0 "$(cat monitoring.pid)" 2>/dev/null; then
+                log_success "Monitoring is running (PID: $(cat monitoring.pid))"
+            else
+                log_warning "Monitoring is not running"
+            fi
+            ;;
+        "once")
+            log_info "Running single monitoring cycle..."
+            ./scripts/monitoring.sh --once
+            ;;
+        *)
+            log_error "Invalid monitor command: $SUBCOMMAND"
+            echo "Usage: $0 monitor [start|stop|status|once]"
+            exit 1
+            ;;
+    esac
+}
+
+cmd_tokens() {
+    log_header "Token Management"
+
+    case $SUBCOMMAND in
+        "rotate")
+            log_info "Rotating all tokens and credentials..."
+            ./scripts/token-rotation.sh --force
+            ;;
+        "status")
+            log_info "Checking token status..."
+            ./scripts/token-rotation.sh --dry-run
+            ;;
+        "github")
+            log_info "Managing GitHub tokens..."
+            ./scripts/update-linux-runner-token.sh
+            ;;
+        *)
+            log_error "Invalid token command: $SUBCOMMAND"
+            echo "Usage: $0 tokens [rotate|status|github]"
+            exit 1
+            ;;
+    esac
+}
+
+cmd_environment() {
+    log_header "Environment Management"
+
+    case $SUBCOMMAND in
+        "setup")
+            validate_environment
+            ./scripts/manage-environments.sh "$ENVIRONMENT" setup
+            ;;
+        "sync")
+            validate_environment
+            ./scripts/manage-environments.sh "$ENVIRONMENT" sync-secrets
+            ;;
+        "status")
+            validate_environment
+            ./scripts/manage-environments.sh "$ENVIRONMENT" status
+            ;;
+        "rotate")
+            validate_environment
+            ./scripts/manage-environments.sh "$ENVIRONMENT" rotate-secrets
+            ;;
+        *)
+            log_error "Invalid environment command: $SUBCOMMAND"
+            echo "Usage: $0 environment [setup|sync|status|rotate] [environment]"
+            exit 1
+            ;;
+    esac
+}
+
+cmd_backup() {
+    log_header "Backup & Recovery"
+
+    case $SUBCOMMAND in
+        "create")
+            log_info "Creating system backup..."
+            ./scripts/automate-all.sh development false false  # This includes backup
+            ;;
+        "list")
+            log_info "Available backups:"
+            ls -la backups/ 2>/dev/null || echo "No backups found"
+            ;;
+        "restore")
+            BACKUP_FILE="$3"
+            if [ -z "$BACKUP_FILE" ]; then
+                log_error "Backup file required"
+                echo "Usage: $0 backup restore <backup-file>"
+                exit 1
+            fi
+            log_info "Restoring from backup: $BACKUP_FILE"
+            # Implement restore logic here
+            log_warning "Restore functionality not yet implemented"
+            ;;
+        *)
+            log_error "Invalid backup command: $SUBCOMMAND"
+            echo "Usage: $0 backup [create|list|restore <file>]"
+            exit 1
+            ;;
+    esac
+}
+
+cmd_health() {
+    log_header "System Health Check"
+
+    log_info "Running comprehensive health check..."
+
+    # Quick health checks
+    echo "🔍 System Resources:"
+    top -l 1 | head -5
+
+    echo ""
+    echo "🐳 Docker Status:"
+    docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" | head -10
+
+    echo ""
+    echo "🔥 Firebase Status:"
+    firebase projects:list --limit 3 2>/dev/null | head -5 || echo "Firebase not accessible"
+
+    echo ""
+    echo "🤖 GitHub Runners:"
+    gh api repos/mnelson3/wishlist-wizard/actions/runners --jq '.runners[] | "\(.name): \(.status)"' 2>/dev/null || echo "GitHub API not accessible"
+
+    echo ""
+    echo "📊 Detailed Report:"
+    ./scripts/monitoring.sh --once 2>/dev/null || echo "Monitoring not configured"
+}
+
+cmd_docker() {
+    log_header "Docker Management"
+
+    case $SUBCOMMAND in
+        "build")
+            log_info "Building all Docker images..."
+            ./scripts/automate-all.sh development false true  # Dry run for build only
+            ;;
+        "runner")
+            case $4 in
+                "start")
+                    ./scripts/manage-docker-runner.sh start
+                    ;;
+                "stop")
+                    ./scripts/manage-docker-runner.sh stop
+                    ;;
+                "restart")
+                    ./scripts/manage-docker-runner.sh restart
+                    ;;
+                "logs")
+                    ./scripts/manage-docker-runner.sh logs
+                    ;;
+                *)
+                    log_error "Invalid runner command: $4"
+                    echo "Usage: $0 docker runner [start|stop|restart|logs]"
+                    exit 1
+                    ;;
+            esac
+            ;;
+        *)
+            log_error "Invalid docker command: $SUBCOMMAND"
+            echo "Usage: $0 docker [build|runner <command>]"
+            exit 1
+            ;;
+    esac
+}
+
+cmd_help() {
+    show_banner
+
+    echo -e "${WHITE}USAGE:${NC}"
+    echo "  ./automate.sh <command> [subcommand] [environment]"
+    echo ""
+
+    echo -e "${WHITE}COMMANDS:${NC}"
+    echo -e "${CYAN}  setup${NC}                    Complete system setup and configuration"
+    echo -e "${CYAN}  deploy${NC}     <target>      Deploy to specified target (full|web|api|mobile)"
+    echo -e "${CYAN}  monitor${NC}    <action>      Monitoring system (start|stop|status|once)"
+    echo -e "${CYAN}  tokens${NC}     <action>      Token management (rotate|status|github)"
+    echo -e "${CYAN}  environment${NC} <action>     Environment management (setup|sync|status|rotate)"
+    echo -e "${CYAN}  backup${NC}     <action>      Backup operations (create|list|restore)"
+    echo -e "${CYAN}  health${NC}                  System health check"
+    echo -e "${CYAN}  docker${NC}     <action>      Docker management (build|runner)"
+    echo ""
+
+    echo -e "${WHITE}ENVIRONMENTS:${NC}"
+    echo "  development (default), staging, production"
+    echo ""
+
+    echo -e "${WHITE}EXAMPLES:${NC}"
+    echo "  ./automate.sh setup                    # Complete setup"
+    echo "  ./automate.sh deploy full production   # Full production deployment"
+    echo "  ./automate.sh monitor start            # Start monitoring"
+    echo "  ./automate.sh tokens rotate            # Rotate all tokens"
+    echo "  ./automate.sh environment setup staging # Setup staging environment"
+    echo "  ./automate.sh health                   # Health check"
+    echo ""
+
+    echo -e "${WHITE}CONFIGURATION:${NC}"
+    echo "  Create .env.automation file with:"
+    echo "  - ALERT_EMAIL: Email for notifications"
+    echo "  - SLACK_WEBHOOK: Slack webhook URL"
+    echo "  - DOCKER_REGISTRY: Private registry URL"
+    echo "  - MONITOR_INTERVAL: Monitoring interval (seconds)"
+}
+
+# Main command dispatcher
+main() {
+    cd "$PROJECT_ROOT"
+
+    case $COMMAND in
+        "setup")
+            cmd_setup
+            ;;
+        "deploy")
+            cmd_deploy
+            ;;
+        "monitor")
+            cmd_monitor
+            ;;
+        "tokens")
+            cmd_tokens
+            ;;
+        "environment"|"env")
+            cmd_environment
+            ;;
+        "backup")
+            cmd_backup
+            ;;
+        "health")
+            cmd_health
+            ;;
+        "docker")
+            cmd_docker
+            ;;
+        "help"|"-h"|"--help"|"")
+            cmd_help
+            ;;
+        *)
+            log_error "Unknown command: $COMMAND"
+            echo ""
+            cmd_help
+            exit 1
+            ;;
+    esac
+}
+
+# Run main function
+main "$@"
