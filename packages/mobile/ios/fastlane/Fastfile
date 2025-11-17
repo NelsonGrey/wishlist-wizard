@@ -63,8 +63,9 @@ platform :ios do
     # Sync certificates and profiles using match
     match(
       type: "appstore",
-      readonly: true,  # Back to true for CI safety
-      force_for_new_certificates: false
+      readonly: true,
+      force_for_new_certificates: false,
+      api_key_path: nil  # Use environment variables for API key
     )
   end
 

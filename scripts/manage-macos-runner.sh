@@ -27,9 +27,11 @@ auto_detect_runner() {
         return 0
     fi
 
-    # Check common locations (prioritize current directory)
+    # Check common locations (prioritize isolated directories for ES module safety)
     local possible_locations=(
         "$(pwd)/actions-runner"                  # Current working directory (highest priority)
+        "$HOME/actions-runner-wishlist-wizard"   # Isolated wishlist-wizard runner (NEW)
+        "/Users/$USER/actions-runner-wishlist-wizard"  # Alternative isolated location
         "/Users/$USER/actions-runner"           # Current user in home
         "/Users/github-runner/actions-runner"    # Dedicated user
         "$HOME/actions-runner"                   # Home directory

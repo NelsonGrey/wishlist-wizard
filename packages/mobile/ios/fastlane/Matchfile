@@ -5,7 +5,7 @@
 git_url(ENV["MATCH_GIT_URL"])
 
 # The branch to use for match
-git_branch("main")
+git_branch("develop")
 
 # Storage mode (git, google_cloud, s3)
 storage_mode("git")

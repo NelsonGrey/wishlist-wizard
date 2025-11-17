@@ -48,6 +48,24 @@ project-root/
 - iOS: `packages/mobile/ios/fastlane/` (TestFlight + App Store)
 - Android: `packages/mobile/android/fastlane/` (Google Play)
 
+### 4. **macOS Runner Directory Isolation** (CRITICAL!)
+**ES Module Conflict Prevention**
+
+For projects with `"type": "module"` in `package.json`, macOS runners MUST be installed OUTSIDE the project directory:
+
+```bash
+# ❌ WRONG - Causes ES module conflicts
+~/Projects/my-project/actions-runner/
+
+# ✅ CORRECT - Isolated environment
+~/actions-runner-my-project/
+```
+
+**Error Prevention:**
+- `ReferenceError: require is not defined in ES module scope`
+- Runner CommonJS code conflicts with project ES modules
+- Always isolate runners for modern Node.js projects
+
 ### 4. **Core Components Priority Order**
 1. **Master Controller** (`automate.sh`) - Unified interface
 2. **Environment Manager** - Multi-environment setup
@@ -136,7 +154,13 @@ log_error() { echo "$(date '+%Y-%m-%d %H:%M:%S') [ERROR] $1" | tee -a "$LOG_FILE
 - Check command exit codes
 - Provide meaningful error messages
 
-### 5. **Inconsistent Logging**
+### 5. **macOS Runner ES Module Conflicts**
+- **CRITICAL**: Never install macOS runner inside projects with `"type": "module"`
+- Always use isolated directory: `~/actions-runner-{project-name}/`
+- Prevents `ReferenceError: require is not defined in ES module scope`
+- Runner CommonJS conflicts with project ES modules
+
+### 6. **Inconsistent Logging**
 - Use standardized log functions
 - Include timestamps in all logs
 - Tee output to log files
