@@ -52,7 +52,7 @@ jobs:
           ruby-version: '3.0'
 
       - name: Install Fastlane
-        run: gem install fastlane
+        run: gem install fastlane -v 2.228.0
 
       - name: Generate iOS platform files
         run: |
@@ -79,6 +79,7 @@ jobs:
           ASC_PRIVATE_KEY=${{ secrets.ASC_PRIVATE_KEY }}
           MATCH_GIT_URL=${{ secrets.MATCH_GIT_URL }}
           BETA_FEEDBACK_EMAIL=${{ secrets.BETA_FEEDBACK_EMAIL }}
+          MATCH_PASSWORD=${{ secrets.MATCH_PASSWORD }}
           EOF
 
       - name: Build and distribute iOS app

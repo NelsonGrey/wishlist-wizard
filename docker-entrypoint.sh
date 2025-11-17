@@ -1,5 +1,5 @@
 #!/bin/bash
-set -e
+# set -e  # Commented out to allow configuration failures
 
 # Entrypoint script for self-contained GitHub Actions runner
 
@@ -21,21 +21,22 @@ TOKEN="${ACCESS_TOKEN:-$RUNNER_TOKEN}"
 
 # Check if runner is already configured
 if [ -f ".runner" ]; then
-    echo "Runner is already configured, removing old configuration..."
-    ./config.sh remove --token "$TOKEN" || echo "Failed to remove old configuration, continuing..."
+    echo "Runner is already configured, starting directly..."
+    # Just start the runner if it's already configured
+    ./run.sh
+else
+    # Configure the runner for the first time
+    echo "Configuring GitHub Actions runner..."
+    ./config.sh \
+        --url "$REPO_URL" \
+        --token "$TOKEN" \
+        --name "$RUNNER_NAME" \
+        --labels "$LABELS" \
+        --work _work \
+        --replace \
+        --unattended || echo "Configuration failed, but continuing..."
+    
+    # Start the runner
+    echo "Starting GitHub Actions runner..."
+    ./run.sh
 fi
-
-# Configure the runner
-echo "Configuring GitHub Actions runner..."
-./config.sh \
-    --url "$REPO_URL" \
-    --token "$TOKEN" \
-    --name "$RUNNER_NAME" \
-    --labels "$LABELS" \
-    --work _work \
-    --replace \
-    --unattended
-
-# Start the runner
-echo "Starting GitHub Actions runner..."
-./run.sh

@@ -91,9 +91,16 @@ This document provides a complete implementation guide for deploying the Wishlis
    ./automate.sh docker runner
    ```
 
-2. **Configure macOS runner** (on macOS machine)
+2. **Configure macOS runner** (CRITICAL: Install OUTSIDE project directory)
    ```bash
-   ./automate.sh setup
+   # ❌ WRONG - Causes ES module conflicts
+   ~/Projects/my-project/actions-runner/
+   
+   # ✅ CORRECT - Isolated environment  
+   ~/actions-runner-my-project/
+   
+   # Reason: Projects with "type": "module" in package.json cause
+   # "ReferenceError: require is not defined in ES module scope" errors
    ```
 
 ### Phase 4: Environment Configuration
@@ -612,12 +619,17 @@ curl -H "Authorization: token YOUR_TOKEN" \
 - `Cloud Functions Admin`
 - `Storage Admin`
 
-#### 5. SSL Certificate Issues
-**Error:** `SSL certificate verify failed`
-**Solution:** Update certificate paths in configuration
+#### 5. macOS Runner ES Module Conflicts
+**Error:** `ReferenceError: require is not defined in ES module scope`
+**Cause:** macOS runner installed inside project with `"type": "module"` in `package.json`
+**Solution:** Move runner outside project directory
 ```bash
-# Generate self-signed cert for development
-openssl req -x509 -newkey rsa:4096 -keyout key.pem -out cert.pem -days 365 -nodes
+# Move to isolated location
+mv ~/Projects/my-project/actions-runner ~/actions-runner-my-project
+
+# Reconfigure with new path
+cd ~/actions-runner-my-project
+./config.sh --url https://github.com/... --token ... --name "runner-name"
 ```
 
 ### Debug Commands
