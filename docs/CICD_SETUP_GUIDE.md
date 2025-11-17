@@ -145,19 +145,30 @@ docker-compose -f docker-compose.runner.yml logs
 
 ### macOS Runner (Manual Setup)
 
+**CRITICAL**: Install macOS runner OUTSIDE project directory to avoid ES module conflicts.
+
 ```bash
-# 1. Install Flutter/Node.js/etc as needed
-./scripts/setup-macos-runner.sh
+# 1. Create isolated runner directory (outside project)
+mkdir ~/actions-runner-wishlist-wizard
+cd ~/actions-runner-wishlist-wizard
 
-# 2. Configure with GitHub token
-./scripts/manage-macos-runner.sh configure
+# 2. Download and extract GitHub runner
+# (Download from: https://github.com/actions/runner/releases)
 
-# 3. Install as service (auto-restart on reboot)
-./scripts/manage-macos-runner.sh install
+# 3. Configure with GitHub token
+./config.sh --url https://github.com/mnelson3/wishlist-wizard \
+            --token YOUR_TOKEN \
+            --labels "self-hosted,macos-latest,wishlist-wizard" \
+            --name "wishlist-wizard-macos-runner"
 
-# 4. Start the service
-./scripts/manage-macos-runner.sh start
+# 4. Install as service (auto-restart on reboot)
+./svc.sh install
+./svc.sh start
 ```
+
+**Why Outside Project?**
+Projects with `"type": "module"` in `package.json` cause runner failures:
+`ReferenceError: require is not defined in ES module scope`
 
 ### Monitoring Dashboard
 
@@ -185,6 +196,14 @@ docker-compose -f docker-compose.runner.yml logs
 - Verify GitHub token has `repo` scope
 - Check runner labels match workflow requirements
 - Ensure firewall allows outbound connections
+
+### ES Module Conflicts (macOS Runner)
+- **Error**: `ReferenceError: require is not defined in ES module scope`
+- **Cause**: macOS runner installed inside project with `"type": "module"` in `package.json`
+- **Solution**: Move runner to isolated directory outside project
+  ```bash
+  mv ~/Projects/my-project/actions-runner ~/actions-runner-my-project
+  ```
 
 ### Workflow Failures
 - Check runner status: `./scripts/infrastructure-status.sh`
@@ -221,6 +240,7 @@ docker-compose -f docker-compose.runner.yml logs
 3. **Monitor costs regularly** to track savings
 4. **Document customizations** for team members
 5. **Test workflows thoroughly** before going to production
+6. **CRITICAL: Isolate macOS runners** outside project directories to prevent ES module conflicts
 
 ## 📞 Support
 
