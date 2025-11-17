@@ -26,7 +26,7 @@ RUNNER_VERSION="${RUNNER_VERSION:-2.311.0}"
 RUNNER_USER="${RUNNER_USER:-$USER}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
-RUNNER_DIR="$PROJECT_ROOT/actions-runner-macos"
+RUNNER_DIR="$HOME/actions-runner-wishlist-wizard"
 
 echo -e "${BLUE}🍎 Setting up macOS GitHub Self-Hosted Runner${NC}"
 echo -e "${BLUE}=============================================${NC}"
@@ -112,18 +112,19 @@ fi
 read -p "Create dedicated runner user? (y/N): " -n 1 -r
 echo
 if [[ $REPLY =~ ^[Yy]$ ]]; then
-    echo -e "${YELLOW}⚠️  Note: For project-contained runners, using current user is recommended${NC}"
+    echo -e "${YELLOW}⚠️  WARNING: Dedicated users are not recommended for isolated runners${NC}"
+    echo -e "${YELLOW}⚠️  Isolated runners work best with current user to avoid permission issues${NC}"
     read -p "Proceed with dedicated user anyway? (y/N): " -n 1 -r
     echo
     if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-        echo -e "${BLUE}👤 Using current user for project-contained runner${NC}"
+        echo -e "${BLUE}👤 Using current user for isolated runner${NC}"
         RUNNER_USER=$USER
-        RUNNER_DIR="$PROJECT_ROOT/actions-runner-macos"
+        RUNNER_DIR="$HOME/actions-runner-wishlist-wizard"
     fi
 else
-    echo -e "${BLUE}👤 Using current user for project-contained runner${NC}"
+    echo -e "${BLUE}👤 Using current user for isolated runner${NC}"
     RUNNER_USER=$USER
-    RUNNER_DIR="$PROJECT_ROOT/actions-runner-macos"
+    RUNNER_DIR="$HOME/actions-runner-wishlist-wizard"
 fi
 
 # If still creating dedicated user, proceed with original logic
@@ -192,7 +193,7 @@ echo ""
 echo -e "${YELLOW}📝 Next steps:${NC}"
 echo "1. Navigate to runner: cd $RUNNER_DIR"
 echo "2. Get a runner token from: $REPO_URL/settings/actions/runners"
-echo "3. Run: ./config.sh --url $REPO_URL --token YOUR_TOKEN --labels self-hosted,macos-latest,wishlist-wizard"
+echo "3. Run: ./config.sh --url $REPO_URL --token YOUR_TOKEN --labels self-hosted,macos-latest,macos-arm64,wishlist-wizard --name wishlist-wizard-macos-runner"
 echo "4. Run: ./run.sh"
 echo ""
 echo -e "${YELLOW}🔧 Optional: Set up as service${NC}"
@@ -206,3 +207,6 @@ echo -e "${YELLOW}💡 Tips:${NC}"
 echo "- Keep the runner updated: ./bin/Runner.Listener update"
 echo "- View logs: tail -f _diag/*.log"
 echo "- Runner will auto-update when GitHub releases new versions"
+echo ""
+echo -e "${RED}⚠️  IMPORTANT: This runner is isolated outside the project to prevent ES module conflicts${NC}"
+echo -e "${RED}⚠️  Do NOT move it inside the project directory if the project uses 'type': 'module' in package.json${NC}"

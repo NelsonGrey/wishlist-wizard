@@ -6,6 +6,25 @@ This guide covers setting up macOS self-hosted runners for the Wishlist Wizard p
 
 Self-hosted macOS runners allow you to run iOS builds without incurring GitHub's expensive hosted macOS runner costs (~$0.08/minute). This can save ~90% on CI/CD costs for iOS workflows.
 
+## ⚠️ CRITICAL: Runner Directory Isolation
+
+**IMPORTANT**: The macOS runner MUST be installed OUTSIDE your project directory to avoid ES module conflicts.
+
+### Why This Matters
+If your project uses `"type": "module"` in `package.json` (modern Node.js projects), the runner's CommonJS code will fail with:
+```
+ReferenceError: require is not defined in ES module scope
+```
+
+### Correct Setup Pattern
+```bash
+# ❌ WRONG - Inside project (causes ES module conflicts)
+~/Projects/my-project/actions-runner/
+
+# ✅ CORRECT - Outside project (isolated environment)
+~/actions-runner-my-project/
+```
+
 ## 📋 Prerequisites
 
 ### Hardware Requirements
@@ -35,12 +54,7 @@ cd wishlist-wizard
 ./scripts/setup-macos-runner.sh
 ```
 
-The script will:
-- ✅ Check macOS version compatibility
-- 📦 Install Xcode Command Line Tools
-- 🍺 Install Homebrew and required packages
-- 📱 Optionally install Flutter and Ruby
-- 🤖 Download and extract GitHub Actions runner
+**Note**: The setup script will automatically install the runner in the correct isolated directory outside your project.
 
 ### 2. Configure the Runner
 
@@ -49,8 +63,8 @@ The script will:
 # Visit: https://github.com/mnelson3/wishlist-wizard/settings/actions/runners
 # Click "New self-hosted runner" and copy the token
 
-# Configure the runner
-cd /Users/github-runner/actions-runner  # or your runner directory
+# Configure the runner (in isolated directory)
+cd ~/actions-runner-wishlist-wizard/  # Outside project directory
 ./config.sh \
   --url https://github.com/mnelson3/wishlist-wizard \
   --token AIQEPB7NN7HGN5V4KR7OZLTJBZYMW \
@@ -102,8 +116,8 @@ Set these in your shell profile (`~/.zshrc`):
 
 ```bash
 # Custom runner configuration
-export RUNNER_USER="github-runner"           # Runner user account
-export RUNNER_DIR="/Users/$RUNNER_USER/actions-runner"  # Runner directory
+export RUNNER_USER="marknelson"           # Your username
+export RUNNER_DIR="~/actions-runner-wishlist-wizard"  # Outside project directory
 export REPO_URL="https://github.com/mnelson3/wishlist-wizard"  # Repository URL
 ```
 
@@ -131,7 +145,7 @@ The runner is configured with these labels:
 ./scripts/manage-macos-runner.sh status
 
 # View recent logs
-tail -f /Users/github-runner/actions-runner/runner.log
+tail -f ~/actions-runner-wishlist-wizard/runner.log
 
 # Check system resources
 top -l 1 | head -10
@@ -149,7 +163,7 @@ Monitor runner status in:
 1. **Runner won't start**
    ```bash
    # Check logs
-   cat /Users/github-runner/actions-runner/runner.log
+   cat ~/actions-runner-wishlist-wizard/runner.log
 
    # Reconfigure
    ./scripts/manage-macos-runner.sh unconfigure
@@ -175,23 +189,22 @@ Monitor runner status in:
 4. **Permission issues**
    ```bash
    # Fix permissions
-   sudo chown -R github-runner:admin /Users/github-runner/actions-runner
+   sudo chown -R $USER:admin ~/actions-runner-wishlist-wizard
    ```
 
-5. **Flutter issues**
+5. **ES Module Conflicts** (Most Common Issue)
    ```bash
-   # Run doctor
-   flutter doctor
-
-   # Accept licenses
-   flutter doctor --android-licenses
+   # If you see "require is not defined in ES module scope"
+   # The runner is inside a project with "type": "module" in package.json
+   # Move runner outside project directory:
+   mv ~/Projects/my-project/actions-runner ~/actions-runner-my-project
    ```
 
 ### Logs and Diagnostics
 
 ```bash
 # Runner diagnostic logs
-ls -la /Users/github-runner/actions-runner/_diag/
+ls -la ~/actions-runner-wishlist-wizard/_diag/
 
 # System logs
 log show --predicate 'process == "Runner.Listener"' --last 1h
@@ -242,6 +255,7 @@ If you encounter issues:
 
 ---
 
-**Last Updated**: November 7, 2025
+**Last Updated**: November 17, 2025
 **macOS Version**: 11.0+
 **Runner Version**: 2.311.0
+**Critical Update**: Runner directory isolation for ES module compatibility
