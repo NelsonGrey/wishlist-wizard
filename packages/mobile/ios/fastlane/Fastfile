@@ -63,8 +63,7 @@ platform :ios do
     # Sync certificates and profiles using match
     match(
       type: "appstore",
-      readonly: true,
-      force_for_new_certificates: false,
+      readonly: true,  # Set back to readonly for normal operations
       api_key_path: nil  # Use environment variables for API key
     )
   end
@@ -125,7 +124,17 @@ platform :ios do
       beta_app_feedback_email: ENV["BETA_FEEDBACK_EMAIL"],
       demo_account_required: false,
       notify_external_testers: true,
-      changelog: ENV["RELEASE_NOTES"] || "Bug fixes and improvements"
+      changelog: ENV["RELEASE_NOTES"] || "Bug fixes and improvements",
+      # Beta app review information
+      beta_app_review_info: {
+        contact_email: ENV["BETA_FEEDBACK_EMAIL"],
+        contact_first_name: ENV["BETA_CONTACT_FIRST_NAME"] || "Mark",
+        contact_last_name: ENV["BETA_CONTACT_LAST_NAME"] || "Nelson",
+        contact_phone: ENV["BETA_CONTACT_PHONE"] || "5551234567",
+        demo_account_name: "",
+        demo_account_password: "",
+        notes: "Wishlist Wizard iOS Beta Testing"
+      }
     )
   end
 
