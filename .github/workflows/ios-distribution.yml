@@ -80,6 +80,7 @@ jobs:
           MATCH_GIT_URL=${{ secrets.MATCH_GIT_URL }}
           BETA_FEEDBACK_EMAIL=${{ secrets.BETA_FEEDBACK_EMAIL }}
           MATCH_PASSWORD=${{ secrets.MATCH_PASSWORD }}
+          MATCH_GIT_BRANCH=${{ github.ref == 'refs/heads/main' && 'main' || 'develop' }}
           EOF
 
       - name: Build and distribute iOS app

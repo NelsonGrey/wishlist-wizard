@@ -4,8 +4,10 @@
 # The Git URL to your private certificates repository
 git_url(ENV["MATCH_GIT_URL"])
 
-# The branch to use for match
-git_branch("develop")
+# The branch to use for match - dynamically set based on environment
+# For production deployments, use 'main' branch certificates
+# For staging/develop deployments, use 'develop' branch certificates
+git_branch(ENV["MATCH_GIT_BRANCH"] || "develop")
 
 # Storage mode (git, google_cloud, s3)
 storage_mode("git")
