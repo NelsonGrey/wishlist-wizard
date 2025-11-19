@@ -79,6 +79,7 @@ pids
 *.pid
 *.seed
 *.pid.lock
+/.act-secrets/
 
 # Coverage directory used by tools like istanbul
 coverage/
