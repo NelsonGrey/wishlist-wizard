@@ -62,6 +62,18 @@ This guide provides a complete, reusable setup for iOS code signing certificates
    team_id(ENV["FASTLANE_TEAM_ID"])
    ```
 
+### Certificate Branching Note
+
+- Repository branch containing certificates: **`develop`**. For this project the encrypted certificates and provisioning profiles are stored on the `develop` branch of the certificate repository by default.
+- Ensure your CI and local Fastlane configuration use the same branch. Recommended Matchfile pattern:
+
+```ruby
+# Use the environment-provided branch or default to `develop`
+git_branch(ENV["MATCH_GIT_BRANCH"] || "develop")
+```
+
+If your certificates live on a different branch (for example `main` for production), set `MATCH_GIT_BRANCH` accordingly in your CI workflow or `.env`.
+
 3. **Create Appfile**
    ```ruby
    # Appfile - App-specific configuration
