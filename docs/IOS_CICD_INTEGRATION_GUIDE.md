@@ -115,6 +115,17 @@ BETA_FEEDBACK_EMAIL        → feedback@yourcompany.com
 
 ## 🏃‍♂️ Self-Hosted Runner Setup
 
+### Certificate Branch Location (project note)
+
+- For this repository the encrypted certificates and provisioning profiles are stored in the certificate repository on the **`develop`** branch. Make sure the CI workflow sets `MATCH_GIT_BRANCH` to the branch that actually contains the certificates. The provided workflow template already writes:
+
+```yaml
+MATCH_GIT_BRANCH: ${{ github.ref == 'refs/heads/main' && 'main' || 'develop' }}
+```
+
+This will use `main` when the workflow is triggered from `main`, otherwise `develop` — which matches where this project's certificates are kept.
+
+
 ### Cost Comparison
 - **GitHub Hosted macOS**: ~$0.08/minute ($48/hour)
 - **Self-Hosted macOS**: FREE (your hardware)
