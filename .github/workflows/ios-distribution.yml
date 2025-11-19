@@ -136,6 +136,11 @@ jobs:
           cd repo || exit 1
           git checkout "${MATCH_GIT_BRANCH:-develop}" || true
 
+          echo "--- Debug: Listing all files in cert repo after checkout ---"
+          pwd
+          ls -lR
+          find . -type f
+
           ENC_FILE=$(find . -type f \( -name '*.p12.enc' -o -name '*.pem.enc' -o -name '*.cer.enc' \) | head -n 1 || true)
           if [ -z "$ENC_FILE" ]; then
             echo "No encrypted files found in cert repo - cannot test decrypt"
