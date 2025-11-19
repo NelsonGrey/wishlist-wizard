@@ -83,6 +83,72 @@ jobs:
           MATCH_GIT_BRANCH=${{ github.ref == 'refs/heads/main' && 'main' || 'develop' }}
           EOF
 
+      - name: Debug Fastlane secrets (masked)
+        run: |
+          cd packages/mobile/ios
+          # Load env file into current shell session if present
+          if [ -f .env ]; then
+            # shellcheck disable=SC1091
+            source .env || true
+          fi
+
+          # Masked diagnostics: do not print secrets in full
+          if [ -n "${MATCH_GIT_URL:-}" ]; then
+            echo "MATCH_GIT_URL=${MATCH_GIT_URL:0:40}... (masked)"
+          else
+            echo "MATCH_GIT_URL is empty"
+          fi
+
+          if [ -n "${MATCH_PASSWORD:-}" ]; then
+            echo "MATCH_PASSWORD length=${#MATCH_PASSWORD}"
+          else
+            echo "MATCH_PASSWORD is empty"
+          fi
+        shell: bash
+
+      - name: Test decrypt certificates repo (non-destructive)
+        run: |
+          set -e
+          cd /tmp
+          rm -rf match_test || true
+          mkdir -p match_test && cd match_test
+
+          if [ -z "${MATCH_GIT_URL:-}" ]; then
+            echo "MATCH_GIT_URL not set - skipping decrypt test"
+            exit 0
+          fi
+
+          echo "Cloning cert repo (masked URL preview): ${MATCH_GIT_URL:0:40}..."
+          git clone --depth 1 "${MATCH_GIT_URL}" repo || { echo "git clone failed"; exit 1; }
+          cd repo || exit 1
+          git checkout "${MATCH_GIT_BRANCH:-develop}" || true
+
+          ENC_FILE=$(find . -type f \( -name '*.p12.enc' -o -name '*.pem.enc' -o -name '*.cer.enc' \) | head -n 1 || true)
+          if [ -z "$ENC_FILE" ]; then
+            echo "No encrypted files found in cert repo - cannot test decrypt"
+            exit 1
+          fi
+
+          echo "Attempting to decrypt a sample file (output discarded)"
+          # Try decrypting with openssl; non-zero exit indicates invalid password
+          if openssl enc -d -aes-256-cbc -in "$ENC_FILE" -out /dev/null -pass pass:"${MATCH_PASSWORD:-}" 2>/dev/null; then
+            echo "Decrypt succeeded — MATCH_PASSWORD appears valid"
+          else
+            echo "Decrypt failed — Invalid MATCH_PASSWORD or unexpected encryption format"
+            exit 1
+          fi
+        shell: bash
+
+      - name: Set MATCH_GIT_BRANCH dynamically
+        run: |
+          if [[ "${GITHUB_REF}" == "refs/heads/main" ]]; then
+            echo "MATCH_GIT_BRANCH=main" >> $GITHUB_ENV
+          elif [[ "${GITHUB_REF}" == "refs/heads/staging" ]]; then
+            echo "MATCH_GIT_BRANCH=staging" >> $GITHUB_ENV
+          else
+            echo "MATCH_GIT_BRANCH=develop" >> $GITHUB_ENV
+          fi
+
       - name: Build and distribute iOS app
         env:
           ENVIRONMENT: ${{ github.ref == 'refs/heads/main' && 'PRODUCTION' || github.ref == 'refs/heads/staging' && 'STAGING' || 'DEVELOPMENT' }}
