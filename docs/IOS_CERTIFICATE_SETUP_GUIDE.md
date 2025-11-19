@@ -203,6 +203,41 @@ platform :ios do
 end
 ```
 
+## 🌐 Environment-Specific Certificate Management
+
+To align with the `develop > staging > production` paradigm, certificates and provisioning profiles should be managed as follows:
+
+1. **Branch-Specific Certificates**:
+   - `develop`: Development certificates and provisioning profiles.
+   - `staging`: Staging certificates and provisioning profiles.
+   - `main`: Production certificates and provisioning profiles.
+
+2. **Fastlane Match Configuration**:
+   - Use the `MATCH_GIT_BRANCH` environment variable to dynamically select the appropriate branch for certificates.
+   - Example Matchfile configuration:
+     ```ruby
+     git_branch(ENV["MATCH_GIT_BRANCH"] || "develop")
+     ```
+
+3. **CI/CD Integration**:
+   - Ensure `MATCH_GIT_BRANCH` is set dynamically in your CI/CD workflows based on the branch being built.
+   - Example GitHub Actions step:
+     ```yaml
+     - name: Set MATCH_GIT_BRANCH dynamically
+       run: |
+         if [[ "${GITHUB_REF}" == "refs/heads/main" ]]; then
+           echo "MATCH_GIT_BRANCH=main" >> $GITHUB_ENV
+         elif [[ "${GITHUB_REF}" == "refs/heads/staging" ]]; then
+           echo "MATCH_GIT_BRANCH=staging" >> $GITHUB_ENV
+         else
+           echo "MATCH_GIT_BRANCH=develop" >> $GITHUB_ENV
+         fi
+     ```
+
+4. **Provisioning Profiles**:
+   - Use separate provisioning profiles for each environment to avoid conflicts.
+   - Ensure profiles are named clearly to indicate their environment (e.g., `com.yourapp.develop.mobileprovision`).
+
 ## 🔐 CI/CD Integration
 
 ### GitHub Actions Setup
@@ -316,5 +351,4 @@ fastlane match appstore           # Recreate certificates
 **📖 Related Documentation:**
 - [macOS Runner Setup Guide](./MACOS_RUNNER_SETUP.md)
 - [CI/CD Pipeline Guide](./CICD_SETUP_GUIDE.md)
-- [Fastlane Documentation](https://docs.fastlane.tools)</content>
-<parameter name="filePath">/Users/marknelson/Circus/Repositories/wishlist-wizard/docs/IOS_CERTIFICATE_SETUP_GUIDE.md
+- [Fastlane Documentation](https://docs.fastlane.tools)
