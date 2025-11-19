@@ -218,114 +218,69 @@ jobs:
       - name: 📥 Checkout Code
         uses: actions/checkout@v4
 
-      - name: 🔐 Test Environment File (Production)
-        if: github.event.inputs.environment == 'PRODUCTION'
+      - name: 🔐 Generate Test Environment File
         run: |
-          cat > packages/web/.env.test << EOF
-          # Production Environment Configuration - TEST MODE
-          # This file is generated for testing purposes only
+          ENVIRONMENT="${{ github.event.inputs.environment }}"
+          echo "Generating test environment file for: $ENVIRONMENT"
 
-          # Firebase Configuration (Test Values)
+          case "$ENVIRONMENT" in
+            "PRODUCTION")
+              cat > packages/web/.env.test << 'EOF'
+          # Production Environment Configuration - TEST MODE
           VITE_FIREBASE_API_KEY=test_firebase_api_key_prod
           VITE_FIREBASE_AUTH_DOMAIN=test-project-prod.firebaseapp.com
           VITE_FIREBASE_PROJECT_ID=test-project-prod
           VITE_FIREBASE_STORAGE_BUCKET=test-project-prod.appspot.com
           VITE_FIREBASE_MESSAGING_SENDER_ID=123456789012
           VITE_FIREBASE_APP_ID=1:123456789012:web:abcdef123456
-
-          # API Configuration
           VITE_API_BASE_URL=https://api.test-prod.com
-          VITE_API_TIMEOUT=30000
-
-          # Environment
           VITE_ENVIRONMENT=production
           VITE_DEBUG=false
-
-          # Analytics & Monitoring
           VITE_ANALYTICS_ID=GA_TEST_PROD
-          VITE_SENTRY_DSN=https://test@test.ingest.sentry.io/test-prod
-
-          # Third-party Services
-          VITE_STRIPE_PUBLISHABLE_KEY=pk_test_prod_1234567890
-          VITE_GOOGLE_ANALYTICS_ID=GA_TEST_PROD_123
-
-          # Feature Flags
           VITE_ENABLE_DEBUG_TOOLS=false
           VITE_ENABLE_ANALYTICS=true
           VITE_ENABLE_ERROR_REPORTING=true
           EOF
-
-      - name: 🔐 Test Environment File (Staging)
-        if: github.event.inputs.environment == 'STAGING'
-        run: |
-          cat > packages/web/.env.test << EOF
+              ;;
+            "STAGING")
+              cat > packages/web/.env.test << 'EOF'
           # Staging Environment Configuration - TEST MODE
-
-          # Firebase Configuration (Test Values)
           VITE_FIREBASE_API_KEY=test_firebase_api_key_staging
           VITE_FIREBASE_AUTH_DOMAIN=test-project-staging.firebaseapp.com
           VITE_FIREBASE_PROJECT_ID=test-project-staging
           VITE_FIREBASE_STORAGE_BUCKET=test-project-staging.appspot.com
           VITE_FIREBASE_MESSAGING_SENDER_ID=123456789013
           VITE_FIREBASE_APP_ID=1:123456789013:web:abcdef123457
-
-          # API Configuration
           VITE_API_BASE_URL=https://api.test-staging.com
-          VITE_API_TIMEOUT=30000
-
-          # Environment
           VITE_ENVIRONMENT=staging
           VITE_DEBUG=true
-
-          # Analytics & Monitoring
           VITE_ANALYTICS_ID=GA_TEST_STAGING
-          VITE_SENTRY_DSN=https://test@test.ingest.sentry.io/test-staging
-
-          # Third-party Services
-          VITE_STRIPE_PUBLISHABLE_KEY=pk_test_staging_1234567890
-          VITE_GOOGLE_ANALYTICS_ID=GA_TEST_STAGING_123
-
-          # Feature Flags
           VITE_ENABLE_DEBUG_TOOLS=true
           VITE_ENABLE_ANALYTICS=true
           VITE_ENABLE_ERROR_REPORTING=true
           EOF
-
-      - name: 🔐 Test Environment File (Development)
-        if: github.event.inputs.environment == 'DEVELOPMENT'
-        run: |
-          cat > packages/web/.env.test << EOF
+              ;;
+            *)
+              cat > packages/web/.env.test << 'EOF'
           # Development Environment Configuration - TEST MODE
-
-          # Firebase Configuration (Test Values)
           VITE_FIREBASE_API_KEY=test_firebase_api_key_dev
           VITE_FIREBASE_AUTH_DOMAIN=test-project-dev.firebaseapp.com
           VITE_FIREBASE_PROJECT_ID=test-project-dev
           VITE_FIREBASE_STORAGE_BUCKET=test-project-dev.appspot.com
           VITE_FIREBASE_MESSAGING_SENDER_ID=123456789014
           VITE_FIREBASE_APP_ID=1:123456789014:web:abcdef123458
-
-          # API Configuration
           VITE_API_BASE_URL=https://api.test-dev.com
-          VITE_API_TIMEOUT=30000
-
-          # Environment
           VITE_ENVIRONMENT=development
           VITE_DEBUG=true
-
-          # Analytics & Monitoring
           VITE_ANALYTICS_ID=GA_TEST_DEV
-          VITE_SENTRY_DSN=https://test@test.ingest.sentry.io/test-dev
-
-          # Third-party Services
-          VITE_STRIPE_PUBLISHABLE_KEY=pk_test_dev_1234567890
-          VITE_GOOGLE_ANALYTICS_ID=GA_TEST_DEV_123
-
-          # Feature Flags
           VITE_ENABLE_DEBUG_TOOLS=true
           VITE_ENABLE_ANALYTICS=false
           VITE_ENABLE_ERROR_REPORTING=false
           EOF
+              ;;
+          esac
+
+          echo "✅ Environment file generated for $ENVIRONMENT"
 
       - name: ✅ Validate Environment File
         run: |
@@ -422,7 +377,7 @@ jobs:
   test-results-summary:
     name: 📊 Test Results Summary
     runs-on: self-hosted
-    needs: [test-quality-checks, test-package-builds, test-mobile-build, test-extension-packaging, test-environment-files, test-deployment-simulation, cleanup-test-artifacts]
+    needs: [test-environment-determination, test-quality-checks, test-package-builds, test-mobile-build, test-extension-packaging, test-environment-files, test-deployment-simulation, cleanup-test-artifacts]
     if: always()
     steps:
       - name: 📊 Generate Test Report
