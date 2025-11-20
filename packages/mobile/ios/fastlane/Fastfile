@@ -310,21 +310,36 @@ platform :ios do
 
       # Helper: read CFBundleVersion and CFBundleShortVersionString from the xcarchive or built app
       def read_build_info_from_archive
-        archive = Dir[File.expand_path(File.join(__dir__, "..", "build", "ios", "archive", "*.xcarchive"))].first
-        if archive && File.exist?(archive)
-          info_plist = File.join(archive, "Products/Applications/Runner.app/Info.plist")
-          if File.exist?(info_plist)
-            short_version = %x(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "#{info_plist}" 2>/dev/null).strip
-            build_number = %x(/usr/libexec/PlistBuddy -c "Print :CFBundleVersion" "#{info_plist}" 2>/dev/null).strip
+        # Look for archives in likely locations (packages/mobile/build vs packages/mobile/ios/build)
+        candidates = []
+        candidates << File.expand_path(File.join(__dir__, "..", "..", "build", "ios", "archive", "*.xcarchive"))
+        candidates << File.expand_path(File.join(__dir__, "..", "build", "ios", "archive", "*.xcarchive"))
+
+        candidates.each do |pattern|
+          Dir[pattern].each do |archive|
+            next unless File.exist?(archive)
+            info_plist = File.join(archive, "Products/Applications/Runner.app/Info.plist")
+            if File.exist?(info_plist)
+              short_version = %x(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "#{info_plist}" 2>/dev/null).strip
+              build_number = %x(/usr/libexec/PlistBuddy -c "Print :CFBundleVersion" "#{info_plist}" 2>/dev/null).strip
+              return {version: short_version, build: build_number}
+            end
+          end
+        end
+
+        # Try to extract version/build from the IPA filename or packaging summary as a last resort
+        ipa_candidate = Dir[File.expand_path(File.join(__dir__, "..", "..", "build", "ios", "ipa", "**", "*.ipa"))].first
+        ipa_candidate ||= Dir[File.expand_path(File.join(__dir__, "..", "build", "ios", "ipa", "**", "*.ipa"))].first
+        if ipa_candidate && File.exist?(ipa_candidate)
+          # Attempt to read DistributionSummary.plist sitting alongside the IPA
+          dist_plist = File.join(File.dirname(ipa_candidate), "DistributionSummary.plist")
+          if File.exist?(dist_plist)
+            short_version = %x(/usr/libexec/PlistBuddy -c "Print :version" "#{dist_plist}" 2>/dev/null).strip
+            build_number = %x(/usr/libexec/PlistBuddy -c "Print :build" "#{dist_plist}" 2>/dev/null).strip
             return {version: short_version, build: build_number}
           end
         end
-        # As a fallback, try to read the Info.plist from the app in build/ios/ipa (unzipped) — best effort
-        ipa_app_info = Dir[File.expand_path(File.join(__dir__, "..", "build", "ios", "ipa", "**", "*.ipa"))].first
-        if ipa_app_info && File.exist?(ipa_app_info)
-          # Can't easily read Info.plist inside IPA without unzipping; skip fallback
-          return {}
-        end
+
         {}
       end
 
@@ -369,7 +384,8 @@ platform :ios do
         else
           UI.message("Found app via ConnectAPI: #{app.id}")
 
-          # Poll for the processed build
+          # Poll for the processed build. Try to match archive info first; otherwise pick the
+          # most-recent uploaded build (uploaded within the last 20 minutes) as a sensible fallback.
           target_build = nil
           timeout = 600
           interval = 8
@@ -377,16 +393,29 @@ platform :ios do
           while waited < timeout && target_build.nil?
             UI.message("Polling App Store Connect for processed builds (waited #{waited}s)...")
             builds = Spaceship::ConnectAPI::Build.all(filter: {app: app.id}) rescue []
-            builds.each do |b|
-              if build_info[:build] && b.build_version.to_s == build_info[:build].to_s
-                target_build = b
-                break
-              elsif build_info[:version] && b.app_version.to_s == build_info[:version].to_s
-                # If multiple builds for this version, prefer the latest processed one
-                target_build ||= b
+            # Try to match exact build/version from local archive info
+            if build_info && build_info[:build] && build_info[:build] != ""
+              target_build = builds.find { |b| b.build_version.to_s == build_info[:build].to_s }
+            end
+            if target_build.nil? && build_info && build_info[:version] && build_info[:version] != ""
+              target_build = builds.select { |b| b.app_version.to_s == build_info[:version].to_s }.max_by { |b| (b.uploaded_date && Time.parse(b.uploaded_date) rescue Time.at(0)) }
+            end
+
+            # Fallback: choose the most recent build uploaded within the last 20 minutes
+            if target_build.nil? && builds.any?
+              recent_threshold = Time.now - 20 * 60
+              target_build = builds.sort_by { |b| (b.uploaded_date && Time.parse(b.uploaded_date) rescue Time.at(0)) }.reverse.find do |b|
+                uploaded = (b.uploaded_date && Time.parse(b.uploaded_date) rescue Time.at(0))
+                uploaded >= recent_threshold
               end
             end
-            break if target_build && %w[PROCESSING VALIDATED INVALID READY].include?(target_build.processing_state.to_s.upcase)
+
+            # If we found a target_build and it's in a terminal/processing state, break
+            if target_build
+              ps = (target_build.processing_state.to_s rescue nil)
+              break if ps && %w[PROCESSING VALIDATED READY COMPLETE].include?(ps.upcase) || ps.nil?
+            end
+
             sleep(interval)
             waited += interval
           end
