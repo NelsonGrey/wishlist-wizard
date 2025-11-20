@@ -117,8 +117,16 @@ platform :ios do
     build_testflight
 
     # Upload to TestFlight
+    # Locate the generated .ipa dynamically (handles varying file names)
+    ipa_path = Dir["../build/ios/ipa/**/*.ipa"].first
+    if ipa_path.nil?
+      UI.user_error!("Could not find .ipa in ../build/ios/ipa. Ensure `flutter build ipa` succeeded and produced an .ipa file. Looked for: ../build/ios/ipa/**/*.ipa")
+    else
+      UI.message("Found IPA at #{ipa_path}")
+    end
+
     upload_to_testflight(
-      ipa: "../build/ios/ipa/Wishlist Wizard.ipa",
+      ipa: ipa_path,
       skip_waiting_for_build_processing: true,
       team_id: ENV["FASTLANE_TEAM_ID"],
       beta_app_description: "Wishlist Wizard iOS Beta",
