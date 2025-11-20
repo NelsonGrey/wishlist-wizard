@@ -135,31 +135,38 @@ jobs:
         env:
           ENVIRONMENT: ${{ github.ref == 'refs/heads/main' && 'PRODUCTION' || github.ref == 'refs/heads/staging' && 'STAGING' || 'DEVELOPMENT' }}
         run: |
-          # If MATCH keychain secrets are provided, create/unlock a temporary keychain
-          if [[ -n "${MATCH_KEYCHAIN_NAME:-}" && -n "${MATCH_KEYCHAIN_PASSWORD:-}" ]]; then
-            # If a keychain with this name already exists, unlock and reuse it.
-            # This avoids `security: SecKeychainCreate: A keychain with the same name already exists` (exit code 48).
-            if security list-keychains -d user | sed 's/"//g' | grep -q "${MATCH_KEYCHAIN_NAME}"; then
-              echo "Keychain ${MATCH_KEYCHAIN_NAME} already exists — unlocking and using it"
-              security unlock-keychain -p "${MATCH_KEYCHAIN_PASSWORD}" "${MATCH_KEYCHAIN_NAME}" || true
-            else
-              echo "Creating temporary keychain: ${MATCH_KEYCHAIN_NAME}"
-              security create-keychain -p "${MATCH_KEYCHAIN_PASSWORD}" "${MATCH_KEYCHAIN_NAME}"
-              security set-keychain-settings -t 3600 -l "${MATCH_KEYCHAIN_NAME}"
-              security unlock-keychain -p "${MATCH_KEYCHAIN_PASSWORD}" "${MATCH_KEYCHAIN_NAME}"
-            fi
+          # Create a fresh temporary keychain for this CI job and export its name/password
+          # into the environment for Fastlane/match to use. This avoids reusing an existing
+          # keychain whose password may not match the secret in the runner.
+          # If you explicitly want to reuse a named keychain, set MATCH_KEYCHAIN_REUSE=true
+          MATCH_KEYCHAIN_REUSE=${MATCH_KEYCHAIN_REUSE:-false}
+
+          if [[ "$MATCH_KEYCHAIN_REUSE" == "true" && -n "${MATCH_KEYCHAIN_NAME:-}" && -n "${MATCH_KEYCHAIN_PASSWORD:-}" ]]; then
+            echo "Reusing provided MATCH keychain name (MATCH_KEYCHAIN_REUSE=true)"
+            echo "MATCH_KEYCHAIN_NAME=${MATCH_KEYCHAIN_NAME}" >> $GITHUB_ENV
+            echo "MATCH_KEYCHAIN_PASSWORD=${MATCH_KEYCHAIN_PASSWORD}" >> $GITHUB_ENV
+          else
+            # Generate a unique keychain name and password for this run
+            GENERATED_KEYCHAIN_NAME="fastlane_tmp_$(date +%s)_$RANDOM"
+            GENERATED_KEYCHAIN_PASSWORD=$(openssl rand -base64 32)
+
+            echo "Generated keychain: ${GENERATED_KEYCHAIN_NAME}"
+            echo "MATCH_KEYCHAIN_NAME=${GENERATED_KEYCHAIN_NAME}" >> $GITHUB_ENV
+            echo "MATCH_KEYCHAIN_PASSWORD=${GENERATED_KEYCHAIN_PASSWORD}" >> $GITHUB_ENV
+
+            # Create and configure the keychain
+            security create-keychain -p "${GENERATED_KEYCHAIN_PASSWORD}" "${GENERATED_KEYCHAIN_NAME}" || true
+            security set-keychain-settings -t 3600 -l "${GENERATED_KEYCHAIN_NAME}" || true
+            security unlock-keychain -p "${GENERATED_KEYCHAIN_PASSWORD}" "${GENERATED_KEYCHAIN_NAME}" || true
 
             # Make this keychain the default for the session so codesign/match use it
-            security default-keychain -s "${MATCH_KEYCHAIN_NAME}"
+            security default-keychain -s "${GENERATED_KEYCHAIN_NAME}" || true
 
             # Grant codesign and Xcode tools access to keys in this keychain
-            # This helps avoid errSecInternalComponent / codesign access failures
-            security set-key-partition-list -S apple-tool:,apple: -s -k "${MATCH_KEYCHAIN_PASSWORD}" "${MATCH_KEYCHAIN_NAME}" || true
+            security set-key-partition-list -S apple-tool:,apple: -s -k "${GENERATED_KEYCHAIN_PASSWORD}" "${GENERATED_KEYCHAIN_NAME}" || true
 
-            # Ensure the keychain is searched by security operations
-            security list-keychains -s "${MATCH_KEYCHAIN_NAME}" $(security list-keychains -d user | sed 's/"//g') || true
-          else
-            echo "No MATCH keychain configured; using system keychains"
+            # Ensure the keychain is first in the search list
+            security list-keychains -s "${HOME}/Library/Keychains/${GENERATED_KEYCHAIN_NAME}-db" $(security list-keychains -d user | sed 's/"//g') || true
           fi
 
           cd packages/mobile/ios
