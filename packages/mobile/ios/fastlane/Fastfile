@@ -291,8 +291,11 @@ platform :ios do
     uploaded = false
     last_error = nil
 
-    begin
+      begin
       UI.message("Uploading IPA once (without retrying full uploads).")
+      # Record upload start time so we can precisely identify the uploaded build via ConnectAPI
+      upload_start_time = Time.now.utc
+
       # Upload without beta_app_review_info to ensure a single binary upload. We'll set review info after processing.
       upload_opts = upload_options.dup
       upload_opts.delete(:beta_app_review_info)
@@ -385,7 +388,7 @@ platform :ios do
           UI.message("Found app via ConnectAPI: #{app.id}")
 
           # Poll for the processed build. Try to match archive info first; otherwise pick the
-          # most-recent uploaded build (uploaded within the last 20 minutes) as a sensible fallback.
+          # most-recent uploaded build that was uploaded after our recorded upload_start_time.
           target_build = nil
           timeout = 600
           interval = 8
@@ -402,11 +405,11 @@ platform :ios do
             end
 
             # Fallback: choose the most recent build uploaded within the last 20 minutes
-            if target_build.nil? && builds.any?
-              recent_threshold = Time.now - 20 * 60
+            if target_build.nil? && builds.any? && defined?(upload_start_time)
+              # Prefer builds uploaded after our upload_start_time
               target_build = builds.sort_by { |b| (b.uploaded_date && Time.parse(b.uploaded_date) rescue Time.at(0)) }.reverse.find do |b|
                 uploaded = (b.uploaded_date && Time.parse(b.uploaded_date) rescue Time.at(0))
-                uploaded >= recent_threshold
+                uploaded >= upload_start_time
               end
             end
 
