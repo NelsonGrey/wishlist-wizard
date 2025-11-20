@@ -271,22 +271,73 @@ platform :ios do
       changelog: ENV["RELEASE_NOTES"] || "Bug fixes and improvements"
     }
 
-    # Only include beta_app_review_info if the contact phone looks valid for ASC
-    if sanitized_contact_phone && sanitized_contact_phone.match(/^\+\d{7,15}$/)
-      upload_options[:beta_app_review_info] = {
+    # Try uploading with multiple phone formats if ASC rejects the phone
+    def build_review_info(phone)
+      {
         contact_email: ENV["BETA_FEEDBACK_EMAIL"],
         contact_first_name: ENV["BETA_CONTACT_FIRST_NAME"] || "Mark",
         contact_last_name: ENV["BETA_CONTACT_LAST_NAME"] || "Nelson",
-        contact_phone: sanitized_contact_phone,
+        contact_phone: phone,
         demo_account_name: "",
         demo_account_password: "",
         notes: "Wishlist Wizard iOS Beta Testing"
       }
-    else
-      UI.message("Skipping beta_app_review_info because sanitized phone is not valid for App Store Connect: #{sanitized_contact_phone}")
     end
 
-    upload_to_testflight(upload_options)
+    phone_variants = []
+    if sanitized_contact_phone && sanitized_contact_phone.match(/^\+\d{7,15}$/)
+      digits = sanitized_contact_phone.gsub(/\D/, "")
+      phone_variants << sanitized_contact_phone
+      phone_variants << digits
+      if digits.length == 11 && digits.start_with?("1")
+        local = digits[1..-1]
+        phone_variants << "1-#{local[0,3]}-#{local[3,3]}-#{local[6,4]}"
+        phone_variants << "(#{local[0,3]}) #{local[3,3]}-#{local[6,4]}"
+        phone_variants << "+1 #{local[0,3]} #{local[3,3]} #{local[6,4]}"
+      elsif digits.length == 10
+        phone_variants << "1-#{digits[0,3]}-#{digits[3,3]}-#{digits[6,4]}"
+        phone_variants << "(#{digits[0,3]}) #{digits[3,3]}-#{digits[6,4]}"
+        phone_variants << "+1 #{digits[0,3]} #{digits[3,3]} #{digits[6,4]}"
+      end
+    end
+
+    # Deduplicate while preserving order
+    phone_variants = phone_variants.compact.map(&:to_s).uniq
+
+    uploaded = false
+    last_error = nil
+
+    # Try each phone variant; if none succeed, fall back to uploading without review info
+    phone_variants.each do |phone_variant|
+      begin
+        UI.message("Attempting upload with phone variant: ****#{phone_variant[-4..-1]}")
+        opts = upload_options.dup
+        opts[:beta_app_review_info] = build_review_info(phone_variant)
+        upload_to_testflight(opts)
+        uploaded = true
+        break
+      rescue => e
+        last_error = e
+        if e.message.to_s.include?("contactPhone")
+          UI.message("App Store Connect rejected phone variant; trying next format...")
+          next
+        else
+          UI.message("Upload failed with unexpected error: #{e.message}")
+          raise
+        end
+      end
+    end
+
+    unless uploaded
+      UI.message("All phone variants failed or none available; uploading without beta_app_review_info to avoid rejection")
+      begin
+        upload_to_testflight(upload_options)
+        uploaded = true
+      rescue => e
+        UI.message("Final upload attempt (without review info) failed: #{e.message}")
+        raise (last_error || e)
+      end
+    end
   end
 
   desc "Deploy to App Store"
