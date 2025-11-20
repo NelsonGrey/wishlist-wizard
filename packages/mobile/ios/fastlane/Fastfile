@@ -35,6 +35,8 @@ platform :ios do
     end
   end
 
+  
+
   desc "Run Flutter tests"
   lane :flutter_test do
     Dir.chdir("../../") do
@@ -88,24 +90,7 @@ platform :ios do
         clean: true
       )
     end
-      end
-
-      if codesign_identity.nil? || codesign_identity.to_s.empty?
-        UI.message("No codesign identity found in environment via match/sigh keys. Trying to detect identity from keychain...")
-        begin
-          identity_sha = %x(security find-identity -v -p codesigning 2>/dev/null | grep -Eo '[0-9A-F]{40}' | head -n1).strip
-          UI.message("Detected identity sha: #{identity_sha}")
-          codesign_identity = identity_sha unless identity_sha.to_s.empty?
-        rescue => e
-          UI.message("Error running security find-identity: #{e.message}")
-        end
-      end
-
-      if codesign_identity.nil? || codesign_identity.to_s.empty?
-        UI.message("No codesign identity found via Match env keys or keychain. Listing available identities for debugging:")
-        sh("security find-identity -v -p codesigning || true")
-        UI.user_error!("No codesign identity found. Ensure match installed the certificate and the runner has access to the keychain identity.")
-      end
+    end
   desc "Build and sign iOS app for TestFlight distribution"
   lane :build_testflight do
     flutter_deps
@@ -162,10 +147,37 @@ platform :ios do
 
           # Re-sign all embedded frameworks in the archive before export (workaround for codesign errors)
           UI.message("Re-signing embedded frameworks in the archive...")
+
+          # Try to get a codesign identity from common environment variables set by match/sigh
           codesign_identity = ENV["sigh_com_nelsongrey_wishlistwizard_app_ios_appstore_certificate-name"]
-          if codesign_identity.nil? || codesign_identity.empty?
-            UI.user_error!("No codesign identity found in sigh_com_nelsongrey_wishlistwizard_app_ios_appstore_certificate-name. Ensure match ran and installed the certificate.")
+          if codesign_identity.nil? || codesign_identity.to_s.empty?
+            UI.message("No direct sigh env var found; searching for any sigh_* env key containing 'certificate'...")
+            env_key = ENV.keys.find { |k| k.start_with?("sigh_") && k.downcase.include?("certificate") }
+            codesign_identity = ENV[env_key] if env_key
+            UI.message("Found env key #{env_key} => #{codesign_identity}") if env_key
           end
+
+          # Fallback: try to detect an identity SHA from the system keychain
+          if codesign_identity.nil? || codesign_identity.to_s.empty?
+            UI.message("Attempting to detect a signing identity from the keychain via 'security find-identity'...")
+            begin
+              identity_sha = %x(security find-identity -v -p codesigning 2>/dev/null | grep -Eo '[0-9A-F]{40}' | head -n1).strip
+              unless identity_sha.to_s.empty?
+                codesign_identity = identity_sha
+                UI.message("Detected identity SHA: #{codesign_identity}")
+              end
+            rescue => e
+              UI.message("Error running security find-identity: #{e.message}")
+            end
+          end
+
+          # If still missing, list identities and fail with a clear message
+          if codesign_identity.nil? || codesign_identity.to_s.empty?
+            UI.message("No codesign identity found via env or keychain. Listing available identities for debugging:")
+            sh("security find-identity -v -p codesigning || true")
+            UI.user_error!("No codesign identity found. Ensure match installed the certificate and the runner has access to the keychain identity.")
+          end
+
           Dir.glob("#{archive}/Products/Applications/Runner.app/Frameworks/*.framework").each do |framework|
             UI.message("Re-signing #{framework} with identity #{codesign_identity}")
             sh("codesign --force --sign \"#{codesign_identity}\" --preserve-metadata=identifier,entitlements \"#{framework}\"")
@@ -185,9 +197,18 @@ platform :ios do
 
     # Upload to TestFlight
     # Locate the generated .ipa dynamically (handles varying file names)
-    ipa_path = Dir["../build/ios/ipa/**/*.ipa"].first
+    # Locate the generated .ipa dynamically (handles varying file names and build dirs)
+    possible_globs = [
+      File.expand_path(File.join(__dir__, "..", "build", "ios", "ipa", "**", "*.ipa")),
+      File.expand_path(File.join(__dir__, "..", "..", "build", "ios", "ipa", "**", "*.ipa"))
+    ]
+    ipa_path = nil
+    possible_globs.each do |g|
+      ipa_path = Dir[g].first
+      break unless ipa_path.nil?
+    end
     if ipa_path.nil?
-      UI.user_error!("Could not find .ipa in ../build/ios/ipa. Ensure `flutter build ipa` succeeded and produced an .ipa file. Looked for: ../build/ios/ipa/**/*.ipa")
+      UI.user_error!("Could not find .ipa in expected locations: #{possible_globs.join(', ')}. Ensure `flutter build ipa` succeeded and produced an .ipa file.")
     else
       UI.message("Found IPA at #{ipa_path}")
     end
