@@ -260,7 +260,7 @@ platform :ios do
 
     UI.message("Using contact phone for TestFlight beta metadata: ****#{sanitized_contact_phone[-4..-1]}")
 
-    upload_to_testflight(
+    upload_options = {
       ipa: ipa_path,
       skip_waiting_for_build_processing: true,
       team_id: ENV["FASTLANE_TEAM_ID"],
@@ -268,9 +268,12 @@ platform :ios do
       beta_app_feedback_email: ENV["BETA_FEEDBACK_EMAIL"],
       demo_account_required: false,
       notify_external_testers: true,
-      changelog: ENV["RELEASE_NOTES"] || "Bug fixes and improvements",
-      # Beta app review information
-      beta_app_review_info: {
+      changelog: ENV["RELEASE_NOTES"] || "Bug fixes and improvements"
+    }
+
+    # Only include beta_app_review_info if the contact phone looks valid for ASC
+    if sanitized_contact_phone && sanitized_contact_phone.match(/^\+\d{7,15}$/)
+      upload_options[:beta_app_review_info] = {
         contact_email: ENV["BETA_FEEDBACK_EMAIL"],
         contact_first_name: ENV["BETA_CONTACT_FIRST_NAME"] || "Mark",
         contact_last_name: ENV["BETA_CONTACT_LAST_NAME"] || "Nelson",
@@ -279,7 +282,11 @@ platform :ios do
         demo_account_password: "",
         notes: "Wishlist Wizard iOS Beta Testing"
       }
-    )
+    else
+      UI.message("Skipping beta_app_review_info because sanitized phone is not valid for App Store Connect: #{sanitized_contact_phone}")
+    end
+
+    upload_to_testflight(upload_options)
   end
 
   desc "Deploy to App Store"
