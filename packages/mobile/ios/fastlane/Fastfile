@@ -143,6 +143,14 @@ platform :ios do
           sh("tail -n 200 /tmp/xcode_export.log || true")
           UI.message("Listing generated IPA directory after xcodebuild export")
           sh("ls -la build/ios/ipa || true")
+
+          # Re-sign all embedded frameworks in the archive before export (workaround for codesign errors)
+          UI.message("Re-signing embedded frameworks in the archive...")
+          codesign_identity = ENV["CODE_SIGN_IDENTITY"] || "$(security find-identity -v -p codesigning | grep 'iPhone Distribution' | head -1 | awk '{print $2}')"
+          Dir.glob("#{archive}/Products/Applications/Runner.app/Frameworks/*.framework").each do |framework|
+            UI.message("Re-signing #{framework} with identity #{codesign_identity}")
+            sh("codesign --force --sign \"#{codesign_identity}\" --preserve-metadata=identifier,entitlements \"#{framework}\"")
+          end
         end
       end
     end
