@@ -88,8 +88,24 @@ platform :ios do
         clean: true
       )
     end
-  end
+      end
 
+      if codesign_identity.nil? || codesign_identity.to_s.empty?
+        UI.message("No codesign identity found in environment via match/sigh keys. Trying to detect identity from keychain...")
+        begin
+          identity_sha = %x(security find-identity -v -p codesigning 2>/dev/null | grep -Eo '[0-9A-F]{40}' | head -n1).strip
+          UI.message("Detected identity sha: #{identity_sha}")
+          codesign_identity = identity_sha unless identity_sha.to_s.empty?
+        rescue => e
+          UI.message("Error running security find-identity: #{e.message}")
+        end
+      end
+
+      if codesign_identity.nil? || codesign_identity.to_s.empty?
+        UI.message("No codesign identity found via Match env keys or keychain. Listing available identities for debugging:")
+        sh("security find-identity -v -p codesigning || true")
+        UI.user_error!("No codesign identity found. Ensure match installed the certificate and the runner has access to the keychain identity.")
+      end
   desc "Build and sign iOS app for TestFlight distribution"
   lane :build_testflight do
     flutter_deps
