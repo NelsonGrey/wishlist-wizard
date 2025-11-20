@@ -221,15 +221,44 @@ platform :ios do
       UI.message("Found IPA at #{ipa_path}")
     end
 
-    # Sanitize beta contact phone number to avoid App Store Connect validation errors
-    raw_contact_phone = ENV["BETA_CONTACT_PHONE"] || "5551234567"
-    # Remove all non-digit characters (spaces, +, dashes, parentheses)
-    sanitized_contact_phone = raw_contact_phone.to_s.gsub(/\D/, "")
-    if sanitized_contact_phone.to_s.empty?
-      UI.message("No valid contact phone provided; falling back to default placeholder")
-      sanitized_contact_phone = "5551234567"
+    # Normalize BETA contact phone to E.164-ish format for App Store Connect
+    raw_contact_phone = ENV["BETA_CONTACT_PHONE"].to_s.strip
+    sanitized_contact_phone = ""
+
+    if raw_contact_phone.empty?
+      UI.message("No contact phone provided; falling back to default +15551234567")
+      sanitized_contact_phone = "+15551234567"
+    else
+      # If it starts with '+', preserve '+' then strip non-digits
+      if raw_contact_phone.start_with?("+")
+        digits = raw_contact_phone[1..-1].gsub(/\D/, "")
+        sanitized_contact_phone = "+" + digits
+      else
+        # Remove non-digits
+        digits = raw_contact_phone.gsub(/\D/, "")
+        # If 10 digits, assume US and prefix +1
+        if digits.length == 10
+          sanitized_contact_phone = "+1" + digits
+        else
+          # If already has country code (11+ digits), prefix '+'
+          if digits.length >= 11 && digits.length <= 15
+            sanitized_contact_phone = "+" + digits
+          else
+            # Last resort fallback
+            UI.message("Could not confidently normalize phone number; falling back to default +15551234567")
+            sanitized_contact_phone = "+15551234567"
+          end
+        end
+      end
     end
-    UI.message("Using sanitized contact phone for TestFlight beta metadata: ****#{sanitized_contact_phone[-4..-1]}")
+
+    # Final basic validation: must look like + followed by 7-15 digits
+    unless sanitized_contact_phone.match?(/^\+\d{7,15}$/)
+      UI.message("Sanitized phone didn't match expected pattern; using fallback +15551234567")
+      sanitized_contact_phone = "+15551234567"
+    end
+
+    UI.message("Using contact phone for TestFlight beta metadata: ****#{sanitized_contact_phone[-4..-1]}")
 
     upload_to_testflight(
       ipa: ipa_path,
