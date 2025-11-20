@@ -107,8 +107,18 @@ platform :ios do
       # Ensure a clean build to avoid leftover signing artifacts
       sh("flutter clean || true")
 
+      # Debug: list build and archive directories before build
+      UI.message("Listing build/ios and build/ios/archive before build:")
+      sh("ls -la build/ios || true")
+      sh("ls -la build/ios/archive || true")
+
       # Build the IPA
       sh("flutter build ipa --release")
+
+      # Debug: list build and archive directories after build
+      UI.message("Listing build/ios and build/ios/archive after flutter build:")
+      sh("ls -la build/ios || true")
+      sh("ls -la build/ios/archive || true")
 
       # Debug: list output IPA directory so CI logs show what was produced
       UI.message("Listing generated IPA directory: build/ios/ipa")
@@ -125,6 +135,9 @@ platform :ios do
           UI.message("Found archive at #{archive}. Running xcodebuild -exportArchive using absolute exportOptions.plist path")
           export_plist = File.expand_path(File.join(__dir__, "exportOptions.plist"))
           UI.message("Using exportOptions.plist at #{export_plist}")
+          sh("ls -la #{archive} || true")
+          sh("ls -la #{archive}/Products/Applications || true")
+          sh("ls -la #{archive}/Products/Applications/Runner.app/Frameworks || true")
           sh("xcodebuild -exportArchive -archivePath \"#{archive}\" -exportOptionsPlist \"#{export_plist}\" -exportPath build/ios/ipa > /tmp/xcode_export.log 2>&1 || true")
           UI.message("--- xcodebuild export log (tail) ---")
           sh("tail -n 200 /tmp/xcode_export.log || true")
