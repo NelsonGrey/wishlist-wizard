@@ -5,12 +5,87 @@
     
     
       
-      <testcase classname="fastlane.lanes" name="0: default_platform" time="0.000165">
+      <testcase classname="fastlane.lanes" name="00: default_platform" time="0.000165">
         
       </testcase>
     
       
-      <testcase classname="fastlane.lanes" name="1: match" time="5.356659">
+      <testcase classname="fastlane.lanes" name="01: Switch to ios load_asc_api_key lane" time="7.0e-05">
+        
+      </testcase>
+    
+      
+      <testcase classname="fastlane.lanes" name="02: app_store_connect_api_key" time="0.004319">
+        
+      </testcase>
+    
+      
+      <testcase classname="fastlane.lanes" name="03: Switch to ios build_testflight lane" time="8.0e-05">
+        
+      </testcase>
+    
+      
+      <testcase classname="fastlane.lanes" name="04: Switch to ios flutter_deps lane" time="6.1e-05">
+        
+      </testcase>
+    
+      
+      <testcase classname="fastlane.lanes" name="05: flutter pub get" time="1.598647">
+        
+      </testcase>
+    
+      
+      <testcase classname="fastlane.lanes" name="06: Switch to ios sync_signing lane" time="0.000116">
+        
+      </testcase>
+    
+      
+      <testcase classname="fastlane.lanes" name="07: match" time="2.213448">
+        
+      </testcase>
+    
+      
+      <testcase classname="fastlane.lanes" name="08: pod install" time="18.03475">
+        
+      </testcase>
+    
+      
+      <testcase classname="fastlane.lanes" name="09: flutter clean || true" time="11.366089">
+        
+      </testcase>
+    
+      
+      <testcase classname="fastlane.lanes" name="10: ls -la build/ios || true" time="0.01207">
+        
+      </testcase>
+    
+      
+      <testcase classname="fastlane.lanes" name="11: ls -la build/ios/archive || true" time="0.006624">
+        
+      </testcase>
+    
+      
+      <testcase classname="fastlane.lanes" name="12: flutter build ipa --release" time="226.768057">
+        
+      </testcase>
+    
+      
+      <testcase classname="fastlane.lanes" name="13: ls -la build/ios || true" time="0.014582">
+        
+      </testcase>
+    
+      
+      <testcase classname="fastlane.lanes" name="14: ls -la build/ios/archive || true" time="0.007632">
+        
+      </testcase>
+    
+      
+      <testcase classname="fastlane.lanes" name="15: ls -la build/ios/ipa || true" time="0.007016">
+        
+      </testcase>
+    
+      
+      <testcase classname="fastlane.lanes" name="16: upload_to_testflight" time="631.616687">
         
       </testcase>
     
