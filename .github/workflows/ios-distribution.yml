@@ -80,6 +80,8 @@ jobs:
           MATCH_GIT_URL=${{ secrets.MATCH_GIT_URL }}
           BETA_FEEDBACK_EMAIL=${{ secrets.BETA_FEEDBACK_EMAIL }}
           MATCH_PASSWORD=${{ secrets.MATCH_PASSWORD }}
+          MATCH_KEYCHAIN_NAME=${{ secrets.MATCH_KEYCHAIN_NAME }}
+          MATCH_KEYCHAIN_PASSWORD=${{ secrets.MATCH_KEYCHAIN_PASSWORD }}
           MATCH_GIT_BRANCH=${{ github.ref == 'refs/heads/main' && 'main' || github.ref == 'refs/heads/staging' && 'staging' || 'develop' }}
           EOF
 
@@ -133,6 +135,20 @@ jobs:
         env:
           ENVIRONMENT: ${{ github.ref == 'refs/heads/main' && 'PRODUCTION' || github.ref == 'refs/heads/staging' && 'STAGING' || 'DEVELOPMENT' }}
         run: |
+          # If MATCH keychain secrets are provided, create and unlock a temporary keychain
+          if [[ -n "${MATCH_KEYCHAIN_NAME:-}" && -n "${MATCH_KEYCHAIN_PASSWORD:-}" ]]; then
+            echo "Creating temporary keychain: ${MATCH_KEYCHAIN_NAME}"
+            security create-keychain -p "${MATCH_KEYCHAIN_PASSWORD}" "${MATCH_KEYCHAIN_NAME}"
+            security set-keychain-settings -t 3600 -l "${MATCH_KEYCHAIN_NAME}"
+            security unlock-keychain -p "${MATCH_KEYCHAIN_PASSWORD}" "${MATCH_KEYCHAIN_NAME}"
+            # Make this keychain the default for the session so codesign/match use it
+            security default-keychain -s "${MATCH_KEYCHAIN_NAME}"
+            # Ensure the keychain is searched by security operations
+            security list-keychains -s "${MATCH_KEYCHAIN_NAME}" $(security list-keychains -d user | sed 's/"//g') || true
+          else
+            echo "No MATCH keychain configured; using system keychains"
+          fi
+
           cd packages/mobile/ios
           if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
             RELEASE_NOTES="${{ github.event.inputs.release_notes || format('Build from {0} - {1}', github.ref_name, github.sha) }}"
