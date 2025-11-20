@@ -104,7 +104,15 @@ platform :ios do
 
     # Build the iOS app using Flutter (includes Xcode build and IPA creation)
     Dir.chdir("../../") do
+      # Ensure a clean build to avoid leftover signing artifacts
+      sh("flutter clean || true")
+
+      # Build the IPA
       sh("flutter build ipa --release")
+
+      # Debug: list output IPA directory so CI logs show what was produced
+      UI.message("Listing generated IPA directory: build/ios/ipa")
+      sh("ls -la build/ios/ipa || true")
     end
   end
 
