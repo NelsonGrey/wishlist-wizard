@@ -146,7 +146,10 @@ platform :ios do
 
           # Re-sign all embedded frameworks in the archive before export (workaround for codesign errors)
           UI.message("Re-signing embedded frameworks in the archive...")
-          codesign_identity = ENV["CODE_SIGN_IDENTITY"] || "$(security find-identity -v -p codesigning | grep 'iPhone Distribution' | head -1 | awk '{print $2}')"
+          codesign_identity = ENV["sigh_com_nelsongrey_wishlistwizard_app_ios_appstore_certificate-name"]
+          if codesign_identity.nil? || codesign_identity.empty?
+            UI.user_error!("No codesign identity found in sigh_com_nelsongrey_wishlistwizard_app_ios_appstore_certificate-name. Ensure match ran and installed the certificate.")
+          end
           Dir.glob("#{archive}/Products/Applications/Runner.app/Frameworks/*.framework").each do |framework|
             UI.message("Re-signing #{framework} with identity #{codesign_identity}")
             sh("codesign --force --sign \"#{codesign_identity}\" --preserve-metadata=identifier,entitlements \"#{framework}\"")
