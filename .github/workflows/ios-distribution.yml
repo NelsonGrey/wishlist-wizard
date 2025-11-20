@@ -135,17 +135,27 @@ jobs:
         env:
           ENVIRONMENT: ${{ github.ref == 'refs/heads/main' && 'PRODUCTION' || github.ref == 'refs/heads/staging' && 'STAGING' || 'DEVELOPMENT' }}
         run: |
-          # If MATCH keychain secrets are provided, create and unlock a temporary keychain
+          # If MATCH keychain secrets are provided, create/unlock a temporary keychain
           if [[ -n "${MATCH_KEYCHAIN_NAME:-}" && -n "${MATCH_KEYCHAIN_PASSWORD:-}" ]]; then
-            echo "Creating temporary keychain: ${MATCH_KEYCHAIN_NAME}"
-            security create-keychain -p "${MATCH_KEYCHAIN_PASSWORD}" "${MATCH_KEYCHAIN_NAME}"
-            security set-keychain-settings -t 3600 -l "${MATCH_KEYCHAIN_NAME}"
-            security unlock-keychain -p "${MATCH_KEYCHAIN_PASSWORD}" "${MATCH_KEYCHAIN_NAME}"
+            # If a keychain with this name already exists, unlock and reuse it.
+            # This avoids `security: SecKeychainCreate: A keychain with the same name already exists` (exit code 48).
+            if security list-keychains -d user | sed 's/"//g' | grep -q "${MATCH_KEYCHAIN_NAME}"; then
+              echo "Keychain ${MATCH_KEYCHAIN_NAME} already exists — unlocking and using it"
+              security unlock-keychain -p "${MATCH_KEYCHAIN_PASSWORD}" "${MATCH_KEYCHAIN_NAME}" || true
+            else
+              echo "Creating temporary keychain: ${MATCH_KEYCHAIN_NAME}"
+              security create-keychain -p "${MATCH_KEYCHAIN_PASSWORD}" "${MATCH_KEYCHAIN_NAME}"
+              security set-keychain-settings -t 3600 -l "${MATCH_KEYCHAIN_NAME}"
+              security unlock-keychain -p "${MATCH_KEYCHAIN_PASSWORD}" "${MATCH_KEYCHAIN_NAME}"
+            fi
+
             # Make this keychain the default for the session so codesign/match use it
             security default-keychain -s "${MATCH_KEYCHAIN_NAME}"
+
             # Grant codesign and Xcode tools access to keys in this keychain
             # This helps avoid errSecInternalComponent / codesign access failures
             security set-key-partition-list -S apple-tool:,apple: -s -k "${MATCH_KEYCHAIN_PASSWORD}" "${MATCH_KEYCHAIN_NAME}" || true
+
             # Ensure the keychain is searched by security operations
             security list-keychains -s "${MATCH_KEYCHAIN_NAME}" $(security list-keychains -d user | sed 's/"//g') || true
           else
