@@ -284,58 +284,38 @@ platform :ios do
       }
     end
 
-    phone_variants = []
-    if sanitized_contact_phone && sanitized_contact_phone.match(/^\+\d{7,15}$/)
-      digits = sanitized_contact_phone.gsub(/\D/, "")
-      phone_variants << sanitized_contact_phone
-      phone_variants << digits
-      if digits.length == 11 && digits.start_with?("1")
-        local = digits[1..-1]
-        phone_variants << "1-#{local[0,3]}-#{local[3,3]}-#{local[6,4]}"
-        phone_variants << "(#{local[0,3]}) #{local[3,3]}-#{local[6,4]}"
-        phone_variants << "+1 #{local[0,3]} #{local[3,3]} #{local[6,4]}"
-      elsif digits.length == 10
-        phone_variants << "1-#{digits[0,3]}-#{digits[3,3]}-#{digits[6,4]}"
-        phone_variants << "(#{digits[0,3]}) #{digits[3,3]}-#{digits[6,4]}"
-        phone_variants << "+1 #{digits[0,3]} #{digits[3,3]} #{digits[6,4]}"
-      end
-    end
-
-    # Deduplicate while preserving order
-    phone_variants = phone_variants.compact.map(&:to_s).uniq
-
+    # Attempt a single upload with the normalized phone number.
+    # If App Store Connect rejects the provided phone (contactPhone), do NOT re-upload repeatedly
+    # (that causes duplicate CFBundleVersion errors). Instead fall back to a single upload without
+    # `beta_app_review_info`. This keeps uploads idempotent and avoids 409 errors.
     uploaded = false
     last_error = nil
 
-    # Try each phone variant; if none succeed, fall back to uploading without review info
-    phone_variants.each do |phone_variant|
-      begin
-        UI.message("Attempting upload with phone variant: ****#{phone_variant[-4..-1]}")
+    begin
+      if sanitized_contact_phone && sanitized_contact_phone.match(/^\+\d{7,15}$/)
+        UI.message("Attempting upload with sanitized phone: ****#{sanitized_contact_phone[-4..-1]}" )
         opts = upload_options.dup
-        opts[:beta_app_review_info] = build_review_info(phone_variant)
+        opts[:beta_app_review_info] = build_review_info(sanitized_contact_phone)
         upload_to_testflight(opts)
-        uploaded = true
-        break
-      rescue => e
-        last_error = e
-        if e.message.to_s.include?("contactPhone")
-          UI.message("App Store Connect rejected phone variant; trying next format...")
-          next
-        else
-          UI.message("Upload failed with unexpected error: #{e.message}")
-          raise
-        end
-      end
-    end
-
-    unless uploaded
-      UI.message("All phone variants failed or none available; uploading without beta_app_review_info to avoid rejection")
-      begin
+      else
+        UI.message("No valid sanitized phone available; uploading without beta_app_review_info")
         upload_to_testflight(upload_options)
-        uploaded = true
-      rescue => e
-        UI.message("Final upload attempt (without review info) failed: #{e.message}")
-        raise (last_error || e)
+      end
+      uploaded = true
+    rescue => e
+      last_error = e
+      if e.message.to_s.include?("contactPhone")
+        UI.message("App Store Connect rejected provided phone number; will upload once more without review info to avoid duplicate bundle uploads")
+        begin
+          upload_to_testflight(upload_options)
+          uploaded = true
+        rescue => e2
+          UI.message("Upload without review info failed: #{e2.message}")
+          raise (last_error || e2)
+        end
+      else
+        UI.message("Upload failed with unexpected error: #{e.message}")
+        raise
       end
     end
   end
