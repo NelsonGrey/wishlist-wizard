@@ -143,6 +143,9 @@ jobs:
             security unlock-keychain -p "${MATCH_KEYCHAIN_PASSWORD}" "${MATCH_KEYCHAIN_NAME}"
             # Make this keychain the default for the session so codesign/match use it
             security default-keychain -s "${MATCH_KEYCHAIN_NAME}"
+            # Grant codesign and Xcode tools access to keys in this keychain
+            # This helps avoid errSecInternalComponent / codesign access failures
+            security set-key-partition-list -S apple-tool:,apple: -s -k "${MATCH_KEYCHAIN_PASSWORD}" "${MATCH_KEYCHAIN_NAME}" || true
             # Ensure the keychain is searched by security operations
             security list-keychains -s "${MATCH_KEYCHAIN_NAME}" $(security list-keychains -d user | sed 's/"//g') || true
           else
