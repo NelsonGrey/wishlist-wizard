@@ -63,12 +63,20 @@ platform :ios do
   desc "Sync code signing certificates and provisioning profiles"
   lane :sync_signing do
     # Sync certificates and profiles without encryption (unencrypted storage)
-    match(
+    # Allow installing into a specific keychain if provided by CI
+    keychain_name = ENV['MATCH_KEYCHAIN_NAME']
+    keychain_password = ENV['MATCH_KEYCHAIN_PASSWORD']
+
+    match_opts = {
       type: "appstore",
       readonly: false,
       verbose: true,
       api_key_path: nil
-    )
+    }
+    match_opts[:keychain_name] = keychain_name unless keychain_name.to_s.empty?
+    match_opts[:keychain_password] = keychain_password unless keychain_password.to_s.empty?
+
+    match(match_opts)
   end
 
   desc "Build and sign iOS app for App Store distribution"
