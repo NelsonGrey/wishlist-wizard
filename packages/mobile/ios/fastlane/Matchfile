@@ -56,3 +56,7 @@ team_id(ENV["FASTLANE_TEAM_ID"])
 # type("development") { git_branch("certs-development") }
 # type("adhoc") { git_branch("certs-adhoc") }
 # type("appstore") { git_branch("certs-appstore") }
+
+# NOTE: Encryption is not required. Unencrypted certificate and profile files are expected in the repo.
+# When new certificates are needed, run match in non-readonly mode to generate and commit them.
+# Example: fastlane match appstore --readonly false

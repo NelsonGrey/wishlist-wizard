@@ -60,11 +60,12 @@ platform :ios do
 
   desc "Sync code signing certificates and provisioning profiles"
   lane :sync_signing do
-    # Sync certificates and profiles using match
+    # Sync certificates and profiles without encryption (unencrypted storage)
     match(
       type: "appstore",
-      readonly: true,  # Set back to readonly for normal operations
-      api_key_path: nil  # Use environment variables for API key
+      readonly: false,
+      verbose: true,
+      api_key_path: nil
     )
   end
 
@@ -72,7 +73,7 @@ platform :ios do
   lane :build_appstore do
     flutter_deps
 
-    # Sync signing certificates
+    # Sync signing certificates (ensures correct branch via env or Matchfile)
     sync_signing
 
     Dir.chdir("../../") do
