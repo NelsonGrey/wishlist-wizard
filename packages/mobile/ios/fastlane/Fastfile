@@ -113,6 +113,23 @@ platform :ios do
       # Debug: list output IPA directory so CI logs show what was produced
       UI.message("Listing generated IPA directory: build/ios/ipa")
       sh("ls -la build/ios/ipa || true")
+      
+      # Fallback: if no IPA was produced, try exporting from the created .xcarchive
+      ipa_found = Dir["build/ios/ipa/**/*.ipa"].first
+      if ipa_found.nil?
+        UI.message("No .ipa found after flutter build ipa — attempting xcodebuild export from .xcarchive")
+        archive = Dir["build/ios/archive/*.xcarchive"].first
+        if archive.nil?
+          UI.message("No .xcarchive found at build/ios/archive — cannot export IPA automatically")
+        else
+          UI.message("Found archive at #{archive}. Running xcodebuild -exportArchive with fastlane/exportOptions.plist")
+          sh("xcodebuild -exportArchive -archivePath \"#{archive}\" -exportOptionsPlist \"fastlane/exportOptions.plist\" -exportPath build/ios/ipa > /tmp/xcode_export.log 2>&1 || true")
+          UI.message("--- xcodebuild export log (tail) ---")
+          sh("tail -n 200 /tmp/xcode_export.log || true")
+          UI.message("Listing generated IPA directory after xcodebuild export")
+          sh("ls -la build/ios/ipa || true")
+        end
+      end
     end
   end
 
