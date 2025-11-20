@@ -356,7 +356,13 @@ platform :ios do
       # Attempt to set beta review info via ConnectAPI without re-uploading the IPA.
       begin
         require 'spaceship'
-        Spaceship::ConnectAPI::Token.ensure_token!
+        # Older Fastlane/Spaceship versions may not implement `ensure_token!`.
+        # Only call it when available; otherwise assume `app_store_connect_api_key` earlier configured the client.
+        if defined?(Spaceship::ConnectAPI::Token) && Spaceship::ConnectAPI::Token.respond_to?(:ensure_token!)
+          Spaceship::ConnectAPI::Token.ensure_token!
+        else
+          UI.message('Spaceship::ConnectAPI::Token.ensure_token! not available on this Fastlane version — continuing assuming client is configured')
+        end
         app = Spaceship::ConnectAPI::App.find(app_identifier)
         unless app
           UI.message("Could not find app via ConnectAPI for identifier #{app_identifier}; skipping metadata PATCH")
