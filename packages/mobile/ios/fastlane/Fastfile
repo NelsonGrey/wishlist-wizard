@@ -284,38 +284,155 @@ platform :ios do
       }
     end
 
-    # Attempt a single upload with the normalized phone number.
-    # If App Store Connect rejects the provided phone (contactPhone), do NOT re-upload repeatedly
-    # (that causes duplicate CFBundleVersion errors). Instead fall back to a single upload without
-    # `beta_app_review_info`. This keeps uploads idempotent and avoids 409 errors.
+    # --- Upload step: perform a single binary upload (without trying multiple re-uploads) ---
+    # We'll upload the IPA once (without beta_app_review_info in the guaranteed path), wait
+    # for processing, and then PATCH beta review metadata via the App Store Connect API.
+    # This avoids duplicate CFBundleVersion 409 errors while allowing us to retry metadata updates.
     uploaded = false
     last_error = nil
 
     begin
-      if sanitized_contact_phone && sanitized_contact_phone.match(/^\+\d{7,15}$/)
-        UI.message("Attempting upload with sanitized phone: ****#{sanitized_contact_phone[-4..-1]}" )
-        opts = upload_options.dup
-        opts[:beta_app_review_info] = build_review_info(sanitized_contact_phone)
-        upload_to_testflight(opts)
-      else
-        UI.message("No valid sanitized phone available; uploading without beta_app_review_info")
-        upload_to_testflight(upload_options)
-      end
+      UI.message("Uploading IPA once (without retrying full uploads).")
+      # Upload without beta_app_review_info to ensure a single binary upload. We'll set review info after processing.
+      upload_opts = upload_options.dup
+      upload_opts.delete(:beta_app_review_info)
+      upload_to_testflight(upload_opts)
       uploaded = true
     rescue => e
       last_error = e
-      if e.message.to_s.include?("contactPhone")
-        UI.message("App Store Connect rejected provided phone number; will upload once more without review info to avoid duplicate bundle uploads")
-        begin
-          upload_to_testflight(upload_options)
-          uploaded = true
-        rescue => e2
-          UI.message("Upload without review info failed: #{e2.message}")
-          raise (last_error || e2)
+      UI.message("Upload failed with unexpected error: #{e.message}")
+      raise
+    end
+
+    # If upload succeeded, attempt to PATCH beta review metadata (phone variants) via ConnectAPI
+    if uploaded
+      UI.message("Upload succeeded — attempting to set beta review metadata via App Store Connect API")
+
+      # Helper: read CFBundleVersion and CFBundleShortVersionString from the xcarchive or built app
+      def read_build_info_from_archive
+        archive = Dir[File.expand_path(File.join(__dir__, "..", "build", "ios", "archive", "*.xcarchive"))].first
+        if archive && File.exist?(archive)
+          info_plist = File.join(archive, "Products/Applications/Runner.app/Info.plist")
+          if File.exist?(info_plist)
+            short_version = %x(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "#{info_plist}" 2>/dev/null).strip
+            build_number = %x(/usr/libexec/PlistBuddy -c "Print :CFBundleVersion" "#{info_plist}" 2>/dev/null).strip
+            return {version: short_version, build: build_number}
+          end
         end
-      else
-        UI.message("Upload failed with unexpected error: #{e.message}")
-        raise
+        # As a fallback, try to read the Info.plist from the app in build/ios/ipa (unzipped) — best effort
+        ipa_app_info = Dir[File.expand_path(File.join(__dir__, "..", "build", "ios", "ipa", "**", "*.ipa"))].first
+        if ipa_app_info && File.exist?(ipa_app_info)
+          # Can't easily read Info.plist inside IPA without unzipping; skip fallback
+          return {}
+        end
+        {}
+      end
+
+      build_info = read_build_info_from_archive
+      app_identifier = (ENV["APP_IDENTIFIER"] || ENV["APP_ID"] || ENV["FASTLANE_APP_IDENTIFIER"] || "com.nelsongrey.wishlistwizard.app.ios")
+
+      UI.message("Determined app identifier: #{app_identifier}")
+      UI.message("Detected build info: #{build_info}")
+
+      # Build phone variants list (preserve earlier logic but only for metadata PATCH retries)
+      phone_variants = []
+      if sanitized_contact_phone && sanitized_contact_phone.match(/^\+\d{7,15}$/)
+        digits = sanitized_contact_phone.gsub(/\D/, "")
+        phone_variants << sanitized_contact_phone
+        phone_variants << digits
+        if digits.length == 11 && digits.start_with?("1")
+          local = digits[1..-1]
+          phone_variants << "1-#{local[0,3]}-#{local[3,3]}-#{local[6,4]}"
+          phone_variants << "(#{local[0,3]}) #{local[3,3]}-#{local[6,4]}"
+          phone_variants << "+1 #{local[0,3]} #{local[3,3]} #{local[6,4]}"
+        elsif digits.length == 10
+          phone_variants << "1-#{digits[0,3]}-#{digits[3,3]}-#{digits[6,4]}"
+          phone_variants << "(#{digits[0,3]}) #{digits[3,3]}-#{digits[6,4]}"
+          phone_variants << "+1 #{digits[0,3]} #{digits[3,3]} #{digits[6,4]}"
+        end
+      end
+      phone_variants = phone_variants.compact.uniq
+
+      # Attempt to set beta review info via ConnectAPI without re-uploading the IPA.
+      begin
+        require 'spaceship'
+        Spaceship::ConnectAPI::Token.ensure_token!
+        app = Spaceship::ConnectAPI::App.find(app_identifier)
+        unless app
+          UI.message("Could not find app via ConnectAPI for identifier #{app_identifier}; skipping metadata PATCH")
+        else
+          UI.message("Found app via ConnectAPI: #{app.id}")
+
+          # Poll for the processed build
+          target_build = nil
+          timeout = 600
+          interval = 8
+          waited = 0
+          while waited < timeout && target_build.nil?
+            UI.message("Polling App Store Connect for processed builds (waited #{waited}s)...")
+            builds = Spaceship::ConnectAPI::Build.all(filter: {app: app.id}) rescue []
+            builds.each do |b|
+              if build_info[:build] && b.build_version.to_s == build_info[:build].to_s
+                target_build = b
+                break
+              elsif build_info[:version] && b.app_version.to_s == build_info[:version].to_s
+                # If multiple builds for this version, prefer the latest processed one
+                target_build ||= b
+              end
+            end
+            break if target_build && %w[PROCESSING VALIDATED INVALID READY].include?(target_build.processing_state.to_s.upcase)
+            sleep(interval)
+            waited += interval
+          end
+
+          if target_build.nil?
+            UI.message("Could not determine processed build for app #{app_identifier}; skipping metadata PATCH")
+          else
+            UI.message("Target build found: id=#{target_build.id}, version=#{target_build.app_version}, build=#{target_build.build_version}")
+
+            # Try each phone variant, PATCHing the betaAppReviewInfo resource for the app
+            patched = false
+            phone_variants = ["", *phone_variants].uniq # allow empty to try clearing/omitting phone
+            phone_variants.each do |pv|
+              begin
+                UI.message("Attempting to PATCH beta review info with phone: ****#{pv.to_s[-4..-1]}")
+                body = {
+                  data: {
+                    type: "betaAppReviewDetails",
+                    attributes: {
+                      contactEmail: ENV["BETA_FEEDBACK_EMAIL"],
+                      contactFirstName: ENV["BETA_CONTACT_FIRST_NAME"] || "Mark",
+                      contactLastName: ENV["BETA_CONTACT_LAST_NAME"] || "Nelson",
+                      contactPhone: pv.to_s,
+                      demoAccountRequired: false,
+                      notes: "Wishlist Wizard iOS Beta Testing"
+                    }
+                  }
+                }
+                # Use Spaceship low-level request to patch betaAppReviewDetails for the app
+                path = "/v1/apps/#{app.id}/betaAppReviewDetails"
+                resp = Spaceship::ConnectAPI::Base.client.patch(path, body)
+                if resp && resp[:data]
+                  UI.message("Successfully patched beta review info for app #{app_identifier}")
+                  patched = true
+                  break
+                else
+                  UI.message("Unexpected response while patching beta review info: #{resp.inspect}")
+                end
+              rescue => e
+                UI.message("PATCH attempt failed: #{e.message}")
+                # If response mentions contactPhone, try next variant
+                next
+              end
+            end
+
+            unless patched
+              UI.message("All metadata PATCH attempts failed; leaving binary uploaded and skipping review info")
+            end
+          end
+        end
+      rescue => e
+        UI.message("Error while attempting ConnectAPI metadata PATCH: #{e.message}")
       end
     end
   end
