@@ -296,10 +296,48 @@ platform :ios do
       # Record upload start time so we can precisely identify the uploaded build via ConnectAPI
       upload_start_time = Time.now.utc
 
-      # Upload without beta_app_review_info to ensure a single binary upload. We'll set review info after processing.
-      upload_opts = upload_options.dup
-      upload_opts.delete(:beta_app_review_info)
-      upload_to_testflight(upload_opts)
+      # Prefer to run the transporter directly so we can capture the Delivery UUID.
+      # Prepare a temporary .p8 key file from ASC_PRIVATE_KEY (base64) if present.
+      delivery_uuid = nil
+      asc_key_id = ENV["ASC_KEY_ID"]
+      asc_issuer = ENV["ASC_ISSUER_ID"]
+      asc_private_b64 = ENV["ASC_PRIVATE_KEY"]
+
+      if asc_key_id && asc_issuer && asc_private_b64 && !asc_private_b64.empty?
+        tmp_dir = Dir.mktmpdir("asc_key")
+        begin
+          p8_path = File.join(tmp_dir, "asc_key.p8")
+          File.open(p8_path, "w") do |f|
+            f.write(Base64.decode64(asc_private_b64))
+          end
+
+          UI.message("Using direct transporter (altool) to upload IPA and capture Delivery UUID")
+          cmd = "xcrun altool --upload-app --apiKey #{asc_key_id} --apiIssuer #{asc_issuer} -t ios -f \"#{ipa_path}\" -k 100000"
+          # Ensure API_PRIVATE_KEYS_DIR is set so altool can find our key
+          env = { 'API_PRIVATE_KEYS_DIR' => tmp_dir }
+          altool_output = Actions.sh(cmd, log: true, print_command: false, env: env)
+          if altool_output
+            m = altool_output.match(/Delivery UUID:\s*([0-9a-fA-F\-]+)/i)
+            delivery_uuid = m[1] if m
+            UI.message("Transporter Delivery UUID: #{delivery_uuid}") if delivery_uuid
+          end
+        rescue => e
+          UI.message("Direct transporter upload failed: #{e.message}; falling back to fastlane upload_to_testflight")
+          upload_opts = upload_options.dup
+          upload_opts.delete(:beta_app_review_info)
+          upload_to_testflight(upload_opts)
+        ensure
+          begin
+            FileUtils.remove_entry(tmp_dir) if tmp_dir && Dir.exist?(tmp_dir)
+          rescue => _e; end
+        end
+      else
+        UI.message("ASC API key not provided for direct transporter; using upload_to_testflight")
+        upload_opts = upload_options.dup
+        upload_opts.delete(:beta_app_review_info)
+        upload_to_testflight(upload_opts)
+      end
+
       uploaded = true
     rescue => e
       last_error = e
