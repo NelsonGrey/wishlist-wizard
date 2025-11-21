@@ -19,10 +19,31 @@ platform :ios do
 
   desc "Load ASC API Key information to use in subsequent lanes"
   lane :load_asc_api_key do
+    # Ensure ASC_PRIVATE_KEY has proper formatting for OpenSSL
+    private_key_content = ENV["ASC_PRIVATE_KEY"]
+    if private_key_content
+      # Remove any extra whitespace and ensure proper PEM formatting
+      private_key_content = private_key_content.strip
+      # If the key doesn't have proper BEGIN/END markers, it might be base64 encoded
+      unless private_key_content.include?("-----BEGIN APP_STORE_CONNECT_KEY-----")
+        # Try to decode as base64
+        begin
+          require 'base64'
+          decoded = Base64.decode64(private_key_content)
+          if decoded.include?("-----BEGIN APP_STORE_CONNECT_KEY-----")
+            private_key_content = decoded
+            UI.message("Decoded ASC_PRIVATE_KEY from base64")
+          end
+        rescue => e
+          UI.message("Failed to decode ASC_PRIVATE_KEY as base64: #{e.message}")
+        end
+      end
+    end
+
     app_store_connect_api_key(
       key_id: ENV["ASC_KEY_ID"],
       issuer_id: ENV["ASC_ISSUER_ID"],
-      key_content: ENV["ASC_PRIVATE_KEY"],
+      key_content: private_key_content,
       is_key_content_base64: false,
       in_house: false
     )
