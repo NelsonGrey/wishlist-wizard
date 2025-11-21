@@ -47,15 +47,41 @@ platform :ios do
 
       UI.message("Created temporary ASC key file: #{key_file.path}")
 
+      # Try converting PKCS#8 / ambiguous PEM to a traditional EC PRIVATE KEY
+      # Some OpenSSL builds or Ruby/OpenSSL bindings fail to parse certain PKCS#8 encodings.
+      converted_path = nil
+      begin
+        require 'tmpdir'
+        converted_path = File.join(Dir.tmpdir, "asc_key_converted_#{Time.now.to_i}.p8")
+        convert_cmd = "openssl pkcs8 -in #{key_file.path} -inform PEM -out #{converted_path} -outform PEM -nocrypt 2>&1"
+        UI.message("Attempting OpenSSL conversion to canonical EC key: #{convert_cmd}")
+        convert_output = `#{convert_cmd}`
+        if $?.success? && File.exist?(converted_path) && File.size?(converted_path) > 0
+          UI.message("OpenSSL conversion succeeded; using converted key at #{converted_path}")
+          use_key_path = converted_path
+        else
+          UI.message("OpenSSL conversion failed or produced empty file: #{convert_output}")
+          use_key_path = key_file.path
+        end
+      rescue => e
+        UI.message("OpenSSL conversion attempt raised: #{e.message}")
+        use_key_path = key_file.path
+      end
+
       app_store_connect_api_key(
         key_id: ENV["ASC_KEY_ID"],
         issuer_id: ENV["ASC_ISSUER_ID"],
-        key_filepath: key_file.path,
+        key_filepath: use_key_path,
         in_house: false
       )
 
-      # Clean up the temporary file
-      key_file.unlink
+      # Clean up temporary files
+      begin
+        key_file.unlink
+      rescue => _; end
+      begin
+        File.delete(converted_path) if converted_path && File.exist?(converted_path)
+      rescue => _; end
     else
       UI.user_error!("ASC_PRIVATE_KEY environment variable is not set")
     end
