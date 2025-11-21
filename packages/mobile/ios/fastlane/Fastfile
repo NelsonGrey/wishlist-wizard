@@ -22,15 +22,21 @@ platform :ios do
     # Create a temporary file for the ASC private key
     private_key_content = ENV["ASC_PRIVATE_KEY"]
     if private_key_content
-      # Clean up the key content
+      # Clean up and normalize the key content
       private_key_content = private_key_content.strip
+      # Remove surrounding quotes if present
+      private_key_content = private_key_content.gsub(/\A['\"]|['\"]\z/, '')
+      # Expand literal \n sequences into real newlines (handle secrets stored as one-liners)
+      private_key_content = private_key_content.gsub(/\\n/, "\n")
+      # Normalize CRLF -> LF
+      private_key_content = private_key_content.gsub(/\r\n?/, "\n")
 
       # If the key doesn't have proper BEGIN/END markers, try base64 decoding
-      unless private_key_content.include?("-----BEGIN APP_STORE_CONNECT_KEY-----")
+      unless private_key_content.include?("-----BEGIN APP_STORE_CONNECT_KEY-----") || private_key_content.include?("-----BEGIN EC PRIVATE KEY-----")
         begin
           require 'base64'
           decoded = Base64.decode64(private_key_content)
-          if decoded.include?("-----BEGIN APP_STORE_CONNECT_KEY-----")
+          if decoded.include?("-----BEGIN")
             private_key_content = decoded
             UI.message("Decoded ASC_PRIVATE_KEY from base64")
           end
@@ -39,7 +45,7 @@ platform :ios do
         end
       end
 
-      # Write the key to a temporary file
+      # Write the (normalized) key to a temporary file
       require 'tempfile'
       key_file = Tempfile.new(['asc_key', '.p8'])
       key_file.write(private_key_content)
@@ -47,22 +53,35 @@ platform :ios do
 
       UI.message("Created temporary ASC key file: #{key_file.path}")
 
-      # Try converting PKCS#8 / ambiguous PEM to a traditional EC PRIVATE KEY
-      # Some OpenSSL builds or Ruby/OpenSSL bindings fail to parse certain PKCS#8 encodings.
+      # Attempt multiple OpenSSL conversions to produce a canonical EC PEM that Ruby/OpenSSL accepts.
       converted_path = nil
+      use_key_path = key_file.path
       begin
         require 'tmpdir'
         converted_path = File.join(Dir.tmpdir, "asc_key_converted_#{Time.now.to_i}.p8")
-        convert_cmd = "openssl pkcs8 -in #{key_file.path} -inform PEM -out #{converted_path} -outform PEM -nocrypt 2>&1"
-        UI.message("Attempting OpenSSL conversion to canonical EC key: #{convert_cmd}")
-        convert_output = `#{convert_cmd}`
-        if $?.success? && File.exist?(converted_path) && File.size?(converted_path) > 0
-          UI.message("OpenSSL conversion succeeded; using converted key at #{converted_path}")
-          use_key_path = converted_path
-        else
-          UI.message("OpenSSL conversion failed or produced empty file: #{convert_output}")
-          use_key_path = key_file.path
+
+        conversion_cmds = [
+          "openssl pkcs8 -in #{key_file.path} -inform PEM -out #{converted_path} -outform PEM -nocrypt 2>&1",
+          "openssl pkey -in #{key_file.path} -out #{converted_path} -outform PEM -nocrypt 2>&1",
+          "openssl ec -in #{key_file.path} -out #{converted_path} 2>&1"
+        ]
+
+        conversion_succeeded = false
+        conversion_cmds.each do |cmd|
+          UI.message("Trying OpenSSL command: #{cmd}")
+          output = `#{cmd}`
+          if $?.success? && File.exist?(converted_path) && File.size?(converted_path) && File.size(converted_path) > 0
+            UI.message("OpenSSL conversion succeeded with command: #{cmd}")
+            use_key_path = converted_path
+            conversion_succeeded = true
+            break
+          else
+            UI.message("OpenSSL command failed or produced empty file: #{output}")
+            # Ensure no stale converted file remains
+            begin; File.delete(converted_path) if File.exist?(converted_path); rescue => _; end
+          end
         end
+        UI.message("OpenSSL conversion overall success: #{conversion_succeeded}")
       rescue => e
         UI.message("OpenSSL conversion attempt raised: #{e.message}")
         use_key_path = key_file.path
