@@ -5,7 +5,7 @@
 All production-ready builds have been generated and are available in the following locations:
 
 ### 1. 🌐 React Web Application
-- **Location**: `packages/web/dist/`
+- **Location**: `web/dist/`
 - **Type**: Single Page Application (SPA)
 - **Deployment**: Ready for static hosting (Firebase Hosting, Netlify, AWS S3, etc.)
 - **Entry Point**: `dist/index.html`
@@ -13,22 +13,21 @@ All production-ready builds have been generated and are available in the followi
 - **Size**: ~1MB minified + gzipped (~298KB)
 
 ### 2. 🚀 Express API Server
-- **Location**: `packages/api-server/dist/`
-- **Type**: Node.js server bundle
-- **Deployment**: Ready for serverless hosting (Firebase Functions, AWS Lambda, etc.)
-- **Entry Point**: `dist/index.js`
+- **Location**: `packages/functions/lib/` (Firebase Functions)
+- **Type**: Serverless functions
+- **Deployment**: Firebase Functions
 - **Runtime**: Node.js 18+
-- **Size**: 266.6KB bundled
+- **Features**: Auto-scaling, serverless execution
 
 ### 3. 🔌 Chrome Browser Extension
-- **Package Location**: `chrome-extension-package/`
+- **Package Location**: `packages/browser-extension/dist/`
 - **Zip Package**: `wishlist-wizard-extension.zip`
 - **Type**: Chrome Extension (Manifest V3)
 - **Deployment**: Ready for Chrome Web Store submission
 - **Features**: Content scripts, background service worker, popup interface
 
 ### 4. 📱 Flutter Mobile App
-- **Location**: `mobile/build/web/`
+- **Location**: `packages/mobile/build/web/`
 - **Type**: Progressive Web App (PWA)
 - **Deployment**: Web deployment ready
 - **Note**: Android/iOS builds require additional SDK setup
@@ -52,7 +51,7 @@ firebase login
 firebase init hosting
 
 # Deploy from project root
-cd packages/web
+cd web
 firebase deploy --only hosting
 ```
 
@@ -62,32 +61,19 @@ firebase deploy --only hosting
 npm install -g netlify-cli
 
 # Deploy
-cd packages/web
+cd web
 netlify deploy --prod --dir=dist
 ```
 
 #### Option 3: Static File Hosting
-Upload the entire `packages/web/dist/` directory to your static file host.
+Upload the entire `web/dist/` directory to your static file host.
 
 ### API Server Deployment
 
-#### Option 1: Firebase Functions (Recommended)
+#### Firebase Functions (Recommended)
 ```bash
-# Install Firebase CLI
-npm install -g firebase-tools
-
 # Deploy functions
-cd packages/api-server
 firebase deploy --only functions
-```
-
-#### Option 2: AWS Lambda
-```bash
-# Add Heroku remote
-heroku create your-app-name
-
-# Deploy
-git subtree push --prefix packages/api-server heroku main
 ```
 
 ### Chrome Extension Deployment
@@ -99,20 +85,20 @@ git subtree push --prefix packages/api-server heroku main
 
 2. **Developer Mode Testing**:
    - Open Chrome → Extensions → Developer Mode
-   - Load unpacked → Select `chrome-extension-package/` folder
+   - Load unpacked → Select `packages/browser-extension/dist/` folder
 
 ### Mobile App Deployment
 
 #### Web Version (PWA)
 ```bash
 # Serve the Flutter web build
-cd mobile/build/web
+cd packages/mobile/build/web
 python -m http.server 8080
 ```
 
 #### Android APK (Requires Android SDK)
 ```bash
-cd mobile
+cd packages/mobile
 flutter build apk --release
 # Output: build/app/outputs/flutter-apk/app-release.apk
 ```
@@ -165,10 +151,11 @@ FIREBASE_PROJECT_ID=your-project-id
 npm run build
 
 # Test individual packages
-npm run build -w packages/web
-npm run build -w packages/api-server
-npm run build -w packages/browser-extension
 npm run build -w packages/shared
+npm run build -w packages/browser-extension
+npm run build -w packages/functions
+npm run build -w packages/mobile
+npm run build -w web
 ```
 
 ## 🆘 Troubleshooting

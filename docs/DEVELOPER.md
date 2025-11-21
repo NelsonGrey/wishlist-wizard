@@ -1,6 +1,6 @@
 1//01TUQ4hMG2uxUCgYIARAAGAESNwF-L9IreJTDLMjQbt462Q0pjMcRXElmc0PJd-plm8QWDOu1KY7EPqq9AdH7uub09FikoYYs-Iw
 
-# WishKeeper Developer Guide
+# Wishlist Wizard Developer Guide
 
 This document provides technical information for developers working on the WishKeeper platform.
 
@@ -36,34 +36,24 @@ This document provides technical information for developers working on the WishK
 
 ```
 / (root)
-├── client/                    # Frontend codebase
-│   ├── public/                # Public assets and browser extension files
-│   │   └── extension/         # Browser extension source code
-│   └── src/                   # React application source
-│       ├── assets/            # Static assets for the frontend
-│       ├── components/        # Reusable UI components
-│       │   ├── ar-visualization/  # AR components
-│       │   ├── calendar/      # Calendar components
-│       │   └── ui/            # General UI components
-│       ├── hooks/             # Custom React hooks
-│       ├── lib/               # Utility functions and libraries
-│       ├── pages/             # Page components
-│       └── test/              # Frontend tests
-├── mobile/                    # Mobile app source (for future development)
-├── server/                    # Backend codebase
-│   ├── middlewares/           # Express middlewares
-│   ├── routes/                # API route definitions
-│   │   ├── calendar.ts        # Calendar API endpoints
-│   │   └── ecommerce.ts       # E-commerce API endpoints
-│   ├── services/              # Service layer implementations
-│   │   ├── calendarIntegrationService.ts  # Calendar integration
-│   │   ├── ecommerceIntegrationService.ts # E-commerce platform integration
-│   │   ├── emailService.ts    # Email notifications
-│   │   └── notificationService.ts # In-app notifications
-│   └── tests/                 # Backend tests
-└── shared/                    # Shared code between front and backend
-    ├── schema.ts              # Database schema definitions
-    └── tests/                 # Shared tests
+├── web/                    # React web application
+│   ├── public/             # Public assets
+│   └── src/                # React application source
+├── server/                 # Express.js API server
+│   ├── middlewares/        # Express middlewares
+│   ├── routes/             # API route definitions
+│   ├── services/           # Service layer implementations
+│   └── tests/              # Backend tests
+├── packages/               # Monorepo packages
+│   ├── browser-extension/  # Chrome browser extension
+│   │   └── src/            # Extension source code
+│   ├── functions/          # Firebase Functions
+│   │   └── src/            # Serverless functions
+│   ├── mobile/             # Flutter mobile app
+│   │   └── lib/            # Flutter source code
+│   └── shared/             # Shared TypeScript code
+│       └── src/            # Shared schemas and utilities
+└── scripts/                # Automation scripts
 ```
 
 ## Database Schema
@@ -189,9 +179,10 @@ The following environment variables need to be set:
 
 5. **Deployment**
    - The web application is deployed to Firebase Hosting
+   - The API server runs on Firebase Functions
    - The database uses Firebase Firestore
    - Deploy with `firebase deploy --only hosting` for web app
-   - Deploy with `firebase deploy --only firestore` for database rules
+   - Deploy with `firebase deploy --only functions` for API server
    - Ensure all environment variables are set before deployment
 
 ## Extension Development
