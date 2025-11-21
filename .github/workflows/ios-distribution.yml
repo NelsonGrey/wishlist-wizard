@@ -116,11 +116,8 @@ jobs:
       - name: Debug Fastlane secrets (masked)
         run: |
           cd packages/mobile/ios
-          # Load env file into current shell session if present
-          if [ -f .env ]; then
-            # shellcheck disable=SC1091
-            source .env || true
-          fi
+          # Environment variables are already available in GitHub Actions environment
+          # No need to source .env file as it contains multiline values that can't be sourced
 
           # Masked diagnostics: do not print secrets in full
           if [ -n "${MATCH_GIT_URL:-}" ]; then
