@@ -46,6 +46,12 @@ jobs:
         with:
           flutter-version: '3.35.7'
 
+      - name: Install GMP (required for Ruby 3.2.2)
+        run: |
+          echo "Installing GMP library required for Ruby 3.2.2..."
+          brew install gmp
+          echo "GMP installation completed"
+
       - name: Set up Ruby
         uses: ruby/setup-ruby@v1
         with:
