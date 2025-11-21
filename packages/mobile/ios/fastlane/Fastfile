@@ -297,18 +297,18 @@ platform :ios do
       upload_start_time = Time.now.utc
 
       # Prefer to run the transporter directly so we can capture the Delivery UUID.
-      # Prepare a temporary .p8 key file from ASC_PRIVATE_KEY (base64) if present.
+      # Prepare a temporary .p8 key file from ASC_PRIVATE_KEY if present.
       delivery_uuid = nil
       asc_key_id = ENV["ASC_KEY_ID"]
       asc_issuer = ENV["ASC_ISSUER_ID"]
-      asc_private_b64 = ENV["ASC_PRIVATE_KEY"]
+      asc_private_key = ENV["ASC_PRIVATE_KEY"]
 
-      if asc_key_id && asc_issuer && asc_private_b64 && !asc_private_b64.empty?
+      if asc_key_id && asc_issuer && asc_private_key && !asc_private_key.empty?
         tmp_dir = Dir.mktmpdir("asc_key")
         begin
           p8_path = File.join(tmp_dir, "asc_key.p8")
           File.open(p8_path, "w") do |f|
-            f.write(Base64.decode64(asc_private_b64))
+            f.write(asc_private_key)
           end
 
           UI.message("Using direct transporter (altool) to upload IPA and capture Delivery UUID")
