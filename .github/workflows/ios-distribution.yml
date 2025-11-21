@@ -49,7 +49,7 @@ jobs:
       - name: Set up Ruby
         uses: ruby/setup-ruby@v1
         with:
-          ruby-version: '3.0'
+          ruby-version: '3.2.2'
 
       - name: Install Fastlane
         run: gem install fastlane -v 2.228.0
@@ -154,19 +154,8 @@ jobs:
             echo "MATCH_KEYCHAIN_NAME=${GENERATED_KEYCHAIN_NAME}" >> $GITHUB_ENV
             echo "MATCH_KEYCHAIN_PASSWORD=${GENERATED_KEYCHAIN_PASSWORD}" >> $GITHUB_ENV
 
-            # Create and configure the keychain
-            security create-keychain -p "${GENERATED_KEYCHAIN_PASSWORD}" "${GENERATED_KEYCHAIN_NAME}" || true
-            security set-keychain-settings -t 3600 -l "${GENERATED_KEYCHAIN_NAME}" || true
-            security unlock-keychain -p "${GENERATED_KEYCHAIN_PASSWORD}" "${GENERATED_KEYCHAIN_NAME}" || true
-
-            # Make this keychain the default for the session so codesign/match use it
-            security default-keychain -s "${GENERATED_KEYCHAIN_NAME}" || true
-
-            # Grant codesign and Xcode tools access to keys in this keychain
-            security set-key-partition-list -S apple-tool:,apple: -s -k "${GENERATED_KEYCHAIN_PASSWORD}" "${GENERATED_KEYCHAIN_NAME}" || true
-
-            # Ensure the keychain is first in the search list
-            security list-keychains -s "${HOME}/Library/Keychains/${GENERATED_KEYCHAIN_NAME}-db" $(security list-keychains -d user | sed 's/"//g') || true
+            # Use the setup script for keychain creation
+            bash scripts/setup_keychain.sh
           fi
 
           cd packages/mobile/ios
