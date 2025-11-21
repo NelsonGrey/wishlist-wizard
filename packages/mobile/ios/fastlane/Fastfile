@@ -30,6 +30,8 @@ platform :ios do
       private_key_content = private_key_content.gsub(/\\n/, "\n")
       # Normalize CRLF -> LF
       private_key_content = private_key_content.gsub(/\r\n?/, "\n")
+      # Strip leading/trailing whitespace from each PEM line to avoid 'bad end line' errors
+      private_key_content = private_key_content.lines.map { |l| l.strip }.reject { |l| l.empty? }.join("\n") + "\n"
 
       # If the key doesn't have proper BEGIN/END markers, try base64 decoding
       unless private_key_content.include?("-----BEGIN PRIVATE KEY-----") || private_key_content.include?("-----BEGIN EC PRIVATE KEY-----")
