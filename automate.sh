@@ -333,7 +333,7 @@ cmd_health() {
 
     echo ""
     echo "🔥 Firebase Status:"
-    firebase projects:list --limit 3 2>/dev/null | head -5 || echo "Firebase not accessible"
+    firebase projects:list 2>/dev/null | grep "wishlist-wizard" | head -3 || echo "Firebase CLI available but projects not accessible"
 
     echo ""
     echo "🤖 GitHub Runners:"
