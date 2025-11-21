@@ -109,7 +109,7 @@ jobs:
 
   validate-android:
     if: github.event.inputs.validate_android == 'true' || github.event.inputs.validate_android == ''
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     environment: ${{ github.event.inputs.environment || 'DEVELOPMENT' }}
     steps:
       - name: Checkout code
@@ -150,7 +150,7 @@ jobs:
 
   validate-security:
     if: github.event.inputs.validate_security == 'true' || github.event.inputs.validate_security == ''
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -164,7 +164,7 @@ jobs:
 
   summary:
     needs: [validate-ios, validate-android, validate-security]
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     if: always()
     steps:
       - name: Create validation summary
