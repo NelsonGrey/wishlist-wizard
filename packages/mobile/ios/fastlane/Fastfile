@@ -19,14 +19,14 @@ platform :ios do
 
   desc "Load ASC API Key information to use in subsequent lanes"
   lane :load_asc_api_key do
-    # Ensure ASC_PRIVATE_KEY has proper formatting for OpenSSL
+    # Create a temporary file for the ASC private key
     private_key_content = ENV["ASC_PRIVATE_KEY"]
     if private_key_content
-      # Remove any extra whitespace and ensure proper PEM formatting
+      # Clean up the key content
       private_key_content = private_key_content.strip
-      # If the key doesn't have proper BEGIN/END markers, it might be base64 encoded
+
+      # If the key doesn't have proper BEGIN/END markers, try base64 decoding
       unless private_key_content.include?("-----BEGIN PRIVATE KEY-----")
-        # Try to decode as base64
         begin
           require 'base64'
           decoded = Base64.decode64(private_key_content)
@@ -38,15 +38,27 @@ platform :ios do
           UI.message("Failed to decode ASC_PRIVATE_KEY as base64: #{e.message}")
         end
       end
-    end
 
-    app_store_connect_api_key(
-      key_id: ENV["ASC_KEY_ID"],
-      issuer_id: ENV["ASC_ISSUER_ID"],
-      key_content: private_key_content,
-      is_key_content_base64: false,
-      in_house: false
-    )
+      # Write the key to a temporary file
+      require 'tempfile'
+      key_file = Tempfile.new(['asc_key', '.p8'])
+      key_file.write(private_key_content)
+      key_file.close
+
+      UI.message("Created temporary ASC key file: #{key_file.path}")
+
+      app_store_connect_api_key(
+        key_id: ENV["ASC_KEY_ID"],
+        issuer_id: ENV["ASC_ISSUER_ID"],
+        key_filepath: key_file.path,
+        in_house: false
+      )
+
+      # Clean up the temporary file
+      key_file.unlink
+    else
+      UI.user_error!("ASC_PRIVATE_KEY environment variable is not set")
+    end
   end
 
   desc "Install Flutter dependencies"
