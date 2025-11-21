@@ -133,3 +133,10 @@ temp/
 
 # Self-hosted runner files (contains sensitive credentials)
 actions-runner/
+
+# Generated secrets and certificates (should not be committed)
+.db-password
+.encryption-key
+.jwt-secret
+certs/
+monitoring-report-*.json

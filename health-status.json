@@ -2,39 +2,40 @@
   "initialized": true,
   "timestamp": "Sun Nov 16 12:48:30 CST 2025",
   "system": {
-    "cpu": "35",
-    "memory": "5833",
-    "disk": "14",
-    "timestamp": "2025-11-16T20:26:31Z"
+    "cpu": "47",
+    "memory": "4344",
+    "disk": "31",
+    "timestamp": "2025-11-21T19:57:04Z"
   },
   "github": {
-    "status": "not_authenticated",
-    "timestamp": "2025-11-16T20:26:31Z"
+    "runners_online": "       2",
+    "recent_failures": "       2",
+    "timestamp": "2025-11-21T19:57:05Z"
   },
   "firebase": {
     "hosting": "monitored",
     "functions": "monitored",
     "firestore": "pending",
-    "timestamp": "2025-11-16T20:26:34Z"
+    "timestamp": "2025-11-21T19:57:10Z"
   },
   "docker": {
     "daemon": "running",
     "containers": "monitored",
-    "timestamp": "2025-11-16T20:26:37Z"
+    "timestamp": "2025-11-21T19:57:12Z"
   },
   "api": {
     "endpoints": "monitored",
     "response_times": "tracked",
-    "timestamp": "2025-11-16T20:26:38Z"
+    "timestamp": "2025-11-21T19:57:13Z"
   },
   "mobile": {
     "ios_app_store": "monitored",
     "android_play_store": "monitored",
     "testflight": "pending",
-    "timestamp": "2025-11-16T20:26:38Z"
+    "timestamp": "2025-11-21T19:57:13Z"
   },
   "certificates": {
     "status": "missing",
-    "timestamp": "2025-11-16T20:26:38Z"
+    "timestamp": "2025-11-21T19:57:13Z"
   }
 }
