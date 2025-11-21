@@ -40,16 +40,19 @@ Helper script for updating ASC keys after manual rotation:
 
 #### `.github/workflows/scheduled-secret-rotation.yml`
 - **Trigger**: Weekly (Monday 2 AM UTC) or manual
+- **Runner**: `self-hosted` (Docker-based)
 - **Purpose**: Automated secret rotation for programmable services
 - **Services**: Firebase, GitHub (guidance), ASC (guidance)
 
 #### `.github/workflows/cicd-validation.yml`
 - **Trigger**: Manual
+- **Runner**: `self-hosted` (Docker-based) for general jobs, `[self-hosted, macos-latest, wishlist-wizard]` for iOS
 - **Purpose**: Validate CI/CD pipelines work with current secrets
 - **Validates**: iOS build setup, Android build setup, security scans
 
 #### `.github/workflows/security-scan.yml`
 - **Trigger**: PRs, pushes, weekly schedule
+- **Runner**: `self-hosted` (Docker-based)
 - **Purpose**: Automated leak detection using gitleaks
 
 ### Infrastructure Improvements
