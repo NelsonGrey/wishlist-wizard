@@ -57,8 +57,46 @@ jobs:
         with:
           ruby-version: '3.2.2'
 
+      - name: Runner time debug
+        run: |
+          echo "Runner UTC date:"
+          date -u
+          echo "Ruby UTC time:"
+          ruby -e 'puts Time.now.utc'
+          echo "OpenSSL version:"
+          openssl version || true
+
+      - name: Time & NTP diagnostics
+        run: |
+          echo "Using network time?"
+          sudo systemsetup -getusingnetworktime || true
+          echo "Network time server:"
+          sudo systemsetup -getnetworktimeserver || true
+          echo "ntpstat (if available):"
+          ntpstat || true
+          echo "ntpdate query (may require ntpdate installed):"
+          if command -v ntpdate >/dev/null 2>&1; then
+            ntpdate -q pool.ntp.org || true
+          else
+            echo "ntpdate not installed"
+          fi
+          echo "sntp query (if available):"
+          if command -v sntp >/dev/null 2>&1; then
+            sntp -sS pool.ntp.org || true
+          else
+            echo "sntp not installed"
+          fi
+          echo "Masked secret diagnostics:"
+          echo "ASC_KEY_ID length: ${#ASC_KEY_ID}"
+          echo "ASC_ISSUER_ID length: ${#ASC_ISSUER_ID}"
+          if [ -n "${ASC_PRIVATE_KEY:-}" ]; then
+            echo "ASC_PRIVATE_KEY present: yes"
+          else
+            echo "ASC_PRIVATE_KEY present: no"
+          fi
+
       - name: Install Fastlane
-        run: gem install fastlane -v 2.228.0
+        run: gem install fastlane -v 2.229.0
 
       - name: Generate iOS platform files
         run: |
