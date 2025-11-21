@@ -12,7 +12,7 @@ Successfully emphasized Firebase as the primary infrastructure platform for Wish
 - **Migration Plan**: 8-phase implementation strategy with clear priorities
 
 ### ✅ Firebase-Native Price Tracking Service
-**File**: `functions/src/firebase-price-tracking.ts`
+**File**: `packages/functions/src/firebase-price-tracking.ts`
 
 **Features Implemented:**
 - **Cloud Scheduler Integration**: Automated hourly price checks

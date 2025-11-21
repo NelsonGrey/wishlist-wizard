@@ -7,7 +7,7 @@
 ## 📦 Available Production Assets
 
 ### 1. 🌐 React Web Application
-- **📁 Location**: `packages/web/dist/`
+- **📁 Location**: `web/dist/`
 - **💾 Size**: 1.1MB (uncompressed), ~298KB gzipped
 - **🏗️ Build Tool**: Vite 5.4.20
 - **⚡ Build Time**: 10.89s
@@ -17,17 +17,17 @@
 - **🚀 Deployment**: Ready for static hosting (Firebase Hosting, Netlify, AWS S3)
 
 ### 2. 🖥️ Express API Server
-- **📁 Location**: `packages/api-server/dist/`
-- **💾 Size**: 272KB (267KB bundled)
-- **🏗️ Build Tool**: esbuild
-- **⚡ Build Time**: 45ms
+- **📁 Location**: `packages/functions/lib/` (Firebase Functions)
+- **💾 Size**: Compiled TypeScript functions
+- **🏗️ Build Tool**: TypeScript Compiler
+- **⚡ Build Time**: <1s
 - **📋 Contents**:
-  - `index.js` - Complete server bundle (267KB)
-- **🚀 Deployment**: Ready for serverless hosting (Firebase Functions, AWS Lambda)
+  - Compiled Firebase Functions
+- **🚀 Deployment**: Ready for Firebase Functions deployment
 
 ### 3. 🔌 Chrome Browser Extension
 - **📁 Build Location**: `packages/browser-extension/dist/`
-- **📦 Package Location**: `chrome-extension-package/`
+- **📦 Package Location**: `packages/browser-extension/dist/`
 - **💾 Build Size**: 108KB
 - **📦 Package Size**: 116KB
 - **🗜️ Zip Package**: `wishlist-wizard-extension.zip` (23KB)
@@ -44,7 +44,7 @@
 - **🚀 Deployment**: Ready for Chrome Web Store submission
 
 ### 4. 📱 Flutter Mobile App (Web Build)
-- **📁 Location**: `mobile/build/web/`
+- **📁 Location**: `packages/mobile/build/web/`
 - **💾 Size**: 31MB (includes Dart runtime and assets)
 - **🏗️ Build Tool**: Flutter 3.35.5 with Dart 3.9.2
 - **⚡ Build Time**: 53.3s

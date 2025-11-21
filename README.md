@@ -34,10 +34,12 @@ Wishlist Wizard is a comprehensive wishlist management platform that empowers us
 ### Development Setup
 
 This project consists of:
-- **Web App**: React frontend with TypeScript (`client/`)
+- **Web App**: React frontend with TypeScript (`web/`)
 - **Backend**: Express.js API (`server/`)
-- **Mobile App**: Flutter app for iOS and Android (`mobile/`)
-- **Browser Extension**: Chrome/Firefox extension (`client/public/extension/`)
+- **Mobile App**: Flutter app for iOS and Android (`packages/mobile/`)
+- **Browser Extension**: Chrome/Firefox extension (`packages/browser-extension/`)
+- **Shared Libraries**: Common TypeScript code (`packages/shared/`)
+- **Firebase Functions**: Serverless backend (`packages/functions/`)
 
 #### Prerequisites
 - Node.js v18+ 
@@ -64,7 +66,7 @@ npm run start
 #### Flutter Mobile App
 ```bash
 # Navigate to mobile directory
-cd mobile
+cd packages/mobile
 
 # Install Flutter dependencies
 flutter pub get
@@ -223,6 +225,48 @@ npm run firebase:deploy     # Deploy to Firebase hosting
    - **Secure Authentication**: Firebase Auth with custom claims
 
 See `FIREBASE_STRATEGY.md` for comprehensive Firebase integration details.
+
+## 🚀 Zero-Touch DevOps Automation
+
+Wishlist Wizard includes a complete **zero-touch DevOps automation suite** that eliminates manual credential management and provides automated CI/CD, monitoring, and deployment capabilities.
+
+### 🎯 Automation Features
+- **Automated Token Management**: GitHub, Firebase, Docker registry, and API tokens rotate automatically
+- **Multi-Environment Management**: Development, staging, and production environments with isolated secrets
+- **Intelligent Monitoring**: 24/7 health checks with auto-healing and smart alerting
+- **Zero-Touch Deployments**: Push to main branch → automatic deployment across all platforms
+- **Self-Healing Systems**: Automatic service restarts, certificate renewal, and issue resolution
+- **Multi-Channel Alerts**: Email, Slack, and log-based notifications
+- **Automated Backups**: Daily backups with disaster recovery capabilities
+
+### 🚀 Quick Automation Start
+```bash
+# Complete automated setup
+./automate.sh setup
+
+# Start 24/7 monitoring with auto-healing
+./automate.sh monitor start
+
+# Deploy everything automatically
+./automate.sh deploy full production
+
+# Rotate all tokens automatically
+./automate.sh tokens rotate
+```
+
+### 📊 Automated CI/CD Pipeline
+- **Quality Checks**: TypeScript compilation, tests, security audit
+- **Multi-Platform Builds**: Web, API, mobile, and extension builds
+- **Automated Deployment**: Push to `main` triggers full deployment
+- **Artifact Management**: Build artifacts stored for rollback capability
+
+### 🔐 Security Features
+- **Automated Token Rotation**: GitHub, Firebase, API secrets rotate automatically
+- **Environment Isolation**: Secrets isolated per environment
+- **GitHub Secrets Sync**: Automatic synchronization of secrets
+- **Audit Logging**: Comprehensive logging for all operations
+
+See `ZERO_TOUCH_DEVOPS_IMPLEMENTATION_GUIDE.md` and `AUTOMATION_README.md` for complete automation details.
 
 ## 🚀 Automated Deployment
 
