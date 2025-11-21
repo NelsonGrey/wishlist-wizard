@@ -19,9 +19,29 @@ platform :ios do
 
   desc "Load ASC API Key information to use in subsequent lanes"
   lane :load_asc_api_key do
-    # Create a temporary file for the ASC private key
-    private_key_content = ENV["ASC_PRIVATE_KEY"]
-    if private_key_content
+    # Load ASC_PRIVATE_KEY from environment
+    asc_raw = ENV["ASC_PRIVATE_KEY"]
+    if asc_raw
+      # If the secret is provided as a single-line base64 (no PEM header), prefer passing
+      # it directly to Fastlane via `key_content` with `is_key_content_base64: true`.
+      is_pem = asc_raw.include?("-----BEGIN")
+      cleaned = asc_raw.gsub(/\s+/, "")
+      looks_base64 = cleaned =~ /\A[A-Za-z0-9+\/=]+\z/ && cleaned.length > 100
+
+      if !is_pem && looks_base64
+        UI.message("Detected ASC_PRIVATE_KEY as base64; passing directly as key_content (is_key_content_base64: true)")
+        app_store_connect_api_key(
+          key_id: ENV["ASC_KEY_ID"],
+          issuer_id: ENV["ASC_ISSUER_ID"],
+          key_content: cleaned,
+          is_key_content_base64: true,
+          in_house: false
+        )
+        next
+      end
+
+      # Fall back to processing raw PEM-like content
+      private_key_content = asc_raw
       # Clean up and normalize the key content
       private_key_content = private_key_content.strip
       # Remove surrounding quotes if present
