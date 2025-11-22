@@ -1,0 +1,47 @@
+name: Icon Update Validation
+
+on:
+  push:
+    paths:
+      - 'icons/**'
+      - 'packages/**/icons/**'
+      - 'chrome-extension-package/icons/**'
+      - 'icon-wishlist-wizard.svg'
+      - 'f277834e-210f-4124-b561-99a357e28fef.png'
+
+jobs:
+  validate-icons:
+    name: Validate & Apply Icons
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies (ImageMagick, potrace)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y imagemagick potrace
+
+      - name: Run apply-new-icon script (validation)
+        run: |
+          # If icons/icon-wishlist-wizard.png exists use it, else use provided PNG
+          SRC="icons/icon-wishlist-wizard.png"
+          if [ ! -f "$SRC" ]; then
+            SRC="f277834e-210f-4124-b561-99a357e28fef.png"
+          fi
+          chmod +x ./scripts/apply-new-icon.sh
+          ./scripts/apply-new-icon.sh "$SRC"
+
+      - name: Check for changes
+        run: |
+          # If the script made changes, report them for review.
+          git status --porcelain
+          git --no-pager diff --name-only || true
+
+      - name: Package Chrome extension and upload artifact
+        run: |
+          zip -r chrome-extension-package.zip chrome-extension-package
+        # upload artifact for inspection
+      - uses: actions/upload-artifact@v4
+        with:
+          name: chrome-extension-package
+          path: chrome-extension-package.zip
