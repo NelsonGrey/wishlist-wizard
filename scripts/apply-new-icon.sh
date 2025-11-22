@@ -29,12 +29,28 @@ backup_and_mkdir() {
   fi
 }
 
-# Helper to resize using sips
+# Determine the available resize command (sips or ImageMagick convert)
+RESIZER=""
+if command -v sips >/dev/null 2>&1; then
+  RESIZER="sips"
+elif command -v convert >/dev/null 2>&1; then
+  RESIZER="convert"
+else
+  echo "⚠️ Neither sips nor ImageMagick 'convert' is available. Install ImageMagick or run on macOS." >&2
+  exit 1
+fi
+
+# Helper to resize using sips or convert
 resize_copy() {
   local size=$1
   local dest=$2
   backup_and_mkdir "$dest"
-  sips -z "$size" "$size" "$SRC_PNG" --out "$dest" >/dev/null
+  if [ "$RESIZER" = "sips" ]; then
+    sips -z "$size" "$size" "$SRC_PNG" --out "$dest" >/dev/null
+  else
+    # Use convert to resize and pad to square
+    convert "$SRC_PNG" -resize ${size}x${size} -background none -gravity center -extent ${size}x${size} "$dest"
+  fi
   echo "Created $dest ($size x $size)"
 }
 
@@ -74,6 +90,26 @@ resize_copy 72 "$ROOT/packages/mobile/android/app/src/main/res/mipmap-hdpi/ic_la
 resize_copy 96 "$ROOT/packages/mobile/android/app/src/main/res/mipmap-xhdpi/ic_launcher.png"
 resize_copy 144 "$ROOT/packages/mobile/android/app/src/main/res/mipmap-xxhdpi/ic_launcher.png"
 resize_copy 192 "$ROOT/packages/mobile/android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png"
+
+# Android adaptive icons (foreground/background) - recommended sizes
+resize_copy 512 "$ROOT/packages/mobile/android/app/src/main/res/mipmap-anydpi-v26/ic_launcher_foreground.png"
+resize_copy 512 "$ROOT/packages/mobile/android/app/src/main/res/mipmap-anydpi-v26/ic_launcher_background.png"
+
+# Ensure XML adaptive icon files exist for Android 26+
+mkdir -p "$ROOT/packages/mobile/android/app/src/main/res/mipmap-anydpi-v26/"
+cat > "$ROOT/packages/mobile/android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml" <<'EOF'
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+  <background android:drawable="@mipmap/ic_launcher_background" />
+  <foreground android:drawable="@mipmap/ic_launcher_foreground" />
+</adaptive-icon>
+EOF
+
+cat > "$ROOT/packages/mobile/android/app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml" <<'EOF'
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+  <background android:drawable="@mipmap/ic_launcher_background" />
+  <foreground android:drawable="@mipmap/ic_launcher_foreground" />
+</adaptive-icon>
+EOF
 
 # iOS icon appset
 resize_copy 40 "$ROOT/packages/mobile/ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-20x20@2x.png"
