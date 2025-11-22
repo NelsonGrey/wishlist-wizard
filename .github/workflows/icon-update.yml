@@ -1,0 +1,39 @@
+name: Icon Update
+
+on:
+  push:
+    paths:
+      - 'icons/**'
+      - 'icon-*.png'
+      - 'icon-*.svg'
+      - 'packages/browser-extension/src/icons/**'
+  workflow_dispatch:
+
+jobs:
+  generate-icons:
+    # Use the project macOS runner to allow sips
+    runs-on: [self-hosted, macos-latest, wishlist-wizard]
+    if: ${{ github.actor != 'github-actions[bot]' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+
+      - name: Run icon apply script
+        run: |
+          set -euo pipefail
+          ./scripts/apply-new-icon.sh icons/icon-wishlist-wizard.png || true
+
+      - name: Git add and commit generated files (if any)
+        run: |
+          set -euo pipefail
+          if [ -n "$(git status --porcelain)" ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add -A
+            git commit -m "chore(icons): auto-generate platform icons from master" || true
+            git push origin HEAD:${{ github.ref_name }}
+          else
+            echo "No generated changes to commit"
+          fi
