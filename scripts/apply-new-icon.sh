@@ -1,14 +1,18 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Apply a new PNG icon across the repository deliverables by resizing and placing
-# the given PNG into all target locations used by browser-extension, Chrome
-# extension package, web PWA, and mobile platforms (iOS/Android). The script
-# creates a .bak backup for existing files before replacing them.
+# Apply a new icon across the repository deliverables with adaptive Android icon
+# handling and master icon storage. Uses sips on macOS or ImageMagick (`convert`)
+# on other platforms when available. Creates optional backup files (default)
+# and will copy the provided PNG into an `icons/` folder for future automation.
 
 SRC_PNG=${1:-}
+BG_COLOR=${2:-"#FFFFFF"} # default background color for adaptive icons
+NO_BACKUP=${NO_BACKUP:-false}
+SAVE_MASTER=${SAVE_MASTER:-true}
+
 if [ -z "$SRC_PNG" ]; then
-  echo "Usage: $0 /path/to/icon.png"
+  echo "Usage: $0 /path/to/icon.png [bg-color]"
   exit 1
 fi
 
@@ -18,100 +22,140 @@ if [ ! -f "$SRC_PNG" ]; then
 fi
 
 echo "🔁 Applying new icon from: $SRC_PNG"
+echo "🎯 Background color: $BG_COLOR"
 
-# Helper to backup and create destination directory
-backup_and_mkdir() {
-  dest="$1"
-  if [ -f "$dest" ]; then
-    cp -v "$dest" "$dest.bak"
-  else
-    mkdir -p "$(dirname "$dest")" || true
-  fi
-}
+ROOT=$(git rev-parse --show-toplevel 2>/dev/null || echo "$(pwd)")
 
-# Determine the available resize command (sips or ImageMagick convert)
-RESIZER=""
+mkdir -p "$ROOT/icons"
+MASTER_PNG_DEST="$ROOT/icons/icon-wishlist-wizard.png"
+
+# Save master PNG into icons/ if requested
+if [ "$SAVE_MASTER" == "true" ]; then
+  cp -v "$SRC_PNG" "$MASTER_PNG_DEST"
+  echo "Saved master icon to $MASTER_PNG_DEST"
+fi
+
+# Find tool: prefer sips on macOS, else try convert (ImageMagick)
+USE_SIPS=false
 if command -v sips >/dev/null 2>&1; then
-  RESIZER="sips"
-elif command -v convert >/dev/null 2>&1; then
-  RESIZER="convert"
-else
-  echo "⚠️ Neither sips nor ImageMagick 'convert' is available. Install ImageMagick or run on macOS." >&2
+  USE_SIPS=true
+fi
+if ! $USE_SIPS && ! command -v convert >/dev/null 2>&1; then
+  echo "Error: Neither 'sips' nor ImageMagick 'convert' is available. Install ImageMagick or run on macOS." 1>&2
   exit 1
 fi
 
-# Helper to resize using sips or convert
+backup_and_mkdir() {
+  dest="$1"
+  if [ "$NO_BACKUP" == "false" ] && [ -f "$dest" ]; then
+    cp -v "$dest" "$dest.bak"
+  fi
+  mkdir -p "$(dirname "$dest")" || true
+}
+
+resize_with_tool() {
+  local size=$1
+  local src=$2
+  local dest=$3
+  if $USE_SIPS; then
+    sips -z "$size" "$size" "$src" --out "$dest" >/dev/null
+  else
+    convert "$src" -resize ${size}x${size} "$dest"
+  fi
+}
+
 resize_copy() {
   local size=$1
   local dest=$2
   backup_and_mkdir "$dest"
-  if [ "$RESIZER" = "sips" ]; then
-    sips -z "$size" "$size" "$SRC_PNG" --out "$dest" >/dev/null
-  else
-    # Use convert to resize and pad to square
-    convert "$SRC_PNG" -resize ${size}x${size} -background none -gravity center -extent ${size}x${size} "$dest"
-  fi
+  resize_with_tool "$size" "$SRC_PNG" "$dest"
   echo "Created $dest ($size x $size)"
 }
 
-ROOT=$(git rev-parse --show-toplevel 2>/dev/null || echo "$(pwd)")
+# Create adaptive Android icons (foreground/background)
+generate_android_adaptive() {
+  # sizes per density (example) - foreground/background sizes are similar
+  local densities=("mdpi:48" "hdpi:72" "xhdpi:96" "xxhdpi:144" "xxxhdpi:192")
+  local fg_name="ic_launcher_foreground.png"
+  local bg_name="ic_launcher_background.png"
+  for d in "${densities[@]}"; do
+    IFS=":" read -r density size <<< "$d"
+    destfg="$ROOT/packages/mobile/android/app/src/main/res/mipmap-${density}/${fg_name}"
+    destbg="$ROOT/packages/mobile/android/app/src/main/res/mipmap-${density}/${bg_name}"
+    backup_and_mkdir "$destfg"
+    backup_and_mkdir "$destbg"
+    # For foreground, place a resized, transparent icon
+    resize_with_tool "$size" "$SRC_PNG" "$destfg"
+    # For background, generate a solid color png of size
+    if $USE_SIPS; then
+      # sips doesn't directly create a solid color png; use a small trick
+      convert_cmd="$size x $size"
+    fi
+    # Use ImageMagick if available for background solid color
+    if command -v convert >/dev/null 2>&1; then
+      convert -size ${size}x${size} xc:"$BG_COLOR" "$destbg"
+    else
+      # fallback: just copy the src icon as background (not ideal)
+      resize_with_tool "$size" "$SRC_PNG" "$destbg"
+    fi
+  done
+
+  # Create mipmap-anydpi-v26 xml adaptive icon files
+  dest_anydpi="$ROOT/packages/mobile/android/app/src/main/res/mipmap-anydpi-v26"
+  mkdir -p "$dest_anydpi"
+  cat > "$dest_anydpi/ic_launcher.xml" <<EOF
+  <?xml version="1.0" encoding="utf-8"?>
+  <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+    <background android:drawable="@mipmap/ic_launcher_background"/>
+    <foreground android:drawable="@mipmap/ic_launcher_foreground"/>
+  </adaptive-icon>
+  EOF
+
+  cat > "$dest_anydpi/ic_launcher_round.xml" <<EOF
+  <?xml version="1.0" encoding="utf-8"?>
+  <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+    <background android:drawable="@mipmap/ic_launcher_background"/>
+    <foreground android:drawable="@mipmap/ic_launcher_foreground"/>
+  </adaptive-icon>
+  EOF
+  echo "Generated adaptive Android icons and XML files in $dest_anydpi"
+}
 
 echo "Repository root: $ROOT"
 
-# Targets: Browser extension icons
+echo "Generating browser extension icons..."
 resize_copy 16 "$ROOT/packages/browser-extension/src/icons/icon16.png"
 resize_copy 32 "$ROOT/packages/browser-extension/src/icons/icon32.png"
 resize_copy 48 "$ROOT/packages/browser-extension/src/icons/icon48.png"
 resize_copy 128 "$ROOT/packages/browser-extension/src/icons/icon128.png"
 
-# Also update public copies for distribution
+# Update public copies for distribution
 resize_copy 16 "$ROOT/packages/browser-extension/public/icons/icon16.png"
 resize_copy 32 "$ROOT/packages/browser-extension/public/icons/icon32.png"
 resize_copy 48 "$ROOT/packages/browser-extension/public/icons/icon48.png"
 resize_copy 128 "$ROOT/packages/browser-extension/public/icons/icon128.png"
 
-# Chrome extension package icons
+echo "Generating chrome-extension-package icons..."
 resize_copy 16 "$ROOT/chrome-extension-package/icons/icon16.png"
 resize_copy 32 "$ROOT/chrome-extension-package/icons/icon32.png"
 resize_copy 48 "$ROOT/chrome-extension-package/icons/icon48.png"
 resize_copy 128 "$ROOT/chrome-extension-package/icons/icon128.png"
 
-# Web PWA icons
+echo "Generating web PWA icons..."
 resize_copy 192 "$ROOT/packages/mobile/web/icons/Icon-192.png"
 resize_copy 512 "$ROOT/packages/mobile/web/icons/Icon-512.png"
 resize_copy 192 "$ROOT/packages/mobile/web/icons/Icon-maskable-192.png"
 resize_copy 512 "$ROOT/packages/mobile/web/icons/Icon-maskable-512.png"
-# Favicon (32x32)
 resize_copy 32 "$ROOT/packages/mobile/web/favicon.png"
 
-# Android mipmap densities
+echo "Generating Android mipmap launcher icons..."
 resize_copy 48 "$ROOT/packages/mobile/android/app/src/main/res/mipmap-mdpi/ic_launcher.png"
 resize_copy 72 "$ROOT/packages/mobile/android/app/src/main/res/mipmap-hdpi/ic_launcher.png"
 resize_copy 96 "$ROOT/packages/mobile/android/app/src/main/res/mipmap-xhdpi/ic_launcher.png"
 resize_copy 144 "$ROOT/packages/mobile/android/app/src/main/res/mipmap-xxhdpi/ic_launcher.png"
 resize_copy 192 "$ROOT/packages/mobile/android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png"
 
-# Android adaptive icons (foreground/background) - recommended sizes
-resize_copy 512 "$ROOT/packages/mobile/android/app/src/main/res/mipmap-anydpi-v26/ic_launcher_foreground.png"
-resize_copy 512 "$ROOT/packages/mobile/android/app/src/main/res/mipmap-anydpi-v26/ic_launcher_background.png"
-
-# Ensure XML adaptive icon files exist for Android 26+
-mkdir -p "$ROOT/packages/mobile/android/app/src/main/res/mipmap-anydpi-v26/"
-cat > "$ROOT/packages/mobile/android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml" <<'EOF'
-<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
-  <background android:drawable="@mipmap/ic_launcher_background" />
-  <foreground android:drawable="@mipmap/ic_launcher_foreground" />
-</adaptive-icon>
-EOF
-
-cat > "$ROOT/packages/mobile/android/app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml" <<'EOF'
-<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
-  <background android:drawable="@mipmap/ic_launcher_background" />
-  <foreground android:drawable="@mipmap/ic_launcher_foreground" />
-</adaptive-icon>
-EOF
-
-# iOS icon appset
+echo "Generating iOS icon appset..."
 resize_copy 40 "$ROOT/packages/mobile/ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-20x20@2x.png"
 resize_copy 60 "$ROOT/packages/mobile/ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-20x20@3x.png"
 resize_copy 29 "$ROOT/packages/mobile/ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-29x29@1x.png"
@@ -131,6 +175,9 @@ resize_copy 76 "$ROOT/packages/mobile/ios/Runner/Assets.xcassets/AppIcon.appicon
 resize_copy 152 "$ROOT/packages/mobile/ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-76x76@2x.png"
 resize_copy 167 "$ROOT/packages/mobile/ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-83.5x83.5@2x.png"
 resize_copy 1024 "$ROOT/packages/mobile/ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-1024x1024@1x.png"
+
+echo "Generating adaptive Android foreground/background icons..."
+generate_android_adaptive
 
 echo "✅ All icons generated/updated. If the repo is clean, you can commit the updated images."
 
