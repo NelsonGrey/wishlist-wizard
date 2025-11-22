@@ -1,45 +1,43 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Best-effort conversion of a PNG into a vector SVG using ImageMagick and potrace.
-# NOTE: This is lossy for complex, multi-color artwork and is intended as a rough
-# vectorization helper only. For high-quality results, provide a vector source
-# (Figma, Illustrator, or a true SVG).
-
 SRC_PNG=${1:-}
 OUT_SVG=${2:-icons/icon-wishlist-wizard.svg}
+TEMP_PNM="/tmp/icon-$$.pbm"
 
 if [ -z "$SRC_PNG" ]; then
-  echo "Usage: $0 /path/to/source.png [/path/to/output.svg]"
+  echo "Usage: $0 /path/to/icon.png [out.svg]"
   exit 1
 fi
 
 if [ ! -f "$SRC_PNG" ]; then
-  echo "Source PNG file not found: $SRC_PNG"
+  echo "Source PNG does not exist: $SRC_PNG"
   exit 1
 fi
 
-if ! command -v convert >/dev/null 2>&1; then
-  echo "ImageMagick 'convert' not found. Install it (apt-get install imagemagick)" >&2
-  exit 1
+echo "🔁 Attempting to convert $SRC_PNG → $OUT_SVG"
+
+if command -v potrace >/dev/null 2>&1; then
+  echo "Found potrace; using potrace for vectorization."
+  # Convert png to PBM/PGM, then run potrace
+  convert "$SRC_PNG" -resize 1024x1024 -threshold 50% -flatten PBM:- > "$TEMP_PNM"
+  potrace -s -o "$OUT_SVG" "$TEMP_PNM"
+  echo "✅ Vectorization complete: $OUT_SVG"
+else
+  echo "⚠️ potrace not found. Falling back to embedding PNG into SVG as raster."
+  mkdir -p "$(dirname "$OUT_SVG")"
+  # embed PNG data as base64 in SVG wrapper
+  b64=$(base64 < "$SRC_PNG" | tr -d '\n')
+  w=$(identify -format "%w" "$SRC_PNG" 2>/dev/null || echo 512)
+  h=$(identify -format "%h" "$SRC_PNG" 2>/dev/null || echo 512)
+  cat > "$OUT_SVG" <<EOF
+<svg xmlns="http://www.w3.org/2000/svg" width="$w" height="$h" viewBox="0 0 $w $h" preserveAspectRatio="xMidYMid meet">
+  <image href="data:image/png;base64,$b64" width="$w" height="$h" />
+</svg>
+EOF
+  echo "✅ Created embedded PNG SVG at $OUT_SVG. Note: this is not a true vector conversion."
 fi
 
-if ! command -v potrace >/dev/null 2>&1; then
-  echo "'potrace' not found. Install it (apt-get install potrace)" >&2
-  exit 1
-fi
-
-TMP_BMP=$(mktemp /tmp/icon.XXXXXX.bmp)
-TMP_PNM=$(mktemp /tmp/icon.XXXXXX.pnm)
-
-echo "Generating bitmap copy and tracing to vector..."
-convert "$SRC_PNG" -colorspace Gray -threshold 50% -alpha off "$TMP_BMP"
- # Convert BMP to PNM for potrace
-convert "$TMP_BMP" "$TMP_PNM"
-potrace -s -o "$OUT_SVG" "$TMP_PNM"
-
-rm -f "$TMP_BMP" "$TMP_PNM"
-
-echo "Created $OUT_SVG (vectorized approximation). Verify and refine manually if needed."
+rm -f "$TEMP_PNM" || true
 
 exit 0

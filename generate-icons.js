@@ -16,7 +16,7 @@ console.log('🎨 Wishlist Wizard Icon Generator');
 console.log('================================');
 
 // Check if we're in the right directory
-const svgPath = path.join(__dirname, 'icon-wishlist-wizard.svg');
+const svgPath = path.join(__dirname, 'icons', 'icon-wishlist-wizard.svg');
 const extensionIconsDir = path.join(__dirname, 'packages/browser-extension/src/icons');
 
 if (!fs.existsSync(svgPath)) {
@@ -31,13 +31,13 @@ console.log('\n📋 Manual PNG Generation Instructions:');
 console.log('=====================================');
 console.log('Since image conversion tools are not available, please convert manually:');
 console.log('');
-console.log('1. Open icon-wishlist-wizard.svg in a browser or image editor');
+console.log('1. Open icons/icon-wishlist-wizard.svg in a browser or image editor');
 console.log('2. Export/Save as PNG in these sizes:');
 console.log('   - 16x16 pixels → icon16.png');
 console.log('   - 48x48 pixels → icon48.png');
 console.log('   - 128x128 pixels → icon128.png');
 console.log('');
-console.log('3. Save them to: packages/browser-extension/src/icons/');
+console.log('3. Save them to: packages/browser-extension/src/icons/ (or use ./scripts/apply-new-icon.sh to automate)');
 console.log('');
 console.log('Or use online tools:');
 console.log('- https://cloudconvert.com/svg-to-png');
@@ -111,6 +111,8 @@ console.log('1. Generate PNG files using one of the methods above');
 console.log('2. Place them in: packages/browser-extension/src/icons/');
 console.log('3. Update manifest.json to reference the new icons');
 console.log('4. Test the extension in Chrome developer mode');
+console.log('5. Alternatively, use the repository script to automatically resize and apply the PNG across all deliverables (macOS):');
+console.log('   ./scripts/apply-new-icon.sh /path/to/new-icon.png');
 
 console.log('\n✨ Icon Design Summary:');
 console.log('=====================');

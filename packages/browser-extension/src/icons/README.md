@@ -8,7 +8,7 @@ This directory contains the icon assets for the Wishlist Wizard project across a
 - `icon16.svg` - 16x16 extension toolbar icon
 - `icon48.svg` - 48x48 extension management page icon
 - `icon128.svg` - 128x128 Chrome Web Store icon
-- `icon-wishlist-wizard.svg` - Master SVG source file
+- `icon-wishlist-wizard.svg` - Master SVG source file (now in `icons/icon-wishlist-wizard.svg` at repo root)
 
 ### PNG Versions Required
 The browser extension also needs PNG versions of these icons:
@@ -37,7 +37,7 @@ Since automated conversion tools aren't available, use one of these methods:
 
 ### Method 2: Online Tools
 1. Go to https://cloudconvert.com/svg-to-png or similar
-2. Upload `icon-wishlist-wizard.svg`
+2. Upload `icons/icon-wishlist-wizard.svg` (preferred) or keep the source `packages/browser-extension/src/icons/icon-wishlist-wizard.svg` updated
 3. Convert to PNG at sizes: 16×16, 48×48, 128×128
 4. Download and rename files as `icon[size].png`
 
@@ -45,6 +45,20 @@ Since automated conversion tools aren't available, use one of these methods:
 1. Open `icon-wishlist-wizard.svg` in Figma, Sketch, or Illustrator
 2. Export as PNG at the required sizes
 3. Save with the naming convention above
+
+### Method 4: Automated Project Script (recommended)
+If you're on macOS, the repository includes a script that will resize the provided PNG
+icon and distribute the generated PNGs across the repository targets (browser
+extension, web PWA, iOS, Android, and the Chrome extension package).
+
+Usage:
+```bash
+./scripts/apply-new-icon.sh /path/to/new-icon.png
+```
+
+The script will create `.bak` backups of existing icon files and write the new
+images into the appropriate locations. Review and commit the changes as needed.
+
 
 ## 📱 Platform Implementation
 

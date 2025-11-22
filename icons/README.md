@@ -1,11 +1,14 @@
-# Project icon folder
+# Icons Directory
 
-This folder contains the standardized master icon files for Wishlist Wizard used across platforms.
+This directory contains the canonical icon assets for the Wishlist Wizard project:
 
-- `icon-wishlist-wizard.svg` — preferred vector master (or vector placeholder)
-- `icon-wishlist-wizard.png` — raster PNG master used by scripts for conversions
+- `icon-wishlist-wizard.png` — master PNG (raster)
+- `icon-wishlist-wizard.svg` — master SVG (vector) or embedded PNG SVG if vectorization unavailable
 
-Usage: copy/commit your master icon(s) here and run the automation script to deploy to all deliverables:
-```bash
-./scripts/apply-new-icon.sh icons/icon-wishlist-wizard.png
-```
+Guidelines
+- Use these master files as the source of truth for generating platform-specific icons.
+- Use the repository script for automated generation and distribution of platform icons:
+  ```bash
+  ./scripts/apply-new-icon.sh icons/icon-wishlist-wizard.png
+  ```
+- If you need a true vector master, edit `icons/icon-wishlist-wizard.svg` (if it is actually vector) or replace it with a clean SVG design from design tooling (Figma/Sketch/Illustrator).
