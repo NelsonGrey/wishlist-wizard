@@ -31,8 +31,15 @@ MASTER_PNG_DEST="$ROOT/icons/icon-wishlist-wizard.png"
 
 # Save master PNG into icons/ if requested
 if [ "$SAVE_MASTER" == "true" ]; then
-  cp -v "$SRC_PNG" "$MASTER_PNG_DEST"
-  echo "Saved master icon to $MASTER_PNG_DEST"
+  # Compare realpath to avoid copying a file onto itself
+  src_real=$(realpath "$SRC_PNG" 2>/dev/null || echo "$SRC_PNG")
+  dest_real=$(realpath "$MASTER_PNG_DEST" 2>/dev/null || echo "$MASTER_PNG_DEST")
+  if [ "$src_real" != "$dest_real" ]; then
+    cp -v "$SRC_PNG" "$MASTER_PNG_DEST"
+    echo "Saved master icon to $MASTER_PNG_DEST"
+  else
+    echo "Master PNG already at $MASTER_PNG_DEST; skipping copy"
+  fi
 fi
 
 # Find tool: prefer sips on macOS, else try convert (ImageMagick)
@@ -104,20 +111,20 @@ generate_android_adaptive() {
   dest_anydpi="$ROOT/packages/mobile/android/app/src/main/res/mipmap-anydpi-v26"
   mkdir -p "$dest_anydpi"
   cat > "$dest_anydpi/ic_launcher.xml" <<EOF
-  <?xml version="1.0" encoding="utf-8"?>
-  <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
-    <background android:drawable="@mipmap/ic_launcher_background"/>
-    <foreground android:drawable="@mipmap/ic_launcher_foreground"/>
-  </adaptive-icon>
-  EOF
+<?xml version="1.0" encoding="utf-8"?>
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+  <background android:drawable="@mipmap/ic_launcher_background"/>
+  <foreground android:drawable="@mipmap/ic_launcher_foreground"/>
+</adaptive-icon>
+EOF
 
   cat > "$dest_anydpi/ic_launcher_round.xml" <<EOF
-  <?xml version="1.0" encoding="utf-8"?>
-  <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
-    <background android:drawable="@mipmap/ic_launcher_background"/>
-    <foreground android:drawable="@mipmap/ic_launcher_foreground"/>
-  </adaptive-icon>
-  EOF
+<?xml version="1.0" encoding="utf-8"?>
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+  <background android:drawable="@mipmap/ic_launcher_background"/>
+  <foreground android:drawable="@mipmap/ic_launcher_foreground"/>
+</adaptive-icon>
+EOF
   echo "Generated adaptive Android icons and XML files in $dest_anydpi"
 }
 
