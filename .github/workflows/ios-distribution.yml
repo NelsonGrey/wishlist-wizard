@@ -290,10 +290,22 @@ jobs:
           
           if [[ "${{ github.ref }}" == "refs/heads/main" ]] || [[ "${{ github.ref }}" == "refs/heads/staging" ]] || [[ "$BUILD_TYPE" == "release" ]]; then
             # Production/Staging OR manual release: Upload to TestFlight
-            fastlane beta
+            if [ -f Gemfile ]; then
+              bundle config set --local path 'vendor/bundle'
+              bundle install --jobs 4 || true
+              bundle exec fastlane beta
+            else
+              fastlane beta
+            fi
           else
             # Development: Just build and test
-            fastlane test_and_build
+            if [ -f Gemfile ]; then
+              bundle config set --local path 'vendor/bundle'
+              bundle install --jobs 4 || true
+              bundle exec fastlane test_and_build
+            else
+              fastlane test_and_build
+            fi
           fi
 
       - name: Clean up service account key
