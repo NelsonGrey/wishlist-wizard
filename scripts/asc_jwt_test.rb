@@ -35,7 +35,28 @@ payload_segment = base64url_encode(payload.to_json)
 data = [header_segment, payload_segment].join('.')
 
 digest = OpenSSL::Digest::SHA256.new
-signature = key.dsa_sign_asn1(digest.digest(data))
+asn1_signature = key.dsa_sign_asn1(digest.digest(data))
+# Parse ASN.1 DER signature (r, s) and convert to raw R||S 64-byte value per RFC7515
+seq = OpenSSL::ASN1.decode(asn1_signature)
+r = seq.value[0].value
+s = seq.value[1].value
+
+def int_to_32byte_be(i)
+  hex = i.to_s(16)
+  hex = '0' + hex if hex.length.odd?
+  bin = [hex].pack('H*')
+  if bin.bytesize < 32
+    bin = ("\x00" * (32 - bin.bytesize)) + bin
+  elsif bin.bytesize > 32
+    # If greater than 32 bytes, trim leading zeroes (shouldn't normally happen)
+    bin = bin[-32, 32]
+  end
+  bin
+end
+
+r_bin = int_to_32byte_be(r)
+s_bin = int_to_32byte_be(s)
+signature = r_bin + s_bin
 token = [data, base64url_encode(signature)].join('.')
 
 puts "JWT iat=#{iat} exp=#{exp}"
