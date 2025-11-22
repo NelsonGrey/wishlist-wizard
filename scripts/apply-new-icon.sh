@@ -42,6 +42,21 @@ if [ "$SAVE_MASTER" == "true" ]; then
   fi
 fi
 
+# Also sync master SVG to extension icon folders if present
+MASTER_SVG_SRC="$ROOT/icons/icon-wishlist-wizard.svg"
+if [ -f "$MASTER_SVG_SRC" ]; then
+  echo "Syncing master SVG into product icon directories..."
+  if [ -d "$ROOT/packages/browser-extension/src/icons" ]; then
+    cp -v "$MASTER_SVG_SRC" "$ROOT/packages/browser-extension/src/icons/icon-wishlist-wizard.svg" || true
+  fi
+  if [ -d "$ROOT/packages/browser-extension/public/icons" ]; then
+    cp -v "$MASTER_SVG_SRC" "$ROOT/packages/browser-extension/public/icons/icon-wishlist-wizard.svg" || true
+  fi
+  if [ -d "$ROOT/chrome-extension-package/icons" ]; then
+    cp -v "$MASTER_SVG_SRC" "$ROOT/chrome-extension-package/icons/icon-wishlist-wizard.svg" || true
+  fi
+fi
+
 # Find tool: prefer sips on macOS, else try convert (ImageMagick)
 USE_SIPS=false
 IMAGEMAGICK_BIN=""
