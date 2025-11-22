@@ -110,6 +110,17 @@ jobs:
             exit 1
           fi
 
+      - name: Validate ephemeral keychain helper
+        run: |
+          echo "🔑 Validating ephemeral keychain helper script..."
+          if [ -f scripts/ephemeral_keychain_fastlane.sh ]; then
+            chmod +x scripts/ephemeral_keychain_fastlane.sh
+            bash -n scripts/ephemeral_keychain_fastlane.sh && echo "✅ Ephemeral helper syntax OK"
+          else
+            echo "⚠️ Ephemeral helper script missing. Recommend adding scripts/ephemeral_keychain_fastlane.sh"
+            # Do not fail validation; optional helper
+          fi
+
   validate-android:
     if: github.event.inputs.validate_android == 'true' || github.event.inputs.validate_android == ''
     runs-on: self-hosted
