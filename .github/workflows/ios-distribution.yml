@@ -287,25 +287,42 @@ jobs:
           
           # Run Fastlane pipeline based on environment and build type
           BUILD_TYPE="${{ github.event.inputs.build_type || 'debug' }}"
-          
+
+          # Prefer using the repository ephemeral keychain helper when present.
+          # The helper will create a temporary keychain, import any provided certs,
+          # run the given command, and then delete the temporary keychain.
+          EPHEMERAL_HELPER="./scripts/ephemeral_keychain_fastlane.sh"
+
           if [[ "${{ github.ref }}" == "refs/heads/main" ]] || [[ "${{ github.ref }}" == "refs/heads/staging" ]] || [[ "$BUILD_TYPE" == "release" ]]; then
             # Production/Staging OR manual release: Upload to TestFlight
             if [ -f Gemfile ]; then
-              bundle config set --local path 'vendor/bundle'
-              bundle install --jobs 4 || true
-              bundle exec fastlane beta
+              RUN_CMD="bundle config set --local path 'vendor/bundle' && bundle install --jobs 4 || true && bundle exec fastlane beta"
             else
-              fastlane beta
+              RUN_CMD="fastlane beta"
             fi
           else
             # Development: Just build and test
             if [ -f Gemfile ]; then
-              bundle config set --local path 'vendor/bundle'
-              bundle install --jobs 4 || true
-              bundle exec fastlane test_and_build
+              RUN_CMD="bundle config set --local path 'vendor/bundle' && bundle install --jobs 4 || true && bundle exec fastlane test_and_build"
             else
-              fastlane test_and_build
+              RUN_CMD="fastlane test_and_build"
             fi
+          fi
+
+          # If ephemeral helper exists, run the pipeline through it so we avoid
+          # touching the login keychain on the runner. The helper will run the
+          # command from the repository root; ensure Fastlane executes in the
+          # correct iOS directory by prefixing with a cd when invoking.
+          if [ -f "$EPHEMERAL_HELPER" ]; then
+            echo "Using ephemeral keychain helper: $EPHEMERAL_HELPER"
+            # Pass a single command string to the helper. Helper will execute
+            # the command and clean up the temporary keychain afterwards.
+            bash "$EPHEMERAL_HELPER" "cd packages/mobile/ios && $RUN_CMD"
+          else
+            echo "Ephemeral keychain helper not found; running Fastlane directly"
+            cd packages/mobile/ios
+            # Fallback: run the assembled command directly in shell
+            eval "$RUN_CMD"
           fi
 
       - name: Clean up service account key
