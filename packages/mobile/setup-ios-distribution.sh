@@ -49,7 +49,7 @@ ASC_ISSUER_ID=your-issuer-id
 ASC_PRIVATE_KEY=-----BEGIN APP_STORE_CONNECT_KEY-----\nyour-private-key-here\n-----END PRIVATE KEY-----
 
 # Match (Code Signing) Configuration
-MATCH_GIT_URL=https://github.com/your-org/certificates-repo.git
+MATCH_GIT_URL=https://github.com/mnelson3/nelson-grey-certificates
 
 # TestFlight Configuration
 BETA_FEEDBACK_EMAIL=feedback@wishlistwizard.com
@@ -108,7 +108,7 @@ Required variables:
    ```bash
    git init certificates-repo
    cd certificates-repo
-   git remote add origin https://github.com/your-org/certificates-repo.git
+    git remote add origin https://github.com/mnelson3/nelson-grey-certificates
    ```
 
 2. Set the `MATCH_GIT_URL` in your `.env` file
@@ -227,3 +227,26 @@ echo "3. Configure App Store Connect API key"
 echo "4. Test with: cd ios && fastlane test_and_build"
 echo ""
 echo "📚 Documentation: IOS_DISTRIBUTION_SETUP.md"
+echo ""
+# Detect ephemeral keychain helper (repo-root or local scripts folder)
+HELPER_REPO_PATH="../../scripts/ephemeral_keychain_fastlane.sh"
+HELPER_LOCAL_PATH="./scripts/ephemeral_keychain_fastlane.sh"
+HELPER_PATH=""
+if [ -f "$HELPER_REPO_PATH" ]; then
+    HELPER_PATH="$HELPER_REPO_PATH"
+elif [ -f "$HELPER_LOCAL_PATH" ]; then
+    HELPER_PATH="$HELPER_LOCAL_PATH"
+fi
+
+if [ -n "$HELPER_PATH" ]; then
+    echo "💡 Ephemeral keychain helper found: $HELPER_PATH"
+    echo "Import a .p12 for a single run and upload to TestFlight (example):"
+    echo "  CERT_P12_PATH=./certs/distribution.p12 CERT_P12_PASSWORD=yourP12Pass \\\n+    $HELPER_PATH \"bundle exec fastlane beta\""
+    echo "Run a Fastlane lane without importing a cert (CI-style):"
+    echo "  $HELPER_PATH \"fastlane sync_signing\""
+else
+    echo "💡 Ephemeral keychain helper not found (expected at ../../scripts/... or ./scripts/...)."
+    echo "To avoid modifying your login keychain, create the helper at the repo root: scripts/ephemeral_keychain_fastlane.sh"
+    echo "Example (from packages/mobile):"
+    echo "  ../../scripts/ephemeral_keychain_fastlane.sh \"bundle exec fastlane beta\""
+fi
