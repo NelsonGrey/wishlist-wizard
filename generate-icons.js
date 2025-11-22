@@ -63,7 +63,7 @@ const htmlConverter = `<!DOCTYPE html>
 
     <div class="icon-preview">
         <h3>Icon Preview:</h3>
-        <img id="iconPreview" src="icon-wishlist-wizard.svg" width="128" height="128" alt="Wishlist Wizard Icon">
+        <img id="iconPreview" src="icons/icon-wishlist-wizard.svg" width="128" height="128" alt="Wishlist Wizard Icon">
     </div>
 
     <div>
