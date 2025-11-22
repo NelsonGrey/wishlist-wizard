@@ -252,27 +252,13 @@ jobs:
         env:
           ENVIRONMENT: ${{ github.ref == 'refs/heads/main' && 'PRODUCTION' || github.ref == 'refs/heads/staging' && 'STAGING' || 'DEVELOPMENT' }}
         run: |
-          # Create a fresh temporary keychain for this CI job and export its name/password
-          # into the environment for Fastlane/match to use. This avoids reusing an existing
-          # keychain whose password may not match the secret in the runner.
-          # If you explicitly want to reuse a named keychain, set MATCH_KEYCHAIN_REUSE=true
-          MATCH_KEYCHAIN_REUSE=${MATCH_KEYCHAIN_REUSE:-false}
-
-          if [[ "$MATCH_KEYCHAIN_REUSE" == "true" && -n "${MATCH_KEYCHAIN_NAME:-}" && -n "${MATCH_KEYCHAIN_PASSWORD:-}" ]]; then
-            echo "Reusing provided MATCH keychain name (MATCH_KEYCHAIN_REUSE=true)"
-            echo "MATCH_KEYCHAIN_NAME=${MATCH_KEYCHAIN_NAME}" >> $GITHUB_ENV
-            echo "MATCH_KEYCHAIN_PASSWORD=${MATCH_KEYCHAIN_PASSWORD}" >> $GITHUB_ENV
-          else
-            # Generate a unique keychain name and password for this run
-            GENERATED_KEYCHAIN_NAME="fastlane_tmp_$(date +%s)_$RANDOM"
-            GENERATED_KEYCHAIN_PASSWORD=$(openssl rand -base64 32)
-
-            echo "Generated keychain: ${GENERATED_KEYCHAIN_NAME}"
-            echo "MATCH_KEYCHAIN_NAME=${GENERATED_KEYCHAIN_NAME}" >> $GITHUB_ENV
-            echo "MATCH_KEYCHAIN_PASSWORD=${GENERATED_KEYCHAIN_PASSWORD}" >> $GITHUB_ENV
-
-            # Use the setup script for keychain creation
-            bash scripts/setup_keychain.sh
+          # Decode distribution P12 into workspace (if provided) and set helper vars
+          if [ -n "${IOS_CERT_P12_BASE64:-}" ]; then
+            mkdir -p packages/mobile/ios/certs
+            echo "$IOS_CERT_P12_BASE64" | base64 --decode > packages/mobile/ios/certs/dist_cert.p12
+            echo "CERT_P12_PATH=packages/mobile/ios/certs/dist_cert.p12" >> $GITHUB_ENV
+            echo "CERT_P12_PASSWORD=${{ secrets.IOS_CERT_P12_PASSWORD }}" >> $GITHUB_ENV
+            echo "Decoded distribution P12 into packages/mobile/ios/certs/dist_cert.p12"
           fi
 
           cd packages/mobile/ios
@@ -309,6 +295,22 @@ jobs:
             fi
           fi
 
+      - name: Provision iOS distribution P12 (optional)
+        env:
+          IOS_CERT_P12_BASE64: ${{ secrets.IOS_CERT_P12_BASE64 }}
+          IOS_CERT_P12_PASSWORD: ${{ secrets.IOS_CERT_P12_PASSWORD }}
+        run: |
+          set -euo pipefail
+          if [ -n "${IOS_CERT_P12_BASE64:-}" ]; then
+            mkdir -p packages/mobile/ios/certs
+            echo "$IOS_CERT_P12_BASE64" | base64 --decode > packages/mobile/ios/certs/dist_cert.p12
+            echo "CERT_P12_PATH=packages/mobile/ios/certs/dist_cert.p12" >> $GITHUB_ENV
+            echo "CERT_P12_PASSWORD=$IOS_CERT_P12_PASSWORD" >> $GITHUB_ENV
+            echo "Decoded iOS distribution P12 into packages/mobile/ios/certs/dist_cert.p12"
+          else
+            echo "No IOS_CERT_P12_BASE64 secret configured; skipping P12 provisioning"
+          fi
+
           # If ephemeral helper exists, run the pipeline through it so we avoid
           # touching the login keychain on the runner. The helper will run the
           # command from the repository root; ensure Fastlane executes in the
@@ -317,6 +319,7 @@ jobs:
             echo "Using ephemeral keychain helper: $EPHEMERAL_HELPER"
             # Pass a single command string to the helper. Helper will execute
             # the command and clean up the temporary keychain afterwards.
+            # Ensure CERT_P12_* variables are exported for the helper context
             bash "$EPHEMERAL_HELPER" "cd packages/mobile/ios && $RUN_CMD"
           else
             echo "Ephemeral keychain helper not found; running Fastlane directly"
@@ -339,4 +342,20 @@ jobs:
             security delete-keychain "${MATCH_KEYCHAIN_NAME}" || true
           else
             echo "Skipping keychain deletion (reuse enabled or no keychain name set)"
+          fi
+
+      - name: Verify login keychain is unchanged
+        if: always()
+        run: |
+          set -euo pipefail
+          DEFAULT_KC=$(security default-keychain -d user | tr -d '"') || true
+          LOGIN_KC="$HOME/Library/Keychains/login.keychain-db"
+          if [[ "$DEFAULT_KC" != "$LOGIN_KC" ]]; then
+            echo "⚠️ Default keychain differs from login keychain: $DEFAULT_KC"
+            echo "This may indicate the job modified the login keychain."
+            security list-keychains -d user || true
+            # Do not fail the job by default; just report. If you'd like this to fail, remove the 'exit 0'.
+            exit 0
+          else
+            echo "✅ Default keychain is login keychain (unchanged)"
           fi
