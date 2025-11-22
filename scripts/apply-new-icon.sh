@@ -44,16 +44,22 @@ fi
 
 # Find tool: prefer sips on macOS, else try convert (ImageMagick)
 USE_SIPS=false
+IMAGEMAGICK_BIN=""
 if command -v sips >/dev/null 2>&1; then
   USE_SIPS=true
 fi
-if ! $USE_SIPS && ! command -v convert >/dev/null 2>&1; then
+if command -v magick >/dev/null 2>&1; then
+  IMAGEMAGICK_BIN=magick
+elif command -v convert >/dev/null 2>&1; then
+  IMAGEMAGICK_BIN=convert
+fi
+if ! $USE_SIPS && [ -z "$IMAGEMAGICK_BIN" ]; then
   echo "Error: Neither 'sips' nor ImageMagick 'convert' is available. Install ImageMagick or run on macOS." 1>&2
   exit 1
 fi
 
-backup_and_mkdir() {
-  dest="$1"
+    if [ -n "$IMAGEMAGICK_BIN" ]; then
+      $IMAGEMAGICK_BIN -size ${size}x${size} xc:"$BG_COLOR" "$destbg"
   if [ "$NO_BACKUP" == "false" ] && [ -f "$dest" ]; then
     cp -v "$dest" "$dest.bak"
   fi
