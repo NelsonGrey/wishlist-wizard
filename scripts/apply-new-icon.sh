@@ -73,13 +73,15 @@ if ! $USE_SIPS && [ -z "$IMAGEMAGICK_BIN" ]; then
   exit 1
 fi
 
-    if [ -n "$IMAGEMAGICK_BIN" ]; then
-      $IMAGEMAGICK_BIN -size ${size}x${size} xc:"$BG_COLOR" "$destbg"
+backup_and_mkdir() {
+  dest="$1"
   if [ "$NO_BACKUP" == "false" ] && [ -f "$dest" ]; then
     cp -v "$dest" "$dest.bak"
   fi
   mkdir -p "$(dirname "$dest")" || true
 }
+
+ 
 
 resize_with_tool() {
   local size=$1
@@ -120,13 +122,13 @@ generate_android_adaptive() {
       convert_cmd="$size x $size"
     fi
     # Use ImageMagick if available for background solid color
-    if command -v convert >/dev/null 2>&1; then
-      convert -size ${size}x${size} xc:"$BG_COLOR" "$destbg"
+    if [ -n "$IMAGEMAGICK_BIN" ]; then
+      $IMAGEMAGICK_BIN -size ${size}x${size} xc:"$BG_COLOR" "$destbg"
     else
       # fallback: just copy the src icon as background (not ideal)
       resize_with_tool "$size" "$SRC_PNG" "$destbg"
     fi
-  done
+      done
 
   # Create mipmap-anydpi-v26 xml adaptive icon files
   dest_anydpi="$ROOT/packages/mobile/android/app/src/main/res/mipmap-anydpi-v26"
