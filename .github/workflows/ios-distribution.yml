@@ -95,6 +95,37 @@ jobs:
             echo "ASC_PRIVATE_KEY present: no"
           fi
 
+      - name: Verify ASC private key (safe, non-sensitive)
+        run: |
+          # This step decodes ASC_PRIVATE_KEY (base64) to a temp file, extracts the public key,
+          # and prints only non-sensitive public parameters (key size, curve name).
+          set -euo pipefail
+          if [ -z "${ASC_PRIVATE_KEY:-}" ]; then
+            echo "ASC_PRIVATE_KEY not provided; skipping verification"
+            exit 0
+          fi
+
+          TMP_KEY_FILE=$(mktemp /tmp/asc_key.XXXXXX.p8)
+          TMP_PUB_FILE=$(mktemp /tmp/asc_pub.XXXXXX.pem)
+
+          # Decode into a temp file. The secret is expected to be single-line base64.
+          echo "$ASC_PRIVATE_KEY" | base64 --decode > "$TMP_KEY_FILE" || { echo "Failed to decode ASC_PRIVATE_KEY"; exit 1; }
+
+          # Extract public key only (no private material printed)
+          if openssl pkey -in "$TMP_KEY_FILE" -pubout -out "$TMP_PUB_FILE" 2>/dev/null; then
+            echo "Successfully extracted public key (non-sensitive)"
+            # Print only key size and curve name (grep for recognizable lines)
+            openssl pkey -pubin -in "$TMP_PUB_FILE" -text -noout 2>/dev/null | sed -n -e '1,4p'
+          else
+            echo "Failed to extract public key from ASC_PRIVATE_KEY (openssl error)"
+            rm -f "$TMP_KEY_FILE" "$TMP_PUB_FILE" || true
+            exit 1
+          fi
+
+          # cleanup
+          rm -f "$TMP_KEY_FILE" "$TMP_PUB_FILE" || true
+        shell: bash
+
       - name: Install Fastlane
         run: gem install fastlane -v 2.229.0
 
