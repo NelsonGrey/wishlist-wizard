@@ -25,6 +25,15 @@ jobs:
           set -euo pipefail
           ./scripts/apply-new-icon.sh icons/icon-wishlist-wizard.png || true
 
+      - name: Attempt to convert PNG master to SVG (optional)
+        run: |
+          set -euo pipefail
+          # Try to install potrace/imagemagick on macOS runners; ignore failures
+          if command -v brew >/dev/null 2>&1; then
+            brew install potrace imagemagick || true
+          fi
+          ./scripts/convert-png-to-svg.sh icons/icon-wishlist-wizard.png icons/icon-wishlist-wizard.svg || true
+
       - name: Git add and commit generated files (if any)
         run: |
           set -euo pipefail
