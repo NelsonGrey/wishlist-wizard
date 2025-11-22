@@ -95,6 +95,27 @@ jobs:
             echo "ASC_PRIVATE_KEY present: no"
           fi
 
+      - name: Attempt NTP sync (best-effort)
+        run: |
+          # Try to enable network time and sync clock. Will not fail the job if sudo is unavailable.
+          echo "Attempting best-effort NTP sync"
+          if sudo -n true 2>/dev/null; then
+            echo "Running with sudo privileges"
+            sudo systemsetup -setusingnetworktime on || true
+            sudo systemsetup -setnetworktimeserver time.apple.com || true
+            if command -v sntp >/dev/null 2>&1; then
+              sudo sntp -sS pool.ntp.org || true
+            elif command -v ntpdate >/dev/null 2>&1; then
+              sudo ntpdate -u pool.ntp.org || true
+            else
+              echo "No sntp/ntpdate installed; skipping direct sync"
+            fi
+          else
+            echo "No sudo available; skipping NTP sync"
+          fi
+          echo "Post-sync UTC date:"; date -u
+        shell: bash
+
       - name: Verify ASC private key (safe, non-sensitive)
         run: |
           # This step decodes ASC_PRIVATE_KEY (base64) to a temp file, extracts the public key,
@@ -124,6 +145,77 @@ jobs:
 
           # cleanup
           rm -f "$TMP_KEY_FILE" "$TMP_PUB_FILE" || true
+        shell: bash
+
+      - name: Generate test JWT and check App Store Connect auth
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_PRIVATE_KEY: ${{ secrets.ASC_PRIVATE_KEY }}
+        run: |
+          set -euo pipefail
+          if [ -z "${ASC_PRIVATE_KEY:-}" ]; then
+            echo "ASC_PRIVATE_KEY not provided; skipping JWT test"
+            exit 0
+          fi
+
+          ruby - <<'RUBY'
+require 'json'
+require 'base64'
+require 'openssl'
+require 'net/http'
+
+def base64url_encode(str)
+  Base64.urlsafe_encode64(str).gsub('=', '')
+end
+
+key_b64 = ENV['ASC_PRIVATE_KEY']
+kid = ENV['ASC_KEY_ID']
+iss = ENV['ASC_ISSUER_ID']
+
+begin
+  key_pem = Base64.decode64(key_b64)
+  key = OpenSSL::PKey::EC.new(key_pem)
+rescue => e
+  puts "ERROR: Failed to load private key: #{e.message}"
+  exit 1
+end
+
+iat = Time.now.to_i
+exp = iat + 20 * 60
+header = { alg: 'ES256', kid: kid, typ: 'JWT' }
+payload = { iss: iss, iat: iat, exp: exp, aud: 'appstoreconnect-v1' }
+
+header_segment = base64url_encode(header.to_json)
+payload_segment = base64url_encode(payload.to_json)
+data = [header_segment, payload_segment].join('.')
+
+digest = OpenSSL::Digest::SHA256.new
+signature = key.dsa_sign_asn1(digest.digest(data))
+token = [data, base64url_encode(signature)].join('.')
+
+puts "JWT iat=#{iat} exp=#{exp}"
+puts "Testing App Store Connect API with generated token (status only)"
+
+uri = URI('https://api.appstoreconnect.apple.com/v1/apps?limit=1')
+req = Net::HTTP::Get.new(uri)
+req['Authorization'] = "Bearer #{token}"
+http = Net::HTTP.new(uri.host, uri.port)
+http.use_ssl = true
+res = http.request(req)
+puts "App Store Connect response code: #{res.code}"
+if res.code.to_i >= 400
+  begin
+    body = JSON.parse(res.body)
+    puts "Response error summary: "; puts body['errors'] || body
+  rescue
+    puts "Response body: #{res.body[0..400]}"
+  end
+  exit 1
+else
+  puts "Auth test succeeded (expected for valid key/ids)"
+end
+RUBY
         shell: bash
 
       - name: Install Fastlane
