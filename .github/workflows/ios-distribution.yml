@@ -429,7 +429,7 @@ jobs:
         run: |
           set -euo pipefail
           ENFORCE_KEYCHAIN_STATE="${{ secrets.ENFORCE_KEYCHAIN_STATE }}"
-          DEFAULT_KC=$(security default-keychain -d user | tr -d '"') || true
+          DEFAULT_KC=$(security default-keychain -d user | tr -d '"' | xargs) || true
           LOGIN_KC="$HOME/Library/Keychains/login.keychain-db"
           if [[ "$DEFAULT_KC" != "$LOGIN_KC" ]]; then
             echo "⚠️ Default keychain differs from login keychain: $DEFAULT_KC"
