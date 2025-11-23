@@ -27,6 +27,9 @@ on:
         required: false
         default: true
         type: boolean
+  pull_request:
+  schedule:
+    - cron: '0 2 * * *'  # Run nightly at 02:00 UTC
 
 jobs:
   validate-ios:
@@ -79,6 +82,26 @@ jobs:
             exit 1
           fi
 
+          # Validate ENFORCE_KEYCHAIN_STATE is true
+          if [ -z "${{ secrets.ENFORCE_KEYCHAIN_STATE }}" ]; then
+            echo "❌ ENFORCE_KEYCHAIN_STATE not configured in repo secrets; please set to 'true' to ensure keychain state enforcement in CI."        
+            exit 1
+          elif [[ "${{ secrets.ENFORCE_KEYCHAIN_STATE }}" != "true" ]]; then
+            echo "❌ ENFORCE_KEYCHAIN_STATE must be 'true' to enforce keychain state checks. Current value: '${{ secrets.ENFORCE_KEYCHAIN_STATE }}'"
+            exit 1
+          else
+            echo "✅ ENFORCE_KEYCHAIN_STATE is configured and true"
+          fi
+
+      - name: Check optional iOS distribution P12 secret
+        run: |
+          echo "🔐 Checking optional iOS distribution P12 secret..."
+          if [ -n "${{ secrets.IOS_CERT_P12_BASE64 }}" ]; then
+            echo "✅ IOS_CERT_P12_BASE64 secret is configured"
+          else
+            echo "⚠️ IOS_CERT_P12_BASE64 secret not configured (optional). If you need to sign with a P12, add IOS_CERT_P12_BASE64 & IOS_CERT_P12_PASSWORD to repo secrets."
+          fi
+
       - name: Test iOS build setup
         run: |
           cd packages/mobile
@@ -105,20 +128,44 @@ jobs:
             chmod +x scripts/setup_keychain.sh
             # Test script syntax without creating keychain
             bash -n scripts/setup_keychain.sh && echo "✅ Keychain script syntax OK"
+          elif [ -f scripts/ephemeral_keychain_fastlane_fixed.sh ]; then
+            echo "⚠️ Legacy setup_keychain.sh missing; using ephemeral keychain helper instead"
+            chmod +x scripts/ephemeral_keychain_fastlane_fixed.sh
+            bash -n scripts/ephemeral_keychain_fastlane_fixed.sh && echo "✅ Ephemeral helper syntax OK"
+          # Check that any configured MATCH_KEYCHAIN_NAME secret is not pointing to login keychain
+          # If it is, warn and fail to avoid accidental deletion of login keychain
+          if [ -n "${{ secrets.MATCH_KEYCHAIN_NAME }}" ]; then
+            if [[ "${{ secrets.MATCH_KEYCHAIN_NAME }}" == "login.keychain-db" || "${{ secrets.MATCH_KEYCHAIN_NAME }}" == "$HOME/Library/Keychains/login.keychain-db" || "${{ secrets.MATCH_KEYCHAIN_NAME }}" == *login.keychain* ]]; then
+              echo "❌ SECURITY: MATCH_KEYCHAIN_NAME secret appears to be the login keychain path. This is unsafe and may cause deletions."
+              exit 1
+            fi
+          fi
           else
-            echo "❌ Keychain setup script missing"
+            echo "❌ No keychain helper found (scripts/setup_keychain.sh or scripts/ephemeral_keychain_fastlane_fixed.sh)"
             exit 1
           fi
 
       - name: Validate ephemeral keychain helper
         run: |
           echo "🔑 Validating ephemeral keychain helper script..."
-          if [ -f scripts/ephemeral_keychain_fastlane.sh ]; then
+          if [ -f scripts/ephemeral_keychain_fastlane_fixed.sh ]; then
+            chmod +x scripts/ephemeral_keychain_fastlane_fixed.sh
+            bash -n scripts/ephemeral_keychain_fastlane_fixed.sh && echo "✅ Ephemeral fixed helper syntax OK"
+          elif [ -f scripts/ephemeral_keychain_fastlane.sh ]; then
             chmod +x scripts/ephemeral_keychain_fastlane.sh
-            bash -n scripts/ephemeral_keychain_fastlane.sh && echo "✅ Ephemeral helper syntax OK"
+            bash -n scripts/ephemeral_keychain_fastlane.sh && echo "✅ Ephemeral wrapper/helper syntax OK"
           else
-            echo "⚠️ Ephemeral helper script missing. Recommend adding scripts/ephemeral_keychain_fastlane.sh"
+            echo "⚠️ Ephemeral helper script missing. Recommend adding scripts/ephemeral_keychain_fastlane_fixed.sh"
             # Do not fail validation; optional helper
+          fi
+
+      - name: Validate recovery helper script (non-destructive)
+        run: |
+          if [ -f scripts/recover_keychain.sh ]; then
+            chmod +x scripts/recover_keychain.sh
+            bash -n scripts/recover_keychain.sh && echo "✅ Recovery helper syntax OK"
+          else
+            echo "⚠️ Recovery helper missing; consider adding scripts/recover_keychain.sh to help recover keychain state"
           fi
 
   validate-android:
