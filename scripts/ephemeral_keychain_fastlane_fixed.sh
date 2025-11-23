@@ -19,10 +19,11 @@ FASTLANE_CMD="$1"
 
 # Unique temporary keychain name and password
 KC_NAME="fastlane_tmp_$(date +%s)_$$.keychain-db"
+KC_PATH="$HOME/Library/Keychains/$KC_NAME"
 KC_PASS=$(LC_ALL=C tr -dc 'A-Za-z0-9' </dev/urandom | head -c 24 || echo "fastlane-pass")
 
 echo "[ephemeral-keychain] Creating temporary keychain: $KC_NAME"
-security create-keychain -p "$KC_PASS" "$KC_NAME"
+security create-keychain -p "$KC_PASS" "$KC_PATH"
 
 # Capture the original default keychain (best-effort) and sanitize it
 # Remove surrounding quotes and trim whitespace
@@ -43,12 +44,51 @@ if [ -z "${ORIG_DEFAULT_KC:-}" ]; then
   exit 3
 fi
 echo "[ephemeral-keychain] Adding temporary keychain to keychain list and making default"
-CURRENT_LIST=$(security list-keychains -d user | tr -d '"' | xargs || true)
-security list-keychains -d user -s "$KC_NAME" $CURRENT_LIST
-security default-keychain -s "$KC_NAME"
+# Save original list of keychains in an array so we can restore it exactly (compatible with macOS Bash)
+ORIG_KEYCHAIN_LIST_RAW=()
+while IFS= read -r item; do
+  ORIG_KEYCHAIN_LIST_RAW+=("$item")
+done < <(security list-keychains -d user)
+ORIG_KEYCHAIN_LIST=()
+for item in "${ORIG_KEYCHAIN_LIST_RAW[@]}"; do
+  trimmed=$(echo "$item" | tr -d '"' | xargs)
+  if [ -n "$trimmed" ]; then
+    # Normalize to $HOME/Library/Keychains/<basename> to avoid duplicate/malformed entries
+    base=$(basename "$trimmed")
+    # Only accept entries that look like keychain files
+    if [[ "$base" == *.keychain || "$base" == *.keychain-db ]]; then
+      norm="$HOME/Library/Keychains/$base"
+      # Deduplicate
+      skip=false
+      for existing in "${ORIG_KEYCHAIN_LIST[@]:-}"; do
+        if [[ "$existing" == "$norm" ]]; then
+          skip=true
+          break
+        fi
+      done
+      if [[ "$skip" == "false" ]]; then
+        ORIG_KEYCHAIN_LIST+=("$norm")
+      fi
+    fi
+  fi
+done
+echo "[ephemeral-keychain] Original keychain list: ${ORIG_KEYCHAIN_LIST[*]}"
+
+# Build new list with ephemeral keychain first and then existing ones (avoid duplicates)
+NEW_KEYCHAIN_LIST=("$KC_PATH")
+  if [ ${#ORIG_KEYCHAIN_LIST[@]:-0} -gt 0 ]; then
+  for k in "${ORIG_KEYCHAIN_LIST[@]}"; do
+    if [[ "$k" != "$KC_NAME" ]]; then
+      NEW_KEYCHAIN_LIST+=("$k")
+    fi
+  done
+fi
+echo "[ephemeral-keychain] Setting keychain list: ${NEW_KEYCHAIN_LIST[*]}"
+security list-keychains -d user -s "${NEW_KEYCHAIN_LIST[@]}"
+security default-keychain -s "$KC_PATH"
 echo "[ephemeral-keychain] Current default keychain after change: $(security default-keychain -d user | tr -d '"' | xargs || true)"
-security unlock-keychain -p "$KC_PASS" "$KC_NAME"
-security set-keychain-settings -lut 7200 "$KC_NAME"
+security unlock-keychain -p "$KC_PASS" "$KC_PATH"
+security set-keychain-settings -lut 7200 "$KC_PATH"
 
 cleanup() {
   set +e
@@ -61,6 +101,11 @@ cleanup() {
   elif [ -f "$HOME/Library/Keychains/login.keychain-db" ]; then
     security default-keychain -s "$HOME/Library/Keychains/login.keychain-db" || true
   fi
+  # Restore original list of keychains to avoid leaving ephemeral keychains in the list
+  if [ ${#ORIG_KEYCHAIN_LIST[@]:-0} -gt 0 ]; then
+    echo "[ephemeral-keychain] Restoring keychain list: ${ORIG_KEYCHAIN_LIST[*]}"
+    security list-keychains -d user -s "${ORIG_KEYCHAIN_LIST[@]}" || true
+  fi
   # Delete the ephemeral keychain if it exists
   if [ -n "${KC_NAME:-}" ]; then
     # Prevent accidental deletion if the keychain path might be the login keychain
@@ -68,7 +113,7 @@ cleanup() {
     if [[ "$short_kc" == "login.keychain-db" || "$short_kc" == "login.keychain" || "$KC_NAME" == "$HOME/Library/Keychains/login.keychain-db" ]]; then
       echo "[ephemeral-keychain] Skipping delete: KC_NAME ($KC_NAME) looks like login keychain. Not deleting to avoid data loss."
     else
-      security delete-keychain "$KC_NAME" || true
+      security delete-keychain "$KC_PATH" || true
     fi
   fi
 }
