@@ -391,13 +391,24 @@ jobs:
           # then the workflow intentionally reused an existing keychain and will not delete it.
           # Guard against accidental deletion of critical keychains like login.keychain-db.
           if [[ "${MATCH_KEYCHAIN_REUSE:-false}" != "true" && -n "${MATCH_KEYCHAIN_NAME:-}" ]]; then
-            # Use basename to detect ephemeral keychains created by the helper (fastlane_tmp_*)
-            base_name=$(basename "${MATCH_KEYCHAIN_NAME}")
-            if [[ "$base_name" == fastlane_tmp_* ]]; then
-              echo "Deleting temporary keychain ${MATCH_KEYCHAIN_NAME}"
-              security delete-keychain "${MATCH_KEYCHAIN_NAME}" || true
+            # Prefer deleting by `MATCH_KEYCHAIN_PATH` (exact path) when helper exported it;
+            # otherwise, fall back to delete by name. Use basename check to guard deletion.
+            if [[ -n "${MATCH_KEYCHAIN_PATH:-}" ]]; then
+              base_name=$(basename "${MATCH_KEYCHAIN_PATH}")
+              if [[ "$base_name" == fastlane_tmp_* ]]; then
+                echo "Deleting temporary keychain at path ${MATCH_KEYCHAIN_PATH}"
+                security delete-keychain "${MATCH_KEYCHAIN_PATH}" || true
+              else
+                echo "MATCH_KEYCHAIN_PATH='${MATCH_KEYCHAIN_PATH}' does not match ephemeral pattern; skipping deletion"
+              fi
             else
-              echo "MATCH_KEYCHAIN_NAME='${MATCH_KEYCHAIN_NAME}' does not match ephemeral pattern; skipping deletion to avoid deleting login or other system keychains"
+              base_name=$(basename "${MATCH_KEYCHAIN_NAME}")
+              if [[ "$base_name" == fastlane_tmp_* ]]; then
+                echo "Deleting temporary keychain ${MATCH_KEYCHAIN_NAME}"
+                security delete-keychain "${MATCH_KEYCHAIN_NAME}" || true
+              else
+                echo "MATCH_KEYCHAIN_NAME='${MATCH_KEYCHAIN_NAME}' does not match ephemeral pattern; skipping deletion to avoid deleting login or other system keychains"
+              fi
             fi
           else
             echo "No MATCH_KEYCHAIN_NAME present; attempting to delete any ephemeral keychains named 'fastlane_tmp_*'"
