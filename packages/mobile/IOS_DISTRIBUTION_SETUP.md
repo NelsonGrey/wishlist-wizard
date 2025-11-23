@@ -39,6 +39,8 @@ Notes and recommendations
 - This approach keeps your login keychain untouched and is safe for local development.
 - For release workflows, prefer running Fastlane on CI (use the ephemeral keychain there as well), or on a dedicated build machine.
  - Our CI workflow (`.github/workflows/ios-distribution.yml`) now prefers to run Fastlane through `scripts/ephemeral_keychain_fastlane.sh` on the self-hosted macOS runner. This avoids creating or modifying a shared login keychain in CI.
+
+IMPORTANT: Do not set `MATCH_KEYCHAIN_NAME` to `login.keychain-db` (or the full path to the login keychain) in repo secrets. The CI now validates and will fail if `ENFORCE_KEYCHAIN_STATE=true`. If you need to reuse a pre-created keychain, use a dedicated CI keychain name (like `ci-match-keychain`) and set `MATCH_KEYCHAIN_REUSE=true`.
 - If you use `match`, you can combine it with this helper by passing `--keychain_name`/`--keychain_password` options to `match` or by importing the `match`-retrieved `.p12` into the ephemeral keychain before invoking `match`.
 
 Troubleshooting
