@@ -142,6 +142,7 @@ echo "[ephemeral-keychain] Exported MATCH_KEYCHAIN_NAME and MATCH_KEYCHAIN_PASSW
 if [ -n "${GITHUB_ENV:-}" ]; then
   echo "MATCH_KEYCHAIN_NAME=$KC_NAME" >> "$GITHUB_ENV"
   echo "MATCH_KEYCHAIN_PASSWORD=$KC_PASS" >> "$GITHUB_ENV"
+  echo "MATCH_KEYCHAIN_PATH=$KC_PATH" >> "$GITHUB_ENV"
   echo "[ephemeral-keychain] Exported ephemeral keychain to GITHUB_ENV: $GITHUB_ENV"
 fi
 
