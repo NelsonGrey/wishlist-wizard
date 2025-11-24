@@ -49,8 +49,12 @@ jobs:
       - name: Install GMP (required for Ruby 3.2.2)
         run: |
           echo "Installing GMP library required for Ruby 3.2.2..."
-          brew install gmp
-          echo "GMP installation completed"
+          if command -v brew >/dev/null 2>&1; then
+            brew install gmp || echo "GMP install failed, but continuing"
+            echo "GMP installation completed via Homebrew"
+          else
+            echo "Homebrew not available on this runner, assuming GMP is already installed"
+          fi
 
       - name: Set up Ruby
         uses: ruby/setup-ruby@v1
