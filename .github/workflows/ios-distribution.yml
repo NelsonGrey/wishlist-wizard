@@ -197,7 +197,7 @@ jobs:
           MATCH_PASSWORD=${{ secrets.MATCH_PASSWORD }}
           MATCH_KEYCHAIN_NAME=${{ secrets.MATCH_KEYCHAIN_NAME }}
           MATCH_KEYCHAIN_PASSWORD=${{ secrets.MATCH_KEYCHAIN_PASSWORD }}
-          MATCH_GIT_BRANCH=${{ github.ref == 'refs/heads/main' && 'main' || github.ref == 'refs/heads/staging' && 'staging' || 'develop' }}
+          MATCH_GIT_BRANCH=main
           EOF
 
           # Export single-line environment variables to GitHub Actions environment
@@ -263,13 +263,7 @@ jobs:
 
       - name: Set MATCH_GIT_BRANCH dynamically
         run: |
-          if [[ "${GITHUB_REF}" == "refs/heads/main" ]]; then
-            echo "MATCH_GIT_BRANCH=main" >> $GITHUB_ENV
-          elif [[ "${GITHUB_REF}" == "refs/heads/staging" ]]; then
-            echo "MATCH_GIT_BRANCH=staging" >> $GITHUB_ENV
-          else
-            echo "MATCH_GIT_BRANCH=develop" >> $GITHUB_ENV
-          fi
+          echo "MATCH_GIT_BRANCH=main" >> $GITHUB_ENV
 
       - name: Build and distribute iOS app
         env:
