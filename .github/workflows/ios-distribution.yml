@@ -290,30 +290,6 @@ jobs:
           
           # Export release notes for Fastlane
           echo "RELEASE_NOTES=$RELEASE_NOTES" >> $GITHUB_ENV
-          
-          # Run Fastlane pipeline based on environment and build type
-          BUILD_TYPE="${{ github.event.inputs.build_type || 'debug' }}"
-
-          # Prefer using the repository ephemeral keychain helper when present.
-          # The helper will create a temporary keychain, import any provided certs,
-          # run the given command, and then delete the temporary keychain.
-          EPHEMERAL_HELPER="./scripts/ephemeral_keychain_fastlane_fixed.sh"
-
-          if [[ "${{ github.ref }}" == "refs/heads/main" ]] || [[ "${{ github.ref }}" == "refs/heads/staging" ]] || [[ "$BUILD_TYPE" == "release" ]]; then
-            # Production/Staging OR manual release: Upload to TestFlight
-            if [ -f Gemfile ]; then
-              RUN_CMD="bundle config set --local path 'vendor/bundle' && bundle install --jobs 4 || true && bundle exec fastlane beta"
-            else
-              RUN_CMD="fastlane beta"
-            fi
-          else
-            # Development: Just build and test
-            if [ -f Gemfile ]; then
-              RUN_CMD="bundle config set --local path 'vendor/bundle' && bundle install --jobs 4 || true && bundle exec fastlane test_and_build"
-            else
-              RUN_CMD="fastlane test_and_build"
-            fi
-          fi
 
       - name: Provision iOS distribution P12 (optional)
         env:
@@ -321,17 +297,14 @@ jobs:
           IOS_CERT_P12_PASSWORD: ${{ secrets.IOS_CERT_P12_PASSWORD }}
         run: |
           set -euo pipefail
+          # Note: P12 is now decoded in the main build step to avoid duplication
           if [ -n "${IOS_CERT_P12_BASE64:-}" ]; then
-            mkdir -p packages/mobile/ios/certs
-            echo "$IOS_CERT_P12_BASE64" | base64 --decode > packages/mobile/ios/certs/dist_cert.p12
-            echo "CERT_P12_PATH=packages/mobile/ios/certs/dist_cert.p12" >> $GITHUB_ENV
-            echo "CERT_P12_PASSWORD=$IOS_CERT_P12_PASSWORD" >> $GITHUB_ENV
-            echo "Decoded iOS distribution P12 into packages/mobile/ios/certs/dist_cert.p12"
+            echo "IOS_CERT_P12_BASE64 secret is configured; P12 will be provisioned in the build step"
           else
             echo "No IOS_CERT_P12_BASE64 secret configured; skipping P12 provisioning"
           fi
 
-          # Define ephemeral helper and run command
+          # Define ephemeral helper and run command (moved from build step for clarity)
           EPHEMERAL_HELPER="./scripts/ephemeral_keychain_fastlane_fixed.sh"
           BUILD_TYPE="${{ github.event.inputs.build_type || 'debug' }}"
 

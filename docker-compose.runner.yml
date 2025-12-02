@@ -12,9 +12,10 @@ services:
       REPO_URL: https://github.com/mnelson3/wishlist-wizard
       RUNNER_NAME: wishlist-wizard-docker-runner
       LABELS: self-hosted,linux,x64,wishlist-wizard
+      RUNNER_WORKDIR: /tmp/runner/work
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - runner-config:/home/runner
+      - runner-work:/tmp/runner/work
     networks:
       - runner-network
     restart: unless-stopped
@@ -39,5 +40,5 @@ networks:
     driver: bridge
 
 volumes:
-  runner-config:
+  runner-work:
     driver: local
