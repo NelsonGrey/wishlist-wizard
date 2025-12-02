@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   github-runner-wishlist-wizard:
     build:
@@ -11,7 +9,7 @@ services:
     environment:
       REPO_URL: https://github.com/mnelson3/wishlist-wizard
       RUNNER_NAME: wishlist-wizard-docker-runner
-      LABELS: self-hosted,linux,x64,wishlist-wizard
+      LABELS: self-hosted,ARM64,linux,ubuntu-latest,docker,wishlist-wizard
       RUNNER_WORKDIR: /tmp/runner/work
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
@@ -26,7 +24,7 @@ services:
       dockerfile: Dockerfile.monitor
     container_name: wishlist-wizard-runner-monitor
     ports:
-      - "8080:80"
+      - "8083:80"
     volumes:
       - ./monitoring/status.html:/usr/share/nginx/html/index.html:ro
     networks:

@@ -8,7 +8,7 @@ REPO_URL="${REPO_URL:-https://github.com/mnelson3/wishlist-wizard}"
 RUNNER_NAME="${RUNNER_NAME:-wishlist-wizard-docker-runner}"
 RUNNER_TOKEN="${RUNNER_TOKEN:-}"
 ACCESS_TOKEN="${ACCESS_TOKEN:-$RUNNER_TOKEN}"  # Support both variable names
-LABELS="${LABELS:-self-hosted,linux,x64,wishlist-wizard}"
+LABELS="${LABELS:-self-hosted,ARM64,linux,ubuntu-latest,docker,wishlist-wizard}"
 RUNNER_WORKDIR="${RUNNER_WORKDIR:-/tmp/runner/work}"
 
 # Validate required environment
