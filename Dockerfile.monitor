@@ -1,17 +1,24 @@
-# Self-Contained Monitor Dockerfile
-FROM alpine:latest
+# Dockerfile for GitHub Runner Monitoring Server
+FROM node:18-alpine
 
-# Install nginx
-RUN apk add --no-cache nginx
+# Set working directory
+WORKDIR /app
 
-# Create nginx directories
-RUN mkdir -p /run/nginx /var/log/nginx /var/cache/nginx
+# Copy package files
+COPY package*.json ./
 
-# Copy nginx configuration
-COPY monitoring/nginx.conf /etc/nginx/nginx.conf
+# Install dependencies
+RUN npm install --only=production
+
+# Copy monitoring files
+COPY monitoring/ ./monitoring/
 
 # Expose port
-EXPOSE 80
+EXPOSE 8083
 
-# Start nginx
-CMD ["nginx", "-g", "daemon off;"]
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD node -e "require('http').get('http://localhost:8083/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"
+
+# Start the monitoring server
+CMD ["node", "monitoring/server.js"]
