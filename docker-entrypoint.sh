@@ -9,6 +9,7 @@ RUNNER_NAME="${RUNNER_NAME:-wishlist-wizard-docker-runner}"
 RUNNER_TOKEN="${RUNNER_TOKEN:-}"
 ACCESS_TOKEN="${ACCESS_TOKEN:-$RUNNER_TOKEN}"  # Support both variable names
 LABELS="${LABELS:-self-hosted,linux,x64,wishlist-wizard}"
+RUNNER_WORKDIR="${RUNNER_WORKDIR:-/tmp/runner/work}"
 
 # Validate required environment
 if [ -z "$ACCESS_TOKEN" ] && [ -z "$RUNNER_TOKEN" ]; then
@@ -32,7 +33,7 @@ else
         --token "$TOKEN" \
         --name "$RUNNER_NAME" \
         --labels "$LABELS" \
-        --work _work \
+        --work "$RUNNER_WORKDIR" \
         --replace \
         --unattended || echo "Configuration failed, but continuing..."
     
