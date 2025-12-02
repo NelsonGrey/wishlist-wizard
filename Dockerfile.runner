@@ -16,6 +16,10 @@ RUN useradd -m -s /bin/bash runner && \
     usermod -aG sudo runner && \
     echo 'runner ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
 
+# Create work directory structure
+RUN mkdir -p /tmp/runner/work && \
+    chown -R runner:runner /tmp/runner
+
 # Switch to runner user
 USER runner
 WORKDIR /home/runner
