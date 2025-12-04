@@ -1,0 +1,17 @@
+{
+  "name": "wishlist-wizard-runner-monitor",
+  "version": "1.0.0",
+  "description": "Monitoring server for GitHub Actions runners",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "keywords": [
+    "github",
+    "actions",
+    "runner",
+    "monitor"
+  ],
+  "author": "Wishlist Wizard",
+  "license": "MIT"
+}
