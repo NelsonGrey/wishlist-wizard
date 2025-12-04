@@ -8,7 +8,7 @@ RUN apt-get update && apt-get install -y \
     git \
     unzip \
     ca-certificates \
-    libicu70 \
+    libicu74 \
     && rm -rf /var/lib/apt/lists/*
 
 # Create runner user
