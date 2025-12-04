@@ -24,7 +24,9 @@ services:
       dockerfile: Dockerfile.monitor
     container_name: wishlist-wizard-runner-monitor
     ports:
-      - "8083:8082"
+      - "8083:8083"
+    volumes:
+      - ./monitoring/status.html:/usr/share/nginx/html/index.html:ro      
     networks:
       - runner-network
     restart: unless-stopped
