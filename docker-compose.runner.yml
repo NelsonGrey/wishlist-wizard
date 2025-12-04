@@ -24,7 +24,7 @@ services:
       dockerfile: Dockerfile.monitor
     container_name: wishlist-wizard-runner-monitor
     ports:
-      - "8083:80"
+      - "8083:8081"
     volumes:
       - ./monitoring/status.html:/usr/share/nginx/html/index.html:ro
     networks:
