@@ -14,11 +14,11 @@ RUN npm install --only=production
 COPY monitoring/ ./monitoring/
 
 # Expose port
-EXPOSE 8083
+EXPOSE 8082
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD node -e "require('http').get('http://localhost:8083/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"
+    CMD node -e "require('http').get('http://localhost:8082/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"
 
 # Start the monitoring server
 CMD ["node", "monitoring/server.js"]
