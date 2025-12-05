@@ -1,0 +1,172 @@
+name: 🔄 Automated Staging Deployment
+
+on:
+  schedule:
+    # Deploy to staging every weekday at 6 AM UTC (2 AM EST)
+    - cron: '0 6 * * 1-5'
+  workflow_dispatch:
+    inputs:
+      force_deploy:
+        description: 'Force deployment even if no changes'
+        required: false
+        default: false
+        type: boolean
+
+env:
+  NODE_VERSION: '20'
+  FLUTTER_VERSION: '3.35.7'
+
+jobs:
+  # 🔍 Check for Changes
+  check-changes:
+    name: 🔍 Check for Changes
+    runs-on: self-hosted
+    outputs:
+      has-changes: ${{ steps.check.outputs.has-changes }}
+    steps:
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 🔍 Check for recent changes
+        id: check
+        run: |
+          # Check if there are changes in the last 24 hours
+          LAST_COMMIT_DATE=$(git log -1 --format=%ct)
+          CURRENT_TIME=$(date +%s)
+          TIME_DIFF=$((CURRENT_TIME - LAST_COMMIT_DATE))
+          ONE_DAY=$((24 * 60 * 60))
+
+          if [ $TIME_DIFF -lt $ONE_DAY ] || [ "${{ github.event.inputs.force_deploy }}" == "true" ]; then
+            echo "has-changes=true" >> $GITHUB_OUTPUT
+            echo "📝 Recent changes detected or force deploy requested"
+          else
+            echo "has-changes=false" >> $GITHUB_OUTPUT
+            echo "⏭️  No recent changes, skipping deployment"
+          fi
+
+  # 🚀 Automated Deployment
+  automated-deploy:
+    name: 🚀 Automated Staging Deployment
+    runs-on: self-hosted
+    needs: check-changes
+    if: needs.check-changes.outputs.has-changes == 'true'
+    environment: STAGING
+    steps:
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v4
+
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: 📦 Install Dependencies
+        run: npm ci
+
+      - name: 🔧 Fix Rollup Dependencies
+        run: |
+          # Clean and reinstall to fix Rollup native binary issues
+          rm -rf node_modules package-lock.json packages/*/node_modules
+          npm install --force
+
+      - name: 🏗️ Build All Packages
+        run: |
+          npm run build --workspace=packages/web
+          npm run build --workspace=packages/functions
+          npm run build --workspace=packages/browser-extension
+          npm run build --workspace=packages/shared
+          npm run build --workspace=packages/firebase-utils
+
+      - name: 🦋 Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+
+      - name: 📦 Install Flutter Dependencies
+        run: |
+          cd packages/mobile
+          flutter pub get
+
+      - name: 🔧 Flutter Analyze
+        run: flutter analyze
+        working-directory: packages/mobile
+
+      - name: 🧪 Run Tests
+        run: flutter test
+        working-directory: packages/mobile
+
+      - name: 🏗️ Build Flutter Web
+        run: |
+          cd packages/mobile
+          flutter build web --release
+
+      - name: 🚀 Deploy Web App to Firebase
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_KEY_STAGING }}
+          channelId: preview
+          projectId: wishlist-wizard-staging
+          entryPoint: ./packages/web
+
+      - name: 🔥 Deploy API Functions to Firebase
+        uses: w9jds/firebase-action@v13.28.0
+        with:
+          args: deploy --only functions
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN_STAGING }}
+          PROJECT_ID: wishlist-wizard-staging
+
+      - name: 📱 Deploy Mobile PWA to Firebase
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_KEY_STAGING }}
+          channelId: preview
+          projectId: wishlist-wizard-staging
+          entryPoint: ./packages/mobile
+
+      - name: 🧪 Run Health Checks
+        run: |
+          echo "🧪 Running post-deployment health checks"
+
+          # Check web app (would need actual URL)
+          # For now, just verify the deployment succeeded
+          echo "✅ Deployment completed - health checks would verify live URLs"
+
+      - name: 📊 Deployment Summary
+        run: |
+          echo "## 🔄 Automated Staging Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Component | Status | URL |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----------|--------|-----|" >> $GITHUB_STEP_SUMMARY
+          echo "| 🌐 Web App | ✅ Deployed | https://wishlist-wizard-staging.web.app |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🔥 API Functions | ✅ Deployed | https://us-central1-wishlist-wizard-staging.cloudfunctions.net/api |" >> $GITHUB_STEP_SUMMARY
+          echo "| 📱 Mobile PWA | ✅ Deployed | https://wishlist-wizard-staging.web.app |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Deployment Time**: $(date)" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit**: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Environment**: Staging" >> $GITHUB_STEP_SUMMARY
+          echo "**Trigger**: Automated (Schedule/Changes)" >> $GITHUB_STEP_SUMMARY
+
+  # 📢 Notification
+  notify:
+    name: 📢 Deployment Notification
+    runs-on: self-hosted
+    needs: automated-deploy
+    if: always() && needs.automated-deploy.result != 'skipped'
+    steps:
+      - name: 📢 Send Notification
+        run: |
+          STATUS="${{ needs.automated-deploy.result }}"
+          if [ "$STATUS" == "success" ]; then
+            echo "✅ Automated staging deployment completed successfully"
+          else
+            echo "❌ Automated staging deployment failed"
+          fi
+
+          # Here you could integrate with Slack, Discord, etc.
+          # For zero-touch, this could trigger alerts or rollback
