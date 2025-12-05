@@ -1,0 +1,201 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
+name: 🚀 iOS Release Pipeline
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_type:
+        description: 'Type of release to perform'
+        required: true
+        default: 'testflight'
+        type: choice
+        options:
+        - testflight
+        - app_store
+        - full_pipeline
+      release_notes:
+        description: 'Release notes for this version'
+        required: false
+        type: string
+      beta_group_name:
+        description: 'Name of TestFlight beta group (for full pipeline)'
+        required: false
+        default: 'Internal Testers'
+        type: string
+  release:
+    types: [published]
+
+env:
+  FLUTTER_VERSION: '3.35.7'
+
+jobs:
+  release-ios:
+    runs-on: [self-hosted, modulo-squares]
+    environment:
+      name: ${{ github.event.inputs.release_type == 'app_store' && 'PRODUCTION' || 'DEVELOPMENT' }}
+    steps:
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v4
+
+      - name: 🦋 Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+
+      - name: 💎 Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.0'
+
+      - name: 📦 Install Ruby Dependencies
+        run: |
+          cd packages/mobile
+          bundle install
+
+      - name: 🛠️ Setup Xcode
+        run: |
+          # Check if Xcode is already properly selected
+          CURRENT_XCODE=$(xcode-select -p 2>/dev/null || echo "")
+          if [[ "$CURRENT_XCODE" == "/Applications/Xcode.app/Contents/Developer" ]]; then
+            echo "✅ Xcode already properly selected"
+          else
+            echo "🔄 Attempting to select Xcode..."
+            # Try to select Xcode (may require sudo on some systems)
+            if sudo -n xcode-select -s /Applications/Xcode.app/Contents/Developer 2>/dev/null; then
+              echo "✅ Xcode selected successfully"
+            else
+              echo "⚠️ Could not select Xcode (may already be selected or requires manual setup)"
+            fi
+          fi
+
+          # Check if Xcode license is already accepted
+          if xcodebuild -license check 2>/dev/null; then
+            echo "✅ Xcode license already accepted"
+          else
+            echo "🔄 Attempting to accept Xcode license..."
+            # Try to accept license (may require sudo on some systems)
+            if sudo -n xcodebuild -license accept 2>/dev/null; then
+              echo "✅ Xcode license accepted successfully"
+            else
+              echo "⚠️ Could not accept Xcode license (may already be accepted or requires manual setup)"
+            fi
+          fi
+
+      - name: 🔧 Setup macOS CI Environment
+        run: |
+          chmod +x scripts/setup-macos-ci.sh
+          ./scripts/setup-macos-ci.sh
+        env:
+          MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
+
+      - name: Install Dependencies
+        run: flutter pub get
+        working-directory: packages/mobile
+
+      - name: Generate Launcher Icons
+        run: flutter pub run flutter_launcher_icons
+        working-directory: packages/mobile
+
+      - name: 🔍 Check Flutter Doctor
+        run: |
+          flutter doctor -v
+          echo "🔧 Checking iOS setup..."
+          flutter doctor --ios || echo "⚠️ iOS setup issues detected"
+
+      - name: 🔧 Generate iOS Platform Files
+        run: flutter create --platforms=ios .
+        working-directory: packages/mobile
+
+      - name: 🔍 Check Secrets
+        run: |
+          TOKEN_LENGTH=${#MATCH_GIT_URL_TOKEN}
+          if [ "$TOKEN_LENGTH" -eq 0 ]; then
+            echo "❌ MATCH_GIT_URL_TOKEN secret is not set or empty"
+            exit 1
+          else
+            echo "✅ MATCH_GIT_URL_TOKEN secret is set (length: $TOKEN_LENGTH)"
+          fi
+        env:
+          MATCH_GIT_URL_TOKEN: ${{ secrets.MATCH_GIT_URL_TOKEN }}
+
+      - name: 🔐 Create Service Account Key File
+        env:
+          FIREBASE_SERVICE_ACCOUNT_KEY: ${{ secrets[format('FIREBASE_SERVICE_ACCOUNT_KEY_{0}', github.ref == 'refs/heads/main' && 'PRODUCTION' || github.ref == 'refs/heads/staging' && 'STAGING' || 'DEVELOPMENT')] }}
+        run: |
+          mkdir -p packages/mobile/ios
+          echo "$FIREBASE_SERVICE_ACCOUNT_KEY" > packages/mobile/ios/service-account-key.json
+
+      - name: 🔧 Make Distribution Script Executable
+        run: chmod +x packages/mobile/distribute-ios.sh
+
+      - name: 🔐 Setup Fastlane Environment
+        run: |
+          cd packages/mobile/ios
+
+          # Create .env file for Fastlane with all required environment variables
+          cat > .env << EOF
+          # Apple Developer Account
+          FASTLANE_APPLE_ID=${{ secrets.FASTLANE_APPLE_ID }}
+          FASTLANE_PASSWORD=${{ secrets.FASTLANE_PASSWORD }}
+          FASTLANE_TEAM_ID=${{ secrets.FASTLANE_TEAM_ID }}
+          FASTLANE_ITC_TEAM_ID=${{ secrets.FASTLANE_ITC_TEAM_ID }}
+
+          # App Store Connect API Key
+          ASC_KEY_ID=${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID=${{ secrets.ASC_ISSUER_ID }}
+          ASC_PRIVATE_KEY=${{ secrets.ASC_PRIVATE_KEY }}
+
+          # Match Configuration
+          MATCH_GIT_URL=https://oauth2:${{ secrets.MATCH_GIT_URL_TOKEN }}@github.com/mnelson3/nelson-grey-certificates.git
+          MATCH_PASSWORD=${{ secrets.MATCH_PASSWORD }}
+
+          # TestFlight Configuration
+          BETA_FEEDBACK_EMAIL=${{ secrets.BETA_FEEDBACK_EMAIL }}
+          EOF
+
+          # Create App Store Connect private key file from base64 encoded secret
+          echo "${{ secrets.ASC_PRIVATE_KEY }}" | base64 -d > asc_private_key.p8
+
+      - name: 🚀 Execute Release Pipeline
+        env:
+          ENVIRONMENT: ${{ github.event.inputs.release_type == 'app_store' && 'PRODUCTION' || 'DEVELOPMENT' }}
+          FASTLANE_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
+          FLUTTER_ROOT: ${{ env.FLUTTER_ROOT }}
+        run: |
+          # Set release notes environment variable
+          RELEASE_NOTES="${{ github.event.inputs.release_notes || format('Release {0} - {1}', github.ref_name, github.sha) }}"
+
+          cd packages/mobile/ios
+
+          # Execute the appropriate release pipeline based on type
+          RELEASE_TYPE="${{ github.event.inputs.release_type }}"
+          BETA_GROUP_NAME="${{ github.event.inputs.beta_group_name || 'Internal Testers' }}"
+
+          case "$RELEASE_TYPE" in
+            "testflight")
+              echo "🎯 Running TestFlight-only release..."
+              bundle exec fastlane beta
+              ;;
+            "app_store")
+              echo "🏪 Running App Store submission..."
+              bundle exec fastlane submit_to_app_store release_notes:"$RELEASE_NOTES"
+              ;;
+            "full_pipeline")
+              echo "🚀 Running complete release pipeline..."
+              bundle exec fastlane full_release_pipeline release_notes:"$RELEASE_NOTES" manage_beta:true beta_group_name:"$BETA_GROUP_NAME" submit_to_app_store:true
+              ;;
+            *)
+              echo "❌ Unknown release type: $RELEASE_TYPE"
+              exit 1
+              ;;
+          esac
+
+      - name: 🧹 Clean Up
+        if: always()
+        run: |
+          # Clean up temporary keychain
+          security delete-keychain fastlane_tmp_keychain 2>/dev/null || true
+
+          # Clean up service account files
+          rm -f packages/mobile/ios/service-account-key.json packages/mobile/ios/asc_private_key.p8 packages/mobile/ios/certs/dist_cert.p12

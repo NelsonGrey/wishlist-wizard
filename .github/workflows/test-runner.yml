@@ -1,0 +1,15 @@
+name: Test Runner
+
+on:
+  push:
+    branches:
+      - develop
+    paths:
+      - '.github/workflows/test-runner.yml'
+
+jobs:
+  test:
+    runs-on: [self-hosted, modulo-squares]
+    steps:
+      - name: Test Runner
+        run: echo "Runner is working!"
