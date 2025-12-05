@@ -1,0 +1,93 @@
+name: 🌐 Web Deployment
+
+# This workflow deploys the web app to Firebase Hosting
+# 
+# Required Secrets:
+# - FIREBASE_TOKEN: Firebase CI token for deployment
+#   To generate: firebase login:ci
+#   Add to: Repository Settings > Secrets and variables > Actions
+#   Or to specific environments for production deployments
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+      - staging
+    paths:
+      - 'packages/web/**'
+      - '.github/workflows/web-deployment.yml'
+      - 'package.json'
+      - 'firebase*.json'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+        - staging
+        - production
+        - development
+
+env:
+  NODE_VERSION: '18'
+
+jobs:
+  deploy-web:
+    runs-on: self-hosted
+    environment:
+      name: ${{ github.event.inputs.environment == 'production' && 'PRODUCTION' || github.event.inputs.environment == 'staging' && 'STAGING' || 'DEVELOPMENT' }}
+    steps:
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v4
+
+      - name: 🟢 Setup Node.js
+        uses: ./.github/actions/setup-node
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: 📦 Install Firebase CLI
+        run: npm install -g firebase-tools
+
+      - name: 📦 Install Web Dependencies
+        run: npm ci
+        working-directory: packages/web
+
+      - name: 🏗️ Build Web App
+        run: npm run build
+        working-directory: packages/web
+
+      - name: 🔥 Deploy to Firebase Hosting
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+        run: |
+          # Determine environment and config
+          ENVIRONMENT="${{ github.event.inputs.environment || (github.ref == 'refs/heads/main' && 'production' || github.ref == 'refs/heads/staging' && 'staging' || 'development') }}"
+          echo "🚀 Deploying to $ENVIRONMENT environment"
+
+          if [[ "$ENVIRONMENT" == "production" ]]; then
+            CONFIG_FILE="firebase.prod.json"
+            PROJECT_ID="modulo-squares-prod"
+          elif [[ "$ENVIRONMENT" == "staging" ]]; then
+            CONFIG_FILE="firebase.staging.json"
+            PROJECT_ID="modulo-squares-staging"
+          else
+            CONFIG_FILE="firebase.dev.json"
+            PROJECT_ID="modulo-squares-dev"
+          fi
+
+          # Check if Firebase token is available
+          if [ -z "$FIREBASE_TOKEN" ]; then
+            echo "❌ FIREBASE_TOKEN secret is not configured"
+            echo "Please add FIREBASE_TOKEN to repository secrets or environment secrets"
+            exit 1
+          fi
+
+          # Copy environment-specific config
+          cp "$CONFIG_FILE" firebase.json
+
+          # Deploy to the website target (configured in firebase.json)
+          firebase use "$PROJECT_ID" --token "$FIREBASE_TOKEN"
+          firebase deploy --only hosting:website --token "$FIREBASE_TOKEN"
