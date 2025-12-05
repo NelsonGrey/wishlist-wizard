@@ -1,30 +1,150 @@
-name: Security Scan
+name: 🔒 Security Scan
 
 on:
-  pull_request:
-    branches: [ develop, main, staging ]
   push:
-    branches: [ develop, main, staging ]
+    branches: [ main, staging, develop ]
+  pull_request:
+    branches: [ main, staging, develop ]
   schedule:
-    - cron: '0 0 * * 0'  # Weekly on Sunday at midnight
+    # Run weekly on Sundays at 2 AM UTC
+    - cron: '0 2 * * 0'
+  workflow_dispatch:
 
 jobs:
-  gitleaks:
+  # 🔍 CodeQL Security Analysis
+  codeql:
+    name: 🔍 CodeQL Analysis
+    runs-on: self-hosted
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [ 'javascript', 'dart' ]
+
+    steps:
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v4
+
+      - name: 🟢 Setup Node.js (for JS analysis)
+        if: matrix.language == 'javascript'
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: 📦 Install Dependencies (Web)
+        if: matrix.language == 'javascript'
+        run: npm ci
+
+      - name: 🦋 Setup Flutter (for Dart analysis)
+        if: matrix.language == 'dart'
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+
+      - name: 📦 Install Flutter Dependencies
+        if: matrix.language == 'dart'
+        run: |
+          cd packages/mobile
+          flutter pub get
+
+      - name: 🔍 Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+          queries: security-and-quality
+
+      - name: 🔍 Autobuild
+        uses: github/codeql-action/autobuild@v3
+
+      - name: 🔍 Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:${{matrix.language}}"
+
+  # 🛡️ Dependency Vulnerability Scan
+  dependency-scan:
+    name: 🛡️ Dependency Scan
     runs-on: self-hosted
     steps:
-      - name: Checkout code
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v4
+
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: 📦 Install Dependencies
+        run: npm ci
+
+      - name: 🛡️ Run npm audit
+        run: npm audit --audit-level=moderate
+        continue-on-error: true
+
+      - name: 🛡️ Check for vulnerabilities
+        run: |
+          AUDIT_OUTPUT=$(npm audit --json --audit-level=moderate 2>/dev/null || echo '{"vulnerabilities": {}}')
+          HIGH=$(echo "$AUDIT_OUTPUT" | jq -r '.metadata.vulnerabilities.high // 0')
+          MODERATE=$(echo "$AUDIT_OUTPUT" | jq -r '.metadata.vulnerabilities.moderate // 0')
+          LOW=$(echo "$AUDIT_OUTPUT" | jq -r '.metadata.vulnerabilities.low // 0')
+
+          echo "Vulnerability Summary:"
+          echo "High: $HIGH"
+          echo "Moderate: $MODERATE"
+          echo "Low: $LOW"
+
+          if [ "$HIGH" -gt 0 ]; then
+            echo "❌ High severity vulnerabilities found: $HIGH"
+            exit 1
+          fi
+
+          if [ "$MODERATE" -gt 5 ]; then
+            echo "⚠️  Moderate vulnerabilities exceed threshold (5): $MODERATE"
+            exit 1
+          fi
+
+          echo "✅ Vulnerability check passed"
+
+  # 🔐 Secret Scanning
+  secret-scan:
+    name: 🔐 Secret Scan
+    runs-on: self-hosted
+    steps:
+      - name: 📥 Checkout Code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Fetch full history for gitleaks
+          fetch-depth: 0
 
-      - name: Run gitleaks
+      - name: 🔐 Scan for secrets
         uses: gitleaks/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Upload gitleaks report
-        if: failure()
-        uses: actions/upload-artifact@v4
         with:
-          name: gitleaks-report
-          path: gitleaks-report.json
+          config-path: .gitleaks.toml
+
+  # 📊 Security Summary
+  security-summary:
+    name: 📊 Security Summary
+    runs-on: self-hosted
+    needs: [codeql, dependency-scan, secret-scan]
+    if: always()
+    steps:
+      - name: 📊 Generate Security Report
+        run: |
+          echo "## 🔒 Security Scan Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Component | Status | Details |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----------|--------|---------|" >> $GITHUB_STEP_SUMMARY
+          echo "| 🔍 CodeQL Analysis | ${{ needs.codeql.result }} | Static analysis for JS & Dart |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🛡️ Dependency Scan | ${{ needs.dependency-scan.result }} | npm audit with thresholds |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🔐 Secret Scan | ${{ needs.secret-scan.result }} | GitLeaks secret detection |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Scan Date**: $(date)" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit**: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Branch**: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
