@@ -1,22 +1,22 @@
 # ZERO-TOUCH GitHub Actions Runner Management
 
-This system provides fully automated, zero-maintenance GitHub Actions self-hosted runners using GitHub App authentication for token generation.
+This system provides fully automated, zero-maintenance GitHub Actions self-hosted runners using GitHub CLI authentication for token generation.
 
 ## 🎯 Overview
 
 - **Zero Manual Intervention**: Tokens refresh automatically every hour
-- **GitHub App Authentication**: No expiring PATs to manage
-- **Multi-Repository Support**: Single app manages all repositories
+- **GitHub CLI Authentication**: Simple one-time setup, no expiring PATs
+- **Multi-Repository Support**: Single authentication manages all repositories
 - **Docker + macOS Runners**: Both containerized and native runners
 - **Health Monitoring**: Automatic recovery and status reporting
 
 ## 🏗️ Architecture
 
 ```
-GitHub App
-├── JWT Generation (every 10 minutes)
-├── Installation Tokens (1-hour expiry)
-└── Runner Registration Tokens (refreshed hourly)
+GitHub CLI
+├── One-time authentication (gh auth login)
+├── Automatic token generation via API
+└── Secure credential storage
 
 Launch Agents (macOS)
 ├── Hourly token refresh
@@ -31,22 +31,52 @@ Docker Containers
 
 ## 🚀 Quick Setup
 
-### 1. Create GitHub App
+### 1. Authenticate GitHub CLI
 
-Run the setup script to create and configure your GitHub App:
+Run the one-time authentication:
 
 ```bash
-cd /Users/marknelson/Circus/Repositories/modulo-squares
-./setup-github-app.sh
+gh auth login
 ```
 
-This will guide you through:
-- Creating the GitHub App with proper permissions
-- Installing it on your repositories
-- Configuring authentication
-- Testing the setup
+Choose your preferred authentication method (GitHub.com recommended).
 
-### 2. Start Runners
+### 2. Run Zero-Touch Setup
+
+Execute the automated setup script:
+
+```bash
+cd /Users/marknelson/Circus/Repositories/wishlist-wizard
+./token-refresh.sh setup
+```
+
+This will:
+- Verify GitHub CLI authentication
+- Test repository access
+- Configure automated token refresh
+
+### 3. Start Runners
+
+```bash
+# Start Docker runners
+for repo in modulo-squares vehicle-vitals wishlist-wizard; do
+  cd "/Users/marknelson/Circus/Repositories/${repo}-actions-runner"
+  ./manage-docker-runner.sh start
+done
+
+# Start macOS runners
+for repo in modulo-squares vehicle-vitals wishlist-wizard; do
+  cd "/Users/marknelson/Circus/Repositories/${repo}-actions-runner/actions-runner"
+  ./run.sh &
+done
+```
+
+### 4. Verify Status
+
+Check that runners appear online in GitHub:
+- https://github.com/mnelson3/modulo-squares/settings/actions/runners
+- https://github.com/nelsongrey/vehicle-vitals/settings/actions/runners
+- https://github.com/nelsongrey/wishlist-wizard/settings/actions/runners
 
 ```bash
 # Start Docker runners
