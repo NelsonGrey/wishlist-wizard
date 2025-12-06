@@ -1,8 +1,6 @@
 services:
   github-runner-wishlist-wizard:
-    build:
-      context: .
-      dockerfile: Dockerfile.runner
+    image: myoung34/github-runner:latest
     container_name: github-runner-wishlist-wizard
     env_file:
       - .env.runner
