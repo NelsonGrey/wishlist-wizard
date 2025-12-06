@@ -10,8 +10,13 @@ set -e  # Exit on any error
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ENV_FILE="${SCRIPT_DIR}/.env.runner"
 DOCKER_COMPOSE_FILE="${SCRIPT_DIR}/docker-compose.runner.yml"
-REPO_OWNER="mnelson3"
+REPO_OWNER="nelsongrey"
 REPO_NAME="wishlist-wizard"
+
+# GitHub App Configuration
+GITHUB_APP_ID="${GITHUB_APP_ID:-}"
+GITHUB_APP_PRIVATE_KEY_PATH="${GITHUB_APP_PRIVATE_KEY_PATH:-${SCRIPT_DIR}/.github-app-private-key.pem}"
+GITHUB_APP_INSTALLATION_ID="${GITHUB_APP_INSTALLATION_ID:-}"
 
 # Load environment variables
 if [ -f "$ENV_FILE" ]; then
@@ -25,7 +30,6 @@ fi
 TOKEN_CHECK_INTERVAL=${TOKEN_CHECK_INTERVAL:-3600}
 TOKEN_REFRESH_BUFFER=${TOKEN_REFRESH_BUFFER:-86400}
 TOKEN_LOG_FILE=${TOKEN_LOG_FILE:-"/tmp/runner-token-refresh.log"}
-GITHUB_PAT=${GITHUB_PAT:-""}
 
 # Logging function
 log() {
@@ -34,6 +38,42 @@ log() {
     local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
     echo "[$timestamp] [$level] $message" >> "$TOKEN_LOG_FILE"
     echo "[$timestamp] [$level] $message"
+}
+
+# Generate JWT for GitHub App authentication
+generate_jwt() {
+    local app_id="$1"
+    local private_key_path="$2"
+
+    if [ ! -f "$private_key_path" ]; then
+        log "ERROR" "GitHub App private key not found at $private_key_path"
+        return 1
+    fi
+
+    # Create JWT header
+    local header=$(echo -n '{"alg":"RS256","typ":"JWT"}' | base64 | tr -d '=' | tr '/+' '_-')
+
+    # Create JWT payload
+    local now=$(date +%s)
+    local payload=$(echo -n "{\"iat\":$now,\"exp\":$((now + 600)),\"iss\":\"$app_id\"}" | base64 | tr -d '=' | tr '/+' '_-')
+
+    # Create signature
+    local header_payload="${header}.${payload}"
+    local signature=$(echo -n "$header_payload" | openssl dgst -sha256 -sign "$private_key_path" | base64 | tr -d '=' | tr '/+' '_-')
+
+    echo "${header_payload}.${signature}"
+}
+
+# Get installation access token
+get_installation_token() {
+    local jwt="$1"
+    local installation_id="$2"
+
+    curl -s -X POST \
+        -H "Authorization: Bearer $jwt" \
+        -H "Accept: application/vnd.github.v3+json" \
+        "https://api.github.com/app/installations/$installation_id/access_tokens" | \
+        jq -r '.token'
 }
 
 # Check if Docker is running
@@ -66,18 +106,46 @@ check_runner_health() {
 
 # Get new runner registration token from GitHub API
 get_new_token() {
-    if [ -z "$GITHUB_PAT" ] || [ "$GITHUB_PAT" = "YOUR_GITHUB_PAT_HERE" ]; then
-        log "ERROR" "GITHUB_PAT not configured. Please set a valid GitHub Personal Access Token with repo scope."
+    # Validate GitHub App configuration
+    if [ -z "$GITHUB_APP_ID" ] || [ -z "$GITHUB_APP_INSTALLATION_ID" ]; then
+        log "ERROR" "GitHub App ID ($GITHUB_APP_ID) or Installation ID ($GITHUB_APP_INSTALLATION_ID) not configured"
         return 1
     fi
 
-    log "INFO" "Requesting new runner registration token from GitHub API"
+    log "INFO" "Requesting new runner registration token using GitHub App authentication"
 
+    # Generate JWT
+    local jwt
+    jwt=$(generate_jwt "$GITHUB_APP_ID" "$GITHUB_APP_PRIVATE_KEY_PATH")
+    if [ $? -ne 0 ]; then
+        log "ERROR" "Failed to generate JWT"
+        return 1
+    fi
+
+    # Get installation token
+    local installation_token
+    installation_token=$(get_installation_token "$jwt" "$GITHUB_APP_INSTALLATION_ID")
+    if [ -z "$installation_token" ] || [ "$installation_token" = "null" ]; then
+        log "ERROR" "Failed to get installation token"
+        return 1
+    fi
+
+    # Get runner registration token
     local api_response
     api_response=$(curl -s -X POST \
-        -H "Authorization: token $GITHUB_PAT" \
+        -H "Authorization: token $installation_token" \
         -H "Accept: application/vnd.github.v3+json" \
         "https://api.github.com/repos/$REPO_OWNER/$REPO_NAME/actions/runners/registration-token")
+
+    if [ $? -ne 0 ]; then
+        log "ERROR" "Failed to call GitHub API"
+        return 1
+    fi
+
+    local token
+    token=$(echo "$api_response" | jq -r '.token' 2>/dev/null)
+
+    if [ -z "$token" ] || [ "$token" = "null" ]; then
 
     if [ $? -ne 0 ]; then
         log "ERROR" "Failed to call GitHub API"
