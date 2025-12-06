@@ -1,315 +1,189 @@
 #!/bin/bash
 
-# ZERO-TOUCH GitHub Runner Token Refresh Script
-# Automatically detects expired tokens and refreshes them
-# Part of the ZERO-TOUCH DevOps pipeline
+# Standardized ZERO-TOUCH GitHub Runner Token Refresh Script
+# Uses shared GitHub CLI authentication library for consistent, automated token management
+# Version: 1.0.0
 
-set -e  # Exit on any error
+set -e
+
+# Load shared authentication library
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SHARED_LIB_DIR="/Users/marknelson/Circus/Repositories/nelson-grey/shared/github-auth"
+LIB_FILE="$SHARED_LIB_DIR/github-auth-lib.sh"
+
+if [ ! -f "$LIB_FILE" ]; then
+    echo "❌ ERROR: Shared authentication library not found: $LIB_FILE"
+    echo "Run setup to initialize shared components"
+    exit 1
+fi
+
+source "$LIB_FILE"
 
 # Configuration - Load from environment or use defaults
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ENV_FILE="${SCRIPT_DIR}/.env.runner"
 DOCKER_COMPOSE_FILE="${SCRIPT_DIR}/docker-compose.runner.yml"
-REPO_OWNER="nelsongrey"
-REPO_NAME="wishlist-wizard"
-
-# GitHub App Configuration
-GITHUB_APP_ID="${GITHUB_APP_ID:-}"
-GITHUB_APP_PRIVATE_KEY_PATH="${GITHUB_APP_PRIVATE_KEY_PATH:-${SCRIPT_DIR}/.github-app-private-key.pem}"
-GITHUB_APP_INSTALLATION_ID="${GITHUB_APP_INSTALLATION_ID:-}"
 
 # Load environment variables
 if [ -f "$ENV_FILE" ]; then
     source "$ENV_FILE"
 else
-    echo "❌ ERROR: .env.runner file not found at $ENV_FILE"
+    log_error "Environment file not found: $ENV_FILE"
+    exit 1
+fi
+
+# Repository configuration (should be set in .env.runner)
+REPO_OWNER="${REPO_OWNER:-}"
+REPO_NAME="${REPO_NAME:-}"
+
+if [ -z "$REPO_OWNER" ] || [ -z "$REPO_NAME" ]; then
+    log_error "REPO_OWNER and REPO_NAME must be configured in $ENV_FILE"
     exit 1
 fi
 
 # Default values
 TOKEN_CHECK_INTERVAL=${TOKEN_CHECK_INTERVAL:-3600}
 TOKEN_REFRESH_BUFFER=${TOKEN_REFRESH_BUFFER:-86400}
-TOKEN_LOG_FILE=${TOKEN_LOG_FILE:-"/tmp/runner-token-refresh.log"}
+LOG_FILE="${LOG_FILE:-/tmp/github-runner-token-refresh.log}"
 
-# Logging function
-log() {
-    local level="$1"
-    local message="$2"
-    local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
-    echo "[$timestamp] [$level] $message" >> "$TOKEN_LOG_FILE"
-    echo "[$timestamp] [$level] $message"
-}
-
-# Generate JWT for GitHub App authentication
-generate_jwt() {
-    local app_id="$1"
-    local private_key_path="$2"
-
-    if [ ! -f "$private_key_path" ]; then
-        log "ERROR" "GitHub App private key not found at $private_key_path"
-        return 1
-    fi
-
-    # Create JWT header
-    local header=$(echo -n '{"alg":"RS256","typ":"JWT"}' | base64 | tr -d '=' | tr '/+' '_-')
-
-    # Create JWT payload
-    local now=$(date +%s)
-    local payload=$(echo -n "{\"iat\":$now,\"exp\":$((now + 600)),\"iss\":\"$app_id\"}" | base64 | tr -d '=' | tr '/+' '_-')
-
-    # Create signature
-    local header_payload="${header}.${payload}"
-    local signature=$(echo -n "$header_payload" | openssl dgst -sha256 -sign "$private_key_path" | base64 | tr -d '=' | tr '/+' '_-')
-
-    echo "${header_payload}.${signature}"
-}
-
-# Get installation access token
-get_installation_token() {
-    local jwt="$1"
-    local installation_id="$2"
-
-    curl -s -X POST \
-        -H "Authorization: Bearer $jwt" \
-        -H "Accept: application/vnd.github.v3+json" \
-        "https://api.github.com/app/installations/$installation_id/access_tokens" | \
-        jq -r '.token'
-}
-
-# Check if Docker is running
+# Function to check if Docker is running
 check_docker() {
     if ! docker info >/dev/null 2>&1; then
-        log "ERROR" "Docker is not running or not accessible"
+        log_error "Docker is not running or not accessible"
         return 1
     fi
     return 0
 }
 
-# Check if runner container is healthy
+# Function to check if runner container is healthy
 check_runner_health() {
-    local container_name="github-runner-wishlist-wizard"
+    local container_name="github-runner-${REPO_NAME}"
 
     if ! docker ps --format "table {{.Names}}" | grep -q "^${container_name}$"; then
-        log "WARN" "Runner container '$container_name' is not running"
+        log_warn "Runner container '$container_name' is not running"
         return 1
     fi
 
-    # Check if runner process is running inside container
-    if ! docker exec "$container_name" ps aux | grep -q "Runner.Listener"; then
-        log "WARN" "GitHub runner process not found in container"
-        return 1
-    fi
-
-    log "INFO" "Runner container is healthy"
+    log_info "Runner container is healthy"
     return 0
 }
 
-# Get new runner registration token from GitHub API
-get_new_token() {
-    # Validate GitHub App configuration
-    if [ -z "$GITHUB_APP_ID" ] || [ -z "$GITHUB_APP_INSTALLATION_ID" ]; then
-        log "ERROR" "GitHub App ID ($GITHUB_APP_ID) or Installation ID ($GITHUB_APP_INSTALLATION_ID) not configured"
+# Function to restart runner container with new token
+restart_runner_container() {
+    local container_name="github-runner-${REPO_NAME}"
+
+    log_info "Restarting runner container: $container_name"
+
+    # Stop container if running
+    if docker ps --format "table {{.Names}}" | grep -q "^${container_name}$"; then
+        docker stop "$container_name" || log_warn "Failed to stop container"
+    fi
+
+    # Remove container
+    if docker ps -a --format "table {{.Names}}" | grep -q "^${container_name}$"; then
+        docker rm "$container_name" || log_warn "Failed to remove container"
+    fi
+
+    # Start new container
+    if [ -f "$DOCKER_COMPOSE_FILE" ]; then
+        log_info "Starting container with docker-compose"
+        docker-compose -f "$DOCKER_COMPOSE_FILE" up -d github-runner-${REPO_NAME} || {
+            log_error "Failed to start container with docker-compose"
+            return 1
+        }
+    else
+        log_warn "Docker compose file not found, manual container restart required"
         return 1
     fi
 
-    log "INFO" "Requesting new runner registration token using GitHub App authentication"
-
-    # Generate JWT
-    local jwt
-    jwt=$(generate_jwt "$GITHUB_APP_ID" "$GITHUB_APP_PRIVATE_KEY_PATH")
-    if [ $? -ne 0 ]; then
-        log "ERROR" "Failed to generate JWT"
-        return 1
-    fi
-
-    # Get installation token
-    local installation_token
-    installation_token=$(get_installation_token "$jwt" "$GITHUB_APP_INSTALLATION_ID")
-    if [ -z "$installation_token" ] || [ "$installation_token" = "null" ]; then
-        log "ERROR" "Failed to get installation token"
-        return 1
-    fi
-
-    # Get runner registration token
-    local api_response
-    api_response=$(curl -s -X POST \
-        -H "Authorization: token $installation_token" \
-        -H "Accept: application/vnd.github.v3+json" \
-        "https://api.github.com/repos/$REPO_OWNER/$REPO_NAME/actions/runners/registration-token")
-
-    if [ $? -ne 0 ]; then
-        log "ERROR" "Failed to call GitHub API"
-        return 1
-    fi
-
-    local token
-    token=$(echo "$api_response" | jq -r '.token' 2>/dev/null)
-
-    if [ -z "$token" ] || [ "$token" = "null" ]; then
-
-    if [ $? -ne 0 ]; then
-        log "ERROR" "Failed to call GitHub API"
-        return 1
-    fi
-
-    local token
-    token=$(echo "$api_response" | jq -r '.token' 2>/dev/null)
-
-    if [ -z "$token" ] || [ "$token" = "null" ]; then
-        log "ERROR" "Failed to extract token from API response: $api_response"
-        return 1
-    fi
-
-    echo "$token"
-}
-
-# Update the .env.runner file with new token
-update_env_file() {
-    local new_token="$1"
-
-    if [ ! -f "$ENV_FILE" ]; then
-        log "ERROR" "Environment file not found: $ENV_FILE"
-        return 1
-    fi
-
-    # Create backup
-    cp "$ENV_FILE" "${ENV_FILE}.backup.$(date +%s)"
-
-    # Update the token
-    sed -i.bak "s/^RUNNER_TOKEN=.*/RUNNER_TOKEN=$new_token/" "$ENV_FILE"
-
-    # Update the timestamp
-    local timestamp=$(date)
-    sed -i.bak "s/^# Last updated:.*/# Last updated: $timestamp/" "$ENV_FILE"
-
-    log "INFO" "Updated RUNNER_TOKEN in $ENV_FILE"
-}
-
-# Restart Docker containers
-restart_containers() {
-    log "INFO" "Restarting Docker containers..."
-
-    if [ ! -f "$DOCKER_COMPOSE_FILE" ]; then
-        log "ERROR" "Docker Compose file not found: $DOCKER_COMPOSE_FILE"
-        return 1
-    fi
-
-    # Stop containers
-    if ! docker-compose -f "$DOCKER_COMPOSE_FILE" down; then
-        log "WARN" "Failed to stop containers gracefully, forcing..."
-        docker-compose -f "$DOCKER_COMPOSE_FILE" down --timeout 10 || true
-    fi
-
-    # Start containers
-    if ! docker-compose -f "$DOCKER_COMPOSE_FILE" up -d; then
-        log "ERROR" "Failed to start containers"
-        return 1
-    fi
-
-    # Wait for containers to be healthy
-    local max_attempts=30
-    local attempt=1
-
-    while [ $attempt -le $max_attempts ]; do
-        if docker-compose -f "$DOCKER_COMPOSE_FILE" ps | grep -q "Up"; then
-            log "INFO" "Containers are running"
-            return 0
-        fi
-
-        log "INFO" "Waiting for containers to start (attempt $attempt/$max_attempts)..."
-        sleep 10
-        ((attempt++))
-    done
-
-    log "ERROR" "Containers failed to start within timeout"
-    return 1
+    log_info "Runner container restarted successfully"
+    return 0
 }
 
 # Main token refresh logic
-refresh_token_if_needed() {
-    log "INFO" "Starting ZERO-TOUCH token refresh check"
+perform_token_refresh() {
+    log_info "Starting token refresh process for $REPO_OWNER/$REPO_NAME"
 
-    # Check if runner is healthy
-    if check_runner_health; then
-        log "INFO" "Runner is healthy, checking if token refresh is still needed"
-        # Even if healthy, we might want to proactively refresh
-    else
-        log "WARN" "Runner is unhealthy, token refresh likely needed"
-    fi
-
-    # Get new token
-    local new_token
-    new_token=$(get_new_token)
-
-    if [ $? -ne 0 ] || [ -z "$new_token" ]; then
-        log "ERROR" "Failed to obtain new token"
-        return 1
-    fi
-
-    log "INFO" "Obtained new runner token"
-
-    # Update environment file
-    if ! update_env_file "$new_token"; then
-        log "ERROR" "Failed to update environment file"
-        return 1
-    fi
-
-    # Restart containers
-    if ! restart_containers; then
-        log "ERROR" "Failed to restart containers"
-        return 1
-    fi
-
-    # Verify runner comes back online
-    sleep 30
-    if check_runner_health; then
-        log "SUCCESS" "ZERO-TOUCH token refresh completed successfully"
+    # Check if token refresh is needed
+    if ! is_token_expired "$RUNNER_TOKEN" "$((TOKEN_REFRESH_BUFFER / 3600))"; then
+        log_info "Token is still valid, no refresh needed"
         return 0
-    else
-        log "ERROR" "Runner failed to come back online after token refresh"
+    fi
+
+    log_info "Token refresh required"
+
+    # Refresh token using shared library
+    if ! refresh_runner_token "$REPO_OWNER" "$REPO_NAME" "$ENV_FILE"; then
+        log_error "Token refresh failed"
         return 1
     fi
+
+    # Reload environment variables with new token
+    source "$ENV_FILE"
+
+    # Check Docker and restart container
+    if check_docker; then
+        if ! restart_runner_container; then
+            log_error "Failed to restart runner container"
+            return 1
+        fi
+    else
+        log_warn "Docker not available, container restart skipped"
+    fi
+
+    log_info "Token refresh completed successfully"
+    return 0
 }
 
-# Health check function (can be called periodically)
-health_check() {
-    log "INFO" "Performing runner health check"
+# Health check function
+perform_health_check() {
+    log_info "Performing health check"
 
-    if ! check_docker; then
-        log "ERROR" "Docker health check failed"
+    # Check GitHub CLI authentication
+    if ! check_gh_cli; then
+        log_error "GitHub CLI authentication check failed"
         return 1
     fi
 
-    if ! check_runner_health; then
-        log "WARN" "Runner health check failed, attempting automatic recovery"
-        refresh_token_if_needed
-        return $?
+    # Check repository access
+    if ! validate_repo_access "$REPO_OWNER" "$REPO_NAME"; then
+        log_error "Repository access check failed"
+        return 1
     fi
 
-    log "INFO" "Runner health check passed"
+    # Check Docker if available
+    if check_docker; then
+        check_runner_health || log_warn "Runner health check failed"
+    fi
+
+    log_info "Health check completed"
     return 0
 }
 
 # Main execution
 main() {
-    local command="${1:-health_check}"
+    local command="${1:-refresh}"
 
     case "$command" in
         "refresh")
-            refresh_token_if_needed
+            perform_token_refresh
             ;;
-        "health_check")
-            health_check
+        "health")
+            perform_health_check
             ;;
         "force_refresh")
-            log "INFO" "Forcing token refresh"
-            refresh_token_if_needed
+            log_info "Forcing token refresh"
+            export FORCE_REFRESH=1
+            perform_token_refresh
+            ;;
+        "setup")
+            setup_auth "$REPO_OWNER" "$REPO_NAME"
             ;;
         *)
-            echo "Usage: $0 [refresh|health_check|force_refresh]"
-            echo "  refresh      - Check and refresh token if needed"
-            echo "  health_check - Check runner health"
-            echo "  force_refresh- Force token refresh regardless of health"
+            echo "Usage: $0 [refresh|health|force_refresh|setup]"
+            echo "  refresh      - Check and refresh token if needed (default)"
+            echo "  health       - Perform health checks only"
+            echo "  force_refresh- Force token refresh regardless of expiry"
+            echo "  setup        - Initial setup and authentication"
             exit 1
             ;;
     esac
