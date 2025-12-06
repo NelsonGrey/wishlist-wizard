@@ -1,52 +1,110 @@
 #!/bin/bash
 
-# GitHub App Setup Script for ZERO-TOUCH Runner Management
-# This script helps create and configure a GitHub App for automated token generation
+# ZERO-TOUCH GitHub Runner Setup Script
+# Sets up automated token management using GitHub CLI and stored PAT
+# This is the ONLY manual step required for ZERO-TOUCH operation
 
 set -e
 
-echo "🔧 GitHub App Setup for ZERO-TOUCH Runner Management"
-echo "=================================================="
+echo "🔧 ZERO-TOUCH GitHub Runner Setup"
+echo "=================================="
+echo ""
+echo "This script sets up automated runner token management."
+echo "You'll only need to provide a GitHub Personal Access Token once."
 echo ""
 
 # Check prerequisites
-command -v jq >/dev/null 2>&1 || { echo "❌ jq is required. Install with: brew install jq"; exit 1; }
-command -v openssl >/dev/null 2>&1 || { echo "❌ openssl is required."; exit 1; }
-
-# Configuration
-APP_NAME="Zero-Touch Runner Manager"
-APP_DESCRIPTION="Automated GitHub Actions runner token management for self-hosted runners"
-APP_URL="https://github.com/nelsongrey"  # Replace with your GitHub profile/org
+command -v gh >/dev/null 2>&1 || { echo "❌ GitHub CLI required. Install with: brew install gh"; exit 1; }
+command -v jq >/dev/null 2>&1 || { echo "❌ jq required. Install with: brew install jq"; exit 1; }
 
 echo "📋 Prerequisites Check:"
+echo "✅ GitHub CLI installed"
 echo "✅ jq installed"
-echo "✅ openssl available"
 echo ""
 
-echo "🚀 GitHub App Creation Steps:"
+# Get GitHub Personal Access Token
+echo "🔑 GitHub Personal Access Token Setup:"
+echo "======================================"
+echo ""
+echo "You need a GitHub Personal Access Token (PAT) with these permissions:"
+echo "• repo (Full control of private repositories)"
+echo "• workflow (Update GitHub Action workflows)"
+echo "• admin:repo_hook (Full control of repository hooks)"
+echo "• admin:org (read:org) - if using organization repos"
+echo ""
+echo "Create one at: https://github.com/settings/tokens"
+echo ""
+
+read -p "Enter your GitHub Personal Access Token: " -s GITHUB_TOKEN
+echo ""
+echo ""
+
+if [ -z "$GITHUB_TOKEN" ]; then
+    echo "❌ No token provided. Setup cancelled."
+    exit 1
+fi
+
+# Test the token
+echo "🧪 Testing GitHub Token..."
+if ! echo "$GITHUB_TOKEN" | gh auth login --with-token >/dev/null 2>&1; then
+    echo "❌ Invalid GitHub token. Please check and try again."
+    exit 1
+fi
+echo "✅ Token is valid!"
+
+# Update .env.runner files across all repositories
+echo ""
+echo "📝 Configuring repositories..."
+
+REPOS=("modulo-squares" "vehicle-vitals" "wishlist-wizard")
+
+for repo in "${REPOS[@]}"; do
+    ENV_FILE="/Users/marknelson/Circus/Repositories/$repo/.env.runner"
+    if [ -f "$ENV_FILE" ]; then
+        echo "  📝 Updating $repo..."
+
+        # Add or update GITHUB_TOKEN
+        if grep -q "^GITHUB_TOKEN=" "$ENV_FILE"; then
+            sed -i.bak "s/^GITHUB_TOKEN=.*/GITHUB_TOKEN=$GITHUB_TOKEN/" "$ENV_FILE"
+        else
+            echo "GITHUB_TOKEN=$GITHUB_TOKEN" >> "$ENV_FILE"
+        fi
+
+        # Remove old GitHub App variables if they exist
+        sed -i.bak '/^GITHUB_APP_/d' "$ENV_FILE"
+    else
+        echo "  ⚠️  .env.runner not found for $repo"
+    fi
+done
+
+echo ""
+echo "🚀 Testing automated token generation..."
+
+# Test token generation for this repo
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SCRIPT_DIR"
+
+if ./token-refresh.sh --test; then
+    echo "✅ Automated token generation works!"
+else
+    echo "❌ Token generation test failed. Check your token permissions."
+    exit 1
+fi
+
+echo ""
+echo "🎉 ZERO-TOUCH Setup Complete!"
 echo "=============================="
 echo ""
-echo "1. Go to: https://github.com/settings/apps/new"
+echo "✅ GitHub PAT stored securely"
+echo "✅ Automated token refresh configured"
+echo "✅ All repositories updated"
 echo ""
-echo "2. Fill in the following details:"
-echo "   • GitHub App name: $APP_NAME"
-echo "   • Homepage URL: $APP_URL"
-echo "   • Description: $APP_DESCRIPTION"
+echo "🚀 Your runners will now:"
+echo "• Generate new tokens automatically every hour"
+echo "• Stay online permanently"
+echo "• Require ZERO manual intervention"
 echo ""
-echo "3. Repository permissions (under 'Permissions & events'):"
-echo "   • Actions: Read and write"
-echo "   • Administration: Read and write (for managing runners)"
-echo "   • Contents: Read-only"
-echo "   • Metadata: Read-only"
-echo ""
-echo "4. Where can this GitHub App be installed?:"
-echo "   • Only on this account (or your organization)"
-echo ""
-echo "5. Create the GitHub App"
-echo ""
-echo "6. After creation, download the private key (.pem file)"
-echo ""
-echo "7. Note the App ID from the app settings page"
+echo "The launch agent will run automatically. No more manual token management!"
 echo ""
 echo "8. Install the app on your repositories:"
 echo "   • Go to the app settings"
