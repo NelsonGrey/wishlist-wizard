@@ -14,7 +14,7 @@ on:
 
 env:
   NODE_VERSION: '20'
-  FLUTTER_VERSION: '3.35.7'
+  FLUTTER_VERSION: '3.38.1'
 
 jobs:
   # 🔍 Check for Changes
