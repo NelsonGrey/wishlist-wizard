@@ -10,6 +10,12 @@ on:
       - main
       - staging
       - develop
+    paths:
+      - "mobile/**"
+      - ".github/workflows/ios-app-distribution.yml"
+      - ".github/actions/**"
+      - "pubspec.yaml"
+      - "firebase*.json"
   workflow_dispatch:
     inputs:
       build_type:
@@ -25,6 +31,9 @@ on:
         required: false
         type: string
 
+env:
+  FLUTTER_VERSION: "3.38.1"
+
 jobs:
   distribute-ios:
     runs-on: [self-hosted, wishlist-wizard]  # Self-hosted macOS runner
@@ -39,397 +48,186 @@ jobs:
           echo "🖥️  macOS version: $(sw_vers -productVersion)"
           echo "🛠️  Xcode version: $(xcodebuild -version | head -1)"
 
-      - uses: actions/checkout@v4
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v4
+
+      - name: ⏰ Sync NTP Time
+        run: |
+          echo "🔄 Synchronizing system time with NTP..."
+          sudo sntp -sS time.apple.com || sudo ntpdate -u time.apple.com || echo "⚠️ NTP sync failed, continuing..."
 
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.38.1'
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
 
-      - name: Install GMP (required for Ruby 3.2.2)
+      - name: 💎 Setup Ruby with GMP
         run: |
-          echo "Installing GMP library required for Ruby 3.2.2..."
-          if command -v brew >/dev/null 2>&1; then
-            brew install gmp || echo "GMP install failed, but continuing"
-            echo "GMP installation completed via Homebrew"
-          else
-            echo "Homebrew not available on this runner, assuming GMP is already installed"
-          fi
+          echo "🔄 Installing Ruby 3.2.2 with GMP dependency..."
+          brew install gmp
+          \curl -sSL https://get.rvm.io | bash -s stable
+          source ~/.rvm/scripts/rvm
+          rvm install 3.2.2 --with-gmp-dir=$(brew --prefix gmp)
+          rvm use 3.2.2 --default
+          ruby --version
+          echo "✅ Ruby 3.2.2 installed successfully"
 
-      - name: Set up Ruby
-        uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: '3.2.2'
-
-      - name: Runner time debug
+      - name: 🔧 Install Fastlane
         run: |
-          echo "Runner UTC date:"
-          date -u
-          echo "Ruby UTC time:"
-          ruby -e 'puts Time.now.utc'
-          echo "OpenSSL version:"
-          openssl version || true
+          echo "📦 Installing Fastlane 2.229.0..."
+          gem install fastlane -v 2.229.0
+          fastlane --version
+          echo "✅ Fastlane installed successfully"
 
-      - name: Time & NTP diagnostics
+      - name: 🔐 Setup App Store Connect Authentication
         run: |
-          echo "Using network time?"
-          sudo systemsetup -getusingnetworktime || true
-          echo "Network time server:"
-          sudo systemsetup -getnetworktimeserver || true
-          echo "ntpstat (if available):"
-          ntpstat || true
-          echo "ntpdate query (may require ntpdate installed):"
-          if command -v ntpdate >/dev/null 2>&1; then
-            ntpdate -q pool.ntp.org || true
-          else
-            echo "ntpdate not installed"
-          fi
-          echo "sntp query (if available):"
-          if command -v sntp >/dev/null 2>&1; then
-            sntp -sS pool.ntp.org || true
-          else
-            echo "sntp not installed"
-          fi
-          echo "Masked secret diagnostics:"
-          echo "ASC_KEY_ID length: ${#ASC_KEY_ID}"
-          echo "ASC_ISSUER_ID length: ${#ASC_ISSUER_ID}"
-          if [ -n "${ASC_PRIVATE_KEY:-}" ]; then
-            echo "ASC_PRIVATE_KEY present: yes"
-          else
-            echo "ASC_PRIVATE_KEY present: no"
-          fi
+          echo "🔄 Setting up App Store Connect authentication..."
 
-      - name: Attempt NTP sync (best-effort)
-        run: |
-          # Try to enable network time and sync clock. Will not fail the job if sudo is unavailable.
-          echo "Attempting best-effort NTP sync"
-          if sudo -n true 2>/dev/null; then
-            echo "Running with sudo privileges"
-            sudo systemsetup -setusingnetworktime on || true
-            sudo systemsetup -setnetworktimeserver time.apple.com || true
-            if command -v sntp >/dev/null 2>&1; then
-              sudo sntp -sS pool.ntp.org || true
-            elif command -v ntpdate >/dev/null 2>&1; then
-              sudo ntpdate -u pool.ntp.org || true
-            else
-              echo "No sntp/ntpdate installed; skipping direct sync"
-            fi
+          # Create ASC private key file
+          mkdir -p ~/.private_keys
+          echo "${{ secrets.ASC_PRIVATE_KEY }}" | base64 -d > ~/.private_keys/AuthKey_${{ secrets.ASC_KEY_ID }}.p8
+
+          # Verify the key was created
+          if [ -f ~/.private_keys/AuthKey_${{ secrets.ASC_KEY_ID }}.p8 ]; then
+            echo "✅ ASC private key created successfully"
           else
-            echo "No sudo available; skipping NTP sync"
-          fi
-          echo "Post-sync UTC date:"; date -u
-        shell: bash
-
-      - name: Verify ASC private key (safe, non-sensitive)
-        run: |
-          # This step decodes ASC_PRIVATE_KEY (base64) to a temp file, extracts the public key,
-          # and prints only non-sensitive public parameters (key size, curve name).
-          set -euo pipefail
-          if [ -z "${ASC_PRIVATE_KEY:-}" ]; then
-            echo "ASC_PRIVATE_KEY not provided; skipping verification"
-            exit 0
-          fi
-
-          TMP_KEY_FILE=$(mktemp /tmp/asc_key.XXXXXX.p8)
-          TMP_PUB_FILE=$(mktemp /tmp/asc_pub.XXXXXX.pem)
-
-          # Decode into a temp file. The secret is expected to be single-line base64.
-          echo "$ASC_PRIVATE_KEY" | base64 --decode > "$TMP_KEY_FILE" || { echo "Failed to decode ASC_PRIVATE_KEY"; exit 1; }
-
-          # Extract public key only (no private material printed)
-          if openssl pkey -in "$TMP_KEY_FILE" -pubout -out "$TMP_PUB_FILE" 2>/dev/null; then
-            echo "Successfully extracted public key (non-sensitive)"
-            # Print only key size and curve name (grep for recognizable lines)
-            openssl pkey -pubin -in "$TMP_PUB_FILE" -text -noout 2>/dev/null | sed -n -e '1,4p'
-          else
-            echo "Failed to extract public key from ASC_PRIVATE_KEY (openssl error)"
-            rm -f "$TMP_KEY_FILE" "$TMP_PUB_FILE" || true
+            echo "❌ Failed to create ASC private key"
             exit 1
           fi
 
-          # cleanup
-          rm -f "$TMP_KEY_FILE" "$TMP_PUB_FILE" || true
-        shell: bash
-
-      - name: Generate test JWT and check App Store Connect auth
-        env:
-          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
-          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
-          ASC_PRIVATE_KEY: ${{ secrets.ASC_PRIVATE_KEY }}
+      - name: 🧪 Test App Store Connect JWT
         run: |
-          set -euo pipefail
-          if [ -z "${ASC_PRIVATE_KEY:-}" ]; then
-            echo "ASC_PRIVATE_KEY not provided; skipping JWT test"
-            exit 0
-          fi
+          echo "🔄 Testing App Store Connect JWT authentication..."
+          ruby -e "
+          require 'jwt'
+          require 'openssl'
 
-          ruby scripts/asc_jwt_test.rb
-        shell: bash
+          key_id = '${{ secrets.ASC_KEY_ID }}'
+          issuer_id = '${{ secrets.ASC_ISSUER_ID }}'
+          private_key_path = '~/.private_keys/AuthKey_#{key_id}.p8'
 
-      - name: Install Fastlane
-        run: gem install fastlane -v 2.229.0
+          private_key = OpenSSL::PKey::EC.new(File.read(File.expand_path(private_key_path)))
 
-      - name: Generate iOS platform files
+          now = Time.now.to_i
+          payload = {
+            iss: issuer_id,
+            exp: now + 1200,
+            aud: 'appstoreconnect-v1'
+          }
+
+          headers = {
+            kid: key_id
+          }
+
+          token = JWT.encode(payload, private_key, 'ES256', headers)
+          puts '✅ JWT token generated successfully'
+          puts '🔄 Testing API connectivity...'
+
+          # Test API call
+          curl -H 'Authorization: Bearer #{token}' 'https://api.appstoreconnect.apple.com/v1/apps' -o /dev/null -s -w '%{http_code}' | grep -q '200' && echo '✅ App Store Connect API accessible' || echo '⚠️ App Store Connect API test inconclusive'
+          "
+
+      - name: 📱 Generate iOS Platform Files
         run: |
-          cd packages/mobile
-          flutter create --platforms=ios --org=com.nelsongrey.wishlistwizard.mobile .
+          echo "🔄 Generating iOS platform files..."
+          cd mobile
+          flutter create --platforms=ios .
+          echo "✅ iOS platform files generated"
 
-      - name: Create service account key file
+      - name: 🔐 Setup Service Account Key
         run: |
-          mkdir -p packages/mobile/ios
-          echo '${{ github.ref == ''refs/heads/main'' && secrets.FIREBASE_SERVICE_ACCOUNT_KEY_PROD || github.ref == ''refs/heads/staging'' && secrets.FIREBASE_SERVICE_ACCOUNT_KEY_STAGING || secrets.FIREBASE_SERVICE_ACCOUNT_KEY_DEV }}' > packages/mobile/ios/service-account-key.json
+          echo "🔄 Setting up Firebase service account key..."
+          mkdir -p mobile/ios
+          echo '${{ github.ref == ''refs/heads/main'' && secrets.FIREBASE_SERVICE_ACCOUNT_KEY_PRODUCTION || github.ref == ''refs/heads/staging'' && secrets.FIREBASE_SERVICE_ACCOUNT_KEY_STAGING || secrets.FIREBASE_SERVICE_ACCOUNT_KEY_DEVELOPMENT }}' > mobile/ios/service-account-key.json
+          echo "✅ Service account key configured"
 
-      - name: Set up Fastlane environment
+      - name: 🔐 Decode iOS Distribution Certificate
         run: |
-          cd packages/mobile/ios
-          # Create Fastlane environment file
-          cat > .env << EOF
-          FASTLANE_APPLE_ID=${{ secrets.FASTLANE_APPLE_ID }}
-          FASTLANE_TEAM_ID=${{ secrets.FASTLANE_TEAM_ID }}
-          FASTLANE_ITC_TEAM_ID=${{ secrets.FASTLANE_ITC_TEAM_ID }}
-          ASC_KEY_ID=${{ secrets.ASC_KEY_ID }}
-          ASC_ISSUER_ID=${{ secrets.ASC_ISSUER_ID }}
-          ASC_PRIVATE_KEY=${{ secrets.ASC_PRIVATE_KEY }}
-          MATCH_GIT_URL=${{ secrets.MATCH_GIT_URL }}
-          BETA_FEEDBACK_EMAIL=${{ secrets.BETA_FEEDBACK_EMAIL }}
-          MATCH_PASSWORD=${{ secrets.MATCH_PASSWORD }}
-          MATCH_KEYCHAIN_NAME=${{ secrets.MATCH_KEYCHAIN_NAME }}
-          MATCH_KEYCHAIN_PASSWORD=${{ secrets.MATCH_KEYCHAIN_PASSWORD }}
-          MATCH_GIT_BRANCH=main
-          EOF
-
-          # Export single-line environment variables to GitHub Actions environment
-          # Skip multiline values like ASC_PRIVATE_KEY which are already available as secrets
-          if [ -f .env ]; then
-            while IFS= read -r line || [ -n "$line" ]; do
-              # skip empty lines
-              if [ -z "$line" ]; then
-                continue
-              fi
-              # Only process lines that contain '=' and don't start with whitespace (multiline continuation)
-              if [[ "$line" == *"="* ]] && [[ "$line" != [[:space:]]* ]]; then
-                # Extract key and value
-                key="${line%%=*}"
-                value="${line#*=}"
-                # Skip multiline secrets that would cause GITHUB_ENV format errors
-                if [[ "$key" == "ASC_PRIVATE_KEY" ]]; then
-                  continue
-                fi
-                printf "%s=%s\n" "$key" "$value" >> $GITHUB_ENV
-              fi
-            done < .env
-          fi
-
-      - name: Debug Fastlane secrets (masked)
-        run: |
-          cd packages/mobile/ios
-          # Environment variables are already available in GitHub Actions environment
-          # No need to source .env file as it contains multiline values that can't be sourced
-
-          # Masked diagnostics: do not print secrets in full
-          if [ -n "${MATCH_GIT_URL:-}" ]; then
-            echo "MATCH_GIT_URL=${MATCH_GIT_URL:0:40}... (masked)"
+          echo "🔄 Decoding iOS distribution certificate..."
+          mkdir -p mobile/ios/certs
+          echo "${{ secrets.IOS_CERT_P12_BASE64 }}" | base64 -d > mobile/ios/certs/dist_cert.p12
+          if [ -f mobile/ios/certs/dist_cert.p12 ]; then
+            echo "✅ iOS distribution certificate decoded"
           else
-            echo "MATCH_GIT_URL is empty"
+            echo "❌ Failed to decode iOS distribution certificate"
+            exit 1
           fi
 
-          if [ -n "${MATCH_PASSWORD:-}" ]; then
-            echo "MATCH_PASSWORD length=${#MATCH_PASSWORD}"
+      - name: 🔑 Setup Ephemeral Keychain
+        run: |
+          echo "🔄 Setting up ephemeral keychain..."
+          KEYCHAIN_PASSWORD=$(openssl rand -base64 32)
+          echo "KEYCHAIN_PASSWORD=$KEYCHAIN_PASSWORD" >> $GITHUB_ENV
+
+          # Create ephemeral keychain
+          security create-keychain -p "$KEYCHAIN_PASSWORD" fastlane_tmp_keychain
+          security set-keychain-settings -lut 21600 fastlane_tmp_keychain
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" fastlane_tmp_keychain
+
+          # Make it the default keychain
+          security default-keychain -s fastlane_tmp_keychain
+
+          # Import certificate
+          if [ -f mobile/ios/certs/dist_cert.p12 ]; then
+            security import mobile/ios/certs/dist_cert.p12 -k fastlane_tmp_keychain -P "${{ secrets.IOS_CERT_PASSWORD }}" -T /usr/bin/codesign
+            echo "✅ Certificate imported to keychain"
           else
-            echo "MATCH_PASSWORD is empty"
+            echo "⚠️ No certificate file found, skipping import"
           fi
-        shell: bash
 
-      - name: Sanity check MATCH_KEYCHAIN_NAME (prevent accidental login deletion)
+          echo "✅ Ephemeral keychain setup complete"
+
+      - name: 🏗️ Build and Distribute iOS App
         run: |
-          set -euo pipefail
-          # If a manual/secret value for MATCH_KEYCHAIN_NAME points to the login keychain
-          # we should not attempt to delete it. If the secret contains login keychain name,
-          # set MATCH_KEYCHAIN_REUSE to true to avoid deletion and warn the runner.
-          if [[ "${MATCH_KEYCHAIN_NAME:-}" == "login.keychain-db" || "${MATCH_KEYCHAIN_NAME:-}" == "$HOME/Library/Keychains/login.keychain-db" ]]; then
-            echo "⚠️ WARNING: MATCH_KEYCHAIN_NAME is set to a login keychain path; this is unsafe."
-            # If the repo is configured to enforce keychain state, reject this configuration
-            if [[ "${{ secrets.ENFORCE_KEYCHAIN_STATE }}" == "true" ]]; then
-              echo "ENFORCE_KEYCHAIN_STATE is true, failing the job to avoid deleting the login keychain."
-              exit 1
-            else
-              echo "MATCH_KEYCHAIN_REUSE=true" >> $GITHUB_ENV
-              export MATCH_KEYCHAIN_REUSE=true
-            fi
-          fi
-        shell: bash
+          echo "🚀 Building and distributing iOS app..."
 
-      - name: Set MATCH_GIT_BRANCH dynamically
-        run: |
-          echo "MATCH_GIT_BRANCH=main" >> $GITHUB_ENV
-
-      - name: Build and distribute iOS app
-        env:
-          ENVIRONMENT: ${{ github.ref == 'refs/heads/main' && 'PRODUCTION' || github.ref == 'refs/heads/staging' && 'STAGING' || 'DEVELOPMENT' }}
-        run: |
-          # Decode distribution P12 into workspace (if provided) and set helper vars
-          if [ -n "${IOS_CERT_P12_BASE64:-}" ]; then
-            mkdir -p packages/mobile/ios/certs
-            echo "$IOS_CERT_P12_BASE64" | base64 --decode > packages/mobile/ios/certs/dist_cert.p12
-            # Make the CERT_P12_* env vars available both to following steps and the current shell
-            echo "CERT_P12_PATH=packages/mobile/ios/certs/dist_cert.p12" >> $GITHUB_ENV
-            echo "CERT_P12_PASSWORD=${{ secrets.IOS_CERT_P12_PASSWORD }}" >> $GITHUB_ENV
-            export CERT_P12_PATH=packages/mobile/ios/certs/dist_cert.p12
-            export CERT_P12_PASSWORD=${{ secrets.IOS_CERT_P12_PASSWORD }}
-            echo "Decoded distribution P12 into packages/mobile/ios/certs/dist_cert.p12"
-          fi
-
-          cd packages/mobile/ios
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            RELEASE_NOTES="${{ github.event.inputs.release_notes || format('Build from {0} - {1}', github.ref_name, github.sha) }}"
-          else
-            RELEASE_NOTES="Build from ${{ github.ref_name }} - ${{ github.sha }}"
-          fi
-          
-          # Export release notes for Fastlane
+          # Set release notes
+          RELEASE_NOTES="${{ github.event.inputs.release_notes || format('Build from {0} - {1}', github.ref_name, github.sha) }}"
           echo "RELEASE_NOTES=$RELEASE_NOTES" >> $GITHUB_ENV
 
-      - name: Provision iOS distribution P12 (optional)
-        env:
-          IOS_CERT_P12_BASE64: ${{ secrets.IOS_CERT_P12_BASE64 }}
-          IOS_CERT_P12_PASSWORD: ${{ secrets.IOS_CERT_P12_PASSWORD }}
-        run: |
-          set -euo pipefail
-          # Note: P12 is now decoded in the main build step to avoid duplication
-          if [ -n "${IOS_CERT_P12_BASE64:-}" ]; then
-            echo "IOS_CERT_P12_BASE64 secret is configured; P12 will be provisioned in the build step"
-          else
-            echo "No IOS_CERT_P12_BASE64 secret configured; skipping P12 provisioning"
-          fi
+          cd mobile/ios
 
-          # Define ephemeral helper and run command (moved from build step for clarity)
-          EPHEMERAL_HELPER="./scripts/ephemeral_keychain_fastlane_fixed.sh"
-          BUILD_TYPE="${{ github.event.inputs.build_type || 'debug' }}"
+          # Configure Fastlane environment
+          export FASTLANE_APPLE_ID="${{ secrets.FASTLANE_APPLE_ID }}"
+          export FASTLANE_TEAM_ID="${{ secrets.FASTLANE_TEAM_ID }}"
+          export FASTLANE_ITC_TEAM_ID="${{ secrets.FASTLANE_ITC_TEAM_ID }}"
+          export ASC_KEY_ID="${{ secrets.ASC_KEY_ID }}"
+          export ASC_ISSUER_ID="${{ secrets.ASC_ISSUER_ID }}"
+          export ASC_PRIVATE_KEY="${{ secrets.ASC_PRIVATE_KEY }}"
+          export MATCH_GIT_URL="${{ secrets.MATCH_GIT_URL }}"
+          export MATCH_PASSWORD="${{ secrets.MATCH_PASSWORD }}"
+          export BETA_FEEDBACK_EMAIL="${{ secrets.BETA_FEEDBACK_EMAIL }}"
+          export KEYCHAIN_PASSWORD="$KEYCHAIN_PASSWORD"
 
-          if [[ "$GITHUB_REF" == "refs/heads/main" ]] || [[ "$GITHUB_REF" == "refs/heads/staging" ]] || [[ "$BUILD_TYPE" == "release" ]]; then
+          # Execute Fastlane based on release type
+          RELEASE_TYPE="${{ github.event.inputs.release_type }}"
+
+          if [[ "$GITHUB_REF" == "refs/heads/main" ]] || [[ "$GITHUB_REF" == "refs/heads/staging" ]] || [[ "$RELEASE_TYPE" == "release" ]]; then
             # Production/Staging OR manual release: Upload to TestFlight
-            if [ -f packages/mobile/ios/Gemfile ]; then
-              RUN_CMD="bundle config set --local path 'vendor/bundle' && bundle install --jobs 4 || true && bundle exec fastlane beta"
-            else
-              RUN_CMD="fastlane beta"
-            fi
+            echo "🚀 Building and uploading to TestFlight..."
+            fastlane beta
           else
             # Development: Just build and test
-            if [ -f packages/mobile/ios/Gemfile ]; then
-              RUN_CMD="bundle config set --local path 'vendor/bundle' && bundle install --jobs 4 || true && bundle exec fastlane test_and_build"
-            else
-              RUN_CMD="fastlane test_and_build"
-            fi
+            echo "🔨 Building for development testing..."
+            fastlane build_development
           fi
 
-          # If ephemeral helper exists, run the pipeline through it so we avoid
-          # touching the login keychain on the runner. The helper will run the
-          # command from the repository root; ensure Fastlane executes in the
-          # correct iOS directory by prefixing with a cd when invoking.
-          if [ -f "$EPHEMERAL_HELPER" ]; then
-            echo "Using ephemeral keychain helper: $EPHEMERAL_HELPER"
-            # Pass a single command string to the helper. Helper will execute
-            # the command and clean up the temporary keychain afterwards.
-            # Ensure CERT_P12_* variables are exported for the helper context
-            bash "$EPHEMERAL_HELPER" "cd packages/mobile/ios && $RUN_CMD"
-          else
-            echo "Ephemeral keychain helper not found; running Fastlane directly"
-            cd packages/mobile/ios
-            # Fallback: run the assembled command directly in shell
-            eval "$RUN_CMD"
-          fi
-
-      - name: Verify artifact code signing (best-effort)
+      - name: 🧹 Clean Up
         if: always()
         run: |
-          set -euo pipefail
-          echo "🔍 Locating generated ipa or .app files for codesign verification..."
-          ARTIFACT=$(find packages/mobile -type f -name "*.ipa" -print -quit || true)
-          if [ -n "$ARTIFACT" ]; then
-            echo "Found IPA: $ARTIFACT"
-            TEMPDIR=$(mktemp -d)
-            unzip -q "$ARTIFACT" -d "$TEMPDIR" || true
-            APP=$(find "$TEMPDIR" -type d -name "*.app" -print -quit || true)
-            if [ -n "$APP" ]; then
-              echo "Verifying codesign for $APP"
-              codesign -d --verbose=4 "$APP" || true
-              spctl --assess --type execute "$APP" || true
-            else
-              echo "No .app found inside IPA; skipping codesign verification"
-            fi
-            rm -rf "$TEMPDIR" || true
-          else
-            APP=$(find packages/mobile -type d -name "*.app" -print -quit || true)
-            if [ -n "$APP" ]; then
-              echo "Found .app: $APP"
-              codesign -d --verbose=4 "$APP" || true
-              spctl --assess --type execute "$APP" || true
-            else
-              echo "No IPA or .app found to verify codesign"
-            fi
-          fi
+          echo "🧹 Cleaning up temporary files and keychains..."
 
-      - name: Clean up service account key
-        if: always()
-        run: rm -f packages/mobile/ios/service-account-key.json packages/mobile/ios/.env
+          # Delete ephemeral keychain
+          security delete-keychain fastlane_tmp_keychain 2>/dev/null || true
 
-      - name: Remove temporary keychain (if created)
-        if: always()
-        run: |
-          # Only delete the keychain if we created one for this run. If MATCH_KEYCHAIN_REUSE=true
-          # then the workflow intentionally reused an existing keychain and will not delete it.
-          # Guard against accidental deletion of critical keychains like login.keychain-db.
-          if [[ "${MATCH_KEYCHAIN_REUSE:-false}" != "true" && -n "${MATCH_KEYCHAIN_NAME:-}" ]]; then
-            # Prefer deleting by `MATCH_KEYCHAIN_PATH` (exact path) when helper exported it;
-            # otherwise, fall back to delete by name. Use basename check to guard deletion.
-            if [[ -n "${MATCH_KEYCHAIN_PATH:-}" ]]; then
-              base_name=$(basename "${MATCH_KEYCHAIN_PATH}")
-              if [[ "$base_name" == fastlane_tmp_* ]]; then
-                echo "Deleting temporary keychain at path ${MATCH_KEYCHAIN_PATH}"
-                security delete-keychain "${MATCH_KEYCHAIN_PATH}" || true
-              else
-                echo "MATCH_KEYCHAIN_PATH='${MATCH_KEYCHAIN_PATH}' does not match ephemeral pattern; skipping deletion"
-              fi
-            else
-              base_name=$(basename "${MATCH_KEYCHAIN_NAME}")
-              if [[ "$base_name" == fastlane_tmp_* ]]; then
-                echo "Deleting temporary keychain ${MATCH_KEYCHAIN_NAME}"
-                security delete-keychain "${MATCH_KEYCHAIN_NAME}" || true
-              else
-                echo "MATCH_KEYCHAIN_NAME='${MATCH_KEYCHAIN_NAME}' does not match ephemeral pattern; skipping deletion to avoid deleting login or other system keychains"
-              fi
-            fi
-          else
-            echo "No MATCH_KEYCHAIN_NAME present; attempting to delete any ephemeral keychains named 'fastlane_tmp_*'"
-            # Try to remove any leftover ephemeral keychains created by previous runs using 'fastlane_tmp_' prefix
-            list=$(security list-keychains -d user | sed 's/[" ]//g' | tr '\n' ' ')
-            for kc in $list; do
-              # Make sure we only delete keychains with the fastlane_tmp_ prefix (avoid login.keychain-db)
-              short=$(basename "$kc")
-              if [[ "$short" == fastlane_tmp_* ]]; then
-                echo "Deleting leftover ephemeral keychain: $kc"
-                security delete-keychain "$kc" || true
-              fi
-            done
-          fi
+          # Clean up private keys
+          rm -rf ~/.private_keys
 
-      - name: Verify login keychain is unchanged
-        if: always()
-        run: |
-          set -euo pipefail
-          ENFORCE_KEYCHAIN_STATE="${{ secrets.ENFORCE_KEYCHAIN_STATE }}"
-          DEFAULT_KC=$(security default-keychain -d user | tr -d '"' | xargs) || true
-          LOGIN_KC="$HOME/Library/Keychains/login.keychain-db"
-          if [[ "$DEFAULT_KC" != "$LOGIN_KC" ]]; then
-            echo "⚠️ Default keychain differs from login keychain: $DEFAULT_KC"
-            echo "This may indicate the job modified the login keychain."
-            security list-keychains -d user || true
-            if [[ "$ENFORCE_KEYCHAIN_STATE" == "true" ]]; then
-              echo "Enforcing keychain state - failing job"
-              exit 1
-            else
-              echo "ENFORCE_KEYCHAIN_STATE not set; continuing despite default keychain mismatch"
-            fi
-          else
-            echo "✅ Default keychain is login keychain (unchanged)"
-          fi
+          # Clean up service account files
+          rm -f mobile/ios/service-account-key.json
+
+          # Clean up certificates
+          rm -rf mobile/ios/certs
+
+          echo "✅ Cleanup complete"
