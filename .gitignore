@@ -126,6 +126,9 @@ tmp/
 temp/
 *.tmp
 *.temp
+*.backup
+*.bak
+*~
 # Environment variables
 .env
 .env.*
