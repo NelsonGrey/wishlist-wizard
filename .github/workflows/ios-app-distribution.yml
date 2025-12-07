@@ -306,7 +306,7 @@ jobs:
           EPHEMERAL_HELPER="./scripts/ephemeral_keychain_fastlane_fixed.sh"
           BUILD_TYPE="${{ github.event.inputs.build_type || 'debug' }}"
 
-          if [[ "${{ github.ref }}" == "refs/heads/main" ]] || [[ "${{ github.ref }}" == "refs/heads/staging" ]] || [[ "$BUILD_TYPE" == "release" ]]; then
+          if [[ "$GITHUB_REF" == "refs/heads/main" ]] || [[ "$GITHUB_REF" == "refs/heads/staging" ]] || [[ "$BUILD_TYPE" == "release" ]]; then
             # Production/Staging OR manual release: Upload to TestFlight
             if [ -f packages/mobile/ios/Gemfile ]; then
               RUN_CMD="bundle config set --local path 'vendor/bundle' && bundle install --jobs 4 || true && bundle exec fastlane beta"
