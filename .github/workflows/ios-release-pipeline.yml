@@ -30,7 +30,7 @@ env:
 
 jobs:
   release-ios:
-    runs-on: [self-hosted, modulo-squares]
+    runs-on: [self-hosted, wishlist-wizard]
     environment:
       name: ${{ github.event.inputs.release_type == 'app_store' && 'PRODUCTION' || 'DEVELOPMENT' }}
     steps:
