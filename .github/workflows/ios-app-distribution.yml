@@ -32,7 +32,7 @@ on:
         type: string
 
 env:
-  FLUTTER_VERSION: "3.38.1"
+  FLUTTER_VERSION: "3.38.4"
 
 jobs:
   distribute-ios:
