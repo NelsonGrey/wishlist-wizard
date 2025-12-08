@@ -10,9 +10,9 @@ on:
         default: 'testflight'
         type: choice
         options:
-        - testflight
-        - app_store
-        - full_pipeline
+          - testflight
+          - app_store
+          - full_pipeline
       release_notes:
         description: 'Release notes for this version'
         required: false
@@ -147,7 +147,7 @@ jobs:
           ASC_PRIVATE_KEY=${{ secrets.ASC_PRIVATE_KEY }}
 
           # Match Configuration
-          MATCH_GIT_URL=https://oauth2:${{ secrets.MATCH_GIT_URL_TOKEN }}@github.com/mnelson3/nelson-grey-certificates.git
+          MATCH_GIT_URL=https://oauth2:${{ secrets.MATCH_GIT_URL_TOKEN }}@github.com/mnelson3/nelson-grey.git
           MATCH_PASSWORD=${{ secrets.MATCH_PASSWORD }}
 
           # TestFlight Configuration
