@@ -66,7 +66,7 @@ jobs:
         run: |
           echo "🔄 Installing Ruby 3.2.2 with GMP dependency..."
           brew install gmp
-          \curl -sSL https://get.rvm.io | bash -s stable
+          \curl -sSL https://get.rvm.io | bash -s stable --ignore-dotfiles
           source ~/.rvm/scripts/rvm
           rvm install 3.2.2 --with-gmp-dir=$(brew --prefix gmp)
           rvm use 3.2.2 --default
