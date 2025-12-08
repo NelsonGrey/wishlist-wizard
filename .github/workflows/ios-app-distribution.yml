@@ -139,7 +139,7 @@ jobs:
         run: |
           echo "🔄 Setting up Firebase service account key..."
           mkdir -p packages/mobile/ios
-          echo '${{ github.ref == ''refs/heads/main'' && secrets.FIREBASE_SERVICE_ACCOUNT_KEY_PRODUCTION || github.ref == ''refs/heads/staging'' && secrets.FIREBASE_SERVICE_ACCOUNT_KEY_STAGING || secrets.FIREBASE_SERVICE_ACCOUNT_KEY_DEVELOPMENT }}' > mobile/ios/service-account-key.json
+          echo '${{ github.ref == 'refs/heads/main' && secrets.FIREBASE_SERVICE_ACCOUNT_KEY_PRODUCTION || github.ref == 'refs/heads/staging' && secrets.FIREBASE_SERVICE_ACCOUNT_KEY_STAGING || secrets.FIREBASE_SERVICE_ACCOUNT_KEY_DEVELOPMENT }}' > mobile/ios/service-account-key.json
           echo "✅ Service account key configured"
 
       - name: 🔐 Decode iOS Distribution Certificate
