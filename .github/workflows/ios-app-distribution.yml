@@ -62,16 +62,10 @@ jobs:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           cache: true
 
-      - name: 💎 Setup Ruby with GMP
-        run: |
-          echo "🔄 Installing Ruby 3.2.2 with GMP dependency..."
-          brew install gmp
-          \curl -sSL https://get.rvm.io | bash -s stable --verify-downloads 0
-          source ~/.rvm/scripts/rvm
-          rvm install 3.2.2 --with-gmp-dir=$(brew --prefix gmp)
-          rvm use 3.2.2 --default
-          ruby --version
-          echo "✅ Ruby 3.2.2 installed successfully"
+      - name: 💎 Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.0'
 
       - name: 🔧 Install Fastlane
         run: |
