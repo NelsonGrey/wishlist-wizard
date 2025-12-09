@@ -45,6 +45,7 @@ jobs:
         uses: subosito/flutter-action@v2
         with:
           flutter-version: ${{ env.FLUTTER_VERSION }}
+          architecture: arm64
 
       - name: 📦 Install Flutter Dependencies
         if: matrix.language == 'dart'
