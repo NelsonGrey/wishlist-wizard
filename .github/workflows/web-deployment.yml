@@ -9,16 +9,6 @@ name: 🌐 Web Deployment
 #   Or to specific environments for production deployments
 
 on:
-  push:
-    branches:
-      - main
-      - develop
-      - staging
-    paths:
-      - 'packages/web/**'
-      - '.github/workflows/web-deployment.yml'
-      - 'package.json'
-      - 'firebase*.json'
   workflow_dispatch:
     inputs:
       environment:
