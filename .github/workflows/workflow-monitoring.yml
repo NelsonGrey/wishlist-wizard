@@ -1,37 +1,59 @@
 name: 📊 Workflow Monitoring & Alerting
 
 on:
-  workflow_run:
-    workflows: ["🚀 CI/CD Pipeline - Build, Test & Deploy All Deliverables", "Android App Distribution", "iOS App Distribution", "Security Scan", "Chrome Extension Submit"]
-    types: [completed]
+  workflow_dispatch:
+    inputs:
+      workflow_name:
+        description: "Workflow name to monitor (optional)"
+        required: false
+        type: string
+  # workflow_run:
+  #   workflows: ["🚀 CI/CD Pipeline - Build, Test & Deploy All Deliverables", "Android App Distribution", "iOS App Distribution", "Security Scan", "Chrome Extension Submit"]
+  #   types: [completed]
 
 jobs:
   # 📊 Monitor Workflow Status
   monitor-workflows:
     name: 📊 Monitor Workflow Status
     runs-on: self-hosted
-    if: github.event.workflow_run.conclusion == 'failure'
+    # if: github.event.workflow_run.conclusion == 'failure'  # Commented out for manual dispatch
     steps:
       - name: 📥 Checkout Code
         uses: actions/checkout@v4
 
-      - name: 📊 Analyze Workflow Failure
+      - name: 📊 Analyze Workflow Status
         run: |
-          WORKFLOW_NAME="${{ github.event.workflow_run.name }}"
-          CONCLUSION="${{ github.event.workflow_run.conclusion }}"
-          RUN_ID="${{ github.event.workflow_run.id }}"
-          HEAD_SHA="${{ github.event.workflow_run.head_sha }}"
-          HEAD_BRANCH="${{ github.event.workflow_run.head_branch }}"
-
-          echo "## 🚨 Workflow Failure Alert" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Workflow**: $WORKFLOW_NAME" >> $GITHUB_STEP_SUMMARY
-          echo "**Status**: $CONCLUSION" >> $GITHUB_STEP_SUMMARY
-          echo "**Run ID**: [$RUN_ID](https://github.com/${{ github.repository }}/actions/runs/$RUN_ID)" >> $GITHUB_STEP_SUMMARY
-          echo "**Commit**: [$HEAD_SHA](https://github.com/${{ github.repository }}/commit/$HEAD_SHA)" >> $GITHUB_STEP_SUMMARY
-          echo "**Branch**: $HEAD_BRANCH" >> $GITHUB_STEP_SUMMARY
-          echo "**Triggered by**: ${{ github.event.workflow_run.triggering_actor.login }}" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "## 📊 Manual Workflow Monitoring Check" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "**Triggered by**: ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+            echo "**Workflow**: ${{ github.workflow }}" >> $GITHUB_STEP_SUMMARY
+            echo "**Run ID**: [$GITHUB_RUN_ID](https://github.com/${{ github.repository }}/actions/runs/$GITHUB_RUN_ID)" >> $GITHUB_STEP_SUMMARY
+            echo "**Repository**: ${{ github.repository }}" >> $GITHUB_STEP_SUMMARY
+            echo "**Branch**: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+            echo "**Commit**: [${{ github.sha }}](https://github.com/${{ github.repository }}/commit/${{ github.sha }})" >> $GITHUB_STEP_SUMMARY
+            if [[ -n "${{ github.event.inputs.workflow_name }}" ]]; then
+              echo "**Monitoring Workflow**: ${{ github.event.inputs.workflow_name }}" >> $GITHUB_STEP_SUMMARY
+            fi
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "✅ Manual workflow monitoring completed successfully" >> $GITHUB_STEP_SUMMARY
+          else
+            # Legacy workflow_run handling (commented out)
+            # WORKFLOW_NAME="${{ github.event.workflow_run.name }}"
+            # CONCLUSION="${{ github.event.workflow_run.conclusion }}"
+            # RUN_ID="${{ github.event.workflow_run.id }}"
+            # HEAD_SHA="${{ github.event.workflow_run.head_sha }}"
+            # HEAD_BRANCH="${{ github.event.workflow_run.head_branch }}"
+            echo "## 🚨 Workflow Failure Alert" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "**Workflow**: $WORKFLOW_NAME" >> $GITHUB_STEP_SUMMARY
+            echo "**Status**: $CONCLUSION" >> $GITHUB_STEP_SUMMARY
+            echo "**Run ID**: [$RUN_ID](https://github.com/${{ github.repository }}/actions/runs/$RUN_ID)" >> $GITHUB_STEP_SUMMARY
+            echo "**Commit**: [$HEAD_SHA](https://github.com/${{ github.repository }}/commit/$HEAD_SHA)" >> $GITHUB_STEP_SUMMARY
+            echo "**Branch**: $HEAD_BRANCH" >> $GITHUB_STEP_SUMMARY
+            echo "**Triggered by**: ${{ github.event.workflow_run.triggering_actor.login }}" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+          fi
 
           # Get failure details if available
           if [ -n "$RUN_ID" ]; then
