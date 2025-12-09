@@ -29,7 +29,7 @@ on:
 
 env:
   NODE_VERSION: '18'
-  FLUTTER_VERSION: '3.38.4'
+  FLUTTER_VERSION: '3.38.3'
 
 jobs:
   # 🔍 Test Environment Determination
