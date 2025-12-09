@@ -92,14 +92,17 @@ jobs:
           fi
 
       - name: 🧪 Test App Store Connect JWT
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
         run: |
           echo "🔄 Testing App Store Connect JWT authentication..."
           ruby -e "
           require 'jwt'
           require 'openssl'
 
-          key_id = '${{ secrets.ASC_KEY_ID }}'
-          issuer_id = '${{ secrets.ASC_ISSUER_ID }}'
+          key_id = ENV['ASC_KEY_ID']
+          issuer_id = ENV['ASC_ISSUER_ID']
           private_key_path = '~/.private_keys/AuthKey_#{key_id}.p8'
 
           private_key = OpenSSL::PKey::EC.new(File.read(File.expand_path(private_key_path)))
@@ -120,7 +123,7 @@ jobs:
           puts '🔄 Testing API connectivity...'
 
           # Test API call
-          curl -H 'Authorization: Bearer #{token}' 'https://api.appstoreconnect.apple.com/v1/apps' -o /dev/null -s -w '%{http_code}' | grep -q '200' && echo '✅ App Store Connect API accessible' || echo '⚠️ App Store Connect API test inconclusive'
+          system(\"curl -H 'Authorization: Bearer #{token}' 'https://api.appstoreconnect.apple.com/v1/apps' -o /dev/null -s -w '%{http_code}' | grep -q '200' && echo '✅ App Store Connect API accessible' || echo '⚠️ App Store Connect API test inconclusive'\")
           "
 
       - name: 📱 Generate iOS Platform Files
