@@ -49,7 +49,7 @@ ASC_ISSUER_ID=your-issuer-id
 ASC_PRIVATE_KEY=-----BEGIN PRIVATE KEY-----\nyour-private-key-here\n-----END PRIVATE KEY-----
 
 # Match (Code Signing) Configuration
-MATCH_GIT_URL=https://github.com/mnelson3/nelson-grey-certificates
+MATCH_GIT_URL=https://github.com/mnelson3/nelson-grey
 
 # TestFlight Configuration
 BETA_FEEDBACK_EMAIL=feedback@wishlistwizard.com
@@ -108,7 +108,7 @@ Required variables:
    ```bash
    git init certificates-repo
    cd certificates-repo
-    git remote add origin https://github.com/mnelson3/nelson-grey-certificates
+    git remote add origin https://github.com/mnelson3/nelson-grey
    ```
 
 2. Set the `MATCH_GIT_URL` in your `.env` file
