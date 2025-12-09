@@ -1,12 +1,6 @@
 name: Icon Update
 
 on:
-  push:
-    paths:
-      - 'icons/**'
-      - 'icon-*.png'
-      - 'icon-*.svg'
-      - 'packages/browser-extension/src/icons/**'
   workflow_dispatch:
 
 jobs:
