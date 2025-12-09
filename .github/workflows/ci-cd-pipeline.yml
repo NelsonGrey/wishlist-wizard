@@ -19,7 +19,7 @@ on:
 
 env:
   NODE_VERSION: '20'
-  FLUTTER_VERSION: '3.38.4'
+  FLUTTER_VERSION: 'stable'
 
 jobs:
   # 🔍 Determine Environment
