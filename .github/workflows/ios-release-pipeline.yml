@@ -25,9 +25,6 @@ on:
   release:
     types: [published]
 
-env:
-  FLUTTER_VERSION: 'stable'
-
 jobs:
   release-ios:
     runs-on: [self-hosted, wishlist-wizard]
