@@ -31,9 +31,6 @@ on:
         required: false
         type: string
 
-env:
-  FLUTTER_VERSION: "stable"
-
 jobs:
   distribute-ios:
     runs-on: [self-hosted, wishlist-wizard]  # Self-hosted macOS runner
