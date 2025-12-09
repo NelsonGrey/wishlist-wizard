@@ -50,7 +50,7 @@ jobs:
       - name: Set up Flutter
         uses: subosito/flutter-action@v2.21.0
         with:
-          flutter-version: 'stable'
+          channel: stable
           architecture: arm64
 
       - name: Install GMP library (required for Ruby 3.2.2)
@@ -180,7 +180,7 @@ jobs:
       - name: Set up Flutter
         uses: subosito/flutter-action@v2.21.0
         with:
-          flutter-version: 'stable'
+          channel: stable
           architecture: arm64
 
       - name: Validate Android secrets availability
