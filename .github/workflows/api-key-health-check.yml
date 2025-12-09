@@ -11,7 +11,7 @@ on:
         type: boolean
 
 env:
-  FLUTTER_VERSION: '3.38.3'
+  FLUTTER_VERSION: '3.38.4'
 
 jobs:
   api-key-health-check:
