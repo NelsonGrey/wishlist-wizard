@@ -39,19 +39,19 @@ jobs:
     steps:
       - name: iOS Build Environment Check
         run: |
-          echo "🍎 Running on self-hosted macOS runner"
-          echo "📍 Hostname: $(hostname)"
-          echo "💰 Using self-hosted runner (cost savings)"
-          echo "🖥️  macOS version: $(sw_vers -productVersion)"
-          echo "🛠️  Xcode version: $(xcodebuild -version | head -1)"
+          echo '🍎 Running on self-hosted macOS runner'
+          echo '📍 Hostname: $(hostname)'
+          echo '💰 Using self-hosted runner (cost savings)'
+          echo '🖥️  macOS version: $(sw_vers -productVersion)'
+          echo '🛠️  Xcode version: $(xcodebuild -version | head -1)'
 
       - name: 📥 Checkout Code
         uses: actions/checkout@v4
 
       - name: ⏰ Sync NTP Time
         run: |
-          echo "🔄 Synchronizing system time with NTP..."
-          sudo sntp -sS time.apple.com || sudo ntpdate -u time.apple.com || echo "⚠️ NTP sync failed, continuing..."
+          echo '🔄 Synchronizing system time with NTP...'
+          sudo sntp -sS time.apple.com || sudo ntpdate -u time.apple.com || echo '⚠️ NTP sync failed, continuing...'
 
       - name: Set up Flutter
         uses: subosito/flutter-action@v2.21.0
@@ -59,6 +59,12 @@ jobs:
           channel: stable
           cache: true
           architecture: arm64
+
+      - name: 🔧 Install GMP (Ruby dependency)
+        run: |
+          echo '📦 Installing GMP library...'
+          brew install gmp
+          echo '✅ GMP installed successfully'
 
       - name: 💎 Setup Ruby
         uses: ruby/setup-ruby@v1
@@ -68,24 +74,24 @@ jobs:
 
       - name: 🔧 Install Fastlane
         run: |
-          echo "📦 Installing Fastlane 2.229.0..."
+          echo '📦 Installing Fastlane 2.229.0...'
           gem install fastlane -v 2.229.0
           fastlane --version
-          echo "✅ Fastlane installed successfully"
+          echo '✅ Fastlane installed successfully'
 
       - name: 🔐 Setup App Store Connect Authentication
         run: |
-          echo "🔄 Setting up App Store Connect authentication..."
+          echo '🔄 Setting up App Store Connect authentication...'
 
           # Create ASC private key file
           mkdir -p ~/.private_keys
-          echo "${{ secrets.ASC_PRIVATE_KEY }}" | base64 -d > ~/.private_keys/AuthKey_${{ secrets.ASC_KEY_ID }}.p8
+          echo '${{ secrets.ASC_PRIVATE_KEY }}' | base64 -d > ~/.private_keys/AuthKey_${{ secrets.ASC_KEY_ID }}.p8
 
           # Verify the key was created
           if [ -f ~/.private_keys/AuthKey_${{ secrets.ASC_KEY_ID }}.p8 ]; then
-            echo "✅ ASC private key created successfully"
+            echo '✅ ASC private key created successfully'
           else
-            echo "❌ Failed to create ASC private key"
+            echo '❌ Failed to create ASC private key'
             exit 1
           fi
 
@@ -94,14 +100,14 @@ jobs:
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
         run: |
-          echo "🔄 Testing App Store Connect JWT authentication..."
-          ruby -e "
+          echo '🔄 Testing App Store Connect JWT authentication...'
+          ruby -e '
           require 'jwt'
           require 'openssl'
 
           key_id = ENV['ASC_KEY_ID']
           issuer_id = ENV['ASC_ISSUER_ID']
-          private_key_path = "#{ENV['HOME']}/.private_keys/AuthKey_#{key_id}.p8"
+          private_key_path = '#{ENV['HOME']}/.private_keys/AuthKey_#{key_id}.p8'
 
           private_key = OpenSSL::PKey::EC.new(File.read(private_key_path))
 
@@ -121,98 +127,98 @@ jobs:
           puts '🔄 Testing API connectivity...'
 
           # Test API call
-          system(\"curl -H 'Authorization: Bearer #{token}' 'https://api.appstoreconnect.apple.com/v1/apps' -o /dev/null -s -w '%{http_code}' | grep -q '200' && echo '✅ App Store Connect API accessible' || echo '⚠️ App Store Connect API test inconclusive'\")
-          "
+          system(\'curl -H 'Authorization: Bearer #{token}' 'https://api.appstoreconnect.apple.com/v1/apps' -o /dev/null -s -w '%{http_code}' | grep -q '200' && echo '✅ App Store Connect API accessible' || echo '⚠️ App Store Connect API test inconclusive'\')
+          '
 
       - name: 📱 Generate iOS Platform Files
         run: |
-          echo "🔄 Generating iOS platform files..."
+          echo '🔄 Generating iOS platform files...'
           cd packages/mobile
           flutter create --platforms=ios .
-          echo "✅ iOS platform files generated"
+          echo '✅ iOS platform files generated'
 
       - name: 🔐 Setup Service Account Key
         run: |
-          echo "🔄 Setting up Firebase service account key..."
+          echo '🔄 Setting up Firebase service account key...'
           mkdir -p packages/mobile/ios
           echo '${{ github.ref == 'refs/heads/main' && secrets.FIREBASE_SERVICE_ACCOUNT_KEY_PRODUCTION || github.ref == 'refs/heads/staging' && secrets.FIREBASE_SERVICE_ACCOUNT_KEY_STAGING || secrets.FIREBASE_SERVICE_ACCOUNT_KEY_DEVELOPMENT }}' > mobile/ios/service-account-key.json
-          echo "✅ Service account key configured"
+          echo '✅ Service account key configured'
 
       - name: 🔐 Decode iOS Distribution Certificate
         run: |
-          echo "🔄 Decoding iOS distribution certificate..."
+          echo '🔄 Decoding iOS distribution certificate...'
           mkdir -p packages/mobile/ios/certs
-          echo "${{ secrets.IOS_CERT_P12_BASE64 }}" | base64 -d > packages/mobile/ios/certs/dist_cert.p12
+          echo '${{ secrets.IOS_CERT_P12_BASE64 }}' | base64 -d > packages/mobile/ios/certs/dist_cert.p12
           if [ -f packages/mobile/ios/certs/dist_cert.p12 ]; then
-            echo "✅ iOS distribution certificate decoded"
+            echo '✅ iOS distribution certificate decoded'
           else
-            echo "❌ Failed to decode iOS distribution certificate"
+            echo '❌ Failed to decode iOS distribution certificate'
             exit 1
           fi
 
       - name: 🔑 Setup Ephemeral Keychain
         run: |
-          echo "🔄 Setting up ephemeral keychain..."
+          echo '🔄 Setting up ephemeral keychain...'
           KEYCHAIN_PASSWORD=$(openssl rand -base64 32)
-          echo "KEYCHAIN_PASSWORD=$KEYCHAIN_PASSWORD" >> $GITHUB_ENV
+          echo 'KEYCHAIN_PASSWORD=$KEYCHAIN_PASSWORD' >> $GITHUB_ENV
 
           # Create ephemeral keychain
-          security create-keychain -p "$KEYCHAIN_PASSWORD" fastlane_tmp_keychain
+          security create-keychain -p '$KEYCHAIN_PASSWORD' fastlane_tmp_keychain
           security set-keychain-settings -lut 21600 fastlane_tmp_keychain
-          security unlock-keychain -p "$KEYCHAIN_PASSWORD" fastlane_tmp_keychain
+          security unlock-keychain -p '$KEYCHAIN_PASSWORD' fastlane_tmp_keychain
 
           # Make it the default keychain
           security default-keychain -s fastlane_tmp_keychain
 
           # Import certificate
           if [ -f packages/mobile/ios/certs/dist_cert.p12 ]; then
-            security import packages/mobile/ios/certs/dist_cert.p12 -k fastlane_tmp_keychain -P "${{ secrets.IOS_CERT_PASSWORD }}" -T /usr/bin/codesign
-            echo "✅ Certificate imported to keychain"
+            security import packages/mobile/ios/certs/dist_cert.p12 -k fastlane_tmp_keychain -P '${{ secrets.IOS_CERT_PASSWORD }}' -T /usr/bin/codesign
+            echo '✅ Certificate imported to keychain'
           else
-            echo "⚠️ No certificate file found, skipping import"
+            echo '⚠️ No certificate file found, skipping import'
           fi
 
-          echo "✅ Ephemeral keychain setup complete"
+          echo '✅ Ephemeral keychain setup complete'
 
       - name: 🏗️ Build and Distribute iOS App
         run: |
-          echo "🚀 Building and distributing iOS app..."
+          echo '🚀 Building and distributing iOS app...'
 
           # Set release notes
-          RELEASE_NOTES="${{ github.event.inputs.release_notes || format('Build from {0} - {1}', github.ref_name, github.sha) }}"
-          echo "RELEASE_NOTES=$RELEASE_NOTES" >> $GITHUB_ENV
+          RELEASE_NOTES='${{ github.event.inputs.release_notes || format('Build from {0} - {1}', github.ref_name, github.sha) }}'
+          echo 'RELEASE_NOTES=$RELEASE_NOTES' >> $GITHUB_ENV
 
           cd packages/mobile/ios
 
           # Configure Fastlane environment
-          export FASTLANE_APPLE_ID="${{ secrets.FASTLANE_APPLE_ID }}"
-          export FASTLANE_TEAM_ID="${{ secrets.FASTLANE_TEAM_ID }}"
-          export FASTLANE_ITC_TEAM_ID="${{ secrets.FASTLANE_ITC_TEAM_ID }}"
-          export ASC_KEY_ID="${{ secrets.ASC_KEY_ID }}"
-          export ASC_ISSUER_ID="${{ secrets.ASC_ISSUER_ID }}"
-          export ASC_PRIVATE_KEY="${{ secrets.ASC_PRIVATE_KEY }}"
-          export MATCH_GIT_URL="${{ secrets.MATCH_GIT_URL }}"
-          export MATCH_PASSWORD="${{ secrets.MATCH_PASSWORD }}"
-          export BETA_FEEDBACK_EMAIL="${{ secrets.BETA_FEEDBACK_EMAIL }}"
-          export KEYCHAIN_PASSWORD="$KEYCHAIN_PASSWORD"
+          export FASTLANE_APPLE_ID='${{ secrets.FASTLANE_APPLE_ID }}'
+          export FASTLANE_TEAM_ID='${{ secrets.FASTLANE_TEAM_ID }}'
+          export FASTLANE_ITC_TEAM_ID='${{ secrets.FASTLANE_ITC_TEAM_ID }}'
+          export ASC_KEY_ID='${{ secrets.ASC_KEY_ID }}'
+          export ASC_ISSUER_ID='${{ secrets.ASC_ISSUER_ID }}'
+          export ASC_PRIVATE_KEY='${{ secrets.ASC_PRIVATE_KEY }}'
+          export MATCH_GIT_URL='${{ secrets.MATCH_GIT_URL }}'
+          export MATCH_PASSWORD='${{ secrets.MATCH_PASSWORD }}'
+          export BETA_FEEDBACK_EMAIL='${{ secrets.BETA_FEEDBACK_EMAIL }}'
+          export KEYCHAIN_PASSWORD='$KEYCHAIN_PASSWORD'
 
           # Execute Fastlane based on release type
-          RELEASE_TYPE="${{ github.event.inputs.release_type }}"
+          RELEASE_TYPE='${{ github.event.inputs.release_type }}'
 
-          if [[ "$GITHUB_REF" == "refs/heads/main" ]] || [[ "$GITHUB_REF" == "refs/heads/staging" ]] || [[ "$RELEASE_TYPE" == "release" ]]; then
+          if [[ '$GITHUB_REF' == 'refs/heads/main' ]] || [[ '$GITHUB_REF' == 'refs/heads/staging' ]] || [[ '$RELEASE_TYPE' == 'release' ]]; then
             # Production/Staging OR manual release: Upload to TestFlight
-            echo "🚀 Building and uploading to TestFlight..."
+            echo '🚀 Building and uploading to TestFlight...'
             fastlane beta
           else
             # Development: Just build and test
-            echo "🔨 Building for development testing..."
+            echo '🔨 Building for development testing...'
             fastlane build_development
           fi
 
       - name: 🧹 Clean Up
         if: always()
         run: |
-          echo "🧹 Cleaning up temporary files and keychains..."
+          echo '🧹 Cleaning up temporary files and keychains...'
 
           # Delete ephemeral keychain
           security delete-keychain fastlane_tmp_keychain 2>/dev/null || true
@@ -226,4 +232,4 @@ jobs:
           # Clean up certificates
           rm -rf mobile/ios/certs
 
-          echo "✅ Cleanup complete"
+          echo '✅ Cleanup complete'
