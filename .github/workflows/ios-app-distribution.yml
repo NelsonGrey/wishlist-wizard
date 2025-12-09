@@ -32,7 +32,7 @@ on:
         type: string
 
 env:
-  FLUTTER_VERSION: "3.38.4"
+  FLUTTER_VERSION: "3.38.3"
 
 jobs:
   distribute-ios:
@@ -103,9 +103,9 @@ jobs:
 
           key_id = ENV['ASC_KEY_ID']
           issuer_id = ENV['ASC_ISSUER_ID']
-          private_key_path = '~/.private_keys/AuthKey_#{key_id}.p8'
+          private_key_path = "#{ENV['HOME']}/.private_keys/AuthKey_#{key_id}.p8"
 
-          private_key = OpenSSL::PKey::EC.new(File.read(File.expand_path(private_key_path)))
+          private_key = OpenSSL::PKey::EC.new(File.read(private_key_path))
 
           now = Time.now.to_i
           payload = {
