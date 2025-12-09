@@ -14,7 +14,7 @@ on:
 
 env:
   NODE_VERSION: '20'
-  FLUTTER_VERSION: '3.38.4'
+  FLUTTER_VERSION: '3.38.3'
 
 jobs:
   # 🔍 Check for Changes
@@ -28,6 +28,8 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          persist-credentials: false
+          clean: false
 
       - name: 🔍 Check for recent changes
         id: check
@@ -56,6 +58,10 @@ jobs:
     steps:
       - name: 📥 Checkout Code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+          clean: false
 
       - name: 🟢 Setup Node.js
         uses: actions/setup-node@v4
