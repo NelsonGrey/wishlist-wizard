@@ -42,7 +42,7 @@ jobs:
 
       - name: 🦋 Setup Flutter (for Dart analysis)
         if: matrix.language == 'dart'
-        uses: subosito/flutter-action@v2
+        uses: subosito/flutter-action@v2.21.0
         with:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           architecture: arm64
