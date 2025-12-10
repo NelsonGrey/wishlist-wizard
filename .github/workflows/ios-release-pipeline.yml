@@ -108,15 +108,15 @@ jobs:
 
       - name: 🔍 Check Secrets
         run: |
-          TOKEN_LENGTH=${#MATCH_GIT_URL_TOKEN}
+          TOKEN_LENGTH=${#MATCH_SSH_PRIVATE_KEY}
           if [ "$TOKEN_LENGTH" -eq 0 ]; then
-            echo "❌ MATCH_GIT_URL_TOKEN secret is not set or empty"
+            echo "❌ MATCH_SSH_PRIVATE_KEY secret is not set or empty"
             exit 1
           else
-            echo "✅ MATCH_GIT_URL_TOKEN secret is set (length: $TOKEN_LENGTH)"
+            echo "✅ MATCH_SSH_PRIVATE_KEY secret is set (length: $TOKEN_LENGTH)"
           fi
         env:
-          MATCH_GIT_URL_TOKEN: ${{ secrets.MATCH_GIT_URL_TOKEN }}
+          MATCH_SSH_PRIVATE_KEY: ${{ secrets.MATCH_SSH_PRIVATE_KEY }}
 
       - name: 🔐 Create Service Account Key File
         env:
@@ -124,6 +124,26 @@ jobs:
         run: |
           mkdir -p packages/mobile/ios
           echo "$FIREBASE_SERVICE_ACCOUNT_KEY" > packages/mobile/ios/service-account-key.json
+
+      - name: 🔑 Setup SSH Key for Certificate Repository
+        run: |
+          echo '🔄 Setting up SSH key for certificate repository access...'
+          
+          # Create SSH directory
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          
+          # Add SSH private key
+          echo '${{ secrets.MATCH_SSH_PRIVATE_KEY }}' | base64 -d > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          
+          # Add GitHub to known hosts
+          ssh-keyscan -H github.com >> ~/.ssh/known_hosts
+          
+          # Configure git to use SSH
+          git config --global url."git@github.com:".insteadOf "https://github.com/"
+          
+          echo '✅ SSH key setup complete'
 
       - name: 🔧 Make Distribution Script Executable
         run: chmod +x packages/mobile/distribute-ios.sh
@@ -146,7 +166,7 @@ jobs:
           ASC_PRIVATE_KEY=${{ secrets.ASC_PRIVATE_KEY }}
 
           # Match Configuration
-          MATCH_GIT_URL=https://oauth2:${{ secrets.MATCH_GIT_URL_TOKEN }}@github.com/mnelson3/nelson-grey.git
+          MATCH_GIT_URL=git@github.com:mnelson3/nelson-grey.git
           MATCH_PASSWORD=${{ secrets.MATCH_PASSWORD }}
 
           # TestFlight Configuration
@@ -196,5 +216,8 @@ jobs:
           # Clean up temporary keychain
           security delete-keychain fastlane_tmp_keychain 2>/dev/null || true
 
+          # Clean up SSH keys
+          rm -rf ~/.ssh
+
           # Clean up service account files
-          rm -f packages/mobile/ios/service-account-key.json packages/mobile/ios/asc_private_key.p8 packages/mobile/ios/certs/dist_cert.p12
+          rm -f packages/mobile/ios/service-account-key.json packages/mobile/ios/asc_private_key.p8

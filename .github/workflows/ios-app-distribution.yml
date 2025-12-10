@@ -144,41 +144,41 @@ jobs:
           echo '${{ github.ref == 'refs/heads/main' && secrets.FIREBASE_SERVICE_ACCOUNT_KEY_PRODUCTION || github.ref == 'refs/heads/staging' && secrets.FIREBASE_SERVICE_ACCOUNT_KEY_STAGING || secrets.FIREBASE_SERVICE_ACCOUNT_KEY_DEVELOPMENT }}' > mobile/ios/service-account-key.json
           echo '✅ Service account key configured'
 
-      - name: 🔐 Decode iOS Distribution Certificate
+      - name: 🔑 Setup SSH Key for Certificate Repository
         run: |
-          echo '🔄 Decoding iOS distribution certificate...'
-          mkdir -p packages/mobile/ios/certs
-          echo '${{ secrets.IOS_CERT_P12_BASE64 }}' | base64 -d > packages/mobile/ios/certs/dist_cert.p12
-          if [ -f packages/mobile/ios/certs/dist_cert.p12 ]; then
-            echo '✅ iOS distribution certificate decoded'
-          else
-            echo '❌ Failed to decode iOS distribution certificate'
-            exit 1
-          fi
+          echo '🔄 Setting up SSH key for certificate repository access...'
+          
+          # Create SSH directory
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          
+          # Add SSH private key
+          echo '${{ secrets.MATCH_SSH_PRIVATE_KEY }}' | base64 -d > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          
+          # Add GitHub to known hosts
+          ssh-keyscan -H github.com >> ~/.ssh/known_hosts
+          
+          # Configure git to use SSH
+          git config --global url."git@github.com:".insteadOf "https://github.com/"
+          
+          echo '✅ SSH key setup complete'
 
       - name: 🔑 Setup Ephemeral Keychain
         run: |
-          echo '🔄 Setting up ephemeral keychain...'
+          echo '🔄 Setting up ephemeral keychain for zero-touch deployment...'
           KEYCHAIN_PASSWORD=$(openssl rand -base64 32)
           echo 'KEYCHAIN_PASSWORD=$KEYCHAIN_PASSWORD' >> $GITHUB_ENV
 
-          # Create ephemeral keychain
-          security create-keychain -p '$KEYCHAIN_PASSWORD' fastlane_tmp_keychain
+          # Create ephemeral keychain for match
+          security create-keychain -p "$KEYCHAIN_PASSWORD" fastlane_tmp_keychain
           security set-keychain-settings -lut 21600 fastlane_tmp_keychain
-          security unlock-keychain -p '$KEYCHAIN_PASSWORD' fastlane_tmp_keychain
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" fastlane_tmp_keychain
 
           # Make it the default keychain
           security default-keychain -s fastlane_tmp_keychain
 
-          # Import certificate
-          if [ -f packages/mobile/ios/certs/dist_cert.p12 ]; then
-            security import packages/mobile/ios/certs/dist_cert.p12 -k fastlane_tmp_keychain -P '${{ secrets.IOS_CERT_PASSWORD }}' -T /usr/bin/codesign
-            echo '✅ Certificate imported to keychain'
-          else
-            echo '⚠️ No certificate file found, skipping import'
-          fi
-
-          echo '✅ Ephemeral keychain setup complete'
+          echo '✅ Ephemeral keychain setup complete (certificates will be downloaded by match)'
 
       - name: 🏗️ Build and Distribute iOS App
         run: |
@@ -197,7 +197,7 @@ jobs:
           export ASC_KEY_ID='${{ secrets.ASC_KEY_ID }}'
           export ASC_ISSUER_ID='${{ secrets.ASC_ISSUER_ID }}'
           export ASC_PRIVATE_KEY='${{ secrets.ASC_PRIVATE_KEY }}'
-          export MATCH_GIT_URL='${{ secrets.MATCH_GIT_URL }}'
+          export MATCH_GIT_URL='git@github.com:mnelson3/nelson-grey.git'
           export MATCH_PASSWORD='${{ secrets.MATCH_PASSWORD }}'
           export BETA_FEEDBACK_EMAIL='${{ secrets.BETA_FEEDBACK_EMAIL }}'
           export KEYCHAIN_PASSWORD='$KEYCHAIN_PASSWORD'
@@ -226,10 +226,10 @@ jobs:
           # Clean up private keys
           rm -rf ~/.private_keys
 
+          # Clean up SSH keys
+          rm -rf ~/.ssh
+
           # Clean up service account files
           rm -f mobile/ios/service-account-key.json
-
-          # Clean up certificates
-          rm -rf mobile/ios/certs
 
           echo '✅ Cleanup complete'
