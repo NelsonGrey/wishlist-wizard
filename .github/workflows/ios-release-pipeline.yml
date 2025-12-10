@@ -31,6 +31,12 @@ jobs:
     environment:
       name: ${{ github.event.inputs.release_type == 'app_store' && 'PRODUCTION' || 'DEVELOPMENT' }}
     steps:
+      - name: 🔧 Fix Git Config for HTTPS Checkout
+        run: |
+          echo '🔄 Removing any global SSH redirects for GitHub to ensure HTTPS checkout works...'
+          git config --global --unset-all url."git@github.com:".insteadOf || true
+          echo '✅ Git config fixed for HTTPS checkout'
+
       - name: 📥 Checkout Code
         uses: actions/checkout@v4
 
