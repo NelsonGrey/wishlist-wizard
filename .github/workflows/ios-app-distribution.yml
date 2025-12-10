@@ -159,8 +159,8 @@ jobs:
           # Add GitHub to known hosts
           ssh-keyscan -H github.com >> ~/.ssh/known_hosts
           
-          # Configure git to use SSH
-          git config --global url."git@github.com:".insteadOf "https://github.com/"
+          # Configure git to use SSH for the certificate repository only
+          git config --global url."git@github.com:mnelson3/nelson-grey.git".insteadOf "https://github.com/mnelson3/nelson-grey.git"
           
           echo '✅ SSH key setup complete'
 
