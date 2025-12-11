@@ -170,22 +170,6 @@ jobs:
           
           echo '✅ SSH key setup complete'
 
-      - name: 🔑 Setup Ephemeral Keychain
-        run: |
-          echo '🔄 Setting up ephemeral keychain for zero-touch deployment...'
-          KEYCHAIN_PASSWORD=$(openssl rand -base64 32)
-          echo 'KEYCHAIN_PASSWORD=$KEYCHAIN_PASSWORD' >> $GITHUB_ENV
-
-          # Create ephemeral keychain for match
-          security create-keychain -p "$KEYCHAIN_PASSWORD" fastlane_tmp_keychain
-          security set-keychain-settings -lut 21600 fastlane_tmp_keychain
-          security unlock-keychain -p "$KEYCHAIN_PASSWORD" fastlane_tmp_keychain
-
-          # Make it the default keychain
-          security default-keychain -s fastlane_tmp_keychain
-
-          echo '✅ Ephemeral keychain setup complete (certificates will be downloaded by match)'
-
       - name: 🏗️ Build and Distribute iOS App
         run: |
           echo '🚀 Building and distributing iOS app...'
@@ -206,7 +190,6 @@ jobs:
           export MATCH_GIT_URL='git@github.com:mnelson3/nelson-grey.git'
           export MATCH_PASSWORD='${{ secrets.MATCH_PASSWORD }}'
           export BETA_FEEDBACK_EMAIL='${{ secrets.BETA_FEEDBACK_EMAIL }}'
-          export KEYCHAIN_PASSWORD='$KEYCHAIN_PASSWORD'
 
           # Execute Fastlane based on release type
           RELEASE_TYPE='${{ github.event.inputs.release_type }}'
@@ -225,9 +208,6 @@ jobs:
         if: always()
         run: |
           echo '🧹 Cleaning up temporary files and keychains...'
-
-          # Delete ephemeral keychain
-          security delete-keychain fastlane_tmp_keychain 2>/dev/null || true
 
           # Clean up private keys
           rm -rf ~/.private_keys
