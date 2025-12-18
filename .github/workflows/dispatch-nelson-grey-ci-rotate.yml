@@ -1,0 +1,24 @@
+name: Dispatch nelson-grey CI Rotate
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 4 * * 0'
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dispatch nelson-grey ci-rotate
+        env:
+          GITHUB_TOKEN_FOR_OTHER: ${{ secrets.NELSON_GREY_PAT }}
+        run: |
+          if [ -z "$GITHUB_TOKEN_FOR_OTHER" ]; then
+            echo "Missing NELSON_GREY_PAT secret; aborting"
+            exit 1
+          fi
+          curl -X POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: token $GITHUB_TOKEN_FOR_OTHER" \
+            https://api.github.com/repos/mnelson3/nelson-grey/actions/workflows/ci-rotate.yml/dispatches \
+            -d '{"ref":"main"}'
