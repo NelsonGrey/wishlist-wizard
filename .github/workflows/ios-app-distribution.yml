@@ -1,0 +1,200 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
+name: 🍎 iOS App Distribution
+
+# iOS builds using self-hosted macOS runner
+# Automatic builds are enabled for all environments
+
+on:
+  push:
+    branches:
+      - main
+      - staging
+      - develop
+    paths:
+      - 'packages/mobile/**'
+      - '.github/workflows/ios-app-distribution.yml'
+      - '.github/actions/**'
+      - 'pubspec.yaml'
+      - 'firebase*.json'
+  workflow_dispatch:
+    inputs:
+      build_type:
+        description: 'Build type to distribute'
+        required: true
+        default: 'debug'
+        type: choice
+        options:
+          - debug
+          - release
+      release_notes:
+        description: 'Release notes for this build'
+        required: false
+        type: string
+
+jobs:
+  distribute-ios:
+    runs-on: [self-hosted, wishlist-wizard]  # Self-hosted macOS runner
+    environment:
+      name: ${{ github.ref == 'refs/heads/main' && 'PRODUCTION' || github.ref == 'refs/heads/staging' && 'STAGING' || 'DEVELOPMENT' }}
+    steps:
+      - name: iOS Build Environment Check
+        run: |
+          echo '🍎 Running on self-hosted macOS runner'
+          echo '📍 Hostname: $(hostname)'
+          echo '💰 Using self-hosted runner (cost savings)'
+          echo '🖥️  macOS version: $(sw_vers -productVersion)'
+          echo '🛠️  Xcode version: $(xcodebuild -version | head -1)'
+
+      - name: 🔧 Fix Git Config for HTTPS Checkout
+        run: |
+          echo '🔄 Removing any global SSH redirects for GitHub to ensure HTTPS checkout works...'
+          git config --global --unset-all url."git@github.com:".insteadOf || true
+          echo '✅ Git config fixed for HTTPS checkout'
+
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v4
+
+      - name: ⏰ Sync NTP Time
+        run: |
+          echo '🔄 Synchronizing system time with NTP...'
+          sudo sntp -sS time.apple.com || sudo ntpdate -u time.apple.com || echo '⚠️ NTP sync failed, continuing...'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2.21.0
+        with:
+          channel: stable
+          cache: true
+          architecture: arm64
+
+      - name: 🔧 Install GMP (Ruby dependency)
+        run: |
+          echo '📦 Installing GMP library...'
+          brew install gmp
+          echo '✅ GMP installed successfully'
+
+      - name: 💎 Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.2'
+          bundler-cache: true
+
+      - name: 🔧 Install Fastlane
+        run: |
+          echo '📦 Installing Fastlane 2.229.0...'
+          gem install fastlane -v 2.229.0
+          fastlane --version
+          echo '✅ Fastlane installed successfully'
+
+      - name: 🔐 Setup App Store Connect Authentication
+        run: |
+          echo '🔄 Setting up App Store Connect authentication...'
+
+          # Create ASC private key file
+          mkdir -p ~/.private_keys
+          echo '${{ secrets.ASC_PRIVATE_KEY }}' | base64 -d > ~/.private_keys/AuthKey_${{ secrets.ASC_KEY_ID }}.p8
+
+          # Verify the key was created
+          if [ -f ~/.private_keys/AuthKey_${{ secrets.ASC_KEY_ID }}.p8 ]; then
+            echo '✅ ASC private key created successfully'
+          else
+            echo '❌ Failed to create ASC private key'
+            exit 1
+          fi
+
+      - name: 🧪 Test App Store Connect JWT
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+        run: |
+          echo '🔄 Testing App Store Connect JWT authentication...'
+          cat << 'EOF' | ruby
+          require 'jwt'
+          require 'openssl'
+
+          key_id = ENV['ASC_KEY_ID']
+          issuer_id = ENV['ASC_ISSUER_ID']
+          private_key_path = "#{ENV['HOME']}/.private_keys/AuthKey_#{key_id}.p8"
+
+          private_key = OpenSSL::PKey::EC.new(File.read(private_key_path))
+
+          now = Time.now.to_i
+          payload = {
+            iss: issuer_id,
+            exp: now + 1200,
+            aud: 'appstoreconnect-v1'
+          }
+
+          headers = {
+            kid: key_id
+          }
+
+          token = JWT.encode(payload, private_key, 'ES256', headers)
+          puts '✅ JWT token generated successfully'
+          puts '🔄 Testing API connectivity...'
+
+          system("curl -H 'Authorization: Bearer #{token}' 'https://api.appstoreconnect.apple.com/v1/apps' -o /dev/null -s -w '%{http_code}' | grep -q '200' && echo '✅ App Store Connect API accessible' || echo '⚠️ App Store Connect API test inconclusive'")
+          EOF
+
+      - name: 📱 Generate iOS Platform Files
+        run: |
+          echo '🔄 Generating iOS platform files...'
+          cd packages/mobile
+          flutter create --platforms=ios .
+          echo '✅ iOS platform files generated'
+
+      - name: 🔐 Setup Service Account Key
+        run: |
+          echo '🔄 Setting up Firebase service account key...'
+          mkdir -p packages/mobile/ios
+          echo '${{ github.ref == 'refs/heads/main' && secrets.FIREBASE_SERVICE_ACCOUNT_KEY_PRODUCTION || github.ref == 'refs/heads/staging' && secrets.FIREBASE_SERVICE_ACCOUNT_KEY_STAGING || secrets.FIREBASE_SERVICE_ACCOUNT_KEY_DEVELOPMENT }}' > packages/mobile/ios/service-account-key.json
+          echo '✅ Service account key configured'
+
+      - name: 🏗️ Build and Distribute iOS App
+        run: |
+          echo '🚀 Building and distributing iOS app...'
+
+          # Set release notes
+          RELEASE_NOTES='${{ github.event.inputs.release_notes || format('Build from {0} - {1}', github.ref_name, github.sha) }}'
+          echo 'RELEASE_NOTES=$RELEASE_NOTES' >> $GITHUB_ENV
+
+          cd packages/mobile/ios
+
+          # Configure Fastlane environment
+          export FASTLANE_APPLE_ID='${{ secrets.FASTLANE_APPLE_ID }}'
+          export FASTLANE_TEAM_ID='${{ secrets.FASTLANE_TEAM_ID }}'
+          export FASTLANE_ITC_TEAM_ID='${{ secrets.FASTLANE_ITC_TEAM_ID }}'
+          export ASC_KEY_ID='${{ secrets.ASC_KEY_ID }}'
+          export ASC_ISSUER_ID='${{ secrets.ASC_ISSUER_ID }}'
+          export ASC_PRIVATE_KEY='${{ secrets.ASC_PRIVATE_KEY }}'
+          export MATCH_GIT_URL='https://oauth2:${{ secrets.MATCH_GIT_URL_TOKEN }}@github.com/mnelson3/nelson-grey.git'
+          export MATCH_PASSWORD='${{ secrets.MATCH_PASSWORD }}'
+          export BETA_FEEDBACK_EMAIL='${{ secrets.BETA_FEEDBACK_EMAIL }}'
+
+          bundle install
+          chmod +x ../../../scripts/ephemeral_keychain_fastlane_fixed.sh
+
+          # Execute Fastlane based on branch or workflow_dispatch build_type
+          BUILD_TYPE='${{ github.event.inputs.build_type }}'
+
+          if [[ '$GITHUB_REF' == 'refs/heads/main' ]] || [[ '$GITHUB_REF' == 'refs/heads/staging' ]] || [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" && "$BUILD_TYPE" == "release" ]]; then
+            # Production/Staging OR manual release: Upload to TestFlight
+            echo '🚀 Building and uploading to TestFlight...'
+            ../../../scripts/ephemeral_keychain_fastlane_fixed.sh "bundle exec fastlane beta"
+          else
+            # Development: Just build and test
+            echo '🔨 Building for development testing...'
+            ../../../scripts/ephemeral_keychain_fastlane_fixed.sh "bundle exec fastlane build_development"
+          fi
+
+      - name: 🧹 Clean Up
+        if: always()
+        run: |
+          echo '🧹 Cleaning up temporary files and keychains...'
+
+          # Clean up private keys
+          rm -rf ~/.private_keys
+
+          # Clean up service account files
+          rm -f packages/mobile/ios/service-account-key.json
+
+          echo '✅ Cleanup complete'
