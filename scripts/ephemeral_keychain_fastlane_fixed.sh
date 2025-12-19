@@ -129,13 +129,8 @@ if [ -n "${CERT_P12_PATH:-}" ]; then
   echo "[ephemeral-keychain] P12 file: $CERT_P12_PATH"
   echo "[ephemeral-keychain] P12 password length: ${#CERT_P12_PASSWORD:-0}"
   
-  # Add timeout to prevent hanging
-  timeout 30 security import "$CERT_P12_PATH" -k "$KC_NAME" -P "${CERT_P12_PASSWORD:-}" -T /usr/bin/codesign -T /usr/bin/security || {
-    echo "[ephemeral-keychain] ERROR: P12 import failed or timed out"
-    echo "[ephemeral-keychain] This could be due to:"
-    echo "[ephemeral-keychain] - Wrong password"
-    echo "[ephemeral-keychain] - Corrupted P12 file" 
-    echo "[ephemeral-keychain] - Missing certificate chain"
+  security import "$CERT_P12_PATH" -k "$KC_NAME" -P "${CERT_P12_PASSWORD:-}" -T /usr/bin/codesign -T /usr/bin/security || {
+    echo "[ephemeral-keychain] ERROR: P12 import failed"
     exit 3
   }
   security set-key-partition-list -S apple-tool:,apple: -s -k "$KC_PASS" "$KC_NAME" 2>/dev/null || true

@@ -107,13 +107,13 @@ jobs:
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
         run: |
           echo '🔄 Testing App Store Connect JWT authentication...'
-          ruby -e '
+          cat << 'EOF' | ruby
           require 'jwt'
           require 'openssl'
 
           key_id = ENV['ASC_KEY_ID']
           issuer_id = ENV['ASC_ISSUER_ID']
-          private_key_path = '#{ENV['HOME']}/.private_keys/AuthKey_#{key_id}.p8'
+          private_key_path = "#{ENV['HOME']}/.private_keys/AuthKey_#{key_id}.p8"
 
           private_key = OpenSSL::PKey::EC.new(File.read(private_key_path))
 
@@ -132,9 +132,8 @@ jobs:
           puts '✅ JWT token generated successfully'
           puts '🔄 Testing API connectivity...'
 
-          # Test API call
-          system(\'curl -H 'Authorization: Bearer #{token}' 'https://api.appstoreconnect.apple.com/v1/apps' -o /dev/null -s -w '%{http_code}' | grep -q '200' && echo '✅ App Store Connect API accessible' || echo '⚠️ App Store Connect API test inconclusive'\')
-          '
+          system("curl -H 'Authorization: Bearer #{token}' 'https://api.appstoreconnect.apple.com/v1/apps' -o /dev/null -s -w '%{http_code}' | grep -q '200' && echo '✅ App Store Connect API accessible' || echo '⚠️ App Store Connect API test inconclusive'")
+          EOF
 
       - name: 📱 Generate iOS Platform Files
         run: |
@@ -147,28 +146,8 @@ jobs:
         run: |
           echo '🔄 Setting up Firebase service account key...'
           mkdir -p packages/mobile/ios
-          echo '${{ github.ref == 'refs/heads/main' && secrets.FIREBASE_SERVICE_ACCOUNT_KEY_PRODUCTION || github.ref == 'refs/heads/staging' && secrets.FIREBASE_SERVICE_ACCOUNT_KEY_STAGING || secrets.FIREBASE_SERVICE_ACCOUNT_KEY_DEVELOPMENT }}' > mobile/ios/service-account-key.json
+          echo '${{ github.ref == 'refs/heads/main' && secrets.FIREBASE_SERVICE_ACCOUNT_KEY_PRODUCTION || github.ref == 'refs/heads/staging' && secrets.FIREBASE_SERVICE_ACCOUNT_KEY_STAGING || secrets.FIREBASE_SERVICE_ACCOUNT_KEY_DEVELOPMENT }}' > packages/mobile/ios/service-account-key.json
           echo '✅ Service account key configured'
-
-      - name: 🔑 Setup SSH Key for Certificate Repository
-        run: |
-          echo '🔄 Setting up SSH key for certificate repository access...'
-          
-          # Create SSH directory
-          mkdir -p ~/.ssh
-          chmod 700 ~/.ssh
-          
-          # Add SSH private key
-          echo '${{ secrets.MATCH_SSH_PRIVATE_KEY }}' | base64 -d > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          
-          # Add GitHub to known hosts
-          ssh-keyscan -H github.com >> ~/.ssh/known_hosts
-          
-          # Configure git to use SSH for the certificate repository only
-          git config --global url."git@github.com:mnelson3/nelson-grey.git".insteadOf "https://github.com/mnelson3/nelson-grey.git"
-          
-          echo '✅ SSH key setup complete'
 
       - name: 🏗️ Build and Distribute iOS App
         run: |
@@ -187,21 +166,24 @@ jobs:
           export ASC_KEY_ID='${{ secrets.ASC_KEY_ID }}'
           export ASC_ISSUER_ID='${{ secrets.ASC_ISSUER_ID }}'
           export ASC_PRIVATE_KEY='${{ secrets.ASC_PRIVATE_KEY }}'
-          export MATCH_GIT_URL='git@github.com:mnelson3/nelson-grey.git'
+          export MATCH_GIT_URL='https://oauth2:${{ secrets.MATCH_GIT_URL_TOKEN }}@github.com/mnelson3/nelson-grey.git'
           export MATCH_PASSWORD='${{ secrets.MATCH_PASSWORD }}'
           export BETA_FEEDBACK_EMAIL='${{ secrets.BETA_FEEDBACK_EMAIL }}'
 
-          # Execute Fastlane based on release type
-          RELEASE_TYPE='${{ github.event.inputs.release_type }}'
+          bundle install
+          chmod +x ../../../scripts/ephemeral_keychain_fastlane_fixed.sh
 
-          if [[ '$GITHUB_REF' == 'refs/heads/main' ]] || [[ '$GITHUB_REF' == 'refs/heads/staging' ]] || [[ '$RELEASE_TYPE' == 'release' ]]; then
+          # Execute Fastlane based on branch or workflow_dispatch build_type
+          BUILD_TYPE='${{ github.event.inputs.build_type }}'
+
+          if [[ '$GITHUB_REF' == 'refs/heads/main' ]] || [[ '$GITHUB_REF' == 'refs/heads/staging' ]] || [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" && "$BUILD_TYPE" == "release" ]]; then
             # Production/Staging OR manual release: Upload to TestFlight
             echo '🚀 Building and uploading to TestFlight...'
-            fastlane beta
+            ../../../scripts/ephemeral_keychain_fastlane_fixed.sh "bundle exec fastlane beta"
           else
             # Development: Just build and test
             echo '🔨 Building for development testing...'
-            fastlane build_development
+            ../../../scripts/ephemeral_keychain_fastlane_fixed.sh "bundle exec fastlane build_development"
           fi
 
       - name: 🧹 Clean Up
@@ -212,10 +194,7 @@ jobs:
           # Clean up private keys
           rm -rf ~/.private_keys
 
-          # Clean up SSH keys
-          rm -rf ~/.ssh
-
           # Clean up service account files
-          rm -f mobile/ios/service-account-key.json
+          rm -f packages/mobile/ios/service-account-key.json
 
           echo '✅ Cleanup complete'
