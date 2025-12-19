@@ -4,6 +4,9 @@
 !.act-secrets/secrets
 .act-secrets/real-secrets
 
+# Local tooling artifacts
+.git-filter-repo/
+
 # Android build files
 packages/mobile/android/app/build/
 packages/mobile/android/build/
@@ -134,6 +137,8 @@ firestore-debug.log
 
 # Firebase service account keys
 serviceAccountKey.json
+firebase-service-account-*.json
+**/firebase-service-account-*.json
 
 # Firebase cache files
 .firebase/*.cache
