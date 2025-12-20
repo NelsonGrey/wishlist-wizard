@@ -155,7 +155,7 @@ jobs:
 
           # Set release notes
           RELEASE_NOTES='${{ github.event.inputs.release_notes || format('Build from {0} - {1}', github.ref_name, github.sha) }}'
-          echo 'RELEASE_NOTES=$RELEASE_NOTES' >> $GITHUB_ENV
+          echo "RELEASE_NOTES=$RELEASE_NOTES" >> $GITHUB_ENV
 
           cd packages/mobile/ios
 
