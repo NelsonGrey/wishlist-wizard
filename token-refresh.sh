@@ -152,7 +152,10 @@ perform_health_check() {
 
     # Check Docker if available
     if check_docker; then
-        check_runner_health || log_warn "Runner health check failed"
+        if ! check_runner_health; then
+            log_warn "Runner container health check failed; attempting restart"
+            restart_runner_container || log_warn "Runner container restart failed"
+        fi
     fi
 
     log_info "Health check completed"
@@ -167,7 +170,7 @@ main() {
         "refresh")
             perform_token_refresh
             ;;
-        "health")
+        "health"|"health_check")
             perform_health_check
             ;;
         "force_refresh")
