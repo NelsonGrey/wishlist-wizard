@@ -8,7 +8,7 @@ on:
 jobs:
   test-linux:
     name: Test Linux Runner
-    runs-on: [self-hosted, ARM64, Linux, x64, wishlist-wizard]
+    runs-on: ubuntu-latest
     steps:
       - name: Hello from Linux
         run: |
@@ -20,7 +20,7 @@ jobs:
 
   test-macos:
     name: Test macOS Runner
-    runs-on: [self-hosted, macos-latest, wishlist-wizard]
+    runs-on: [self-hosted, macOS]
     steps:
       - name: Hello from macOS
         run: |

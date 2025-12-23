@@ -27,7 +27,7 @@ on:
 
 jobs:
   release-ios:
-    runs-on: [self-hosted, wishlist-wizard]
+    runs-on: [self-hosted, macOS, ios]
     environment:
       name: ${{ github.event.inputs.release_type == 'app_store' && 'PRODUCTION' || 'DEVELOPMENT' }}
     steps:

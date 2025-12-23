@@ -6,7 +6,7 @@ on:
 jobs:
   generate-icons:
     # Use the project macOS runner to allow sips
-    runs-on: [self-hosted, macos-latest, wishlist-wizard]
+    runs-on: [self-hosted, macOS]
     if: ${{ github.actor != 'github-actions[bot]' }}
     steps:
       - name: Checkout
