@@ -34,7 +34,7 @@ on:
 jobs:
   validate-ios:
     if: github.event.inputs.validate_ios == 'true' || github.event.inputs.validate_ios == ''
-    runs-on: [self-hosted, macos-latest, wishlist-wizard]
+    runs-on: [self-hosted, macOS, ios]
     environment: ${{ github.event.inputs.environment || 'DEVELOPMENT' }}
     steps:
       - name: Checkout code
