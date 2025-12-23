@@ -33,7 +33,7 @@ on:
 
 jobs:
   distribute-ios:
-    runs-on: [self-hosted, wishlist-wizard]  # Self-hosted macOS runner
+    runs-on: [self-hosted, macOS, ios]
     environment:
       name: ${{ github.ref == 'refs/heads/main' && 'PRODUCTION' || github.ref == 'refs/heads/staging' && 'STAGING' || 'DEVELOPMENT' }}
     steps:
