@@ -371,3 +371,4 @@ Desktop.ini
 *.xcworkspace
 *.xcuserdata
 *.xcodeproj/project.xcworkspace/
+vendor/
