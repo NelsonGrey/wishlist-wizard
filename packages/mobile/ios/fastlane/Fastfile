@@ -228,7 +228,8 @@ platform :ios do
         clean: true
       )
     end
-    end
+  end
+
   desc "Build and sign iOS app for TestFlight distribution"
   lane :build_testflight do
     flutter_deps
