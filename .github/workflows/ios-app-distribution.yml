@@ -291,7 +291,7 @@ jobs:
 
           if [[ "$GITHUB_EVENT_NAME" == "pull_request" ]]; then
             echo '🔨 Building for PR testing...'
-            ../../../scripts/ephemeral_keychain_fastlane_fixed.sh "bundle exec fastlane build_development"
+            ../../../scripts/ephemeral_keychain_fastlane_fixed.sh "bundle exec fastlane build_debug"
           else
             RELEASE_TYPE="${{ github.event.inputs.release_type }}"
             BETA_GROUP_NAME="${{ github.event.inputs.beta_group_name || 'Internal Testers' }}"
@@ -299,7 +299,7 @@ jobs:
             case "$RELEASE_TYPE" in
               "build_only")
                 echo '🔨 Building for local testing...'
-                ../../../scripts/ephemeral_keychain_fastlane_fixed.sh "bundle exec fastlane build_development"
+                ../../../scripts/ephemeral_keychain_fastlane_fixed.sh "bundle exec fastlane build_debug"
                 ;;
               "testflight")
                 echo '🎯 Running TestFlight release...'
