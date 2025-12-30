@@ -181,7 +181,7 @@ jobs:
       - name: 📱 Generate iOS Platform Files
         run: |
           echo '🔄 Generating iOS platform files...'
-          flutter create --platforms=ios .
+          flutter create --platforms=ios --org com.nelsongrey.wishlistwizard .
           echo '✅ iOS platform files generated'
 
       - name: 🔐 Setup Service Account Key
