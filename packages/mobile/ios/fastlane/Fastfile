@@ -7,6 +7,23 @@
 default_platform(:ios)
 
 platform :ios do
+  # Helper to set key partition list to avoid UI prompts
+  def set_partition_list(keychain_path, keychain_password)
+    UI.message("🔐 Setting key partition list for keychain: #{keychain_path}")
+    # Use system security command to allow access to the key by apple tools (codesign, etc.)
+    # This prevents the UI prompt for keychain access
+    cmd = "security set-key-partition-list -S apple-tool:,apple: -s -k #{keychain_password.shellescape} #{keychain_path.shellescape}"
+    
+    # Execute command and suppress output unless it fails
+    begin
+      sh(cmd, log: false)
+      UI.success("✅ Key partition list set successfully")
+    rescue => e
+      UI.error("⚠️ Failed to set key partition list: #{e.message}")
+      # Don't fail the build, just warn
+    end
+  end
+
   before_all do
     # Set up environment
     setup_ci if ENV['CI']
@@ -177,6 +194,19 @@ platform :ios do
     match_opts[:keychain_password] = keychain_password unless keychain_password.to_s.empty?
 
     match(match_opts)
+
+    # Ensure partition list is set to prevent UI prompts
+    if keychain_name && !keychain_name.empty? && keychain_password && !keychain_password.empty?
+      # Handle both .keychain and .keychain-db extensions
+      keychain_path = File.expand_path("~/Library/Keychains/#{keychain_name}-db")
+      unless File.exist?(keychain_path)
+        keychain_path = File.expand_path("~/Library/Keychains/#{keychain_name}")
+      end
+      
+      if File.exist?(keychain_path)
+        set_partition_list(keychain_path, keychain_password)
+      end
+    end
   end
 
   desc "Build and sign iOS app for App Store distribution"
