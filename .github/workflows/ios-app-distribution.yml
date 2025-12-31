@@ -239,9 +239,16 @@ jobs:
             chmod 600 "$MATCH_SSH_KEY_FILE"
             echo "🔎 match SSH key first line: $(head -n 1 "$MATCH_SSH_KEY_FILE" 2>/dev/null || true)"
             echo "🔎 match SSH key bytes: $(wc -c < "$MATCH_SSH_KEY_FILE" 2>/dev/null | tr -d ' ')"
+            
+            # Ensure newline at the end of the key file
+            if [ -n "$(tail -c 1 "$MATCH_SSH_KEY_FILE")" ]; then
+                echo >> "$MATCH_SSH_KEY_FILE"
+            fi
 
             if ssh-keygen -y -f "$MATCH_SSH_KEY_FILE" >/dev/null 2>&1; then
               USE_MATCH_SSH=1
+              echo "✅ SSH key is valid. Fingerprint:"
+              ssh-keygen -l -f "$MATCH_SSH_KEY_FILE"
             else
               echo '⚠️ MATCH_SSH_PRIVATE_KEY is not a valid SSH private key; falling back to PAT/HTTPS match repo access'
               rm -f "$MATCH_SSH_KEY_FILE" || true
@@ -252,6 +259,10 @@ jobs:
             echo '🔐 Using SSH key for match repo access'
             ssh-keyscan -t rsa,ecdsa,ed25519 github.com >> "$HOME/.ssh/known_hosts" 2>/dev/null || true
             export GIT_SSH_COMMAND="ssh -i $MATCH_SSH_KEY_FILE -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile=$HOME/.ssh/known_hosts"
+            
+            # Debug SSH connection
+            echo "🔍 Testing SSH connection to GitHub..."
+            ssh -T -v -i "$MATCH_SSH_KEY_FILE" -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$HOME/.ssh/known_hosts" git@github.com || true
 
             BASE_MATCH_URL="git@github.com:mnelson3/nelson-grey.git"
             MATCH_GIT_URL="$BASE_MATCH_URL"
