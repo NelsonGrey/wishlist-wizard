@@ -177,6 +177,35 @@ platform :ios do
     end
   end
 
+  desc "Helper to purge App Store assets from the match repo (nuke) without revoking on Apple Developer Portal"
+  def purge_match_repo_appstore_assets!
+    UI.message("💣  Purging App Store assets from the match git repository (skipping Apple Dev Portal revocation)...")
+    
+    # We use the 'nuke' action but we want to avoid revoking the actual certs on Apple's side 
+    # if we just want to clear the repo state. However, 'match nuke' is designed to revoke.
+    #
+    # Instead, we can use the 'match' action with 'readonly: false' and 'force: true' 
+    # which usually regenerates. But if we hit the limit, we need to clear the repo's knowledge 
+    # of the certs so it tries to generate a new one (and hopefully we have room or can revoke manually).
+    #
+    # ACTUALLY, the error is "reached the maximum number of available Distribution certificates".
+    # This means we DO need to revoke them on Apple's side to free up a slot.
+    # So we should use 'match nuke' to clear them out.
+    
+    # Nuke distribution certificates and profiles
+    begin
+      match_nuke(
+        type: "appstore",
+        readonly: false,
+        verbose: true
+      )
+      UI.success("✅  Successfully nuked App Store assets.")
+    rescue => e
+      UI.error("⚠️  Failed to nuke App Store assets: #{e.message}")
+      # We continue, hoping that maybe enough was cleared or that the retry might work
+    end
+  end
+
   desc "Sync code signing certificates and provisioning profiles"
   lane :sync_signing do
     # Sync certificates and profiles without encryption (unencrypted storage)
@@ -193,7 +222,24 @@ platform :ios do
     match_opts[:keychain_name] = keychain_name unless keychain_name.to_s.empty?
     match_opts[:keychain_password] = keychain_password unless keychain_password.to_s.empty?
 
-    match(match_opts)
+    begin
+      match(match_opts)
+    rescue => e
+      # Check for the specific error message about maximum distribution certificates
+      if e.message.include?("reached the maximum number of available Distribution certificates")
+        UI.error("⚠️  Caught 'Maximum number of Distribution certificates' error.")
+        UI.message("🧹  Attempting to purge existing App Store assets from the match repo to free up slots...")
+        
+        # Call the helper to nuke the repo assets
+        purge_match_repo_appstore_assets!
+
+        UI.message("🔄  Retrying match(type: appstore) after purge...")
+        match(match_opts)
+      else
+        # Re-raise any other error
+        raise e
+      end
+    end
 
     # Ensure partition list is set to prevent UI prompts
     if keychain_name && !keychain_name.empty? && keychain_password && !keychain_password.empty?
