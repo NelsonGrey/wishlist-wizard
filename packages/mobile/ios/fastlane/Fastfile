@@ -224,7 +224,7 @@ platform :ios do
 
     begin
       match(match_opts)
-    rescue => e
+    rescue Exception => e
       # Check for the specific error message about maximum distribution certificates
       if e.message.include?("reached the maximum number of available Distribution certificates")
         UI.error("⚠️  Caught 'Maximum number of Distribution certificates' error.")
