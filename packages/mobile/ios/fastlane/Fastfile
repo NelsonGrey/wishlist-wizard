@@ -234,9 +234,10 @@ platform :ios do
       match(match_opts)
     rescue Exception => e
       # Check for the specific error message about maximum distribution certificates
-      if e.message.include?("reached the maximum number of available Distribution certificates")
-        UI.error("⚠️  Caught 'Maximum number of Distribution certificates' error.")
-        UI.message("🧹  Attempting to purge existing App Store assets from the match repo to free up slots...")
+      # OR the generic "To reset the certificates" hint which often accompanies "Make sure to use the same user and team" errors
+      if e.message.include?("reached the maximum number of available Distribution certificates") || e.message.include?("To reset the certificates")
+        UI.error("⚠️  Caught match error: #{e.message}")
+        UI.message("🧹  Attempting to purge existing App Store assets from the match repo to free up slots or fix inconsistencies...")
         
         # Call the helper to nuke the repo assets
         purge_match_repo_appstore_assets!
