@@ -197,7 +197,8 @@ platform :ios do
       match_nuke(
         type: "appstore",
         readonly: false,
-        verbose: true
+        verbose: true,
+        skip_confirmation: true
       )
       UI.success("✅  Successfully nuked App Store assets.")
     rescue => e
