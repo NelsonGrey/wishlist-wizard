@@ -154,14 +154,12 @@ cleanup() {
 trap cleanup EXIT INT TERM HUP
 
 echo "[ephemeral-keychain] Configuring temporary keychain"
-# NOTE: We intentionally do NOT set the user default keychain or user search list
-# to the ephemeral keychain. On self-hosted Macs this can cause unrelated desktop
-# apps (e.g., Microsoft OneNote) to repeatedly prompt for keychain access.
-#
-# Instead, we rely on Fastlane `match` importing into MATCH_KEYCHAIN_PATH and we
-# pass explicit keychain flags to codesign/xcodebuild via OTHER_CODE_SIGN_FLAGS.
+# NOTE: We add the ephemeral keychain to the search list so that Fastlane match
+# can verify the certificate installation. The cleanup trap will restore the
+# original search list.
 security unlock-keychain -p "$KC_PASS" "$KC_PATH" 2>/dev/null
 security set-keychain-settings -lut 7200 "$KC_PATH" 2>/dev/null
+security list-keychains -d user -s "${ORIG_KEYCHAIN_LIST[@]}" "$KC_PATH" 2>/dev/null || true
 
 echo "[ephemeral-keychain] Keychain preflight"
 security default-keychain -d user 2>/dev/null || true
