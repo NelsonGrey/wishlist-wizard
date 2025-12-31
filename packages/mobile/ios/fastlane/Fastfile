@@ -214,6 +214,12 @@ platform :ios do
     keychain_name = ENV['MATCH_KEYCHAIN_NAME'] || "fastlane_tmp_keychain"
     keychain_password = ENV['MATCH_KEYCHAIN_PASSWORD']
 
+    if !ENV["MATCH_KEYCHAIN_PATH"].to_s.empty?
+      # If we have a full path, return it without extension so match can find it
+      # match automatically appends -db or .keychain, so we must strip it
+      keychain_name = ENV["MATCH_KEYCHAIN_PATH"].sub(/\.keychain-db$/, "").sub(/\.keychain$/, "")
+    end
+
     match_opts = {
       type: "appstore",
       readonly: false,
@@ -244,13 +250,18 @@ platform :ios do
 
     # Ensure partition list is set to prevent UI prompts
     if keychain_name && !keychain_name.empty? && keychain_password && !keychain_password.empty?
-      # Handle both .keychain and .keychain-db extensions
-      keychain_path = File.expand_path("~/Library/Keychains/#{keychain_name}-db")
-      unless File.exist?(keychain_path)
-        keychain_path = File.expand_path("~/Library/Keychains/#{keychain_name}")
+      keychain_path = nil
+      if !ENV["MATCH_KEYCHAIN_PATH"].to_s.empty?
+         keychain_path = ENV["MATCH_KEYCHAIN_PATH"]
+      else
+         # Handle both .keychain and .keychain-db extensions
+         keychain_path = File.expand_path("~/Library/Keychains/#{keychain_name}-db")
+         unless File.exist?(keychain_path)
+           keychain_path = File.expand_path("~/Library/Keychains/#{keychain_name}")
+         end
       end
       
-      if File.exist?(keychain_path)
+      if keychain_path && File.exist?(keychain_path)
         set_partition_list(keychain_path, keychain_password)
       end
     end
