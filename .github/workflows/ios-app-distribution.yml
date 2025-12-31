@@ -22,6 +22,9 @@ on:
         required: false
         default: "Internal Testers"
         type: string
+  push:
+    branches:
+      - develop
   pull_request:
     branches:
       - develop
