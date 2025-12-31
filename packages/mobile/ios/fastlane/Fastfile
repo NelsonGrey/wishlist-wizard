@@ -210,7 +210,8 @@ platform :ios do
   lane :sync_signing do
     # Sync certificates and profiles without encryption (unencrypted storage)
     # Allow installing into a specific keychain if provided by CI
-    keychain_name = ENV['MATCH_KEYCHAIN_PATH'] || ENV['MATCH_KEYCHAIN_NAME']
+    # Always use the default keychain location to avoid issues with absolute paths in match
+    keychain_name = ENV['MATCH_KEYCHAIN_NAME'] || "fastlane_tmp_keychain"
     keychain_password = ENV['MATCH_KEYCHAIN_PASSWORD']
 
     match_opts = {
