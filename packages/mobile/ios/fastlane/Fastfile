@@ -340,23 +340,27 @@ platform :ios do
     # Sync signing certificates
     sync_signing
 
-    # Install CocoaPods dependencies
+    # Ensure a clean build environment BEFORE dependencies
+    Dir.chdir("../../") do
+      sh("flutter clean || true")
+      sh("flutter pub get")
+    end
+
+    # Install CocoaPods dependencies explicitly
     Dir.chdir("..") do
       sh("rm -f Podfile.lock")
-      sh("pod install --repo-update")
+      sh("pod install --repo-update") 
     end
 
     # Build the iOS app using Flutter (includes Xcode build and IPA creation)
     build_number = ENV["GITHUB_RUN_ID"] || Time.now.utc.strftime("%Y%m%d%H%M%S")
     
     Dir.chdir("../../") do
-      # Ensure a clean build to avoid leftover signing artifacts
-      sh("flutter clean || true")
-
       # Build the Flutter iOS app without code signing
       # Note: We use 'flutter build ipa' with --no-codesign to ensure SwiftSupport is included in the archive
       # and then exported to an IPA. 'flutter build ios' only creates a .app which lacks SwiftSupport when manually zipped.
-      sh("flutter build ipa --release --no-codesign --build-number=#{build_number} --export-method=app-store")
+      # We skip pub get since we just did it.
+      sh("flutter build ipa --release --no-codesign --no-pub --build-number=#{build_number} --export-method=app-store")
     end
 
     # Sign the IPA using fastlane resign
