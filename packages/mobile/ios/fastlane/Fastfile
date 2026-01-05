@@ -299,6 +299,7 @@ platform :ios do
 
     # Install CocoaPods dependencies
     Dir.chdir("..") do
+      sh("rm -f Podfile.lock")
       sh("pod install --repo-update")
     end
 
