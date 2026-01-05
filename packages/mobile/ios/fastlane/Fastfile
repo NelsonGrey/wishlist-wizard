@@ -28,7 +28,6 @@ platform :ios do
     # Set up CI environment with a temporary keychain
     if ENV["CI"]
       setup_ci(
-        provider: "github_actions",
         timeout: 3600
       )
     end
