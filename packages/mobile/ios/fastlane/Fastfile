@@ -25,37 +25,12 @@ platform :ios do
   end
 
   before_all do
-    # Set up environment
+    # Set up CI environment with a temporary keychain
     if ENV["CI"]
-      keychain_name = ENV['MATCH_KEYCHAIN_NAME'] || "fastlane_tmp_keychain"
-      keychain_password = ENV['MATCH_KEYCHAIN_PASSWORD']
-      # Handle both .keychain and .keychain-db
-      keychain_path = ENV['MATCH_KEYCHAIN_PATH'] || File.expand_path("~/Library/Keychains/#{keychain_name}-db")
-      
-      if keychain_path.include?("fastlane_tmp_keychain")
-        UI.message("🔐 Checking/Creating temporary keychain at #{keychain_path}...")
-        begin
-          if File.exist?(keychain_path)
-            unlock_keychain(path: keychain_path, password: keychain_password)
-          else
-            create_keychain(
-              name: keychain_name,
-              password: keychain_password,
-              unlock: true,
-              timeout: 3600,
-              lock_when_sleeps: false
-            )
-          end
-        rescue => e
-          UI.error("⚠️  Keychain setup issue: #{e.message}")
-          # Try to unlock as fallback
-          begin
-            unlock_keychain(path: keychain_path, password: keychain_password)
-          rescue => e2
-            UI.error("⚠️  Keychain unlock retry failed: #{e2.message}")
-          end
-        end
-      end
+      setup_ci(
+        provider: "github_actions",
+        timeout: 3600
+      )
     end
 
     # Ensure we're in the right directory
