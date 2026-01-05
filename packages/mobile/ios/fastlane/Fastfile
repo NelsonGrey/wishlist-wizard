@@ -307,8 +307,15 @@ platform :ios do
     # Sync signing certificates (ensures correct branch via env or Matchfile)
     sync_signing
 
+    # Clean legacy build artifacts to avoid linker errors
+    clear_derived_data
+    sh("rm -rf ../Pods")
+    sh("rm -f ../Podfile.lock")
+
     Dir.chdir("../../") do
       # Build the app with proper code signing
+      sh("flutter clean")
+      sh("flutter pub get")
       sh("flutter build ios --release")
 
       # Build the Xcode project
@@ -324,6 +331,10 @@ platform :ios do
   desc "Build and sign iOS app for TestFlight distribution"
   lane :build_testflight do
     clear_derived_data
+    # Clean workspace to prevent abseil/grpc linking issues
+    sh("rm -rf ../Pods")
+    sh("rm -f ../Podfile.lock")
+    
     flutter_deps
 
     # Sync signing certificates
