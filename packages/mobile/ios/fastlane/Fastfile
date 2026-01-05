@@ -225,7 +225,8 @@ platform :ios do
       type: "appstore",
       readonly: false,
       verbose: true,
-      api_key_path: nil
+      api_key_path: nil,
+      force: true # Force match to re-download/re-install certificates
     }
     match_opts[:keychain_name] = keychain_name unless keychain_name.to_s.empty?
     match_opts[:keychain_password] = keychain_password unless keychain_password.to_s.empty?
