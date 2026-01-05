@@ -292,6 +292,7 @@ platform :ios do
 
   desc "Build and sign iOS app for TestFlight distribution"
   lane :build_testflight do
+    clear_derived_data
     flutter_deps
 
     # Sync signing certificates
