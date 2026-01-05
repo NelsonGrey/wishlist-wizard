@@ -299,7 +299,7 @@ platform :ios do
 
     # Install CocoaPods dependencies
     Dir.chdir("..") do
-      sh("pod install")
+      sh("pod install --repo-update")
     end
 
     # Build the iOS app using Flutter (includes Xcode build and IPA creation)
