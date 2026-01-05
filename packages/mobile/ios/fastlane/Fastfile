@@ -304,87 +304,37 @@ platform :ios do
     end
 
     # Build the iOS app using Flutter (includes Xcode build and IPA creation)
+    build_number = ENV["GITHUB_RUN_ID"] || Time.now.utc.strftime("%Y%m%d%H%M%S")
+    
     Dir.chdir("../../") do
       # Ensure a clean build to avoid leftover signing artifacts
       sh("flutter clean || true")
 
-      # Debug: list build and archive directories before build
-      UI.message("Listing build/ios and build/ios/archive before build:")
-      sh("ls -la build/ios || true")
-      sh("ls -la build/ios/archive || true")
+      # Build the Flutter iOS app without code signing
+      sh("flutter build ios --release --no-codesign --build-number=#{build_number}")
 
-      # Build the IPA
-      sh("flutter build ipa --release")
-
-      # Debug: list build and archive directories after build
-      UI.message("Listing build/ios and build/ios/archive after flutter build:")
-      sh("ls -la build/ios || true")
-      sh("ls -la build/ios/archive || true")
-
-      # Debug: list output IPA directory so CI logs show what was produced
-      UI.message("Listing generated IPA directory: build/ios/ipa")
-      sh("ls -la build/ios/ipa || true")
-      
-      # Fallback: if no IPA was produced, try exporting from the created .xcarchive
-      ipa_found = Dir["build/ios/ipa/**/*.ipa"].first
-      if ipa_found.nil?
-        UI.message("No .ipa found after flutter build ipa — attempting xcodebuild export from .xcarchive")
-        archive = Dir["build/ios/archive/*.xcarchive"].first
-        if archive.nil?
-          UI.message("No .xcarchive found at build/ios/archive — cannot export IPA automatically")
-        else
-          UI.message("Found archive at #{archive}. Running xcodebuild -exportArchive using absolute exportOptions.plist path")
-          export_plist = File.expand_path(File.join(__dir__, "exportOptions.plist"))
-          UI.message("Using exportOptions.plist at #{export_plist}")
-          sh("ls -la #{archive} || true")
-          sh("ls -la #{archive}/Products/Applications || true")
-          sh("ls -la #{archive}/Products/Applications/Runner.app/Frameworks || true")
-          sh("xcodebuild -exportArchive -archivePath \"#{archive}\" -exportOptionsPlist \"#{export_plist}\" -exportPath build/ios/ipa > /tmp/xcode_export.log 2>&1 || true")
-          UI.message("--- xcodebuild export log (tail) ---")
-          sh("tail -n 200 /tmp/xcode_export.log || true")
-          UI.message("Listing generated IPA directory after xcodebuild export")
-          sh("ls -la build/ios/ipa || true")
-
-          # Re-sign all embedded frameworks in the archive before export (workaround for codesign errors)
-          UI.message("Re-signing embedded frameworks in the archive...")
-
-          # Try to get a codesign identity from common environment variables set by match/sigh
-          codesign_identity = ENV["sigh_com_nelsongrey_wishlistwizard_app_ios_appstore_certificate-name"]
-          if codesign_identity.nil? || codesign_identity.to_s.empty?
-            UI.message("No direct sigh env var found; searching for any sigh_* env key containing 'certificate'...")
-            env_key = ENV.keys.find { |k| k.start_with?("sigh_") && k.downcase.include?("certificate") }
-            codesign_identity = ENV[env_key] if env_key
-            UI.message("Found env key #{env_key} => #{codesign_identity}") if env_key
-          end
-
-          # Fallback: try to detect an identity SHA from the system keychain
-          if codesign_identity.nil? || codesign_identity.to_s.empty?
-            UI.message("Attempting to detect a signing identity from the keychain via 'security find-identity'...")
-            begin
-              identity_sha = %x(security find-identity -v -p codesigning 2>/dev/null | grep -Eo '[0-9A-F]{40}' | head -n1).strip
-              unless identity_sha.to_s.empty?
-                codesign_identity = identity_sha
-                UI.message("Detected identity SHA: #{codesign_identity}")
-              end
-            rescue => e
-              UI.message("Error running security find-identity: #{e.message}")
-            end
-          end
-
-          # If still missing, list identities and fail with a clear message
-          if codesign_identity.nil? || codesign_identity.to_s.empty?
-            UI.message("No codesign identity found via env or keychain. Listing available identities for debugging:")
-            sh("security find-identity -v -p codesigning || true")
-            UI.user_error!("No codesign identity found. Ensure match installed the certificate and the runner has access to the keychain identity.")
-          end
-
-          Dir.glob("#{archive}/Products/Applications/Runner.app/Frameworks/*.framework").each do |framework|
-            UI.message("Re-signing #{framework} with identity #{codesign_identity}")
-            sh("codesign --force --sign \"#{codesign_identity}\" --preserve-metadata=identifier,entitlements \"#{framework}\"")
-          end
-        end
-      end
+      # Create unsigned IPA from the app with proper structure
+      sh("mkdir -p build/ios/ipa")
+      sh("mkdir -p Payload")
+      sh("cp -r build/ios/iphoneos/Runner.app Payload/")
+      sh("zip -r build/ios/ipa/Wishlist-Wizard.ipa Payload/")
+      sh("rm -rf Payload")
     end
+
+    # Sign the IPA using fastlane resign
+    ipa_path = File.expand_path("../../build/ios/ipa/Wishlist-Wizard.ipa")
+    
+    # Get signing identity from match environment variables
+    signing_identity = ENV["sigh_com.nelsongrey.wishlistwizard.app.ios_appstore_certificate-name"]
+    provisioning_profile = ENV["sigh_com.nelsongrey.wishlistwizard.app.ios_appstore_profile-path"]
+
+    UI.message("Resigning IPA at #{ipa_path} with identity #{signing_identity}")
+    
+    resign(
+      ipa: ipa_path,
+      signing_identity: signing_identity,
+      provisioning_profile: provisioning_profile
+    )
   end
 
   desc "Upload to TestFlight"
