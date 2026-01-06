@@ -41,8 +41,11 @@ post_install do |installer|
     flutter_additional_ios_build_settings(target)
 
     target.build_configurations.each do |config|
-      # Allow non-modular includes for all targets to fix absl/gRPC headers issues
-      config.build_settings['CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES'] = 'YES'
+      # Allow non-modular includes only for specific targets to fix absl/gRPC headers issues
+      # Scoped to avoid AST Deserialization issues in other pods
+      if target.name.include?('gRPC') || target.name.include?('abseil') || target.name.include?('BoringSSL') || target.name.include?('Firebase') || target.name.include?('leveldb') || target.name.include?('nanopb')
+        config.build_settings['CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES'] = 'YES'
+      end
     end
   end
 end
