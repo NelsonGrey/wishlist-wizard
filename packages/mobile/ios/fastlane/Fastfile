@@ -231,14 +231,12 @@ platform :ios do
     # Sync certificates and profiles without encryption (unencrypted storage)
     # Allow installing into a specific keychain if provided by CI
     # Always use the default keychain location to avoid issues with absolute paths in match
+    # setup_ci adds the keychain path to the search list, so using the name alone works best.
     keychain_name = ENV['MATCH_KEYCHAIN_NAME'] || "fastlane_tmp_keychain"
     keychain_password = ENV['MATCH_KEYCHAIN_PASSWORD']
 
-    if !ENV["MATCH_KEYCHAIN_PATH"].to_s.empty?
-      # If we have a full path, return it without extension so match can find it
-      # match automatically appends -db or .keychain, so we must strip it
-      keychain_name = ENV["MATCH_KEYCHAIN_PATH"].sub(/\.keychain-db$/, "").sub(/\.keychain$/, "")
-    end
+    # Removed logic that overrode keychain_name with absolute path from MATCH_KEYCHAIN_PATH
+    # as this caused match to fail locating the keychain in some environments.
 
     match_opts = {
       type: "appstore",
