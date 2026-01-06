@@ -313,6 +313,7 @@ platform :ios do
 
     # Ensure a clean build environment BEFORE dependencies
     Dir.chdir("../../") do
+      sh("rm -rf build")
       sh("flutter clean || true")
       sh("flutter pub get")
     end
