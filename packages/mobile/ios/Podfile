@@ -28,7 +28,7 @@ require File.expand_path(File.join('packages', 'flutter_tools', 'bin', 'podhelpe
 flutter_ios_podfile_setup
 
 target 'Runner' do
-  use_frameworks!
+  use_frameworks! :linkage => :static
 
   flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
   target 'RunnerTests' do
@@ -43,11 +43,7 @@ post_install do |installer|
     # Fix for 'absl/strings/escaping.h' file not found in gRPC-Core when using use_frameworks!
     if target.name == 'gRPC-Core'
       target.build_configurations.each do |config|
-        config.build_settings['HEADER_SEARCH_PATHS'] ||= ['$(inherited)']
-        config.build_settings['HEADER_SEARCH_PATHS'] << '"$(PODS_ROOT)/abseil/cpp"'
-        config.build_settings['HEADER_SEARCH_PATHS'] << '"$(PODS_ROOT)/abseil-cpp"'
-         # Also try the standard include path for pod
-        config.build_settings['HEADER_SEARCH_PATHS'] << '"$(PODS_ROOT)/abseil"'
+        config.build_settings['CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES'] = 'YES'
       end
     end
   end
