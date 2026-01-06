@@ -91,10 +91,6 @@ jobs:
         run: flutter pub get
         working-directory: packages/mobile
 
-      - name: Generate Launcher Icons
-        run: flutter pub run flutter_launcher_icons
-        working-directory: packages/mobile
-
       - name: 🔍 Check Flutter Doctor
         run: |
           flutter doctor -v
