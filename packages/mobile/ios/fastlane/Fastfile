@@ -324,45 +324,25 @@ platform :ios do
       sh("pod install --repo-update") 
     end
 
-    # Build the iOS app using Flutter (includes Xcode build and IPA creation)
-    build_number = ENV["GITHUB_RUN_ID"] || Time.now.utc.strftime("%Y%m%d%H%M%S")
+    # Build the iOS app using gym (standard fastlane action, handles signing better than manual flutter build)
+    # We rely on 'flutter pub get' having run previously to set up the environment
     
-    Dir.chdir("../../") do
-      # Build the Flutter iOS app without code signing
-      # Note: We use 'flutter build ipa' with --no-codesign to ensure SwiftSupport is included in the archive
-      # and then exported to an IPA. 'flutter build ios' only creates a .app which lacks SwiftSupport when manually zipped.
-      # We skip pub get since we just did it.
-      sh("flutter build ipa --release --no-codesign --no-pub --build-number=#{build_number} --export-method=app-store")
-    end
-
-    # Sign the IPA using fastlane resign
-    ipa_search_dir = File.expand_path("../../build/ios/ipa")
-    ipa_files = Dir[File.join(ipa_search_dir, "*.ipa")]
-    
-    if ipa_files.empty?
-      UI.error("❌ No IPA found in #{ipa_search_dir}. Listing contents for debugging:")
-      begin
-        sh("ls -R #{File.expand_path('../../build/ios')}")
-      rescue => e
-        UI.error("Could not list directory: #{e.message}")
-      end
-      UI.user_error!("Could not find any .ipa file to resign!")
-    end
-    
-    ipa_path = ipa_files.first
-    UI.message("Found IPA at: #{ipa_path}")
-    
-    # Get signing identity from match environment variables
-    signing_identity = ENV["sigh_com.nelsongrey.wishlistwizard.app.ios_appstore_certificate-name"]
-    provisioning_profile = ENV["sigh_com.nelsongrey.wishlistwizard.app.ios_appstore_profile-path"]
-
-    UI.message("Resigning IPA at #{ipa_path} with identity #{signing_identity}")
-    
-    resign(
-      ipa: ipa_path,
-      signing_identity: signing_identity,
-      provisioning_profile: provisioning_profile
+    # Use sync_signing (match) variables
+    build_app(
+      scheme: "Runner",
+      clean: true,
+      export_method: "app-store",
+      output_directory: "../../build/ios/ipa",
+      output_name: "WishlistWizard.ipa"
     )
+    
+    # Verify IPA creation
+    ipa_path = "../../build/ios/ipa/WishlistWizard.ipa"
+    unless File.exist?(ipa_path)
+       UI.user_error!("gym failed to create IPA at #{ipa_path}")
+    end
+    
+    UI.message("✅ Successfully created signed IPA at: #{ipa_path}")
   end
 
   desc "Upload to TestFlight"
