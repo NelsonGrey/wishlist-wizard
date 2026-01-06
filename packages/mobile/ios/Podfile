@@ -40,11 +40,9 @@ post_install do |installer|
   installer.pods_project.targets.each do |target|
     flutter_additional_ios_build_settings(target)
 
-    # Fix for 'absl/strings/escaping.h' file not found in gRPC-Core when using use_frameworks!
-    if target.name == 'gRPC-Core'
-      target.build_configurations.each do |config|
-        config.build_settings['CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES'] = 'YES'
-      end
+    target.build_configurations.each do |config|
+      # Allow non-modular includes for all targets to fix absl/gRPC headers issues
+      config.build_settings['CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES'] = 'YES'
     end
   end
 end
