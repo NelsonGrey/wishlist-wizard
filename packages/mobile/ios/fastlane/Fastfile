@@ -213,7 +213,7 @@ platform :ios do
     if Actions.lane_context[SharedValues::KEYCHAIN_PATH]
       keychain_name = File.basename(Actions.lane_context[SharedValues::KEYCHAIN_PATH]).sub(/\.keychain-db$/, "").sub(/\.keychain$/, "")
     elsif ENV["MATCH_KEYCHAIN_PATH"]
-      keychain_name = File.basename(ENV["MATCH_KEYCHAIN_PATH"]).sub(/\.keychain-db$/, "").sub(/\.keychain$/, "")
+      keychain_name = ENV["MATCH_KEYCHAIN_PATH"]
     elsif ENV["MATCH_KEYCHAIN_NAME"]
       # Check if it's a path or name
       if ENV["MATCH_KEYCHAIN_NAME"].include?("/")
