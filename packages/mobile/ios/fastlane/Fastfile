@@ -228,7 +228,7 @@ platform :ios do
       readonly: false,
       verbose: true,
       api_key_path: nil,
-      force: true # Force match to re-download/re-install certificates
+      force: false # Only regenerate if expired/missing
     }
     match_opts[:keychain_name] = keychain_name unless keychain_name.to_s.empty?
     match_opts[:keychain_password] = keychain_password unless keychain_password.to_s.empty?
@@ -291,6 +291,7 @@ platform :ios do
 
       # Build the Xcode project
       build_app(
+        workspace: "ios/Runner.xcworkspace",
         scheme: "Runner",
         configuration: "Release",
         export_method: "app-store",
@@ -329,6 +330,7 @@ platform :ios do
     
     # Use sync_signing (match) variables
     build_app(
+      workspace: "../Runner.xcworkspace",
       scheme: "Runner",
       clean: true,
       export_method: "app-store",
