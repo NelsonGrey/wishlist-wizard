@@ -119,8 +119,6 @@ jobs:
           mkdir -p packages/mobile/ios
           echo "$FIREBASE_SERVICE_ACCOUNT_KEY" > packages/mobile/ios/service-account-key.json
 
-      - name: 🔧 Make Distribution Script Executable
-        run: chmod +x packages/mobile/distribute-ios.sh
 
       - name: � Build and Distribute iOS App
         env:
