@@ -338,7 +338,21 @@ platform :ios do
     end
 
     # Sign the IPA using fastlane resign
-    ipa_path = File.expand_path("../../build/ios/ipa/Wishlist-Wizard.ipa")
+    ipa_search_dir = File.expand_path("../../build/ios/ipa")
+    ipa_files = Dir[File.join(ipa_search_dir, "*.ipa")]
+    
+    if ipa_files.empty?
+      UI.error("❌ No IPA found in #{ipa_search_dir}. Listing contents for debugging:")
+      begin
+        sh("ls -R #{File.expand_path('../../build/ios')}")
+      rescue => e
+        UI.error("Could not list directory: #{e.message}")
+      end
+      UI.user_error!("Could not find any .ipa file to resign!")
+    end
+    
+    ipa_path = ipa_files.first
+    UI.message("Found IPA at: #{ipa_path}")
     
     # Get signing identity from match environment variables
     signing_identity = ENV["sigh_com.nelsongrey.wishlistwizard.app.ios_appstore_certificate-name"]
