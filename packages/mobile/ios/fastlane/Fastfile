@@ -236,9 +236,12 @@ platform :ios do
     keychain_password = ENV['MATCH_KEYCHAIN_PASSWORD']
 
     # If setup_ci is used, keychain path is in lane_context
-    # However, passing the absolute path to match often fails due to double extensions.
-    # setup_ci adds it to the search list, so we can rely on the name alone.
-    if ENV["MATCH_KEYCHAIN_NAME"]
+    # We must pass the absolute path (stripped of extension) to match so it can locate it.
+    if Actions.lane_context[SharedValues::KEYCHAIN_PATH]
+      keychain_name = Actions.lane_context[SharedValues::KEYCHAIN_PATH].sub(/\.keychain-db$/, "").sub(/\.keychain$/, "")
+    elsif ENV["MATCH_KEYCHAIN_PATH"]
+      keychain_name = ENV["MATCH_KEYCHAIN_PATH"].sub(/\.keychain-db$/, "").sub(/\.keychain$/, "")
+    elsif ENV["MATCH_KEYCHAIN_NAME"]
       keychain_name = ENV["MATCH_KEYCHAIN_NAME"]
     end
 
