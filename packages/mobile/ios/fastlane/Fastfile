@@ -27,6 +27,21 @@ platform :ios do
   before_all do
     # Set up CI environment with a temporary keychain
     if ENV["CI"]
+      # Ensure a clean state for the keychain in CI
+      keychain_name = ENV["MATCH_KEYCHAIN_NAME"] || "fastlane_tmp_keychain"
+      # Handle both .keychain and .keychain-db extensions for checking existence
+      keychain_path_db = File.expand_path("~/Library/Keychains/#{keychain_name}-db")
+      keychain_path = File.expand_path("~/Library/Keychains/#{keychain_name}")
+
+      if File.exist?(keychain_path_db) || File.exist?(keychain_path)
+         UI.message("Keychain '#{keychain_name}' already exists. Deleting it to ensure a clean slate.")
+         begin
+           delete_keychain(name: keychain_name)
+         rescue => e
+           UI.message("Attempt to delete keychain failed (it might not exist or be loaded): #{e.message}")
+         end
+      end
+
       setup_ci(
         timeout: 3600
       )
