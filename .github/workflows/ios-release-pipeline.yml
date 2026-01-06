@@ -99,6 +99,11 @@ jobs:
 
       - name: 🔍 Check Secrets
         run: |
+          # If secret is present, it overrides env var. If not, use existing env var.
+          if [[ -n "${{ secrets.MATCH_GIT_URL_TOKEN }}" ]]; then
+            MATCH_GIT_URL_TOKEN="${{ secrets.MATCH_GIT_URL_TOKEN }}"
+          fi
+
           TOKEN_LENGTH=${#MATCH_GIT_URL_TOKEN}
           if [ "$TOKEN_LENGTH" -eq 0 ]; then
             echo "❌ MATCH_GIT_URL_TOKEN secret is not set or empty"
@@ -106,8 +111,6 @@ jobs:
           else
             echo "✅ MATCH_GIT_URL_TOKEN secret is set (length: $TOKEN_LENGTH)"
           fi
-        env:
-          MATCH_GIT_URL_TOKEN: ${{ secrets.MATCH_GIT_URL_TOKEN }}
 
       - name: 🔐 Create Service Account Key File
         env:
@@ -141,8 +144,13 @@ jobs:
           export ASC_ISSUER_ID='${{ secrets.ASC_ISSUER_ID }}'
           export ASC_PRIVATE_KEY='${{ secrets.ASC_PRIVATE_KEY }}'
           export MATCH_PASSWORD='${{ secrets.MATCH_PASSWORD }}'
-          export MATCH_GIT_URL_TOKEN='${{ secrets.MATCH_GIT_URL_TOKEN }}'
           export BETA_FEEDBACK_EMAIL='${{ secrets.BETA_FEEDBACK_EMAIL }}'
+          
+          # Handle MATCH_GIT_URL_TOKEN securely
+          # If secret is provided, use it; otherwise preserve existing env var
+          if [[ -n "${{ secrets.MATCH_GIT_URL_TOKEN }}" ]]; then
+            export MATCH_GIT_URL_TOKEN='${{ secrets.MATCH_GIT_URL_TOKEN }}'
+          fi
           
           # Clean secrets
           MATCH_PASSWORD="$(printf %s "$MATCH_PASSWORD" | tr -d '\r\n')"
