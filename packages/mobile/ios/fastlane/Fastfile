@@ -211,11 +211,16 @@ platform :ios do
     # If setup_ci is used, keychain path is in lane_context
     # We must pass the absolute path (stripped of extension) to match so it can locate it.
     if Actions.lane_context[SharedValues::KEYCHAIN_PATH]
-      keychain_name = Actions.lane_context[SharedValues::KEYCHAIN_PATH].sub(/\.keychain-db$/, "").sub(/\.keychain$/, "")
+      keychain_name = File.basename(Actions.lane_context[SharedValues::KEYCHAIN_PATH]).sub(/\.keychain-db$/, "").sub(/\.keychain$/, "")
     elsif ENV["MATCH_KEYCHAIN_PATH"]
-      keychain_name = ENV["MATCH_KEYCHAIN_PATH"].sub(/\.keychain-db$/, "").sub(/\.keychain$/, "")
+      keychain_name = File.basename(ENV["MATCH_KEYCHAIN_PATH"]).sub(/\.keychain-db$/, "").sub(/\.keychain$/, "")
     elsif ENV["MATCH_KEYCHAIN_NAME"]
-      keychain_name = ENV["MATCH_KEYCHAIN_NAME"]
+      # Check if it's a path or name
+      if ENV["MATCH_KEYCHAIN_NAME"].include?("/")
+        keychain_name = File.basename(ENV["MATCH_KEYCHAIN_NAME"]).sub(/\.keychain-db$/, "").sub(/\.keychain$/, "")
+      else
+        keychain_name = ENV["MATCH_KEYCHAIN_NAME"]
+      end
     end
 
     match_opts = {
@@ -238,9 +243,8 @@ platform :ios do
         UI.message("🧹  Attempting to purge existing App Store assets from the match repo to free up slots or fix inconsistencies...")
         
         # Call the helper to nuke the repo assets
-        purge_match_reFile.basename(Actions.lane_context[SharedValues::KEYCHAIN_PATH]).sub(/\.keychain-db$/, "").sub(/\.keychain$/, "")
-    elsif ENV["MATCH_KEYCHAIN_PATH"]
-      keychain_name = File.basename(ENV["MATCH_KEYCHAIN_PATH"])store) after purge...")
+        purge_match_repo_appstore_assets!
+        UI.message("🔁 Retrying match (appstore) after purge...")
         match(match_opts)
       else
         # Re-raise any other error
