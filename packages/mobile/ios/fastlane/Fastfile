@@ -235,8 +235,13 @@ platform :ios do
     keychain_name = ENV['MATCH_KEYCHAIN_NAME'] || "fastlane_tmp_keychain"
     keychain_password = ENV['MATCH_KEYCHAIN_PASSWORD']
 
-    # Removed logic that overrode keychain_name with absolute path from MATCH_KEYCHAIN_PATH
-    # as this caused match to fail locating the keychain in some environments.
+    # If setup_ci is used, MATCH_KEYCHAIN_PATH is set to the absolute path of the keychain.
+    # We must pass this absolute path (stripped of extension) to match so it can locate it,
+    # because setup_ci usually creates it in a temporary directory, not ~/Library/Keychains.
+    if ENV["MATCH_KEYCHAIN_PATH"]
+      # Remove .keychain-db or .keychain from the end to avoid double-extensions in match
+      keychain_name = ENV["MATCH_KEYCHAIN_PATH"].gsub(/(\.keychain-db|\.keychain)$/, "")
+    end
 
     match_opts = {
       type: "appstore",
