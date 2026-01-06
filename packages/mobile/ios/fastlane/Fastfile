@@ -201,26 +201,26 @@ platform :ios do
 
   desc "Sync code signing certificates and provisioning profiles"
   lane :sync_signing do
-    # Sync certificates and profiles without encryption (unencrypted storage)
-    # Allow installing into a specific keychain if provided by CI
-    # Always use the default keychain location to avoid issues with absolute paths in match
-    # setup_ci adds the keychain path to the search list, so using the name alone works best.
-    keychain_name = ENV['MATCH_KEYCHAIN_NAME'] || "fastlane_tmp_keychain"
-    keychain_password = ENV['MATCH_KEYCHAIN_PASSWORD']
-
-    # If setup_ci is used, keychain path is in lane_context
-    # We must pass the absolute path (stripped of extension) to match so it can locate it.
-    if Actions.lane_context[SharedValues::KEYCHAIN_PATH]
-      keychain_name = File.basename(Actions.lane_context[SharedValues::KEYCHAIN_PATH]).sub(/\.keychain-db$/, "").sub(/\.keychain$/, "")
-    elsif ENV["MATCH_KEYCHAIN_PATH"]
-      keychain_name = ENV["MATCH_KEYCHAIN_PATH"]
-    elsif ENV["MATCH_KEYCHAIN_NAME"]
-      # Check if it's a path or name
-      if ENV["MATCH_KEYCHAIN_NAME"].include?("/")
-        keychain_name = File.basename(ENV["MATCH_KEYCHAIN_NAME"]).sub(/\.keychain-db$/, "").sub(/\.keychain$/, "")
-      else
-        keychain_name = ENV["MATCH_KEYCHAIN_NAME"]
-      end
+    # Explicitly create/unlock a specifically named keychain to avoid temp keychain issues on self-hosted runner
+    keychain_name = "fastlane_build_keychain"
+    keychain_password = ENV["MATCH_KEYCHAIN_PASSWORD"] || "fastlane_password"
+    
+    # Create and unlock keychain
+    if File.exist?(File.expand_path("~/Library/Keychains/#{keychain_name}-db"))
+      unlock_keychain(
+        path: keychain_name,
+        password: keychain_password,
+        add_to_search_list: true
+      )
+    else
+      create_keychain(
+        name: keychain_name,
+        password: keychain_password,
+        default_keychain: false,
+        unlock: true,
+        timeout: 3600,
+        add_to_search_list: true
+      )
     end
 
     match_opts = {
@@ -228,10 +228,10 @@ platform :ios do
       readonly: false,
       verbose: true,
       api_key_path: nil,
-      force: false # Only regenerate if expired/missing
+      force: false,
+      keychain_name: keychain_name,
+      keychain_password: keychain_password
     }
-    match_opts[:keychain_name] = keychain_name unless keychain_name.to_s.empty?
-    match_opts[:keychain_password] = keychain_password unless keychain_password.to_s.empty?
 
     begin
       match(match_opts)
