@@ -197,6 +197,7 @@ jobs:
             
             if ssh-keygen -y -f "$MATCH_SSH_KEY_FILE" >/dev/null 2>&1; then
               USE_MATCH_SSH=1
+              echo "✅ MATCH_SSH_PRIVATE_KEY is a valid key format"
             else
               echo '⚠️ MATCH_SSH_PRIVATE_KEY is not a valid SSH private key; falling back to PAT/HTTPS match repo access'
               rm -f "$MATCH_SSH_KEY_FILE" || true
@@ -208,7 +209,13 @@ jobs:
             ssh-keyscan -t rsa,ecdsa,ed25519 github.com >> "$HOME/.ssh/known_hosts" 2>/dev/null || true
             export GIT_SSH_COMMAND="ssh -i $MATCH_SSH_KEY_FILE -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile=$HOME/.ssh/known_hosts"
             export MATCH_GIT_URL="git@github.com:mnelson3/nelson-grey.git"
+            
+            # Diagnostic: Check connectivity
+            echo "🔍 Testing SSH connectivity to GitHub..."
+            ssh -T git@github.com -i "$MATCH_SSH_KEY_FILE" -o StrictHostKeyChecking=no || echo "⚠️ SSH connectivity test returned non-zero (expected for shell check)"
+            
           else
+            echo "🔐 Using HTTPS for match repo access"
             BASE_MATCH_URL="$MATCH_GIT_URL"
             if [[ -z "$BASE_MATCH_URL" ]]; then
               BASE_MATCH_URL="https://github.com/mnelson3/nelson-grey.git"
