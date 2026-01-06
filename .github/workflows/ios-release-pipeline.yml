@@ -116,8 +116,6 @@ jobs:
           else
             echo "❌ No match repo auth configured (need MATCH_SSH_PRIVATE_KEY, NELSON_GREY_PAT, MATCH_GIT_URL_TOKEN, or MATCH_GIT_URL with credentials)"
             exit 1
-          else
-            echo "✅ MATCH_GIT_URL_TOKEN secret is set (length: $TOKEN_LENGTH)"
           fi
 
       - name: 🔐 Create Service Account Key File
