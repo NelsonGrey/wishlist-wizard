@@ -202,19 +202,28 @@ platform :ios do
   desc "Sync code signing certificates and provisioning profiles"
   lane :sync_signing do
     # Explicitly create/unlock a specifically named keychain to avoid temp keychain issues on self-hosted runner
-    keychain_name = "fastlane_build_keychain"
+    keychain_name = ENV["MATCH_KEYCHAIN_NAME"]
+    if keychain_name.to_s.empty?
+      keychain_name = "fastlane_build_keychain"
+    end
     keychain_password = ENV["MATCH_KEYCHAIN_PASSWORD"] || "fastlane_password"
+
+    keychain_path = ENV["MATCH_KEYCHAIN_PATH"]
+    if keychain_path.to_s.empty?
+      # Fallback logic for path
+      keychain_path = File.expand_path("~/Library/Keychains/#{keychain_name}-db")
+    end
     
     # Create and unlock keychain
-    if File.exist?(File.expand_path("~/Library/Keychains/#{keychain_name}-db"))
+    if File.exist?(keychain_path)
       unlock_keychain(
-        path: keychain_name,
+        path: keychain_path,
         password: keychain_password,
         add_to_search_list: true
       )
     else
       create_keychain(
-        name: keychain_name,
+        name: keychain_name, # create_keychain usually uses name to derive path unless --path given? fastlane action uses name.
         password: keychain_password,
         default_keychain: false,
         unlock: true,
@@ -225,9 +234,9 @@ platform :ios do
 
     match_opts = {
       type: "appstore",
-      readonly: false,
+      readonly: true, # Default to true
       verbose: true,
-      api_key_path: nil,
+      # api_key_path: nil, # Allow Fastlane to find it from SharedValues
       force: false,
       keychain_name: keychain_name,
       keychain_password: keychain_password
@@ -236,21 +245,26 @@ platform :ios do
     begin
       match(match_opts)
     rescue Exception => e
-      # Check for the specific error message about maximum distribution certificates
-      # OR the generic "To reset the certificates" hint which often accompanies "Make sure to use the same user and team" errors
-      if e.message.include?("reached the maximum number of available Distribution certificates") || e.message.include?("To reset the certificates")
+      # Check for errors requiring nuke/regenerate
+      if e.message.include?("reached the maximum number of available Distribution certificates") || 
+         e.message.include?("To reset the certificates") || 
+         e.message.include?("No code signing identity found")
+         
         UI.error("⚠️  Caught match error: #{e.message}")
         UI.message("🧹  Attempting to purge existing App Store assets from the match repo to free up slots or fix inconsistencies...")
         
-        # Call the helper to nuke the repo assets
+        # Call the helper to nuke the repo assets AND revoke on Apple Portal
         purge_match_repo_appstore_assets!
         UI.message("🔁 Retrying match (appstore) after purge...")
-        match(match_opts)
+        
+        # Retry with force: true and readonly: false
+        match(match_opts.merge(readonly: false, force: true))
       else
         # Re-raise any other error
         raise e
       end
     end
+  end
 
     # Ensure partition list is set to prevent UI prompts
     if keychain_name && !keychain_name.empty? && keychain_password && !keychain_password.empty?
