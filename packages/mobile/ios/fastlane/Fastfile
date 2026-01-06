@@ -330,7 +330,7 @@ platform :ios do
     
     # Use sync_signing (match) variables
     build_app(
-      workspace: "../Runner.xcworkspace",
+      workspace: "Runner.xcworkspace",
       scheme: "Runner",
       clean: true,
       export_method: "app-store",
