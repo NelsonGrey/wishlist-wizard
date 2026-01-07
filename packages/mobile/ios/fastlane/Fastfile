@@ -247,6 +247,7 @@ platform :ios do
       keychain_name: match_keychain_arg,
       keychain_password: keychain_password
     }
+    match_opts[:keychain_path] = ENV["MATCH_KEYCHAIN_PATH"] unless ENV["MATCH_KEYCHAIN_PATH"].to_s.empty?
 
     begin
       match(match_opts)
