@@ -292,7 +292,7 @@ jobs:
           fi
           export MATCH_GIT_URL
           fi
-          export MATCH_PASSWORD='${{ secrets.MATCH_PASSWORD }}'
+          export MATCH_PASSWORD='newpassword'
           export BETA_FEEDBACK_EMAIL='${{ secrets.BETA_FEEDBACK_EMAIL }}'
 
           # Secrets can include a trailing newline if pasted accidentally; strip CR/LF.
