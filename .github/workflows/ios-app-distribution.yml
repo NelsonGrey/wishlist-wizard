@@ -251,7 +251,7 @@ jobs:
             if ssh-keygen -y -f "$MATCH_SSH_KEY_FILE" >/dev/null 2>&1; then
               USE_MATCH_SSH=1
               echo "✅ SSH key is valid. Fingerprint:"
-              ssh-keygen -l -f "$MATCH_SSH_KEY_FILE"
+              ssh-keygen -l -f "$MATCH_SSH_KEY_FILE" || echo "  (fingerprint display failed, but key is valid)"
             else
               echo '⚠️ MATCH_SSH_PRIVATE_KEY is not a valid SSH private key; falling back to PAT/HTTPS match repo access'
               rm -f "$MATCH_SSH_KEY_FILE" || true
