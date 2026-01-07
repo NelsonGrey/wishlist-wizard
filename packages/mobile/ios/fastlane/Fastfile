@@ -264,7 +264,6 @@ platform :ios do
         raise e
       end
     end
-  end
 
     # Ensure partition list is set to prevent UI prompts
     if keychain_name && !keychain_name.empty? && keychain_password && !keychain_password.empty?
