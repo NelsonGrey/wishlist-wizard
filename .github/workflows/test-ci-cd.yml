@@ -1,8 +1,8 @@
 name: 🧪 CI/CD Pipeline Test - Validate All Components
 
 on:
-  push:
-    branches: [ test-ci-cd, test-pipeline ]
+#  push:
+#    branches: [ test-ci-cd, test-pipeline ]
   schedule:
     # Run daily at 2 AM UTC
     - cron: '0 2 * * *'
