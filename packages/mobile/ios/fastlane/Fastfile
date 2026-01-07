@@ -451,99 +451,33 @@ platform :ios do
         if digits.length == 10
           sanitized_contact_phone = "+1" + digits
         else
-          # If already has country code (11+ digits), prefix '+'
-          if digits.length >= 11 && digits.length <= 15
-            sanitized_contact_phone = "+" + digits
-          else
-            # Last resort fallback
-            UI.message("Could not confidently normalize phone number; falling back to default +15551234567")
-            sanitized_contact_phone = "+15551234567"
-          end
+          # Otherwise just add + prefix
+          sanitized_contact_phone = "+" + digits
         end
       end
     end
+    
+    UI.message("Using sanitized BETA contact phone: #{sanitized_contact_phone}")
 
-    # Final basic validation: must look like + followed by 7-15 digits
-    unless sanitized_contact_phone.match?(/^\+\d{7,15}$/)
-      UI.message("Sanitized phone didn't match expected pattern; using fallback +15551234567")
-      sanitized_contact_phone = "+15551234567"
-    end
-
-    UI.message("Using contact phone for TestFlight beta metadata: ****#{sanitized_contact_phone[-4..-1]}")
-
-    upload_options = {
+    # Use pilot (wrapped by upload_to_testflight)
+    # Use api_key from lane context (set by load_asc_api_key indirectly? No, load_asc_api_key returns nil but sets shared values/config)
+    # Actually, app_store_connect_api_key sets up the connection for subsequent actions.
+    # explicit api_key param is cleaner if available, but fastlane shared config handles it.
+    
+    upload_to_testflight(
       ipa: ipa_path,
       skip_waiting_for_build_processing: true,
-      team_id: ENV["FASTLANE_TEAM_ID"],
-      beta_app_description: "Wishlist Wizard iOS Beta",
-      beta_app_feedback_email: ENV["BETA_FEEDBACK_EMAIL"],
-      demo_account_required: false,
-      notify_external_testers: true,
-      changelog: ENV["RELEASE_NOTES"] || "Bug fixes and improvements"
-    }
-
-    # Upload to TestFlight
-    upload_to_testflight(upload_options)
-  end
-
-  desc "Deploy to App Store"
-  lane :release do
-    # Load App Store Connect API Key
-    load_asc_api_key
-
-    # Build the app
-    build_appstore
-
-    # Upload to App Store
-    deliver(
-      submit_for_review: true,
-      automatic_release: false,
-      force: true,
-      skip_metadata: false,
-      skip_screenshots: true,
-      skip_binary_upload: false,
-      submission_information: {
-        add_id_info_uses_idfa: false,
-        export_compliance_uses_encryption: false,
-        export_compliance_encryption_updated: false
-      },
-      release_notes: {
-        "en-US" => ENV["RELEASE_NOTES"] || "New version of Wishlist Wizard"
-      }
+      beta_app_feedback_email: "mark.a.nelson@outlook.com",
+      # beta_app_description: "Automated Beta Build from CI",
+      beta_app_feedback_phone: sanitized_contact_phone,
+      # demo_account_required: false,
+      distribute_external: true, # Just upload; distribution handled via groups? Or true to auto-distribute?
+      groups: ["Internal Testers"]
     )
   end
 
-  desc "Run tests and build debug version"
-  lane :test_and_build do
-    flutter_test
-    build_debug
-  end
-
-  desc "Complete CI pipeline: test, build, and distribute to TestFlight"
-  lane :ci_pipeline do
-    # Run tests
-    flutter_test
-
-    # Build and upload to TestFlight
-    beta
-  end
-
-  desc "Clean build artifacts"
-  lane :clean do
-    Dir.chdir("../../") do
-      sh("flutter clean")
-      sh("rm -rf build/")
-      sh("rm -rf ios/build/")
-    end
-  end
-
-  error do |lane, exception|
-    # Handle errors - don't clean for beta lane to preserve IPA
-    if lane != :beta
-      puts "Lane #{lane} failed with exception: #{exception.message}"
-      clean
-    else
-      puts "Lane #{lane} failed with exception: #{exception.message}"
-    end
+  # Helper to remove derived data
+  def clear_derived_data
+    sh("rm -rf ~/Library/Developer/Xcode/DerivedData/*")
   end
 end
