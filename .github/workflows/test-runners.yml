@@ -1,8 +1,8 @@
 name: 🧪 Test Self-Hosted Runners
 
 on:
-  push:
-    branches: [ develop ]
+#  push:
+#    branches: [ develop ]
   workflow_dispatch:
 
 jobs:
