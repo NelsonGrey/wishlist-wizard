@@ -244,10 +244,9 @@ platform :ios do
       verbose: true,
       # api_key_path: nil, # Allow Fastlane to find it from SharedValues
       force: false,
-      keychain_name: match_keychain_arg,
+      keychain_name: ENV["MATCH_KEYCHAIN_PATH"] || match_keychain_arg,
       keychain_password: keychain_password
     }
-    match_opts[:keychain_path] = ENV["MATCH_KEYCHAIN_PATH"] unless ENV["MATCH_KEYCHAIN_PATH"].to_s.empty?
 
     begin
       match(match_opts)
