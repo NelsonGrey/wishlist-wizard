@@ -303,10 +303,18 @@ platform :ios do
       # Build the app with proper code signing
       sh("flutter clean")
       sh("flutter pub get")
-      sh("flutter build ios --release")
+      # Use --no-codesign to avoid Flutter trying to sign with default (likely Dev) identity
+      sh("flutter build ios --release --no-codesign")
+
+      # Force manual signing with the identity/profile we just fetched
+      app_id = "com.nelsongrey.wishlistwizard.app.ios"
+      profile_name = ENV["sigh_#{app_id}_appstore_profile-name"]
+      team_id = ENV["sigh_#{app_id}_appstore_team-id"] || ENV["FASTLANE_TEAM_ID"]
+      cert_name = ENV["sigh_#{app_id}_appstore_certificate-name"] || "Apple Distribution"
 
       # Build the Xcode project
       build_app(
+        xcargs: "CODE_SIGN_STYLE='Manual' DEVELOPMENT_TEAM='#{team_id}' PROVISIONING_PROFILE_SPECIFIER='#{profile_name}' CODE_SIGN_IDENTITY='#{cert_name}'",
         workspace: "ios/Runner.xcworkspace",
         scheme: "Runner",
         configuration: "Release",
@@ -344,6 +352,23 @@ platform :ios do
     # Build the iOS app using gym (standard fastlane action, handles signing better than manual flutter build)
     # We rely on 'flutter pub get' having run previously to set up the environment
     
+    # Force manual signing with the identity/profile we just fetched
+    # match sets these environment variables:
+    # sigh_<bundle_id>_<type>_profile-name
+    # sigh_<bundle_id>_<type>_team-id
+    # sigh_<bundle_id>_<type>_certificate-name
+    
+    app_id = "com.nelsongrey.wishlistwizard.app.ios"
+    # Fallback to standard env vars if match didn't set specific ones (e.g. if cached)
+    # But usually match sets them.
+    
+    # Debug: log available sigh variables
+    # ENV.keys.select { |k| k.to_s.start_with?("sigh_") }.each { |k| UI.message("ENV[#{k}] = #{ENV[k]}") }
+
+    profile_name = ENV["sigh_#{app_id}_appstore_profile-name"]
+    team_id = ENV["sigh_#{app_id}_appstore_team-id"] || ENV["FASTLANE_TEAM_ID"]
+    cert_name = ENV["sigh_#{app_id}_appstore_certificate-name"] || "Apple Distribution"
+
     # Use sync_signing (match) variables
     build_app(
       workspace: "Runner.xcworkspace",
@@ -351,7 +376,8 @@ platform :ios do
       clean: true,
       export_method: "app-store",
       output_directory: "../../build/ios/ipa",
-      output_name: "WishlistWizard.ipa"
+      output_name: "WishlistWizard.ipa",
+      xcargs: "CODE_SIGN_STYLE='Manual' DEVELOPMENT_TEAM='#{team_id}' PROVISIONING_PROFILE_SPECIFIER='#{profile_name}' CODE_SIGN_IDENTITY='#{cert_name}'"
     )
     
     # Verify IPA creation
