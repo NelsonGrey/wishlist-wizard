@@ -233,19 +233,15 @@ platform :ios do
     end
 
     # Use the full path for match if available, to ensure it finds the ephemeral keychain
-    # match_keychain_arg = (keychain_path && !keychain_path.to_s.empty?) ? keychain_path : keychain_name
-    # Fastlane match expects 'keychain_name' to be the name or path.
-    # If we pass a path, it works differently?
-    match_keychain_arg = keychain_name
+    match_keychain_arg = keychain_path
 
     match_opts = {
       type: "appstore",
-      readonly: true, # Default to true
+      readonly: false, # Changed to false for consistency
       verbose: true,
       # api_key_path: nil, # Allow Fastlane to find it from SharedValues
       force: false,
       keychain_name: match_keychain_arg,
-      keychain_path: ENV["MATCH_KEYCHAIN_PATH"] unless ENV["MATCH_KEYCHAIN_PATH"].to_s.empty?,
       keychain_password: keychain_password
     }
 
