@@ -1,0 +1,442 @@
+name: 🔍 Test ASC Authentication
+
+on:
+  workflow_dispatch:
+    inputs:
+      test_type:
+        description: 'Type of test to run'
+        required: true
+        default: 'asc_auth'
+        type: choice
+        options:
+        - asc_auth
+        - full_test
+
+jobs:
+  test-asc-auth:
+    runs-on: macos-latest
+    if: inputs.test_type == 'asc_auth'
+
+    steps:
+    - name: 🍎 Setup macOS Runner
+      run: |
+        echo '🍎 Running on self-hosted macOS runner'
+        echo '📍 Hostname: $(hostname)'
+        echo '💰 Using self-hosted runner (cost savings)'
+        echo '🖥️  macOS version: $(sw_vers -productVersion)'
+        echo '🛠️  Xcode version: $(xcodebuild -version | head -1)'
+
+    - name: 🔄 Remove Git SSH Redirects
+      run: |
+        echo '🔄 Removing any global SSH redirects for GitHub to ensure HTTPS checkout works...'
+        git config --global --unset-all url."git@github.com:".insteadOf || true
+        echo '✅ Git config fixed for HTTPS checkout'
+
+    - name: 📦 Install GMP Library
+      run: |
+        echo '📦 Installing GMP library...'
+        brew install gmp
+        echo '✅ GMP installed successfully'
+
+    - name: 🔧 Setup Ruby
+      uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: 3.2
+        bundler: 2.4.22
+
+    - name: 📦 Install Fastlane
+      run: |
+        echo '📦 Installing Fastlane 2.230.0...'
+        gem install fastlane -v 2.230.0
+        echo '📦 Installing CocoaPods...'
+        gem install cocoapods
+        fastlane --version
+        echo '✅ Fastlane and CocoaPods installed successfully'
+
+    - name: 🔏 Setup Apple WWDR Certificate
+      run: |
+        echo '🔏 Ensuring Apple WWDR intermediate certificate is available...'
+        TMP_WWDR="/tmp/AppleWWDRCA.cer"
+        rm -f "$TMP_WWDR" || true
+
+        # Try multiple URLs for WWDR certificate
+        for url in \
+          "https://developer.apple.com/certificationauthority/AppleWWDRCAG3.cer" \
+          "https://developer.apple.com/certificationauthority/AppleWWDRCA.cer"; do
+          if curl -fsSL "$url" -o "$TMP_WWDR"; then
+            echo "✅ Downloaded WWDR certificate from: $url"
+            break
+          fi
+        done
+
+        if [ ! -s "$TMP_WWDR" ]; then
+          echo '❌ Failed to download Apple WWDR certificate'
+          exit 1
+        fi
+
+        # Import into login keychain
+        security import "$TMP_WWDR" -k "$HOME/Library/Keychains/login.keychain-db" -T /usr/bin/codesign -T /usr/bin/security || true
+
+        # Verify certificate presence
+        security find-certificate -c "Apple Worldwide Developer Relations" "$HOME/Library/Keychains/login.keychain-db" >/dev/null 2>&1 \
+          && echo '✅ WWDR certificate present in login keychain' \
+          || echo '⚠️ WWDR certificate verification inconclusive'
+
+    - name: 🔍 Validate ASC Environment Variables
+      env:
+        ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+        ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+        ASC_PRIVATE_KEY: ${{ secrets.ASC_PRIVATE_KEY }}
+      run: |
+        echo '🔍 Validating ASC Environment Variables...'
+        cat << 'EOF' | ruby
+        puts "🔍 ASC Environment Variables Validation"
+        puts "=" * 50
+
+        # Check ASC_KEY_ID
+        asc_key_id = ENV['ASC_KEY_ID']
+        if asc_key_id.nil? || asc_key_id.empty?
+          puts "❌ ASC_KEY_ID is missing or empty"
+          puts "   📝 Fix: Add ASC_KEY_ID secret to repository settings"
+          exit 1
+        else
+          puts "✅ ASC_KEY_ID is present"
+          puts "   📋 Value: #{asc_key_id}"
+          if asc_key_id.match?(/^[\w]+$/)
+            puts "   ✅ Format appears valid (alphanumeric)"
+          else
+            puts "   ⚠️ Format may be invalid (should be alphanumeric)"
+          end
+        end
+
+        # Check ASC_ISSUER_ID
+        asc_issuer_id = ENV['ASC_ISSUER_ID']
+        if asc_issuer_id.nil? || asc_issuer_id.empty?
+          puts "❌ ASC_ISSUER_ID is missing or empty"
+          puts "   📝 Fix: Add ASC_ISSUER_ID secret to repository settings"
+          exit 1
+        else
+          puts "✅ ASC_ISSUER_ID is present"
+          puts "   🏢 Value: #{asc_issuer_id}"
+          if asc_issuer_id.match?(/^[\w-]+$/)
+            puts "   ✅ Format appears valid (UUID-like)"
+          else
+            puts "   ⚠️ Format may be invalid (should be UUID format)"
+          end
+        end
+
+        # Check ASC_PRIVATE_KEY
+        asc_private_key = ENV['ASC_PRIVATE_KEY']
+        if asc_private_key.nil? || asc_private_key.empty?
+          puts "❌ ASC_PRIVATE_KEY is missing or empty"
+          puts "   📝 Fix: Add ASC_PRIVATE_KEY secret to repository settings"
+          puts "   📖 How: Download .p8 file from App Store Connect → Copy entire content"
+          exit 1
+        else
+          puts "✅ ASC_PRIVATE_KEY is present"
+          puts "   🔑 Length: #{asc_private_key.length} characters"
+
+          # Check for PEM headers
+          has_begin = asc_private_key.include?("-----BEGIN PRIVATE KEY-----")
+          has_end = asc_private_key.include?("-----END PRIVATE KEY-----")
+
+          if has_begin && has_end
+            puts "   ✅ Contains PEM headers (good)"
+          elsif has_begin || has_end
+            puts "   ⚠️ Contains only one PEM header (may be incomplete)"
+          else
+            puts "   ⚠️ No PEM headers found (may be base64 encoded)"
+          end
+
+          # Check for null bytes
+          null_count = asc_private_key.count("\0")
+          if null_count > 0
+            puts "   ❌ Contains #{null_count} null byte(s) - THIS IS THE PROBLEM!"
+            puts "   📝 Fix: Regenerate ASC private key and copy cleanly"
+            puts "   🔍 Null bytes often come from:"
+            puts "      - Copying from formatted text editors"
+            puts "      - Multi-line secret corruption in GitHub"
+            puts "      - Invisible characters in the .p8 file"
+            exit 1
+          else
+            puts "   ✅ No null bytes detected"
+          end
+
+          # Check for base64
+          is_base64 = asc_private_key.match?(/\A[A-Za-z0-9+\/=]+\z/) && asc_private_key.length > 100
+          if is_base64 && !has_begin
+            puts "   ℹ️ Appears to be base64 encoded (will be decoded)"
+          end
+        end
+
+        puts ""
+        puts "🎉 All ASC environment variables are present and formatted correctly!"
+        puts "   Next: Testing private key parsing..."
+        EOF
+
+    - name: 🔄 Setup App Store Connect Authentication
+      env:
+        ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+        ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+        ASC_PRIVATE_KEY: ${{ secrets.ASC_PRIVATE_KEY }}
+      run: |
+        echo '🔄 Setting up App Store Connect authentication...'
+
+        # Create ASC private key file
+        mkdir -p ~/.private_keys
+        echo '${{ secrets.ASC_PRIVATE_KEY }}' | base64 -d > ~/.private_keys/AuthKey_${{ secrets.ASC_KEY_ID }}.p8 2>/dev/null || \
+        echo '${{ secrets.ASC_PRIVATE_KEY }}' > ~/.private_keys/AuthKey_${{ secrets.ASC_KEY_ID }}.p8
+
+        # Verify the key was created
+        if [ -f ~/.private_keys/AuthKey_${{ secrets.ASC_KEY_ID }}.p8 ]; then
+          echo '✅ ASC private key file created successfully'
+          echo "📁 File location: ~/.private_keys/AuthKey_${{ secrets.ASC_KEY_ID }}.p8"
+          echo "📏 File size: $(wc -c < ~/.private_keys/AuthKey_${{ secrets.ASC_KEY_ID }}.p8) bytes"
+          echo "📄 First few lines:"
+          head -3 ~/.private_keys/AuthKey_${{ secrets.ASC_KEY_ID }}.p8
+          echo "📄 Last few lines:"
+          tail -3 ~/.private_keys/AuthKey_${{ secrets.ASC_KEY_ID }}.p8
+        else
+          echo '❌ Failed to create ASC private key file'
+          exit 1
+        fi
+
+    - name: 🔍 Test ASC Private Key Parsing
+      env:
+        ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+        ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+        ASC_PRIVATE_KEY: ${{ secrets.ASC_PRIVATE_KEY }}
+      run: |
+        echo '🔍 Testing ASC Private Key Parsing...'
+        cat << 'EOF' | ruby
+        require 'openssl'
+
+        key_id = ENV['ASC_KEY_ID']
+        issuer_id = ENV['ASC_ISSUER_ID']
+        private_key_path = "#{ENV['HOME']}/.private_keys/AuthKey_#{key_id}.p8"
+
+        puts "🔑 Testing private key file: #{private_key_path}"
+        puts "📋 Key ID: #{key_id}"
+        puts "🏢 Issuer ID: #{issuer_id}"
+
+        # Check if file exists
+        unless File.exist?(private_key_path)
+          puts "❌ Private key file does not exist: #{private_key_path}"
+          puts "   📝 Fix: Check ASC_PRIVATE_KEY secret and file creation step"
+          exit 1
+        end
+
+        begin
+          private_key_content = File.read(private_key_path)
+          puts "📄 Key file content length: #{private_key_content.length} characters"
+
+          # Show content preview (first 100 chars)
+          puts "📄 Content preview (first 100 chars):"
+          puts "   #{private_key_content[0..99].inspect}"
+
+          # Check for null bytes again
+          null_count = private_key_content.count("\0")
+          if null_count > 0
+            puts "❌ Found #{null_count} null byte(s) in private key file!"
+            puts "   📝 Fix: The ASC_PRIVATE_KEY secret contains null bytes"
+            puts "   🔄 Solution: Regenerate ASC private key in App Store Connect"
+            puts "   📋 Steps:"
+            puts "      1. Go to App Store Connect → Users and Access → Keys"
+            puts "      2. Delete existing private key"
+            puts "      3. Create new private key (Admin role)"
+            puts "      4. Download .p8 file immediately"
+            puts "      5. Open in plain text editor (not VS Code)"
+            puts "      6. Copy entire content including -----BEGIN/END-----"
+            puts "      7. Paste into GitHub ASC_PRIVATE_KEY secret"
+            exit 1
+          end
+
+          puts "✅ No null bytes found in private key file"
+
+          # Check for PEM format
+          has_begin = private_key_content.include?("-----BEGIN PRIVATE KEY-----")
+          has_end = private_key_content.include?("-----END PRIVATE KEY-----")
+
+          unless has_begin && has_end
+            puts "⚠️ Private key file missing PEM headers"
+            puts "   Expected: -----BEGIN PRIVATE KEY----- and -----END PRIVATE KEY-----"
+            puts "   📝 Fix: Ensure ASC_PRIVATE_KEY contains full PEM format"
+          end
+
+          # Try to parse the key
+          puts "🔐 Attempting to parse private key with OpenSSL..."
+          private_key = OpenSSL::PKey::EC.new(private_key_content)
+          puts "✅ Private key parsed successfully!"
+          puts "  Key type: #{private_key.class}"
+          puts "  Curve: #{private_key.group.curve_name}"
+
+        rescue OpenSSL::PKey::ECError => e
+          puts "❌ Private key parsing failed: #{e.message}"
+          puts ""
+          puts "🔍 Troubleshooting:"
+          case e.message
+          when /string contains null byte/
+            puts "   • NULL BYTES: The private key contains null characters"
+            puts "   • SOLUTION: Regenerate ASC private key and copy cleanly"
+          when /invalid curve name/
+            puts "   • INVALID CURVE: The key format is corrupted"
+            puts "   • SOLUTION: Download fresh .p8 file from App Store Connect"
+          when /Neither PUB key nor PRIV key/
+            puts "   • WRONG KEY TYPE: Need EC private key, got different type"
+            puts "   • SOLUTION: Ensure downloading EC private key (.p8 file)"
+          else
+            puts "   • UNKNOWN ERROR: #{e.message}"
+            puts "   • SOLUTION: Verify .p8 file is valid and complete"
+          end
+          puts ""
+          puts "📋 Key content analysis:"
+          puts "   Length: #{private_key_content.length} chars"
+          puts "   Starts with: #{private_key_content[0..50]}..."
+          puts "   Ends with: ...#{private_key_content[-50..-1]}"
+          puts "   Contains BEGIN: #{private_key_content.include?('-----BEGIN')}"
+          puts "   Contains END: #{private_key_content.include?('-----END')}"
+          exit 1
+        rescue => e
+          puts "❌ Unexpected error during key parsing: #{e.class} - #{e.message}"
+          puts "   📝 Fix: Check ASC_PRIVATE_KEY secret format and .p8 file validity"
+          exit 1
+        end
+
+        puts "🎉 Private key validation passed!"
+        EOF
+
+    - name: 🔄 Test JWT Generation
+      env:
+        ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+        ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+        ASC_PRIVATE_KEY: ${{ secrets.ASC_PRIVATE_KEY }}
+      run: |
+        echo '🔄 Testing App Store Connect JWT authentication...'
+        cat << 'EOF' | ruby
+        require 'jwt'
+        require 'openssl'
+
+        key_id = ENV['ASC_KEY_ID']
+        issuer_id = ENV['ASC_ISSUER_ID']
+        private_key_path = "#{ENV['HOME']}/.private_keys/AuthKey_#{key_id}.p8"
+
+        puts "🔄 Testing JWT token generation..."
+        puts "📋 Using Key ID: #{key_id}"
+        puts "🏢 Using Issuer ID: #{issuer_id}"
+
+        begin
+          # Load and parse private key
+          private_key_content = File.read(private_key_path)
+          private_key = OpenSSL::PKey::EC.new(private_key_content)
+          puts "✅ Private key loaded for JWT generation"
+
+          # Create JWT payload
+          now = Time.now.to_i
+          payload = {
+            iss: issuer_id,
+            exp: now + 1200,  # 20 minutes from now
+            aud: 'appstoreconnect-v1'
+          }
+
+          puts "📝 JWT Payload:"
+          puts "   iss (issuer): #{issuer_id}"
+          puts "   exp (expires): #{Time.at(payload[:exp])} (#{payload[:exp]})"
+          puts "   aud (audience): #{payload[:aud]}"
+
+          # Create JWT headers
+          headers = {
+            kid: key_id
+          }
+
+          puts "📋 JWT Headers:"
+          puts "   kid (key ID): #{key_id}"
+
+          # Generate JWT
+          puts "🔐 Generating JWT token..."
+          token = JWT.encode(payload, private_key, 'ES256', headers)
+
+          puts '✅ JWT token generated successfully!'
+          puts "  📏 Token length: #{token.length} characters"
+          puts "  🔍 Token preview: #{token[0..50]}..."
+          puts "  📊 Token parts: #{token.split('.').length} (should be 3: header.payload.signature)"
+
+          # Validate token structure
+          parts = token.split('.')
+          if parts.length != 3
+            puts "⚠️ Token does not have 3 parts (header.payload.signature)"
+          else
+            puts "✅ Token has correct 3-part structure"
+          end
+
+          # Test API connectivity
+          puts '🌐 Testing App Store Connect API connectivity...'
+          api_url = "https://api.appstoreconnect.apple.com/v1/apps"
+          auth_header = "Bearer #{token}"
+
+          # Use curl to test API (capture both stdout and stderr)
+          require 'open3'
+          stdout, stderr, status = Open3.capture3("curl", "-H", "Authorization: #{auth_header}",
+                                                 "-H", "Accept: application/json",
+                                                 api_url, "-o", "/dev/null", "-s", "-w", "%{http_code}")
+
+          http_code = stdout.strip.to_i
+
+          puts "📡 API Response Code: #{http_code}"
+
+          case http_code
+          when 200
+            puts "✅ App Store Connect API accessible (HTTP 200)"
+            puts "🎉 ASC authentication is working perfectly!"
+          when 401
+            puts "❌ HTTP 401 Unauthorized - Authentication failed"
+            puts "   📝 Possible causes:"
+            puts "      • ASC_KEY_ID or ASC_ISSUER_ID incorrect"
+            puts "      • Private key doesn't match the key ID"
+            puts "      • Key has insufficient permissions (needs Admin role)"
+            puts "   🔄 Fix: Verify key ID and issuer ID in App Store Connect"
+          when 403
+            puts "❌ HTTP 403 Forbidden - Insufficient permissions"
+            puts "   📝 Fix: Ensure ASC private key has Admin role in App Store Connect"
+          when 404
+            puts "⚠️ HTTP 404 Not Found - API endpoint issue (may be normal)"
+            puts "   This could be expected if no apps exist or endpoint has changed"
+          else
+            puts "⚠️ Unexpected HTTP #{http_code} response"
+            puts "   Check App Store Connect service status"
+          end
+
+        rescue JWT::EncodeError => e
+          puts "❌ JWT encoding failed: #{e.message}"
+          puts "   📝 Fix: Check private key format and JWT library compatibility"
+          exit 1
+        rescue OpenSSL::PKey::ECError => e
+          puts "❌ Private key error during JWT generation: #{e.message}"
+          puts "   📝 Fix: Ensure private key is valid EC key for ES256 algorithm"
+          exit 1
+        rescue => e
+          puts "❌ Unexpected error during JWT generation: #{e.class} - #{e.message}"
+          puts "   📝 Fix: Check all ASC environment variables and key file"
+          exit 1
+        end
+
+        puts ""
+        puts "🎉 JWT authentication test completed!"
+        EOF
+
+    - name: 🧹 Cleanup
+      if: always()
+      run: |
+        echo '🧹 Cleaning up temporary files...'
+        rm -rf ~/.private_keys
+        rm -f ios/service-account-key.json
+        echo '✅ Cleanup complete'
+
+  full-test:
+    runs-on: macos-latest
+    if: inputs.test_type == 'full_test'
+
+    steps:
+    - name: 📝 Note
+      run: |
+        echo "This would run the full iOS distribution workflow"
+        echo "Use test_type: 'asc_auth' to test just ASC authentication"
