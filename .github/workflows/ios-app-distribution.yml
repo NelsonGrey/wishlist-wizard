@@ -139,7 +139,8 @@ jobs:
             mv "$KEY_PATH.tmp" "$KEY_PATH"
           else
             echo "ℹ️ Key appears to be base64 encoded. Decoding..."
-            base64 -d "$KEY_PATH.tmp" > "$KEY_PATH"
+            # Use openssl for better cross-platform support (macOS/Linux)
+            openssl base64 -d -A -in "$KEY_PATH.tmp" -out "$KEY_PATH"
             rm "$KEY_PATH.tmp"
           fi
 
