@@ -61,6 +61,8 @@ Build Flutter iOS app in release mode
 [bundle exec] fastlane ios sync_signing
 ```
 
+Helper to purge App Store assets from the match repo (nuke) without revoking on Apple Developer Portal
+
 Sync code signing certificates and provisioning profiles
 
 ### ios build_appstore
@@ -86,38 +88,6 @@ Build and sign iOS app for TestFlight distribution
 ```
 
 Upload to TestFlight
-
-### ios release
-
-```sh
-[bundle exec] fastlane ios release
-```
-
-Deploy to App Store
-
-### ios test_and_build
-
-```sh
-[bundle exec] fastlane ios test_and_build
-```
-
-Run tests and build debug version
-
-### ios ci_pipeline
-
-```sh
-[bundle exec] fastlane ios ci_pipeline
-```
-
-Complete CI pipeline: test, build, and distribute to TestFlight
-
-### ios clean
-
-```sh
-[bundle exec] fastlane ios clean
-```
-
-Clean build artifacts
 
 ----
 
