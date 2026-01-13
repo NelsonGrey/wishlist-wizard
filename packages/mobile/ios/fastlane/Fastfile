@@ -332,6 +332,14 @@ platform :ios do
         
         UI.message("⚠️  Creating new certificates...")
         begin
+          # Ensure keychain is unlocked before attempting to create certs
+          kc_path = ENV['MATCH_KEYCHAIN_PATH']
+          kc_pass = ENV['MATCH_KEYCHAIN_PASSWORD']
+          if kc_path && kc_pass
+            system("security unlock-keychain -p '#{kc_pass}' '#{kc_path}' || true")
+            system("security set-key-partition-list -S apple-tool:,apple:,codesign: -s -t private -k '#{kc_pass}' '#{kc_path}' 2>/dev/null || true")
+          end
+          
           match(
             type: "appstore",
             readonly: false,
