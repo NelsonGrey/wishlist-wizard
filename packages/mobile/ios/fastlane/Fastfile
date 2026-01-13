@@ -199,6 +199,62 @@ platform :ios do
 
   desc "Sync code signing certificates and provisioning profiles"
   lane :sync_signing do
+    # Set up API key authentication
+    private_key_content = ENV["ASC_PRIVATE_KEY"]
+    if private_key_content.nil? || private_key_content.empty?
+      UI.error("ASC_PRIVATE_KEY environment variable is not set or empty")
+      raise "Missing ASC_PRIVATE_KEY"
+    end
+
+    # Detect key format
+    is_pem = private_key_content.include?("-----BEGIN")
+    cleaned = private_key_content.gsub(/\s+/, "")
+    looks_base64 = cleaned =~ /\A[A-Za-z0-9+\/=]+\z/ && cleaned.length > 100
+
+    if !is_pem && looks_base64
+      UI.message("Detected ASC_PRIVATE_KEY as base64; passing directly as key_content (is_key_content_base64: true)")
+      api_key = app_store_connect_api_key(
+        key_id: ENV["ASC_KEY_ID"],
+        issuer_id: ENV["ASC_ISSUER_ID"],
+        key_content: cleaned,
+        is_key_content_base64: true,
+        in_house: false
+      )
+    else
+      # Process as PEM
+      private_key_content = private_key_content.strip
+      private_key_content = private_key_content.gsub(/\A['\"]|['\"]\z/, '')
+      private_key_content = private_key_content.gsub(/\\n/, "\n")
+      private_key_content = private_key_content.gsub(/\r\n?/, "\n")
+      private_key_content = private_key_content.lines.map { |l| l.strip }.reject { |l| l.empty? }.join("\n") + "\n"
+
+      unless private_key_content.include?("-----BEGIN PRIVATE KEY-----") || private_key_content.include?("-----BEGIN EC PRIVATE KEY-----")
+        begin
+          require 'base64'
+          decoded = Base64.decode64(private_key_content)
+          if decoded.include?("-----BEGIN")
+            private_key_content = decoded
+            UI.message("Decoded ASC_PRIVATE_KEY from base64")
+          end
+        rescue => e
+          UI.message("Failed to decode ASC_PRIVATE_KEY as base64: #{e.message}")
+        end
+      end
+
+      require 'tempfile'
+      key_file = Tempfile.new(['asc_key', '.p8'])
+      key_file.write(private_key_content)
+      key_file.close
+
+      UI.message("Created temporary ASC key file: #{key_file.path}")
+
+      api_key = app_store_connect_api_key(
+        key_id: ENV["ASC_KEY_ID"],
+        issuer_id: ENV["ASC_ISSUER_ID"],
+        key_filepath: key_file.path
+      )
+    end
+
     # Clean up ALL distribution certificates from the login keychain before starting
     UI.message("🧹 Cleaning up all distribution certificates from login keychain...")
     begin
@@ -261,7 +317,8 @@ platform :ios do
         readonly: true,
         verbose: true,
         keychain_name: match_keychain_arg,
-        keychain_password: keychain_password
+        keychain_password: keychain_password,
+        api_key: api_key
       )
       UI.success("✅ Using existing certificates")
 
@@ -281,20 +338,20 @@ platform :ios do
             verbose: true,
             keychain_name: match_keychain_arg,
             keychain_password: keychain_password,
-            username: ENV['FASTLANE_APPLE_ID']
+            api_key: api_key
           )
           UI.success("✅ Created new certificates")
           
         rescue => create_error
-          if create_error.message.include?("Maximum number of certificates") || create_error.message.include?("reached the maximum number") || create_error.message.include?("Missing password")
-            UI.important("⚠️  Hit Apple's certificate limit or auth issue. Using match_nuke...")
+          if create_error.message.include?("Maximum number of certificates") || create_error.message.include?("reached the maximum number")
+            UI.important("⚠️  Hit Apple's certificate limit. Using match_nuke...")
             
             begin
               match_nuke(
                 type: "appstore",
                 skip_confirmation: true,
                 readonly: false,
-                username: ENV['FASTLANE_APPLE_ID']
+                api_key: api_key
               )
               
               UI.success("✅ Revoked old certificates")
