@@ -280,19 +280,21 @@ platform :ios do
             readonly: false,
             verbose: true,
             keychain_name: match_keychain_arg,
-            keychain_password: keychain_password
+            keychain_password: keychain_password,
+            username: ENV['FASTLANE_APPLE_ID']
           )
           UI.success("✅ Created new certificates")
           
         rescue => create_error
-          if create_error.message.include?("Maximum number of certificates") || create_error.message.include?("reached the maximum number")
-            UI.important("⚠️  Hit Apple's certificate limit. Using match_nuke...")
+          if create_error.message.include?("Maximum number of certificates") || create_error.message.include?("reached the maximum number") || create_error.message.include?("Missing password")
+            UI.important("⚠️  Hit Apple's certificate limit or auth issue. Using match_nuke...")
             
             begin
               match_nuke(
                 type: "appstore",
                 skip_confirmation: true,
-                readonly: false
+                readonly: false,
+                username: ENV['FASTLANE_APPLE_ID']
               )
               
               UI.success("✅ Revoked old certificates")
