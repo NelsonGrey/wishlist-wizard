@@ -182,11 +182,13 @@ jobs:
           puts '✅ JWT token generated successfully'
           EOF
 
-      - name: � Install iOS Ruby Dependencies
+      - name: 📦 Install iOS Ruby Dependencies
         run: |
           echo '📦 Installing Ruby dependencies from Gemfile...'
           cd packages/mobile/ios
           bundle install
+          echo '📋 Installed gem versions:'
+          bundle list | grep -E '(fastlane|cocoapods)'
           echo '✅ Bundle dependencies installed'
 
       - name: 🔐 Setup Service Account Key
