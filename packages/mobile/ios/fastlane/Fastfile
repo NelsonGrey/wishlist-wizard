@@ -199,7 +199,25 @@ platform :ios do
 
   desc "Sync code signing certificates and provisioning profiles"
   lane :sync_signing do
-    # Explicitly create/unlock a specifically named keychain to avoid temp keychain issues on self-hosted runner
+    # Clean up ALL distribution certificates from the login keychain before starting
+    UI.message("🧹 Cleaning up all distribution certificates from login keychain...")
+    begin
+      login_keychain = File.expand_path("~/Library/Keychains/login.keychain-db")
+      cert_list = `security find-certificate -a -c "Apple Distribution" -Z "#{login_keychain}" 2>/dev/null`
+      sha1_hashes = cert_list.scan(/SHA-1 hash: ([A-F0-9]{40})/).flatten
+      
+      if sha1_hashes.any?
+        UI.message("Found #{sha1_hashes.length} distribution certificate(s), removing them...")
+        sha1_hashes.each do |sha1|
+          sh("security delete-certificate -Z #{sha1} \"#{login_keychain}\" 2>/dev/null || true", log: false)
+        end
+        UI.success("✅ Cleaned #{sha1_hashes.length} certificate(s) from login keychain")
+      end
+    rescue => e
+      UI.message("⚠️ Login keychain cleanup: #{e.message}")
+    end
+
+    # Explicitly create/unlock a specifically named keychain
     keychain_name = ENV["MATCH_KEYCHAIN_NAME"]
     if keychain_name.to_s.empty?
       keychain_name = "fastlane_build_keychain"
@@ -208,7 +226,6 @@ platform :ios do
 
     keychain_path = ENV["MATCH_KEYCHAIN_PATH"]
     if keychain_path.to_s.empty?
-      # Fallback logic for path
       keychain_path = File.expand_path("~/Library/Keychains/#{keychain_name}-db")
     end
     
@@ -221,7 +238,7 @@ platform :ios do
       )
     else
       create_keychain(
-        name: keychain_name, # create_keychain usually uses name to derive path unless --path given? fastlane action uses name.
+        name: keychain_name,
         password: keychain_password,
         default_keychain: false,
         unlock: true,
@@ -230,39 +247,74 @@ platform :ios do
       )
     end
 
-    # Use the full path for match if available, to ensure it finds the ephemeral keychain
     match_keychain_arg = keychain_path
 
-    match_opts = {
-      type: "appstore",
-      readonly: false, # Changed to false for consistency
-      verbose: true,
-      # api_key_path: nil, # Allow Fastlane to find it from SharedValues
-      force: false,
-      keychain_name: match_keychain_arg,
-      keychain_password: keychain_password
-    }
+    # ZERO-TOUCH certificate management
+    should_retry = false
+    creation_attempt = 0
 
     begin
-      match(match_opts)
-    rescue Exception => e
-      # Check for errors requiring nuke/regenerate
-      if e.message.include?("reached the maximum number of available Distribution certificates") || 
-         e.message.include?("To reset the certificates") || 
-         e.message.include?("No code signing identity found")
-         
-        UI.error("⚠️  Caught match error: #{e.message}")
-        UI.message("🧹  Attempting to purge existing App Store assets from the match repo to free up slots or fix inconsistencies...")
+      # Try readonly first
+      UI.message("🔄 Attempting to use existing certificates...")
+      match(
+        type: "appstore",
+        readonly: true,
+        verbose: true,
+        keychain_name: match_keychain_arg,
+        keychain_password: keychain_password
+      )
+      UI.success("✅ Using existing certificates")
+
+    rescue => e
+      if e.message.include?("No code signing identity found") || e.message.include?("No matching provisioning profiles found")
+        creation_attempt += 1
+        if creation_attempt > 1
+          UI.error("❌ Failed after multiple attempts")
+          raise e
+        end
         
-        # Call the helper to nuke the repo assets AND revoke on Apple Portal
-        purge_match_repo_appstore_assets!
-        UI.message("🔁 Retrying match (appstore) after purge...")
-        
-        # Retry with force: true and readonly: false
-        match(match_opts.merge(readonly: false, force: true))
+        UI.message("⚠️  Creating new certificates...")
+        begin
+          match(
+            type: "appstore",
+            readonly: false,
+            verbose: true,
+            keychain_name: match_keychain_arg,
+            keychain_password: keychain_password
+          )
+          UI.success("✅ Created new certificates")
+          
+        rescue => create_error
+          if create_error.message.include?("Maximum number of certificates") || create_error.message.include?("reached the maximum number")
+            UI.important("⚠️  Hit Apple's certificate limit. Using match_nuke...")
+            
+            begin
+              match_nuke(
+                type: "appstore",
+                skip_confirmation: true,
+                readonly: false
+              )
+              
+              UI.success("✅ Revoked old certificates")
+              should_retry = true
+              creation_attempt = 0
+              retry
+            rescue => nuke_error
+              UI.error("❌ Failed to nuke certificates: #{nuke_error.message}")
+              raise create_error
+            end
+          else
+            raise create_error
+          end
+        end
       else
-        # Re-raise any other error
         raise e
+      end
+      
+      if should_retry
+        should_retry = false
+        creation_attempt = 0
+        retry
       end
     end
 
