@@ -182,17 +182,18 @@ jobs:
           puts '✅ JWT token generated successfully'
           EOF
 
-      - name: 📱 Generate iOS Platform Files
+      - name: � Install iOS Ruby Dependencies
         run: |
-          echo '🔄 Generating iOS platform files...'
-          flutter create --platforms=ios --org com.nelsongrey.wishlistwizard .
-          echo '✅ iOS platform files generated'
+          echo '📦 Installing Ruby dependencies from Gemfile...'
+          cd packages/mobile/ios
+          bundle install
+          echo '✅ Bundle dependencies installed'
 
       - name: 🔐 Setup Service Account Key
         run: |
           echo '🔄 Setting up Firebase service account key...'
-          mkdir -p ios
-          echo '${{ github.ref == 'refs/heads/main' && secrets.FIREBASE_SERVICE_ACCOUNT_KEY_PRODUCTION || github.ref == 'refs/heads/staging' && secrets.FIREBASE_SERVICE_ACCOUNT_KEY_STAGING || secrets.FIREBASE_SERVICE_ACCOUNT_KEY_DEVELOPMENT }}' > ios/service-account-key.json
+          mkdir -p packages/mobile/ios
+          echo '${{ github.ref == 'refs/heads/main' && secrets.FIREBASE_SERVICE_ACCOUNT_KEY_PRODUCTION || github.ref == 'refs/heads/staging' && secrets.FIREBASE_SERVICE_ACCOUNT_KEY_STAGING || secrets.FIREBASE_SERVICE_ACCOUNT_KEY_DEVELOPMENT }}' > packages/mobile/ios/service-account-key.json
           echo '✅ Service account key configured'
 
       - name: 🏗️ Build and Distribute iOS App
@@ -202,8 +203,7 @@ jobs:
           RELEASE_NOTES="${{ github.event.inputs.release_notes || format('Build from {0} - {1}', github.ref_name, github.sha) }}"
           echo "RELEASE_NOTES=$RELEASE_NOTES" >> $GITHUB_ENV
 
-          cd ios
-          bundle install
+          cd packages/mobile/ios
           chmod +x ../../../scripts/ephemeral_keychain_fastlane_fixed.sh
 
           export FASTLANE_APPLE_ID='${{ secrets.FASTLANE_APPLE_ID }}'
@@ -345,5 +345,5 @@ jobs:
         run: |
           echo '🧹 Cleaning up temporary files and keychains...'
           rm -rf ~/.private_keys
-          rm -f ios/service-account-key.json
+          rm -f packages/mobile/ios/service-account-key.json
           echo '✅ Cleanup complete'
