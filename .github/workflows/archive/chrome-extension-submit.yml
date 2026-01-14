@@ -1,0 +1,75 @@
+name: 🏪 Submit Chrome Extension to Web Store
+
+on:
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: 'Auto-publish after upload'
+        required: true
+        default: 'false'
+        type: choice
+        options:
+        - 'true'
+        - 'false'
+
+jobs:
+  submit-extension:
+    name: 🏪 Submit to Chrome Web Store
+    runs-on: self-hosted
+    
+    steps:
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v4
+
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: 📦 Install Dependencies
+        run: npm ci
+
+      - name: 🏗️ Build Browser Extension
+        run: npm run build --workspace=packages/browser-extension
+
+      - name: 📦 Create Extension Package
+        run: |
+          mkdir -p chrome-extension-package
+          cp -r packages/browser-extension/dist/* chrome-extension-package/
+          cp packages/browser-extension/manifest.json chrome-extension-package/
+          cp -r packages/browser-extension/public/icons chrome-extension-package/
+          cd chrome-extension-package
+          zip -r ../wishlist-wizard-extension.zip .
+
+      - name: 🏪 Submit to Chrome Web Store
+        uses: mnao305/chrome-extension-upload@v5.0.0
+        with:
+          file-path: wishlist-wizard-extension.zip
+          extension-id: ${{ secrets.CHROME_EXTENSION_ID }}
+          client-id: ${{ secrets.CHROME_CLIENT_ID }}
+          client-secret: ${{ secrets.CHROME_CLIENT_SECRET }}
+          refresh-token: ${{ secrets.CHROME_REFRESH_TOKEN }}
+          publish: ${{ inputs.publish }}
+
+      - name: 📊 Upload Package as Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: chrome-extension-submission
+          path: wishlist-wizard-extension.zip
+          retention-days: 30
+
+      - name: 📝 Submission Summary
+        run: |
+          echo "## 🏪 Chrome Extension Submission" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Extension ID**: ${{ secrets.CHROME_EXTENSION_ID }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Auto-publish**: ${{ inputs.publish }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Submission Time**: $(date)" >> $GITHUB_STEP_SUMMARY
+          echo "**Package Size**: $(du -h wishlist-wizard-extension.zip | cut -f1)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [[ "${{ inputs.publish }}" == "true" ]]; then
+            echo "✅ Extension submitted and published automatically"
+          else
+            echo "📦 Extension submitted for review - manual publish required"
+          fi

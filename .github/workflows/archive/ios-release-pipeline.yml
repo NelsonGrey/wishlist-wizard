@@ -1,0 +1,270 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
+name: 🚀 iOS Release Pipeline
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_type:
+        description: 'Type of release to perform'
+        required: true
+        default: 'testflight'
+        type: choice
+        options:
+          - testflight
+          - app_store
+          - full_pipeline
+      release_notes:
+        description: 'Release notes for this version'
+        required: false
+        type: string
+      beta_group_name:
+        description: 'Name of TestFlight beta group (for full pipeline)'
+        required: false
+        default: 'Internal Testers'
+        type: string
+  release:
+    types: [published]
+
+jobs:
+  release-ios:
+    runs-on: [self-hosted, macOS, ios]
+    environment:
+      name: ${{ github.event.inputs.release_type == 'app_store' && 'PRODUCTION' || 'DEVELOPMENT' }}
+    steps:
+      - name: 🔧 Fix Git Config for HTTPS Checkout
+        run: |
+          echo '🔄 Removing any global SSH redirects for GitHub to ensure HTTPS checkout works...'
+          git config --global --unset-all url."git@github.com:".insteadOf || true
+          echo '✅ Git config fixed for HTTPS checkout'
+
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v4
+
+      - name: 🦋 Setup Flutter
+        uses: subosito/flutter-action@v2.21.0
+        with:
+          channel: stable
+          cache: true
+          architecture: arm64
+
+      - name: 💎 Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.2'
+          bundler-cache: true
+
+      - name: 📦 Install Ruby Dependencies
+        run: |
+          cd packages/mobile
+          bundle install
+
+      - name: 🛠️ Setup Xcode
+        run: |
+          # Check if Xcode is already properly selected
+          CURRENT_XCODE=$(xcode-select -p 2>/dev/null || echo "")
+          if [[ "$CURRENT_XCODE" == "/Applications/Xcode.app/Contents/Developer" ]]; then
+            echo "✅ Xcode already properly selected"
+          else
+            echo "🔄 Attempting to select Xcode..."
+            # Try to select Xcode (may require sudo on some systems)
+            if sudo -n xcode-select -s /Applications/Xcode.app/Contents/Developer 2>/dev/null; then
+              echo "✅ Xcode selected successfully"
+            else
+              echo "⚠️ Could not select Xcode (may already be selected or requires manual setup)"
+            fi
+          fi
+
+          # Check if Xcode license is already accepted
+          if xcodebuild -license check 2>/dev/null; then
+            echo "✅ Xcode license already accepted"
+          else
+            echo "🔄 Attempting to accept Xcode license..."
+            # Try to accept license (may require sudo on some systems)
+            if sudo -n xcodebuild -license accept 2>/dev/null; then
+              echo "✅ Xcode license accepted successfully"
+            else
+              echo "⚠️ Could not accept Xcode license (may already be accepted or requires manual setup)"
+            fi
+          fi
+
+      - name: 🔧 Setup macOS CI Environment
+        run: flutter pub get
+        working-directory: packages/mobile
+
+      - name: 🔍 Check Flutter Doctor
+        run: |
+          flutter doctor -v
+          echo "🔧 Checking iOS setup..."
+          flutter doctor --ios || echo "⚠️ iOS setup issues detected"
+
+      - name: 🔍 Check Secrets
+        run: |
+          MATCH_GIT_URL="${{ secrets.MATCH_GIT_URL }}"
+          MATCH_SSH_PRIVATE_KEY="${{ secrets.MATCH_SSH_PRIVATE_KEY }}"
+          NELSON_GREY_PAT="${{ secrets.NELSON_GREY_PAT }}"
+          # Fallback for Wishlist Wizard specific token
+          MATCH_GIT_URL_TOKEN="${{ secrets.MATCH_GIT_URL_TOKEN }}"
+
+          if [ -n "$MATCH_GIT_URL" ] && [[ "$MATCH_GIT_URL" == *"@"* ]]; then
+            echo "✅ MATCH_GIT_URL is set and appears to include credentials"
+          elif [ -n "$MATCH_SSH_PRIVATE_KEY" ]; then
+            echo "✅ MATCH_SSH_PRIVATE_KEY is set"
+          elif [ -n "$NELSON_GREY_PAT" ]; then
+            echo "✅ NELSON_GREY_PAT is set"
+          elif [ -n "$MATCH_GIT_URL_TOKEN" ]; then
+             echo "✅ MATCH_GIT_URL_TOKEN is set"
+          else
+            echo "❌ No match repo auth configured (need MATCH_SSH_PRIVATE_KEY, NELSON_GREY_PAT, MATCH_GIT_URL_TOKEN, or MATCH_GIT_URL with credentials)"
+            exit 1
+          fi
+
+      - name: 🔐 Create Service Account Key File
+        env:
+          FIREBASE_SERVICE_ACCOUNT_KEY: ${{ secrets[format('FIREBASE_SERVICE_ACCOUNT_KEY_{0}', github.ref == 'refs/heads/main' && 'PRODUCTION' || github.ref == 'refs/heads/staging' && 'STAGING' || 'DEVELOPMENT')] }}
+        run: |
+          mkdir -p packages/mobile/ios
+          echo "$FIREBASE_SERVICE_ACCOUNT_KEY" > packages/mobile/ios/service-account-key.json
+
+
+      - name: � Build and Distribute iOS App
+        env:
+          ENVIRONMENT: ${{ github.event.inputs.release_type == 'app_store' && 'PRODUCTION' || 'DEVELOPMENT' }}
+          FLUTTER_ROOT: ${{ env.FLUTTER_ROOT }}
+        run: |
+          echo "🚀 Building and distributing iOS app..."
+          
+          RELEASE_NOTES="${{ github.event.inputs.release_notes || format('Release {0} - {1}', github.ref_name, github.sha) }}"
+          echo "RELEASE_NOTES=$RELEASE_NOTES" >> $GITHUB_ENV
+
+          cd packages/mobile/ios
+          chmod +x ../../../scripts/ephemeral_keychain_fastlane_fixed.sh
+
+          # Export secrets for Fastlane
+          export FASTLANE_APPLE_ID='${{ secrets.FASTLANE_APPLE_ID }}'
+          export FASTLANE_PASSWORD='${{ secrets.FASTLANE_PASSWORD }}'
+          export FASTLANE_TEAM_ID='${{ secrets.FASTLANE_TEAM_ID }}'
+          export FASTLANE_ITC_TEAM_ID='${{ secrets.FASTLANE_ITC_TEAM_ID }}'
+          export ASC_KEY_ID='${{ secrets.ASC_KEY_ID }}'
+          export ASC_ISSUER_ID='${{ secrets.ASC_ISSUER_ID }}'
+          export ASC_PRIVATE_KEY='${{ secrets.ASC_PRIVATE_KEY }}'
+          export MATCH_PASSWORD='${{ secrets.MATCH_PASSWORD }}'
+          export BETA_FEEDBACK_EMAIL='${{ secrets.BETA_FEEDBACK_EMAIL }}'
+          
+          # Secrets for match repo logic
+          export MATCH_GIT_URL='${{ secrets.MATCH_GIT_URL }}'
+          export NELSON_GREY_PAT='${{ secrets.NELSON_GREY_PAT }}'
+          export MATCH_SSH_PRIVATE_KEY='${{ secrets.MATCH_SSH_PRIVATE_KEY }}'
+          # Legacy token fallback
+          MATCH_GIT_URL_TOKEN='${{ secrets.MATCH_GIT_URL_TOKEN }}'
+          if [[ -z "$NELSON_GREY_PAT" ]] && [[ -n "$MATCH_GIT_URL_TOKEN" ]]; then
+            export NELSON_GREY_PAT="$MATCH_GIT_URL_TOKEN"
+          fi
+
+          # Clean secrets
+          MATCH_PASSWORD="$(printf %s "$MATCH_PASSWORD" | tr -d '\r\n')"
+          MATCH_GIT_URL="$(printf %s "$MATCH_GIT_URL" | tr -d '\r\n')"
+          NELSON_GREY_PAT="$(printf %s "$NELSON_GREY_PAT" | tr -d '\r\n')"
+          # SSH private keys must keep newlines; only strip CR.
+          MATCH_SSH_PRIVATE_KEY="$(printf %s "$MATCH_SSH_PRIVATE_KEY" | tr -d '\r')"
+          export MATCH_PASSWORD
+
+          # SSH / HTTPS Repo Selection Logic
+          USE_MATCH_SSH=0
+          if [[ -n "$MATCH_SSH_PRIVATE_KEY" ]]; then
+            echo '🔐 SSH key provided for match repo access; validating...'
+            mkdir -p "$HOME/.ssh"
+            chmod 700 "$HOME/.ssh"
+            MATCH_SSH_KEY_FILE="$HOME/.ssh/match_repo_key"
+
+            if [[ "$MATCH_SSH_PRIVATE_KEY" == "-----BEGIN "* ]]; then
+              printf '%s' "$MATCH_SSH_PRIVATE_KEY" > "$MATCH_SSH_KEY_FILE"
+            else
+              if printf '%s' "$MATCH_SSH_PRIVATE_KEY" | base64 -d > "$MATCH_SSH_KEY_FILE" 2>/dev/null; then
+                :
+              else
+                printf '%s' "$MATCH_SSH_PRIVATE_KEY" > "$MATCH_SSH_KEY_FILE"
+              fi
+            fi
+
+            chmod 600 "$MATCH_SSH_KEY_FILE"
+            
+            # Ensure newline at the end of the key file
+            if [ -n "$(tail -c 1 "$MATCH_SSH_KEY_FILE")" ]; then
+                echo >> "$MATCH_SSH_KEY_FILE"
+            fi
+            
+            if ssh-keygen -y -f "$MATCH_SSH_KEY_FILE" >/dev/null 2>&1; then
+              USE_MATCH_SSH=1
+              echo "✅ MATCH_SSH_PRIVATE_KEY is a valid key format"
+            else
+              echo '⚠️ MATCH_SSH_PRIVATE_KEY is not a valid SSH private key; falling back to PAT/HTTPS match repo access'
+              rm -f "$MATCH_SSH_KEY_FILE" || true
+            fi
+          fi
+
+          if [[ "$USE_MATCH_SSH" == "1" ]]; then
+            echo '🔐 Using SSH key for match repo access'
+            ssh-keyscan -t rsa,ecdsa,ed25519 github.com >> "$HOME/.ssh/known_hosts" 2>/dev/null || true
+            export GIT_SSH_COMMAND="ssh -i $MATCH_SSH_KEY_FILE -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile=$HOME/.ssh/known_hosts"
+            export MATCH_GIT_URL="git@github.com:mnelson3/nelson-grey.git"
+            
+            # Diagnostic: Check connectivity
+            echo "🔍 Testing SSH connectivity to GitHub..."
+            ssh -T git@github.com -i "$MATCH_SSH_KEY_FILE" -o StrictHostKeyChecking=no || echo "⚠️ SSH connectivity test returned non-zero (expected for shell check)"
+            
+          else
+            echo "🔐 Using HTTPS for match repo access"
+            BASE_MATCH_URL="$MATCH_GIT_URL"
+            if [[ -z "$BASE_MATCH_URL" ]]; then
+              BASE_MATCH_URL="https://github.com/mnelson3/nelson-grey.git"
+            fi
+
+            if [[ "$BASE_MATCH_URL" == *"@"* ]]; then
+              export MATCH_GIT_URL="$BASE_MATCH_URL"
+            else
+              if [[ -z "$NELSON_GREY_PAT" ]]; then
+                echo '❌ MATCH_GIT_URL does not include credentials and NELSON_GREY_PAT is not set.'
+                exit 1
+              fi
+              if [[ "$BASE_MATCH_URL" == https://* ]]; then
+                export MATCH_GIT_URL="https://mnelson3:${NELSON_GREY_PAT}@${BASE_MATCH_URL#https://}"
+              else
+                export MATCH_GIT_URL="https://mnelson3:${NELSON_GREY_PAT}@github.com/${BASE_MATCH_URL#github.com/}"
+              fi
+            fi
+          fi
+
+          # Create App Store Connect private key file
+          echo "$ASC_PRIVATE_KEY" | base64 -d > asc_private_key.p8
+
+          # Execute the appropriate release pipeline based on type
+          RELEASE_TYPE="${{ github.event.inputs.release_type }}"
+          BETA_GROUP_NAME="${{ github.event.inputs.beta_group_name || 'Internal Testers' }}"
+
+          case "$RELEASE_TYPE" in
+            "testflight")
+              echo "🎯 Running TestFlight-only release..."
+              ../../../scripts/ephemeral_keychain_fastlane_fixed.sh "bundle exec fastlane beta"
+              ;;
+            "app_store")
+              echo "🏪 Running App Store submission..."
+              ../../../scripts/ephemeral_keychain_fastlane_fixed.sh "bundle exec fastlane submit_to_app_store release_notes:\"$RELEASE_NOTES\""
+              ;;
+            "full_pipeline")
+              echo "🚀 Running complete release pipeline..."
+              ../../../scripts/ephemeral_keychain_fastlane_fixed.sh "bundle exec fastlane full_release_pipeline release_notes:\"$RELEASE_NOTES\" manage_beta:true beta_group_name:\"$BETA_GROUP_NAME\" submit_to_app_store:true"
+              ;;
+            *)
+              echo "❌ Unknown release type: $RELEASE_TYPE"
+              exit 1
+              ;;
+          esac
+
+      - name: 🧹 Clean Up
+        if: always()
+        run: |
+          # Clean up temporary keychain
+          security delete-keychain fastlane_tmp_keychain 2>/dev/null || true
+
+          # Clean up service account files
+          rm -f packages/mobile/ios/service-account-key.json packages/mobile/ios/asc_private_key.p8 packages/mobile/ios/.env

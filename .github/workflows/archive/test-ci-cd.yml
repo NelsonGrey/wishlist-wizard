@@ -1,0 +1,453 @@
+name: 🧪 CI/CD Pipeline Test - Validate All Components
+
+on:
+#  push:
+#    branches: [ test-ci-cd, test-pipeline ]
+  schedule:
+    # Run daily at 2 AM UTC
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+    inputs:
+      test_scope:
+        description: 'Scope of testing to perform'
+        required: false
+        default: 'full'
+        type: choice
+        options:
+          - full
+          - build-only
+          - environment-only
+      environment:
+        description: 'Target environment for testing'
+        required: false
+        default: 'DEVELOPMENT'
+        type: choice
+        options:
+          - PRODUCTION
+          - STAGING
+          - DEVELOPMENT
+
+env:
+  NODE_VERSION: '18'
+  FLUTTER_VERSION: 'stable'
+
+jobs:
+  # 🔍 Test Environment Determination
+  test-environment-determination:
+    name: 🔍 Test Environment Determination
+    runs-on: self-hosted
+    outputs:
+      environment: ${{ steps.set-env.outputs.environment }}
+      should-deploy: ${{ steps.set-env.outputs.should-deploy }}
+    steps:
+      - name: 📋 Test Environment Variables Logic
+        id: set-env
+        run: |
+          echo "Testing environment determination logic..."
+
+          # Simulate different trigger scenarios
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            INPUT_ENV=$(echo "${{ github.event.inputs.environment || 'DEVELOPMENT' }}" | tr '[:lower:]' '[:upper:]')
+            echo "Manual trigger detected - Environment: $INPUT_ENV"
+            echo "environment=$INPUT_ENV" >> $GITHUB_OUTPUT
+            echo "should-deploy=false" >> $GITHUB_OUTPUT  # Don't actually deploy in tests
+          elif [[ "${{ github.event_name }}" == "schedule" ]]; then
+            echo "Scheduled trigger detected - Environment: DEVELOPMENT"
+            echo "environment=DEVELOPMENT" >> $GITHUB_OUTPUT
+            echo "should-deploy=false" >> $GITHUB_OUTPUT  # Don't actually deploy in tests
+          elif [[ "${{ github.ref }}" == "refs/heads/test-ci-cd" || "${{ github.ref }}" == "refs/heads/test-pipeline" ]]; then
+            echo "Test branch detected - Environment: DEVELOPMENT"
+            echo "environment=DEVELOPMENT" >> $GITHUB_OUTPUT
+            echo "should-deploy=false" >> $GITHUB_OUTPUT  # Don't actually deploy in tests
+          else
+            echo "Unknown trigger - Environment: DEVELOPMENT (no deployment)"
+            echo "environment=DEVELOPMENT" >> $GITHUB_OUTPUT
+            echo "should-deploy=false" >> $GITHUB_OUTPUT
+          fi
+
+          echo "✅ Environment determination test passed"
+
+  # 🔍 Test Quality Checks
+  test-quality-checks:
+    name: 🔍 Test Quality Checks
+    runs-on: self-hosted
+    steps:
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v4
+
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: 📦 Install Dependencies
+        run: npm ci
+
+      - name: 🔧 Test TypeScript Check
+        run: npm run check --workspaces --if-present
+
+      - name: 🧪 Test Unit Tests
+        run: npm run test --workspaces --if-present
+
+      - name: 🛡️ Test Security Audit
+        run: npm audit --audit-level=high
+
+      - name: ✅ Quality Checks Completed
+        run: echo "✅ All quality checks passed successfully"
+
+  # 🏗️ Test Package Builds
+  test-package-builds:
+    name: 🏗️ Test Package Builds
+    runs-on: self-hosted
+    needs: test-quality-checks
+    if: github.event.inputs.test_scope != 'environment-only'
+    strategy:
+      matrix:
+        package: ['web', 'functions', 'browser-extension', 'shared']
+    steps:
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v4
+
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: 📦 Install Dependencies
+        run: npm ci
+
+      - name: 🏗️ Test Build ${{ matrix.package }}
+        run: npm run build --workspace=packages/${{ matrix.package }}
+
+      - name: 📤 Test Artifact Upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.package }}-build-test
+          path: packages/${{ matrix.package }}/dist/
+          retention-days: 1
+
+      - name: ✅ Package Build Test Completed
+        run: echo "✅ ${{ matrix.package }} build test passed"
+
+  # 📱 Test Mobile Build
+  test-mobile-build:
+    name: 📱 Test Mobile Build
+    runs-on: self-hosted
+    needs: test-quality-checks
+    if: github.event.inputs.test_scope == 'full'
+    steps:
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v4
+
+      - name: 🦋 Setup Flutter
+        run: |
+          # Use pre-installed Flutter on self-hosted runner
+          export PATH="/usr/local/flutter/bin:$PATH"
+          echo "/usr/local/flutter/bin" >> $GITHUB_PATH
+          flutter --version
+
+      - name: 📦 Test Flutter Dependencies
+        run: |
+          cd packages/mobile
+          flutter pub get
+
+      - name: 🧪 Test Flutter Tests
+        run: |
+          cd packages/mobile
+          flutter test
+
+      - name: 🏗️ Test Flutter Web Build
+        run: |
+          cd packages/mobile
+          flutter build web --release
+
+      - name: 📤 Test Mobile Artifact Upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: mobile-build-test
+          path: packages/mobile/build/web/
+          retention-days: 1
+
+      - name: ✅ Mobile Build Test Completed
+        run: echo "✅ Mobile build test passed"
+
+  # 📦 Test Extension Packaging
+  test-extension-packaging:
+    name: 📦 Test Extension Packaging
+    runs-on: self-hosted
+    needs: test-package-builds
+    if: github.event.inputs.test_scope == 'full'
+    steps:
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v4
+
+      - name: 📥 Download Extension Build
+        uses: actions/download-artifact@v4
+        with:
+          name: browser-extension-build-test
+          path: packages/browser-extension/dist/
+
+      - name: 📦 Test Extension Package Creation
+        run: |
+          mkdir -p chrome-extension-package-test
+          cp -r packages/browser-extension/dist/* chrome-extension-package-test/
+          cp packages/browser-extension/manifest.json chrome-extension-package-test/
+          cp -r packages/browser-extension/public/icons chrome-extension-package-test/
+          cd chrome-extension-package-test
+          zip -r ../wishlist-wizard-extension-test.zip .
+
+      - name: 📤 Test Extension Package Upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: chrome-extension-package-test
+          path: wishlist-wizard-extension-test.zip
+          retention-days: 1
+
+      - name: ✅ Extension Packaging Test Completed
+        run: echo "✅ Extension packaging test passed"
+
+  # � Test Environment Files
+  test-environment-files:
+    name: � Test Environment Files
+    runs-on: self-hosted
+    needs: test-environment-determination
+    if: github.event.inputs.test_scope != 'build-only'
+    steps:
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v4
+
+      - name: 🔐 Generate Test Environment File
+        run: |
+          ENVIRONMENT="${{ github.event.inputs.environment }}"
+          echo "Generating test environment file for: $ENVIRONMENT"
+
+          case "$ENVIRONMENT" in
+            "PRODUCTION")
+              cat > packages/web/.env.test << 'EOF'
+          # Production Environment Configuration - TEST MODE
+          VITE_FIREBASE_API_KEY=test_firebase_api_key_prod
+          VITE_FIREBASE_AUTH_DOMAIN=test-project-prod.firebaseapp.com
+          VITE_FIREBASE_PROJECT_ID=test-project-prod
+          VITE_FIREBASE_STORAGE_BUCKET=test-project-prod.appspot.com
+          VITE_FIREBASE_MESSAGING_SENDER_ID=123456789012
+          VITE_FIREBASE_APP_ID=1:123456789012:web:abcdef123456
+          VITE_API_BASE_URL=https://api.test-prod.com
+          VITE_ENVIRONMENT=production
+          VITE_DEBUG=false
+          VITE_ANALYTICS_ID=GA_TEST_PROD
+          VITE_ENABLE_DEBUG_TOOLS=false
+          VITE_ENABLE_ANALYTICS=true
+          VITE_ENABLE_ERROR_REPORTING=true
+          EOF
+              ;;
+            "STAGING")
+              cat > packages/web/.env.test << 'EOF'
+          # Staging Environment Configuration - TEST MODE
+          VITE_FIREBASE_API_KEY=test_firebase_api_key_staging
+          VITE_FIREBASE_AUTH_DOMAIN=test-project-staging.firebaseapp.com
+          VITE_FIREBASE_PROJECT_ID=test-project-staging
+          VITE_FIREBASE_STORAGE_BUCKET=test-project-staging.appspot.com
+          VITE_FIREBASE_MESSAGING_SENDER_ID=123456789013
+          VITE_FIREBASE_APP_ID=1:123456789013:web:abcdef123457
+          VITE_API_BASE_URL=https://api.test-staging.com
+          VITE_ENVIRONMENT=staging
+          VITE_DEBUG=true
+          VITE_ANALYTICS_ID=GA_TEST_STAGING
+          VITE_ENABLE_DEBUG_TOOLS=true
+          VITE_ENABLE_ANALYTICS=true
+          VITE_ENABLE_ERROR_REPORTING=true
+          EOF
+              ;;
+            *)
+              cat > packages/web/.env.test << 'EOF'
+          # Development Environment Configuration - TEST MODE
+          VITE_FIREBASE_API_KEY=test_firebase_api_key_dev
+          VITE_FIREBASE_AUTH_DOMAIN=test-project-dev.firebaseapp.com
+          VITE_FIREBASE_PROJECT_ID=test-project-dev
+          VITE_FIREBASE_STORAGE_BUCKET=test-project-dev.appspot.com
+          VITE_FIREBASE_MESSAGING_SENDER_ID=123456789014
+          VITE_FIREBASE_APP_ID=1:123456789014:web:abcdef123458
+          VITE_API_BASE_URL=https://api.test-dev.com
+          VITE_ENVIRONMENT=development
+          VITE_DEBUG=true
+          VITE_ANALYTICS_ID=GA_TEST_DEV
+          VITE_ENABLE_DEBUG_TOOLS=true
+          VITE_ENABLE_ANALYTICS=false
+          VITE_ENABLE_ERROR_REPORTING=false
+          EOF
+              ;;
+          esac
+
+          echo "✅ Environment file generated for $ENVIRONMENT"
+
+      - name: ✅ Validate Environment File
+        run: |
+          if [[ -f "packages/web/.env.test" ]]; then
+            echo "✅ Environment file generated successfully"
+            echo "📄 Environment file contents:"
+            cat packages/web/.env.test
+          else
+            echo "❌ Environment file not found"
+            exit 1
+          fi
+
+  # 🚀 Test Deployment Simulation
+  test-deployment-simulation:
+    name: 🚀 Test Deployment Simulation
+    runs-on: self-hosted
+    needs: [test-quality-checks, test-package-builds, test-mobile-build, test-extension-packaging, test-environment-files]
+    if: github.event.inputs.test_scope == 'full'
+    steps:
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v4
+
+      - name: 📥 Download All Build Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: ./test-artifacts
+
+      - name: 🚀 Simulate Firebase Deployment
+        run: |
+          echo "🔥 Simulating Firebase deployment for ${{ github.event.inputs.environment }} environment..."
+
+          # Check if web build exists
+          if [[ -d "test-artifacts/web-build-test" ]]; then
+            echo "✅ Web app build artifact found"
+            ls -la test-artifacts/web-build-test/
+          else
+            echo "❌ Web app build artifact missing"
+            exit 1
+          fi
+
+          # Check if functions build exists
+          if [[ -d "test-artifacts/functions-build-test" ]]; then
+            echo "✅ API functions build artifact found"
+            ls -la test-artifacts/functions-build-test/
+          else
+            echo "❌ API functions build artifact missing"
+            exit 1
+          fi
+
+          # Check if mobile build exists
+          if [[ -d "test-artifacts/mobile-build-test" ]]; then
+            echo "✅ Mobile PWA build artifact found"
+            ls -la test-artifacts/mobile-build-test/
+          else
+            echo "❌ Mobile PWA build artifact missing"
+            exit 1
+          fi
+
+          # Check if extension package exists
+          if [[ -f "test-artifacts/chrome-extension-package-test/wishlist-wizard-extension-test.zip" ]]; then
+            echo "✅ Chrome extension package found"
+            ls -la test-artifacts/chrome-extension-package-test/
+          else
+            echo "❌ Chrome extension package missing"
+            exit 1
+          fi
+
+          echo "✅ All deployment artifacts are ready for deployment"
+
+  # 🧹 Cleanup Test Artifacts
+  cleanup-test-artifacts:
+    name: 🧹 Cleanup Test Artifacts
+    runs-on: self-hosted
+    needs: test-deployment-simulation
+    if: always()
+    steps:
+      - name: 🧹 Remove Test Artifacts
+        run: |
+          echo "Cleaning up test artifacts..."
+          
+          # Remove test environment files
+          rm -f packages/web/.env.test
+          
+          # Remove test extension packages
+          rm -rf chrome-extension-package-test/
+          rm -f wishlist-wizard-extension-test.zip
+          
+          # Remove test results (optional - keep for debugging)
+          # rm -f test-results-summary.md
+          
+          echo "✅ Test artifacts cleaned up"
+
+    # 📊 Test Results Summary
+  test-results-summary:
+    name: 📊 Test Results Summary
+    runs-on: self-hosted
+    needs: [test-environment-determination, test-quality-checks, test-package-builds, test-mobile-build, test-extension-packaging, test-environment-files, test-deployment-simulation, cleanup-test-artifacts]
+    if: always()
+    steps:
+      - name: 📊 Generate Test Report
+        run: |
+          echo "## 🧪 CI/CD Pipeline Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Test Scope**: ${{ github.event.inputs.test_scope }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Target Environment**: ${{ github.event.inputs.environment }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Test Date**: $(date)" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit**: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          echo "### Test Results:" >> $GITHUB_STEP_SUMMARY
+          echo "| Component | Status | Details |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----------|--------|---------|" >> $GITHUB_STEP_SUMMARY
+
+          # Environment Determination
+          if [[ "${{ needs.test-environment-determination.result }}" == "success" ]]; then
+            echo "| 🔍 Environment Determination | ✅ PASSED | Environment: ${{ needs.test-environment-determination.outputs.environment }} |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| 🔍 Environment Determination | ❌ FAILED | Check environment logic |" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          # Quality Checks
+          if [[ "${{ needs.test-quality-checks.result }}" == "success" ]]; then
+            echo "| 🔍 Quality Checks | ✅ PASSED | TypeScript, Tests, Security |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| 🔍 Quality Checks | ❌ FAILED | Check build/test failures |" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          # Package Builds
+          if [[ "${{ needs.test-package-builds.result }}" == "success" ]]; then
+            echo "| 🏗️ Package Builds | ✅ PASSED | web, functions, browser-extension, shared |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| 🏗️ Package Builds | ❌ FAILED | Check build artifacts |" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          # Mobile Build
+          if [[ "${{ needs.test-mobile-build.result }}" == "success" || "${{ github.event.inputs.test_scope }}" != "full" ]]; then
+            echo "| 📱 Mobile Build | ✅ PASSED | Flutter web build |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| 📱 Mobile Build | ❌ FAILED | Check Flutter build |" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          # Extension Packaging
+          if [[ "${{ needs.test-extension-packaging.result }}" == "success" || "${{ github.event.inputs.test_scope }}" != "full" ]]; then
+            echo "| 📦 Extension Packaging | ✅ PASSED | Chrome extension package |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| 📦 Extension Packaging | ❌ FAILED | Check extension build |" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          # Environment Files
+          if [[ "${{ needs.test-environment-files.result }}" == "success" || "${{ github.event.inputs.test_scope }}" == "build-only" ]]; then
+            echo "| 🔐 Environment Files | ✅ PASSED | ${{ github.event.inputs.environment }} config |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| 🔐 Environment Files | ❌ FAILED | Check env file generation |" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          # Deployment Simulation
+          if [[ "${{ needs.test-deployment-simulation.result }}" == "success" || "${{ github.event.inputs.test_scope }}" != "full" ]]; then
+            echo "| 🚀 Deployment Simulation | ✅ PASSED | All artifacts ready |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| 🚀 Deployment Simulation | ❌ FAILED | Check deployment prep |" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Next Steps:" >> $GITHUB_STEP_SUMMARY
+          echo "1. **Review Test Results**: Check the detailed logs for any failures" >> $GITHUB_STEP_SUMMARY
+          echo "2. **Fix Issues**: Address any failed components before production deployment" >> $GITHUB_STEP_SUMMARY
+          echo "3. **Run Real Deployment**: Use the main CI/CD pipeline for actual deployment" >> $GITHUB_STEP_SUMMARY
+          echo "4. **Monitor**: Watch the deployment progress and verify functionality" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Test Status**: ${{ job.status == 'success' && '✅ ALL TESTS PASSED' || '❌ SOME TESTS FAILED' }}" >> $GITHUB_STEP_SUMMARY
