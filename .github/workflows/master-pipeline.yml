@@ -43,7 +43,7 @@ env:
 jobs:
   load-config:
     name: Load Project Configuration
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     env:
       # Map old secret names to new workflow-expected names for backward compatibility
       APP_STORE_CONNECT_KEY_ID: ${{ secrets.ASC_KEY_ID }}
