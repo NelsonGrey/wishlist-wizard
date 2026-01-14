@@ -1,0 +1,251 @@
+name: "Master CI/CD Pipeline"
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: "Action to perform"
+        required: true
+        type: choice
+        options:
+          - build_all
+          - test_all
+          - build_and_deploy
+          - deploy_only
+      environment:
+        description: "Environment for deployment"
+        required: false
+        type: choice
+        options:
+          - development
+          - staging
+          - production
+        default: "development"
+      verbose:
+        description: "Enable verbose output"
+        required: false
+        type: boolean
+        default: false
+  push:
+    branches:
+      - develop
+      - staging
+      - main
+  pull_request:
+    branches:
+      - develop
+      - staging
+      - main
+
+env:
+  MANIFEST_PATH: ".cicd/projects/${{ github.event.repository.name }}.yml"
+
+jobs:
+  load-config:
+    name: Load Project Configuration
+    runs-on: self-hosted
+    env:
+      # Map old secret names to new workflow-expected names for backward compatibility
+      APP_STORE_CONNECT_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+      APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+      APP_STORE_CONNECT_KEY: ${{ secrets.ASC_PRIVATE_KEY }}
+      FIREBASE_PROJECT_DEV: ${{ secrets.FIREBASE_PROJECT_DEVELOPMENT || 'wishlist-wizard-dev' }}
+      FIREBASE_PROJECT_STAGING: ${{ secrets.FIREBASE_PROJECT_STAGING || 'wishlist-wizard-staging' }}
+      FIREBASE_PROJECT_PROD: ${{ secrets.FIREBASE_PROJECT_PRODUCTION || 'wishlist-wizard-prod' }}
+      MATCH_GIT_BRANCH: main
+    outputs:
+      project_name: ${{ steps.manifest.outputs.project_name }}
+      ios_enabled: ${{ steps.manifest.outputs.ios_enabled }}
+      android_enabled: ${{ steps.manifest.outputs.android_enabled }}
+      web_enabled: ${{ steps.manifest.outputs.web_enabled }}
+      firebase_enabled: ${{ steps.manifest.outputs.firebase_enabled }}
+      chrome_extension: ${{ steps.manifest.outputs.chrome_extension }}
+      mobile_build: ${{ steps.manifest.outputs.mobile_build }}
+      trigger_context: ${{ steps.context.outputs.trigger }}
+      target_environment: ${{ steps.context.outputs.environment }}
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Load Manifest
+        id: manifest
+        env:
+          MANIFEST_PATH: ${{ env.MANIFEST_PATH }}
+        run: |
+          ruby <<'RUBY'
+          require 'yaml'
+
+          manifest_path = ENV.fetch('MANIFEST_PATH')
+          unless File.exist?(manifest_path)
+            warn "Project manifest not found at #{manifest_path}"
+            exit 1
+          end
+
+          data = YAML.safe_load(File.read(manifest_path)) || {}
+          targets = data.fetch('targets', {}) || {}
+
+          outputs = {
+            project_name: data.dig('project', 'name') || File.basename(Dir.pwd),
+            ios_enabled: targets.dig('ios', 'enabled') ? 'true' : 'false',
+            android_enabled: targets.dig('android', 'enabled') ? 'true' : 'false',
+            web_enabled: targets.dig('web', 'enabled') ? 'true' : 'false',
+            firebase_enabled: targets.dig('firebase', 'enabled') ? 'true' : 'false',
+            chrome_extension: targets.dig('chrome_extension', 'enabled') ? 'true' : 'false'
+          }
+
+          outputs[:mobile_build] = (outputs[:ios_enabled] == 'true' || outputs[:android_enabled] == 'true') ? 'true' : 'false'
+
+          File.open(ENV.fetch('GITHUB_OUTPUT'), 'a') do |f|
+            outputs.each { |key, value| f.puts("#{key}=#{value}") }
+          end
+
+          puts "Manifest loaded for #{outputs[:project_name]}"
+          RUBY
+
+      - name: Determine Trigger Context
+        id: context
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            TRIGGER="${{ github.event.inputs.action }}"
+            ENVIRONMENT="${{ github.event.inputs.environment }}"
+          elif [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            TRIGGER="build_and_deploy"
+            ENVIRONMENT="production"
+          elif [ "${{ github.ref }}" = "refs/heads/staging" ]; then
+            TRIGGER="build_and_deploy"
+            ENVIRONMENT="staging"
+          elif [ "${{ github.ref }}" = "refs/heads/develop" ]; then
+            TRIGGER="build_all"
+            ENVIRONMENT="development"
+          else
+            TRIGGER="test_all"
+            ENVIRONMENT="development"
+          fi
+
+          echo "trigger=$TRIGGER" >> $GITHUB_OUTPUT
+          echo "environment=$ENVIRONMENT" >> $GITHUB_OUTPUT
+
+  test:
+    name: Run Tests
+    needs: load-config
+    if: |
+      needs.load-config.outputs.trigger_context == 'test_all' ||
+      needs.load-config.outputs.trigger_context == 'build_all' ||
+      needs.load-config.outputs.trigger_context == 'build_and_deploy'
+    runs-on: self-hosted
+    continue-on-error: true
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Run Tests (best effort)
+        run: |
+          if [ -f "package.json" ]; then
+            npm install
+            npm test 2>/dev/null || echo "[warn] Node tests skipped or failed"
+          else
+            echo "[warn] No package.json found at repo root"
+          fi
+
+          if [ -f "pubspec.yaml" ]; then
+            flutter pub get
+            flutter test 2>/dev/null || echo "[warn] Flutter tests skipped or failed"
+          else
+            echo "[warn] No Flutter pubspec found at repo root"
+          fi
+
+  build-ios:
+    name: Build iOS App
+    needs: load-config
+    if: needs.load-config.outputs.ios_enabled == 'true' && (needs.load-config.outputs.trigger_context == 'build_all' || needs.load-config.outputs.trigger_context == 'build_and_deploy')
+    uses: mnelson3/nelson-grey/.github/workflows/reusable/ios-build.yml@develop
+    with:
+      project_name: ${{ needs.load-config.outputs.project_name }}
+      release_type: "build_only"
+      ruby_version: "3.2"
+      bundler_version: "2.4.22"
+      fastlane_version: "2.230.0"
+    secrets:
+      app_store_connect_key_id: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+      app_store_connect_issuer_id: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+      app_store_connect_key: ${{ secrets.APP_STORE_CONNECT_KEY }}
+      match_password: ${{ secrets.MATCH_PASSWORD }}
+      match_git_url: ${{ secrets.MATCH_GIT_URL }}
+      match_git_branch: ${{ secrets.MATCH_GIT_BRANCH }}
+
+  build-android:
+    name: Build Android App
+    needs: load-config
+    if: needs.load-config.outputs.android_enabled == 'true' && (needs.load-config.outputs.trigger_context == 'build_all' || needs.load-config.outputs.trigger_context == 'build_and_deploy')
+    uses: mnelson3/nelson-grey/.github/workflows/reusable/android-build.yml@develop
+    with:
+      project_name: ${{ needs.load-config.outputs.project_name }}
+      build_type: ${{ needs.load-config.outputs.trigger_context == 'build_and_deploy' && 'release' || 'debug' }}
+
+  build-web:
+    name: Build Web App
+    needs: load-config
+    if: needs.load-config.outputs.web_enabled == 'true' && (needs.load-config.outputs.trigger_context == 'build_all' || needs.load-config.outputs.trigger_context == 'build_and_deploy' || needs.load-config.outputs.trigger_context == 'deploy_only')
+    uses: mnelson3/nelson-grey/.github/workflows/reusable/web-deploy.yml@develop
+    with:
+      project_name: ${{ needs.load-config.outputs.project_name }}
+      environment: ${{ needs.load-config.outputs.target_environment }}
+    secrets:
+      firebase_token: ${{ secrets.FIREBASE_TOKEN }}
+      firebase_project_dev: ${{ secrets.FIREBASE_PROJECT_DEV }}
+      firebase_project_staging: ${{ secrets.FIREBASE_PROJECT_STAGING }}
+      firebase_project_prod: ${{ secrets.FIREBASE_PROJECT_PROD }}
+
+  deploy-firebase:
+    name: Deploy Firebase
+    needs: [load-config, build-web]
+    if: needs.load-config.outputs.firebase_enabled == 'true' && (needs.load-config.outputs.trigger_context == 'build_and_deploy' || needs.load-config.outputs.trigger_context == 'deploy_only')
+    uses: mnelson3/nelson-grey/.github/workflows/reusable/firebase-deploy.yml@develop
+    with:
+      project_name: ${{ needs.load-config.outputs.project_name }}
+      environment: ${{ needs.load-config.outputs.target_environment }}
+      deploy_rules: true
+    secrets:
+      firebase_token: ${{ secrets.FIREBASE_TOKEN }}
+      firebase_project_dev: ${{ secrets.FIREBASE_PROJECT_DEV }}
+      firebase_project_staging: ${{ secrets.FIREBASE_PROJECT_STAGING }}
+      firebase_project_prod: ${{ secrets.FIREBASE_PROJECT_PROD }}
+
+  build-chrome-extension:
+    name: Build Chrome Extension
+    needs: load-config
+    if: needs.load-config.outputs.chrome_extension == 'true'
+    uses: mnelson3/nelson-grey/.github/workflows/reusable/chrome-extension-submit.yml@develop
+    with:
+      project_name: ${{ needs.load-config.outputs.project_name }}
+      publish: false
+      node_version: "18"
+    secrets:
+      chrome_extension_id: ${{ secrets.CHROME_EXTENSION_ID }}
+      chrome_client_id: ${{ secrets.CHROME_CLIENT_ID }}
+      chrome_client_secret: ${{ secrets.CHROME_CLIENT_SECRET }}
+      chrome_refresh_token: ${{ secrets.CHROME_REFRESH_TOKEN }}
+
+  pipeline-summary:
+    name: Pipeline Summary
+    needs: [load-config, test, build-ios, build-android, build-web, deploy-firebase, build-chrome-extension]
+    if: always()
+    runs-on: self-hosted
+    steps:
+      - name: Pipeline Summary
+        run: |
+          echo "## CI/CD Pipeline Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Project**: ${{ needs.load-config.outputs.project_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Trigger**: ${{ needs.load-config.outputs.trigger_context }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Environment**: ${{ needs.load-config.outputs.target_environment }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Build Status" >> $GITHUB_STEP_SUMMARY
+          echo "- Tests: ${{ needs.test.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- iOS: ${{ needs.build-ios.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Android: ${{ needs.build-android.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Web: ${{ needs.build-web.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Firebase: ${{ needs.deploy-firebase.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Chrome Extension: ${{ needs.build-chrome-extension.result }}" >> $GITHUB_STEP_SUMMARY

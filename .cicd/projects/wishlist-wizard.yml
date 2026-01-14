@@ -1,0 +1,121 @@
+project:
+  name: wishlist-wizard
+  description: "Wishlist app with Chrome extension, mobile app, and web promo site"
+  owner: mnelson3
+
+targets:
+  ios:
+    enabled: true
+    schemes:
+      - name: "Runner"
+        path: "packages/mobile/ios"
+        configuration: "Release"
+    signing:
+      team_id: "${APPLE_TEAM_ID}"
+      bundle_id: "com.nelsongrey.wishlistwizard.app.ios"
+      profiles:
+        development: true
+        distribution: true
+    destinations:
+      testflight:
+        enabled: true
+        group: "Internal Testers"
+      appstore:
+        enabled: true
+
+  android:
+    enabled: true
+    path: "packages/mobile/android"
+    signing:
+      keystore_ref: "${ANDROID_KEYSTORE_PATH}"
+      key_alias: "${ANDROID_KEY_ALIAS}"
+    destinations:
+      firebase_app_distribution:
+        enabled: true
+        groups:
+          - testers
+      google_play:
+        enabled: true
+        track: "internal"
+
+  web:
+    enabled: true
+    build_command: "cd packages/web && npm run build"
+    destinations:
+      firebase_hosting:
+        enabled: true
+
+  chrome_extension:
+    enabled: true
+    build_command: "cd packages/extension && npm run build"
+    destinations:
+      chrome_web_store:
+        enabled: true
+
+  firebase:
+    enabled: true
+    project_id: "wishlist-wizard-prod"
+    hosting:
+      enabled: true
+    functions:
+      enabled: true
+      paths:
+        - "packages/functions"
+    firestore:
+      deploy_rules: true
+      deploy_indexes: true
+
+  docker:
+    enabled: false
+
+ci:
+  runners:
+    macos:
+      labels:
+        - self-hosted
+        - macOS
+        - ios
+      required: true
+    docker:
+      labels:
+        - self-hosted
+        - docker
+      required: false
+
+  triggers:
+    - event: push
+      branches:
+        - develop
+        - staging
+        - main
+      paths:
+        - "packages/mobile/**"
+        - "packages/web/**"
+        - "packages/extension/**"
+        - "packages/functions/**"
+        - ".github/workflows/**"
+        - ".cicd/projects/**"
+        - "pubspec.yaml"
+        - "firebase*.json"
+
+    - event: pull_request
+      branches:
+        - develop
+        - staging
+        - main
+
+    - event: workflow_dispatch
+
+  environment:
+    development:
+      firebase_config: "firebase.dev.json"
+      secrets_profile: "dev"
+    staging:
+      firebase_config: "firebase.staging.json"
+      secrets_profile: "staging"
+    production:
+      firebase_config: "firebase.prod.json"
+      secrets_profile: "prod"
+
+notifications:
+  slack_webhook: "${SLACK_WEBHOOK_URL}"
