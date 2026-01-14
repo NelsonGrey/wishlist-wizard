@@ -160,7 +160,7 @@ jobs:
     name: Build iOS App
     needs: load-config
     if: needs.load-config.outputs.ios_enabled == 'true' && (needs.load-config.outputs.trigger_context == 'build_all' || needs.load-config.outputs.trigger_context == 'build_and_deploy')
-    uses: mnelson3/nelson-grey/.github/workflows/reusable/ios-build.yml@develop
+    uses: mnelson3/nelson-grey/.github/workflows/reusable/ios-build.yml@main
     with:
       project_name: ${{ needs.load-config.outputs.project_name }}
       release_type: "build_only"
@@ -179,7 +179,7 @@ jobs:
     name: Build Android App
     needs: load-config
     if: needs.load-config.outputs.android_enabled == 'true' && (needs.load-config.outputs.trigger_context == 'build_all' || needs.load-config.outputs.trigger_context == 'build_and_deploy')
-    uses: mnelson3/nelson-grey/.github/workflows/reusable/android-build.yml@develop
+    uses: mnelson3/nelson-grey/.github/workflows/reusable/android-build.yml@main
     with:
       project_name: ${{ needs.load-config.outputs.project_name }}
       build_type: ${{ needs.load-config.outputs.trigger_context == 'build_and_deploy' && 'release' || 'debug' }}
@@ -188,7 +188,7 @@ jobs:
     name: Build Web App
     needs: load-config
     if: needs.load-config.outputs.web_enabled == 'true' && (needs.load-config.outputs.trigger_context == 'build_all' || needs.load-config.outputs.trigger_context == 'build_and_deploy' || needs.load-config.outputs.trigger_context == 'deploy_only')
-    uses: mnelson3/nelson-grey/.github/workflows/reusable/web-deploy.yml@develop
+    uses: mnelson3/nelson-grey/.github/workflows/reusable/web-deploy.yml@main
     with:
       project_name: ${{ needs.load-config.outputs.project_name }}
       environment: ${{ needs.load-config.outputs.target_environment }}
@@ -202,7 +202,7 @@ jobs:
     name: Deploy Firebase
     needs: [load-config, build-web]
     if: needs.load-config.outputs.firebase_enabled == 'true' && (needs.load-config.outputs.trigger_context == 'build_and_deploy' || needs.load-config.outputs.trigger_context == 'deploy_only')
-    uses: mnelson3/nelson-grey/.github/workflows/reusable/firebase-deploy.yml@develop
+    uses: mnelson3/nelson-grey/.github/workflows/reusable/firebase-deploy.yml@main
     with:
       project_name: ${{ needs.load-config.outputs.project_name }}
       environment: ${{ needs.load-config.outputs.target_environment }}
@@ -217,7 +217,7 @@ jobs:
     name: Build Chrome Extension
     needs: load-config
     if: needs.load-config.outputs.chrome_extension == 'true'
-    uses: mnelson3/nelson-grey/.github/workflows/reusable/chrome-extension-submit.yml@develop
+    uses: mnelson3/nelson-grey/.github/workflows/reusable/chrome-extension-submit.yml@main
     with:
       project_name: ${{ needs.load-config.outputs.project_name }}
       publish: false
