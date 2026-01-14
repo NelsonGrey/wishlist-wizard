@@ -159,7 +159,10 @@ jobs:
   build-ios:
     name: Build iOS App
     needs: load-config
-    if: needs.load-config.outputs.ios_enabled == 'true' && (needs.load-config.outputs.trigger_context == 'build_all' || needs.load-config.outputs.trigger_context == 'build_and_deploy')
+    if: |
+      needs.load-config.outputs.ios_enabled == 'true' &&
+      (needs.load-config.outputs.trigger_context == 'build_all' ||
+       needs.load-config.outputs.trigger_context == 'build_and_deploy')
     uses: mnelson3/nelson-grey/.github/workflows/ios-build.yml@main
     with:
       project_name: ${{ needs.load-config.outputs.project_name }}
@@ -178,7 +181,10 @@ jobs:
   build-android:
     name: Build Android App
     needs: load-config
-    if: needs.load-config.outputs.android_enabled == 'true' && (needs.load-config.outputs.trigger_context == 'build_all' || needs.load-config.outputs.trigger_context == 'build_and_deploy')
+    if: |
+      needs.load-config.outputs.android_enabled == 'true' &&
+      (needs.load-config.outputs.trigger_context == 'build_all' ||
+       needs.load-config.outputs.trigger_context == 'build_and_deploy')
     uses: mnelson3/nelson-grey/.github/workflows/android-build.yml@main
     with:
       project_name: ${{ needs.load-config.outputs.project_name }}
@@ -187,7 +193,11 @@ jobs:
   build-web:
     name: Build Web App
     needs: load-config
-    if: needs.load-config.outputs.web_enabled == 'true' && (needs.load-config.outputs.trigger_context == 'build_all' || needs.load-config.outputs.trigger_context == 'build_and_deploy' || needs.load-config.outputs.trigger_context == 'deploy_only')
+    if: |
+      needs.load-config.outputs.web_enabled == 'true' &&
+      (needs.load-config.outputs.trigger_context == 'build_all' ||
+       needs.load-config.outputs.trigger_context == 'build_and_deploy' ||
+       needs.load-config.outputs.trigger_context == 'deploy_only')
     uses: mnelson3/nelson-grey/.github/workflows/web-deploy.yml@main
     with:
       project_name: ${{ needs.load-config.outputs.project_name }}
@@ -201,7 +211,10 @@ jobs:
   deploy-firebase:
     name: Deploy Firebase
     needs: [load-config, build-web]
-    if: needs.load-config.outputs.firebase_enabled == 'true' && (needs.load-config.outputs.trigger_context == 'build_and_deploy' || needs.load-config.outputs.trigger_context == 'deploy_only')
+    if: |
+      needs.load-config.outputs.firebase_enabled == 'true' &&
+      (needs.load-config.outputs.trigger_context == 'build_and_deploy' ||
+       needs.load-config.outputs.trigger_context == 'deploy_only')
     uses: mnelson3/nelson-grey/.github/workflows/firebase-deploy.yml@main
     with:
       project_name: ${{ needs.load-config.outputs.project_name }}
