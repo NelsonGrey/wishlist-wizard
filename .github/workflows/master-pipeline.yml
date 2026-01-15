@@ -143,15 +143,23 @@ jobs:
       - name: Run Tests (best effort)
         run: |
           if [ -f "package.json" ]; then
-            npm install
-            npm test 2>/dev/null || echo "[warn] Node tests skipped or failed"
+            if command -v npm &> /dev/null; then
+              npm install
+              npm test 2>/dev/null || echo "[warn] Node tests skipped or failed"
+            else
+              echo "[warn] npm not found, skipping Node tests"
+            fi
           else
             echo "[warn] No package.json found at repo root"
           fi
 
           if [ -f "pubspec.yaml" ]; then
-            flutter pub get
-            flutter test 2>/dev/null || echo "[warn] Flutter tests skipped or failed"
+            if command -v flutter &> /dev/null; then
+              flutter pub get
+              flutter test 2>/dev/null || echo "[warn] Flutter tests skipped or failed"
+            else
+              echo "[warn] flutter not found, skipping Flutter tests"
+            fi
           else
             echo "[warn] No Flutter pubspec found at repo root"
           fi
