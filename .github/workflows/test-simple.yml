@@ -1,7 +1,0 @@
-name: Test Simple
-on: workflow_dispatch
-jobs:
-  test:
-    runs-on: [self-hosted, macOS]
-    steps:
-      - run: echo "Hello from $(hostname)"
