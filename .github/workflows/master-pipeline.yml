@@ -174,7 +174,9 @@ jobs:
     uses: mnelson3/nelson-grey/.github/workflows/ios-build.yml@main
     with:
       project_name: ${{ needs.load-config.outputs.project_name }}
-      release_type: "build_only"
+      release_type: ${{ needs.load-config.outputs.trigger_context == 'build_and_deploy' && 'testflight' || 'build_only' }}
+      release_notes: ${{ needs.load-config.outputs.trigger_context == 'build_and_deploy' && format('Automated build from {0} ({1})', github.sha, github.ref_name) || '' }}
+      beta_group_name: "Internal Testers"
       ruby_version: "3.2"
       bundler_version: "2.4.22"
       fastlane_version: "2.230.0"
