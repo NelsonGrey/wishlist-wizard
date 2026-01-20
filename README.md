@@ -322,3 +322,4 @@ See `AUTOMATED_DEPLOYMENT.md` for complete setup and configuration details.
 ---
 
 © 2024 Wishlist Wizard. All rights reserved.
+# Test commit to trigger iOS build with CocoaPods fix
