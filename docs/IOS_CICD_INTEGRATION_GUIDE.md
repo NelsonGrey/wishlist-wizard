@@ -65,9 +65,9 @@ jobs:
           FASTLANE_APPLE_ID=${{ secrets.FASTLANE_APPLE_ID }}
           FASTLANE_TEAM_ID=${{ secrets.FASTLANE_TEAM_ID }}
           FASTLANE_ITC_TEAM_ID=${{ secrets.FASTLANE_ITC_TEAM_ID }}
-          ASC_KEY_ID=${{ secrets.ASC_KEY_ID }}
-          ASC_ISSUER_ID=${{ secrets.ASC_ISSUER_ID }}
-          ASC_PRIVATE_KEY=${{ secrets.ASC_PRIVATE_KEY }}
+          APP_STORE_CONNECT_KEY_ID=${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          APP_STORE_CONNECT_ISSUER_ID=${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          APP_STORE_CONNECT_KEY=${{ secrets.APP_STORE_CONNECT_KEY }}
           MATCH_GIT_URL=${{ secrets.MATCH_GIT_URL }}
           MATCH_PASSWORD=${{ secrets.MATCH_PASSWORD }}
           BETA_FEEDBACK_EMAIL=${{ secrets.BETA_FEEDBACK_EMAIL }}
@@ -101,9 +101,9 @@ FASTLANE_TEAM_ID           → YOUR_TEAM_ID (10 characters)
 FASTLANE_ITC_TEAM_ID       → YOUR_ITC_TEAM_ID
 
 # App Store Connect API Key
-ASC_KEY_ID                 → YOUR_KEY_ID (10 characters)
-ASC_ISSUER_ID              → YOUR_ISSUER_ID (36 characters)
-ASC_PRIVATE_KEY            → base64-encoded .p8 file content
+APP_STORE_CONNECT_KEY_ID        → YOUR_KEY_ID (10 characters)
+APP_STORE_CONNECT_ISSUER_ID     → YOUR_ISSUER_ID (36 characters)
+APP_STORE_CONNECT_KEY           → base64-encoded .p8 file content
 
 # Certificate Repository
 MATCH_GIT_URL              → https://oauth2:gho_TOKEN@github.com/user/repo.git
@@ -218,9 +218,9 @@ Add these to **Settings → CI/CD → Variables**:
 FASTLANE_APPLE_ID           → your-apple-id@example.com
 FASTLANE_TEAM_ID            → YOUR_TEAM_ID
 FASTLANE_ITC_TEAM_ID        → YOUR_ITC_TEAM_ID
-ASC_KEY_ID                  → YOUR_KEY_ID
-ASC_ISSUER_ID               → YOUR_ISSUER_ID
-ASC_PRIVATE_KEY             → base64-encoded .p8 content
+APP_STORE_CONNECT_KEY_ID        → YOUR_KEY_ID
+APP_STORE_CONNECT_ISSUER_ID     → YOUR_ISSUER_ID
+APP_STORE_CONNECT_KEY           → base64-encoded .p8 content
 MATCH_GIT_URL               → https://oauth2:gho_TOKEN@github.com/user/repo.git
 MATCH_PASSWORD              → your_match_password
 BETA_FEEDBACK_EMAIL         → feedback@yourcompany.com

@@ -52,16 +52,16 @@ setup_environment() {
 
     cd "$PROJECT_ROOT"
 
-    # Create .env.local for testing (if it doesn't exist)
-    if [ ! -f ".env.local" ]; then
-        echo -e "${YELLOW}Creating .env.local for local testing...${NC}"
-        cat > .env.local << EOF
+    # Create .env.development for testing (if it doesn't exist)
+    if [ ! -f ".env.development" ]; then
+        echo -e "${YELLOW}Creating .env.development for local testing...${NC}"
+        cat > .env.development << EOF
 # Local testing environment variables
 # Copy values from your actual environment files
 FIREBASE_TOKEN=your_firebase_token_here
 FIREBASE_SERVICE_ACCOUNT_KEY="{}"
 EOF
-        echo -e "${YELLOW}⚠️  Please update .env.local with your actual secrets${NC}"
+        echo -e "${YELLOW}⚠️  Please update .env.development with your actual secrets${NC}"
     fi
 
     # Create act secrets file
@@ -195,7 +195,7 @@ main() {
     echo ""
     echo -e "${GREEN}✅ Local testing complete!${NC}"
     echo -e "${BLUE}💡 Tips:${NC}"
-    echo "  - Update .env.local with real secrets for accurate testing"
+    echo "  - Update .env.development with real secrets for accurate testing"
     echo "  - Use DRY_RUN=true to test without actual deployments"
     echo "  - Check act documentation: https://github.com/nektos/act"
 }

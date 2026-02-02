@@ -141,7 +141,7 @@ const Calendar: React.FC = () => {
   const { data: events = [] } = useQuery({ 
     queryKey: ['/api/calendar/events'],
     queryFn: async () => {
-      const data = await apiRequest('GET', { method: '/api/calendar/events' }) as CalendarEventResponse[];
+      const data = await apiRequest('/api/calendar/events') as CalendarEventResponse[];
       // Parse date strings into Date objects
       return data.map((event: CalendarEventResponse) => ({
         ...event,
@@ -155,7 +155,7 @@ const Calendar: React.FC = () => {
   const { data: beneficiaries = [] } = useQuery({ 
     queryKey: ['/api/beneficiaries'],
     queryFn: async () => {
-      const data = await apiRequest('GET', { method: '/api/beneficiaries' });
+      const data = await apiRequest('/api/beneficiaries');
       return data as Beneficiary[];
     }
   });
@@ -164,7 +164,7 @@ const Calendar: React.FC = () => {
   const { data: wishlists = [] } = useQuery({ 
     queryKey: ['/api/wishlists'],
     queryFn: async () => {
-      const data = await apiRequest('GET', { method: '/api/wishlists' });
+      const data = await apiRequest('/api/wishlists');
       return data as Wishlist[];
     }
   });
@@ -173,7 +173,7 @@ const Calendar: React.FC = () => {
   const { data: syncSettings } = useQuery({ 
     queryKey: ['/api/calendar/sync-settings'],
     queryFn: async () => {
-      const data = await apiRequest('GET', { method: '/api/calendar/sync-settings' });
+      const data = await apiRequest('/api/calendar/sync-settings');
       return data as {
         google?: { connected: boolean };
         apple?: { connected: boolean };
@@ -293,7 +293,7 @@ const Calendar: React.FC = () => {
   // Sync now mutation
   const syncNowMutation = useMutation({
     mutationFn: () => {
-      return apiRequest('POST', { method: '/api/calendar/sync' });
+      return apiRequest('/api/calendar/sync', { method: 'POST' });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/calendar/events'] });

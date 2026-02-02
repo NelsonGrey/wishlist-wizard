@@ -142,9 +142,9 @@ MOBILE_BUNDLE_ID=com.nelsongrey.wishlistwizard.mobile
 MOBILE_ANDROID_PACKAGE=com.nelsongrey.wishlistwizard.mobile
 
 # Apple Services (Production/Staging only)
-ASC_KEY_ID=your_asc_key_id
-ASC_ISSUER_ID=your_asc_issuer_id
-ASC_PRIVATE_KEY=-----BEGIN APP_STORE_CONNECT_KEY-----\nYOUR_PRIVATE_KEY\n-----END PRIVATE KEY-----
+APP_STORE_CONNECT_KEY_ID=your_app_store_connect_key_id
+APP_STORE_CONNECT_ISSUER_ID=your_app_store_connect_issuer_id
+APP_STORE_CONNECT_KEY=-----BEGIN APP_STORE_CONNECT_KEY-----\nYOUR_PRIVATE_KEY\n-----END PRIVATE KEY-----
 FASTLANE_APPLE_ID=your_apple_id@email.com
 FASTLANE_TEAM_ID=your_team_id
 FASTLANE_ITC_TEAM_ID=your_itc_team_id
@@ -234,9 +234,9 @@ manage_github_secrets() {
 
     # Mobile app secrets (production/staging only)
     if [[ "$ENVIRONMENT" == "production" || "$ENVIRONMENT" == "staging" ]]; then
-        GITHUB_SECRETS_ASC_KEY_ID="${ASC_KEY_ID}"
-        GITHUB_SECRETS_ASC_ISSUER_ID="${ASC_ISSUER_ID}"
-        GITHUB_SECRETS_ASC_PRIVATE_KEY="${ASC_PRIVATE_KEY}"
+        GITHUB_SECRETS_APP_STORE_CONNECT_KEY_ID="${APP_STORE_CONNECT_KEY_ID}"
+        GITHUB_SECRETS_APP_STORE_CONNECT_ISSUER_ID="${APP_STORE_CONNECT_ISSUER_ID}"
+        GITHUB_SECRETS_APP_STORE_CONNECT_KEY="${APP_STORE_CONNECT_KEY}"
         GITHUB_SECRETS_FASTLANE_APPLE_ID="${FASTLANE_APPLE_ID}"
         GITHUB_SECRETS_FASTLANE_TEAM_ID="${FASTLANE_TEAM_ID}"
         GITHUB_SECRETS_FASTLANE_ITC_TEAM_ID="${FASTLANE_ITC_TEAM_ID}"

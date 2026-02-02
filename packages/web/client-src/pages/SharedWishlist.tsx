@@ -6,6 +6,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import Footer from "@/components/Footer";
+import AffiliateIndicator from "@/components/AffiliateIndicator";
+import { apiRequest } from "@/lib/queryClient";
 
 type Wishlist = {
   id: number;
@@ -25,6 +27,12 @@ type WishlistItem = {
   store: string;
   note: string;
   createdAt: string;
+  metadata?: {
+    affiliateConversion?: {
+      affiliateProgram?: string;
+      commission?: number;
+    };
+  };
 };
 
 type SharedWishlistResponse = {
@@ -191,8 +199,23 @@ export default function SharedWishlist() {
             </Card>
           ) : accessibleItems && accessibleItems.length > 0 ? (
             <div className="space-y-4">
-              {accessibleItems.map((item) => (
-                <Card key={item.id}>
+              {accessibleItems.map((item) => {
+                const affiliateConversion = item.metadata?.affiliateConversion;
+                const handleAffiliateClick = () => {
+                  if (!item.productUrl || !affiliateConversion) return;
+                  apiRequest('/api/affiliate/track-click', {
+                    method: 'POST',
+                    body: {
+                      url: item.productUrl,
+                      program: affiliateConversion?.affiliateProgram || null
+                    }
+                  }).catch((error) => {
+                    console.warn('Failed to track affiliate click:', error);
+                  });
+                };
+
+                return (
+                  <Card key={item.id}>
                   <CardContent className="p-4">
                     <div className="flex space-x-4">
                       <img 
@@ -213,10 +236,16 @@ export default function SharedWishlist() {
                             rel="noopener noreferrer"
                             title={`View ${item.title} on ${item.store || 'store'}`}
                             className="text-primary hover:text-indigo-700"
+                            onClick={handleAffiliateClick}
                           >
                             <ExternalLink className="h-5 w-5" />
                           </a>
                         </div>
+                        {affiliateConversion && (
+                          <div className="mt-2">
+                            <AffiliateIndicator metadata={{ affiliateConversion }} />
+                          </div>
+                        )}
                         {item.note && (
                           <p className="text-sm text-gray-500 mt-2">{item.note}</p>
                         )}
@@ -224,7 +253,8 @@ export default function SharedWishlist() {
                     </div>
                   </CardContent>
                 </Card>
-              ))}
+                );
+              })}
             </div>
           ) : (
             <Card>

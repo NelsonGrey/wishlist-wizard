@@ -111,9 +111,9 @@ FASTLANE_TEAM_ID=YOUR_TEAM_ID
 FASTLANE_ITC_TEAM_ID=YOUR_ITC_TEAM_ID
 
 # App Store Connect API Key
-ASC_KEY_ID=YOUR_KEY_ID
-ASC_ISSUER_ID=YOUR_ISSUER_ID
-ASC_PRIVATE_KEY=-----BEGIN APP_STORE_CONNECT_KEY-----\nYOUR_PRIVATE_KEY_HERE\n-----END PRIVATE KEY-----
+APP_STORE_CONNECT_KEY_ID=YOUR_KEY_ID
+APP_STORE_CONNECT_ISSUER_ID=YOUR_ISSUER_ID
+APP_STORE_CONNECT_KEY=-----BEGIN APP_STORE_CONNECT_KEY-----\nYOUR_PRIVATE_KEY_HERE\n-----END PRIVATE KEY-----
 
 # Match Configuration
 MATCH_GIT_URL=https://oauth2:gho_YOUR_TOKEN@github.com/yourusername/your-app-certificates.git
@@ -187,9 +187,9 @@ platform :ios do
   desc "Upload to TestFlight"
   lane :beta do
     app_store_connect_api_key(
-      key_id: ENV["ASC_KEY_ID"],
-      issuer_id: ENV["ASC_ISSUER_ID"],
-      key_content: ENV["ASC_PRIVATE_KEY"],
+      key_id: ENV["APP_STORE_CONNECT_KEY_ID"],
+      issuer_id: ENV["APP_STORE_CONNECT_ISSUER_ID"],
+      key_content: ENV["APP_STORE_CONNECT_KEY"],
       is_key_content_base64: true
     )
 
@@ -249,9 +249,9 @@ To align with the `develop > staging > production` paradigm, certificates and pr
      FASTLANE_APPLE_ID
      FASTLANE_TEAM_ID
      FASTLANE_ITC_TEAM_ID
-     ASC_KEY_ID
-     ASC_ISSUER_ID
-     ASC_PRIVATE_KEY
+    APP_STORE_CONNECT_KEY_ID
+    APP_STORE_CONNECT_ISSUER_ID
+    APP_STORE_CONNECT_KEY
      MATCH_GIT_URL
      MATCH_PASSWORD
      BETA_FEEDBACK_EMAIL

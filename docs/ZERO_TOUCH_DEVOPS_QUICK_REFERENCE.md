@@ -21,7 +21,7 @@ CONFIGS_dev="project-dev"
 ```
 project-root/
 ├── automate.sh                    # Master controller
-├── .env.automation               # Configuration (NEVER commit)
+├── .env.automation.development   # Configuration (NEVER commit)
 ├── scripts/
 │   ├── manage-environments.sh    # Environment management
 │   ├── monitoring.sh             # Health monitoring
@@ -78,7 +78,7 @@ For projects with `"type": "module"` in `package.json`, macOS runners MUST be in
 
 ### Phase 1: Foundation (Required First)
 - [ ] Copy `automate.sh` template
-- [ ] Create `.env.automation` from template
+- [ ] Create `.env.automation.development` from template
 - [ ] Implement environment manager script
 - [ ] Test Bash 3.2 compatibility
 
@@ -119,8 +119,8 @@ fi
 ### Configuration Management
 ```bash
 # Load environment variables safely
-if [ -f ".env.automation" ]; then
-    source .env.automation
+if [ -f ".env.automation.development" ]; then
+    source .env.automation.development
 fi
 
 # Use environment-specific variables
@@ -169,7 +169,7 @@ log_error() { echo "$(date '+%Y-%m-%d %H:%M:%S') [ERROR] $1" | tee -a "$LOG_FILE
 
 ### Primary Documentation
 - `ZERO_TOUCH_DEVOPS_IMPLEMENTATION_GUIDE.md` - Complete implementation guide
-- `.env.automation.example` - Configuration template
+- `.env.automation.development.example` - Configuration template
 - `docker-compose.runner.yml` - Runner configuration
 
 ### Code Templates
@@ -220,7 +220,7 @@ log_error() { echo "$(date '+%Y-%m-%d %H:%M:%S') [ERROR] $1" | tee -a "$LOG_FILE
 # 1. Copy templates
 cp ZERO_TOUCH_DEVOPS_IMPLEMENTATION_GUIDE.md /path/to/new/project/
 cp automate.sh.template /path/to/new/project/automate.sh
-cp .env.automation.example /path/to/new/project/.env.automation
+cp .env.automation.development.example /path/to/new/project/.env.automation.development
 
 # 2. Customize project names
 sed -i 's/wishlist-wizard/your-project-name/g' automate.sh

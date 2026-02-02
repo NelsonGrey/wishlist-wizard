@@ -4,6 +4,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { WishlistItem as DbWishlistItem } from "@wishlist-wizard/shared";
 import PrivacyControls from "@/components/privacy/PrivacyControls";
+import AffiliateIndicator from "@/components/AffiliateIndicator";
+import { apiRequest } from "@/lib/queryClient";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -14,8 +16,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import ContributionDialog from "./ContributionDialog";
-import PriceAlertDialog from "./PriceAlertDialog";
+import ContributionDialog from "@/components/ContributionDialog";
+import PriceAlertDialog from "@/components/PriceAlertDialog";
 
 type WishlistItem = DbWishlistItem;
 
@@ -28,6 +30,9 @@ export default function WishlistItem({ item, onDelete }: WishlistItemProps) {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isContributionDialogOpen, setIsContributionDialogOpen] = useState(false);
   const [isPriceAlertDialogOpen, setIsPriceAlertDialogOpen] = useState(false);
+
+  const affiliateConversion = (item.metadata as { affiliateConversion?: { affiliateProgram?: string; commission?: number } } | undefined)
+    ?.affiliateConversion;
 
   const handleDelete = () => {
     setIsDeleteDialogOpen(true);
@@ -44,6 +49,20 @@ export default function WishlistItem({ item, onDelete }: WishlistItemProps) {
 
   const handlePriceAlert = () => {
     setIsPriceAlertDialogOpen(true);
+  };
+
+  const handleAffiliateClick = () => {
+    if (!item.productUrl || !affiliateConversion) return;
+
+    apiRequest('/api/affiliate/track-click', {
+      method: 'POST',
+      body: {
+        url: item.productUrl,
+        program: affiliateConversion?.affiliateProgram || null
+      }
+    }).catch((error) => {
+      console.warn('Failed to track affiliate click:', error);
+    });
   };
 
   const handleContributionSuccess = () => {
@@ -101,6 +120,7 @@ export default function WishlistItem({ item, onDelete }: WishlistItemProps) {
                     rel="noopener noreferrer"
                     title={`View ${item.title} on ${item.store || 'store'}`}
                     className="text-gray-500 hover:text-primary p-1"
+                    onClick={handleAffiliateClick}
                   >
                     <ExternalLink className="h-4 w-4" />
                   </a>
@@ -119,6 +139,11 @@ export default function WishlistItem({ item, onDelete }: WishlistItemProps) {
                 <span className="text-sm font-semibold text-gray-900">{item.price}</span>
                 <span className="text-xs text-gray-500 ml-1">{item.store}</span>
               </div>
+              {affiliateConversion && (
+                <div className="mt-2">
+                  <AffiliateIndicator metadata={{ affiliateConversion }} />
+                </div>
+              )}
               {item.note && (
                 <p className="text-sm text-gray-500 mt-2">{item.note}</p>
               )}
