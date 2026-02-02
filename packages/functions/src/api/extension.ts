@@ -5,6 +5,7 @@ import { onCall, HttpsError, CallableRequest } from 'firebase-functions/v2/https
 import { getAuth } from 'firebase-admin/auth';
 import { getFirestore } from 'firebase-admin/firestore';
 import { logger } from 'firebase-functions/v2';
+import { convertAffiliateUrl } from '../utils/affiliate.js';
 
 const auth = getAuth();
 const db = getFirestore();
@@ -99,10 +100,12 @@ export const addItemFromExtension = onCall(async (request: CallableRequest) => {
       throw new HttpsError('permission-denied', 'You can only add items to your own wishlists');
     }
 
+    const affiliateConversion = productUrl ? convertAffiliateUrl(productUrl) : null;
+
     const itemData = {
       wishlistId,
       title: title.trim(),
-      productUrl: productUrl || null,
+      productUrl: affiliateConversion?.wasConverted ? affiliateConversion.convertedUrl : productUrl || null,
       imageUrl: imageUrl || null,
       price: price || null,
       store: store || null,
@@ -110,6 +113,18 @@ export const addItemFromExtension = onCall(async (request: CallableRequest) => {
       createdAt: new Date(),
       updatedAt: new Date()
     };
+
+    if (affiliateConversion?.wasConverted) {
+      itemData.metadata = {
+        affiliateConversion: {
+          originalUrl: affiliateConversion.originalUrl,
+          affiliateProgram: affiliateConversion.program?.name || null,
+          convertedAt: new Date().toISOString(),
+          commission: affiliateConversion.program?.defaultCommission || 0,
+          tagUsed: affiliateConversion.tagUsed || null,
+        },
+      };
+    }
 
     const docRef = await db.collection('wishlistItems').add(itemData);
 
@@ -291,6 +306,47 @@ export const deleteExtensionItem = onCall(async (request: CallableRequest) => {
 });
 
 /**
+ * Share Wishlist from Extension
+ * Generates or returns share link
+ */
+export const shareExtensionWishlist = onCall(async (request: CallableRequest) => {
+  if (!request.auth) {
+    throw new HttpsError('unauthenticated', 'User must be authenticated');
+  }
+
+  const { wishlistId } = request.data;
+  if (!wishlistId) {
+    throw new HttpsError('invalid-argument', 'Wishlist ID is required');
+  }
+
+  try {
+    const wishlistDoc = await db.collection('wishlists').doc(wishlistId).get();
+    if (!wishlistDoc.exists) {
+      throw new HttpsError('not-found', 'Wishlist not found');
+    }
+
+    const wishlistData = wishlistDoc.data();
+    if (wishlistData?.userId !== request.auth.uid) {
+      throw new HttpsError('permission-denied', 'You can only share your own wishlists');
+    }
+
+    let shareId = wishlistData?.shareId;
+    if (!shareId) {
+      shareId = generateExtensionId();
+      await db.collection('wishlists').doc(wishlistId).update({ shareId });
+    }
+
+    const shareUrl = `https://wishlist-wizard.com/shared/${shareId}`;
+
+    return { shareUrl };
+  } catch (error) {
+    logger.error('Error sharing wishlist from extension:', error);
+    if (error instanceof HttpsError) throw error;
+    throw new HttpsError('internal', 'Failed to share wishlist');
+  }
+});
+
+/**
  * Get Extension Analytics
  * Basic usage analytics for extension users
  */
@@ -337,6 +393,36 @@ export const getExtensionAnalytics = onCall(async (request: CallableRequest) => 
   } catch (error) {
     logger.error('Error getting extension analytics:', error);
     throw new HttpsError('internal', 'Failed to get analytics');
+  }
+});
+
+/**
+ * Track Extension Event
+ * Used by browser extension to record analytics events
+ */
+export const trackExtensionEvent = onCall(async (request: CallableRequest) => {
+  const { action, category, label, value, url, timestamp } = request.data || {};
+
+  if (!action) {
+    throw new HttpsError('invalid-argument', 'Action is required');
+  }
+
+  try {
+    await db.collection('extensionAnalytics').add({
+      userId: request.auth?.uid || null,
+      action,
+      category: category || 'extension',
+      label: label || null,
+      value: value || null,
+      url: url || null,
+      timestamp: timestamp ? new Date(timestamp) : new Date(),
+      userAgent: 'browser-extension'
+    });
+
+    return { success: true };
+  } catch (error) {
+    logger.error('Error tracking extension event:', error);
+    throw new HttpsError('internal', 'Failed to track extension event');
   }
 });
 

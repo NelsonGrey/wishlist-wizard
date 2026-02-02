@@ -8,17 +8,17 @@ def base64url_encode(str)
   Base64.urlsafe_encode64(str).gsub('=', '')
 end
 
-key_b64 = ENV['ASC_PRIVATE_KEY']
-kid = ENV['ASC_KEY_ID']
-iss = ENV['ASC_ISSUER_ID']
+key_b64 = ENV['APP_STORE_CONNECT_KEY']
+kid = ENV['APP_STORE_CONNECT_KEY_ID']
+iss = ENV['APP_STORE_CONNECT_ISSUER_ID']
 
 if key_b64.nil? || kid.nil? || iss.nil?
-  puts "Missing ASC_PRIVATE_KEY / ASC_KEY_ID / ASC_ISSUER_ID in environment; skipping test"
+  puts "Missing APP_STORE_CONNECT_KEY / APP_STORE_CONNECT_KEY_ID / APP_STORE_CONNECT_ISSUER_ID in environment; skipping test"
   exit 0
 end
 
 begin
-  # The ASC_PRIVATE_KEY secret may be provided as raw PEM or as a base64-encoded PEM.
+  # The APP_STORE_CONNECT_KEY secret may be provided as raw PEM or as a base64-encoded PEM.
   key_pem = if key_b64.strip.start_with?("-----BEGIN")
               key_b64
             else
@@ -26,7 +26,7 @@ begin
             end
   key = OpenSSL::PKey::EC.new(key_pem)
 rescue => e
-  puts "ERROR: Failed to load private key. Make sure ASC_PRIVATE_KEY is either a raw PEM or base64-encoded PEM; error: #{e.message}"
+  puts "ERROR: Failed to load private key. Make sure APP_STORE_CONNECT_KEY is either a raw PEM or base64-encoded PEM; error: #{e.message}"
   exit 1
 end
 
@@ -87,8 +87,8 @@ token = [data, base64url_encode(signature)].join('.')
 puts "JWT iat=#{iat} exp=#{exp}"
 puts "JWT header: #{header.to_json}"
 puts "JWT payload: #{payload.to_json}"
-puts "ASC_KEY_ID (kid): #{kid}" if kid
-puts "ASC_ISSUER_ID (iss): #{iss}" if iss
+puts "APP_STORE_CONNECT_KEY_ID (kid): #{kid}" if kid
+puts "APP_STORE_CONNECT_ISSUER_ID (iss): #{iss}" if iss
 puts "Testing App Store Connect API with generated token (status only)"
 
 uri = URI('https://api.appstoreconnect.apple.com/v1/apps?limit=1')

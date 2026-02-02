@@ -273,7 +273,10 @@ main() {
     cd "$PROJECT_ROOT"
 
     # Load environment variables
-    if [ -f ".env.automation" ]; then
+    ENVIRONMENT="${ENVIRONMENT:-development}"
+    if [ -f ".env.automation.$ENVIRONMENT" ]; then
+        source ".env.automation.$ENVIRONMENT"
+    elif [ -f ".env.automation" ]; then
         source .env.automation
     fi
 

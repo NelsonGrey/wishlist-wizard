@@ -12,6 +12,7 @@ import {
   Info
 } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { apiRequest } from '@/lib/queryClient';
 
 interface AffiliateStats {
   totalConversions: number;
@@ -37,6 +38,21 @@ const AffiliateDashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const handleOpenDisclosure = async () => {
+    try {
+      const response = await apiRequest('/api/affiliate/disclosure', { method: 'GET' }) as { disclosure?: string };
+      const disclosureText = response?.disclosure || 'Affiliate disclosure not available.';
+      const popup = window.open('', '_blank', 'width=600,height=400');
+      if (popup) {
+        popup.document.write(`<pre style="white-space: pre-wrap; font-family: system-ui; padding: 16px;">${disclosureText}</pre>`);
+        popup.document.close();
+      }
+    } catch (err) {
+      console.error('Error loading disclosure:', err);
+      setError('Failed to load affiliate disclosure');
+    }
+  };
+
   useEffect(() => {
     fetchAffiliateData();
   }, []);
@@ -45,20 +61,13 @@ const AffiliateDashboard: React.FC = () => {
     try {
       setLoading(true);
       
-      const [statsResponse, programsResponse] = await Promise.all([
-        fetch('/api/affiliate/stats'),
-        fetch('/api/affiliate/programs')
+      const [statsData, programsData] = await Promise.all([
+        apiRequest('/api/affiliate/stats', { method: 'GET' }) as Promise<{ stats: AffiliateStats }>,
+        apiRequest('/api/affiliate/programs', { method: 'GET' }) as Promise<{ programs: AffiliateProgram[] }>
       ]);
       
-      if (statsResponse.ok) {
-        const statsData = await statsResponse.json();
-        setStats(statsData.stats);
-      }
-      
-      if (programsResponse.ok) {
-        const programsData = await programsResponse.json();
-        setPrograms(programsData.programs);
-      }
+      setStats(statsData?.stats || null);
+      setPrograms(programsData?.programs || []);
       
     } catch (err) {
       setError('Failed to load affiliate data');
@@ -258,7 +267,7 @@ const AffiliateDashboard: React.FC = () => {
             <Button 
               variant="outline" 
               className="justify-start"
-              onClick={() => window.open('/api/affiliate/disclosure', '_blank')}
+              onClick={handleOpenDisclosure}
             >
               <Eye className="mr-2 h-4 w-4" />
               View Disclosure

@@ -156,6 +156,47 @@ export const unsubscribeFromTopic = onCall(async (request) => {
   }
 });
 
+/**
+ * Send a test push notification to the current user
+ */
+export const sendTestPushNotification = onCall(async (request) => {
+  if (!request.auth) {
+    throw new HttpsError('unauthenticated', 'User must be authenticated');
+  }
+
+  const { title = 'Wishlist Wizard', body = 'This is a test notification.' } = request.data || {};
+
+  try {
+    const db = getFirestore();
+    const tokenDoc = await db.collection('userFCMTokens').doc(request.auth.uid).get();
+
+    if (!tokenDoc.exists) {
+      throw new HttpsError('not-found', 'No FCM token found for user');
+    }
+
+    const { token } = tokenDoc.data()!;
+    const messaging = getMessaging();
+
+    await messaging.send({
+      token,
+      notification: {
+        title,
+        body,
+      },
+      data: {
+        type: 'test',
+      },
+    });
+
+    logger.info(`Test notification sent to user ${request.auth.uid}`);
+    return { success: true };
+  } catch (error) {
+    logger.error('Error sending test notification:', error);
+    if (error instanceof HttpsError) throw error;
+    throw new HttpsError('internal', 'Failed to send test notification');
+  }
+});
+
 // ===========================
 // NOTIFICATION TRIGGERS
 // ===========================

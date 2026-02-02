@@ -44,9 +44,9 @@ FASTLANE_TEAM_ID=your-team-id
 FASTLANE_ITC_TEAM_ID=your-itc-team-id
 
 # App Store Connect API Key (generate from App Store Connect)
-ASC_KEY_ID=your-key-id
-ASC_ISSUER_ID=your-issuer-id
-ASC_PRIVATE_KEY=-----BEGIN APP_STORE_CONNECT_KEY-----\nyour-private-key-here\n-----END PRIVATE KEY-----
+APP_STORE_CONNECT_KEY_ID=your-key-id
+APP_STORE_CONNECT_ISSUER_ID=your-issuer-id
+APP_STORE_CONNECT_KEY=-----BEGIN APP_STORE_CONNECT_KEY-----\nyour-private-key-here\n-----END PRIVATE KEY-----
 
 # Match (Code Signing) Configuration
 MATCH_GIT_URL=https://github.com/mnelson3/nelson-grey
@@ -96,9 +96,9 @@ Required variables:
 - `FASTLANE_APPLE_ID`: Your Apple ID email
 - `FASTLANE_TEAM_ID`: Your Developer Team ID (from developer.apple.com)
 - `FASTLANE_ITC_TEAM_ID`: Your App Store Connect Team ID
-- `ASC_KEY_ID`: From the API key you created
-- `ASC_ISSUER_ID`: From the API key you created
-- `ASC_PRIVATE_KEY`: Contents of the .p8 file (base64 encoded for CI)
+- `APP_STORE_CONNECT_KEY_ID`: From the API key you created
+- `APP_STORE_CONNECT_ISSUER_ID`: From the API key you created
+- `APP_STORE_CONNECT_KEY`: Contents of the .p8 file (base64 encoded for CI)
 
 ## Step 3: Code Signing Setup
 
@@ -146,9 +146,9 @@ Add these secrets to your GitHub repository:
 - `FASTLANE_APPLE_ID`
 - `FASTLANE_TEAM_ID`
 - `FASTLANE_ITC_TEAM_ID`
-- `ASC_KEY_ID`
-- `ASC_ISSUER_ID`
-- `ASC_PRIVATE_KEY` (base64 encoded)
+- `APP_STORE_CONNECT_KEY_ID`
+- `APP_STORE_CONNECT_ISSUER_ID`
+- `APP_STORE_CONNECT_KEY` (base64 encoded)
 - `MATCH_GIT_URL` (if using match)
 - `BETA_FEEDBACK_EMAIL`
 
@@ -156,7 +156,7 @@ Add these secrets to your GitHub repository:
 
 For production deployments, create separate secrets with `_PRODUCTION` suffix:
 - `FIREBASE_SERVICE_ACCOUNT_KEY_PRODUCTION`
-- `ASC_PRIVATE_KEY_PRODUCTION` (if different)
+- `APP_STORE_CONNECT_KEY_PRODUCTION` (if different)
 
 ## Available Fastlane Lanes
 

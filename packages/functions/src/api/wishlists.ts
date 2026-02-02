@@ -5,6 +5,7 @@ import { onCall, HttpsError, CallableRequest } from 'firebase-functions/v2/https
 import { getFirestore } from 'firebase-admin/firestore';
 import { logger } from 'firebase-functions/v2';
 import { generateId } from '../utils/helpers.js';
+import { convertAffiliateUrl } from '../utils/affiliate.js';
 
 const db = getFirestore();
 
@@ -370,12 +371,14 @@ export const addWishlistItem = onCall(async (request: CallableRequest) => {
       throw new HttpsError('permission-denied', 'You do not have permission to add items to this wishlist');
     }
 
+    const affiliateConversion = productUrl ? convertAffiliateUrl(productUrl) : null;
+
     const itemData = {
       wishlistId,
       title: title.trim(),
       description: description || '',
       price: price || null,
-      productUrl: productUrl || null,
+      productUrl: affiliateConversion?.wasConverted ? affiliateConversion.convertedUrl : productUrl || null,
       imageUrl: imageUrl || null,
       store: store || null,
       priority: priority || 1,
@@ -383,6 +386,17 @@ export const addWishlistItem = onCall(async (request: CallableRequest) => {
       addedBy: userId,
       reservedBy: null,
       purchasedBy: null,
+      metadata: affiliateConversion?.wasConverted
+        ? {
+            affiliateConversion: {
+              originalUrl: affiliateConversion.originalUrl,
+              affiliateProgram: affiliateConversion.program?.name || null,
+              convertedAt: new Date().toISOString(),
+              commission: affiliateConversion.program?.defaultCommission || 0,
+              tagUsed: affiliateConversion.tagUsed || null,
+            },
+          }
+        : undefined,
       createdAt: new Date(),
       updatedAt: new Date()
     };
@@ -404,6 +418,88 @@ export const addWishlistItem = onCall(async (request: CallableRequest) => {
     logger.error('Error adding wishlist item:', error);
     if (error instanceof HttpsError) throw error;
     throw new HttpsError('internal', 'Failed to add wishlist item');
+  }
+});
+
+/**
+ * Update Wishlist Item
+ * Replaces: PATCH /api/items/:id
+ */
+export const updateWishlistItem = onCall(async (request: CallableRequest) => {
+  if (!request.auth) {
+    throw new HttpsError('unauthenticated', 'User must be authenticated');
+  }
+
+  const { itemId, updates } = request.data;
+  if (!itemId || !updates) {
+    throw new HttpsError('invalid-argument', 'Item ID and updates are required');
+  }
+
+  try {
+    const itemDoc = await db.collection('wishlistItems').doc(itemId).get();
+    if (!itemDoc.exists) {
+      throw new HttpsError('not-found', 'Item not found');
+    }
+
+    const itemData = itemDoc.data();
+    const wishlistDoc = await db.collection('wishlists').doc(itemData?.wishlistId).get();
+    if (!wishlistDoc.exists) {
+      throw new HttpsError('not-found', 'Wishlist not found');
+    }
+
+    if (wishlistDoc.data()?.userId !== request.auth.uid) {
+      throw new HttpsError('permission-denied', 'You can only update your own items');
+    }
+
+    await db.collection('wishlistItems').doc(itemId).update({
+      ...updates,
+      updatedAt: new Date()
+    });
+
+    return { id: itemId, ...itemData, ...updates };
+  } catch (error) {
+    logger.error('Error updating wishlist item:', error);
+    if (error instanceof HttpsError) throw error;
+    throw new HttpsError('internal', 'Failed to update wishlist item');
+  }
+});
+
+/**
+ * Delete Wishlist Item
+ * Replaces: DELETE /api/items/:id
+ */
+export const deleteWishlistItem = onCall(async (request: CallableRequest) => {
+  if (!request.auth) {
+    throw new HttpsError('unauthenticated', 'User must be authenticated');
+  }
+
+  const { itemId } = request.data;
+  if (!itemId) {
+    throw new HttpsError('invalid-argument', 'Item ID is required');
+  }
+
+  try {
+    const itemDoc = await db.collection('wishlistItems').doc(itemId).get();
+    if (!itemDoc.exists) {
+      throw new HttpsError('not-found', 'Item not found');
+    }
+
+    const itemData = itemDoc.data();
+    const wishlistDoc = await db.collection('wishlists').doc(itemData?.wishlistId).get();
+    if (!wishlistDoc.exists) {
+      throw new HttpsError('not-found', 'Wishlist not found');
+    }
+
+    if (wishlistDoc.data()?.userId !== request.auth.uid) {
+      throw new HttpsError('permission-denied', 'You can only delete your own items');
+    }
+
+    await db.collection('wishlistItems').doc(itemId).delete();
+    return { success: true };
+  } catch (error) {
+    logger.error('Error deleting wishlist item:', error);
+    if (error instanceof HttpsError) throw error;
+    throw new HttpsError('internal', 'Failed to delete wishlist item');
   }
 });
 

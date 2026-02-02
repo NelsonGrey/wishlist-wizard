@@ -25,18 +25,107 @@ export {
 } from './crud';
 
 // =============================================================================
-// BUSINESS LOGIC FUNCTIONS
+// FIREBASE FUNCTIONS API (CALLABLE)
 // =============================================================================
 
-// Wishlist Management
 export {
-  createWishlist,
+  getUserNotifications,
+  markNotificationAsRead,
+  markAllNotificationsAsRead,
+  deleteNotification,
+  createSystemNotification,
+  getNotificationSettings,
+  updateNotificationSettings
+} from './api/notifications';
+
+export {
+  authenticateExtension,
+  getExtensionWishlists,
+  addItemFromExtension,
+  getExtensionRecentItems,
+  createExtensionWishlist,
+  deleteExtensionItem,
+  shareExtensionWishlist,
+  getExtensionAnalytics,
+  trackExtensionEvent
+} from './api/extension';
+
+export {
   getUserWishlists,
-  getWishlist,
+  getWishlistById,
+  getSharedWishlist,
+  createWishlist,
   updateWishlist,
   deleteWishlist,
+  getWishlistItems,
   addWishlistItem,
   updateWishlistItem,
-  deleteWishlistItem,
-  purchaseWishlistItem
-} from './business/wishlist';
+  deleteWishlistItem
+} from './api/wishlists';
+
+export {
+  saveFCMToken,
+  removeFCMToken,
+  subscribeToTopic,
+  unsubscribeFromTopic,
+  sendTestPushNotification,
+  sendTestNotification,
+  notifyItemAdded,
+  notifyItemReserved,
+  notifyItemPurchased,
+  notifyPriceAlert
+} from './fcm';
+
+export {
+  convertAffiliateLink,
+  batchConvertAffiliateLinks,
+  convertWishlistAffiliateLinks,
+  trackAffiliateClick,
+  getAffiliatePrograms,
+  getAffiliateStats,
+  getAffiliateDisclosure
+} from './api/affiliate';
+
+export {
+  createGroupPaymentIntent,
+  confirmGroupContribution,
+  getGroupGiftSummary
+} from './api/groupPayments';
+
+export {
+  getCalendarEvents,
+  createCalendarEvent,
+  updateCalendarEvent,
+  deleteCalendarEvent,
+  getCalendarAuthUrl,
+  connectCalendar,
+  getCalendarConnections,
+  updateCalendarConnectionSettings,
+  disconnectCalendar,
+  syncCalendarConnection,
+  syncCalendar,
+  getCalendarSyncSettings
+} from './api/calendar';
+
+export {
+  registerDevice,
+  listDevices,
+  updateDevice,
+  logSyncEvent,
+  getSyncLogs,
+  syncMobileActions
+} from './api/sync';
+
+export {
+  lookupBarcode
+} from './api/mobile';
+
+export {
+  getARModel
+} from './api/ar';
+
+export {
+  trackAnalyticsEvent,
+  getAnalyticsEvents,
+  getAnalyticsSummary
+} from './api/analytics';

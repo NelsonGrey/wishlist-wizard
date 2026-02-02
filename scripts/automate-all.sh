@@ -23,7 +23,9 @@ AUTO_ROTATE="${2:-false}"
 DRY_RUN="${3:-false}"
 
 # Load environment variables
-if [ -f ".env.automation" ]; then
+if [ -f ".env.automation.$ENVIRONMENT" ]; then
+    source ".env.automation.$ENVIRONMENT"
+elif [ -f ".env.automation" ]; then
     source .env.automation
 fi
 
@@ -455,7 +457,7 @@ show_usage() {
     echo "  $0 staging false true       # Staging deployment in dry-run mode"
     echo "  $0 development true false   # Development deployment with token rotation"
     echo ""
-    echo "Required environment variables (.env.automation):"
+    echo "Required environment variables (.env.automation.$ENVIRONMENT):"
     echo "  DOCKER_REGISTRY    Docker registry URL (optional)"
     echo "  DOCKER_USERNAME    Docker registry username"
     echo "  DOCKER_PASSWORD    Docker registry password"

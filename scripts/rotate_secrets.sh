@@ -88,15 +88,15 @@ rotate_github() {
     echo "💡 Consider using GitHub App instead for better automation"
 }
 
-# Function to handle ASC key rotation guidance
+# Function to handle App Store Connect key rotation guidance
 rotate_asc() {
     echo "🔑 App Store Connect API Key Rotation (Manual Process)"
     echo ""
-    echo "📋 Steps to rotate ASC API Key:"
+    echo "📋 Steps to rotate App Store Connect API Key:"
     echo "1. Go to https://appstoreconnect.apple.com/access/api"
     echo "2. Click '+' to generate new API Key"
     echo "3. Download the .p8 file and note the Key ID"
-    echo "4. Revoke the old key (ID: $(grep ASC_KEY_ID packages/mobile/ios/.env 2>/dev/null || echo 'UNKNOWN'))"
+    echo "4. Revoke the old key (ID: $(grep APP_STORE_CONNECT_KEY_ID packages/mobile/ios/.env 2>/dev/null || echo 'UNKNOWN'))"
     echo ""
     echo "🔄 After getting new key, run:"
     echo "   ./scripts/update_asc_key.sh <new_key_id> <path_to_new_p8_file>"

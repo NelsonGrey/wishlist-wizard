@@ -62,15 +62,22 @@ EOF
     echo -e "${NC}"
 }
 
-# Load environment variables from .env.automation if it exists
-if [ -f ".env.automation" ]; then
-    log_info "Loading configuration from .env.automation"
+# Load environment variables from .env.automation.<environment> if it exists
+ENVIRONMENT="${ENVIRONMENT:-development}"
+AUTOMATION_ENV_FILE=".env.automation.${ENVIRONMENT}"
+if [ -f "$AUTOMATION_ENV_FILE" ]; then
+    log_info "Loading configuration from $AUTOMATION_ENV_FILE"
+    set -a
+    source "$AUTOMATION_ENV_FILE"
+    set +a
+elif [ -f ".env.automation" ]; then
+    log_warning "Loading configuration from deprecated .env.automation"
     set -a
     source .env.automation
     set +a
 else
-    log_warning ".env.automation file not found. Some features may not work."
-    log_info "Copy .env.automation.example to .env.automation and configure it."
+    log_warning "$AUTOMATION_ENV_FILE not found. Some features may not work."
+    log_info "Copy .env.automation.development.example to $AUTOMATION_ENV_FILE and configure it."
 fi
 
 # Validate environment
@@ -90,7 +97,7 @@ setup_github_cli() {
     # Check if GH_TOKEN is provided
     if [ -z "$GH_TOKEN" ]; then
         log_error "GH_TOKEN environment variable is required for GitHub CLI authentication"
-        log_info "Please set GH_TOKEN in your .env.automation file"
+        log_info "Please set GH_TOKEN in your $AUTOMATION_ENV_FILE file"
         log_info "Get a token from: https://github.com/settings/tokens"
         exit 1
     fi
@@ -402,13 +409,21 @@ deploy_mobile_ios() {
 
     log_info "Building iOS app for $env..."
 
+    # App Store Connect env vars
+    FASTLANE_APPLE_ID="${FASTLANE_APPLE_ID}"
+    FASTLANE_TEAM_ID="${FASTLANE_TEAM_ID}"
+    FASTLANE_ITC_TEAM_ID="${FASTLANE_ITC_TEAM_ID}"
+    APP_STORE_CONNECT_KEY_ID="${APP_STORE_CONNECT_KEY_ID}"
+    APP_STORE_CONNECT_ISSUER_ID="${APP_STORE_CONNECT_ISSUER_ID}"
+    APP_STORE_CONNECT_KEY="${APP_STORE_CONNECT_KEY}"
+
     # Set environment variables for Fastlane
-    export FASTLANE_APPLE_ID="$ASC_APPLE_ID"
-    export FASTLANE_TEAM_ID="$ASC_TEAM_ID"
-    export FASTLANE_ITC_TEAM_ID="$ASC_ITC_TEAM_ID"
-    export ASC_KEY_ID="$ASC_KEY_ID"
-    export ASC_ISSUER_ID="$ASC_ISSUER_ID"
-    export ASC_PRIVATE_KEY="$ASC_PRIVATE_KEY"
+    export FASTLANE_APPLE_ID="$FASTLANE_APPLE_ID"
+    export FASTLANE_TEAM_ID="$FASTLANE_TEAM_ID"
+    export FASTLANE_ITC_TEAM_ID="$FASTLANE_ITC_TEAM_ID"
+    export APP_STORE_CONNECT_KEY_ID="$APP_STORE_CONNECT_KEY_ID"
+    export APP_STORE_CONNECT_ISSUER_ID="$APP_STORE_CONNECT_ISSUER_ID"
+    export APP_STORE_CONNECT_KEY="$APP_STORE_CONNECT_KEY"
     export MATCH_GIT_URL="$MATCH_GIT_URL"
     export BETA_FEEDBACK_EMAIL="$BETA_FEEDBACK_EMAIL"
 
@@ -536,7 +551,7 @@ cmd_help() {
     echo ""
 
     echo -e "${WHITE}CONFIGURATION:${NC}"
-    echo "  Create .env.automation file with:"
+    echo "  Create .env.automation.<environment> file with:"
     echo "  - ALERT_EMAIL: Email for notifications"
     echo "  - SLACK_WEBHOOK: Slack webhook URL"
     echo "  - DOCKER_REGISTRY: Private registry URL"

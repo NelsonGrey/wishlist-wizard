@@ -10,7 +10,8 @@ import {
 } from 'firebase/messaging';
 import { firebaseApp, getCurrentUser } from './firebase';
 import { getFirestoreDb } from './firestore';
-import { doc, setDoc, getDoc, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
+import { apiRequest } from './queryClient';
 
 // VAPID key for web push - should be set in environment variables
 const VAPID_KEY = import.meta.env.VITE_FIREBASE_VAPID_KEY;
@@ -107,21 +108,20 @@ async function saveTokenToFirestore(token: string): Promise<void> {
       return;
     }
 
-    const db = getFirestoreDb();
-    const userTokenRef = doc(db, 'userFCMTokens', user.uid);
-    
-    await setDoc(userTokenRef, {
-      token,
-      userId: user.uid,
-      platform: 'web',
-      userAgent: navigator.userAgent,
-      lastUpdated: new Date(),
-      enabled: true
-    }, { merge: true });
+    await apiRequest('/api/fcm/token', {
+      method: 'POST',
+      body: {
+        token,
+        platform: 'web',
+        userAgent: navigator.userAgent,
+        enabled: true
+      },
+      useFirebaseFunctions: true
+    });
 
-    console.log('[FCM] Token saved to Firestore');
+    console.log('[FCM] Token saved via Functions');
   } catch (error) {
-    console.error('[FCM] Error saving token to Firestore:', error);
+    console.error('[FCM] Error saving token:', error);
   }
 }
 
@@ -327,17 +327,13 @@ export async function subscribeToTopic(topic: string): Promise<boolean> {
       return false;
     }
 
-    // Topic subscriptions are typically handled server-side
-    // Send token and topic to your backend
-    const response = await fetch('/api/fcm/subscribe-topic', {
+    await apiRequest('/api/fcm/subscribe-topic', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ token, topic })
+      body: { token, topic },
+      useFirebaseFunctions: true
     });
 
-    return response.ok;
+    return true;
   } catch (error) {
     console.error('[FCM] Error subscribing to topic:', error);
     return false;
@@ -352,15 +348,13 @@ export async function unsubscribeFromTopic(topic: string): Promise<boolean> {
     const user = getCurrentUser();
     if (!user) return false;
 
-    const response = await fetch('/api/fcm/unsubscribe-topic', {
+    await apiRequest('/api/fcm/unsubscribe-topic', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ topic })
+      body: { topic },
+      useFirebaseFunctions: true
     });
 
-    return response.ok;
+    return true;
   } catch (error) {
     console.error('[FCM] Error unsubscribing from topic:', error);
     return false;
@@ -372,14 +366,12 @@ export async function unsubscribeFromTopic(topic: string): Promise<boolean> {
  */
 export async function sendTestNotification(): Promise<boolean> {
   try {
-    const response = await fetch('/api/fcm/test-notification', {
+    await apiRequest('/api/fcm/test-notification', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      }
+      useFirebaseFunctions: true
     });
 
-    return response.ok;
+    return true;
   } catch (error) {
     console.error('[FCM] Error sending test notification:', error);
     return false;

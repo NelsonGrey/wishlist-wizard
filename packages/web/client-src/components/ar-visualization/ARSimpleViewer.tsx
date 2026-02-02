@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Loader2, Box, RotateCw } from 'lucide-react';
+import { apiRequest } from '@/lib/queryClient';
+import '@google/model-viewer';
 
 // Props for the AR Viewer component
 interface ARSimpleViewerProps {
@@ -15,15 +17,38 @@ export function ARSimpleViewer({
 }: ARSimpleViewerProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [activeView, setActiveView] = useState<'front' | 'angle' | 'side'>('angle');
+  const [modelData, setModelData] = useState<{ glb: string; usdz?: string; title: string } | null>(null);
   
   // Set loading state
-  React.useEffect(() => {
+  useEffect(() => {
     const timer = setTimeout(() => {
       setIsLoading(false);
     }, 800);
     
     return () => clearTimeout(timer);
   }, []);
+
+  // Load AR model metadata
+  useEffect(() => {
+    let isMounted = true;
+    apiRequest('/api/ar/model', {
+      method: 'POST',
+      body: { modelType },
+      useFirebaseFunctions: true
+    })
+      .then((response) => {
+        if (!isMounted) return;
+        setModelData(response as { glb: string; usdz?: string; title: string });
+      })
+      .catch(() => {
+        if (!isMounted) return;
+        setModelData(null);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [modelType]);
   
   // Get the image source based on the model type and view
   const getImageSrc = () => {
@@ -51,11 +76,24 @@ export function ARSimpleViewer({
       ) : (
         <div className="relative h-full w-full">
           <div className="h-full w-full flex items-center justify-center p-4 relative">
-            <img 
-              src={getImageSrc()} 
-              alt={`Product visualization: ${modelType}`}
-              className="max-h-full max-w-full object-contain shadow-lg rounded-md"
-            />
+            {modelData?.glb ? (
+              <model-viewer
+                src={modelData.glb}
+                ios-src={modelData.usdz}
+                alt={`3D model preview: ${modelData.title}`}
+                ar
+                ar-modes="scene-viewer quick-look webxr"
+                auto-rotate
+                camera-controls
+                style={{ width: '100%', height: '100%', background: 'transparent' }}
+              />
+            ) : (
+              <img 
+                src={getImageSrc()} 
+                alt={`Product visualization: ${modelType}`}
+                className="max-h-full max-w-full object-contain shadow-lg rounded-md"
+              />
+            )}
             
             {/* Product info overlay */}
             <div className="absolute top-2 right-2 flex flex-col gap-2">
