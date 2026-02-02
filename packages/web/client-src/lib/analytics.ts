@@ -51,11 +51,28 @@ export const trackEvent = (
   label?: string, 
   value?: number
 ) => {
-  if (typeof window === 'undefined' || !window.gtag) return;
-  
-  window.gtag('event', action, {
-    event_category: category,
-    event_label: label,
-    value: value,
+  if (typeof window !== 'undefined' && window.gtag) {
+    window.gtag('event', action, {
+      event_category: category,
+      event_label: label,
+      value: value,
+    });
+  }
+
+  // Best-effort backend tracking (does not block UI)
+  import('./queryClient').then(({ apiRequest }) => {
+    apiRequest('/api/analytics/track', {
+      method: 'POST',
+      body: {
+        action,
+        category,
+        label,
+        value,
+      }
+    }).catch(() => {
+      // Ignore backend tracking errors
+    });
+  }).catch(() => {
+    // Ignore dynamic import failures
   });
 };

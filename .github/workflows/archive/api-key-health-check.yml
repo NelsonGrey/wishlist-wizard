@@ -23,9 +23,9 @@ jobs:
 
       - name: 🔍 Check API Key Health
         env:
-          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
-          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
-          ASC_PRIVATE_KEY: ${{ secrets.ASC_PRIVATE_KEY }}
+          APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          APP_STORE_CONNECT_KEY: ${{ secrets.APP_STORE_CONNECT_KEY }}
         run: |
           chmod +x scripts/check-api-key.sh
           ./scripts/check-api-key.sh
@@ -43,7 +43,7 @@ jobs:
           echo "1. 🌐 Go to: https://appstoreconnect.apple.com/access/api"
           echo "2. 🔑 Create new API key with 'Developer' and 'App Manager' access"
           echo "3. 💾 Download .p8 file and convert to base64"
-          echo "4. 🔒 Update GitHub secrets: ASC_KEY_ID, ASC_ISSUER_ID, ASC_PRIVATE_KEY"
+          echo "4. 🔒 Update GitHub secrets: APP_STORE_CONNECT_KEY_ID, APP_STORE_CONNECT_ISSUER_ID, APP_STORE_CONNECT_KEY"
           echo "5. 🗑️ Delete old key from App Store Connect"
           echo ""
           echo "📞 iOS CI/CD builds will fail until the key is rotated"

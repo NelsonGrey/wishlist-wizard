@@ -67,7 +67,7 @@ jobs:
       - name: Validate iOS secrets availability
         run: |
           echo "🔐 Checking iOS secrets availability..."
-          SECRETS=("FASTLANE_APPLE_ID" "FASTLANE_TEAM_ID" "ASC_KEY_ID" "ASC_PRIVATE_KEY" "MATCH_GIT_URL")
+          SECRETS=("FASTLANE_APPLE_ID" "FASTLANE_TEAM_ID" "APP_STORE_CONNECT_KEY_ID" "APP_STORE_CONNECT_ISSUER_ID" "APP_STORE_CONNECT_KEY" "MATCH_GIT_URL")
           MISSING_SECRETS=()
 
           for secret in "${SECRETS[@]}"; do

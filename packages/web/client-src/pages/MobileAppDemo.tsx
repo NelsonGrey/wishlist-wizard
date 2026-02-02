@@ -120,11 +120,11 @@ const MobileAppDemo = () => {
       // In a real implementation, this would be a real API call
       return apiRequest('/api/mobile/sync', {
         method: 'POST',
-        body: JSON.stringify({
-          deviceId: 123,
+        body: {
+          deviceId: 'demo-device-123',
           lastSyncTime: new Date(Date.now() - 3600000).toISOString(),
           offlineActions: pendingActions
-        })
+        }
       });
     },
     onSuccess: () => {

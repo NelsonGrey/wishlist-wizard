@@ -144,9 +144,9 @@ jobs:
           export FASTLANE_PASSWORD='${{ secrets.FASTLANE_PASSWORD }}'
           export FASTLANE_TEAM_ID='${{ secrets.FASTLANE_TEAM_ID }}'
           export FASTLANE_ITC_TEAM_ID='${{ secrets.FASTLANE_ITC_TEAM_ID }}'
-          export ASC_KEY_ID='${{ secrets.ASC_KEY_ID }}'
-          export ASC_ISSUER_ID='${{ secrets.ASC_ISSUER_ID }}'
-          export ASC_PRIVATE_KEY='${{ secrets.ASC_PRIVATE_KEY }}'
+          export APP_STORE_CONNECT_KEY_ID='${{ secrets.APP_STORE_CONNECT_KEY_ID }}'
+          export APP_STORE_CONNECT_ISSUER_ID='${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}'
+          export APP_STORE_CONNECT_KEY='${{ secrets.APP_STORE_CONNECT_KEY }}'
           export MATCH_PASSWORD='${{ secrets.MATCH_PASSWORD }}'
           export BETA_FEEDBACK_EMAIL='${{ secrets.BETA_FEEDBACK_EMAIL }}'
           
@@ -235,7 +235,7 @@ jobs:
           fi
 
           # Create App Store Connect private key file
-          echo "$ASC_PRIVATE_KEY" | base64 -d > asc_private_key.p8
+          echo "$APP_STORE_CONNECT_KEY" | base64 -d > app_store_connect_key.p8
 
           # Execute the appropriate release pipeline based on type
           RELEASE_TYPE="${{ github.event.inputs.release_type }}"
@@ -267,4 +267,4 @@ jobs:
           security delete-keychain fastlane_tmp_keychain 2>/dev/null || true
 
           # Clean up service account files
-          rm -f packages/mobile/ios/service-account-key.json packages/mobile/ios/asc_private_key.p8 packages/mobile/ios/.env
+          rm -f packages/mobile/ios/service-account-key.json packages/mobile/ios/app_store_connect_key.p8 packages/mobile/ios/.env

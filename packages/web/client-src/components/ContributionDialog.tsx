@@ -75,6 +75,7 @@ interface Participant {
 
 interface PaymentIntentResponse {
   clientSecret: string;
+  contributionId: string;
 }
 
 function ContributionForm({
@@ -85,9 +86,7 @@ function ContributionForm({
   const [isProcessing, setIsProcessing] = useState(false);
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [currentTotal, setCurrentTotal] = useState(0);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [participants, setParticipants] = useState<Participant[]>([]);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [isLoadingParticipants, setIsLoadingParticipants] = useState(true);
   const progressBarRef = useRef<HTMLDivElement>(null);
 
@@ -130,15 +129,15 @@ function ContributionForm({
       // First, create a payment intent
       const paymentIntentRes = await apiRequest("/api/group-payments/payment-intent", {
         method: "POST",
-        body: JSON.stringify({
+        body: {
           itemId: item.id,
           amount: data.contributionAmount,
           message: data.message || "",
           isAnonymous: data.isAnonymous,
-        }),
+        },
       }) as PaymentIntentResponse;
 
-      const { clientSecret } = paymentIntentRes;
+      const { clientSecret, contributionId } = paymentIntentRes;
 
       // Confirm the payment with Stripe
       const { error: stripeError } = await stripe.confirmCardPayment(clientSecret, {
@@ -150,6 +149,14 @@ function ContributionForm({
       if (stripeError) {
         throw new Error(stripeError.message);
       }
+
+      // Confirm contribution in backend
+      await apiRequest('/api/group-payments/confirm', {
+        method: 'POST',
+        body: {
+          contributionId
+        }
+      });
 
       toast({
         title: "Contribution successful!",
@@ -183,6 +190,35 @@ function ContributionForm({
       progressBarRef.current.style.setProperty('--progress-width', `${progressPercentage}%`);
     }
   }, [currentTotal, targetPrice]);
+
+  // Load current group gift summary
+  useEffect(() => {
+    let isMounted = true;
+    const loadSummary = async () => {
+      try {
+        setIsLoadingParticipants(true);
+        const summary = await apiRequest(`/api/group-payments/item/${item.id}`, { method: 'GET' }) as {
+          totalAmount?: number;
+          participants?: Participant[];
+        };
+
+        if (!isMounted) return;
+        setCurrentTotal(summary?.totalAmount || 0);
+        setParticipants(summary?.participants || []);
+      } catch (error) {
+        console.error('Failed to load group gift summary:', error);
+      } finally {
+        if (isMounted) {
+          setIsLoadingParticipants(false);
+        }
+      }
+    };
+
+    loadSummary();
+    return () => {
+      isMounted = false;
+    };
+  }, [item.id]);
 
   return (
     <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">

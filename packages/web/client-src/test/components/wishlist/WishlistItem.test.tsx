@@ -1,8 +1,17 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { screen, fireEvent } from '@testing-library/react';
+import { screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { render } from '../../utils';
 import WishlistItem from '@/components/WishlistItem';
 import { WishlistItem as WishlistItemType } from '@wishlist-wizard/shared';
+
+vi.mock('@/components/ContributionDialog', () => ({
+  default: () => null,
+}));
+
+vi.mock('@/components/PriceAlertDialog', () => ({
+  default: () => null,
+}));
 
 describe('WishlistItem Component', () => {
   const mockItem: WishlistItemType = {
@@ -85,7 +94,7 @@ describe('WishlistItem Component', () => {
     expect(link).toHaveAttribute('target', '_blank');
   });
   
-  it('should handle delete button click', () => {
+  it('should handle delete button click', async () => {
     // Arrange & Act
     render(
       <WishlistItem 
@@ -93,16 +102,18 @@ describe('WishlistItem Component', () => {
         onDelete={mockOnDelete}
       />
     );
+
+    const user = userEvent.setup();
     
     // Act
     const deleteButton = screen.getByRole('button', { name: /delete/i });
-    fireEvent.click(deleteButton);
+    await user.click(deleteButton);
     
     // The component shows a confirmation dialog, so onDelete should not be called yet
     expect(mockOnDelete).not.toHaveBeenCalled();
   });
   
-  it('should show delete confirmation dialog', () => {
+  it('should show delete confirmation dialog', async () => {
     // Arrange & Act
     render(
       <WishlistItem 
@@ -110,17 +121,19 @@ describe('WishlistItem Component', () => {
         onDelete={mockOnDelete}
       />
     );
+
+    const user = userEvent.setup();
     
     // Act - Click delete button
     const deleteButton = screen.getByRole('button', { name: /delete/i });
-    fireEvent.click(deleteButton);
+    await user.click(deleteButton);
     
     // Assert - Dialog should appear
     expect(screen.getByText('Remove Item')).toBeInTheDocument();
     expect(screen.getByText(/Are you sure you want to remove this item/)).toBeInTheDocument();
   });
   
-  it('should call onDelete when confirming deletion', () => {
+  it('should call onDelete when confirming deletion', async () => {
     // Arrange & Act
     render(
       <WishlistItem 
@@ -128,19 +141,21 @@ describe('WishlistItem Component', () => {
         onDelete={mockOnDelete}
       />
     );
+
+    const user = userEvent.setup();
     
     // Act - Click delete button and confirm
     const deleteButton = screen.getByRole('button', { name: /delete/i });
-    fireEvent.click(deleteButton);
+    await user.click(deleteButton);
     
     const confirmButton = screen.getByText('Remove');
-    fireEvent.click(confirmButton);
+    await user.click(confirmButton);
     
     // Assert
     expect(mockOnDelete).toHaveBeenCalledTimes(1);
   });
   
-  it('should not call onDelete when canceling deletion', () => {
+  it('should not call onDelete when canceling deletion', async () => {
     // Arrange & Act
     render(
       <WishlistItem 
@@ -148,13 +163,15 @@ describe('WishlistItem Component', () => {
         onDelete={mockOnDelete}
       />
     );
+
+    const user = userEvent.setup();
     
     // Act - Click delete button and cancel
     const deleteButton = screen.getByRole('button', { name: /delete/i });
-    fireEvent.click(deleteButton);
+    await user.click(deleteButton);
     
     const cancelButton = screen.getByText('Cancel');
-    fireEvent.click(cancelButton);
+    await user.click(cancelButton);
     
     // Assert
     expect(mockOnDelete).not.toHaveBeenCalled();

@@ -1,4 +1,4 @@
-name: 🔍 Test ASC Authentication
+name: 🔍 Test App Store Connect Authentication
 
 on:
   workflow_dispatch:
@@ -6,16 +6,16 @@ on:
       test_type:
         description: 'Type of test to run'
         required: true
-        default: 'asc_auth'
+        default: 'app_store_connect_auth'
         type: choice
         options:
-        - asc_auth
+        - app_store_connect_auth
         - full_test
 
 jobs:
   test-asc-auth:
     runs-on: macos-latest
-    if: inputs.test_type == 'asc_auth'
+    if: inputs.test_type == 'app_store_connect_auth'
 
     steps:
     - name: 🍎 Setup macOS Runner
@@ -82,63 +82,63 @@ jobs:
           && echo '✅ WWDR certificate present in login keychain' \
           || echo '⚠️ WWDR certificate verification inconclusive'
 
-    - name: 🔍 Validate ASC Environment Variables
+    - name: 🔍 Validate App Store Connect Environment Variables
       env:
-        ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
-        ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
-        ASC_PRIVATE_KEY: ${{ secrets.ASC_PRIVATE_KEY }}
+        APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+        APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+        APP_STORE_CONNECT_KEY: ${{ secrets.APP_STORE_CONNECT_KEY }}
       run: |
-        echo '🔍 Validating ASC Environment Variables...'
+        echo '🔍 Validating App Store Connect Environment Variables...'
         cat << 'EOF' | ruby
-        puts "🔍 ASC Environment Variables Validation"
+        puts "🔍 App Store Connect Environment Variables Validation"
         puts "=" * 50
 
-        # Check ASC_KEY_ID
-        asc_key_id = ENV['ASC_KEY_ID']
-        if asc_key_id.nil? || asc_key_id.empty?
-          puts "❌ ASC_KEY_ID is missing or empty"
-          puts "   📝 Fix: Add ASC_KEY_ID secret to repository settings"
+        # Check APP_STORE_CONNECT_KEY_ID
+        key_id = ENV['APP_STORE_CONNECT_KEY_ID']
+        if key_id.nil? || key_id.empty?
+          puts "❌ APP_STORE_CONNECT_KEY_ID is missing or empty"
+          puts "   📝 Fix: Add APP_STORE_CONNECT_KEY_ID secret to repository settings"
           exit 1
         else
-          puts "✅ ASC_KEY_ID is present"
-          puts "   📋 Value: #{asc_key_id}"
-          if asc_key_id.match?(/^[\w]+$/)
+          puts "✅ APP_STORE_CONNECT_KEY_ID is present"
+          puts "   📋 Value: #{key_id}"
+          if key_id.match?(/^[\w]+$/)
             puts "   ✅ Format appears valid (alphanumeric)"
           else
             puts "   ⚠️ Format may be invalid (should be alphanumeric)"
           end
         end
 
-        # Check ASC_ISSUER_ID
-        asc_issuer_id = ENV['ASC_ISSUER_ID']
-        if asc_issuer_id.nil? || asc_issuer_id.empty?
-          puts "❌ ASC_ISSUER_ID is missing or empty"
-          puts "   📝 Fix: Add ASC_ISSUER_ID secret to repository settings"
+        # Check APP_STORE_CONNECT_ISSUER_ID
+        issuer_id = ENV['APP_STORE_CONNECT_ISSUER_ID']
+        if issuer_id.nil? || issuer_id.empty?
+          puts "❌ APP_STORE_CONNECT_ISSUER_ID is missing or empty"
+          puts "   📝 Fix: Add APP_STORE_CONNECT_ISSUER_ID secret to repository settings"
           exit 1
         else
-          puts "✅ ASC_ISSUER_ID is present"
-          puts "   🏢 Value: #{asc_issuer_id}"
-          if asc_issuer_id.match?(/^[\w-]+$/)
+          puts "✅ APP_STORE_CONNECT_ISSUER_ID is present"
+          puts "   🏢 Value: #{issuer_id}"
+          if issuer_id.match?(/^[\w-]+$/)
             puts "   ✅ Format appears valid (UUID-like)"
           else
             puts "   ⚠️ Format may be invalid (should be UUID format)"
           end
         end
 
-        # Check ASC_PRIVATE_KEY
-        asc_private_key = ENV['ASC_PRIVATE_KEY']
-        if asc_private_key.nil? || asc_private_key.empty?
-          puts "❌ ASC_PRIVATE_KEY is missing or empty"
-          puts "   📝 Fix: Add ASC_PRIVATE_KEY secret to repository settings"
+        # Check APP_STORE_CONNECT_KEY
+        app_store_connect_key = ENV['APP_STORE_CONNECT_KEY']
+        if app_store_connect_key.nil? || app_store_connect_key.empty?
+          puts "❌ APP_STORE_CONNECT_KEY is missing or empty"
+          puts "   📝 Fix: Add APP_STORE_CONNECT_KEY secret to repository settings"
           puts "   📖 How: Download .p8 file from App Store Connect → Copy entire content"
           exit 1
         else
-          puts "✅ ASC_PRIVATE_KEY is present"
-          puts "   🔑 Length: #{asc_private_key.length} characters"
+          puts "✅ APP_STORE_CONNECT_KEY is present"
+          puts "   🔑 Length: #{app_store_connect_key.length} characters"
 
           # Check for PEM headers
-          has_begin = asc_private_key.include?("-----BEGIN PRIVATE KEY-----")
-          has_end = asc_private_key.include?("-----END PRIVATE KEY-----")
+          has_begin = app_store_connect_key.include?("-----BEGIN PRIVATE KEY-----")
+          has_end = app_store_connect_key.include?("-----END PRIVATE KEY-----")
 
           if has_begin && has_end
             puts "   ✅ Contains PEM headers (good)"
@@ -149,10 +149,10 @@ jobs:
           end
 
           # Check for null bytes
-          null_count = asc_private_key.count("\0")
+          null_count = app_store_connect_key.count("\0")
           if null_count > 0
             puts "   ❌ Contains #{null_count} null byte(s) - THIS IS THE PROBLEM!"
-            puts "   📝 Fix: Regenerate ASC private key and copy cleanly"
+            puts "   📝 Fix: Regenerate App Store Connect private key and copy cleanly"
             puts "   🔍 Null bytes often come from:"
             puts "      - Copying from formatted text editors"
             puts "      - Multi-line secret corruption in GitHub"
@@ -163,56 +163,56 @@ jobs:
           end
 
           # Check for base64
-          is_base64 = asc_private_key.match?(/\A[A-Za-z0-9+\/=]+\z/) && asc_private_key.length > 100
+          is_base64 = app_store_connect_key.match?(/\A[A-Za-z0-9+\/=]+\z/) && app_store_connect_key.length > 100
           if is_base64 && !has_begin
             puts "   ℹ️ Appears to be base64 encoded (will be decoded)"
           end
         end
 
         puts ""
-        puts "🎉 All ASC environment variables are present and formatted correctly!"
+        puts "🎉 All App Store Connect environment variables are present and formatted correctly!"
         puts "   Next: Testing private key parsing..."
         EOF
 
     - name: 🔄 Setup App Store Connect Authentication
       env:
-        ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
-        ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
-        ASC_PRIVATE_KEY: ${{ secrets.ASC_PRIVATE_KEY }}
+        APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+        APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+        APP_STORE_CONNECT_KEY: ${{ secrets.APP_STORE_CONNECT_KEY }}
       run: |
         echo '🔄 Setting up App Store Connect authentication...'
 
-        # Create ASC private key file
+        # Create App Store Connect private key file
         mkdir -p ~/.private_keys
-        echo '${{ secrets.ASC_PRIVATE_KEY }}' | base64 -d > ~/.private_keys/AuthKey_${{ secrets.ASC_KEY_ID }}.p8 2>/dev/null || \
-        echo '${{ secrets.ASC_PRIVATE_KEY }}' > ~/.private_keys/AuthKey_${{ secrets.ASC_KEY_ID }}.p8
+        echo '${{ secrets.APP_STORE_CONNECT_KEY }}' | base64 -d > ~/.private_keys/AuthKey_${{ secrets.APP_STORE_CONNECT_KEY_ID }}.p8 2>/dev/null || \
+        echo '${{ secrets.APP_STORE_CONNECT_KEY }}' > ~/.private_keys/AuthKey_${{ secrets.APP_STORE_CONNECT_KEY_ID }}.p8
 
         # Verify the key was created
-        if [ -f ~/.private_keys/AuthKey_${{ secrets.ASC_KEY_ID }}.p8 ]; then
-          echo '✅ ASC private key file created successfully'
-          echo "📁 File location: ~/.private_keys/AuthKey_${{ secrets.ASC_KEY_ID }}.p8"
-          echo "📏 File size: $(wc -c < ~/.private_keys/AuthKey_${{ secrets.ASC_KEY_ID }}.p8) bytes"
+        if [ -f ~/.private_keys/AuthKey_${{ secrets.APP_STORE_CONNECT_KEY_ID }}.p8 ]; then
+          echo '✅ App Store Connect private key file created successfully'
+          echo "📁 File location: ~/.private_keys/AuthKey_${{ secrets.APP_STORE_CONNECT_KEY_ID }}.p8"
+          echo "📏 File size: $(wc -c < ~/.private_keys/AuthKey_${{ secrets.APP_STORE_CONNECT_KEY_ID }}.p8) bytes"
           echo "📄 First few lines:"
-          head -3 ~/.private_keys/AuthKey_${{ secrets.ASC_KEY_ID }}.p8
+          head -3 ~/.private_keys/AuthKey_${{ secrets.APP_STORE_CONNECT_KEY_ID }}.p8
           echo "📄 Last few lines:"
-          tail -3 ~/.private_keys/AuthKey_${{ secrets.ASC_KEY_ID }}.p8
+          tail -3 ~/.private_keys/AuthKey_${{ secrets.APP_STORE_CONNECT_KEY_ID }}.p8
         else
-          echo '❌ Failed to create ASC private key file'
+          echo '❌ Failed to create App Store Connect private key file'
           exit 1
         fi
 
-    - name: 🔍 Test ASC Private Key Parsing
+    - name: 🔍 Test App Store Connect Private Key Parsing
       env:
-        ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
-        ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
-        ASC_PRIVATE_KEY: ${{ secrets.ASC_PRIVATE_KEY }}
+        APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+        APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+        APP_STORE_CONNECT_KEY: ${{ secrets.APP_STORE_CONNECT_KEY }}
       run: |
-        echo '🔍 Testing ASC Private Key Parsing...'
+        echo '🔍 Testing App Store Connect Private Key Parsing...'
         cat << 'EOF' | ruby
         require 'openssl'
 
-        key_id = ENV['ASC_KEY_ID']
-        issuer_id = ENV['ASC_ISSUER_ID']
+        key_id = ENV['APP_STORE_CONNECT_KEY_ID']
+        issuer_id = ENV['APP_STORE_CONNECT_ISSUER_ID']
         private_key_path = "#{ENV['HOME']}/.private_keys/AuthKey_#{key_id}.p8"
 
         puts "🔑 Testing private key file: #{private_key_path}"
@@ -222,7 +222,7 @@ jobs:
         # Check if file exists
         unless File.exist?(private_key_path)
           puts "❌ Private key file does not exist: #{private_key_path}"
-          puts "   📝 Fix: Check ASC_PRIVATE_KEY secret and file creation step"
+          puts "   📝 Fix: Check APP_STORE_CONNECT_KEY secret and file creation step"
           exit 1
         end
 
@@ -238,8 +238,8 @@ jobs:
           null_count = private_key_content.count("\0")
           if null_count > 0
             puts "❌ Found #{null_count} null byte(s) in private key file!"
-            puts "   📝 Fix: The ASC_PRIVATE_KEY secret contains null bytes"
-            puts "   🔄 Solution: Regenerate ASC private key in App Store Connect"
+            puts "   📝 Fix: The APP_STORE_CONNECT_KEY secret contains null bytes"
+            puts "   🔄 Solution: Regenerate App Store Connect private key in App Store Connect"
             puts "   📋 Steps:"
             puts "      1. Go to App Store Connect → Users and Access → Keys"
             puts "      2. Delete existing private key"
@@ -247,7 +247,7 @@ jobs:
             puts "      4. Download .p8 file immediately"
             puts "      5. Open in plain text editor (not VS Code)"
             puts "      6. Copy entire content including -----BEGIN/END-----"
-            puts "      7. Paste into GitHub ASC_PRIVATE_KEY secret"
+            puts "      7. Paste into GitHub APP_STORE_CONNECT_KEY secret"
             exit 1
           end
 
@@ -260,7 +260,7 @@ jobs:
           unless has_begin && has_end
             puts "⚠️ Private key file missing PEM headers"
             puts "   Expected: -----BEGIN PRIVATE KEY----- and -----END PRIVATE KEY-----"
-            puts "   📝 Fix: Ensure ASC_PRIVATE_KEY contains full PEM format"
+            puts "   📝 Fix: Ensure APP_STORE_CONNECT_KEY contains full PEM format"
           end
 
           # Try to parse the key
@@ -277,7 +277,7 @@ jobs:
           case e.message
           when /string contains null byte/
             puts "   • NULL BYTES: The private key contains null characters"
-            puts "   • SOLUTION: Regenerate ASC private key and copy cleanly"
+            puts "   • SOLUTION: Regenerate App Store Connect private key and copy cleanly"
           when /invalid curve name/
             puts "   • INVALID CURVE: The key format is corrupted"
             puts "   • SOLUTION: Download fresh .p8 file from App Store Connect"
@@ -298,7 +298,7 @@ jobs:
           exit 1
         rescue => e
           puts "❌ Unexpected error during key parsing: #{e.class} - #{e.message}"
-          puts "   📝 Fix: Check ASC_PRIVATE_KEY secret format and .p8 file validity"
+          puts "   📝 Fix: Check APP_STORE_CONNECT_KEY secret format and .p8 file validity"
           exit 1
         end
 
@@ -307,17 +307,17 @@ jobs:
 
     - name: 🔄 Test JWT Generation
       env:
-        ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
-        ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
-        ASC_PRIVATE_KEY: ${{ secrets.ASC_PRIVATE_KEY }}
+        APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+        APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+        APP_STORE_CONNECT_KEY: ${{ secrets.APP_STORE_CONNECT_KEY }}
       run: |
         echo '🔄 Testing App Store Connect JWT authentication...'
         cat << 'EOF' | ruby
         require 'jwt'
         require 'openssl'
 
-        key_id = ENV['ASC_KEY_ID']
-        issuer_id = ENV['ASC_ISSUER_ID']
+        key_id = ENV['APP_STORE_CONNECT_KEY_ID']
+        issuer_id = ENV['APP_STORE_CONNECT_ISSUER_ID']
         private_key_path = "#{ENV['HOME']}/.private_keys/AuthKey_#{key_id}.p8"
 
         puts "🔄 Testing JWT token generation..."
@@ -390,7 +390,7 @@ jobs:
           when 401
             puts "❌ HTTP 401 Unauthorized - Authentication failed"
             puts "   📝 Possible causes:"
-            puts "      • ASC_KEY_ID or ASC_ISSUER_ID incorrect"
+            puts "      • APP_STORE_CONNECT_KEY_ID or APP_STORE_CONNECT_ISSUER_ID incorrect"
             puts "      • Private key doesn't match the key ID"
             puts "      • Key has insufficient permissions (needs Admin role)"
             puts "   🔄 Fix: Verify key ID and issuer ID in App Store Connect"

@@ -68,9 +68,9 @@ This document provides a complete implementation guide for deploying the Wishlis
 3. **Copy automation files** (see templates below)
 
 ### Phase 2: Configuration Setup
-1. **Create `.env.automation` file**
+1. **Create `.env.automation.development` file**
    ```bash
-   cp .env.automation.example .env.automation
+    cp .env.automation.development.example .env.automation.development
    # Edit with actual credentials
    ```
 
@@ -123,7 +123,7 @@ This document provides a complete implementation guide for deploying the Wishlis
    ```
 
 2. **Configure alert destinations**
-   - Update `.env.automation` with email/Slack settings
+    - Update `.env.automation.development` with email/Slack settings
 
 ### Phase 6: Deployment Pipeline
 1. **Test deployment**
@@ -150,8 +150,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 
 # Load configuration
-if [ -f ".env.automation" ]; then
-    source .env.automation
+if [ -f ".env.automation.development" ]; then
+    source .env.automation.development
 fi
 
 # Colors for output
@@ -376,7 +376,7 @@ main() {
     fi
 
     # Load environment
-    if [ -f ".env.automation" ]; then source .env.automation; fi
+    if [ -f ".env.automation.development" ]; then source .env.automation.development; fi
 
     # Single run or continuous
     if [ "${1:-}" = "--once" ]; then
@@ -399,10 +399,10 @@ main "$@"
 
 ## ⚙️ Configuration Templates
 
-### `.env.automation.example`
+### `.env.automation.development.example`
 ```bash
 # 🎯 Automation Configuration Template
-# Copy to .env.automation and fill in actual values
+# Copy to .env.automation.development and fill in actual values
 
 # ==========================================
 # ALERTING & NOTIFICATIONS
@@ -472,9 +472,9 @@ API_PROD_ENDPOINT=https://us-central1-wishlist-wizard-prod.cloudfunctions.net/ap
 # ==========================================
 
 # iOS App Store Connect
-ASC_KEY_ID=your-asc-key-id
-ASC_ISSUER_ID=your-asc-issuer-id
-ASC_PRIVATE_KEY=-----BEGIN PRIVATE KEY-----\nYOUR_PRIVATE_KEY\n-----END PRIVATE KEY-----
+APP_STORE_CONNECT_KEY_ID=your-app-store-connect-key-id
+APP_STORE_CONNECT_ISSUER_ID=your-app-store-connect-issuer-id
+APP_STORE_CONNECT_KEY=-----BEGIN PRIVATE KEY-----\nYOUR_PRIVATE_KEY\n-----END PRIVATE KEY-----
 FASTLANE_APPLE_ID=your-apple-id@email.com
 FASTLANE_TEAM_ID=your-team-id
 

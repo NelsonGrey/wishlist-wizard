@@ -4,9 +4,42 @@ import { AnalyticsButton } from "@/components/analytics/AnalyticsButton";
 import { AnalyticsLink } from "@/components/analytics/AnalyticsLink";
 import { trackEvent } from "@/lib/analytics";
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+
+type AnalyticsSummary = {
+  totalEvents: number;
+  byCategory: Record<string, number>;
+};
+
+type AnalyticsEvent = {
+  id: string;
+  action: string;
+  category?: string | null;
+  label?: string | null;
+  value?: number | null;
+  createdAt?: string | Date;
+};
 
 export default function Analytics() {
   const [tabValue, setTabValue] = useState("overview");
+
+  const { data: summaryData } = useQuery<{ summary: AnalyticsSummary }>({
+    queryKey: ["/api/analytics/summary"],
+    queryFn: () => apiRequest("/api/analytics/summary", { method: "GET", useFirebaseFunctions: true }) as Promise<{ summary: AnalyticsSummary }>,
+  });
+
+  const { data: eventsData } = useQuery<{ events: AnalyticsEvent[] }>({
+    queryKey: ["/api/analytics/events"],
+    queryFn: () => apiRequest("/api/analytics/events", {
+      method: "POST",
+      body: { limit: 10 },
+      useFirebaseFunctions: true,
+    }) as Promise<{ events: AnalyticsEvent[] }>,
+  });
+
+  const summary = summaryData?.summary;
+  const recentEvents = eventsData?.events || [];
 
   // Track tab changes
   const handleTabChange = (value: string) => {
@@ -35,6 +68,56 @@ export default function Analytics() {
               <CardDescription>How analytics enhance Wishlist Wizard</CardDescription>
             </CardHeader>
             <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                <Card className="p-4">
+                  <p className="text-sm text-muted-foreground">Total Events</p>
+                  <p className="text-2xl font-bold">{summary?.totalEvents ?? 0}</p>
+                </Card>
+                <Card className="p-4 md:col-span-2">
+                  <p className="text-sm text-muted-foreground mb-2">Events by Category</p>
+                  {summary?.byCategory && Object.keys(summary.byCategory).length > 0 ? (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                      {Object.entries(summary.byCategory).map(([category, count]) => (
+                        <div key={category} className="text-sm">
+                          <span className="font-medium">{category}</span>: {count}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">No category data yet.</p>
+                  )}
+                </Card>
+              </div>
+
+              <Card className="mb-6">
+                <CardHeader>
+                  <CardTitle>Recent Events</CardTitle>
+                  <CardDescription>Latest tracked activity from the platform</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {recentEvents.length > 0 ? (
+                    <div className="space-y-2">
+                      {recentEvents.map((event) => (
+                        <div key={event.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b pb-2">
+                          <div>
+                            <p className="font-medium">{event.action}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {event.category || "uncategorized"}
+                              {event.label ? ` • ${event.label}` : ""}
+                            </p>
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {event.createdAt ? new Date(event.createdAt).toLocaleString() : ""}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">No events tracked yet.</p>
+                  )}
+                </CardContent>
+              </Card>
+
               <div className="space-y-4">
                 <p>
                   Our analytics integration helps us understand how users interact with Wishlist Wizard, allowing us to:

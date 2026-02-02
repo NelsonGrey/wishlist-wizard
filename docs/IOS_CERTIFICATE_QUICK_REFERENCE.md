@@ -43,9 +43,9 @@ FASTLANE_TEAM_ID=YOUR_TEAM_ID
 FASTLANE_ITC_TEAM_ID=YOUR_ITC_TEAM_ID
 
 # App Store Connect API
-ASC_KEY_ID=YOUR_KEY_ID
-ASC_ISSUER_ID=YOUR_ISSUER_ID
-ASC_PRIVATE_KEY=-----BEGIN PRIVATE KEY-----\nYOUR_KEY\n-----END PRIVATE KEY-----
+APP_STORE_CONNECT_KEY_ID=YOUR_KEY_ID
+APP_STORE_CONNECT_ISSUER_ID=YOUR_ISSUER_ID
+APP_STORE_CONNECT_KEY=-----BEGIN PRIVATE KEY-----\nYOUR_KEY\n-----END PRIVATE KEY-----
 
 # Certificates
 MATCH_GIT_URL=https://oauth2:gho_TOKEN@github.com/username/project-certificates.git
@@ -91,9 +91,9 @@ platform :ios do
   desc "Upload to TestFlight"
   lane :beta do
     app_store_connect_api_key(
-      key_id: ENV["ASC_KEY_ID"],
-      issuer_id: ENV["ASC_ISSUER_ID"],
-      key_content: ENV["ASC_PRIVATE_KEY"],
+      key_id: ENV["APP_STORE_CONNECT_KEY_ID"],
+      issuer_id: ENV["APP_STORE_CONNECT_ISSUER_ID"],
+      key_content: ENV["APP_STORE_CONNECT_KEY"],
       is_key_content_base64: true
     )
     build_testflight
@@ -108,9 +108,9 @@ end
 FASTLANE_APPLE_ID          → your-apple-id@example.com
 FASTLANE_TEAM_ID           → YOUR_TEAM_ID
 FASTLANE_ITC_TEAM_ID       → YOUR_ITC_TEAM_ID
-ASC_KEY_ID                 → YOUR_KEY_ID
-ASC_ISSUER_ID              → YOUR_ISSUER_ID
-ASC_PRIVATE_KEY            → base64-encoded .p8 content
+APP_STORE_CONNECT_KEY_ID        → YOUR_KEY_ID
+APP_STORE_CONNECT_ISSUER_ID     → YOUR_ISSUER_ID
+APP_STORE_CONNECT_KEY           → base64-encoded .p8 content
 MATCH_GIT_URL              → https://oauth2:gho_TOKEN@github.com/user/repo.git
 MATCH_PASSWORD             → your_match_password
 BETA_FEEDBACK_EMAIL        → feedback@company.com
