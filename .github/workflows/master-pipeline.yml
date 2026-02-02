@@ -183,7 +183,8 @@ jobs:
       app_store_connect_key_id: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
       app_store_connect_issuer_id: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
       app_store_connect_key: ${{ secrets.APP_STORE_CONNECT_KEY }}
-      match_password: ${{ secrets.MATCH_PASSWORD }}
+      match_git_password: ${{ secrets.MATCH_GIT_PASSWORD }}
+      keychain_password: ${{ secrets.KEYCHAIN_PASSWORD }}
       match_git_url: ${{ secrets.MATCH_GIT_URL }}
       match_git_branch: ${{ secrets.MATCH_GIT_BRANCH }}
 
