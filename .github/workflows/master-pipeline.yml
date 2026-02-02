@@ -45,10 +45,9 @@ jobs:
     name: Load Project Configuration
     runs-on: ubuntu-latest
     env:
-      # Map old secret names to new workflow-expected names for backward compatibility
-      APP_STORE_CONNECT_KEY_ID: ${{ secrets.ASC_KEY_ID }}
-      APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
-      APP_STORE_CONNECT_KEY: ${{ secrets.ASC_PRIVATE_KEY }}
+      APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+      APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+      APP_STORE_CONNECT_KEY: ${{ secrets.APP_STORE_CONNECT_KEY }}
       FIREBASE_PROJECT_DEV: ${{ secrets.FIREBASE_PROJECT_DEVELOPMENT || 'wishlist-wizard-dev' }}
       FIREBASE_PROJECT_STAGING: ${{ secrets.FIREBASE_PROJECT_STAGING || 'wishlist-wizard-staging' }}
       FIREBASE_PROJECT_PROD: ${{ secrets.FIREBASE_PROJECT_PRODUCTION || 'wishlist-wizard-prod' }}
