@@ -1,5 +1,5 @@
 import { onCall, CallableRequest, HttpsError } from "firebase-functions/v2/https";
-import { getFirestore } from "firebase-admin/firestore";
+import { getFirestore, Query, DocumentData } from "firebase-admin/firestore";
 import { logger } from "firebase-functions/v2";
 
 const db = getFirestore();
@@ -35,7 +35,7 @@ export const getAnalyticsEvents = onCall(async (request: CallableRequest) => {
   const userId = request.auth?.uid || null;
 
   try {
-    let query = db.collection("analyticsEvents").orderBy("createdAt", "desc").limit(limit);
+    let query: Query<DocumentData> = db.collection("analyticsEvents").orderBy("createdAt", "desc").limit(limit);
 
     if (userId) {
       query = query.where("userId", "==", userId);
@@ -55,7 +55,7 @@ export const getAnalyticsSummary = onCall(async (request: CallableRequest) => {
   const userId = request.auth?.uid || null;
 
   try {
-    let query = db.collection("analyticsEvents");
+    let query: Query<DocumentData> = db.collection("analyticsEvents");
     if (userId) {
       query = query.where("userId", "==", userId);
     }
