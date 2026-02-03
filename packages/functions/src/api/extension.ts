@@ -102,7 +102,30 @@ export const addItemFromExtension = onCall(async (request: CallableRequest) => {
 
     const affiliateConversion = productUrl ? convertAffiliateUrl(productUrl) : null;
 
-    const itemData = {
+    type ExtensionItemMetadata = {
+      affiliateConversion: {
+        originalUrl: string | null;
+        affiliateProgram: string | null;
+        convertedAt: string;
+        commission: number;
+        tagUsed: string | null;
+      };
+    };
+
+    type ExtensionItemPayload = {
+      wishlistId: string;
+      title: string;
+      productUrl: string | null;
+      imageUrl: string | null;
+      price: string | number | null;
+      store: string | null;
+      addedBy: string;
+      createdAt: Date;
+      updatedAt: Date;
+      metadata?: ExtensionItemMetadata;
+    };
+
+    const itemData: ExtensionItemPayload = {
       wishlistId,
       title: title.trim(),
       productUrl: affiliateConversion?.wasConverted ? affiliateConversion.convertedUrl : productUrl || null,

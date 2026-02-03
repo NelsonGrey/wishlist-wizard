@@ -1,5 +1,5 @@
 import { onCall, CallableRequest, HttpsError } from "firebase-functions/v2/https";
-import { getFirestore } from "firebase-admin/firestore";
+import { getFirestore, Query, DocumentData } from "firebase-admin/firestore";
 import { logger } from "firebase-functions/v2";
 import { AFFILIATE_PROGRAMS, convertAffiliateUrl } from "../utils/affiliate.js";
 
@@ -169,8 +169,8 @@ export const getAffiliateStats = onCall(async (request: CallableRequest) => {
   const userId = request.auth?.uid || null;
 
   try {
-    let conversionsQuery = db.collection("affiliateConversions");
-    let clicksQuery = db.collection("affiliateClicks");
+    let conversionsQuery: Query<DocumentData> = db.collection("affiliateConversions");
+    let clicksQuery: Query<DocumentData> = db.collection("affiliateClicks");
 
     if (userId) {
       conversionsQuery = conversionsQuery.where("userId", "==", userId);
