@@ -8,7 +8,7 @@ const db = getFirestore();
 const stripeSecretKey = process.env.STRIPE_SECRET_KEY || "";
 
 const stripe = stripeSecretKey
-  ? new Stripe(stripeSecretKey, { apiVersion: "2024-06-20" })
+  ? new Stripe(stripeSecretKey, { apiVersion: "2023-10-16" })
   : null;
 
 export const createGroupPaymentIntent = onCall(async (request: CallableRequest) => {
@@ -161,7 +161,17 @@ export const getGroupGiftSummary = onCall(async (request: CallableRequest) => {
       .orderBy("createdAt", "desc")
       .get();
 
-    const participantsRaw = contributionsSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+    type GroupContribution = {
+      id: string;
+      userId?: string;
+      amount?: number;
+      isAnonymous?: boolean;
+    };
+
+    const participantsRaw: GroupContribution[] = contributionsSnapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...(doc.data() as Omit<GroupContribution, "id">)
+    }));
     const userIds = Array.from(new Set(participantsRaw.map((p) => p.userId).filter(Boolean)));
 
     const userDocs = await Promise.all(
