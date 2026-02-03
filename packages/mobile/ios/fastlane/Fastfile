@@ -287,11 +287,8 @@ platform :ios do
     
     # Create and unlock keychain
     if File.exist?(keychain_path)
-      unlock_keychain(
-        path: keychain_path,
-        password: keychain_password,
-        add_to_search_list: true
-      )
+      sh("security unlock-keychain -p #{keychain_password.shellescape} #{keychain_path.shellescape} || true", log: false)
+      sh("security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k #{keychain_password.shellescape} #{keychain_path.shellescape} 2>/dev/null || true", log: false)
     else
       create_keychain(
         name: keychain_name,
@@ -301,6 +298,7 @@ platform :ios do
         timeout: 3600,
         add_to_search_list: true
       )
+      sh("security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k #{keychain_password.shellescape} #{keychain_path.shellescape} 2>/dev/null || true", log: false)
     end
 
     match_keychain_arg = keychain_path

@@ -481,7 +481,21 @@ async function syncConnectionEvents(connectionId: string, connection: any, userI
     .where("userId", "==", userId)
     .get();
 
-  const events = eventsSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+  type CalendarEventData = {
+    externalEventId?: string;
+    calendarId?: string;
+    title?: string;
+    description?: string;
+    location?: string;
+    allDay?: boolean;
+    startDate?: string;
+    endDate?: string;
+  };
+
+  const events: Array<CalendarEventData & { id: string }> = eventsSnapshot.docs.map((doc) => ({
+    id: doc.id,
+    ...(doc.data() as CalendarEventData)
+  }));
 
   let syncedCount = 0;
 
