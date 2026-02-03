@@ -19,10 +19,10 @@ type("appstore")
 # app_identifier(["com.wishlistwizard.mobile"])
 
 # Username for the Apple ID
-username(ENV["FASTLANE_APPLE_ID"])
+username(ENV["FASTLANE_APPLE_ID"]) if ENV["FASTLANE_APPLE_ID"]
 
 # Team ID
-team_id(ENV["FASTLANE_TEAM_ID"])
+team_id(ENV["FASTLANE_TEAM_ID"]) if ENV["FASTLANE_TEAM_ID"]
 
 # Keychain password (required for certificate import)
 keychain_password(ENV["MATCH_KEYCHAIN_PASSWORD"]) if ENV["MATCH_KEYCHAIN_PASSWORD"]
