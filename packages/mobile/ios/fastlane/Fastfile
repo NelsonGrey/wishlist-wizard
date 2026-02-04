@@ -545,7 +545,7 @@ platform :ios do
     end
 
     # Use sync_signing (match) variables
-    build_app(
+    result = build_app(
       workspace: "Runner.xcworkspace",
       scheme: "Runner",
       clean: true,
@@ -560,10 +560,10 @@ platform :ios do
       }
     )
     
-    # Verify IPA creation
-    ipa_path = "../../build/ios/ipa/WishlistWizard.ipa"
-    unless File.exist?(ipa_path)
-       UI.user_error!("gym failed to create IPA at #{ipa_path}")
+    # Get the actual IPA path from build_app result
+    ipa_path = Actions.lane_context[SharedValues::IPA_OUTPUT_PATH]
+    unless ipa_path && File.exist?(ipa_path)
+       UI.user_error!("gym failed to create IPA at #{ipa_path || '../../build/ios/ipa/WishlistWizard.ipa'}")
     end
     
     UI.message("✅ Successfully created signed IPA at: #{ipa_path}")
