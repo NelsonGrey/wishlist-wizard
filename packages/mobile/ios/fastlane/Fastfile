@@ -431,6 +431,28 @@ platform :ios do
       team_id = ENV["sigh_#{app_id}_appstore_team-id"] || ENV["FASTLANE_TEAM_ID"]
       cert_name = ENV["sigh_#{app_id}_appstore_certificate-name"] || "Apple Distribution"
 
+      # Ensure keychain is unlocked and searchable BEFORE build_app
+      # This is critical for Xcode to find the code signing certificate
+      keychain_name = ENV["MATCH_KEYCHAIN_NAME"]
+      keychain_password = ENV["MATCH_KEYCHAIN_PASSWORD"]
+      
+      if keychain_name && keychain_password
+        keychain_path = ENV["MATCH_KEYCHAIN_PATH"]
+        if keychain_path.to_s.empty?
+          keychain_path = File.expand_path("~/Library/Keychains/#{keychain_name}-db")
+        end
+        
+        if File.exist?(keychain_path)
+          UI.message("🔓 Unlocking dedicated keychain for build: #{keychain_path}")
+          sh("security unlock-keychain -p #{keychain_password.shellescape} #{keychain_path.shellescape}", log: false)
+          sh("security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k #{keychain_password.shellescape} #{keychain_path.shellescape} 2>/dev/null || true", log: false)
+          # Add keychain to search list
+          sh("security list-keychains -d user -s #{keychain_path.shellescape} $(security list-keychains -d user | tr -d '\"')", log: false)
+        else
+          UI.important("⚠️ Keychain not found at: #{keychain_path}")
+        end
+      end
+
       # Build the Xcode project
       build_app(
         xcargs: "CODE_SIGN_STYLE='Manual' DEVELOPMENT_TEAM='#{team_id}' PROVISIONING_PROFILE_SPECIFIER='#{profile_name}' CODE_SIGN_IDENTITY='#{cert_name}'",
@@ -499,6 +521,28 @@ platform :ios do
       profile_name: profile_name,
       team_id: team_id
     )
+
+    # Ensure keychain is unlocked and searchable BEFORE build_app
+    # This is critical for Xcode to find the code signing certificate
+    keychain_name = ENV["MATCH_KEYCHAIN_NAME"]
+    keychain_password = ENV["MATCH_KEYCHAIN_PASSWORD"]
+    
+    if keychain_name && keychain_password
+      keychain_path = ENV["MATCH_KEYCHAIN_PATH"]
+      if keychain_path.to_s.empty?
+        keychain_path = File.expand_path("~/Library/Keychains/#{keychain_name}-db")
+      end
+      
+      if File.exist?(keychain_path)
+        UI.message("🔓 Unlocking dedicated keychain for build: #{keychain_path}")
+        sh("security unlock-keychain -p #{keychain_password.shellescape} #{keychain_path.shellescape}", log: false)
+        sh("security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k #{keychain_password.shellescape} #{keychain_path.shellescape} 2>/dev/null || true", log: false)
+        # Add keychain to search list
+        sh("security list-keychains -d user -s #{keychain_path.shellescape} $(security list-keychains -d user | tr -d '\"')", log: false)
+      else
+        UI.important("⚠️ Keychain not found at: #{keychain_path}")
+      end
+    end
 
     # Use sync_signing (match) variables
     build_app(
