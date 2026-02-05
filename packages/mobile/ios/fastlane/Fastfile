@@ -578,19 +578,11 @@ platform :ios do
     build_testflight
 
     # Upload to TestFlight
-    # Locate the generated .ipa dynamically (handles varying file names)
-    # Locate the generated .ipa dynamically (handles varying file names and build dirs)
-    possible_globs = [
-      File.expand_path(File.join(__dir__, "..", "build", "ios", "ipa", "**", "*.ipa")),
-      File.expand_path(File.join(__dir__, "..", "..", "build", "ios", "ipa", "**", "*.ipa"))
-    ]
-    ipa_path = nil
-    possible_globs.each do |g|
-      ipa_path = Dir[g].first
-      break unless ipa_path.nil?
-    end
-    if ipa_path.nil?
-      UI.user_error!("Could not find .ipa in expected locations: #{possible_globs.join(', ')}. Ensure `flutter build ipa` succeeded and produced an .ipa file.")
+    # Get the IPA path from the build_testflight lane (it's stored in SharedValues)
+    ipa_path = Actions.lane_context[SharedValues::IPA_OUTPUT_PATH]
+    
+    if ipa_path.nil? || !File.exist?(ipa_path)
+      UI.user_error!("Could not find IPA after build_testflight. IPA path was: #{ipa_path || 'nil'}")
     else
       UI.message("Found IPA at #{ipa_path}")
     end
