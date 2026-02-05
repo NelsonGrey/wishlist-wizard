@@ -545,7 +545,7 @@ platform :ios do
     end
 
     # Use sync_signing (match) variables
-    result = build_app(
+    build_app(
       workspace: "Runner.xcworkspace",
       scheme: "Runner",
       clean: true,
@@ -560,10 +560,10 @@ platform :ios do
       }
     )
     
-    # Get the actual IPA path from build_app result
-    ipa_path = Actions.lane_context[SharedValues::IPA_OUTPUT_PATH]
-    unless ipa_path && File.exist?(ipa_path)
-       UI.user_error!("gym failed to create IPA at #{ipa_path || '../../build/ios/ipa/WishlistWizard.ipa'}")
+    # Verify IPA creation
+    ipa_path = "../../build/ios/ipa/WishlistWizard.ipa"
+    unless File.exist?(ipa_path)
+       UI.user_error!("gym failed to create IPA at #{ipa_path}")
     end
     
     UI.message("✅ Successfully created signed IPA at: #{ipa_path}")
@@ -578,41 +578,32 @@ platform :ios do
     build_testflight
 
     # Upload to TestFlight
-    # Get the IPA path from the build_testflight lane (it's stored in SharedValues)
-    ipa_path = Actions.lane_context[SharedValues::IPA_OUTPUT_PATH]
-    
-    if ipa_path.nil? || !File.exist?(ipa_path)
-      UI.user_error!("Could not find IPA after build_testflight. IPA path was: #{ipa_path || 'nil'}")
+    # Locate the generated .ipa dynamically (handles varying file names)
+    # Locate the generated .ipa dynamically (handles varying file names and build dirs)
+    possible_globs = [
+      File.expand_path(File.join(__dir__, "..", "build", "ios", "ipa", "**", "*.ipa")),
+      File.expand_path(File.join(__dir__, "..", "..", "build", "ios", "ipa", "**", "*.ipa"))
+    ]
+    ipa_path = nil
+    possible_globs.each do |g|
+      ipa_path = Dir[g].first
+      break unless ipa_path.nil?
+    end
+    if ipa_path.nil?
+      UI.user_error!("Could not find .ipa in expected locations: #{possible_globs.join(', ')}. Ensure `flutter build ipa` succeeded and produced an .ipa file.")
     else
       UI.message("Found IPA at #{ipa_path}")
     end
 
     # Normalize BETA contact phone to E.164-ish format for App Store Connect
+    # Note: beta_app_feedback_phone is no longer supported in current fastlane versions
     raw_contact_phone = ENV["BETA_CONTACT_PHONE"].to_s.strip
-    sanitized_contact_phone = ""
 
     if raw_contact_phone.empty?
-      UI.message("No contact phone provided; falling back to default +15551234567")
-      sanitized_contact_phone = "+15551234567"
+      UI.message("No contact phone provided")
     else
-      # If it starts with '+', preserve '+' then strip non-digits
-      if raw_contact_phone.start_with?("+")
-        digits = raw_contact_phone[1..-1].gsub(/\D/, "")
-        sanitized_contact_phone = "+" + digits
-      else
-        # Remove non-digits
-        digits = raw_contact_phone.gsub(/\D/, "")
-        # If 10 digits, assume US and prefix +1
-        if digits.length == 10
-          sanitized_contact_phone = "+1" + digits
-        else
-          # Otherwise just add + prefix
-          sanitized_contact_phone = "+" + digits
-        end
-      end
+      UI.message("Contact phone provided (will be recorded but not passed to upload_to_testflight)")
     end
-    
-    UI.message("Using sanitized BETA contact phone: #{sanitized_contact_phone}")
 
     # Use pilot (wrapped by upload_to_testflight)
     # Use api_key from lane context (set by load_asc_api_key indirectly? No, load_asc_api_key returns nil but sets shared values/config)
@@ -623,9 +614,6 @@ platform :ios do
       ipa: ipa_path,
       skip_waiting_for_build_processing: true,
       beta_app_feedback_email: "mark.a.nelson@outlook.com",
-      # beta_app_description: "Automated Beta Build from CI",
-      beta_app_feedback_phone: sanitized_contact_phone,
-      # demo_account_required: false,
       distribute_external: true, # Just upload; distribution handled via groups? Or true to auto-distribute?
       groups: ["Internal Testers"]
     )
