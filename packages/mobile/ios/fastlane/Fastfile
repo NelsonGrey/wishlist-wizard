@@ -606,7 +606,8 @@ platform :ios do
       ipa: ipa_path,
       skip_waiting_for_build_processing: true,
       beta_app_feedback_email: "mark.a.nelson@outlook.com",
-      distribute_external: true, # Just upload; distribution handled via groups? Or true to auto-distribute?
+      changelog: "Automated TestFlight build from CI/CD pipeline",
+      distribute_external: true,
       groups: ["Internal Testers"]
     )
   end
