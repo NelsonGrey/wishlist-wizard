@@ -178,6 +178,22 @@ resize_copy 180 "$ROOT/packages/web/public/apple-touch-icon.png"
 resize_copy 192 "$ROOT/packages/web/public/android-chrome-192x192.png"
 resize_copy 512 "$ROOT/packages/web/public/android-chrome-512x512.png"
 
+# Create multi-resolution favicon.ico for better browser compatibility
+echo "Generating favicon.ico (multi-resolution for browser compatibility)..."
+dest_ico="$ROOT/packages/web/public/favicon.ico"
+if [ -n "$IMAGEMAGICK_BIN" ]; then
+  # Create a temporary 256x256 PNG for ICO conversion
+  temp_ico_src=$(mktemp /tmp/favicon-temp-XXXXX.png)
+  resize_with_tool 256 "$SRC_PNG" "$temp_ico_src"
+  # Generate multi-resolution ICO with sizes: 16, 32, 48, 64, 128, 256
+  $IMAGEMAGICK_BIN "$temp_ico_src" -define icon:auto-resize=256,128,64,48,32,16 "$dest_ico" 2>/dev/null || \
+  $IMAGEMAGICK_BIN "$temp_ico_src" -colors 256 "$dest_ico"
+  rm -f "$temp_ico_src"
+  echo "Created $dest_ico (multi-resolution)"
+else
+  echo "Skipping favicon.ico generation (ImageMagick not available)"
+fi
+
 # Create PWA manifest for React web app
 dest_manifest="$ROOT/packages/web/public/site.webmanifest"
 mkdir -p "$(dirname "$dest_manifest")"
