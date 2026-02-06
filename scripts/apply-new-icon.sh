@@ -171,6 +171,41 @@ resize_copy 32 "$ROOT/chrome-extension-package/icons/icon32.png"
 resize_copy 48 "$ROOT/chrome-extension-package/icons/icon48.png"
 resize_copy 128 "$ROOT/chrome-extension-package/icons/icon128.png"
 
+echo "Generating React web app icons..."
+resize_copy 16 "$ROOT/packages/web/public/favicon-16x16.png"
+resize_copy 32 "$ROOT/packages/web/public/favicon-32x32.png"
+resize_copy 180 "$ROOT/packages/web/public/apple-touch-icon.png"
+resize_copy 192 "$ROOT/packages/web/public/android-chrome-192x192.png"
+resize_copy 512 "$ROOT/packages/web/public/android-chrome-512x512.png"
+
+# Create PWA manifest for React web app
+dest_manifest="$ROOT/packages/web/public/site.webmanifest"
+mkdir -p "$(dirname "$dest_manifest")"
+cat > "$dest_manifest" <<'MANIFEST'
+{
+  "name": "Wishlist Wizard",
+  "short_name": "Wishlist Wizard",
+  "theme_color": "#fffaf3",
+  "background_color": "#fffaf3",
+  "display": "standalone",
+  "scope": "/",
+  "start_url": "/",
+  "icons": [
+    {
+      "src": "/android-chrome-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/android-chrome-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
+MANIFEST
+echo "Created site.webmanifest for React web app"
+
 echo "Generating web PWA icons..."
 resize_copy 192 "$ROOT/packages/mobile/web/icons/Icon-192.png"
 resize_copy 512 "$ROOT/packages/mobile/web/icons/Icon-512.png"
