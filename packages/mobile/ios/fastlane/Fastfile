@@ -26,10 +26,10 @@ platform :ios do
 
   # before_all block removed to align with modulo-squares and trust ephemeral_keychain script
 
-  desc "Load ASC API Key information to use in subsequent lanes"
+  desc "Load App Store Connect API Key information to use in subsequent lanes"
   lane :load_asc_api_key do
-    # Load ASC_PRIVATE_KEY from environment
-    asc_raw = ENV["ASC_PRIVATE_KEY"]
+    # Load APP_STORE_CONNECT_KEY from environment
+    asc_raw = ENV["APP_STORE_CONNECT_KEY"]
     if asc_raw
       # If the secret is provided as a single-line base64 (no PEM header), prefer passing
       # it directly to Fastlane via `key_content` with `is_key_content_base64: true`.
@@ -38,10 +38,10 @@ platform :ios do
       looks_base64 = cleaned =~ /\A[A-Za-z0-9+\/=]+\z/ && cleaned.length > 100
 
       if !is_pem && looks_base64
-        UI.message("Detected ASC_PRIVATE_KEY as base64; passing directly as key_content (is_key_content_base64: true)")
+        UI.message("Detected APP_STORE_CONNECT_KEY as base64; passing directly as key_content (is_key_content_base64: true)")
         app_store_connect_api_key(
-          key_id: ENV["ASC_KEY_ID"],
-          issuer_id: ENV["ASC_ISSUER_ID"],
+          key_id: ENV["APP_STORE_CONNECT_KEY_ID"],
+          issuer_id: ENV["APP_STORE_CONNECT_ISSUER_ID"],
           key_content: cleaned,
           is_key_content_base64: true,
           in_house: false
@@ -69,27 +69,27 @@ platform :ios do
           decoded = Base64.decode64(private_key_content)
           if decoded.include?("-----BEGIN")
             private_key_content = decoded
-            UI.message("Decoded ASC_PRIVATE_KEY from base64")
+            UI.message("Decoded APP_STORE_CONNECT_KEY from base64")
           end
         rescue => e
-          UI.message("Failed to decode ASC_PRIVATE_KEY as base64: #{e.message}")
+          UI.message("Failed to decode APP_STORE_CONNECT_KEY as base64: #{e.message}")
         end
       end
 
       # Write the (normalized) key to a temporary file
       require 'tempfile'
-      key_file = Tempfile.new(['asc_key', '.p8'])
+      key_file = Tempfile.new(['app_store_connect_key', '.p8'])
       key_file.write(private_key_content)
       key_file.close
 
-      UI.message("Created temporary ASC key file: #{key_file.path}")
+      UI.message("Created temporary App Store Connect key file: #{key_file.path}")
 
       # Attempt multiple OpenSSL conversions to produce a canonical EC PEM that Ruby/OpenSSL accepts.
       converted_path = nil
       use_key_path = key_file.path
       begin
         require 'tmpdir'
-        converted_path = File.join(Dir.tmpdir, "asc_key_converted_#{Time.now.to_i}.p8")
+        converted_path = File.join(Dir.tmpdir, "app_store_connect_key_converted_#{Time.now.to_i}.p8")
 
         conversion_cmds = [
           "openssl pkcs8 -in #{key_file.path} -inform PEM -out #{converted_path} -outform PEM -nocrypt 2>&1",
@@ -119,8 +119,8 @@ platform :ios do
       end
 
       app_store_connect_api_key(
-        key_id: ENV["ASC_KEY_ID"],
-        issuer_id: ENV["ASC_ISSUER_ID"],
+        key_id: ENV["APP_STORE_CONNECT_KEY_ID"],
+        issuer_id: ENV["APP_STORE_CONNECT_ISSUER_ID"],
         key_filepath: use_key_path,
         in_house: false
       )
