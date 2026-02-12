@@ -133,7 +133,7 @@ platform :ios do
         File.delete(converted_path) if converted_path && File.exist?(converted_path)
       rescue => _; end
     else
-      UI.user_error!("ASC_PRIVATE_KEY environment variable is not set")
+      UI.user_error!("APP_STORE_CONNECT_KEY environment variable is not set")
     end
   end
 
@@ -200,10 +200,10 @@ platform :ios do
   desc "Sync code signing certificates and provisioning profiles"
   lane :sync_signing do
     # Set up API key authentication
-    private_key_content = ENV["ASC_PRIVATE_KEY"]
+    private_key_content = ENV["APP_STORE_CONNECT_KEY"]
     if private_key_content.nil? || private_key_content.empty?
-      UI.error("ASC_PRIVATE_KEY environment variable is not set or empty")
-      raise "Missing ASC_PRIVATE_KEY"
+      UI.error("APP_STORE_CONNECT_KEY environment variable is not set or empty")
+      raise "Missing APP_STORE_CONNECT_KEY"
     end
 
     # Detect key format
@@ -212,10 +212,10 @@ platform :ios do
     looks_base64 = cleaned =~ /\A[A-Za-z0-9+\/=]+\z/ && cleaned.length > 100
 
     if !is_pem && looks_base64
-      UI.message("Detected ASC_PRIVATE_KEY as base64; passing directly as key_content (is_key_content_base64: true)")
+      UI.message("Detected APP_STORE_CONNECT_KEY as base64; passing directly as key_content (is_key_content_base64: true)")
       api_key = app_store_connect_api_key(
-        key_id: ENV["ASC_KEY_ID"],
-        issuer_id: ENV["ASC_ISSUER_ID"],
+        key_id: ENV["APP_STORE_CONNECT_KEY_ID"],
+        issuer_id: ENV["APP_STORE_CONNECT_ISSUER_ID"],
         key_content: cleaned,
         is_key_content_base64: true,
         in_house: false
@@ -234,23 +234,23 @@ platform :ios do
           decoded = Base64.decode64(private_key_content)
           if decoded.include?("-----BEGIN")
             private_key_content = decoded
-            UI.message("Decoded ASC_PRIVATE_KEY from base64")
+            UI.message("Decoded APP_STORE_CONNECT_KEY from base64")
           end
         rescue => e
-          UI.message("Failed to decode ASC_PRIVATE_KEY as base64: #{e.message}")
+          UI.message("Failed to decode APP_STORE_CONNECT_KEY as base64: #{e.message}")
         end
       end
 
       require 'tempfile'
-      key_file = Tempfile.new(['asc_key', '.p8'])
+      key_file = Tempfile.new(['app_store_connect_key', '.p8'])
       key_file.write(private_key_content)
       key_file.close
 
-      UI.message("Created temporary ASC key file: #{key_file.path}")
+      UI.message("Created temporary App Store Connect key file: #{key_file.path}")
 
       api_key = app_store_connect_api_key(
-        key_id: ENV["ASC_KEY_ID"],
-        issuer_id: ENV["ASC_ISSUER_ID"],
+        key_id: ENV["APP_STORE_CONNECT_KEY_ID"],
+        issuer_id: ENV["APP_STORE_CONNECT_ISSUER_ID"],
         key_filepath: key_file.path
       )
     end
