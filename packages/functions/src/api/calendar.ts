@@ -504,6 +504,7 @@ async function syncConnectionEvents(connectionId: string, connection: any, userI
       continue;
     }
 
+    const endDate = event.endDate || event.startDate || "";
     const payload = {
       summary: event.title,
       description: event.description || "",
@@ -512,8 +513,8 @@ async function syncConnectionEvents(connectionId: string, connection: any, userI
         ? { date: (event.startDate as string).split("T")[0] }
         : { dateTime: event.startDate },
       end: event.allDay
-        ? { date: (event.endDate || event.startDate).split("T")[0] }
-        : { dateTime: event.endDate || event.startDate },
+        ? { date: (endDate as string).split("T")[0] }
+        : { dateTime: endDate },
     };
 
     let externalEvent;
