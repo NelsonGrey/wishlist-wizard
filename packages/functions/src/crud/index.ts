@@ -2,12 +2,9 @@ import * as functions from "firebase-functions";
 import * as logger from "firebase-functions/logger";
 import * as admin from "firebase-admin";
 
-// Initialize Firebase Admin
-try {
+// Initialize Firebase Admin (safe for multiple imports)
+if (!admin.apps.length) {
   admin.initializeApp();
-} catch (error) {
-  // App might already be initialized
-  logger.info("Firebase Admin already initialized or error:", error);
 }
 
 /**

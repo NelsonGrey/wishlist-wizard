@@ -11,8 +11,8 @@ const auth_1 = require("firebase-admin/auth");
 const app_1 = require("firebase-admin/app");
 const params_1 = require("firebase-functions/params");
 const v2_1 = require("firebase-functions/v2");
-// Initialize Firebase Admin
-const app = (0, app_1.initializeApp)();
+// Initialize Firebase Admin (safe for multiple imports)
+const app = (0, app_1.getApps)().length === 0 ? (0, app_1.initializeApp)() : (0, app_1.getApps)()[0];
 const db = (0, firestore_2.getFirestore)(app);
 const auth = (0, auth_1.getAuth)(app);
 // Firebase Secrets for sensitive data
