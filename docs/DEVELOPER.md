@@ -1,258 +1,139 @@
-1//01TUQ4hMG2uxUCgYIARAAGAESNwF-L9IreJTDLMjQbt462Q0pjMcRXElmc0PJd-plm8QWDOu1KY7EPqq9AdH7uub09FikoYYs-Iw
-
 # Wishlist Wizard Developer Guide
 
-This document provides technical information for developers working on the WishKeeper platform.
+This document provides technical information for developers working on the Wishlist Wizard platform.
 
 ## Tech Stack Overview
 
-### Frontend
-- **Framework**: React with TypeScript
+### Frontend (Web)
+- **Framework**: React 19.x with TypeScript
 - **Routing**: Wouter
-- **State Management**: React Query (TanStack Query)
-- **UI Components**: Custom components based on Radix UI primitives with Tailwind CSS
-- **Form Handling**: React Hook Form with Zod validation
-- **Date Management**: date-fns
-- **Calendar**: react-big-calendar
-- **Icons**: Lucide React, React Icons
+- **State Management**: TanStack Query (React Query)
+- **UI Components**: Radix UI + Tailwind CSS
+- **Form Handling**: React Hook Form + Zod
+- **Build Tool**: Vite
 
 ### Backend
-- **Framework**: Express.js with TypeScript
-- **Database**: PostgreSQL with Drizzle ORM
-- **Authentication**: JWT and session-based with Passport.js
-- **File Storage**: Server-side file system
-- **Email**: SendGrid
-- **AI Integration**: OpenAI API
+- **Platform**: Firebase Cloud Functions (v2)
+- **Database**: Cloud Firestore
+- **Authentication**: Firebase Auth (ID tokens)
+- **Email**: SendGrid (when configured)
+- **Payments**: Stripe (optional)
 
-### Other Tools
-- **Build System**: Vite
-- **Package Management**: npm
-- **Development Environment**: VS Code
-- **Cloud Platform**: Firebase (Hosting, Firestore)
-- **Analytics**: Google Analytics
-- **External APIs**: Various e-commerce APIs, calendar providers
+### Mobile
+- **Framework**: Flutter (iOS and Android)
+- **State Management**: Provider
+
+### Shared Packages
+- **Shared Types**: `@wishlist-wizard/shared`
+- **Firebase Utils**: `@shared/firebase-utils`
+
+---
 
 ## Project Structure
 
 ```
 / (root)
-├── web/                    # React web application
-│   ├── public/             # Public assets
-│   └── src/                # React application source
-├── server/                 # Express.js API server
-│   ├── middlewares/        # Express middlewares
-│   ├── routes/             # API route definitions
-│   ├── services/           # Service layer implementations
-│   └── tests/              # Backend tests
-├── packages/               # Monorepo packages
-│   ├── browser-extension/  # Chrome browser extension
-│   │   └── src/            # Extension source code
-│   ├── functions/          # Firebase Functions
-│   │   └── src/            # Serverless functions
-│   ├── mobile/             # Flutter mobile app
-│   │   └── lib/            # Flutter source code
-│   └── shared/             # Shared TypeScript code
-│       └── src/            # Shared schemas and utilities
-└── scripts/                # Automation scripts
+├── packages/
+│   ├── web/                 # React web app (Vite)
+│   │   ├── client-src/       # App source
+│   │   └── public/           # Static assets
+│   ├── functions/            # Firebase Functions
+│   │   └── src/              # Callable function handlers
+│   ├── browser-extension/    # Browser extension
+│   │   └── src/              # Extension source
+│   ├── mobile/               # Flutter mobile app
+│   │   └── lib/              # Flutter source
+│   ├── shared/               # Shared TypeScript code
+│   │   └── src/              # Shared schemas and utilities
+│   └── firebase-utils/       # Firebase helper utilities
+└── scripts/                  # Automation scripts
 ```
 
-## Database Schema
+---
 
-The database schema is defined in `shared/schema.ts` using Drizzle ORM. Key tables include:
+## Data Model
 
-- **users**: User accounts and authentication
-- **beneficiaries**: People for whom wishlists are created
-- **wishlists**: Collections of items
-- **wishlistItems**: Individual items in wishlists
-- **wishlistCollaborators**: Users who can view/edit wishlists
-- **priceHistory**: Historical price data for items
-- **priceAlerts**: User-defined price thresholds for notifications
-- **notifications**: System notifications for users
-- **userDevices**: Registered user devices (for mobile app)
-- **calendarEvents**: Events synced with external calendars
-- **userCalendars**: Connected external calendar accounts
+- **Primary**: Firestore collections (`wishlists`, `wishlistItems`, `notifications`, `collaborators`, `users`).
+- **Legacy**: A Drizzle SQL schema exists in `packages/shared/src/schema.ts` and is treated as legacy/reference.
 
-## Authentication System
+See [DATABASE_SCHEMA.md](DATABASE_SCHEMA.md) for the authoritative Firestore model.
 
-The authentication system supports multiple methods:
+---
 
-1. **Session-based Authentication**
-   - Used for the web application
-   - Managed through Express sessions with PostgreSQL session store
+## Authentication
 
-2. **JWT Authentication**
-   - Used for API access and browser extension
-   - Tokens issued with configurable expiration
+- Firebase Auth handles sign-in (email/password and OAuth providers).
+- Clients call Firebase Functions using `httpsCallable`.
+- Functions enforce auth with `request.auth`.
 
-3. **OAuth Integration**
-   - Used for external calendar authentication
-   - Supports Google, Microsoft, and Apple accounts
+---
 
-## Key API Endpoints
+## Callable API Surface (High-Level)
 
-### Authentication
-- `POST /api/auth/register`: Create a new user account
-- `POST /api/auth/login`: Authenticate a user
-- `GET /api/auth/me`: Get current user information
+- **Wishlists**: `getUserWishlists`, `getWishlistById`, `getSharedWishlist`, `createWishlist`, `updateWishlist`, `deleteWishlist`
+- **Items**: `getWishlistItems`, `addWishlistItem`, `updateWishlistItem`, `deleteWishlistItem`
+- **Notifications**: `getUserNotifications`, `markNotificationAsRead`, `markAllNotificationsAsRead`, `deleteNotification`, `createSystemNotification`, `getNotificationSettings`, `updateNotificationSettings`
+- **Extension**: `authenticateExtension`, `getExtensionWishlists`, `addItemFromExtension`, `getExtensionRecentItems`, `createExtensionWishlist`
 
-### Wishlists
-- `GET /api/wishlists`: List user's wishlists
-- `POST /api/wishlists`: Create a new wishlist
-- `GET /api/wishlists/:id`: Get a specific wishlist
-- `PATCH /api/wishlists/:id`: Update a wishlist
-- `DELETE /api/wishlists/:id`: Delete a wishlist
+See [API_REFERENCE.md](API_REFERENCE.md) for payloads and examples.
 
-### Wishlist Items
-- `GET /api/wishlists/:id/items`: List items in a wishlist
-- `POST /api/items`: Add a new item
-- `PATCH /api/items/:id`: Update an item
-- `DELETE /api/items/:id`: Delete an item
-- `GET /api/items/:id/price-history`: Get price history for an item
-
-### Price Tracking
-- `POST /api/price-alerts`: Create a price alert
-- `GET /api/price-alerts`: List user's price alerts
-- `DELETE /api/price-alerts/:id`: Delete a price alert
-- `GET /api/price-drops`: Get recent price drops
-
-### Calendar Integration
-- `GET /api/calendar/events`: List calendar events
-- `POST /api/calendar/events`: Create a calendar event
-- `GET /api/calendar/auth/:provider`: Get OAuth URL for a calendar provider
-- `GET /api/calendar/connections`: List connected calendars
-- `POST /api/calendar/connections/:id/sync`: Sync with external calendar
-
-### E-commerce Platform Integration
-- `GET /api/ecommerce/platforms`: List supported e-commerce platforms
-- `GET /api/ecommerce/search`: Search products across platforms
-- `POST /api/ecommerce/product`: Extract product data from URL
-- `POST /api/ecommerce/affiliate-link`: Generate affiliate links
+---
 
 ## Environment Variables
 
-The following environment variables need to be set:
+### Web (Vite)
+- `VITE_FIREBASE_API_KEY`
+- `VITE_FIREBASE_AUTH_DOMAIN`
+- `VITE_FIREBASE_PROJECT_ID`
+- `VITE_FIREBASE_STORAGE_BUCKET`
+- `VITE_FIREBASE_MESSAGING_SENDER_ID`
+- `VITE_FIREBASE_APP_ID`
+- `VITE_FIREBASE_MEASUREMENT_ID`
+- `VITE_FIREBASE_VAPID_KEY`
+- `VITE_GA_MEASUREMENT_ID`
+- `VITE_STRIPE_PUBLISHABLE_KEY`
 
-### Database
-- `DATABASE_URL`: PostgreSQL connection string
-- `PGHOST`, `PGPORT`, `PGUSER`, `PGPASSWORD`, `PGDATABASE`: Individual PostgreSQL connection parameters
+### Functions (Server)
+- `FIREBASE_ADMIN_SDK_PATH`
+- `SENDGRID_API_KEY` (optional)
+- `OPENAI_API_KEY` (optional)
 
-### Authentication
-- `JWT_SECRET`: Secret key for JWT token generation
-- `SESSION_SECRET`: Secret for Express session
-
-### External APIs
-- `OPENAI_API_KEY`: For AI-powered recommendations
-- `SENDGRID_API_KEY`: For email notifications
-- `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`: For Google Calendar integration
-- `MICROSOFT_CLIENT_ID`, `MICROSOFT_CLIENT_SECRET`: For Outlook Calendar integration
-- `APPLE_CLIENT_ID`, `APPLE_CLIENT_SECRET`: For Apple Calendar integration
-
-### E-commerce Platform APIs
-- `AMAZON_API_KEY`, `AMAZON_API_SECRET`, `AMAZON_PARTNER_ID`
-- `EBAY_API_KEY`, `EBAY_API_SECRET`
-- `ETSY_API_KEY`, `ETSY_API_SECRET`
-- And similar keys for other platforms (Walmart, Target, Best Buy)
-
-### Analytics
-- `VITE_GA_MEASUREMENT_ID`: Google Analytics measurement ID
+---
 
 ## Development Workflow
 
 1. **Setup**
-   - Clone the repository
-   - Install dependencies with `npm install`
-   - Set up environment variables
-   - Create a PostgreSQL database
+   - `npm install`
+   - Create `.env.local` with `VITE_` values
 
-2. **Running Locally**
-   - Start the development server with `npm run dev`
-   - This will start both the backend and frontend in development mode
+2. **Run Web App**
+   - `npm run dev`
 
-3. **Database Migrations**
-   - Database schema changes are managed through Drizzle
-   - Push schema changes with `npm run db:push`
+3. **Run Functions Emulator**
+   - `npm run serve --workspace=functions`
 
-4. **Testing**
-   - Run tests with `npm test`
-   - Backend tests use Vitest
-   - Frontend tests use Testing Library and Vitest
-
-5. **Deployment**
-   - The web application is deployed to Firebase Hosting
-   - The API server runs on Firebase Functions
-   - The database uses Firebase Firestore
-   - Deploy with `firebase deploy --only hosting` for web app
-   - Deploy with `firebase deploy --only functions` for API server
-   - Ensure all environment variables are set before deployment
-
-## Extension Development
-
-The browser extension consists of three main components:
-
-1. **Background Script**: Manages authentication and communication with the backend
-2. **Content Script**: Executes on e-commerce websites to extract product information
-3. **Popup UI**: Provides user interface for the extension
-
-Extension files are located in `client/public/extension/`.
-
-## Mobile App Development
-
-The mobile app is planned for future development using React Native or a similar framework. The current codebase includes a placeholder directory at `mobile/`.
-
-## Contributing Guidelines
-
-1. **Code Style**
-   - Follow TypeScript best practices
-   - Use ESLint and Prettier for code formatting
-   - Write meaningful comments for complex logic
-
-2. **Git Workflow**
-   - Create feature branches for new features
-   - Submit pull requests for review
-   - Include tests for new functionality
-
-3. **Documentation**
-   - Update documentation when making significant changes
-   - Document API endpoints and schema changes
-
-## Performance Considerations
-
-1. **Database Queries**
-   - Use indexes for frequently queried fields
-   - Optimize complex queries with proper joins
-
-2. **Frontend**
-   - Use React Query for efficient data fetching and caching
-   - Implement virtualization for long lists
-
-3. **API Requests**
-   - Implement rate limiting for external API calls
-   - Cache responses where appropriate
-
-4. **Image Processing**
-   - Optimize images for web display
-   - Consider using a CDN for static assets
-
-## Security Best Practices
-
-1. **Authentication**
-   - Use HTTPS for all connections
-   - Implement proper password hashing with bcrypt
-   - Set secure and HTTP-only flags for cookies
-
-2. **Input Validation**
-   - Validate all user inputs with Zod schemas
-   - Sanitize inputs to prevent XSS attacks
-
-3. **API Security**
-   - Implement proper CORS policies
-   - Use rate limiting to prevent abuse
-   - Validate JWT tokens on protected routes
-
-4. **Database Security**
-   - Use parameterized queries to prevent SQL injection
-   - Implement row-level security where appropriate
+4. **Tests**
+   - `npm test` (all workspaces)
+   - `npm run test --workspace=@wishlist-wizard/web`
 
 ---
 
-For questions or further information, contact the development team.
+## Extension Development
+
+- Source is in `packages/browser-extension/src`.
+- Build via `npm run build --workspace=@wishlist-wizard/browser-extension`.
+
+---
+
+## Mobile Development
+
+- Flutter app lives in `packages/mobile`.
+- Run `flutter pub get` then `flutter run`.
+
+---
+
+## Contributing Guidelines
+
+- Follow [CODE_STANDARDS.md](CODE_STANDARDS.md).
+- Add tests when changing logic.
+- Update documentation for significant changes.
