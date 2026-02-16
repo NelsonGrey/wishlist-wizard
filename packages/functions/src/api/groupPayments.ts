@@ -172,7 +172,7 @@ export const getGroupGiftSummary = onCall(async (request: CallableRequest) => {
       id: doc.id,
       ...(doc.data() as Omit<GroupContribution, "id">)
     }));
-    const userIds = Array.from(new Set(participantsRaw.map((p) => p.userId).filter(Boolean)));
+    const userIds = Array.from(new Set(participantsRaw.map((p) => p.userId).filter(Boolean))) as string[];
 
     const userDocs = await Promise.all(
       userIds.map((userId) => db.collection("users").doc(userId).get())
@@ -182,7 +182,7 @@ export const getGroupGiftSummary = onCall(async (request: CallableRequest) => {
     const participants = participantsRaw.map((participant) => ({
       ...participant,
       contributionAmount: participant.amount || 0,
-      user: participant.isAnonymous
+      user: participant.isAnonymous || !participant.userId
         ? null
         : {
             displayName: userMap.get(participant.userId)?.displayName || null,
