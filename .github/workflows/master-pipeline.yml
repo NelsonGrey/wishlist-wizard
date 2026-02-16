@@ -188,18 +188,6 @@ jobs:
       match_git_url: ${{ secrets.MATCH_GIT_URL }}
       match_git_branch: ${{ secrets.MATCH_GIT_BRANCH }}
 
-  build-android:
-    name: Build Android App
-    needs: load-config
-    if: |
-      needs.load-config.outputs.android_enabled == 'true' &&
-      (needs.load-config.outputs.trigger_context == 'build_all' ||
-       needs.load-config.outputs.trigger_context == 'build_and_deploy')
-    uses: mnelson3/nelson-grey/.github/workflows/android-build.yml@main
-    with:
-      project_name: ${{ needs.load-config.outputs.project_name }}
-      build_type: ${{ needs.load-config.outputs.trigger_context == 'build_and_deploy' && 'release' || 'debug' }}
-
   build-web:
     name: Build Web App
     needs: load-config
@@ -244,7 +232,7 @@ jobs:
     with:
       project_name: ${{ needs.load-config.outputs.project_name }}
       publish: false
-      node_version: "18"
+      node_version: "20"
     secrets:
       chrome_extension_id: ${{ secrets.CHROME_EXTENSION_ID }}
       chrome_client_id: ${{ secrets.CHROME_CLIENT_ID }}
@@ -253,7 +241,7 @@ jobs:
 
   pipeline-summary:
     name: Pipeline Summary
-    needs: [load-config, test, build-ios, build-android, build-web, deploy-firebase, build-chrome-extension]
+    needs: [load-config, test, build-ios, build-web, deploy-firebase, build-chrome-extension]
     if: always()
     runs-on: self-hosted
     steps:
@@ -268,7 +256,6 @@ jobs:
           echo "### Build Status" >> $GITHUB_STEP_SUMMARY
           echo "- Tests: ${{ needs.test.result }}" >> $GITHUB_STEP_SUMMARY
           echo "- iOS: ${{ needs.build-ios.result }}" >> $GITHUB_STEP_SUMMARY
-          echo "- Android: ${{ needs.build-android.result }}" >> $GITHUB_STEP_SUMMARY
           echo "- Web: ${{ needs.build-web.result }}" >> $GITHUB_STEP_SUMMARY
           echo "- Firebase: ${{ needs.deploy-firebase.result }}" >> $GITHUB_STEP_SUMMARY
           echo "- Chrome Extension: ${{ needs.build-chrome-extension.result }}" >> $GITHUB_STEP_SUMMARY

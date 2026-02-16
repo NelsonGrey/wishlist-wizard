@@ -24,7 +24,7 @@ targets:
         enabled: true
 
   android:
-    enabled: true
+    enabled: false
     path: "packages/mobile/android"
     signing:
       keystore_ref: "${ANDROID_KEYSTORE_PATH}"
@@ -40,14 +40,14 @@ targets:
 
   web:
     enabled: true
-    build_command: "cd packages/web && npm run build"
+    build_command: "npm run build --workspace=@wishlist-wizard/web"
     destinations:
       firebase_hosting:
         enabled: true
 
   chrome_extension:
     enabled: true
-    build_command: "cd packages/extension && npm run build"
+    build_command: "npm run build --workspace=@wishlist-wizard/browser-extension"
     destinations:
       chrome_web_store:
         enabled: true
@@ -91,7 +91,7 @@ ci:
       paths:
         - "packages/mobile/**"
         - "packages/web/**"
-        - "packages/extension/**"
+        - "packages/browser-extension/**"
         - "packages/functions/**"
         - ".github/workflows/**"
         - ".cicd/projects/**"
