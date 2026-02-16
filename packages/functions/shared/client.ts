@@ -139,7 +139,7 @@ export class AuthHelpers {
  */
 export class FirestoreCrudHelpers {
   private static getDb() {
-    // Initialize admin if not already done
+    // Initialize admin if not already done (safe for multiple imports)
     if (!admin.apps.length) {
       admin.initializeApp();
     }

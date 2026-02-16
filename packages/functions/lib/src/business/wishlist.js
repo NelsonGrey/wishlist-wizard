@@ -37,13 +37,9 @@ exports.purchaseWishlistItem = exports.deleteWishlistItem = exports.updateWishli
 const functions = __importStar(require("firebase-functions"));
 const admin = __importStar(require("firebase-admin"));
 const logger = __importStar(require("firebase-functions/logger"));
-// Initialize Firebase Admin
-try {
+// Initialize Firebase Admin (safe for multiple imports)
+if (!admin.apps.length) {
     admin.initializeApp();
-}
-catch (error) {
-    // App might already be initialized
-    logger.info("Firebase Admin already initialized or error:", error);
 }
 // Initialize Firestore
 const firestore = admin.firestore();

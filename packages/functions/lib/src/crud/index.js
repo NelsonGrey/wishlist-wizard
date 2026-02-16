@@ -37,13 +37,9 @@ exports.batchUpdateDocuments = exports.batchCreateDocuments = exports.listDocume
 const functions = __importStar(require("firebase-functions"));
 const logger = __importStar(require("firebase-functions/logger"));
 const admin = __importStar(require("firebase-admin"));
-// Initialize Firebase Admin
-try {
+// Initialize Firebase Admin (safe for multiple imports)
+if (!admin.apps.length) {
     admin.initializeApp();
-}
-catch (error) {
-    // App might already be initialized
-    logger.info("Firebase Admin already initialized or error:", error);
 }
 /**
  * Authentication helpers for Firebase Functions

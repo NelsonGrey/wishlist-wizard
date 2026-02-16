@@ -141,7 +141,7 @@ exports.AuthHelpers = AuthHelpers;
  */
 class FirestoreCrudHelpers {
     static getDb() {
-        // Initialize admin if not already done
+        // Initialize admin if not already done (safe for multiple imports)
         if (!admin.apps.length) {
             admin.initializeApp();
         }

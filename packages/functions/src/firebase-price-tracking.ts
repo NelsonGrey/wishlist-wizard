@@ -6,12 +6,12 @@ import { onCall, HttpsError, CallableRequest } from 'firebase-functions/v2/https
 import { onDocumentCreated } from 'firebase-functions/v2/firestore';
 import { getFirestore, FieldValue, Timestamp } from 'firebase-admin/firestore';
 import { getAuth } from 'firebase-admin/auth';
-import { initializeApp } from 'firebase-admin/app';
+import { initializeApp, getApps } from 'firebase-admin/app';
 import { defineSecret } from 'firebase-functions/params';
 import { logger } from 'firebase-functions/v2';
 
-// Initialize Firebase Admin
-const app = initializeApp();
+// Initialize Firebase Admin (safe for multiple imports)
+const app = getApps().length === 0 ? initializeApp() : getApps()[0];
 const db = getFirestore(app);
 const auth = getAuth(app);
 
