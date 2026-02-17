@@ -1,10 +1,11 @@
-import * as functions from "firebase-functions";
+import { onCall, HttpsError, CallableRequest } from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
-import * as admin from "firebase-admin";
+import { getApps, initializeApp } from "firebase-admin/app";
+import { getFirestore, FieldValue, Firestore, DocumentReference } from "firebase-admin/firestore";
 
 // Initialize Firebase Admin (safe for multiple imports)
-if (!admin.apps.length) {
-  admin.initializeApp();
+if (!getApps().length) {
+  initializeApp();
 }
 
 /**
@@ -15,16 +16,14 @@ class FunctionsAuthHelpers {
    * Verify user is authenticated and return user info
    * Throws HttpsError if not authenticated
    */
-  static verifyAuthenticated(context: any): { uid: string; email?: string; token: any } {
-    if (!context.auth) {
-      const { HttpsError } = require('firebase-functions');
+  static verifyAuthenticated(request: CallableRequest): { uid: string; email?: string } {
+    if (!request.auth) {
       throw new HttpsError('unauthenticated', 'User must be authenticated');
     }
 
     return {
-      uid: context.auth.uid,
-      email: context.auth.token.email,
-      token: context.auth.token
+      uid: request.auth.uid,
+      email: request.auth.token.email
     };
   }
 }
@@ -33,8 +32,8 @@ class FunctionsAuthHelpers {
  * Firestore CRUD helpers for Firebase Functions
  */
 class FirestoreCrudHelpers {
-  private static getDb() {
-    return admin.firestore();
+  private static getDb(): Firestore {
+    return getFirestore();
   }
 
   /**
@@ -50,11 +49,11 @@ class FirestoreCrudHelpers {
     const documentData = {
       ...data,
       createdBy: userId,
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
-      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      createdAt: FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp(),
     };
 
-    let docRef: admin.firestore.DocumentReference;
+    let docRef: DocumentReference;
     if (options?.id) {
       docRef = db.collection(collection).doc(options.id);
       if (options?.merge) {
@@ -96,7 +95,7 @@ class FirestoreCrudHelpers {
     const db = this.getDb();
     const updateData = {
       ...data,
-      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp(),
     };
 
     if (options?.merge) {
@@ -120,14 +119,14 @@ class FirestoreCrudHelpers {
   static async queryDocuments(
     collection: string,
     options?: {
-      filters?: Array<{ field: string; operator: admin.firestore.WhereFilterOp; value: any }>;
+      filters?: Array<{ field: string; operator: any; value: any }>;
       orderBy?: { field: string; direction: 'asc' | 'desc' };
       limit?: number;
       offset?: number;
     }
   ): Promise<any[]> {
     const db = this.getDb();
-    let query: admin.firestore.Query = db.collection(collection);
+    let query: any = db.collection(collection);
 
     // Apply filters
     if (options?.filters) {
@@ -147,7 +146,7 @@ class FirestoreCrudHelpers {
     }
 
     const snapshot = await query.get();
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    return snapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() }));
   }
 
   /**
@@ -166,11 +165,11 @@ class FirestoreCrudHelpers {
       const documentData = {
         ...doc.data,
         createdBy: userId,
-        createdAt: admin.firestore.FieldValue.serverTimestamp(),
-        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        createdAt: FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
       };
 
-      let docRef: admin.firestore.DocumentReference;
+      let docRef: DocumentReference;
       if (doc.id) {
         docRef = db.collection(collection).doc(doc.id);
         batch.set(docRef, documentData);
@@ -196,7 +195,7 @@ class FirestoreCrudHelpers {
     for (const update of updates) {
       const updateData = {
         ...update.data,
-        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
       };
 
       const docRef = db.collection(collection).doc(update.id);
@@ -220,13 +219,13 @@ export interface CrudOptions {
 /**
  * Create a new document in a collection
  */
-export const createDocument = functions.https.onCall(async (request) => {
+export const createDocument = onCall(async (request) => {
   // Verify authentication using shared helpers
   const user = FunctionsAuthHelpers.verifyAuthenticated(request);
   const { collection, data } = request.data as CrudOptions;
 
   if (!collection || !data) {
-    throw new Error("Collection and data are required");
+    throw new HttpsError('invalid-argument', 'Collection and data are required');
   }
 
   try {
@@ -240,20 +239,20 @@ export const createDocument = functions.https.onCall(async (request) => {
     };
   } catch (error) {
     logger.error("Error creating document:", error);
-    throw new Error("Failed to create document");
+    throw new HttpsError('internal', 'Failed to create document');
   }
 });
 
 /**
  * Get a document by ID
  */
-export const getDocument = functions.https.onCall(async (request) => {
+export const getDocument = onCall(async (request) => {
   // Verify authentication using shared helpers
   FunctionsAuthHelpers.verifyAuthenticated(request);
   const { collection, documentId } = request.data as CrudOptions;
 
   if (!collection || !documentId) {
-    throw new Error("Collection and documentId are required");
+    throw new HttpsError('invalid-argument', 'Collection and documentId are required');
   }
 
   try {
@@ -261,7 +260,7 @@ export const getDocument = functions.https.onCall(async (request) => {
     const data = await FirestoreCrudHelpers.getDocument(collection, documentId);
 
     if (!data) {
-      throw new Error("Document not found");
+      throw new HttpsError('not-found', 'Document not found');
     }
 
     return {
@@ -270,20 +269,20 @@ export const getDocument = functions.https.onCall(async (request) => {
     };
   } catch (error) {
     logger.error("Error getting document:", error);
-    throw new Error("Failed to get document");
+    throw new HttpsError('internal', 'Failed to get document');
   }
 });
 
 /**
  * Update a document
  */
-export const updateDocument = functions.https.onCall(async (request) => {
+export const updateDocument = onCall(async (request) => {
   // Verify authentication using shared helpers
   FunctionsAuthHelpers.verifyAuthenticated(request);
   const { collection, documentId, data } = request.data as CrudOptions;
 
   if (!collection || !documentId || !data) {
-    throw new Error("Collection, documentId, and data are required");
+    throw new HttpsError('invalid-argument', 'Collection, documentId, and data are required');
   }
 
   try {
@@ -294,20 +293,20 @@ export const updateDocument = functions.https.onCall(async (request) => {
     return { success: true };
   } catch (error) {
     logger.error("Error updating document:", error);
-    throw new Error("Failed to update document");
+    throw new HttpsError('internal', 'Failed to update document');
   }
 });
 
 /**
  * Delete a document
  */
-export const deleteDocument = functions.https.onCall(async (request) => {
+export const deleteDocument = onCall(async (request) => {
   // Verify authentication using shared helpers
   FunctionsAuthHelpers.verifyAuthenticated(request);
   const { collection, documentId } = request.data as CrudOptions;
 
   if (!collection || !documentId) {
-    throw new Error("Collection and documentId are required");
+    throw new HttpsError('invalid-argument', 'Collection and documentId are required');
   }
 
   try {
@@ -318,20 +317,20 @@ export const deleteDocument = functions.https.onCall(async (request) => {
     return { success: true };
   } catch (error) {
     logger.error("Error deleting document:", error);
-    throw new Error("Failed to delete document");
+    throw new HttpsError('internal', 'Failed to delete document');
   }
 });
 
 /**
  * List documents with optional filtering and pagination
  */
-export const listDocuments = functions.https.onCall(async (request) => {
+export const listDocuments = onCall(async (request) => {
   // Verify authentication using shared helpers
   FunctionsAuthHelpers.verifyAuthenticated(request);
   const { collection, filters, orderBy, limit = 50 } = request.data as CrudOptions;
 
   if (!collection) {
-    throw new Error("Collection is required");
+    throw new HttpsError('invalid-argument', 'Collection is required');
   }
 
   try {
@@ -349,24 +348,24 @@ export const listDocuments = functions.https.onCall(async (request) => {
     };
   } catch (error) {
     logger.error("Error listing documents:", error);
-    throw new Error("Failed to list documents");
+    throw new HttpsError('internal', 'Failed to list documents');
   }
 });
 
 /**
  * Batch create multiple documents
  */
-export const batchCreateDocuments = functions.https.onCall(async (request) => {
+export const batchCreateDocuments = onCall(async (request) => {
   // Verify authentication using shared helpers
   const user = FunctionsAuthHelpers.verifyAuthenticated(request);
   const { collection, documents } = request.data;
 
   if (!collection || !Array.isArray(documents)) {
-    throw new Error("Collection and documents array are required");
+    throw new HttpsError('invalid-argument', 'Collection and documents array are required');
   }
 
   if (documents.length > 500) {
-    throw new Error("Maximum 500 documents per batch");
+    throw new HttpsError('invalid-argument', 'Maximum 500 documents per batch');
   }
 
   try {
@@ -385,24 +384,24 @@ export const batchCreateDocuments = functions.https.onCall(async (request) => {
     };
   } catch (error) {
     logger.error("Error batch creating documents:", error);
-    throw new Error("Failed to batch create documents");
+    throw new HttpsError('internal', 'Failed to batch create documents');
   }
 });
 
 /**
  * Batch update multiple documents
  */
-export const batchUpdateDocuments = functions.https.onCall(async (request) => {
+export const batchUpdateDocuments = onCall(async (request) => {
   // Verify authentication using shared helpers
   FunctionsAuthHelpers.verifyAuthenticated(request);
   const { collection, updates } = request.data;
 
   if (!collection || !Array.isArray(updates)) {
-    throw new Error("Collection and updates array are required");
+    throw new HttpsError('invalid-argument', 'Collection and updates array are required');
   }
 
   if (updates.length > 500) {
-    throw new Error("Maximum 500 updates per batch");
+    throw new HttpsError('invalid-argument', 'Maximum 500 updates per batch');
   }
 
   try {
@@ -416,6 +415,6 @@ export const batchUpdateDocuments = functions.https.onCall(async (request) => {
     };
   } catch (error) {
     logger.error("Error batch updating documents:", error);
-    throw new Error("Failed to batch update documents");
+    throw new HttpsError('internal', 'Failed to batch update documents');
   }
 });
