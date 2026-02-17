@@ -196,15 +196,87 @@ jobs:
       (needs.load-config.outputs.trigger_context == 'build_all' ||
        needs.load-config.outputs.trigger_context == 'build_and_deploy' ||
        needs.load-config.outputs.trigger_context == 'deploy_only')
-    uses: mnelson3/nelson-grey/.github/workflows/web-deploy.yml@main
-    with:
-      project_name: ${{ needs.load-config.outputs.project_name }}
-      environment: ${{ needs.load-config.outputs.target_environment }}
-    secrets:
-      firebase_token: ${{ secrets.FIREBASE_TOKEN }}
-      firebase_project_dev: ${{ secrets.FIREBASE_PROJECT_DEV }}
-      firebase_project_staging: ${{ secrets.FIREBASE_PROJECT_STAGING }}
-      firebase_project_prod: ${{ secrets.FIREBASE_PROJECT_PROD }}
+    runs-on: self-hosted
+    env:
+      FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+      FIREBASE_PROJECT_DEV: ${{ secrets.FIREBASE_PROJECT_DEV }}
+      FIREBASE_PROJECT_STAGING: ${{ secrets.FIREBASE_PROJECT_STAGING }}
+      FIREBASE_PROJECT_PROD: ${{ secrets.FIREBASE_PROJECT_PROD }}
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install Firebase CLI
+        run: |
+          npm install -g firebase-tools
+          firebase --version
+
+      - name: Install Dependencies
+        run: npm ci --legacy-peer-deps 2>/dev/null || npm ci --force
+
+      - name: Build Shared Packages
+        run: |
+          npm run build --workspace=@vehicle-vitals/shared 2>/dev/null || echo "✓ @vehicle-vitals/shared (skip)"
+          npm run build --workspace=@modulo-squares/shared 2>/dev/null || echo "✓ @modulo-squares/shared (skip)"
+          npm run build --workspace=@wishlist-wizard/shared 2>/dev/null || echo "✓ @wishlist-wizard/shared (skip)"
+          if [ -d "packages/firebase-utils" ]; then
+            npm run build --workspace=@shared/firebase-utils
+          else
+            echo "✓ @shared/firebase-utils (skip)"
+          fi
+
+      - name: Build Web App
+        run: npm run build
+
+      - name: Resolve Firebase Project
+        id: firebase_project
+        run: |
+          case "${{ needs.load-config.outputs.target_environment }}" in
+            production)
+              PROJECT_ID="$FIREBASE_PROJECT_PROD"
+              CONFIG_FILE="firebase.prod.json"
+              ;;
+            staging)
+              PROJECT_ID="$FIREBASE_PROJECT_STAGING"
+              CONFIG_FILE="firebase.staging.json"
+              ;;
+            development|*)
+              PROJECT_ID="$FIREBASE_PROJECT_DEV"
+              CONFIG_FILE="firebase.dev.json"
+              ;;
+          esac
+
+          if [ -z "$PROJECT_ID" ]; then
+            echo "❌ Firebase project ID not set for environment: ${{ needs.load-config.outputs.target_environment }}"
+            exit 1
+          fi
+
+          echo "project_id=$PROJECT_ID" >> $GITHUB_OUTPUT
+          echo "config_file=$CONFIG_FILE" >> $GITHUB_OUTPUT
+
+      - name: Deploy Web Stack (no Data Connect)
+        run: |
+          if [ -z "$FIREBASE_TOKEN" ]; then
+            echo "❌ FIREBASE_TOKEN is not set"
+            exit 1
+          fi
+
+          if [ -f "${{ steps.firebase_project.outputs.config_file }}" ]; then
+            cp "${{ steps.firebase_project.outputs.config_file }}" firebase.json
+          fi
+
+          firebase deploy \
+            --project="${{ steps.firebase_project.outputs.project_id }}" \
+            --token="$FIREBASE_TOKEN" \
+            --only "firestore,functions,hosting" \
+            --message="Deployment from GitHub Actions for ${{ needs.load-config.outputs.project_name }} to ${{ needs.load-config.outputs.target_environment }}" \
+            --non-interactive
 
   deploy-firebase:
     name: Deploy Firebase
