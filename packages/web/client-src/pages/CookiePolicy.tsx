@@ -11,9 +11,9 @@ export default function CookiePolicy() {
         />
       </Helmet>
 
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-8 max-w-6xl">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-yellow-600 to-amber-500 bg-clip-text text-transparent">
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-emerald-800 to-green-800 bg-clip-text text-transparent">
             Cookie Policy
           </h1>
           <p className="text-gray-600 mt-2">
@@ -21,7 +21,7 @@ export default function CookiePolicy() {
           </p>
         </div>
 
-        <div className="max-w-3xl space-y-8">
+        <div className="space-y-8">
           <section>
             <h2 className="text-2xl font-semibold text-gray-900 mb-4">1. What are Cookies?</h2>
             <p className="text-gray-700 mb-4">
