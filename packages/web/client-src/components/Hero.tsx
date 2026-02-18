@@ -9,14 +9,12 @@ export default function Hero() {
             <h1 className="text-4xl font-bold mb-4">Save Anything From Anywhere</h1>
             <p className="text-xl mb-8">Create wishlists from your favorite shopping sites with just one click. Wishlist Wizard makes tracking, organizing, and sharing your shopping lists effortless.</p>
             <div className="space-x-4">
-              <a 
-                href="https://github.com/mnelson3/wishlist-wizard/tree/develop/chrome-extension-package"
-                target="_blank"
-                rel="noopener noreferrer"
+              <Link 
+                href="/extension"
                 className="bg-white text-indigo-700 px-6 py-3 rounded-md font-medium hover:bg-gray-100 transition shadow-md inline-block"
               >
                 Download Extension
-              </a>
+              </Link>
               <Link href="/dashboard">
                 <a className="bg-indigo-800 text-white px-6 py-3 rounded-md font-medium hover:bg-indigo-900 transition border border-indigo-600 inline-block">
                   Try It Now
