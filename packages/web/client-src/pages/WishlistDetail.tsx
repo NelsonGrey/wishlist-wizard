@@ -2,8 +2,6 @@ import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useRoute, useLocation } from "wouter";
 import { ArrowLeft, Check, Share2 } from "lucide-react";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
 import WishlistItem from "@/components/WishlistItem";
 import PrivacyControls from "@/components/privacy/PrivacyControls";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -92,24 +90,18 @@ export default function WishlistDetail() {
 
   if (!match) {
     return (
-      <div>
-        <Header />
-        <div className="max-w-7xl mx-auto px-4 py-16">
+      <div className="max-w-7xl mx-auto px-4 py-16">
           <h1 className="text-2xl font-bold">Wishlist not found</h1>
           <p className="mt-4">The wishlist you&apos;re looking for doesn&apos;t exist or has been removed.</p>
           <Button className="mt-6" onClick={() => setLocation('/dashboard')}>
             Back to Dashboard
           </Button>
-        </div>
-        <Footer />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <Header />
-      
+    <>
       <main className="flex-1 py-8 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between mb-6">
@@ -206,8 +198,7 @@ export default function WishlistDetail() {
           )}
         </div>
       </main>
-      
-      <Footer />
-    </div>
+
+    </>
   );
 }
