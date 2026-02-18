@@ -102,9 +102,9 @@ export default function Notifications() {
         <title>Notifications | Wishlist Wizard</title>
         <meta name="description" content="Manage your notifications and alerts from Wishlist Wizard." />
       </Helmet>
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-8 max-w-6xl">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-orange-600 to-amber-500 bg-clip-text text-transparent">Notifications</h1>
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-emerald-800 to-green-800 bg-clip-text text-transparent">Notifications</h1>
           <p className="text-gray-600 mt-2">
             Stay updated with alerts and activity
           </p>
