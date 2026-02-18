@@ -58,8 +58,8 @@ export default function Dashboard() {
 
   return (
     <>
-      <main className="flex-1 py-16 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <main className="flex-1">
+        <div className="container mx-auto px-4 py-8">
           <div className="flex justify-between items-center mb-8">
             <h2 className="text-2xl font-bold text-gray-900">My Wishlists</h2>
             <Button 

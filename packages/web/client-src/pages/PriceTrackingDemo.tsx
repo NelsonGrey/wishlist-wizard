@@ -55,7 +55,7 @@ export default function PriceTrackingDemo() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div>
       <Helmet>
         <title>Price Tracking Demo - Wishlist Wizard</title>
         <meta name="description" content="Demonstration of Wishlist Wizard's price tracking and alert capabilities" />
