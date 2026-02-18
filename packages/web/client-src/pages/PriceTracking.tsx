@@ -1,8 +1,6 @@
-import React from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Helmet } from "react-helmet";
 
-import MainLayout from "@/components/layout/MainLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import PriceAlertsList from "@/components/price-tracking/PriceAlertsList";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -30,13 +28,13 @@ export default function PriceTracking() {
   });
 
   return (
-    <MainLayout>
+    <div className="py-8 bg-gray-50">
       <Helmet>
         <title>Price Tracking - Wishlist Wizard</title>
         <meta name="description" content="Track prices of your wishlist items and get notified when prices drop." />
       </Helmet>
 
-      <div className="container py-6 max-w-6xl">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold tracking-tight">Price Tracking</h1>
           <p className="text-muted-foreground mt-1">
@@ -98,11 +96,11 @@ export default function PriceTracking() {
                               </div>
                               <div>
                                 <div className="text-sm text-muted-foreground">Current</div>
-                                <div className="text-base font-semibold text-green-600">{item.price}</div>
+                                <div className="text-base font-semibold text-green-600">{item.currentPrice || item.price}</div>
                               </div>
                               <div className="ml-auto">
                                 <div className="text-xs px-2 py-1 rounded-full bg-green-100 text-green-800 font-medium">
-                                  {item.percentDrop}% Off
+                                  {(item.percentDrop ?? item.dropPercentage)}% Off
                                 </div>
                               </div>
                             </div>
@@ -146,6 +144,6 @@ export default function PriceTracking() {
           </TabsContent>
         </Tabs>
       </div>
-    </MainLayout>
+    </div>
   );
 }
