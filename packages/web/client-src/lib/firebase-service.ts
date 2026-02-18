@@ -17,8 +17,29 @@ import {
 import { getAuth } from 'firebase/auth';
 import { firebaseApp, firebaseAuth, firebaseFirestore } from './firebase';
 
-const db = firebaseFirestore || getFirestore(firebaseApp!);
-const auth = firebaseAuth || getAuth(firebaseApp!);
+function getDb() {
+  if (firebaseFirestore) {
+    return firebaseFirestore;
+  }
+
+  if (!firebaseApp) {
+    throw new Error('Firebase app is not initialized');
+  }
+
+  return getFirestore(firebaseApp);
+}
+
+function getAuthService() {
+  if (firebaseAuth) {
+    return firebaseAuth;
+  }
+
+  if (!firebaseApp) {
+    throw new Error('Firebase app is not initialized');
+  }
+
+  return getAuth(firebaseApp);
+}
 
 export interface Wishlist {
   id: string;
@@ -78,7 +99,7 @@ export class FirebaseWishlistService {
     callback: (wishlists: Wishlist[]) => void
   ): () => void {
     const q = query(
-      collection(db, 'wishlists'),
+      collection(getDb(), 'wishlists'),
       where('userId', '==', userId),
       orderBy('updatedAt', 'desc')
     );
@@ -101,7 +122,7 @@ export class FirebaseWishlistService {
    */
   static async getUserWishlists(userId: string): Promise<Wishlist[]> {
     const q = query(
-      collection(db, 'wishlists'),
+      collection(getDb(), 'wishlists'),
       where('userId', '==', userId),
       orderBy('updatedAt', 'desc')
     );
@@ -120,7 +141,7 @@ export class FirebaseWishlistService {
    * Get a specific wishlist by ID
    */
   static async getWishlistById(wishlistId: string): Promise<Wishlist | null> {
-    const docRef = doc(db, 'wishlists', wishlistId);
+    const docRef = doc(getDb(), 'wishlists', wishlistId);
     const docSnap = await getDoc(docRef);
     
     if (docSnap.exists()) {
@@ -153,7 +174,7 @@ export class FirebaseWishlistService {
       occasionDate: wishlistData.occasionDate ? Timestamp.fromDate(wishlistData.occasionDate) : null
     };
     
-    const docRef = await addDoc(collection(db, 'wishlists'), docData);
+    const docRef = await addDoc(collection(getDb(), 'wishlists'), docData);
     
     return {
       id: docRef.id,
@@ -171,7 +192,7 @@ export class FirebaseWishlistService {
     wishlistId: string, 
     updates: Partial<Omit<Wishlist, 'id' | 'createdAt'>>
   ): Promise<void> {
-    const docRef = doc(db, 'wishlists', wishlistId);
+    const docRef = doc(getDb(), 'wishlists', wishlistId);
     const updateData = {
       ...updates,
       updatedAt: Timestamp.now(),
@@ -187,7 +208,7 @@ export class FirebaseWishlistService {
   static async deleteWishlist(wishlistId: string): Promise<void> {
     // Delete wishlist items first
     const itemsQuery = query(
-      collection(db, 'wishlistItems'),
+      collection(getDb(), 'wishlistItems'),
       where('wishlistId', '==', wishlistId)
     );
     const itemsSnapshot = await getDocs(itemsQuery);
@@ -197,7 +218,7 @@ export class FirebaseWishlistService {
     await Promise.all(deletePromises);
     
     // Delete the wishlist
-    await deleteDoc(doc(db, 'wishlists', wishlistId));
+    await deleteDoc(doc(getDb(), 'wishlists', wishlistId));
   }
   
   /**
@@ -208,7 +229,7 @@ export class FirebaseWishlistService {
     callback: (items: WishlistItem[]) => void
   ): () => void {
     const q = query(
-      collection(db, 'wishlistItems'),
+      collection(getDb(), 'wishlistItems'),
       where('wishlistId', '==', wishlistId),
       orderBy('createdAt', 'desc')
     );
@@ -230,7 +251,7 @@ export class FirebaseWishlistService {
    */
   static async getWishlistItems(wishlistId: string): Promise<WishlistItem[]> {
     const q = query(
-      collection(db, 'wishlistItems'),
+      collection(getDb(), 'wishlistItems'),
       where('wishlistId', '==', wishlistId),
       orderBy('createdAt', 'desc')
     );
@@ -259,7 +280,7 @@ export class FirebaseWishlistService {
       updatedAt: now
     };
     
-    const docRef = await addDoc(collection(db, 'wishlistItems'), docData);
+    const docRef = await addDoc(collection(getDb(), 'wishlistItems'), docData);
     
     return {
       id: docRef.id,
@@ -277,7 +298,7 @@ export class FirebaseWishlistService {
     itemId: string,
     updates: Partial<Omit<WishlistItem, 'id' | 'createdAt'>>
   ): Promise<void> {
-    const docRef = doc(db, 'wishlistItems', itemId);
+    const docRef = doc(getDb(), 'wishlistItems', itemId);
     const updateData = {
       ...updates,
       updatedAt: Timestamp.now()
@@ -290,7 +311,7 @@ export class FirebaseWishlistService {
    * Delete a wishlist item
    */
   static async deleteWishlistItem(itemId: string): Promise<void> {
-    await deleteDoc(doc(db, 'wishlistItems', itemId));
+    await deleteDoc(doc(getDb(), 'wishlistItems', itemId));
   }
   
   /**
@@ -328,7 +349,7 @@ export class FirebaseNotificationService {
     limitCount: number = 50
   ): () => void {
     const q = query(
-      collection(db, 'notifications'),
+      collection(getDb(), 'notifications'),
       where('userId', '==', userId),
       orderBy('createdAt', 'desc'),
       limit(limitCount)
@@ -350,7 +371,7 @@ export class FirebaseNotificationService {
    */
   static async getUserNotifications(userId: string, limitCount: number = 50): Promise<Notification[]> {
     const q = query(
-      collection(db, 'notifications'),
+      collection(getDb(), 'notifications'),
       where('userId', '==', userId),
       orderBy('createdAt', 'desc'),
       limit(limitCount)
@@ -368,7 +389,7 @@ export class FirebaseNotificationService {
    * Mark a notification as read
    */
   static async markNotificationAsRead(notificationId: string): Promise<void> {
-    const docRef = doc(db, 'notifications', notificationId);
+    const docRef = doc(getDb(), 'notifications', notificationId);
     await updateDoc(docRef, {
       isRead: true
     });
@@ -379,7 +400,7 @@ export class FirebaseNotificationService {
    */
   static async markAllNotificationsAsRead(userId: string): Promise<void> {
     const q = query(
-      collection(db, 'notifications'),
+      collection(getDb(), 'notifications'),
       where('userId', '==', userId),
       where('isRead', '==', false)
     );
@@ -396,7 +417,7 @@ export class FirebaseNotificationService {
    * Delete a notification
    */
   static async deleteNotification(notificationId: string): Promise<void> {
-    await deleteDoc(doc(db, 'notifications', notificationId));
+    await deleteDoc(doc(getDb(), 'notifications', notificationId));
   }
   
   /**
@@ -404,7 +425,7 @@ export class FirebaseNotificationService {
    */
   static async getUnreadNotificationCount(userId: string): Promise<number> {
     const q = query(
-      collection(db, 'notifications'),
+      collection(getDb(), 'notifications'),
       where('userId', '==', userId),
       where('isRead', '==', false)
     );
@@ -418,14 +439,12 @@ export class FirebaseNotificationService {
  * Get current authenticated user ID
  */
 export function getCurrentUserId(): string | null {
-  return auth.currentUser?.uid || null;
+  return getAuthService().currentUser?.uid || null;
 }
 
 /**
  * Check if user is authenticated
  */
 export function isAuthenticated(): boolean {
-  return !!auth.currentUser;
+  return !!getAuthService().currentUser;
 }
-
-export { db, auth };
