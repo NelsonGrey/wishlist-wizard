@@ -1061,7 +1061,7 @@ const UserProfile = () => {
                 <div>
                   <h3 className="text-lg font-medium mb-3">Activity Stats</h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                    <Card className="bg-primary/5">
+                    <Card className="bg-emerald-50">
                       <CardContent className="pt-6">
                         <div className="text-center">
                           <span className="text-3xl font-bold">{profile.stats.itemsTracked}</span>
@@ -1070,7 +1070,7 @@ const UserProfile = () => {
                       </CardContent>
                     </Card>
                     
-                    <Card className="bg-primary/5">
+                    <Card className="bg-emerald-50">
                       <CardContent className="pt-6">
                         <div className="text-center">
                           <span className="text-3xl font-bold">{profile.stats.wishlistsCreated}</span>
@@ -1079,7 +1079,7 @@ const UserProfile = () => {
                       </CardContent>
                     </Card>
                     
-                    <Card className="bg-primary/5">
+                    <Card className="bg-emerald-50">
                       <CardContent className="pt-6">
                         <div className="text-center">
                           <span className="text-3xl font-bold">{profile.stats.giftsPurchased}</span>
