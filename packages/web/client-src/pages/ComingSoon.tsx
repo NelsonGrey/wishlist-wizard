@@ -363,22 +363,6 @@ const ComingSoon = () => {
           </div>
         </div>
       </section>
-
-      {/* Footer */}
-      <footer className="bg-gray-900 text-white py-12 px-4">
-        <div className="container mx-auto text-center">
-          <div className="flex items-center justify-center space-x-2 mb-4">
-            <Sparkles className="h-6 w-6" />
-            <span className="text-xl font-bold">Wishlist Wizard</span>
-          </div>
-          <p className="text-gray-400 mb-4">
-            Making wishlist management magical, one item at a time.
-          </p>
-          <p className="text-sm text-gray-500">
-            © 2025 Wishlist Wizard. Coming soon to a browser near you.
-          </p>
-        </div>
-      </footer>
     </div>
   );
 };
