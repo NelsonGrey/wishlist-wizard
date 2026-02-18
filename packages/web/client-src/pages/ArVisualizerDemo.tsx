@@ -40,14 +40,14 @@ export default function ArVisualizerDemo() {
   };
   
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-8 max-w-6xl">
       <Helmet>
         <title>AR Product Visualizer | Wishlist Wizard</title>
         <meta name="description" content="Try AR visualization to see how products would look in your space before adding them to your wishlist." />
       </Helmet>
       
-      <div className="max-w-4xl mx-auto">
-        <h1 className="text-3xl font-bold tracking-tight mb-2">AR Product Visualizer</h1>
+      <div>
+        <h1 className="text-3xl font-bold bg-gradient-to-r from-emerald-800 to-green-800 bg-clip-text text-transparent mb-2">AR Product Visualizer</h1>
         <p className="text-muted-foreground mb-8">
           See how products would look in your space before adding them to your wishlist.
         </p>
@@ -221,19 +221,19 @@ export default function ArVisualizerDemo() {
           <h2 className="text-xl font-semibold mb-3">Tips for Using AR Visualization</h2>
           <ul className="space-y-2">
             <li className="flex items-start gap-2">
-              <span className="bg-primary text-white rounded-full w-5 h-5 flex items-center justify-center flex-shrink-0 mt-0.5">1</span>
+              <span className="bg-emerald-800 text-white rounded-full w-5 h-5 flex items-center justify-center flex-shrink-0 mt-0.5">1</span>
               <span>Ensure you have good lighting for optimal AR performance</span>
             </li>
             <li className="flex items-start gap-2">
-              <span className="bg-primary text-white rounded-full w-5 h-5 flex items-center justify-center flex-shrink-0 mt-0.5">2</span>
+              <span className="bg-emerald-800 text-white rounded-full w-5 h-5 flex items-center justify-center flex-shrink-0 mt-0.5">2</span>
               <span>Clear some space to properly visualize larger items</span>
             </li>
             <li className="flex items-start gap-2">
-              <span className="bg-primary text-white rounded-full w-5 h-5 flex items-center justify-center flex-shrink-0 mt-0.5">3</span>
+              <span className="bg-emerald-800 text-white rounded-full w-5 h-5 flex items-center justify-center flex-shrink-0 mt-0.5">3</span>
               <span>Use a recent mobile device for the best AR experience</span>
             </li>
             <li className="flex items-start gap-2">
-              <span className="bg-primary text-white rounded-full w-5 h-5 flex items-center justify-center flex-shrink-0 mt-0.5">4</span>
+              <span className="bg-emerald-800 text-white rounded-full w-5 h-5 flex items-center justify-center flex-shrink-0 mt-0.5">4</span>
               <span>Take screenshots to share visualization with friends and family</span>
             </li>
           </ul>

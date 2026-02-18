@@ -17,8 +17,8 @@ import { ExtensionHelp } from '@/components/help/ExtensionHelp';
 
 const ExtensionPage = () => {
   return (
-    <div className="container mx-auto py-8 px-4">
-      <div className="max-w-5xl mx-auto">
+    <div className="container mx-auto px-4 py-8 max-w-6xl">
+      <div>
         <div className="mb-8">
           <h1 className="text-4xl font-bold bg-gradient-to-r from-emerald-800 to-green-800 bg-clip-text text-transparent mb-2">
             Wishlist Wizard Browser Extension
