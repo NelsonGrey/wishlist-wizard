@@ -1,6 +1,5 @@
 import React, { useEffect } from "react";
 import { Link, useLocation } from "wouter";
-import { Gift } from "lucide-react";
 
 interface AuthLayoutProps {
   children: React.ReactNode;
@@ -21,8 +20,8 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           {/* Logo - links back to public site */}
           <Link href="/">
-            <a className="flex items-center">
-              <Gift className="h-6 w-6 text-indigo-600 mr-2" />
+            <a className="flex items-center hover:opacity-80 transition-opacity">
+              <img src="/logo.svg" alt="Wishlist Wizard" className="h-8 w-8 mr-2" />
               <span className="font-bold text-xl tracking-tight">Wishlist Wizard</span>
             </a>
           </Link>

@@ -4,7 +4,6 @@ import {
   Bell,
   Calendar,
   ChevronDown,
-  Gift,
   Home,
   LineChart,
   LogOut,
@@ -90,8 +89,8 @@ export default function AppLayout({ children }: AppLayoutProps) {
         <div className="container mx-auto px-4 py-3 flex items-center justify-between">
           {/* Logo */}
           <Link href="/dashboard">
-            <a className="flex items-center">
-              <Gift className="h-6 w-6 text-indigo-600 mr-2" />
+            <a className="flex items-center hover:opacity-80 transition-opacity">
+              <img src="/logo.svg" alt="Wishlist Wizard" className="h-8 w-8 mr-2" />
               <span className="font-bold text-xl tracking-tight">Wishlist Wizard</span>
             </a>
           </Link>
