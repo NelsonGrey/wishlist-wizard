@@ -36,7 +36,7 @@ export default function Recommendations() {
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
           <div className="flex items-center gap-3">
             <div>
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-emerald-800 to-green-800 bg-clip-text text-transparent">
+              <h1 className="text-4xl font-bold bg-gradient-to-r from-emerald-800 to-green-800 bg-clip-text text-transparent">
                 Smart Recommendations
               </h1>
               <p className="text-gray-600 mt-2">

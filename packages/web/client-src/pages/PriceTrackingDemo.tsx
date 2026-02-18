@@ -63,7 +63,7 @@ export default function PriceTrackingDemo() {
 
       <div className="container mx-auto px-4 py-8 max-w-6xl">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-emerald-800 to-green-800 bg-clip-text text-transparent">Price Tracking Demo</h1>
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-emerald-800 to-green-800 bg-clip-text text-transparent">Price Tracking Demo</h1>
           <p className="mt-1 text-muted-foreground">
             See how Wishlist Wizard&apos;s price tracking and alert features work
           </p>
