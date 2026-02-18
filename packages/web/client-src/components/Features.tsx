@@ -16,7 +16,7 @@ export default function Features() {
     <section className="py-16 bg-slate-50">
       <div className="container mx-auto px-4">
         <div className="text-center mb-16">
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">Our Exclusive Features</h2>
+          <h2 className="text-3xl md:text-4xl font-bold mb-4 bg-gradient-to-r from-emerald-800 to-green-700 bg-clip-text text-transparent">Our Exclusive Features</h2>
           <p className="text-lg text-slate-600 max-w-2xl mx-auto">
             Wishlist Wizard goes beyond basic wishlists with these powerful and exclusive features
             that make gift-giving easier and more delightful.
@@ -25,10 +25,10 @@ export default function Features() {
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {/* Mobile App Feature */}
-          <Card className="border-2 hover:border-primary/30 hover:shadow-lg transition-all">
+          <Card className="border-2 hover:border-emerald-200 hover:shadow-lg transition-all">
             <CardHeader className="pb-2">
-              <div className="p-2 w-12 h-12 bg-primary/10 rounded-lg mb-2 flex items-center justify-center">
-                <Smartphone className="text-primary" size={24} />
+              <div className="p-2 w-12 h-12 bg-emerald-100 rounded-lg mb-2 flex items-center justify-center">
+                <Smartphone className="text-emerald-800" size={24} />
               </div>
               <CardTitle>Mobile App</CardTitle>
               <CardDescription>Take your wishlists anywhere</CardDescription>
@@ -47,10 +47,10 @@ export default function Features() {
           </Card>
           
           {/* AR Visualization Feature */}
-          <Card className="border-2 hover:border-primary/30 hover:shadow-lg transition-all">
+          <Card className="border-2 hover:border-emerald-200 hover:shadow-lg transition-all">
             <CardHeader className="pb-2">
-              <div className="p-2 w-12 h-12 bg-primary/10 rounded-lg mb-2 flex items-center justify-center">
-                <CameraIcon className="text-primary" size={24} />
+              <div className="p-2 w-12 h-12 bg-emerald-100 rounded-lg mb-2 flex items-center justify-center">
+                <CameraIcon className="text-emerald-800" size={24} />
               </div>
               <CardTitle>AR Visualization</CardTitle>
               <CardDescription>Try before you buy</CardDescription>
@@ -69,10 +69,10 @@ export default function Features() {
           </Card>
           
           {/* Social Sharing Feature */}
-          <Card className="border-2 hover:border-primary/30 hover:shadow-lg transition-all">
+          <Card className="border-2 hover:border-emerald-200 hover:shadow-lg transition-all">
             <CardHeader className="pb-2">
-              <div className="p-2 w-12 h-12 bg-primary/10 rounded-lg mb-2 flex items-center justify-center">
-                <Share2 className="text-primary" size={24} />
+              <div className="p-2 w-12 h-12 bg-emerald-100 rounded-lg mb-2 flex items-center justify-center">
+                <Share2 className="text-emerald-800" size={24} />
               </div>
               <CardTitle>Social Integration</CardTitle>
               <CardDescription>Connect with friends and family</CardDescription>
@@ -91,10 +91,10 @@ export default function Features() {
           </Card>
           
           {/* Price Tracking Feature */}
-          <Card className="border-2 hover:border-primary/30 hover:shadow-lg transition-all">
+          <Card className="border-2 hover:border-emerald-200 hover:shadow-lg transition-all">
             <CardHeader className="pb-2">
-              <div className="p-2 w-12 h-12 bg-primary/10 rounded-lg mb-2 flex items-center justify-center">
-                <BadgeDollarSign className="text-primary" size={24} />
+              <div className="p-2 w-12 h-12 bg-emerald-100 rounded-lg mb-2 flex items-center justify-center">
+                <BadgeDollarSign className="text-emerald-800" size={24} />
               </div>
               <CardTitle>Price Tracking</CardTitle>
               <CardDescription>Never miss a deal</CardDescription>
@@ -113,10 +113,10 @@ export default function Features() {
           </Card>
           
           {/* Occasion Reminders Feature */}
-          <Card className="border-2 hover:border-primary/30 hover:shadow-lg transition-all">
+          <Card className="border-2 hover:border-emerald-200 hover:shadow-lg transition-all">
             <CardHeader className="pb-2">
-              <div className="p-2 w-12 h-12 bg-primary/10 rounded-lg mb-2 flex items-center justify-center">
-                <CalendarClock className="text-primary" size={24} />
+              <div className="p-2 w-12 h-12 bg-emerald-100 rounded-lg mb-2 flex items-center justify-center">
+                <CalendarClock className="text-emerald-800" size={24} />
               </div>
               <CardTitle>Calendar Integration</CardTitle>
               <CardDescription>Never forget a special date</CardDescription>
@@ -133,10 +133,10 @@ export default function Features() {
           </Card>
           
           {/* Advanced User Profiles Feature */}
-          <Card className="border-2 hover:border-primary/30 hover:shadow-lg transition-all">
+          <Card className="border-2 hover:border-emerald-200 hover:shadow-lg transition-all">
             <CardHeader className="pb-2">
-              <div className="p-2 w-12 h-12 bg-primary/10 rounded-lg mb-2 flex items-center justify-center">
-                <User className="text-primary" size={24} />
+              <div className="p-2 w-12 h-12 bg-emerald-100 rounded-lg mb-2 flex items-center justify-center">
+                <User className="text-emerald-800" size={24} />
               </div>
               <CardTitle>Advanced User Profiles</CardTitle>
               <CardDescription>Personalized preferences</CardDescription>
@@ -155,10 +155,10 @@ export default function Features() {
           </Card>
           
           {/* AI Recommendations Feature */}
-          <Card className="border-2 hover:border-primary/30 hover:shadow-lg transition-all">
+          <Card className="border-2 hover:border-emerald-200 hover:shadow-lg transition-all">
             <CardHeader className="pb-2">
-              <div className="p-2 w-12 h-12 bg-primary/10 rounded-lg mb-2 flex items-center justify-center">
-                <Award className="text-primary" size={24} />
+              <div className="p-2 w-12 h-12 bg-emerald-100 rounded-lg mb-2 flex items-center justify-center">
+                <Award className="text-emerald-800" size={24} />
               </div>
               <CardTitle>AI Gift Recommendations</CardTitle>
               <CardDescription>Personalized suggestions</CardDescription>
