@@ -289,9 +289,9 @@ export default function Dashboard() {
               </div>
               
               {/* Migration Status */}
-              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-200 mb-6">
-                <h4 className="font-medium text-blue-900 mb-2">Migration Status</h4>
-                <div className="text-xs text-blue-700 space-y-1">
+              <div className="bg-gradient-to-r from-emerald-50 to-green-50 p-4 rounded-lg border border-emerald-200 mb-6">
+                <h4 className="font-medium text-emerald-900 mb-2">Migration Status</h4>
+                <div className="text-xs text-emerald-800 space-y-1">
                   <div className="flex items-center">
                     <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
                     Database: Firestore ✓
