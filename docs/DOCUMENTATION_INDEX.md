@@ -39,6 +39,8 @@ Feature development guide:
 
 1. [TESTING_STRATEGY.md](TESTING_STRATEGY.md) - Testing approach and guidelines
 2. [CODE_STANDARDS.md](CODE_STANDARDS.md) - Code quality standards
+3. [WEB_NAVIGATION_LAYOUT_SPEC.md](WEB_NAVIGATION_LAYOUT_SPEC.md) - Web layout ownership and routing consistency
+4. [WEB_NAVIGATION_QA_CHECKLIST.md](WEB_NAVIGATION_QA_CHECKLIST.md) - Navigation/link/header/footer regression checklist
 
 ### For Operations & DevOps
 
@@ -90,6 +92,8 @@ Project overview and planning:
 | Document | Purpose | Audience |
 |----------|---------|----------|
 | [TESTING_STRATEGY.md](TESTING_STRATEGY.md) | Testing pyramid, test organization, examples | QA, Developers |
+| [WEB_NAVIGATION_LAYOUT_SPEC.md](WEB_NAVIGATION_LAYOUT_SPEC.md) | Layout ownership rules and route/link consistency standards | Frontend Devs, QA |
+| [WEB_NAVIGATION_QA_CHECKLIST.md](WEB_NAVIGATION_QA_CHECKLIST.md) | Manual validation checklist for navigation and shell regressions | QA, Reviewers |
 | [SECURITY_ARCHITECTURE.md](SECURITY_ARCHITECTURE.md) | Security design, authentication, encryption | Security, Architects |
 | [CODE_STANDARDS.md](CODE_STANDARDS.md) | Code quality, style guide | All Developers |
 
