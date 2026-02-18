@@ -19,16 +19,16 @@ const ExtensionPage = () => {
   return (
     <div className="container mx-auto py-8 px-4">
       <div className="max-w-5xl mx-auto">
-        <div className="text-center mb-12">
+        <div className="mb-8">
           <h1 className="text-4xl font-bold bg-gradient-to-r from-indigo-600 to-indigo-400 bg-clip-text text-transparent mb-2">
             Wishlist Wizard Browser Extension
           </h1>
-          <div className="flex justify-center mb-4">
+          <div className="flex items-center gap-2 mb-4">
+            <p className="text-xl text-gray-600">
+              Add products to your wishlists from any online retailer with a single click
+            </p>
             <ExtensionHelp />
           </div>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-            Add products to your wishlists from any online retailer with a single click
-          </p>
         </div>
 
         <div className="grid md:grid-cols-2 gap-8 mb-16">
