@@ -61,7 +61,7 @@ export default function PriceTrackingDemo() {
         <meta name="description" content="Demonstration of Wishlist Wizard's price tracking and alert capabilities" />
       </Helmet>
 
-      <div className="container py-8 mx-auto max-w-6xl">
+      <div className="container mx-auto px-4 py-8">
         <div className="mb-6">
           <h1 className="text-3xl font-bold tracking-tight">Price Tracking Demo</h1>
           <p className="mt-1 text-muted-foreground">
