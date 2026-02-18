@@ -36,7 +36,7 @@ export default function Recommendations() {
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
           <div className="flex items-center gap-3">
             <div>
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-blue-500 bg-clip-text text-transparent">
+              <h1 className="text-3xl font-bold bg-gradient-to-r from-emerald-600 to-green-600 bg-clip-text text-transparent">
                 Smart Recommendations
               </h1>
               <p className="text-gray-600 mt-2">
@@ -82,8 +82,8 @@ export default function Recommendations() {
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="flex flex-col items-center text-center p-4">
-                  <div className="bg-purple-100 p-3 rounded-full mb-4">
-                    <InboxIcon className="h-8 w-8 text-purple-600" />
+                  <div className="bg-emerald-100 p-3 rounded-full mb-4">
+                    <InboxIcon className="h-8 w-8 text-emerald-600" />
                   </div>
                   <h3 className="font-semibold text-lg mb-2">Item Analysis</h3>
                   <p className="text-gray-600">

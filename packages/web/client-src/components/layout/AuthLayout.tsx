@@ -14,22 +14,22 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
   }, [location]);
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-br from-indigo-50 via-white to-purple-50">
+    <div className="min-h-screen flex flex-col bg-gradient-to-br from-emerald-50 via-white to-green-50">
       {/* Minimal Auth Header */}
-      <header className="bg-white border-b sticky top-0 z-10">
+      <header className="bg-white/95 backdrop-blur-sm border-b border-emerald-100 sticky top-0 z-10 shadow-sm">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           {/* Logo - links back to public site */}
           <Link href="/">
-            <a className="flex items-center hover:opacity-80 transition-opacity">
-              <img src="/logo.svg" alt="Wishlist Wizard" className="h-8 w-8 mr-2" />
-              <span className="font-bold text-xl tracking-tight">Wishlist Wizard</span>
+            <a className="flex items-center hover:scale-105 transition-transform duration-200">
+              <img src="/logo.svg" alt="Wishlist Wizard" className="h-8 w-8 mr-2.5" />
+              <span className="font-bold text-xl tracking-tight bg-gradient-to-r from-emerald-700 to-green-600 bg-clip-text text-transparent">Wishlist Wizard</span>
             </a>
           </Link>
 
           {/* Help text */}
           <div className="hidden md:flex items-center text-sm text-gray-600">
             <span>Need help? </span>
-            <Link href="/contact" className="text-indigo-600 hover:text-indigo-700 ml-1 font-medium">
+            <Link href="/contact" className="text-emerald-600 hover:text-emerald-700 ml-1 font-medium transition-colors">
               Contact us
             </Link>
           </div>
