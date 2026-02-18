@@ -40,7 +40,7 @@ export default function Features() {
               </p>
             </CardContent>
             <CardFooter>
-              <Link href="/mobile-demo">
+              <Link href="/mobile-app-demo">
                 <Button variant="outline" className="w-full">Try the Mobile Demo</Button>
               </Link>
             </CardFooter>
@@ -62,7 +62,7 @@ export default function Features() {
               </p>
             </CardContent>
             <CardFooter>
-              <Link href="/ar-visualizer">
+              <Link href="/ar-visualizer-demo">
                 <Button variant="outline" className="w-full">Experience AR Demo</Button>
               </Link>
             </CardFooter>
@@ -84,7 +84,7 @@ export default function Features() {
               </p>
             </CardContent>
             <CardFooter>
-              <Link href="/social-sharing">
+              <Link href="/social-sharing-demo">
                 <Button variant="outline" className="w-full">Try Social Sharing</Button>
               </Link>
             </CardFooter>
