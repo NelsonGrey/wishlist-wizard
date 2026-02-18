@@ -20,7 +20,7 @@ const ExtensionPage = () => {
     <div className="container mx-auto py-8 px-4">
       <div className="max-w-5xl mx-auto">
         <div className="text-center mb-12">
-          <div className="flex justify-center items-center gap-3 mb-4">
+          <div className="flex flex-col justify-center items-center gap-3 mb-4">
             <h1 className="text-4xl font-bold bg-gradient-to-r from-indigo-600 to-indigo-400 bg-clip-text text-transparent">
               Wishlist Wizard Browser Extension
             </h1>
