@@ -28,16 +28,16 @@ export default function PriceTracking() {
   });
 
   return (
-    <div className="py-8 bg-gray-50">
+    <>
       <Helmet>
-        <title>Price Tracking - Wishlist Wizard</title>
+        <title>Price Tracking | Wishlist Wizard</title>
         <meta name="description" content="Track prices of your wishlist items and get notified when prices drop." />
       </Helmet>
 
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold tracking-tight">Price Tracking</h1>
-          <p className="text-muted-foreground mt-1">
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-green-600 to-emerald-500 bg-clip-text text-transparent">Price Tracking</h1>
+          <p className="text-gray-600 mt-2">
             Monitor prices and set alerts for wishlist items
           </p>
         </div>
@@ -144,6 +144,6 @@ export default function PriceTracking() {
           </TabsContent>
         </Tabs>
       </div>
-    </div>
+    </>
   );
 }

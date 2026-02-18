@@ -4,6 +4,7 @@ import { AnalyticsButton } from "@/components/analytics/AnalyticsButton";
 import { AnalyticsLink } from "@/components/analytics/AnalyticsLink";
 import { trackEvent } from "@/lib/analytics";
 import { useState } from "react";
+import { Helmet } from "react-helmet";
 import { useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 
@@ -48,11 +49,18 @@ export default function Analytics() {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-6">Analytics Integration</h1>
-      <p className="text-lg mb-8">
-        Wishlist Wizard now includes Google Analytics integration to help track user behavior and provide valuable insights.
-      </p>
+    <>
+      <Helmet>
+        <title>Analytics | Wishlist Wizard</title>
+        <meta name="description" content="Analytics Integration - Track user behavior and gain valuable insights into your Wishlist Wizard usage." />
+      </Helmet>
+      <div className="container mx-auto px-4 py-8">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-cyan-500 bg-clip-text text-transparent">Analytics</h1>
+          <p className="text-gray-600 mt-2">
+            Track user behavior and gain valuable insights
+          </p>
+        </div>
 
       <Tabs defaultValue="overview" value={tabValue} onValueChange={handleTabChange}>
         <TabsList className="grid w-full grid-cols-3">
@@ -264,6 +272,7 @@ trackEvent(
           </Card>
         </TabsContent>
       </Tabs>
-    </div>
+      </div>
+    </>
   );
 }
