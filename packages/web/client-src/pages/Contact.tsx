@@ -163,7 +163,7 @@ export default function Contact() {
                     />
                   </div>
 
-                  <Button type="submit" className="w-full">
+                  <Button type="submit" className="w-full bg-gradient-to-r from-emerald-700 to-green-700 text-white hover:from-emerald-800 hover:to-green-800">
                     Send Message
                   </Button>
                 </form>
