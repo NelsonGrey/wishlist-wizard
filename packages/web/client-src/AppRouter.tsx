@@ -2,7 +2,7 @@ import { Router, Route, Switch } from "wouter";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { useEffect } from "react";
+import { Suspense, lazy, useEffect } from "react";
 import { initGA } from "./lib/analytics";
 import { AuthProvider } from "./contexts/AuthContext";
 import { queryClient } from "./lib/queryClient";
@@ -23,7 +23,6 @@ import Notifications from "./pages/Notifications";
 import ExtensionPage from "./pages/ExtensionPage";
 import SocialSharingDemo from "./pages/SocialSharingDemo";
 import MobileAppDemo from "./pages/MobileAppDemo";
-import ArVisualizerDemo from "./pages/ArVisualizerDemo";
 import PrivacySettings from "./pages/PrivacySettings";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
@@ -33,6 +32,8 @@ import Analytics from "./pages/Analytics";
 import MainLayout from "./components/layout/MainLayout";
 import ComingSoon from "./pages/ComingSoon";
 import NotFound from "./pages/not-found";
+
+const ArVisualizerDemo = lazy(() => import("./pages/ArVisualizerDemo"));
 
 function AppRouter() {
   // Initialize Google Analytics when app loads
@@ -67,31 +68,33 @@ function AppRouter() {
           <Toaster />
           <Router>
             <MainLayout>
-              <Switch>
-                <Route path="/" component={Home} />
-                <Route path="/dashboard" component={Dashboard} />
-                <Route path="/dashboard-firebase" component={DashboardFirebase} />
-                <Route path="/login" component={Login} />
-                <Route path="/register" component={Register} />
-                <Route path="/user-profile" component={UserProfile} />
-                <Route path="/wishlist/:id" component={WishlistDetail} />
-                <Route path="/recommendations" component={Recommendations} />
-                <Route path="/price-tracking" component={PriceTracking} />
-                <Route path="/price-tracking-demo" component={PriceTrackingDemo} />
-                <Route path="/calendar" component={Calendar} />
-                <Route path="/notifications" component={Notifications} />
-                <Route path="/extension" component={ExtensionPage} />
-                <Route path="/social-sharing-demo" component={SocialSharingDemo} />
-                <Route path="/mobile-app-demo" component={MobileAppDemo} />
-                <Route path="/ar-visualizer-demo" component={ArVisualizerDemo} />
-                <Route path="/privacy-settings" component={PrivacySettings} />
-                <Route path="/forgot-password" component={ForgotPassword} />
-                <Route path="/reset-password" component={ResetPassword} />
-                <Route path="/verify-email" component={VerifyEmail} />
-                <Route path="/shared/:shareId" component={SharedWishlist} />
-                <Route path="/analytics" component={Analytics} />
-                <Route component={NotFound} />
-              </Switch>
+              <Suspense fallback={null}>
+                <Switch>
+                  <Route path="/" component={Home} />
+                  <Route path="/dashboard" component={Dashboard} />
+                  <Route path="/dashboard-firebase" component={DashboardFirebase} />
+                  <Route path="/login" component={Login} />
+                  <Route path="/register" component={Register} />
+                  <Route path="/user-profile" component={UserProfile} />
+                  <Route path="/wishlist/:id" component={WishlistDetail} />
+                  <Route path="/recommendations" component={Recommendations} />
+                  <Route path="/price-tracking" component={PriceTracking} />
+                  <Route path="/price-tracking-demo" component={PriceTrackingDemo} />
+                  <Route path="/calendar" component={Calendar} />
+                  <Route path="/notifications" component={Notifications} />
+                  <Route path="/extension" component={ExtensionPage} />
+                  <Route path="/social-sharing-demo" component={SocialSharingDemo} />
+                  <Route path="/mobile-app-demo" component={MobileAppDemo} />
+                  <Route path="/ar-visualizer-demo" component={ArVisualizerDemo} />
+                  <Route path="/privacy-settings" component={PrivacySettings} />
+                  <Route path="/forgot-password" component={ForgotPassword} />
+                  <Route path="/reset-password" component={ResetPassword} />
+                  <Route path="/verify-email" component={VerifyEmail} />
+                  <Route path="/shared/:shareId" component={SharedWishlist} />
+                  <Route path="/analytics" component={Analytics} />
+                  <Route component={NotFound} />
+                </Switch>
+              </Suspense>
             </MainLayout>
           </Router>
         </TooltipProvider>

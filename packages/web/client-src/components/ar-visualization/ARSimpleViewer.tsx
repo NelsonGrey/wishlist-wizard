@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Loader2, Box, RotateCw } from 'lucide-react';
 import { apiRequest } from '@/lib/queryClient';
-import '@google/model-viewer';
 
 // Props for the AR Viewer component
 interface ARSimpleViewerProps {
@@ -18,6 +17,20 @@ export function ARSimpleViewer({
   const [isLoading, setIsLoading] = useState(true);
   const [activeView, setActiveView] = useState<'front' | 'angle' | 'side'>('angle');
   const [modelData, setModelData] = useState<{ glb: string; usdz?: string; title: string } | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    import('@google/model-viewer').catch((error) => {
+      if (isMounted && import.meta.env.DEV) {
+        console.warn('[ARSimpleViewer] Failed to load model-viewer', error);
+      }
+    });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
   
   // Set loading state
   useEffect(() => {
