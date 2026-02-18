@@ -15,10 +15,8 @@ export default function Footer() {
               <li><Link href="/extension" className="text-gray-400 hover:text-white transition">How It Works</Link></li>
               <li>
                 <a 
-                  href="https://github.com/mnelson3/wishlist-wizard/tree/develop/chrome-extension-package" 
+                  href="/extension" 
                   className="text-gray-400 hover:text-white transition"
-                  target="_blank"
-                  rel="noopener noreferrer"
                 >
                   Download Extension
                 </a>
