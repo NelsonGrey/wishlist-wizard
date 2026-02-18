@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import Footer from "@/components/Footer";
 import AffiliateIndicator from "@/components/AffiliateIndicator";
 import { apiRequest } from "@/lib/queryClient";
 
@@ -100,7 +99,7 @@ export default function SharedWishlist() {
 
   if (!match) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 py-16">
           <h1 className="text-2xl font-bold">Shared wishlist not found</h1>
           <p className="mt-4">The wishlist you&apos;re looking for doesn&apos;t exist or has been removed.</p>
@@ -108,29 +107,12 @@ export default function SharedWishlist() {
             Back to Home
           </Button>
         </div>
-        <Footer />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50">
-      <header className="bg-white shadow-sm border-b py-4">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center">
-              <h1 className="text-2xl font-bold text-primary">Wishlist Wizard</h1>
-            </div>
-            <Button 
-              variant="outline"
-              onClick={() => setLocation('/')}
-            >
-              Home
-            </Button>
-          </div>
-        </div>
-      </header>
-      
+    <div className="flex flex-col bg-gray-50">
       <main className="flex-1 py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="mb-8 bg-white p-6 rounded-lg shadow-sm border">
@@ -271,8 +253,6 @@ export default function SharedWishlist() {
           )}
         </div>
       </main>
-      
-      <Footer />
     </div>
   );
 }
