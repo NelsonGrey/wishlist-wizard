@@ -1,4 +1,4 @@
-import { Router, Route, Switch } from "wouter";
+import { Router, Route, Switch, useLocation } from "wouter";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -6,6 +6,11 @@ import { Suspense, lazy, useEffect } from "react";
 import { initGA } from "./lib/analytics";
 import { AuthProvider } from "./contexts/AuthContext";
 import { queryClient } from "./lib/queryClient";
+
+// Layouts
+import PublicLayout from "./components/layout/PublicLayout";
+import AppLayout from "./components/layout/AppLayout";
+import AuthLayout from "./components/layout/AuthLayout";
 
 // Pages
 import Home from "./pages/Home";
@@ -29,7 +34,6 @@ import ResetPassword from "./pages/ResetPassword";
 import VerifyEmail from "./pages/VerifyEmail";
 import SharedWishlist from "./pages/SharedWishlist";
 import Analytics from "./pages/Analytics";
-import MainLayout from "./components/layout/MainLayout";
 import ComingSoon from "./pages/ComingSoon";
 import NotFound from "./pages/not-found";
 import TermsOfService from "./pages/TermsOfService";
@@ -40,6 +44,41 @@ import Blog from "./pages/Blog";
 import Contact from "./pages/Contact";
 
 const ArVisualizerDemo = lazy(() => import("./pages/ArVisualizerDemo"));
+
+// Determine which layout to use based on current route
+function LayoutRouter({ children }: { children: React.ReactNode }) {
+  const [location] = useLocation();
+
+  // Auth pages - use AuthLayout
+  const authPages = ['/login', '/register', '/forgot-password', '/reset-password', '/verify-email'];
+  const isAuthPage = authPages.some(page => location.startsWith(page));
+
+  // App pages - use AppLayout
+  const appPages = [
+    '/dashboard',
+    '/dashboard-firebase',
+    '/user-profile',
+    '/wishlist',
+    '/recommendations',
+    '/price-tracking',
+    '/calendar',
+    '/notifications',
+    '/privacy-settings',
+    '/analytics',
+    '/shared'
+  ];
+  const isAppPage = appPages.some(page => location.startsWith(page));
+
+  // Public pages - use PublicLayout (everything else)
+
+  if (isAuthPage) {
+    return <AuthLayout>{children}</AuthLayout>;
+  } else if (isAppPage) {
+    return <AppLayout>{children}</AppLayout>;
+  } else {
+    return <PublicLayout>{children}</PublicLayout>;
+  }
+}
 
 function AppRouter() {
   // Initialize Google Analytics when app loads
@@ -73,14 +112,29 @@ function AppRouter() {
         <TooltipProvider>
           <Toaster />
           <Router>
-            <MainLayout>
+            <LayoutRouter>
               <Suspense fallback={null}>
                 <Switch>
+                  {/* Public Pages - Marketing Site */}
                   <Route path="/" component={Home} />
-                  <Route path="/dashboard" component={Dashboard} />
-                  <Route path="/dashboard-firebase" component={DashboardFirebase} />
+                  <Route path="/extension" component={ExtensionPage} />
+                  <Route path="/about" component={About} />
+                  <Route path="/blog" component={Blog} />
+                  <Route path="/contact" component={Contact} />
+                  <Route path="/terms" component={TermsOfService} />
+                  <Route path="/privacy-policy" component={PrivacyPolicy} />
+                  <Route path="/cookie-policy" component={CookiePolicy} />
+
+                  {/* Auth Pages */}
                   <Route path="/login" component={Login} />
                   <Route path="/register" component={Register} />
+                  <Route path="/forgot-password" component={ForgotPassword} />
+                  <Route path="/reset-password" component={ResetPassword} />
+                  <Route path="/verify-email" component={VerifyEmail} />
+
+                  {/* App Pages - Authenticated Portal */}
+                  <Route path="/dashboard" component={Dashboard} />
+                  <Route path="/dashboard-firebase" component={DashboardFirebase} />
                   <Route path="/user-profile" component={UserProfile} />
                   <Route path="/wishlist/:id" component={WishlistDetail} />
                   <Route path="/recommendations" component={Recommendations} />
@@ -88,26 +142,18 @@ function AppRouter() {
                   <Route path="/price-tracking-demo" component={PriceTrackingDemo} />
                   <Route path="/calendar" component={Calendar} />
                   <Route path="/notifications" component={Notifications} />
-                  <Route path="/extension" component={ExtensionPage} />
                   <Route path="/social-sharing-demo" component={SocialSharingDemo} />
                   <Route path="/mobile-app-demo" component={MobileAppDemo} />
                   <Route path="/ar-visualizer-demo" component={ArVisualizerDemo} />
                   <Route path="/privacy-settings" component={PrivacySettings} />
-                  <Route path="/forgot-password" component={ForgotPassword} />
-                  <Route path="/reset-password" component={ResetPassword} />
-                  <Route path="/verify-email" component={VerifyEmail} />
                   <Route path="/shared/:shareId" component={SharedWishlist} />
                   <Route path="/analytics" component={Analytics} />
-                  <Route path="/terms" component={TermsOfService} />
-                  <Route path="/privacy-policy" component={PrivacyPolicy} />
-                  <Route path="/cookie-policy" component={CookiePolicy} />
-                  <Route path="/about" component={About} />
-                  <Route path="/blog" component={Blog} />
-                  <Route path="/contact" component={Contact} />
+
+                  {/* 404 */}
                   <Route component={NotFound} />
                 </Switch>
               </Suspense>
-            </MainLayout>
+            </LayoutRouter>
           </Router>
         </TooltipProvider>
       </AuthProvider>
