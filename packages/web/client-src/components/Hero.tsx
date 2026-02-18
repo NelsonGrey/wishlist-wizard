@@ -11,9 +11,9 @@ export default function Hero() {
           <div>
             <h1 className="text-5xl md:text-6xl font-extrabold mb-6 leading-tight">
               Save Anything
-              <span className="block text-emerald-100">From Anywhere</span>
+              <span className="block bg-gradient-to-r from-emerald-100 to-green-100 bg-clip-text text-transparent">From Anywhere</span>
             </h1>
-            <p className="text-xl md:text-2xl mb-10 text-emerald-50 leading-relaxed">Create wishlists from your favorite shopping sites with just one click. Wishlist Wizard makes tracking, organizing, and sharing your shopping lists effortless.</p>
+            <p className="text-xl md:text-2xl mb-10 text-emerald-50 leading-relaxed">Create wishlists from your favorite shopping sites with just one click. <span className="font-semibold text-white">Wishlist Wizard</span> makes tracking, organizing, and sharing your shopping lists effortless.</p>
             <div className="flex flex-wrap gap-4">
               <Link 
                 href="/extension"
@@ -47,7 +47,7 @@ export default function Hero() {
                   </div>
                 </div>
                 <div className="flex space-x-3 mb-3">
-                  <div className="w-16 h-16 bg-gradient-to-br from-blue-400 to-purple-500 rounded-md flex items-center justify-center">
+                  <div className="w-16 h-16 bg-gradient-to-br from-emerald-400 to-green-500 rounded-md flex items-center justify-center">
                     <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
                     </svg>
@@ -58,7 +58,7 @@ export default function Hero() {
                   </div>
                 </div>
                 <div className="flex space-x-3">
-                  <div className="w-16 h-16 bg-gradient-to-br from-green-400 to-blue-500 rounded-md flex items-center justify-center">
+                  <div className="w-16 h-16 bg-gradient-to-br from-green-400 to-emerald-500 rounded-md flex items-center justify-center">
                     <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
                     </svg>
