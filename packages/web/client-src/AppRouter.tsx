@@ -32,6 +32,12 @@ import Analytics from "./pages/Analytics";
 import MainLayout from "./components/layout/MainLayout";
 import ComingSoon from "./pages/ComingSoon";
 import NotFound from "./pages/not-found";
+import TermsOfService from "./pages/TermsOfService";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
+import CookiePolicy from "./pages/CookiePolicy";
+import About from "./pages/About";
+import Blog from "./pages/Blog";
+import Contact from "./pages/Contact";
 
 const ArVisualizerDemo = lazy(() => import("./pages/ArVisualizerDemo"));
 
@@ -92,6 +98,12 @@ function AppRouter() {
                   <Route path="/verify-email" component={VerifyEmail} />
                   <Route path="/shared/:shareId" component={SharedWishlist} />
                   <Route path="/analytics" component={Analytics} />
+                  <Route path="/terms" component={TermsOfService} />
+                  <Route path="/privacy-policy" component={PrivacyPolicy} />
+                  <Route path="/cookie-policy" component={CookiePolicy} />
+                  <Route path="/about" component={About} />
+                  <Route path="/blog" component={Blog} />
+                  <Route path="/contact" component={Contact} />
                   <Route component={NotFound} />
                 </Switch>
               </Suspense>
