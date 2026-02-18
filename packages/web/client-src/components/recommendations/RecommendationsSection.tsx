@@ -191,7 +191,7 @@ export default function RecommendationsSection({
       <Card>
         <CardHeader>
           <div className="flex items-center">
-            <Sparkles className="mr-2 h-5 w-5 text-purple-500" />
+            <Sparkles className="mr-2 h-5 w-5 text-emerald-800" />
             <CardTitle>{title}</CardTitle>
           </div>
           <CardDescription>
@@ -222,7 +222,7 @@ export default function RecommendationsSection({
       <Card>
         <CardHeader>
           <div className="flex items-center">
-            <Sparkles className="mr-2 h-5 w-5 text-purple-500" />
+            <Sparkles className="mr-2 h-5 w-5 text-emerald-800" />
             <CardTitle>{title}</CardTitle>
           </div>
           <CardDescription>
@@ -249,7 +249,7 @@ export default function RecommendationsSection({
       <Card>
         <CardHeader>
           <div className="flex items-center">
-            <Sparkles className="mr-2 h-5 w-5 text-purple-500" />
+            <Sparkles className="mr-2 h-5 w-5 text-emerald-800" />
             <CardTitle>{title}</CardTitle>
           </div>
           <CardDescription>
@@ -276,7 +276,7 @@ export default function RecommendationsSection({
       <CardHeader>
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div className="flex items-center">
-            <Sparkles className="mr-2 h-5 w-5 text-purple-500" />
+            <Sparkles className="mr-2 h-5 w-5 text-emerald-800" />
             <CardTitle>{title}</CardTitle>
           </div>
           
