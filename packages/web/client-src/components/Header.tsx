@@ -104,7 +104,7 @@ export default function Header() {
                   </Button>
                 ) : (
                   <a 
-                    href="https://chrome.google.com/webstore/detail/wishkeeper/placeholder"
+                    href="https://github.com/mnelson3/wishlist-wizard/tree/develop/chrome-extension-package"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-gray-600 hover:text-gray-900 font-medium"
@@ -123,9 +123,9 @@ export default function Header() {
               </>
             ) : (
               <>
-                <a href="#" className="text-gray-600 hover:text-gray-900 font-medium">How It Works</a>
+                <Link href="/extension" className="text-gray-600 hover:text-gray-900 font-medium">How It Works</Link>
                 <a 
-                  href="https://chrome.google.com/webstore/detail/wishkeeper/placeholder"
+                  href="https://github.com/mnelson3/wishlist-wizard/tree/develop/chrome-extension-package"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-gray-600 hover:text-gray-900 font-medium"
@@ -176,7 +176,7 @@ export default function Header() {
                         Notifications
                       </Link>
                       <a 
-                        href="https://chrome.google.com/webstore/detail/wishkeeper/placeholder"
+                        href="https://github.com/mnelson3/wishlist-wizard/tree/develop/chrome-extension-package"
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-lg font-medium hover:text-primary"
@@ -199,9 +199,11 @@ export default function Header() {
                     </>
                   ) : (
                     <>
-                      <a href="#" className="text-lg font-medium hover:text-primary">How It Works</a>
+                      <Link href="/extension" className="text-lg font-medium hover:text-primary" onClick={() => setIsMenuOpen(false)}>
+                        How It Works
+                      </Link>
                       <a 
-                        href="https://chrome.google.com/webstore/detail/wishkeeper/placeholder"
+                        href="https://github.com/mnelson3/wishlist-wizard/tree/develop/chrome-extension-package"
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-lg font-medium hover:text-primary"
