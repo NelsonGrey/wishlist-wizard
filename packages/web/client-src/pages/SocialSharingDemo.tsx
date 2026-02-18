@@ -84,11 +84,11 @@ const DEMO_WISHLISTS = [
 
 // Social platforms
 const SOCIAL_PLATFORMS = [
-  { id: "facebook", name: "Facebook", icon: <Facebook size={20} />, color: "bg-blue-600" },
-  { id: "twitter", name: "Twitter", icon: <Twitter size={20} />, color: "bg-sky-500" },
-  { id: "instagram", name: "Instagram", icon: <Instagram size={20} />, color: "bg-pink-600" },
-  { id: "email", name: "Email", icon: <Mail size={20} />, color: "bg-red-500" },
-  { id: "whatsapp", name: "WhatsApp", icon: <MessageCircle size={20} />, color: "bg-green-600" }
+  { id: "facebook", name: "Facebook", icon: <Facebook size={20} />, color: "bg-emerald-700" },
+  { id: "twitter", name: "Twitter", icon: <Twitter size={20} />, color: "bg-emerald-700" },
+  { id: "instagram", name: "Instagram", icon: <Instagram size={20} />, color: "bg-emerald-700" },
+  { id: "email", name: "Email", icon: <Mail size={20} />, color: "bg-emerald-700" },
+  { id: "whatsapp", name: "WhatsApp", icon: <MessageCircle size={20} />, color: "bg-emerald-700" }
 ];
 
 // Mock friends data
