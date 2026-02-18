@@ -66,7 +66,7 @@ export default function Blog() {
                 <Card key={post.id} className="hover:shadow-lg transition-shadow">
                   <CardHeader>
                     <div className="flex items-start justify-between mb-2">
-                      <span className="inline-block px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-xs font-medium">
+                      <span className="inline-block px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-xs font-medium">
                         {post.category}
                       </span>
                       <div className="flex items-center text-sm text-gray-500">
@@ -110,7 +110,7 @@ export default function Blog() {
               />
               <button
                 type="submit"
-                className="px-6 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition"
+                className="px-6 py-2 bg-gradient-to-r from-emerald-600 to-green-600 text-white rounded-lg hover:from-emerald-700 hover:to-green-700 transition-all shadow-md hover:shadow-lg"
               >
                 Subscribe
               </button>
@@ -122,7 +122,7 @@ export default function Blog() {
               Want to stay updated on new blog posts? 
             </p>
             <Link href="/">
-              <a className="text-indigo-600 hover:text-indigo-700 font-medium">
+              <a className="text-emerald-600 hover:text-emerald-700 font-medium transition-colors">
                 Go back home →
               </a>
             </Link>
