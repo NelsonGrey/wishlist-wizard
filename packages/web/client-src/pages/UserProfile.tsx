@@ -281,7 +281,7 @@ const UserProfile = () => {
         <meta name="description" content="Manage your profile, preferences, and account settings." />
       </Helmet>
       <div className="container mx-auto px-4 py-8 max-w-6xl">
-        <h1 className="text-3xl font-bold bg-gradient-to-r from-emerald-800 to-green-800 bg-clip-text text-transparent mb-8">Profile & Settings</h1>
+        <h1 className="text-4xl font-bold bg-gradient-to-r from-emerald-800 to-green-800 bg-clip-text text-transparent mb-8">Profile & Settings</h1>
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Sidebar */}
         <div className="lg:col-span-1">

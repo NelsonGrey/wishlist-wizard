@@ -166,7 +166,7 @@ export default function Dashboard() {
           </div>
 
           <div className="flex justify-between items-center mb-8">
-            <h2 className="text-3xl font-bold bg-gradient-to-r from-emerald-800 to-green-800 bg-clip-text text-transparent">My Wishlists</h2>
+            <h2 className="text-4xl font-bold bg-gradient-to-r from-emerald-800 to-green-800 bg-clip-text text-transparent">My Wishlists</h2>
             <Button 
               onClick={() => setIsCreateDialogOpen(true)}
               className="flex items-center space-x-2 bg-primary hover:bg-indigo-700"
