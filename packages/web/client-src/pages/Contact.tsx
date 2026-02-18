@@ -54,11 +54,11 @@ export default function Contact() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
             <Card>
               <CardHeader>
-                <Mail className="h-6 w-6 text-pink-600 mb-2" />
+                <Mail className="h-6 w-6 text-emerald-800 mb-2" />
                 <CardTitle className="text-lg">Email</CardTitle>
               </CardHeader>
               <CardContent>
-                <a href="mailto:support@wishlist-wizard.com" className="text-pink-600 hover:text-pink-700">
+                <a href="mailto:support@wishlist-wizard.com" className="text-emerald-700 hover:text-emerald-800">
                   support@wishlist-wizard.com
                 </a>
               </CardContent>
@@ -66,7 +66,7 @@ export default function Contact() {
 
             <Card>
               <CardHeader>
-                <MessageSquare className="h-6 w-6 text-pink-600 mb-2" />
+                <MessageSquare className="h-6 w-6 text-emerald-800 mb-2" />
                 <CardTitle className="text-lg">Support</CardTitle>
               </CardHeader>
               <CardContent>
@@ -78,7 +78,7 @@ export default function Contact() {
 
             <Card>
               <CardHeader>
-                <MapPin className="h-6 w-6 text-pink-600 mb-2" />
+                <MapPin className="h-6 w-6 text-emerald-800 mb-2" />
                 <CardTitle className="text-lg">Community</CardTitle>
               </CardHeader>
               <CardContent>
