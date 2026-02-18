@@ -91,7 +91,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
           <Link href="/dashboard">
             <a className="flex items-center hover:scale-105 transition-transform duration-200">
               <img src="/logo.svg" alt="Wishlist Wizard" className="h-8 w-8 mr-2.5" />
-              <span className="font-bold text-xl tracking-tight bg-gradient-to-r from-emerald-700 to-green-600 bg-clip-text text-transparent">Wishlist Wizard</span>
+              <span className="font-bold text-xl tracking-tight bg-gradient-to-r from-emerald-800 to-green-800 bg-clip-text text-transparent">Wishlist Wizard</span>
             </a>
           </Link>
 
@@ -102,8 +102,8 @@ export default function AppLayout({ children }: AppLayoutProps) {
                 <a
                   className={`px-3 py-2 rounded-lg text-sm flex items-center font-medium transition-all ${
                     location === item.href
-                      ? 'bg-gradient-to-r from-emerald-100 to-green-100 text-emerald-700 shadow-sm'
-                      : 'text-gray-700 hover:bg-emerald-50 hover:text-emerald-600'
+                      ? 'bg-gradient-to-r from-emerald-100 to-green-100 text-emerald-800 shadow-sm'
+                      : 'text-gray-700 hover:bg-emerald-50 hover:text-emerald-800'
                   }`}
                 >
                   {item.icon}

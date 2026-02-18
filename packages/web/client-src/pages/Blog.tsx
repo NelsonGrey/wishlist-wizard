@@ -110,7 +110,7 @@ export default function Blog() {
               />
               <button
                 type="submit"
-                className="px-6 py-2 bg-gradient-to-r from-emerald-600 to-green-600 text-white rounded-lg hover:from-emerald-700 hover:to-green-700 transition-all shadow-md hover:shadow-lg"
+                className="px-6 py-2 bg-gradient-to-r from-emerald-700 to-green-700 text-white rounded-lg hover:from-emerald-800 hover:to-green-800 transition-all shadow-md hover:shadow-lg"
               >
                 Subscribe
               </button>
@@ -122,7 +122,7 @@ export default function Blog() {
               Want to stay updated on new blog posts? 
             </p>
             <Link href="/">
-              <a className="text-emerald-600 hover:text-emerald-700 font-medium transition-colors">
+              <a className="text-emerald-700 hover:text-emerald-800 font-medium transition-colors">
                 Go back home →
               </a>
             </Link>
