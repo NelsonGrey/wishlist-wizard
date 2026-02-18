@@ -12,10 +12,11 @@
 
 #### Primary Colors
 ```
-Emerald 600: #059669  → Main brand color
-Emerald 700: #047857  → Darker shade for depth
-Green 600:   #16a34a  → Accent pairing
-Green 700:   #15803d  → Secondary dark
+Emerald 700: #047857  → Main brand color (darker, richer)
+Emerald 800: #065f46  → Darkest shade for emphasis
+Green 700:   #15803d  → Accent pairing
+Green 800:   #166534  → Secondary dark
+Teal 700:    #0f766e  → Gradient accent
 ```
 
 #### Light Backgrounds
@@ -28,10 +29,10 @@ Green 100:   #dcfce7  → Light accents
 
 #### Gradients
 ```
-Primary Gradient:    from-emerald-600 to-green-600
-Dark Gradient:       from-emerald-700 to-green-600
-Text Gradient:       from-emerald-700 to-green-600 (with bg-clip-text)
-Hero Background:     from-emerald-600 via-green-600 to-teal-600
+Primary Gradient:    from-emerald-700 to-green-700
+Dark Gradient:       from-emerald-800 to-green-800
+Text Gradient:       from-emerald-800 to-green-800 (with bg-clip-text)
+Hero Background:     from-emerald-700 via-green-700 to-teal-700
 Light Background:    from-emerald-50/30 via-white to-green-50/30
 Auth Background:     from-emerald-50 via-white to-green-50
 ```
@@ -51,7 +52,7 @@ Auth Background:     from-emerald-50 via-white to-green-50
 
 ### Gradient Text Pattern
 ```tsx
-className="bg-gradient-to-r from-emerald-700 to-green-600 bg-clip-text text-transparent"
+className="bg-gradient-to-r from-emerald-800 to-green-800 bg-clip-text text-transparent"
 ```
 
 ## Layout Components
@@ -64,7 +65,7 @@ className="bg-gradient-to-r from-emerald-700 to-green-600 bg-clip-text text-tran
 - Border: `border-emerald-100`
 - Shadow: `shadow-sm`
 - Logo: Clickable to `/` (home)
-- Navigation: Emerald hover states (`hover:text-emerald-600`)
+- Navigation: Emerald hover states (`hover:text-emerald-700`)
 - CTA Buttons: Gradient emerald background with shadows
 
 **Background**: 
@@ -74,8 +75,8 @@ bg-gradient-to-br from-emerald-50/30 via-white to-green-50/30
 
 **Sign Up Button**:
 ```tsx
-bg-gradient-to-r from-emerald-600 to-green-600 
-hover:from-emerald-700 hover:to-green-700
+bg-gradient-to-r from-emerald-700 to-green-700 
+hover:from-emerald-800 hover:to-green-800
 shadow-md hover:shadow-lg
 ```
 
@@ -85,8 +86,8 @@ shadow-md hover:shadow-lg
 **Header**:
 - Background: `bg-white` with `border-emerald-100`
 - Logo: Clickable to `/dashboard`
-- Active Nav State: `bg-gradient-to-r from-emerald-100 to-green-100 text-emerald-700`
-- Inactive: `text-gray-700 hover:bg-emerald-50 hover:text-emerald-600`
+- Active Nav State: `bg-gradient-to-r from-emerald-100 to-green-100 text-emerald-800`
+- Inactive: `text-gray-700 hover:bg-emerald-50 hover:text-emerald-700`
 
 **Background**: `bg-gray-50` (subtle gray for content areas)
 
@@ -100,7 +101,7 @@ shadow-md hover:shadow-lg
 bg-gradient-to-br from-emerald-50 via-white to-green-50
 ```
 
-**Help Link**: `text-emerald-600 hover:text-emerald-700`
+**Help Link**: `text-emerald-700 hover:text-emerald-800`
 
 ## Components
 
@@ -108,22 +109,22 @@ bg-gradient-to-br from-emerald-50 via-white to-green-50
 
 #### Primary CTA (Gradient)
 ```tsx
-className="px-8 py-4 bg-gradient-to-r from-emerald-600 to-green-600 
-           text-white hover:from-emerald-700 hover:to-green-700 
+className="px-8 py-4 bg-gradient-to-r from-emerald-700 to-green-700 
+           text-white hover:from-emerald-800 hover:to-green-800 
            rounded-xl font-semibold shadow-xl hover:shadow-2xl 
            hover:scale-105 transition-all"
 ```
 
 #### Secondary CTA (Ghost/Outline)
 ```tsx
-className="px-8 py-4 bg-emerald-700/30 backdrop-blur-sm text-white 
-           rounded-xl font-semibold hover:bg-emerald-700/40 
+className="px-8 py-4 bg-emerald-800/30 backdrop-blur-sm text-white 
+           rounded-xl font-semibold hover:bg-emerald-800/40 
            transition-all border-2 border-white/30 hover:border-white/50"
 ```
 
 #### Sign In Button (Subtle)
 ```tsx
-className="px-5 py-2 text-gray-700 hover:text-emerald-600 
+className="px-5 py-2 text-gray-700 hover:text-emerald-800 
            hover:bg-emerald-50 rounded-lg font-medium transition-all"
 ```
 
@@ -133,14 +134,14 @@ className="px-5 py-2 text-gray-700 hover:text-emerald-600
 ```tsx
 <div className="bg-emerald-100 w-12 h-12 flex items-center justify-center 
                rounded-full mb-4">
-  <svg className="w-6 h-6 text-emerald-600" />
+  <svg className="w-6 h-6 text-emerald-800" />
 </div>
 ```
 
 #### Checkmark List Icons
 ```tsx
 <div className="bg-emerald-100 p-1 rounded-full">
-  <svg className="w-4 h-4 text-emerald-600" fill="currentColor" />
+  <svg className="w-4 h-4 text-emerald-800" fill="currentColor" />
 </div>
 ```
 
@@ -148,7 +149,7 @@ className="px-5 py-2 text-gray-700 hover:text-emerald-600
 
 **Background**:
 ```tsx
-className="relative bg-gradient-to-br from-emerald-600 via-green-600 to-teal-600 
+className="relative bg-gradient-to-br from-emerald-700 via-green-700 to-teal-700 
            text-white py-24 overflow-hidden"
 ```
 
@@ -165,20 +166,20 @@ className="relative bg-gradient-to-br from-emerald-600 via-green-600 to-teal-600
 
 **Hero Card**:
 - Border: `border-2 border-emerald-200`
-- Header: `bg-gradient-to-r from-emerald-600 to-green-600`
+- Header: `bg-gradient-to-r from-emerald-700 to-green-700`
 - Hover: `hover:scale-105 transition-transform`
 
 ## Interactive States
 
 ### Hover Effects
 - **Logo**: `hover:scale-105 transition-transform duration-200`
-- **Nav Links**: `hover:text-emerald-600 transition-colors`
+- **Nav Links**: `hover:text-emerald-700 transition-colors`
 - **Buttons**: `hover:shadow-lg transition-all`
 - **Cards**: `hover:scale-105 transition-transform`
 
 ### Active States
 - **Navigation**: Emerald gradient background with subtle shadow
-- **Links**: `text-emerald-600 font-medium`
+- **Links**: `text-emerald-700 font-medium`
 
 ### Transitions
 ```tsx
@@ -255,7 +256,7 @@ Future consideration: Use `dark:` variants with emerald palette adjusted for dar
 ### Color Contrast
 - Text on white: `text-gray-700` (AAA compliant)
 - Text on emerald: Use white text for sufficient contrast
-- Links: `text-emerald-600` meets AA standards on white
+- Links: `text-emerald-700` meets AA standards on white
 
 ### Focus States
 Currently relying on browser defaults. Consider adding:
@@ -303,7 +304,7 @@ focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2
 
 ### Gradient Heading
 ```tsx
-<h1 className="text-4xl font-bold bg-gradient-to-r from-emerald-600 to-green-600 
+<h1 className="text-4xl font-bold bg-gradient-to-r from-emerald-800 to-green-800 
                bg-clip-text text-transparent mb-4">
   Your Heading
 </h1>
@@ -312,8 +313,8 @@ focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2
 ### Primary CTA Link
 ```tsx
 <Link href="/path">
-  <button className="px-8 py-4 bg-gradient-to-r from-emerald-600 to-green-600 
-                     text-white hover:from-emerald-700 hover:to-green-700 
+  <button className="px-8 py-4 bg-gradient-to-r from-emerald-700 to-green-700 
+                     text-white hover:from-emerald-800 hover:to-green-800 
                      rounded-xl font-semibold shadow-xl hover:shadow-2xl 
                      hover:scale-105 transition-all">
     Call to Action
@@ -326,7 +327,7 @@ focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2
 <div className="bg-white p-6 rounded-xl shadow-lg">
   <div className="bg-emerald-100 w-12 h-12 flex items-center justify-center 
                  rounded-full mb-4">
-    <Icon className="w-6 h-6 text-emerald-600" />
+    <Icon className="w-6 h-6 text-emerald-800" />
   </div>
   <h3 className="font-bold text-lg mb-2">Feature Title</h3>
   <p className="text-gray-600">Description text</p>
@@ -346,4 +347,4 @@ Perfect alignment with Wishlist Wizard's mission to help users organize and achi
 ---
 
 **Last Updated**: February 18, 2026  
-**Version**: 2.0 (Emerald Rebrand)
+**Version**: 2.1 (Darker Emerald Refinement)

@@ -22,14 +22,14 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
           <Link href="/">
             <a className="flex items-center hover:scale-105 transition-transform duration-200">
               <img src="/logo.svg" alt="Wishlist Wizard" className="h-8 w-8 mr-2.5" />
-              <span className="font-bold text-xl tracking-tight bg-gradient-to-r from-emerald-700 to-green-600 bg-clip-text text-transparent">Wishlist Wizard</span>
+              <span className="font-bold text-xl tracking-tight bg-gradient-to-r from-emerald-800 to-green-800 bg-clip-text text-transparent">Wishlist Wizard</span>
             </a>
           </Link>
 
           {/* Help text */}
           <div className="hidden md:flex items-center text-sm text-gray-600">
             <span>Need help? </span>
-            <Link href="/contact" className="text-emerald-600 hover:text-emerald-700 ml-1 font-medium transition-colors">
+            <Link href="/contact" className="text-emerald-700 hover:text-emerald-800 ml-1 font-medium transition-colors">
               Contact us
             </Link>
           </div>
