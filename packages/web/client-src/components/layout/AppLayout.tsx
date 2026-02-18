@@ -180,7 +180,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
                   </a>
                 </Link>
                 <Link href="/register">
-                  <a className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-md">
+                  <a className="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-emerald-700 to-green-700 hover:from-emerald-800 hover:to-green-800 rounded-md transition-all">
                     Register
                   </a>
                 </Link>

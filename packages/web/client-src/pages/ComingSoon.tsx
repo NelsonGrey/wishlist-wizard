@@ -123,7 +123,7 @@ const ComingSoon = () => {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
-              <Sparkles className="h-8 w-8 text-blue-600" />
+              <Sparkles className="h-8 w-8 text-emerald-800" />
               <span className="text-2xl font-bold text-gray-900">Wishlist Wizard</span>
               <Badge variant="secondary" className="ml-2">Coming Soon</Badge>
             </div>
@@ -135,10 +135,10 @@ const ComingSoon = () => {
       <section className="py-20 px-4">
         <div className="container mx-auto text-center max-w-4xl">
           <div className="mb-8">
-            <Sparkles className="h-16 w-16 text-blue-600 mx-auto mb-6" />
+            <Sparkles className="h-16 w-16 text-emerald-800 mx-auto mb-6" />
             <h1 className="text-5xl md:text-6xl font-bold text-gray-900 mb-6">
               Something Amazing is
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600"> Coming Soon</span>
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-800 to-green-800"> Coming Soon</span>
             </h1>
             <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
               We&apos;re building the ultimate wishlist management platform that makes shopping,
@@ -214,7 +214,7 @@ const ComingSoon = () => {
               <Card key={index} className="border-0 shadow-lg hover:shadow-xl transition-shadow">
                 <CardHeader>
                   <div className="flex items-center space-x-3">
-                    <div className="p-2 bg-blue-100 rounded-lg text-blue-600">
+                    <div className="p-2 bg-emerald-100 rounded-lg text-emerald-800">
                       {feature.icon}
                     </div>
                     <CardTitle className="text-lg">{feature.title}</CardTitle>
@@ -338,7 +338,7 @@ const ComingSoon = () => {
                   </div>
                 </div>
                 <div className="flex items-start space-x-3">
-                  <div className="h-5 w-5 rounded-full bg-blue-500 mt-0.5"></div>
+                  <div className="h-5 w-5 rounded-full bg-emerald-700 mt-0.5"></div>
                   <div>
                     <p className="font-medium">Mobile App</p>
                     <p className="text-sm text-gray-600">Native iOS and Android apps</p>

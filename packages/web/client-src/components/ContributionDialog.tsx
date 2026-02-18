@@ -403,10 +403,10 @@ function ContributionForm({
 
             {/* Preview */}
             {contributionAmount > 0 && (
-              <Card className="bg-blue-50 border-blue-200">
+              <Card className="bg-emerald-50 border-emerald-200">
                 <CardContent className="p-4">
-                  <h4 className="font-medium text-blue-900 mb-2">Contribution Summary</h4>
-                  <div className="space-y-1 text-sm text-blue-800">
+                  <h4 className="font-medium text-emerald-900 mb-2">Contribution Summary</h4>
+                  <div className="space-y-1 text-sm text-emerald-800">
                     <div className="flex justify-between">
                       <span>Your contribution:</span>
                       <span>${contributionAmount.toFixed(2)}</span>
