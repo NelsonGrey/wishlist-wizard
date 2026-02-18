@@ -292,7 +292,7 @@ const MobileAppDemo = () => {
                             <p className="text-sm text-slate-500">{list.itemCount} items</p>
                             <div className="flex justify-end gap-2 mt-2">
                               <Button size="sm" variant="outline">View</Button>
-                              <Button size="sm">Add Item</Button>
+                              <Button size="sm" className="bg-gradient-to-r from-emerald-700 to-green-700 text-white hover:from-emerald-800 hover:to-green-800">Add Item</Button>
                             </div>
                           </CardContent>
                         </Card>
@@ -340,7 +340,7 @@ const MobileAppDemo = () => {
                 </Tabs>
                 
                 <div className="mt-4">
-                  <Button className="w-full">Create New Wishlist</Button>
+                  <Button className="w-full bg-gradient-to-r from-emerald-700 to-green-700 text-white hover:from-emerald-800 hover:to-green-800">Create New Wishlist</Button>
                 </div>
               </div>
             )}
@@ -353,7 +353,7 @@ const MobileAppDemo = () => {
                     <Card key={notification.id} className="cursor-pointer hover:bg-slate-50">
                       <CardContent className="p-3">
                         <div className="flex gap-3 items-start">
-                          <BellRing className="mt-1 text-primary" size={16} />
+                          <BellRing className="mt-1 text-emerald-800" size={16} />
                           <div>
                             <p className="font-medium">{notification.title}</p>
                             <p className="text-sm text-slate-500">{notification.message}</p>
