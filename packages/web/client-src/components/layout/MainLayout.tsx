@@ -24,6 +24,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { apiRequest } from "@/lib/queryClient";
 import { User as DbUser } from "@wishlist-wizard/shared";
+import Footer from "@/components/Footer";
 
 // Type for the current user with additional UI properties
 type CurrentUser = Pick<DbUser, 'id' | 'username' | 'email' | 'displayName' | 'avatarUrl'>;
@@ -182,55 +183,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
       </main>
       
       {/* Footer */}
-      <footer className="bg-white border-t py-6">
-        <div className="container mx-auto px-4">
-          <div className="flex flex-col md:flex-row justify-between">
-            <div className="mb-4 md:mb-0">
-              <Link href="/">
-                <a className="flex items-center">
-                  <Gift className="h-5 w-5 text-primary mr-2" />
-                  <span className="font-bold text-lg">Wishlist Wizard</span>
-                </a>
-              </Link>
-              <p className="mt-2 text-sm text-gray-600">
-                Keep track of all your wishes in one place
-              </p>
-            </div>
-            
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-8">
-              <div>
-                <h3 className="text-sm font-semibold mb-3">Features</h3>
-                <ul className="space-y-2">
-                  <li><Link href="/recommendations"><a className="text-sm text-gray-600 hover:text-primary">Gift Recommendations</a></Link></li>
-                  <li><Link href="/price-tracking"><a className="text-sm text-gray-600 hover:text-primary">Price Tracking</a></Link></li>
-                  <li><Link href="/extension"><a className="text-sm text-gray-600 hover:text-primary">Browser Extension</a></Link></li>
-                </ul>
-              </div>
-              
-              <div>
-                <h3 className="text-sm font-semibold mb-3">Company</h3>
-                <ul className="space-y-2">
-                  <li><Link href="/"><a className="text-sm text-gray-600 hover:text-primary">About Us</a></Link></li>
-                  <li><Link href="/"><a className="text-sm text-gray-600 hover:text-primary">Careers</a></Link></li>
-                  <li><Link href="/"><a className="text-sm text-gray-600 hover:text-primary">Contact</a></Link></li>
-                </ul>
-              </div>
-              
-              <div>
-                <h3 className="text-sm font-semibold mb-3">Legal</h3>
-                <ul className="space-y-2">
-                  <li><Link href="/privacy-settings"><a className="text-sm text-gray-600 hover:text-primary">Privacy Policy</a></Link></li>
-                  <li><Link href="/privacy-settings"><a className="text-sm text-gray-600 hover:text-primary">Terms of Service</a></Link></li>
-                </ul>
-              </div>
-            </div>
-          </div>
-          
-          <div className="mt-8 pt-6 border-t text-sm text-center text-gray-600">
-            © {new Date().getFullYear()} Wishlist Wizard. All rights reserved.
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }
