@@ -76,7 +76,6 @@ export default function AppLayout({ children }: AppLayoutProps) {
 
   // Define navigation items for app portal
   const navItems = [
-    { name: 'Home', href: '/dashboard', icon: <Home className="h-5 w-5" /> },
     { name: 'Recommendations', href: '/recommendations', icon: <Sparkles className="h-5 w-5" /> },
     { name: 'Price Tracking', href: '/price-tracking', icon: <LineChart className="h-5 w-5" /> },
     { name: 'Calendar', href: '/calendar', icon: <Calendar className="h-5 w-5" /> },
