@@ -37,6 +37,33 @@ function hasAllConfigValues() {
 
 // Global FirebaseClient instance
 let firebaseClient: FirebaseClient | null = null;
+export let firebaseApp: FirebaseApp | null = null;
+export let firebaseAuth: Auth | null = null;
+export let firebaseFirestore: Firestore | null = null;
+
+function ensureFirebaseCoreInitialized(): boolean {
+  if (firebaseClient) {
+    firebaseApp = firebaseClient.app;
+    firebaseAuth = firebaseClient.auth;
+    firebaseFirestore = firebaseClient.firestore;
+    return true;
+  }
+
+  if (!hasAllConfigValues()) {
+    return false;
+  }
+
+  firebaseClient = FirebaseClient.initialize(firebaseConfig);
+  firebaseApp = firebaseClient.app;
+  firebaseAuth = firebaseClient.auth;
+  firebaseFirestore = firebaseClient.firestore;
+
+  if (import.meta.env.DEV) {
+    firebaseClient.connectToEmulators();
+  }
+
+  return true;
+}
 
 export async function initFirebase(options?: {
   enableAnalytics?: boolean;
@@ -44,21 +71,12 @@ export async function initFirebase(options?: {
   enableAuth?: boolean;
   enableFirestore?: boolean;
 }) {
-  if (!hasAllConfigValues()) {
+  if (!ensureFirebaseCoreInitialized()) {
     if (import.meta.env.DEV) {
       // eslint-disable-next-line no-console
       console.warn('[firebase] Skipping initialization – missing config env vars');
     }
     return { app: null, analytics: null, messaging: null, auth: null, firestore: null };
-  }
-
-  if (!firebaseClient) {
-    firebaseClient = FirebaseClient.initialize(firebaseConfig);
-
-    // Connect to emulators in development
-    if (import.meta.env.DEV) {
-      firebaseClient.connectToEmulators();
-    }
   }
 
   // Initialize Firebase Auth (enabled by default for Firebase-first architecture)
@@ -188,8 +206,6 @@ export function getCurrentUser(): User | null {
 // Convenience auto-init (opt-in via env flag)
 if (import.meta.env.VITE_FIREBASE_AUTO_INIT === 'true') {
   initFirebase({ enableAnalytics: true, enableMessaging: false, enableAuth: true });
+} else {
+  ensureFirebaseCoreInitialized();
 }
-
-export const firebaseApp: FirebaseApp | null = (firebaseClient as FirebaseClient | null)?.app ?? null;
-export const firebaseAuth: Auth | null = (firebaseClient as FirebaseClient | null)?.auth ?? null;
-export const firebaseFirestore: Firestore | null = (firebaseClient as FirebaseClient | null)?.firestore ?? null;
