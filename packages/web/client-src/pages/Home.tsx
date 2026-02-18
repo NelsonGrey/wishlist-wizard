@@ -8,14 +8,14 @@ export default function Home() {
       <Hero />
       
       {/* Responsive ad after hero section */}
-      <div className="container mx-auto px-4 mt-6">
+      <div className="container mx-auto px-4 mt-6 max-w-6xl">
         <ResponsiveAd />
       </div>
       
       <Features />
       
       {/* Inline ad before footer */}
-      <div className="container mx-auto px-4 mb-6">
+      <div className="container mx-auto px-4 mb-6 max-w-6xl">
         <InlineAd />
       </div>
     </div>

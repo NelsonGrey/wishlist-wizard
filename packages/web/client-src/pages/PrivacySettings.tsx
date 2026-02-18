@@ -285,7 +285,7 @@ const PrivacySettingsPage = () => {
 
   if (entitiesLoading) {
     return (
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-8 max-w-6xl">
         <div className="flex items-center justify-center min-h-[400px]">
           <Loader2 className="h-8 w-8 animate-spin" />
         </div>
@@ -294,9 +294,9 @@ const PrivacySettingsPage = () => {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-8 max-w-6xl">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">Privacy Settings</h1>
+        <h1 className="text-3xl font-bold bg-gradient-to-r from-emerald-800 to-green-800 bg-clip-text text-transparent mb-2">Privacy Settings</h1>
         <p className="text-muted-foreground">
           Control who can see your wishlists, items, and profile information
         </p>
