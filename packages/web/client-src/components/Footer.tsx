@@ -29,17 +29,17 @@ export default function Footer() {
           <div>
             <h4 className="text-md font-semibold mb-4">Company</h4>
             <ul className="space-y-2">
-              <li><Link href="/" className="text-gray-400 hover:text-white transition">About Us</Link></li>
-              <li><Link href="/analytics" className="text-gray-400 hover:text-white transition">Blog</Link></li>
-              <li><Link href="/" className="text-gray-400 hover:text-white transition">Contact</Link></li>
+              <li><Link href="/about" className="text-gray-400 hover:text-white transition">About Us</Link></li>
+              <li><Link href="/blog" className="text-gray-400 hover:text-white transition">Blog</Link></li>
+              <li><Link href="/contact" className="text-gray-400 hover:text-white transition">Contact</Link></li>
             </ul>
           </div>
           <div>
             <h4 className="text-md font-semibold mb-4">Legal</h4>
             <ul className="space-y-2">
-              <li><Link href="/privacy-settings" className="text-gray-400 hover:text-white transition">Privacy Policy</Link></li>
-              <li><Link href="/privacy-settings" className="text-gray-400 hover:text-white transition">Terms of Service</Link></li>
-              <li><Link href="/privacy-settings" className="text-gray-400 hover:text-white transition">Cookie Policy</Link></li>
+              <li><Link href="/privacy-policy" className="text-gray-400 hover:text-white transition">Privacy Policy</Link></li>
+              <li><Link href="/terms" className="text-gray-400 hover:text-white transition">Terms of Service</Link></li>
+              <li><Link href="/cookie-policy" className="text-gray-400 hover:text-white transition">Cookie Policy</Link></li>
             </ul>
           </div>
         </div>
