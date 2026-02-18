@@ -106,7 +106,7 @@ export default function PriceAlertForm({
     <Card>
       <CardHeader className="pb-3">
         <CardTitle className="text-lg flex items-center">
-          <BellRing className="h-5 w-5 mr-2 text-blue-500" />
+          <BellRing className="h-5 w-5 mr-2 text-emerald-800" />
           Price Alert
         </CardTitle>
         <CardDescription>
