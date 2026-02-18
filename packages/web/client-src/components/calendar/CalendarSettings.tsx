@@ -149,9 +149,9 @@ export function CalendarSettings() {
   const getCalendarIcon = (type: CalendarProvider) => {
     switch (type) {
       case 'google':
-        return <SiGoogle className="h-5 w-5 text-blue-500" />;
+        return <SiGoogle className="h-5 w-5 text-emerald-800" />;
       case 'outlook':
-        return <FaMicrosoft className="h-5 w-5 text-blue-500" />;
+        return <FaMicrosoft className="h-5 w-5 text-emerald-800" />;
       case 'apple':
         return <SiApple className="h-5 w-5 text-gray-800" />;
       default:

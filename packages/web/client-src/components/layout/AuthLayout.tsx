@@ -47,16 +47,16 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
       <footer className="bg-white border-t py-6 mt-8">
         <div className="container mx-auto px-4 text-center text-sm text-gray-600">
           <div className="flex flex-col sm:flex-row justify-center gap-4 mb-4">
-            <Link href="/about" className="text-gray-600 hover:text-indigo-600">
+            <Link href="/about" className="text-gray-600 hover:text-emerald-700">
               About
             </Link>
-            <Link href="/terms" className="text-gray-600 hover:text-indigo-600">
+            <Link href="/terms" className="text-gray-600 hover:text-emerald-700">
               Terms
             </Link>
-            <Link href="/privacy-policy" className="text-gray-600 hover:text-indigo-600">
+            <Link href="/privacy-policy" className="text-gray-600 hover:text-emerald-700">
               Privacy
             </Link>
-            <Link href="/contact" className="text-gray-600 hover:text-indigo-600">
+            <Link href="/contact" className="text-gray-600 hover:text-emerald-700">
               Contact
             </Link>
           </div>
