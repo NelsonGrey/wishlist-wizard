@@ -15,55 +15,55 @@ export default function PublicLayout({ children }: PublicLayoutProps) {
   }, [location]);
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col bg-gradient-to-br from-emerald-50/30 via-white to-green-50/30">
       {/* Marketing Header */}
-      <header className="bg-white border-b sticky top-0 z-10">
-        <div className="container mx-auto px-4 py-3 flex items-center justify-between">
+      <header className="bg-white/95 backdrop-blur-sm border-b border-emerald-100 sticky top-0 z-10 shadow-sm">
+        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           {/* Logo - acts as home button */}
           <Link href="/">
-            <a className="flex items-center hover:opacity-80 transition-opacity">
-              <img src="/logo.svg" alt="Wishlist Wizard" className="h-8 w-8 mr-2" />
-              <span className="font-bold text-xl tracking-tight">Wishlist Wizard</span>
+            <a className="flex items-center hover:scale-105 transition-transform duration-200">
+              <img src="/logo.svg" alt="Wishlist Wizard" className="h-9 w-9 mr-2.5" />
+              <span className="font-bold text-xl tracking-tight bg-gradient-to-r from-emerald-700 to-green-600 bg-clip-text text-transparent">Wishlist Wizard</span>
             </a>
           </Link>
 
           {/* Navigation */}
-          <nav className="hidden md:flex items-center space-x-6">
-            <Link href="/extension" className="text-gray-700 hover:text-gray-900 font-medium">
+          <nav className="hidden md:flex items-center space-x-8">
+            <Link href="/extension" className="text-gray-700 hover:text-emerald-600 font-medium transition-colors">
               How It Works
             </Link>
-            <Link href="/about" className="text-gray-700 hover:text-gray-900 font-medium">
+            <Link href="/about" className="text-gray-700 hover:text-emerald-600 font-medium transition-colors">
               About
             </Link>
-            <Link href="/blog" className="text-gray-700 hover:text-gray-900 font-medium">
+            <Link href="/blog" className="text-gray-700 hover:text-emerald-600 font-medium transition-colors">
               Blog
             </Link>
             <Link href="/login">
-              <button className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-md font-medium">
+              <button className="px-5 py-2 text-gray-700 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg font-medium transition-all">
                 Sign In
               </button>
             </Link>
             <Link href="/register">
-              <button className="px-4 py-2 bg-indigo-600 text-white hover:bg-indigo-700 rounded-md font-medium">
+              <button className="px-6 py-2.5 bg-gradient-to-r from-emerald-600 to-green-600 text-white hover:from-emerald-700 hover:to-green-700 rounded-lg font-medium shadow-md hover:shadow-lg transition-all">
                 Sign Up
               </button>
             </Link>
           </nav>
 
           {/* Mobile menu */}
-          <div className="md:hidden">
+          <div className="md:hidden flex items-center gap-3">
             <Link href="/login">
-              <button className="text-gray-700 hover:text-gray-900 mr-4">Sign In</button>
+              <button className="text-gray-700 hover:text-emerald-600 font-medium">Sign In</button>
             </Link>
             <Link href="/register">
-              <button className="px-4 py-2 bg-indigo-600 text-white rounded-md">Sign Up</button>
+              <button className="px-4 py-2 bg-gradient-to-r from-emerald-600 to-green-600 text-white rounded-lg shadow-md">Sign Up</button>
             </Link>
           </div>
         </div>
       </header>
 
       {/* Main content */}
-      <main className="flex-1 bg-white">
+      <main className="flex-1">
         {children}
       </main>
 

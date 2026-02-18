@@ -20,7 +20,7 @@ const ExtensionPage = () => {
     <div className="container mx-auto py-8 px-4">
       <div className="max-w-5xl mx-auto">
         <div className="mb-8">
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-indigo-600 to-indigo-400 bg-clip-text text-transparent mb-2">
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-emerald-600 to-green-600 bg-clip-text text-transparent mb-2">
             Wishlist Wizard Browser Extension
           </h1>
           <div className="flex items-center gap-2 mb-4">
@@ -36,32 +36,32 @@ const ExtensionPage = () => {
             <h2 className="text-2xl font-bold mb-4">Save items from any website</h2>
             <ul className="space-y-3">
               <li className="flex items-start">
-                <div className="bg-indigo-100 p-1 rounded-full mr-3 mt-1">
-                  <svg className="w-4 h-4 text-indigo-600" fill="currentColor" viewBox="0 0 20 20">
+                <div className="bg-emerald-100 p-1 rounded-full mr-3 mt-1">
+                  <svg className="w-4 h-4 text-emerald-600" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                   </svg>
                 </div>
                 <p className="text-gray-700">Works with <strong>any online retailer</strong> - Amazon, Target, Walmart, and thousands more</p>
               </li>
               <li className="flex items-start">
-                <div className="bg-indigo-100 p-1 rounded-full mr-3 mt-1">
-                  <svg className="w-4 h-4 text-indigo-600" fill="currentColor" viewBox="0 0 20 20">
+                <div className="bg-emerald-100 p-1 rounded-full mr-3 mt-1">
+                  <svg className="w-4 h-4 text-emerald-600" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                   </svg>
                 </div>
                 <p className="text-gray-700">Automatically detects product information like title, price, and image</p>
               </li>
               <li className="flex items-start">
-                <div className="bg-indigo-100 p-1 rounded-full mr-3 mt-1">
-                  <svg className="w-4 h-4 text-indigo-600" fill="currentColor" viewBox="0 0 20 20">
+                <div className="bg-emerald-100 p-1 rounded-full mr-3 mt-1">
+                  <svg className="w-4 h-4 text-emerald-600" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                   </svg>
                 </div>
                 <p className="text-gray-700">Add items to any of your personal or collaborative wishlists</p>
               </li>
               <li className="flex items-start">
-                <div className="bg-indigo-100 p-1 rounded-full mr-3 mt-1">
-                  <svg className="w-4 h-4 text-indigo-600" fill="currentColor" viewBox="0 0 20 20">
+                <div className="bg-emerald-100 p-1 rounded-full mr-3 mt-1">
+                  <svg className="w-4 h-4 text-emerald-600" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                   </svg>
                 </div>
@@ -223,8 +223,8 @@ const ExtensionPage = () => {
         <div className="grid md:grid-cols-3 gap-6 mb-16">
           <Card>
             <CardHeader>
-              <div className="bg-indigo-100 w-12 h-12 flex items-center justify-center rounded-full mb-4">
-                <svg className="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <div className="bg-emerald-100 w-12 h-12 flex items-center justify-center rounded-full mb-4">
+                <svg className="w-6 h-6 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
               </div>
@@ -237,8 +237,8 @@ const ExtensionPage = () => {
           
           <Card>
             <CardHeader>
-              <div className="bg-indigo-100 w-12 h-12 flex items-center justify-center rounded-full mb-4">
-                <svg className="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <div className="bg-emerald-100 w-12 h-12 flex items-center justify-center rounded-full mb-4">
+                <svg className="w-6 h-6 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                 </svg>
               </div>
@@ -251,8 +251,8 @@ const ExtensionPage = () => {
           
           <Card>
             <CardHeader>
-              <div className="bg-indigo-100 w-12 h-12 flex items-center justify-center rounded-full mb-4">
-                <svg className="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <div className="bg-emerald-100 w-12 h-12 flex items-center justify-center rounded-full mb-4">
+                <svg className="w-6 h-6 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                 </svg>
               </div>
@@ -310,7 +310,7 @@ const ExtensionPage = () => {
             
             <div className="border-b pb-4">
               <h3 className="font-bold text-lg mb-2">Do I need a Wishlist Wizard account to use the extension?</h3>
-              <p className="text-gray-700">Yes, you need a Wishlist Wizard account to save items using the extension. <Link href="/register" className="text-indigo-600 hover:underline">Sign up for free</Link> if you don&apos;t have an account yet.</p>
+              <p className="text-gray-700">Yes, you need a Wishlist Wizard account to save items using the extension. <Link href="/register" className="text-emerald-600 hover:underline font-medium">Sign up for free</Link> if you don&apos;t have an account yet.</p>
             </div>
           </div>
         </div>

@@ -83,15 +83,15 @@ export default function AppLayout({ children }: AppLayoutProps) {
   ];
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col bg-gray-50">
       {/* App Header */}
-      <header className="bg-white border-b sticky top-0 z-10">
+      <header className="bg-white border-b border-emerald-100 sticky top-0 z-10 shadow-sm">
         <div className="container mx-auto px-4 py-3 flex items-center justify-between">
           {/* Logo */}
           <Link href="/dashboard">
-            <a className="flex items-center hover:opacity-80 transition-opacity">
-              <img src="/logo.svg" alt="Wishlist Wizard" className="h-8 w-8 mr-2" />
-              <span className="font-bold text-xl tracking-tight">Wishlist Wizard</span>
+            <a className="flex items-center hover:scale-105 transition-transform duration-200">
+              <img src="/logo.svg" alt="Wishlist Wizard" className="h-8 w-8 mr-2.5" />
+              <span className="font-bold text-xl tracking-tight bg-gradient-to-r from-emerald-700 to-green-600 bg-clip-text text-transparent">Wishlist Wizard</span>
             </a>
           </Link>
 
@@ -100,10 +100,10 @@ export default function AppLayout({ children }: AppLayoutProps) {
             {navItems.map((item) => (
               <Link key={item.name} href={item.href}>
                 <a
-                  className={`px-3 py-2 rounded-md text-sm flex items-center font-medium ${
+                  className={`px-3 py-2 rounded-lg text-sm flex items-center font-medium transition-all ${
                     location === item.href
-                      ? 'bg-indigo-100 text-indigo-600'
-                      : 'text-gray-700 hover:bg-gray-100'
+                      ? 'bg-gradient-to-r from-emerald-100 to-green-100 text-emerald-700 shadow-sm'
+                      : 'text-gray-700 hover:bg-emerald-50 hover:text-emerald-600'
                   }`}
                 >
                   {item.icon}
