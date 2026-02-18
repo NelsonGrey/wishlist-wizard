@@ -1,6 +1,5 @@
 import React, { useEffect } from "react";
 import { Link, useLocation } from "wouter";
-import { Gift } from "lucide-react";
 import Footer from "@/components/Footer";
 
 interface PublicLayoutProps {
@@ -20,19 +19,16 @@ export default function PublicLayout({ children }: PublicLayoutProps) {
       {/* Marketing Header */}
       <header className="bg-white border-b sticky top-0 z-10">
         <div className="container mx-auto px-4 py-3 flex items-center justify-between">
-          {/* Logo */}
+          {/* Logo - acts as home button */}
           <Link href="/">
-            <a className="flex items-center">
-              <Gift className="h-6 w-6 text-indigo-600 mr-2" />
+            <a className="flex items-center hover:opacity-80 transition-opacity">
+              <img src="/logo.svg" alt="Wishlist Wizard" className="h-8 w-8 mr-2" />
               <span className="font-bold text-xl tracking-tight">Wishlist Wizard</span>
             </a>
           </Link>
 
           {/* Navigation */}
           <nav className="hidden md:flex items-center space-x-6">
-            <Link href="/" className="text-gray-700 hover:text-gray-900 font-medium">
-              Home
-            </Link>
             <Link href="/extension" className="text-gray-700 hover:text-gray-900 font-medium">
               How It Works
             </Link>
