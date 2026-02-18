@@ -2,7 +2,7 @@ import { Link } from "wouter";
 
 export default function Hero() {
   return (
-    <section className="relative bg-gradient-to-br from-emerald-600 via-green-600 to-teal-600 text-white py-24 overflow-hidden">
+    <section className="relative bg-gradient-to-br from-emerald-700 via-green-700 to-teal-700 text-white py-24 overflow-hidden">
       {/* Decorative background patterns */}
       <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTSAxMCAwIEwgMCAwIDAgMTAiIGZpbGw9Im5vbmUiIHN0cm9rZT0icmdiYSgyNTUsMjU1LDI1NSwwLjA1KSIgc3Ryb2tlLXdpZHRoPSIxIi8+PC9wYXR0ZXJuPjwvZGVmcz48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSJ1cmwoI2dyaWQpIi8+PC9zdmc+')] opacity-40"></div>
       
@@ -17,12 +17,12 @@ export default function Hero() {
             <div className="flex flex-wrap gap-4">
               <Link 
                 href="/extension"
-                className="bg-white text-emerald-700 px-8 py-4 rounded-xl font-semibold hover:bg-emerald-50 transition-all shadow-xl hover:shadow-2xl hover:scale-105 inline-block"
+                className="bg-white text-emerald-800 px-8 py-4 rounded-xl font-semibold hover:bg-emerald-50 transition-all shadow-xl hover:shadow-2xl hover:scale-105 inline-block"
               >
                 Download Extension
               </Link>
               <Link href="/dashboard">
-                <a className="bg-emerald-700/30 backdrop-blur-sm text-white px-8 py-4 rounded-xl font-semibold hover:bg-emerald-700/40 transition-all border-2 border-white/30 hover:border-white/50 inline-block">
+                <a className="bg-emerald-800/30 backdrop-blur-sm text-white px-8 py-4 rounded-xl font-semibold hover:bg-emerald-800/40 transition-all border-2 border-white/30 hover:border-white/50 inline-block">
                   Try It Now
                 </a>
               </Link>
@@ -30,7 +30,7 @@ export default function Hero() {
           </div>
           <div className="flex justify-center">
             <div className="bg-white rounded-2xl shadow-2xl overflow-hidden border-2 border-emerald-200 max-w-md w-full transform hover:scale-105 transition-transform">
-              <div className="bg-gradient-to-r from-emerald-600 to-green-600 text-white p-5">
+              <div className="bg-gradient-to-r from-emerald-700 to-green-700 text-white p-5">
                 <div className="flex items-center justify-between">
                   <h2 className="text-xl font-bold">Wishlist Wizard</h2>
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -43,7 +43,7 @@ export default function Hero() {
                 <div className="flex justify-between mb-5">
                   <div>
                     <h3 className="font-semibold text-gray-900 text-lg">Birthday Wishlist</h3>
-                    <p className="text-sm text-emerald-600 font-medium">5 items</p>
+                    <p className="text-sm text-emerald-700 font-medium">5 items</p>
                   </div>
                 </div>
                 <div className="flex space-x-3 mb-3">
