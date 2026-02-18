@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Helmet } from 'react-helmet';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Calendar as CalendarComponent, dateFnsLocalizer } from 'react-big-calendar';
 import { format, parse, startOfWeek, getDay } from 'date-fns';
@@ -518,9 +519,19 @@ const Calendar: React.FC = () => {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Calendar</h1>
+    <>
+      <Helmet>
+        <title>Calendar | Wishlist Wizard</title>
+        <meta name="description" content="Manage important dates, birthdays, and gift deadlines with our interactive calendar." />
+      </Helmet>
+      <div className="container mx-auto px-4 py-8">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
+          <div>
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-pink-600 to-rose-500 bg-clip-text text-transparent">Calendar</h1>
+            <p className="text-gray-600 mt-2">
+              Manage important dates and track gift opportunities
+            </p>
+          </div>
         <div className="flex gap-2">
           <Button onClick={() => {
             setSelectedEvent(null);
@@ -933,7 +944,8 @@ const Calendar: React.FC = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+      </div>
+    </>
   );
 };
 
