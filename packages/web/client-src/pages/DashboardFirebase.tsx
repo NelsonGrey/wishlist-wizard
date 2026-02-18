@@ -128,7 +128,7 @@ export default function Dashboard() {
   return (
     <>
       <main className="flex-1">
-        <div className="container mx-auto px-4 py-8">
+        <div className="container mx-auto px-4 py-8 max-w-6xl">
           {/* Data Source Toggle */}
           <div className="mb-6 p-4 bg-white rounded-lg shadow-sm border">
             <div className="flex items-center justify-between">
@@ -166,7 +166,7 @@ export default function Dashboard() {
           </div>
 
           <div className="flex justify-between items-center mb-8">
-            <h2 className="text-2xl font-bold text-gray-900">My Wishlists</h2>
+            <h2 className="text-3xl font-bold bg-gradient-to-r from-emerald-800 to-green-800 bg-clip-text text-transparent">My Wishlists</h2>
             <Button 
               onClick={() => setIsCreateDialogOpen(true)}
               className="flex items-center space-x-2 bg-primary hover:bg-indigo-700"

@@ -12,9 +12,9 @@ export default function About() {
         />
       </Helmet>
 
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-8 max-w-6xl">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-cyan-500 bg-clip-text text-transparent">
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-emerald-800 to-green-800 bg-clip-text text-transparent">
             About Wishlist Wizard
           </h1>
           <p className="text-gray-600 mt-2">
@@ -22,7 +22,7 @@ export default function About() {
           </p>
         </div>
 
-        <div className="max-w-3xl space-y-8">
+        <div className="space-y-8">
           <section>
             <h2 className="text-2xl font-semibold text-gray-900 mb-4">Our Mission</h2>
             <p className="text-gray-700 mb-4">
