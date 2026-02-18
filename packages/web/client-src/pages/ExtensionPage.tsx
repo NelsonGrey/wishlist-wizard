@@ -119,13 +119,13 @@ const ExtensionPage = () => {
               </CardContent>
               <CardFooter className="flex flex-col sm:flex-row gap-4">
                 <Button className="w-full sm:w-auto" size="lg" asChild>
-                  <a href="/extension/download?browser=chrome">
+                  <a href="https://github.com/mnelson3/wishlist-wizard/tree/develop/chrome-extension-package" target="_blank" rel="noopener noreferrer">
                     <FaChrome className="mr-2 h-5 w-5" />
                     Install for Chrome
                   </a>
                 </Button>
                 <Button variant="outline" className="w-full sm:w-auto" asChild>
-                  <a href="/extension/INSTALLATION-GUIDE.md" target="_blank" rel="noopener noreferrer">
+                  <a href="https://github.com/mnelson3/wishlist-wizard/blob/develop/docs/packages/browser-extension/src/INSTALLATION-GUIDE.md" target="_blank" rel="noopener noreferrer">
                     View Installation Guide
                   </a>
                 </Button>
@@ -160,13 +160,13 @@ const ExtensionPage = () => {
               </CardContent>
               <CardFooter className="flex flex-col sm:flex-row gap-4">
                 <Button className="w-full sm:w-auto" size="lg" asChild>
-                  <a href="/extension/download?browser=firefox">
+                  <a href="https://github.com/mnelson3/wishlist-wizard/tree/develop/chrome-extension-package" target="_blank" rel="noopener noreferrer">
                     <FaFirefox className="mr-2 h-5 w-5" />
                     Install for Firefox
                   </a>
                 </Button>
                 <Button variant="outline" className="w-full sm:w-auto" asChild>
-                  <a href="/extension/INSTALLATION-GUIDE.md" target="_blank" rel="noopener noreferrer">
+                  <a href="https://github.com/mnelson3/wishlist-wizard/blob/develop/docs/packages/browser-extension/src/INSTALLATION-GUIDE.md" target="_blank" rel="noopener noreferrer">
                     View Installation Guide
                   </a>
                 </Button>
@@ -201,13 +201,13 @@ const ExtensionPage = () => {
               </CardContent>
               <CardFooter className="flex flex-col sm:flex-row gap-4">
                 <Button className="w-full sm:w-auto" size="lg" asChild>
-                  <a href="/extension/download?browser=edge">
+                  <a href="https://github.com/mnelson3/wishlist-wizard/tree/develop/chrome-extension-package" target="_blank" rel="noopener noreferrer">
                     <FaEdge className="mr-2 h-5 w-5" />
                     Install for Edge
                   </a>
                 </Button>
                 <Button variant="outline" className="w-full sm:w-auto" asChild>
-                  <a href="/extension/INSTALLATION-GUIDE.md" target="_blank" rel="noopener noreferrer">
+                  <a href="https://github.com/mnelson3/wishlist-wizard/blob/develop/docs/packages/browser-extension/src/INSTALLATION-GUIDE.md" target="_blank" rel="noopener noreferrer">
                     View Installation Guide
                   </a>
                 </Button>
@@ -271,7 +271,7 @@ const ExtensionPage = () => {
           </p>
           <div className="flex flex-wrap justify-center gap-4">
             <Button size="lg" className="py-6 px-8" asChild>
-              <a href="/extension/download?browser=chrome">
+              <a href="https://github.com/mnelson3/wishlist-wizard/tree/develop/chrome-extension-package" target="_blank" rel="noopener noreferrer">
                 <FaChrome className="mr-2 h-5 w-5" />
                 Install Now
               </a>

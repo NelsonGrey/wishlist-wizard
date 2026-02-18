@@ -1,3 +1,5 @@
+import { Link } from "wouter";
+
 export default function Footer() {
   return (
     <footer className="bg-gray-900 text-white py-12">
@@ -10,10 +12,10 @@ export default function Footer() {
           <div>
             <h4 className="text-md font-semibold mb-4">Resources</h4>
             <ul className="space-y-2">
-              <li><a href="#" className="text-gray-400 hover:text-white transition">How It Works</a></li>
+              <li><Link href="/extension" className="text-gray-400 hover:text-white transition">How It Works</Link></li>
               <li>
                 <a 
-                  href="https://chrome.google.com/webstore/detail/wishkeeper/placeholder" 
+                  href="https://github.com/mnelson3/wishlist-wizard/tree/develop/chrome-extension-package" 
                   className="text-gray-400 hover:text-white transition"
                   target="_blank"
                   rel="noopener noreferrer"
@@ -21,23 +23,23 @@ export default function Footer() {
                   Download Extension
                 </a>
               </li>
-              <li><a href="#" className="text-gray-400 hover:text-white transition">Supported Stores</a></li>
+              <li><Link href="/extension" className="text-gray-400 hover:text-white transition">Supported Stores</Link></li>
             </ul>
           </div>
           <div>
             <h4 className="text-md font-semibold mb-4">Company</h4>
             <ul className="space-y-2">
-              <li><a href="#" className="text-gray-400 hover:text-white transition">About Us</a></li>
-              <li><a href="#" className="text-gray-400 hover:text-white transition">Blog</a></li>
-              <li><a href="#" className="text-gray-400 hover:text-white transition">Contact</a></li>
+              <li><Link href="/" className="text-gray-400 hover:text-white transition">About Us</Link></li>
+              <li><Link href="/analytics" className="text-gray-400 hover:text-white transition">Blog</Link></li>
+              <li><Link href="/" className="text-gray-400 hover:text-white transition">Contact</Link></li>
             </ul>
           </div>
           <div>
             <h4 className="text-md font-semibold mb-4">Legal</h4>
             <ul className="space-y-2">
-              <li><a href="#" className="text-gray-400 hover:text-white transition">Privacy Policy</a></li>
-              <li><a href="#" className="text-gray-400 hover:text-white transition">Terms of Service</a></li>
-              <li><a href="#" className="text-gray-400 hover:text-white transition">Cookie Policy</a></li>
+              <li><Link href="/privacy-settings" className="text-gray-400 hover:text-white transition">Privacy Policy</Link></li>
+              <li><Link href="/privacy-settings" className="text-gray-400 hover:text-white transition">Terms of Service</Link></li>
+              <li><Link href="/privacy-settings" className="text-gray-400 hover:text-white transition">Cookie Policy</Link></li>
             </ul>
           </div>
         </div>

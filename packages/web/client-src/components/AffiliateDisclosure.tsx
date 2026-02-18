@@ -40,7 +40,7 @@ const AffiliateDisclosure: React.FC<AffiliateDisclosureProps> = ({
           </p>
           <p className="text-sm">
             For more information about our affiliate partnerships and how they work, please see our
-            <a href="/privacy" className="underline ml-1">Privacy Policy</a>.
+            <a href="/privacy-settings" className="underline ml-1">Privacy Policy</a>.
           </p>
         </div>
       </AlertDescription>
