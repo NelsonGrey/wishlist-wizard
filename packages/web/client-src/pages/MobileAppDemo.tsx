@@ -164,8 +164,8 @@ const MobileAppDemo = () => {
   ];
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-8 text-center">Wishlist Wizard Mobile App Demo</h1>
+    <div className="container mx-auto px-4 py-8 max-w-6xl">
+      <h1 className="text-3xl font-bold bg-gradient-to-r from-emerald-800 to-green-800 bg-clip-text text-transparent mb-8 text-center">Wishlist Wizard Mobile App Demo</h1>
       
       <div className="flex flex-col items-center">
         <Card className="w-full max-w-sm shadow-lg border-2 relative">
