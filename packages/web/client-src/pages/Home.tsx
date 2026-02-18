@@ -1,11 +1,10 @@
 import Hero from "@/components/Hero";
 import Features from "@/components/Features";
-import Footer from "@/components/Footer";
 import { InlineAd, ResponsiveAd } from "@/components/ads";
 
 export default function Home() {
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="flex flex-col">
       <Hero />
       
       {/* Responsive ad after hero section */}
@@ -19,8 +18,6 @@ export default function Home() {
       <div className="container mx-auto px-4 mb-6">
         <InlineAd />
       </div>
-      
-      <Footer />
     </div>
   );
 }
