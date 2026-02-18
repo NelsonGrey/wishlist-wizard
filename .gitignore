@@ -373,3 +373,5 @@ Desktop.ini
 *.xcuserdata
 *.xcodeproj/project.xcworkspace/
 vendor/
+commit-msg.txt
+v2-migration-msg.txt
