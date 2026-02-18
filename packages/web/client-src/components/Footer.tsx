@@ -13,14 +13,7 @@ export default function Footer() {
             <h4 className="text-md font-semibold mb-4">Resources</h4>
             <ul className="space-y-2">
               <li><Link href="/extension" className="text-gray-400 hover:text-white transition">How It Works</Link></li>
-              <li>
-                <a 
-                  href="/extension" 
-                  className="text-gray-400 hover:text-white transition"
-                >
-                  Download Extension
-                </a>
-              </li>
+              <li><Link href="/extension" className="text-gray-400 hover:text-white transition">Download Extension</Link></li>
               <li><Link href="/extension" className="text-gray-400 hover:text-white transition">Supported Stores</Link></li>
             </ul>
           </div>
