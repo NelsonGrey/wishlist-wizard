@@ -1,4 +1,5 @@
 import React from 'react';
+import { Helmet } from 'react-helmet';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
@@ -96,8 +97,19 @@ export default function Notifications() {
   };
   
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="flex items-center justify-between mb-6">
+    <>
+      <Helmet>
+        <title>Notifications | Wishlist Wizard</title>
+        <meta name="description" content="Manage your notifications and alerts from Wishlist Wizard." />
+      </Helmet>
+      <div className="container mx-auto px-4 py-8">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-orange-600 to-amber-500 bg-clip-text text-transparent">Notifications</h1>
+          <p className="text-gray-600 mt-2">
+            Stay updated with alerts and activity
+          </p>
+        </div>
+        <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-2">
           <Link href="/dashboard">
             <Button variant="ghost" size="icon" className="mr-2">
@@ -186,6 +198,7 @@ export default function Notifications() {
           </p>
         </div>
       )}
-    </div>
+      </div>
+    </>
   );
 }
