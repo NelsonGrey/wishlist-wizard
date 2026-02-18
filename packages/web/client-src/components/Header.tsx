@@ -103,14 +103,9 @@ export default function Header() {
                     Dashboard
                   </Button>
                 ) : (
-                  <a 
-                    href="https://github.com/mnelson3/wishlist-wizard/tree/develop/chrome-extension-package"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-gray-600 hover:text-gray-900 font-medium"
-                  >
+                  <Link href="/extension" className="text-gray-600 hover:text-gray-900 font-medium">
                     Download Extension
-                  </a>
+                  </Link>
                 )}
                 <Button 
                   onClick={handleLogout}
@@ -124,14 +119,9 @@ export default function Header() {
             ) : (
               <>
                 <Link href="/extension" className="text-gray-600 hover:text-gray-900 font-medium">How It Works</Link>
-                <a 
-                  href="https://github.com/mnelson3/wishlist-wizard/tree/develop/chrome-extension-package"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-gray-600 hover:text-gray-900 font-medium"
-                >
+                <Link href="/extension" className="text-gray-600 hover:text-gray-900 font-medium">
                   Download Extension
-                </a>
+                </Link>
                 <Link href="/login">
                   <Button className="bg-primary hover:bg-indigo-700 text-white">
                     Log In
@@ -175,14 +165,13 @@ export default function Header() {
                       >
                         Notifications
                       </Link>
-                      <a 
-                        href="https://github.com/mnelson3/wishlist-wizard/tree/develop/chrome-extension-package"
-                        target="_blank"
-                        rel="noopener noreferrer"
+                      <Link 
+                        href="/extension"
                         className="text-lg font-medium hover:text-primary"
+                        onClick={() => setIsMenuOpen(false)}
                       >
                         Download Extension
-                      </a>
+                      </Link>
                       <div className="mt-4">
                         <Button 
                           onClick={() => {
@@ -202,14 +191,13 @@ export default function Header() {
                       <Link href="/extension" className="text-lg font-medium hover:text-primary" onClick={() => setIsMenuOpen(false)}>
                         How It Works
                       </Link>
-                      <a 
-                        href="https://github.com/mnelson3/wishlist-wizard/tree/develop/chrome-extension-package"
-                        target="_blank"
-                        rel="noopener noreferrer"
+                      <Link 
+                        href="/extension"
                         className="text-lg font-medium hover:text-primary"
+                        onClick={() => setIsMenuOpen(false)}
                       >
                         Download Extension
-                      </a>
+                      </Link>
                       <Link href="/login" onClick={() => setIsMenuOpen(false)}>
                         <Button className="bg-primary hover:bg-indigo-700 text-white w-full mt-4">
                           Log In
