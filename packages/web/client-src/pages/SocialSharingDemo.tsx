@@ -256,7 +256,7 @@ const SocialSharingDemo = () => {
                 <div 
                   key={friend.id} 
                   className={`flex items-center space-x-3 p-2 rounded-md cursor-pointer hover:bg-muted transition-colors ${
-                    selectedFriends.includes(friend.id) ? 'bg-primary/10 border border-primary/30' : ''
+                    selectedFriends.includes(friend.id) ? 'bg-emerald-100 border border-emerald-300' : ''
                   }`}
                   onClick={() => toggleFriendSelection(friend.id)}
                 >
@@ -273,7 +273,7 @@ const SocialSharingDemo = () => {
                   </div>
                   <div className="flex-shrink-0">
                     {selectedFriends.includes(friend.id) ? (
-                      <div className="h-5 w-5 rounded-full bg-primary flex items-center justify-center">
+                      <div className="h-5 w-5 rounded-full bg-emerald-700 flex items-center justify-center">
                         <Check size={12} className="text-white" />
                       </div>
                     ) : (
@@ -296,7 +296,7 @@ const SocialSharingDemo = () => {
             </div>
             
             <Button 
-              className="w-full" 
+              className="w-full bg-gradient-to-r from-emerald-700 to-green-700 text-white hover:from-emerald-800 hover:to-green-800" 
               disabled={selectedFriends.length === 0 || isInviting}
               onClick={() => inviteFriends({ 
                 friendIds: selectedFriends
@@ -321,7 +321,7 @@ const SocialSharingDemo = () => {
                         <CardTitle className="text-base">{organizer.name}</CardTitle>
                         <CardDescription>{organizer.description}</CardDescription>
                       </div>
-                      <div className="bg-primary/10 text-primary font-medium px-2 py-1 rounded-full text-xs">
+                      <div className="bg-emerald-100 text-emerald-800 font-medium px-2 py-1 rounded-full text-xs">
                         {organizer.members} members
                       </div>
                     </div>
@@ -346,7 +346,7 @@ const SocialSharingDemo = () => {
                     <Button 
                       variant="outline" 
                       size="sm" 
-                      className="w-full"
+                      className="w-full border-2 border-emerald-700 text-emerald-700 hover:bg-emerald-50 hover:border-emerald-800 hover:text-emerald-800"
                       onClick={() => joinGroupGift({ organizerId: organizer.id })}
                     >
                       <Gift size={16} className="mr-2" />
@@ -359,7 +359,7 @@ const SocialSharingDemo = () => {
             
             <Button 
               variant="outline" 
-              className="w-full"
+              className="w-full border-2 border-emerald-700 text-emerald-700 hover:bg-emerald-50 hover:border-emerald-800 hover:text-emerald-800"
               onClick={() => {
                 toast({
                   title: "Create Group Gift",
@@ -395,7 +395,7 @@ const SocialSharingDemo = () => {
             {DEMO_WISHLISTS.map(wishlist => (
               <div 
                 key={wishlist.id} 
-                className={`border rounded-lg cursor-pointer hover:border-primary transition-colors ${selectedWishlist.id === wishlist.id ? 'border-primary bg-primary/5' : ''}`}
+                className={`border rounded-lg cursor-pointer hover:border-emerald-700 transition-colors ${selectedWishlist.id === wishlist.id ? 'border-emerald-700 bg-emerald-50' : ''}`}
                 onClick={() => setSelectedWishlist(wishlist)}
               >
                 <div className="overflow-hidden h-32 rounded-t-lg">
@@ -409,7 +409,7 @@ const SocialSharingDemo = () => {
                   <h3 className="font-medium">{wishlist.name}</h3>
                   <p className="text-sm text-muted-foreground">{wishlist.itemCount} items</p>
                   <div className="flex justify-between items-center mt-2">
-                    <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">
+                    <span className="text-xs bg-emerald-100 text-emerald-800 px-2 py-1 rounded-full">
                       {wishlist.occasion}
                     </span>
                     {wishlist.isCollaborative && (
@@ -434,7 +434,7 @@ const SocialSharingDemo = () => {
               </div>
               <Dialog open={shareDialogOpen} onOpenChange={setShareDialogOpen}>
                 <DialogTrigger asChild>
-                  <Button className="flex gap-2 items-center">
+                  <Button className="flex gap-2 items-center bg-gradient-to-r from-emerald-700 to-green-700 text-white hover:from-emerald-800 hover:to-green-800">
                     <Share2 size={16} />
                     Share Now
                   </Button>
@@ -565,7 +565,7 @@ const SocialSharingDemo = () => {
                           <div 
                             key={friend.id} 
                             className={`flex items-center space-x-3 p-2 rounded-md cursor-pointer hover:bg-muted transition-colors ${
-                              selectedFriends.includes(friend.id) ? 'bg-primary/10 border border-primary/30' : ''
+                              selectedFriends.includes(friend.id) ? 'bg-emerald-100 border border-emerald-300' : ''
                             }`}
                             onClick={() => toggleFriendSelection(friend.id)}
                           >
@@ -582,7 +582,7 @@ const SocialSharingDemo = () => {
                             </div>
                             <div className="flex-shrink-0">
                               {selectedFriends.includes(friend.id) ? (
-                                <div className="h-5 w-5 rounded-full bg-primary flex items-center justify-center">
+                                <div className="h-5 w-5 rounded-full bg-emerald-700 flex items-center justify-center">
                                   <Check size={12} className="text-white" />
                                 </div>
                               ) : (
@@ -624,7 +624,7 @@ const SocialSharingDemo = () => {
                                   <CardTitle className="text-base">{organizer.name}</CardTitle>
                                   <CardDescription>{organizer.description}</CardDescription>
                                 </div>
-                                <div className="bg-primary/10 text-primary font-medium px-2 py-1 rounded-full text-xs">
+                                <div className="bg-emerald-100 text-emerald-800 font-medium px-2 py-1 rounded-full text-xs">
                                   {organizer.members} members
                                 </div>
                               </div>
