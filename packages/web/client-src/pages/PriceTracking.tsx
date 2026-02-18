@@ -43,9 +43,9 @@ export default function PriceTracking() {
         </div>
 
         <Tabs defaultValue="alerts" className="w-full">
-          <TabsList className="mb-6">
-            <TabsTrigger value="alerts">Your Alerts</TabsTrigger>
-            <TabsTrigger value="drops">Price Drops</TabsTrigger>
+          <TabsList className="mb-6 bg-gray-100">
+            <TabsTrigger value="alerts" className="data-[state=active]:bg-emerald-700 data-[state=active]:text-white">Your Alerts</TabsTrigger>
+            <TabsTrigger value="drops" className="data-[state=active]:bg-emerald-700 data-[state=active]:text-white">Price Drops</TabsTrigger>
           </TabsList>
 
           <TabsContent value="alerts" className="space-y-6">
