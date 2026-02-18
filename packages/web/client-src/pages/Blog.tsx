@@ -49,9 +49,9 @@ export default function Blog() {
         />
       </Helmet>
 
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-8 max-w-6xl">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-500 bg-clip-text text-transparent">
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-emerald-800 to-green-800 bg-clip-text text-transparent">
             Blog
           </h1>
           <p className="text-gray-600 mt-2">
@@ -59,7 +59,7 @@ export default function Blog() {
           </p>
         </div>
 
-        <div className="max-w-4xl space-y-8">
+        <div className="space-y-8">
           {blogPosts.length > 0 ? (
             <div className="grid gap-6">
               {blogPosts.map((post) => (

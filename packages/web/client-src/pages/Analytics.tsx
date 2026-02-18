@@ -54,9 +54,9 @@ export default function Analytics() {
         <title>Analytics | Wishlist Wizard</title>
         <meta name="description" content="Analytics Integration - Track user behavior and gain valuable insights into your Wishlist Wizard usage." />
       </Helmet>
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-8 max-w-6xl">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-cyan-500 bg-clip-text text-transparent">Analytics</h1>
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-emerald-800 to-green-800 bg-clip-text text-transparent">Analytics</h1>
           <p className="text-gray-600 mt-2">
             Track user behavior and gain valuable insights
           </p>
