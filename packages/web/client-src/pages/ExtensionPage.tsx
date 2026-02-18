@@ -80,14 +80,14 @@ const ExtensionPage = () => {
         </div>
 
         <Tabs defaultValue="chrome" className="w-full mb-16">
-          <TabsList className="grid w-full grid-cols-3 mb-8">
-            <TabsTrigger value="chrome" className="flex items-center gap-2">
+          <TabsList className="grid w-full grid-cols-3 mb-8 bg-gray-100">
+            <TabsTrigger value="chrome" className="flex items-center gap-2 data-[state=active]:bg-emerald-700 data-[state=active]:text-white">
               <FaChrome className="h-5 w-5" /> Chrome
             </TabsTrigger>
-            <TabsTrigger value="firefox" className="flex items-center gap-2">
+            <TabsTrigger value="firefox" className="flex items-center gap-2 data-[state=active]:bg-emerald-700 data-[state=active]:text-white">
               <FaFirefox className="h-5 w-5" /> Firefox
             </TabsTrigger>
-            <TabsTrigger value="edge" className="flex items-center gap-2">
+            <TabsTrigger value="edge" className="flex items-center gap-2 data-[state=active]:bg-emerald-700 data-[state=active]:text-white">
               <FaEdge className="h-5 w-5" /> Edge
             </TabsTrigger>
           </TabsList>
@@ -118,13 +118,13 @@ const ExtensionPage = () => {
                 </div>
               </CardContent>
               <CardFooter className="flex flex-col sm:flex-row gap-4">
-                <Button className="w-full sm:w-auto" size="lg" asChild>
+                <Button className="w-full sm:w-auto bg-gradient-to-r from-emerald-700 to-green-700 text-white hover:from-emerald-800 hover:to-green-800" size="lg" asChild>
                   <Link href="/extension">
                     <FaChrome className="mr-2 h-5 w-5" />
                     Install for Chrome
                   </Link>
                 </Button>
-                <Button variant="outline" className="w-full sm:w-auto" asChild>
+                <Button variant="outline" className="w-full sm:w-auto border-2 border-emerald-700 text-emerald-700 hover:bg-emerald-50 hover:border-emerald-800 hover:text-emerald-800" asChild>
                   <a href="https://github.com/mnelson3/wishlist-wizard/blob/develop/docs/packages/browser-extension/src/INSTALLATION-GUIDE.md" target="_blank" rel="noopener noreferrer">
                     View Installation Guide
                   </a>
@@ -159,13 +159,13 @@ const ExtensionPage = () => {
                 </div>
               </CardContent>
               <CardFooter className="flex flex-col sm:flex-row gap-4">
-                <Button className="w-full sm:w-auto" size="lg" asChild>
+                <Button className="w-full sm:w-auto bg-gradient-to-r from-emerald-700 to-green-700 text-white hover:from-emerald-800 hover:to-green-800" size="lg" asChild>
                   <Link href="/extension">
                     <FaFirefox className="mr-2 h-5 w-5" />
                     Install for Firefox
                   </Link>
                 </Button>
-                <Button variant="outline" className="w-full sm:w-auto" asChild>
+                <Button variant="outline" className="w-full sm:w-auto border-2 border-emerald-700 text-emerald-700 hover:bg-emerald-50 hover:border-emerald-800 hover:text-emerald-800" asChild>
                   <a href="https://github.com/mnelson3/wishlist-wizard/blob/develop/docs/packages/browser-extension/src/INSTALLATION-GUIDE.md" target="_blank" rel="noopener noreferrer">
                     View Installation Guide
                   </a>
@@ -200,13 +200,13 @@ const ExtensionPage = () => {
                 </div>
               </CardContent>
               <CardFooter className="flex flex-col sm:flex-row gap-4">
-                <Button className="w-full sm:w-auto" size="lg" asChild>
+                <Button className="w-full sm:w-auto bg-gradient-to-r from-emerald-700 to-green-700 text-white hover:from-emerald-800 hover:to-green-800" size="lg" asChild>
                   <Link href="/extension">
                     <FaEdge className="mr-2 h-5 w-5" />
                     Install for Edge
                   </Link>
                 </Button>
-                <Button variant="outline" className="w-full sm:w-auto" asChild>
+                <Button variant="outline" className="w-full sm:w-auto border-2 border-emerald-700 text-emerald-700 hover:bg-emerald-50 hover:border-emerald-800 hover:text-emerald-800" asChild>
                   <a href="https://github.com/mnelson3/wishlist-wizard/blob/develop/docs/packages/browser-extension/src/INSTALLATION-GUIDE.md" target="_blank" rel="noopener noreferrer">
                     View Installation Guide
                   </a>
