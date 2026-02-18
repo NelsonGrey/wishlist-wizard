@@ -47,7 +47,7 @@ export default function ArVisualizerDemo() {
       </Helmet>
       
       <div>
-        <h1 className="text-3xl font-bold bg-gradient-to-r from-emerald-800 to-green-800 bg-clip-text text-transparent mb-2">AR Product Visualizer</h1>
+        <h1 className="text-4xl font-bold bg-gradient-to-r from-emerald-800 to-green-800 bg-clip-text text-transparent mb-2">AR Product Visualizer</h1>
         <p className="text-muted-foreground mb-8">
           See how products would look in your space before adding them to your wishlist.
         </p>
