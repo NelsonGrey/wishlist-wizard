@@ -270,13 +270,13 @@ const ExtensionPage = () => {
             Install the Wishlist Wizard extension today and start adding items to your wishlists with just one click from any online store.
           </p>
           <div className="flex flex-wrap justify-center gap-4">
-            <Button size="lg" className="py-6 px-8" asChild>
+            <Button size="lg" className="py-6 px-8 bg-gradient-to-r from-emerald-700 to-green-700 text-white hover:from-emerald-800 hover:to-green-800" asChild>
               <Link href="/extension">
                 <FaChrome className="mr-2 h-5 w-5" />
                 Install Now
               </Link>
             </Button>
-            <Button variant="outline" size="lg" className="py-6 px-8" asChild>
+            <Button variant="outline" size="lg" className="py-6 px-8 border-2 border-emerald-700 text-emerald-700 hover:bg-emerald-50 hover:border-emerald-800 hover:text-emerald-800" asChild>
               <Link href="/register">
                 Create Account
               </Link>
