@@ -225,7 +225,7 @@ export default function GroupGiftDetails({ itemId, item }: GroupGiftDetailsProps
                 Purchased
               </Badge>
             ) : stats?.isReadyToPurchase ? (
-              <Badge variant="default" className="bg-blue-100 text-blue-800">
+              <Badge variant="default" className="bg-emerald-100 text-emerald-800">
                 <Clock className="h-3 w-3 mr-1" />
                 Ready to Purchase
               </Badge>

@@ -105,7 +105,7 @@ export default function PriceAlertDialog({
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle className="flex items-center">
-            <Bell className="h-5 w-5 mr-2 text-blue-500" />
+            <Bell className="h-5 w-5 mr-2 text-emerald-800" />
             Create Price Alert
           </DialogTitle>
           <DialogDescription>
@@ -195,11 +195,11 @@ export default function PriceAlertDialog({
 
             {/* Preview */}
             {form.watch("targetPrice") > 0 && (
-              <Card className="bg-blue-50 border-blue-200">
+              <Card className="bg-emerald-50 border-emerald-200">
                 <CardContent className="p-4">
                   <div className="flex items-center space-x-2">
-                    <TrendingDown className="h-4 w-4 text-blue-600" />
-                    <div className="text-sm text-blue-800">
+                    <TrendingDown className="h-4 w-4 text-emerald-800" />
+                    <div className="text-sm text-emerald-900">
                       {form.watch("targetPrice") < currentPrice ? (
                         <>You&apos;ll be notified when the price drops below <strong>${form.watch("targetPrice").toFixed(2)}</strong></>
                       ) : (

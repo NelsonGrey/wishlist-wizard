@@ -329,7 +329,7 @@ const PrivacySettingsPage = () => {
             <Card>
               <CardContent className="pt-6">
                 <div className="flex items-center space-x-2">
-                  <Users className="h-8 w-8 text-blue-600" />
+                  <Users className="h-8 w-8 text-emerald-800" />
                   <div>
                     <p className="text-2xl font-bold">
                       {entities?.filter(e => e.privacySettings?.visibilityLevel === 'friends').length || 0}
@@ -357,7 +357,7 @@ const PrivacySettingsPage = () => {
             <Card>
               <CardContent className="pt-6">
                 <div className="flex items-center space-x-2">
-                  <UserCheck className="h-8 w-8 text-purple-600" />
+                  <UserCheck className="h-8 w-8 text-emerald-800" />
                   <div>
                     <p className="text-2xl font-bold">
                       {entities?.filter(e => e.privacySettings?.visibilityLevel === 'custom').length || 0}
@@ -465,10 +465,10 @@ const PrivacySettingsPage = () => {
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-3">
                         <div className={`p-2 rounded-full ${
-                          entity.type === 'wishlist' ? 'bg-blue-100' : 'bg-green-100'
+                          entity.type === 'wishlist' ? 'bg-emerald-100' : 'bg-green-100'
                         }`}>
                           {entity.type === 'wishlist' ? (
-                            <Settings className="h-4 w-4 text-blue-600" />
+                            <Settings className="h-4 w-4 text-emerald-800" />
                           ) : (
                             <Check className="h-4 w-4 text-green-600" />
                           )}

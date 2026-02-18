@@ -60,7 +60,7 @@ export default function VerifyEmail() {
         <CardContent className="space-y-6">
           <div className="flex justify-center">
             {status === 'loading' && (
-              <Loader2 className="h-12 w-12 animate-spin text-blue-500" />
+              <Loader2 className="h-12 w-12 animate-spin text-emerald-700" />
             )}
             {status === 'success' && (
               <CheckCircle className="h-12 w-12 text-green-500" />

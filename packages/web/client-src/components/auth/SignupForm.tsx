@@ -136,7 +136,7 @@ export const SignupForm: React.FC = () => {
         <button
           type="submit"
           disabled={loading}
-          className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-gradient-to-r from-emerald-700 to-green-700 hover:from-emerald-800 hover:to-green-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
         >
           {loading ? 'Creating account...' : 'Create Account'}
         </button>
@@ -146,7 +146,7 @@ export const SignupForm: React.FC = () => {
         <span className="text-gray-600">Already have an account? </span>
         <button
           onClick={() => setLocation('/login')}
-          className="text-blue-600 hover:text-blue-500 font-medium"
+          className="text-emerald-700 hover:text-emerald-800 font-medium"
         >
           Sign in
         </button>

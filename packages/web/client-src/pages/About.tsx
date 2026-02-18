@@ -45,7 +45,7 @@ export default function About() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="flex gap-4">
                 <div className="flex-shrink-0">
-                  <Gift className="h-6 w-6 text-blue-600" />
+                  <Gift className="h-6 w-6 text-emerald-800" />
                 </div>
                 <div>
                   <h3 className="font-semibold text-gray-900">User-Centric</h3>

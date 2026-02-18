@@ -89,7 +89,7 @@ export default function PriceAlertsList({ limit }: PriceAlertsListProps) {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center">
-            <BellRing className="h-5 w-5 mr-2 text-blue-500" />
+            <BellRing className="h-5 w-5 mr-2 text-emerald-800" />
             Your Price Alerts
           </CardTitle>
           <CardDescription>
@@ -113,7 +113,7 @@ export default function PriceAlertsList({ limit }: PriceAlertsListProps) {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center">
-            <BellRing className="h-5 w-5 mr-2 text-blue-500" />
+            <BellRing className="h-5 w-5 mr-2 text-emerald-800" />
             Your Price Alerts
           </CardTitle>
           <CardDescription>
@@ -136,7 +136,7 @@ export default function PriceAlertsList({ limit }: PriceAlertsListProps) {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center">
-            <BellRing className="h-5 w-5 mr-2 text-blue-500" />
+            <BellRing className="h-5 w-5 mr-2 text-emerald-800" />
             Your Price Alerts
           </CardTitle>
           <CardDescription>
@@ -174,7 +174,7 @@ export default function PriceAlertsList({ limit }: PriceAlertsListProps) {
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center">
-          <BellRing className="h-5 w-5 mr-2 text-blue-500" />
+          <BellRing className="h-5 w-5 mr-2 text-emerald-800" />
           Your Price Alerts
         </CardTitle>
         <CardDescription>
