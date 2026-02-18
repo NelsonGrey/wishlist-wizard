@@ -98,7 +98,7 @@ const VISIBILITY_OPTIONS = [
     label: 'Custom Access',
     description: 'Only specific people you choose',
     icon: UserCheck,
-    color: 'text-purple-600'
+    color: 'text-emerald-800'
   }
 ];
 

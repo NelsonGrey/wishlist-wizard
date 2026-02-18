@@ -1247,7 +1247,7 @@ const UserProfile = () => {
                             {method.type === 'credit_card' ? (
                               <CreditCard className="text-primary" />
                             ) : (
-                              <BadgeDollarSign className="text-blue-600" />
+                              <BadgeDollarSign className="text-emerald-800" />
                             )}
                           </div>
                           <div>
