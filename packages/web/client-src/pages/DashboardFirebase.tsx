@@ -127,8 +127,8 @@ export default function Dashboard() {
 
   return (
     <>
-      <main className="flex-1 py-16 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <main className="flex-1">
+        <div className="container mx-auto px-4 py-8">
           {/* Data Source Toggle */}
           <div className="mb-6 p-4 bg-white rounded-lg shadow-sm border">
             <div className="flex items-center justify-between">

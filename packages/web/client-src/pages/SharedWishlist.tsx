@@ -99,8 +99,8 @@ export default function SharedWishlist() {
 
   if (!match) {
     return (
-      <div className="bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 py-16">
+      <div>
+        <div className="container mx-auto px-4 py-8">
           <h1 className="text-2xl font-bold">Shared wishlist not found</h1>
           <p className="mt-4">The wishlist you&apos;re looking for doesn&apos;t exist or has been removed.</p>
           <Button className="mt-6" onClick={() => setLocation('/')}>
@@ -112,9 +112,9 @@ export default function SharedWishlist() {
   }
 
   return (
-    <div className="flex flex-col bg-gray-50">
-      <main className="flex-1 py-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="flex flex-col">
+      <main className="flex-1">
+        <div className="container mx-auto px-4 py-8">
           <div className="mb-8 bg-white p-6 rounded-lg shadow-sm border">
             <h1 className="text-2xl font-bold mb-2">
               {isLoading ? (
