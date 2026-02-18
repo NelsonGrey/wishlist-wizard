@@ -143,7 +143,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
-                      <Link href="/settings">
+                      <Link href="/privacy-settings">
                         <a className="flex w-full cursor-pointer items-center">
                           <Settings className="h-4 w-4 mr-2 opacity-70" />
                           Settings
@@ -210,17 +210,17 @@ export default function MainLayout({ children }: MainLayoutProps) {
               <div>
                 <h3 className="text-sm font-semibold mb-3">Company</h3>
                 <ul className="space-y-2">
-                  <li><a href="#" className="text-sm text-gray-600 hover:text-primary">About Us</a></li>
-                  <li><a href="#" className="text-sm text-gray-600 hover:text-primary">Careers</a></li>
-                  <li><a href="#" className="text-sm text-gray-600 hover:text-primary">Contact</a></li>
+                  <li><Link href="/"><a className="text-sm text-gray-600 hover:text-primary">About Us</a></Link></li>
+                  <li><Link href="/"><a className="text-sm text-gray-600 hover:text-primary">Careers</a></Link></li>
+                  <li><Link href="/"><a className="text-sm text-gray-600 hover:text-primary">Contact</a></Link></li>
                 </ul>
               </div>
               
               <div>
                 <h3 className="text-sm font-semibold mb-3">Legal</h3>
                 <ul className="space-y-2">
-                  <li><a href="#" className="text-sm text-gray-600 hover:text-primary">Privacy Policy</a></li>
-                  <li><a href="#" className="text-sm text-gray-600 hover:text-primary">Terms of Service</a></li>
+                  <li><Link href="/privacy-settings"><a className="text-sm text-gray-600 hover:text-primary">Privacy Policy</a></Link></li>
+                  <li><Link href="/privacy-settings"><a className="text-sm text-gray-600 hover:text-primary">Terms of Service</a></Link></li>
                 </ul>
               </div>
             </div>

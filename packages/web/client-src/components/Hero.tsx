@@ -10,7 +10,7 @@ export default function Hero() {
             <p className="text-xl mb-8">Create wishlists from your favorite shopping sites with just one click. Wishlist Wizard makes tracking, organizing, and sharing your shopping lists effortless.</p>
             <div className="space-x-4">
               <a 
-                href="https://chrome.google.com/webstore/detail/wishkeeper/placeholder"
+                href="https://github.com/mnelson3/wishlist-wizard/tree/develop/chrome-extension-package"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="bg-white text-indigo-700 px-6 py-3 rounded-md font-medium hover:bg-gray-100 transition shadow-md inline-block"
