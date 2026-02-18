@@ -1,8 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Plus, Database, Cloud } from "lucide-react";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
 import WishlistCard from "@/components/WishlistCard";
 import CreateWishlistDialog from "@/components/CreateWishlistDialog";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -128,9 +126,7 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <Header />
-      
+    <>
       <main className="flex-1 py-16 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Data Source Toggle */}
@@ -324,8 +320,7 @@ export default function Dashboard() {
         onCreateWishlist={handleCreateWishlist}
         isPending={useFirebase ? false : createWishlistMutation.isPending}
       />
-      
-      <Footer />
-    </div>
+
+    </>
   );
 }
