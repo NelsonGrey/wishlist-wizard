@@ -121,6 +121,10 @@ export {
 } from './api/mobile';
 
 export {
+  getItemPriceHistory
+} from './api/priceHistory';
+
+export {
   getARModel
 } from './api/ar';
 
