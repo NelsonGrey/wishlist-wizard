@@ -21,11 +21,29 @@ export function ARSimpleViewer({
   useEffect(() => {
     let isMounted = true;
 
-    import('@google/model-viewer').catch((error) => {
-      if (isMounted && import.meta.env.DEV) {
-        console.warn('[ARSimpleViewer] Failed to load model-viewer', error);
+    const loadModelViewerFromCDN = async () => {
+      if (typeof window === 'undefined') return;
+      try {
+        if ((window as any).customElements && (window as any).customElements.get && (window as any).customElements.get('model-viewer')) {
+          return;
+        }
+
+        await new Promise<void>((resolve, reject) => {
+          const script = document.createElement('script');
+          script.type = 'module';
+          script.src = 'https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js';
+          script.onload = () => resolve();
+          script.onerror = (err) => reject(err);
+          document.head.appendChild(script);
+        });
+      } catch (error) {
+        if (isMounted && import.meta.env.DEV) {
+          console.warn('[ARSimpleViewer] Failed to load model-viewer from CDN', error);
+        }
       }
-    });
+    };
+
+    loadModelViewerFromCDN();
 
     return () => {
       isMounted = false;
