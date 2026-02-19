@@ -12,6 +12,7 @@ import { queryClient } from "./lib/queryClient";
 import PublicLayout from "./components/layout/PublicLayout";
 import AppLayout from "./components/layout/AppLayout";
 import AuthLayout from "./components/layout/AuthLayout";
+import { useLocation } from "wouter";
 
 // Pages
 import Home from "./pages/Home";
@@ -45,6 +46,15 @@ import Blog from "./pages/Blog";
 import Contact from "./pages/Contact";
 
 const ArVisualizerDemo = lazy(() => import("./pages/ArVisualizerDemo"));
+
+// Small redirect helper component for wouter routes
+function Redirect({ to }: { to: string }) {
+  const [, setLocation] = useLocation();
+  useEffect(() => {
+    setLocation(to);
+  }, [to, setLocation]);
+  return null;
+}
 
 // Determine which layout to use based on current route
 function LayoutRouter({ children }: { children: React.ReactNode }) {
@@ -124,13 +134,15 @@ function AppRouter() {
                 <Switch>
                   {/* Public Pages - Marketing Site */}
                   <Route path="/" component={Home} />
-                  <Route path="/extension" component={ExtensionPage} />
+                <Route path="/extension" component={ExtensionPage} />
                     <Route path="/about" component={About} />
                     <Route path="/blog" component={Blog} />
                     <Route path="/contact" component={Contact} />
                     <Route path="/terms" component={TermsOfService} />
                     <Route path="/privacy-policy" component={PrivacyPolicy} />
                     <Route path="/cookie-policy" component={CookiePolicy} />
+                  {/* Redirect legacy marketing route to demo */}
+                  <Route path="/price-tracking" component={() => <Redirect to="/price-tracking-demo" />} />
                     {/* Marketing/demo pages (public) */}
                     <Route path="/price-tracking-demo" component={PriceTrackingDemo} />
                     <Route path="/social-sharing-demo" component={SocialSharingDemo} />
