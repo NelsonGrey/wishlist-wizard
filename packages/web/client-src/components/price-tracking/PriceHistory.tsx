@@ -20,6 +20,8 @@ import {
 import { AlertCircle, TrendingDown, TrendingUp } from "lucide-react";
 import { format } from "date-fns";
 
+const isValidDate = (d: any): d is Date => d instanceof Date && !isNaN(d.getTime());
+
 // Type for price history data point
 type PriceHistoryPoint = {
   date: string;
@@ -147,7 +149,7 @@ export default function PriceHistory({ itemId }: PriceHistoryProps) {
               )}
             </div>
             <div className="text-sm text-muted-foreground">
-              Since {format(chartData[0]?.date, 'MMM d, yyyy')}
+              Since {isValidDate(chartData[0]?.date) ? format(chartData[0].date, 'MMM d, yyyy') : '—'}
             </div>
           </div>
         </div>
@@ -162,7 +164,7 @@ export default function PriceHistory({ itemId }: PriceHistoryProps) {
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
               <XAxis 
                 dataKey="date" 
-                tickFormatter={(date) => format(date, 'MMM d')}
+                tickFormatter={(date) => isValidDate(date) ? format(date as Date, 'MMM d') : ''}
                 tick={{ fontSize: 12 }}
                 minTickGap={15}
               />
@@ -172,7 +174,7 @@ export default function PriceHistory({ itemId }: PriceHistoryProps) {
                 tickFormatter={(value) => `$${value}`}
               />
               <Tooltip 
-                labelFormatter={(date) => format(date, 'MMM d, yyyy h:mm a')}
+                labelFormatter={(date) => isValidDate(date) ? format(date as Date, 'MMM d, yyyy h:mm a') : ''}
                 formatter={(value) => [`$${value}`, 'Price']}
               />
               <Line

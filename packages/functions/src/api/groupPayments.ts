@@ -8,7 +8,7 @@ const db = getFirestore();
 const stripeSecretKey = process.env.STRIPE_SECRET_KEY || "";
 
 const stripe = stripeSecretKey
-  ? new Stripe(stripeSecretKey, { apiVersion: "2023-10-16" })
+  ? new (Stripe as unknown as any)(stripeSecretKey, { apiVersion: "2023-10-16" })
   : null;
 
 export const createGroupPaymentIntent = onCall(async (request: CallableRequest) => {

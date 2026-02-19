@@ -6,6 +6,7 @@ import { Suspense, lazy, useEffect } from "react";
 import { useAuth } from "./contexts/AuthContext";
 import { initGA } from "./lib/analytics";
 import { AuthProvider } from "./contexts/AuthContext";
+import ProtectedRoute from "./components/auth/ProtectedRoute";
 import { queryClient } from "./lib/queryClient";
 
 // Layouts
@@ -73,6 +74,7 @@ function LayoutRouter({ children }: { children: React.ReactNode }) {
     '/wishlist',
     '/recommendations',
     '/price-tracking',
+    '/app/price-tracking',
     '/calendar',
     '/notifications',
     '/privacy-settings',
@@ -162,7 +164,14 @@ function AppRouter() {
                   <Route path="/user-profile" component={UserProfile} />
                   <Route path="/wishlist/:id" component={WishlistDetail} />
                   <Route path="/recommendations" component={Recommendations} />
-                  <Route path="/app/price-tracking" component={PriceTracking} />
+                  <Route
+                    path="/app/price-tracking"
+                    component={() => (
+                      <ProtectedRoute requireAuth>
+                        <PriceTracking />
+                      </ProtectedRoute>
+                    )}
+                  />
                   <Route path="/calendar" component={Calendar} />
                   <Route path="/notifications" component={Notifications} />
                   <Route path="/privacy-settings" component={PrivacySettings} />
