@@ -308,7 +308,7 @@ const MobileAppDemo = () => {
                           <p className="text-sm text-slate-500">12 items</p>
                           <div className="flex justify-end gap-2 mt-2">
                             <Button size="sm" variant="outline">View</Button>
-                            <Button size="sm" className="bg-gradient-to-r from-emerald-700 to-green-700 text-white hover:from-emerald-800 hover:to-green-800" className="bg-gradient-to-r from-emerald-700 to-green-700 text-white hover:from-emerald-800 hover:to-green-800">Add Item</Button>
+                            <Button size="sm" className="bg-gradient-to-r from-emerald-700 to-green-700 text-white hover:from-emerald-800 hover:to-green-800">Add Item</Button>
                           </div>
                         </CardContent>
                       </Card>

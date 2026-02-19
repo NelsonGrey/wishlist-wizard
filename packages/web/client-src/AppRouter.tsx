@@ -3,6 +3,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Suspense, lazy, useEffect } from "react";
+import { useAuth } from "./contexts/AuthContext";
 import { initGA } from "./lib/analytics";
 import { AuthProvider } from "./contexts/AuthContext";
 import { queryClient } from "./lib/queryClient";
@@ -48,6 +49,7 @@ const ArVisualizerDemo = lazy(() => import("./pages/ArVisualizerDemo"));
 // Determine which layout to use based on current route
 function LayoutRouter({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
+  const { isAuthenticated, loading: authLoading } = useAuth();
 
   // Auth pages - use AuthLayout
   const authPages = ['/login', '/register', '/forgot-password', '/reset-password', '/verify-email'];
@@ -70,6 +72,11 @@ function LayoutRouter({ children }: { children: React.ReactNode }) {
   const isAppPage = appPages.some(page => location.startsWith(page));
 
   // Public pages - use PublicLayout (everything else)
+  // If this is a price-tracking route and the user is not authenticated,
+  // render the PublicLayout so the header matches the marketing site.
+  if (!authLoading && location.startsWith('/price-tracking') && !isAuthenticated) {
+    return <PublicLayout>{children}</PublicLayout>;
+  }
 
   if (isAuthPage) {
     return <AuthLayout>{children}</AuthLayout>;
@@ -118,12 +125,17 @@ function AppRouter() {
                   {/* Public Pages - Marketing Site */}
                   <Route path="/" component={Home} />
                   <Route path="/extension" component={ExtensionPage} />
-                  <Route path="/about" component={About} />
-                  <Route path="/blog" component={Blog} />
-                  <Route path="/contact" component={Contact} />
-                  <Route path="/terms" component={TermsOfService} />
-                  <Route path="/privacy-policy" component={PrivacyPolicy} />
-                  <Route path="/cookie-policy" component={CookiePolicy} />
+                    <Route path="/about" component={About} />
+                    <Route path="/blog" component={Blog} />
+                    <Route path="/contact" component={Contact} />
+                    <Route path="/terms" component={TermsOfService} />
+                    <Route path="/privacy-policy" component={PrivacyPolicy} />
+                    <Route path="/cookie-policy" component={CookiePolicy} />
+                    {/* Marketing/demo pages (public) */}
+                    <Route path="/price-tracking-demo" component={PriceTrackingDemo} />
+                    <Route path="/social-sharing-demo" component={SocialSharingDemo} />
+                    <Route path="/mobile-app-demo" component={MobileAppDemo} />
+                    <Route path="/ar-visualizer-demo" component={ArVisualizerDemo} />
 
                   {/* Auth Pages */}
                   <Route path="/login" component={Login} />
@@ -138,13 +150,9 @@ function AppRouter() {
                   <Route path="/user-profile" component={UserProfile} />
                   <Route path="/wishlist/:id" component={WishlistDetail} />
                   <Route path="/recommendations" component={Recommendations} />
-                  <Route path="/price-tracking" component={PriceTracking} />
-                  <Route path="/price-tracking-demo" component={PriceTrackingDemo} />
+                  <Route path="/app/price-tracking" component={PriceTracking} />
                   <Route path="/calendar" component={Calendar} />
                   <Route path="/notifications" component={Notifications} />
-                  <Route path="/social-sharing-demo" component={SocialSharingDemo} />
-                  <Route path="/mobile-app-demo" component={MobileAppDemo} />
-                  <Route path="/ar-visualizer-demo" component={ArVisualizerDemo} />
                   <Route path="/privacy-settings" component={PrivacySettings} />
                   <Route path="/shared/:shareId" component={SharedWishlist} />
                   <Route path="/analytics" component={Analytics} />
