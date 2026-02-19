@@ -196,10 +196,10 @@ export default function Analytics() {
                       category="demo"
                       action="link_click"
                       label="component_example"
-                      href="/price-tracking"
+                      href="/price-tracking-demo"
                       className="text-primary hover:underline"
                     >
-                      Go to Price Tracking
+                      Go to Price Tracking (Demo)
                     </AnalyticsLink>
                   </Card>
                 </div>
