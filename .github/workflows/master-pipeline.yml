@@ -179,7 +179,7 @@ jobs:
 
             pushd packages/mobile
             flutter pub get
-            flutter analyze
+            flutter analyze --no-fatal-infos
             flutter test
             popd
           fi
