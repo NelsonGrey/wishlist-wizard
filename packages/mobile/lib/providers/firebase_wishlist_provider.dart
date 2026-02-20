@@ -41,6 +41,20 @@ class FirebaseWishlistProvider extends ChangeNotifier {
     return _firestoreService.getUserWishlistsStream(userId);
   }
 
+  Future<FirebaseWishlist?> getWishlistById(String wishlistId) async {
+    try {
+      final index = _wishlists.indexWhere((w) => w.id == wishlistId);
+      if (index != -1) {
+        return _wishlists[index];
+      }
+
+      return await _firestoreService.getWishlistById(wishlistId);
+    } catch (e) {
+      _setError('Failed to load wishlist: $e');
+      return null;
+    }
+  }
+
   // Create a new wishlist
   Future<bool> createWishlist({
     required String name,
@@ -145,6 +159,22 @@ class FirebaseWishlistProvider extends ChangeNotifier {
   // Stream wishlist items for real-time updates
   Stream<List<FirebaseWishlistItem>> getWishlistItemsStream(String wishlistId) {
     return _firestoreService.getWishlistItemsStream(wishlistId);
+  }
+
+  Future<FirebaseWishlistItem?> getWishlistItemById(String itemId) async {
+    try {
+      final index = _currentWishlistItems.indexWhere(
+        (item) => item.id == itemId,
+      );
+      if (index != -1) {
+        return _currentWishlistItems[index];
+      }
+
+      return await _firestoreService.getWishlistItemById(itemId);
+    } catch (e) {
+      _setError('Failed to load wishlist item: $e');
+      return null;
+    }
   }
 
   // Add item to wishlist

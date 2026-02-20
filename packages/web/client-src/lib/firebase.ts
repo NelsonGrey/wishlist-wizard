@@ -79,11 +79,16 @@ export async function initFirebase(options?: {
     return { app: null, analytics: null, messaging: null, auth: null, firestore: null };
   }
 
+  const client = firebaseClient;
+  if (!client) {
+    return { app: null, analytics: null, messaging: null, auth: null, firestore: null };
+  }
+
   // Initialize Firebase Auth (enabled by default for Firebase-first architecture)
   if (options?.enableAuth !== false) {
     try {
       // Set persistence to local storage for better UX
-      await setPersistence(firebaseClient.auth, browserLocalPersistence);
+      await setPersistence(client.auth, browserLocalPersistence);
       if (import.meta.env.DEV) {
         console.log('[firebase] Auth initialized with local persistence');
       }
@@ -100,11 +105,11 @@ export async function initFirebase(options?: {
   }
 
   return {
-    app: firebaseClient.app,
+    app: client.app,
     analytics: null, // Analytics not handled by FirebaseClient yet
     messaging: null, // Messaging not handled by FirebaseClient yet
-    auth: firebaseClient.auth,
-    firestore: firebaseClient.firestore
+    auth: client.auth,
+    firestore: client.firestore
   };
 }
 

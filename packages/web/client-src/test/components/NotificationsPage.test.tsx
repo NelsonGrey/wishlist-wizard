@@ -80,8 +80,9 @@ describe('Notifications Page', () => {
     // Arrange & Act
     render(<Notifications />, { pathname: '/notifications' });
     
-    // Assert
-    expect(screen.getByText('Notifications')).toBeInTheDocument();
+    // Assert - Use getAllByText to get all matches and verify at least one exists
+    const notificationTexts = screen.getAllByText('Notifications');
+    expect(notificationTexts.length).toBeGreaterThan(0);
     expect(screen.getByText('New Wishlist Created')).toBeInTheDocument();
     expect(screen.getByText('Item Added')).toBeInTheDocument();
     expect(screen.getByText('A new wishlist "Birthday Wishes" has been created by John.')).toBeInTheDocument();

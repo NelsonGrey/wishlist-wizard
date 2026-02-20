@@ -16,6 +16,49 @@ class WishlistDetailScreen extends StatefulWidget {
 }
 
 class _WishlistDetailScreenState extends State<WishlistDetailScreen> {
+  String? _normalizeHttpUrl(String input) {
+    final trimmed = input.trim();
+    if (trimmed.isEmpty) {
+      return null;
+    }
+
+    final normalizedInput = trimmed.contains('://')
+        ? trimmed
+        : 'https://$trimmed';
+    final uri = Uri.tryParse(normalizedInput);
+
+    if (uri == null || !uri.hasAuthority) {
+      return null;
+    }
+
+    final scheme = uri.scheme.toLowerCase();
+    if (scheme != 'http' && scheme != 'https') {
+      return null;
+    }
+
+    return uri.toString();
+  }
+
+  Future<void> _openExternalProductUrl(String url) async {
+    final normalizedUrl = _normalizeHttpUrl(url);
+    if (normalizedUrl == null) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Invalid product URL.')));
+      return;
+    }
+
+    final uri = Uri.parse(normalizedUrl);
+    final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+
+    if (!launched && mounted) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Unable to open link')));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -321,15 +364,7 @@ class _WishlistDetailScreenState extends State<WishlistDetailScreen> {
         break;
       case 'open_link':
         if (item.productUrl != null && item.productUrl!.isNotEmpty) {
-          final uri = Uri.tryParse(item.productUrl!);
-          if (uri != null && await canLaunchUrl(uri)) {
-            await launchUrl(uri, mode: LaunchMode.externalApplication);
-          } else {
-            if (!mounted) return;
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Unable to open link')),
-            );
-          }
+          await _openExternalProductUrl(item.productUrl!);
         }
         break;
       case 'delete':
@@ -401,9 +436,19 @@ class _WishlistDetailScreenState extends State<WishlistDetailScreen> {
               final description = descriptionController.text.trim().isEmpty
                   ? null
                   : descriptionController.text.trim();
-              final productUrl = urlController.text.trim().isEmpty
-                  ? null
-                  : urlController.text.trim();
+              final rawProductUrl = urlController.text.trim();
+              final productUrl = _normalizeHttpUrl(rawProductUrl);
+
+              if (rawProductUrl.isNotEmpty && productUrl == null) {
+                if (!mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Please enter a valid product URL'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+                return;
+              }
 
               double? price;
               if (priceController.text.trim().isNotEmpty) {
@@ -525,9 +570,19 @@ class _WishlistDetailScreenState extends State<WishlistDetailScreen> {
               final description = descriptionController.text.trim().isEmpty
                   ? null
                   : descriptionController.text.trim();
-              final productUrl = urlController.text.trim().isEmpty
-                  ? null
-                  : urlController.text.trim();
+              final rawProductUrl = urlController.text.trim();
+              final productUrl = _normalizeHttpUrl(rawProductUrl);
+
+              if (rawProductUrl.isNotEmpty && productUrl == null) {
+                if (!mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Please enter a valid product URL'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+                return;
+              }
 
               double? price;
               if (priceController.text.trim().isNotEmpty) {

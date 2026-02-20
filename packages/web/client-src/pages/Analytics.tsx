@@ -179,7 +179,7 @@ export default function Analytics() {
                     <h3 className="font-medium mb-2">AnalyticsButton</h3>
                     <p className="text-sm mb-4">Tracks button clicks with detailed event data</p>
                     <AnalyticsButton
-                      category="demo"
+                      category="analytics"
                       action="button_click"
                       label="component_example"
                       variant="default"
@@ -193,13 +193,13 @@ export default function Analytics() {
                     <h3 className="font-medium mb-2">AnalyticsLink</h3>
                     <p className="text-sm mb-4">Tracks navigation with detailed event data</p>
                     <AnalyticsLink
-                      category="demo"
+                      category="analytics"
                       action="link_click"
-                      label="component_example"
-                      href="/price-tracking-demo"
+                      label="price_tracking"
+                      href="/app/price-tracking"
                       className="text-primary hover:underline"
                     >
-                      Go to Price Tracking (Demo)
+                      Go to Price Tracking
                     </AnalyticsLink>
                   </Card>
                 </div>
@@ -261,8 +261,7 @@ trackEvent(
                 label="events_section"
                 variant="default"
                 onClick={() => {
-                  // Demonstrate a custom event
-                  trackEvent("demo_event", "analytics", "custom_event_demo", 100);
+                  trackEvent("custom_event_triggered", "analytics", "custom_event_example", 100);
                   alert("Custom event tracked! Check your Google Analytics dashboard.");
                 }}
               >

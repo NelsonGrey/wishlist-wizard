@@ -7,22 +7,22 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:wishlist_wizard_mobile/screens/coming_soon_screen.dart';
+import 'package:wishlist_wizard_mobile/main.dart';
 
 void main() {
-  testWidgets('Coming soon screen smoke test', (WidgetTester tester) async {
-    // Build our coming soon screen (which is currently enabled)
-    await tester.pumpWidget(const MaterialApp(home: ComingSoonScreen()));
+  testWidgets('Custom app bar smoke test', (WidgetTester tester) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Scaffold(
+          appBar: CustomAppBar(title: 'Test Title'),
+          body: SizedBox.shrink(),
+        ),
+      ),
+    );
 
-    // Pump once to build the widget
     await tester.pump();
 
-    // Verify that we have the coming soon screen elements
-    expect(find.text('Coming Soon'), findsOneWidget);
-    expect(
-      find.text('We\'re working on something amazing. Stay tuned!'),
-      findsOneWidget,
-    );
-    expect(find.byType(Icon), findsOneWidget);
+    expect(find.text('Test Title'), findsOneWidget);
+    expect(find.byType(AppBar), findsOneWidget);
   });
 }

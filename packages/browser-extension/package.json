@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "vite build && cp dist/src/popup.html dist/popup.html && cp src/popup-auth.js src/coupons.js src/comparison.js src/quick-add.js src/popup-extra.js src/enhanced-product-extractor.js manifest.json dist/",
+    "build": "vite build",
     "dev": "vite build --watch"
   },
   "dependencies": {

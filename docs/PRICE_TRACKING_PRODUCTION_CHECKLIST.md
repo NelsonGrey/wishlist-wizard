@@ -1,6 +1,6 @@
 # Price Tracking — Production Checklist
 
-This checklist contains concrete steps to move the `PriceTracking` feature from demo/partial state into production-ready status.
+This checklist contains concrete steps to move the `PriceTracking` feature from its current state into production-ready status.
 
 1. Protect `/app/price-tracking` behind authentication and ensure it renders in the `AppLayout`. (IMPLEMENTED)
 2. Wire server-side price history endpoints (authenticated): `/api/items/:id/price-history`.
@@ -12,4 +12,4 @@ This checklist contains concrete steps to move the `PriceTracking` feature from 
 
 Notes:
 - The `PriceHistory` component already guards against invalid dates and handles empty/error states.
-- Keep demo route at `/price-tracking-demo` for marketing; production app route is `/app/price-tracking`.
+- Production app route is `/app/price-tracking`.

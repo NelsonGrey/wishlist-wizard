@@ -33,22 +33,22 @@ export function ARViewer({
   // Get the image source based on the model type and view
   const getImageSrc = () => {
     // These would be paths to static images in your project
-    // For this simplified version, we'll use placeholder URLs for demonstration
+    // Inline SVG fallback until model preview assets are available
     const viewType = activeView === 'front' ? 'front' : activeView === 'side' ? 'side' : 'angle';
-    
-    // Use custom color if provided, otherwise use defaults
-    const colorParam = color ? `/${color.replace('#', '')}` : '';
-    
-    // Sample placeholder images using simple SVG graphics
-    if (modelType === 'chair') {
-      return `https://via.placeholder.com/400x300${colorParam}/FFFFFF?text=Chair+${viewType}+view`;
-    } else if (modelType === 'table') {
-      return `https://via.placeholder.com/400x300${colorParam}/FFFFFF?text=Table+${viewType}+view`;
-    } else if (modelType === 'lamp') {
-      return `https://via.placeholder.com/400x300${colorParam}/FFFFFF?text=Lamp+${viewType}+view`;
-    } else {
-      return `https://via.placeholder.com/400x300${colorParam}/FFFFFF?text=Product+${viewType}+view`;
-    }
+    const label = `${modelType.charAt(0).toUpperCase() + modelType.slice(1)} ${viewType} view`;
+    const normalizedColor = typeof color === 'string' && /^#?[0-9a-fA-F]{6}$/.test(color)
+      ? (color.startsWith('#') ? color : `#${color}`)
+      : '#e2e8f0';
+
+    const svg = `
+      <svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300">
+        <rect width="400" height="300" fill="${normalizedColor}" />
+        <rect x="16" y="16" width="368" height="268" rx="16" fill="rgba(255,255,255,0.7)" />
+        <text x="200" y="150" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" fill="#1f2937">${label}</text>
+      </svg>
+    `.trim();
+
+    return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
   };
   
   return (

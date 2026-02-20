@@ -27,12 +27,8 @@ import {
 } from "@/components/ui/sheet";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { apiRequest } from "@/lib/queryClient";
-import { User as DbUser } from "@wishlist-wizard/shared";
+import { useAuth } from "@/contexts/AuthContext";
 import Footer from "@/components/Footer";
-
-// Type for the current user with additional UI properties
-type CurrentUser = Pick<DbUser, 'id' | 'username' | 'email' | 'displayName' | 'avatarUrl'>;
 
 // Type for notifications
 type Notification = {
@@ -50,19 +46,19 @@ interface AppLayoutProps {
 export default function AppLayout({ children }: AppLayoutProps) {
   const [location] = useLocation();
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
+  const { user, signOut } = useAuth();
 
   // Scroll to top when location changes
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [location]);
 
-  // Skip user API calls until backend is deployed
-  const currentUser = null as CurrentUser | null;
+  const currentUser = user;
 
   // Handle logout
   const handleLogout = async () => {
     try {
-      await apiRequest('/api/auth/logout', { method: 'POST' });
+      await signOut();
       window.location.href = '/login';
     } catch (error) {
       console.error('Logout failed:', error);
@@ -133,9 +129,9 @@ export default function AppLayout({ children }: AppLayoutProps) {
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" className="gap-2 flex items-center">
                       <Avatar className="h-8 w-8">
-                        <AvatarImage src={currentUser?.avatarUrl || undefined} />
+                        <AvatarImage src={currentUser?.photoURL || undefined} />
                         <AvatarFallback>
-                          {currentUser?.displayName?.charAt(0) || currentUser?.username?.charAt(0) || 'U'}
+                          {currentUser?.displayName?.charAt(0) || currentUser?.email?.charAt(0) || 'U'}
                         </AvatarFallback>
                       </Avatar>
                       <ChevronDown className="h-4 w-4 opacity-50" />
@@ -143,7 +139,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-56">
                     <div className="px-3 py-2">
-                      <div className="font-medium">{currentUser?.displayName || currentUser?.username}</div>
+                      <div className="font-medium">{currentUser?.displayName || currentUser?.email}</div>
                       <div className="text-xs text-gray-500">{currentUser?.email}</div>
                     </div>
                     <DropdownMenuSeparator />

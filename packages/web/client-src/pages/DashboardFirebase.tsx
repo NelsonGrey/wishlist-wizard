@@ -47,8 +47,7 @@ export default function Dashboard() {
       const res = await apiRequest('/api/wishlists', {
         method: 'POST',
         body: {
-          name,
-          userId: 1 // For demo purposes
+          name
         }
       });
       return res;

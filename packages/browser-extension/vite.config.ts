@@ -1,19 +1,24 @@
+import { resolve } from 'path';
 import { defineConfig } from 'vite';
 
 export default defineConfig({
+  root: 'src',
+  publicDir: '../public',
   build: {
+    outDir: '../dist',
+    emptyOutDir: true,
     rollupOptions: {
       input: {
-        popup: 'src/popup.html',
-        background: 'src/background.js',
-        content: 'src/content.js'
+        popup: resolve(__dirname, 'src/popup.html'),
+        background: resolve(__dirname, 'src/background.js'),
+        content: resolve(__dirname, 'src/content.js'),
+        'enhanced-product-extractor': resolve(__dirname, 'src/enhanced-product-extractor.js')
       },
       output: {
         entryFileNames: '[name].js',
         chunkFileNames: '[name].js',
-        assetFileNames: '[name].[ext]'
+        assetFileNames: 'assets/[name].[ext]'
       }
-    },
-    outDir: 'dist'
+    }
   }
 });

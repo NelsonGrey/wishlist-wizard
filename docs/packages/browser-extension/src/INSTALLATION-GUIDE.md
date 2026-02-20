@@ -30,17 +30,13 @@ This guide provides step-by-step instructions for installing and using the WishK
    - Make sure the extension is enabled (toggle switch is blue/on)
    - The WishKeeper icon should appear in your browser toolbar
 
-#### Method 2: Install from Chrome Web Store (Coming Soon)
+#### Method 2: Install from Chrome Web Store
 
-1. Visit the Chrome Web Store (link will be provided when available)
-2. Click "Add to Chrome"
-3. Follow the on-screen prompts to complete installation
+The Chrome Web Store listing is not available yet. Use Method 1 until the listing is published.
 
-### For Firefox (Coming Soon)
+### For Firefox
 
-1. Visit the Firefox Add-ons page (link will be provided when available)
-2. Click "Add to Firefox"
-3. Follow the on-screen prompts to complete installation
+Firefox packaging is not available yet. Use a Chromium-based browser and Method 1 for now.
 
 ## Using the WishKeeper Extension
 

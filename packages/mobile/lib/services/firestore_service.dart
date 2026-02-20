@@ -61,6 +61,23 @@ class FirebaseFirestoreService {
     }
   }
 
+  Future<FirebaseWishlist?> getWishlistById(String wishlistId) async {
+    if (!await _ensureFirebaseInitialized()) {
+      return null;
+    }
+
+    try {
+      final doc = await _db.collection('wishlists').doc(wishlistId).get();
+      if (!doc.exists) {
+        return null;
+      }
+      return _documentToFirebaseWishlist(doc);
+    } catch (e) {
+      print('Error fetching wishlist by id: $e');
+      return null;
+    }
+  }
+
   Stream<List<FirebaseWishlist>> getUserWishlistsStream(String userId) {
     return Stream.fromFuture(_ensureFirebaseInitialized()).asyncExpand((
       initialized,
@@ -197,6 +214,23 @@ class FirebaseFirestoreService {
     });
   }
 
+  Future<FirebaseWishlistItem?> getWishlistItemById(String itemId) async {
+    if (!await _ensureFirebaseInitialized()) {
+      return null;
+    }
+
+    try {
+      final doc = await _db.collection('wishlist_items').doc(itemId).get();
+      if (!doc.exists) {
+        return null;
+      }
+      return _documentToFirebaseWishlistItem(doc);
+    } catch (e) {
+      print('Error fetching wishlist item by id: $e');
+      return null;
+    }
+  }
+
   Future<FirebaseWishlistItem?> addWishlistItem(
     FirebaseWishlistItem item,
   ) async {
@@ -325,6 +359,7 @@ class FirebaseFirestoreService {
     try {
       await _db.collection('notifications').doc(notificationId).update({
         'isRead': true,
+        'read': true,
         'readAt': FieldValue.serverTimestamp(),
       });
       return true;
@@ -373,16 +408,30 @@ class FirebaseFirestoreService {
 
   FirebaseNotification _documentToFirebaseNotification(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
+    final dynamic rawMetadata = data['metadata'] ?? data['data'] ?? {};
+
+    Map<String, dynamic> metadata;
+    if (rawMetadata is Map<String, dynamic>) {
+      metadata = rawMetadata;
+    } else if (rawMetadata is Map) {
+      metadata = rawMetadata.map(
+        (key, value) => MapEntry(key.toString(), value),
+      );
+    } else {
+      metadata = <String, dynamic>{};
+    }
+
     return FirebaseNotification(
       id: doc.id,
       userId: data['userId'] ?? '',
       title: data['title'] ?? '',
-      message: data['message'] ?? '',
+      message: (data['message'] ?? data['body'] ?? data['content'] ?? '')
+          .toString(),
       type: _stringToNotificationType(data['type']),
-      isRead: data['isRead'] ?? false,
+      isRead: (data['isRead'] ?? data['read'] ?? false) == true,
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       readAt: (data['readAt'] as Timestamp?)?.toDate(),
-      metadata: Map<String, dynamic>.from(data['metadata'] ?? {}),
+      metadata: metadata,
     );
   }
 

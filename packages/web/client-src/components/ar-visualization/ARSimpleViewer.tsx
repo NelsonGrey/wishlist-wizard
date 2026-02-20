@@ -84,7 +84,7 @@ export function ARSimpleViewer({
   // Get the image source based on the model type and view
   const getImageSrc = () => {
     // These would typically be paths to actual images in your project
-    // For this demo, we'll use placeholder URLs
+    // Temporary fallback URLs until model-specific preview images are available
     
     if (modelType === 'chair') {
       return `https://images.unsplash.com/photo-1567538096630-e0c55bd6374c?auto=format&fit=crop&w=500&h=400`;
@@ -108,16 +108,16 @@ export function ARSimpleViewer({
         <div className="relative h-full w-full">
           <div className="h-full w-full flex items-center justify-center p-4 relative">
             {modelData?.glb ? (
-              <model-viewer
-                src={modelData.glb}
-                ios-src={modelData.usdz}
-                alt={`3D model preview: ${modelData.title}`}
-                ar
-                ar-modes="scene-viewer quick-look webxr"
-                auto-rotate
-                camera-controls
-                style={{ width: '100%', height: '100%', background: 'transparent' }}
-              />
+              React.createElement('model-viewer', {
+                src: modelData.glb,
+                'ios-src': modelData.usdz,
+                alt: `3D model preview: ${modelData.title}`,
+                ar: true,
+                'ar-modes': 'scene-viewer quick-look webxr',
+                'auto-rotate': true,
+                'camera-controls': true,
+                style: { width: '100%', height: '100%', background: 'transparent' }
+              })
             ) : (
               <img 
                 src={getImageSrc()} 

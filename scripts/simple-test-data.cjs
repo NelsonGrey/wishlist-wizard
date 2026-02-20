@@ -52,7 +52,7 @@ BEGIN
     SELECT 1 FROM information_schema.tables 
     WHERE table_name = 'session'
   ) THEN
-    -- Simple session data (this is just a placeholder as real sessions are managed by the application)
+    -- Sample session data for local testing (production sessions are managed by the application)
     INSERT INTO session (sid, sess, expire)
     VALUES 
       ('test-session-1', '{"cookie":{"originalMaxAge":86400000,"expires":"2025-05-21T00:00:00.000Z","secure":false,"httpOnly":true,"path":"/"},"userId":1}', '2025-05-21 00:00:00')

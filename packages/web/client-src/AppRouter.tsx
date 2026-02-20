@@ -13,40 +13,33 @@ import { queryClient } from "./lib/queryClient";
 import PublicLayout from "./components/layout/PublicLayout";
 import AppLayout from "./components/layout/AppLayout";
 import AuthLayout from "./components/layout/AuthLayout";
-import { useLocation } from "wouter";
 
-// Pages
-import Home from "./pages/Home";
-import Dashboard from "./pages/Dashboard";
-import DashboardFirebase from "./pages/DashboardFirebase";
-import Login from "./pages/Login";
-import Register from "./pages/Register";
-import UserProfile from "./pages/UserProfile";
-import WishlistDetail from "./pages/WishlistDetail";
-import Recommendations from "./pages/Recommendations";
-import PriceTracking from "./pages/PriceTracking";
-import PriceTrackingDemo from "./pages/PriceTrackingDemo";
-import Calendar from "./pages/Calendar";
-import Notifications from "./pages/Notifications";
-import ExtensionPage from "./pages/ExtensionPage";
-import SocialSharingDemo from "./pages/SocialSharingDemo";
-import MobileAppDemo from "./pages/MobileAppDemo";
-import PrivacySettings from "./pages/PrivacySettings";
-import ForgotPassword from "./pages/ForgotPassword";
-import ResetPassword from "./pages/ResetPassword";
-import VerifyEmail from "./pages/VerifyEmail";
-import SharedWishlist from "./pages/SharedWishlist";
-import Analytics from "./pages/Analytics";
-import ComingSoon from "./pages/ComingSoon";
-import NotFound from "./pages/not-found";
-import TermsOfService from "./pages/TermsOfService";
-import PrivacyPolicy from "./pages/PrivacyPolicy";
-import CookiePolicy from "./pages/CookiePolicy";
-import About from "./pages/About";
-import Blog from "./pages/Blog";
-import Contact from "./pages/Contact";
-
-const ArVisualizerDemo = lazy(() => import("./pages/ArVisualizerDemo"));
+const Home = lazy(() => import("./pages/Home"));
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const DashboardFirebase = lazy(() => import("./pages/DashboardFirebase"));
+const Login = lazy(() => import("./pages/Login"));
+const Register = lazy(() => import("./pages/Register"));
+const UserProfile = lazy(() => import("./pages/UserProfile"));
+const WishlistDetail = lazy(() => import("./pages/WishlistDetail"));
+const Recommendations = lazy(() => import("./pages/Recommendations"));
+const PriceTracking = lazy(() => import("./pages/PriceTracking"));
+const Calendar = lazy(() => import("./pages/Calendar"));
+const Notifications = lazy(() => import("./pages/Notifications"));
+const ExtensionPage = lazy(() => import("./pages/ExtensionPage"));
+const PrivacySettings = lazy(() => import("./pages/PrivacySettings"));
+const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
+const ResetPassword = lazy(() => import("./pages/ResetPassword"));
+const VerifyEmail = lazy(() => import("./pages/VerifyEmail"));
+const SharedWishlist = lazy(() => import("./pages/SharedWishlist"));
+const Analytics = lazy(() => import("./pages/Analytics"));
+const NotFound = lazy(() => import("./pages/not-found"));
+const TermsOfService = lazy(() => import("./pages/TermsOfService"));
+const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
+const CookiePolicy = lazy(() => import("./pages/CookiePolicy"));
+const About = lazy(() => import("./pages/About"));
+const Blog = lazy(() => import("./pages/Blog"));
+const Contact = lazy(() => import("./pages/Contact"));
+const FeatureDemo = lazy(() => import("./pages/FeatureDemo"));
 
 // Small redirect helper component for wouter routes
 function Redirect({ to }: { to: string }) {
@@ -78,8 +71,7 @@ function LayoutRouter({ children }: { children: React.ReactNode }) {
     '/calendar',
     '/notifications',
     '/privacy-settings',
-    '/analytics',
-    '/shared'
+    '/analytics'
   ];
   const isAppPage = appPages.some(page => location.startsWith(page));
 
@@ -109,22 +101,6 @@ function AppRouter() {
     // to ensure proper Auth initialization timing
   }, []);
 
-  // Check if Coming Soon mode is enabled
-  const isComingSoonEnabled = import.meta.env.VITE_SHOW_COMING_SOON_DEVELOPMENT === 'true';
-
-  if (isComingSoonEnabled) {
-    return (
-      <QueryClientProvider client={queryClient}>
-        <AuthProvider>
-          <TooltipProvider>
-            <Toaster />
-            <ComingSoon />
-          </TooltipProvider>
-        </AuthProvider>
-      </QueryClientProvider>
-    );
-  }
-
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
@@ -143,13 +119,15 @@ function AppRouter() {
                     <Route path="/terms" component={TermsOfService} />
                     <Route path="/privacy-policy" component={PrivacyPolicy} />
                     <Route path="/cookie-policy" component={CookiePolicy} />
-                  {/* Redirect legacy marketing route to demo */}
-                  <Route path="/price-tracking" component={() => <Redirect to="/price-tracking-demo" />} />
-                    {/* Marketing/demo pages (public) */}
-                    <Route path="/price-tracking-demo" component={PriceTrackingDemo} />
-                    <Route path="/social-sharing-demo" component={SocialSharingDemo} />
-                    <Route path="/mobile-app-demo" component={MobileAppDemo} />
-                    <Route path="/ar-visualizer-demo" component={ArVisualizerDemo} />
+                    <Route path="/mobile-app-demo" component={() => <FeatureDemo feature="mobile-app" />} />
+                    <Route path="/ar-visualization-demo" component={() => <FeatureDemo feature="ar-visualization" />} />
+                    <Route path="/social-integration-demo" component={() => <FeatureDemo feature="social-integration" />} />
+                    <Route path="/price-tracking-demo" component={() => <FeatureDemo feature="price-tracking" />} />
+                    <Route path="/calendar-integration-demo" component={() => <FeatureDemo feature="calendar-integration" />} />
+                    <Route path="/advanced-user-profiles-demo" component={() => <FeatureDemo feature="advanced-user-profiles" />} />
+                    <Route path="/ai-gift-recommendations-demo" component={() => <FeatureDemo feature="ai-gift-recommendations" />} />
+                    {/* Redirect legacy marketing route to product feature */}
+                    <Route path="/price-tracking" component={() => <Redirect to="/app/price-tracking" />} />
 
                   {/* Auth Pages */}
                   <Route path="/login" component={Login} />
@@ -159,11 +137,46 @@ function AppRouter() {
                   <Route path="/verify-email" component={VerifyEmail} />
 
                   {/* App Pages - Authenticated Portal */}
-                  <Route path="/dashboard" component={Dashboard} />
-                  <Route path="/dashboard-firebase" component={DashboardFirebase} />
-                  <Route path="/user-profile" component={UserProfile} />
-                  <Route path="/wishlist/:id" component={WishlistDetail} />
-                  <Route path="/recommendations" component={Recommendations} />
+                  <Route
+                    path="/dashboard"
+                    component={() => (
+                      <ProtectedRoute requireAuth>
+                        <Dashboard />
+                      </ProtectedRoute>
+                    )}
+                  />
+                  <Route
+                    path="/dashboard-firebase"
+                    component={() => (
+                      <ProtectedRoute requireAuth>
+                        <DashboardFirebase />
+                      </ProtectedRoute>
+                    )}
+                  />
+                  <Route
+                    path="/user-profile"
+                    component={() => (
+                      <ProtectedRoute requireAuth>
+                        <UserProfile />
+                      </ProtectedRoute>
+                    )}
+                  />
+                  <Route
+                    path="/wishlist/:id"
+                    component={() => (
+                      <ProtectedRoute requireAuth>
+                        <WishlistDetail />
+                      </ProtectedRoute>
+                    )}
+                  />
+                  <Route
+                    path="/recommendations"
+                    component={() => (
+                      <ProtectedRoute requireAuth>
+                        <Recommendations />
+                      </ProtectedRoute>
+                    )}
+                  />
                   <Route
                     path="/app/price-tracking"
                     component={() => (
@@ -172,11 +185,39 @@ function AppRouter() {
                       </ProtectedRoute>
                     )}
                   />
-                  <Route path="/calendar" component={Calendar} />
-                  <Route path="/notifications" component={Notifications} />
-                  <Route path="/privacy-settings" component={PrivacySettings} />
+                  <Route
+                    path="/calendar"
+                    component={() => (
+                      <ProtectedRoute requireAuth>
+                        <Calendar />
+                      </ProtectedRoute>
+                    )}
+                  />
+                  <Route
+                    path="/notifications"
+                    component={() => (
+                      <ProtectedRoute requireAuth>
+                        <Notifications />
+                      </ProtectedRoute>
+                    )}
+                  />
+                  <Route
+                    path="/privacy-settings"
+                    component={() => (
+                      <ProtectedRoute requireAuth>
+                        <PrivacySettings />
+                      </ProtectedRoute>
+                    )}
+                  />
                   <Route path="/shared/:shareId" component={SharedWishlist} />
-                  <Route path="/analytics" component={Analytics} />
+                  <Route
+                    path="/analytics"
+                    component={() => (
+                      <ProtectedRoute requireAuth>
+                        <Analytics />
+                      </ProtectedRoute>
+                    )}
+                  />
 
                   {/* 404 */}
                   <Route component={NotFound} />

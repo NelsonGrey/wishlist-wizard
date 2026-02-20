@@ -57,6 +57,7 @@ Project overview and planning:
 1. [BUSINESS_REQUIREMENTS.md](BUSINESS_REQUIREMENTS.md) - Feature requirements
 2. [PRODUCT_DESIGN.md](PRODUCT_DESIGN.md) - UI/UX design specifications
 3. [REQUIREMENTS.md](REQUIREMENTS.md) - Implementation status
+4. [DELIVERABLE_COMPONENT_MATRIX.md](DELIVERABLE_COMPONENT_MATRIX.md) - Component-level completion tracker for website/mobile/extension
 
 ---
 
@@ -113,6 +114,7 @@ Project overview and planning:
 | [BUSINESS_REQUIREMENTS.md](BUSINESS_REQUIREMENTS.md) | Project vision and requirements | Product, PM |
 | [PRODUCT_DESIGN.md](PRODUCT_DESIGN.md) | UI/UX design, features, user flows | Designers, PM |
 | [REQUIREMENTS.md](REQUIREMENTS.md) | Feature status and implementation details | All |
+| [DELIVERABLE_COMPONENT_MATRIX.md](DELIVERABLE_COMPONENT_MATRIX.md) | Execution tracker for component completion by deliverable | Product, Engineering Leads, PM |
 
 ### Platform-Specific
 
