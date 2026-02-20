@@ -154,11 +154,11 @@ async function checkProductPage() {
         showErrorScreen(errorMessage, errorType);
       }
     }
-  } catch (contentScriptError) {
-    console.error('Content script error:', contentScriptError);
+  } catch (error) {
+    console.error('Content script error:', error);
     
     // Handle content script injection errors
-    if (contentScriptError.message && contentScriptError.message.includes('Could not establish connection')) {
+    if (error.message && error.message.includes('Could not establish connection')) {
       // Track content script connection issue
       trackExtensionEvent('content_script_error', 'detection', 'connection_failed');
       
@@ -181,9 +181,6 @@ async function checkProductPage() {
     
     // Other content script errors
     showErrorScreen('Error analyzing page content.', 'unknown');
-  } catch (error) {
-    console.error('Unexpected error in checkProductPage:', error);
-    showErrorScreen('An unexpected error occurred: ' + error.message, 'unknown');
   }
 }
 
