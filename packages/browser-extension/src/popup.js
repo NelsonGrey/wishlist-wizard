@@ -49,13 +49,6 @@ function showScreen(screenId) {
 
 // Initialize the popup when it's opened
 document.addEventListener('DOMContentLoaded', async () => {
-  // Check if Coming Soon is enabled
-  const result = await chrome.storage.local.get('comingSoonEnabled');
-  if (result.comingSoonEnabled !== false) {
-    showScreen('coming-soon-screen');
-    return;
-  }
-
   // Show loading screen first
   showScreen('loading-screen');
   
@@ -526,7 +519,7 @@ function populateProductDetails(isPartialData = false) {
       imageContainer.alt = product.title || 'Product Image';
       imageContainer.classList.remove('hidden');
     } else {
-      // Show placeholder image or hide container
+      // Hide image container when no image is available
       imageContainer.classList.add('hidden');
     }
     
@@ -819,8 +812,9 @@ async function getBaseUrl() {
 }
 
 // Open login page in new tab
-function openLoginPage() {
-  chrome.tabs.create({ url: getBaseUrl() + '/login' });
+async function openLoginPage() {
+  const baseUrl = await getBaseUrl();
+  chrome.tabs.create({ url: `${baseUrl}/login` });
   window.close();
 }
 

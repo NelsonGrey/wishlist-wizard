@@ -1,44 +1,8 @@
 import { Helmet } from "react-helmet";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { CalendarDays, User } from "lucide-react";
 import { Link } from "wouter";
 
 export default function Blog() {
-  const blogPosts = [
-    {
-      id: 1,
-      title: "Getting Started with Wishlist Wizard",
-      description: "Learn how to create your first wishlist and start saving items from your favorite stores.",
-      author: "Wishlist Wizard Team",
-      date: "Coming Soon",
-      category: "Getting Started"
-    },
-    {
-      id: 2,
-      title: "Price Tracking 101: Never Miss a Deal",
-      description: "Discover how price tracking can help you save money on the items you want.",
-      author: "Wishlist Wizard Team",
-      date: "Coming Soon",
-      category: "Features"
-    },
-    {
-      id: 3,
-      title: "Gift Giving Made Easy",
-      description: "How to use shared wishlists to make gift giving simpler and more meaningful.",
-      author: "Wishlist Wizard Team",
-      date: "Coming Soon",
-      category: "Tips & Tricks"
-    },
-    {
-      id: 4,
-      title: "Browser Extension Tips and Tricks",
-      description: "Maximize your productivity with our browser extension. Learn advanced features.",
-      author: "Wishlist Wizard Team",
-      date: "Coming Soon",
-      category: "Features"
-    }
-  ];
-
   return (
     <>
       <Helmet>
@@ -60,61 +24,34 @@ export default function Blog() {
         </div>
 
         <div className="space-y-8">
-          {blogPosts.length > 0 ? (
-            <div className="grid gap-6">
-              {blogPosts.map((post) => (
-                <Card key={post.id} className="hover:shadow-lg transition-shadow">
-                  <CardHeader>
-                    <div className="flex items-start justify-between mb-2">
-                      <span className="inline-block px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-xs font-medium">
-                        {post.category}
-                      </span>
-                      <div className="flex items-center text-sm text-gray-500">
-                        <CalendarDays className="h-4 w-4 mr-1" />
-                        {post.date}
-                      </div>
-                    </div>
-                    <CardTitle className="text-xl md:text-2xl">{post.title}</CardTitle>
-                    <CardDescription className="text-base">{post.description}</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex items-center text-sm text-gray-600">
-                      <User className="h-4 w-4 mr-2" />
-                      {post.author}
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          ) : (
-            <Card>
-              <CardHeader>
-                <CardTitle>Blog Coming Soon</CardTitle>
-                <CardDescription>
-                  We're working on creating helpful articles and tips for the Wishlist Wizard community.
-                </CardDescription>
-              </CardHeader>
-            </Card>
-          )}
+          <Card>
+            <CardHeader>
+              <CardTitle>No posts published yet</CardTitle>
+              <CardDescription>
+                We publish product updates and guides here when new content is available.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <a
+                href="mailto:support@wishlist-wizard-prod.web.app?subject=Blog%20Update%20Notifications"
+                className="text-emerald-700 hover:text-emerald-800 font-medium transition-colors"
+              >
+                Request blog update notifications
+              </a>
+            </CardContent>
+          </Card>
 
           <section className="mt-12 pt-8 border-t">
             <h2 className="text-2xl font-semibold text-gray-900 mb-4">Subscribe to Our Newsletter</h2>
             <p className="text-gray-700 mb-4">
-              Get the latest tips, features, and stories delivered to your inbox.
+              For release updates, contact our team directly.
             </p>
-            <form className="flex gap-2 max-w-md">
-              <input
-                type="email"
-                placeholder="Enter your email"
-                className="flex-1 px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              />
-              <button
-                type="submit"
-                className="px-6 py-2 bg-gradient-to-r from-emerald-700 to-green-700 text-white rounded-lg hover:from-emerald-800 hover:to-green-800 transition-all shadow-md hover:shadow-lg"
-              >
-                Subscribe
-              </button>
-            </form>
+            <a
+              href="mailto:support@wishlist-wizard-prod.web.app?subject=Wishlist%20Wizard%20Newsletter"
+              className="text-emerald-700 hover:text-emerald-800 font-medium transition-colors"
+            >
+              Contact support for updates
+            </a>
           </section>
 
           <section className="text-center py-8">

@@ -523,7 +523,7 @@ async function sendPriceAlertNotifications(notifications: Array<{
         });
       }
       
-      // TODO: Send FCM push notification when implemented
+      // FCM push notifications will be added once mobile/extension push wiring is finalized
       
     } catch (error) {
       logger.error(`Error sending notification to user ${notification.userId}:`, error);

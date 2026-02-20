@@ -157,8 +157,8 @@ rotate_api_secrets() {
         # Generate new password
         NEW_DB_PASSWORD=$(openssl rand -base64 24)
 
-        # Update database password (this would need to be customized for your DB)
-        # This is a placeholder - implement actual DB password rotation
+        # Update database password (customize for your DB provider and rotation workflow)
+        # Manual step required: apply NEW_DB_PASSWORD in the database before using this .env update
         echo "DATABASE_PASSWORD=$NEW_DB_PASSWORD" > .env.db
 
         touch .db-password

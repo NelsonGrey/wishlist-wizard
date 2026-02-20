@@ -35,7 +35,7 @@ Status Legend:
 | Group / Social Gifting | Group contributions & coordination | 🟡 | Schema has `group_gifts`, `group_gift_contributions`, service `giftCoordinationService.ts` handles participants via gift reservation abstraction. Payment processing & full workflow UI absent. |
 | Gift Reservations (micro‑pledges) | Reserve & contribution tracking | 🟡 | `giftReservations` schema + service logic partially; routes for participants reuse this. Payment settlement not implemented. |
 | Privacy / Sharing Controls | Per-entity privacy settings, custom access lists | ✅ | `privacySettings` table + routes `/api/privacy/*`, `privacyService.ts`, frontend PrivacySettings page, PrivacyControls component, access control in SharedWishlist. |
-| AR Visualization | AR preview capability | 🔴 | `arVisualizationService.ts` placeholder; frontend demo route `/ar-visualizer` but no real AR pipeline. |
+| AR Visualization | AR preview capability | 🔴 | `arVisualizationService.ts` placeholder; frontend uses fallback previews but no routed AR experience or pipeline. |
 | Barcode Scanning | Scan to add items | 🔴 | `barcodeScanService.ts` placeholder only. |
 | Cross-Device Sync | Device registry & sync logs | 🔴 | `userDevices`, `syncLogs` tables exist; no routes/services implementing sync logic. |
 | Advanced Analytics Dashboard | User analytics page | 🟡 | Frontend route `/analytics` exists; backend analytics aggregation endpoints absent (page likely placeholder). |
@@ -46,10 +46,10 @@ Status Legend:
 |------|-------------|--------|------------------|
 | Auth | Extension JWT auth & refresh | ✅ | `/api/extension/jwt-auth`, `extension-auth.ts`, refresh endpoint. |
 | Wishlist Integration | Fetch wishlists & add items from pages | ✅ | `/api/extension/wishlists`, `/api/extension/items`, content/background scripts in `packages/browser-extension/`. |
-| Price Comparison | Compare across retailers | ✅ | `comparison.js` with mock comparison engine, generates retailer search links, finds best deals. |
+| Price Comparison | Compare across retailers | ✅ | `comparison.js` uses backend lookup for comparison data with graceful empty-state fallback. |
 | Automatic Product Detection | Extract product metadata | ✅ | `enhanced-product-extractor.js` supports 40+ retailers with specific selectors, fallback strategies, product page detection. |
 | Event Tracking | Track extension events | ✅ | Comprehensive analytics in `background.js`, tracks all user interactions and errors. |
-| Coupon Finder | Find and apply coupons | ✅ | `coupons.js` with mock coupon system, applies codes automatically via content script. |
+| Coupon Finder | Find and apply coupons | ✅ | `coupons.js` uses backend lookup for coupons with graceful empty-state fallback. |
 | Quick Add | One-click wishlist addition | ✅ | `quick-add.js` floating button, detects products, adds to default wishlist. |
 | Manual Entry | Fallback product entry | ✅ | Popup UI supports manual product data entry when auto-detection fails. |
 | Error Recovery | Robust error handling | ✅ | Retry logic, recovery mode, timeout handling, force detection option. |
@@ -98,7 +98,7 @@ Gaps / Future tables usage:
 | Social Media Sharing | 🔴 | Mentioned; no API integration code. |
 
 ### 9. Frontend (Web) Feature Routes
-Implemented routes (see `client/src/App.tsx`): `Home`, `Dashboard`, `WishlistDetail`, `SharedWishlist`, `Login`, `Register`, `ExtensionPage`, `Notifications`, `MobileAppDemo`, `ArVisualizerDemo`, `SocialSharingDemo`, `PriceTracking`, `UserProfile`, `Recommendations`, `Calendar`, `Analytics`. Several are clearly demos/placeholders (AR, Social Sharing, Mobile Demo, Analytics) with backend gaps.
+Implemented routes (see `client-src/AppRouter.tsx`): `Home`, `ExtensionPage`, `About`, `Blog`, `Contact`, `TermsOfService`, `PrivacyPolicy`, `CookiePolicy`, `Login`, `Register`, `ForgotPassword`, `ResetPassword`, `VerifyEmail`, `Dashboard`, `DashboardFirebase`, `UserProfile`, `WishlistDetail`, `SharedWishlist`, `Recommendations`, `PriceTracking`, `Calendar`, `Notifications`, `PrivacySettings`, `Analytics`.
 
 ### 10. Testing & Quality
 | Area | Status | Notes |
