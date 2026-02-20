@@ -70,22 +70,69 @@ function resolveEnvironmentSuffix(): 'DEVELOPMENT' | 'STAGING' | 'PRODUCTION' {
 
 const envSuffix = resolveEnvironmentSuffix();
 
-function getEnvValue(baseName: string): string {
-  const env = import.meta.env as Record<string, string | undefined>;
-  return env[`${baseName}_${envSuffix}`] || env[baseName] || '';
+function pickEnvValue(
+  developmentValue: string | undefined,
+  stagingValue: string | undefined,
+  productionValue: string | undefined,
+  fallbackValue: string | undefined
+): string {
+  const selectedByEnvironment = (
+    envSuffix === 'DEVELOPMENT'
+      ? developmentValue
+      : envSuffix === 'STAGING'
+        ? stagingValue
+        : productionValue
+  );
+
+  return selectedByEnvironment || fallbackValue || '';
 }
 
 // Prefer environment-suffixed vars (VITE_FIREBASE_*_DEVELOPMENT/STAGING/PRODUCTION),
 // while remaining backward compatible with plain VITE_FIREBASE_*.
 const firebaseConfig = {
-  apiKey: getEnvValue('VITE_FIREBASE_API_KEY'),
-  authDomain: getEnvValue('VITE_FIREBASE_AUTH_DOMAIN'),
-  projectId: getEnvValue('VITE_FIREBASE_PROJECT_ID'),
-  storageBucket: getEnvValue('VITE_FIREBASE_STORAGE_BUCKET'),
-  messagingSenderId: getEnvValue('VITE_FIREBASE_MESSAGING_SENDER_ID'),
-  appId: getEnvValue('VITE_FIREBASE_APP_ID'),
+  apiKey: pickEnvValue(
+    import.meta.env.VITE_FIREBASE_API_KEY_DEVELOPMENT,
+    import.meta.env.VITE_FIREBASE_API_KEY_STAGING,
+    import.meta.env.VITE_FIREBASE_API_KEY_PRODUCTION,
+    import.meta.env.VITE_FIREBASE_API_KEY
+  ),
+  authDomain: pickEnvValue(
+    import.meta.env.VITE_FIREBASE_AUTH_DOMAIN_DEVELOPMENT,
+    import.meta.env.VITE_FIREBASE_AUTH_DOMAIN_STAGING,
+    import.meta.env.VITE_FIREBASE_AUTH_DOMAIN_PRODUCTION,
+    import.meta.env.VITE_FIREBASE_AUTH_DOMAIN
+  ),
+  projectId: pickEnvValue(
+    import.meta.env.VITE_FIREBASE_PROJECT_ID_DEVELOPMENT,
+    import.meta.env.VITE_FIREBASE_PROJECT_ID_STAGING,
+    import.meta.env.VITE_FIREBASE_PROJECT_ID_PRODUCTION,
+    import.meta.env.VITE_FIREBASE_PROJECT_ID
+  ),
+  storageBucket: pickEnvValue(
+    import.meta.env.VITE_FIREBASE_STORAGE_BUCKET_DEVELOPMENT,
+    import.meta.env.VITE_FIREBASE_STORAGE_BUCKET_STAGING,
+    import.meta.env.VITE_FIREBASE_STORAGE_BUCKET_PRODUCTION,
+    import.meta.env.VITE_FIREBASE_STORAGE_BUCKET
+  ),
+  messagingSenderId: pickEnvValue(
+    import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID_DEVELOPMENT,
+    import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID_STAGING,
+    import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID_PRODUCTION,
+    import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID
+  ),
+  appId: pickEnvValue(
+    import.meta.env.VITE_FIREBASE_APP_ID_DEVELOPMENT,
+    import.meta.env.VITE_FIREBASE_APP_ID_STAGING,
+    import.meta.env.VITE_FIREBASE_APP_ID_PRODUCTION,
+    import.meta.env.VITE_FIREBASE_APP_ID
+  ),
   // Optional: Analytics is not required for Auth/Firestore to initialize.
-  measurementId: getEnvValue('VITE_FIREBASE_MEASUREMENT_ID') || undefined,
+  measurementId: pickEnvValue(
+    import.meta.env.VITE_FIREBASE_MEASUREMENT_ID_DEVELOPMENT,
+    import.meta.env.VITE_FIREBASE_MEASUREMENT_ID_STAGING,
+    import.meta.env.VITE_FIREBASE_MEASUREMENT_ID_PRODUCTION,
+    import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
+  ) || undefined,
 };
 
 function hasAllConfigValues() {
