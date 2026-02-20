@@ -34,10 +34,56 @@ command_exists() {
     command -v "$1" >/dev/null 2>&1
 }
 
+resolve_environment() {
+    local requested_env="$1"
+    if [[ -n "$requested_env" ]]; then
+        echo "$requested_env"
+        return
+    fi
+
+    local branch
+    branch="$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "")"
+    case "$branch" in
+        main)
+            echo "production"
+            ;;
+        staging)
+            echo "staging"
+            ;;
+        develop)
+            echo "development"
+            ;;
+        *)
+            log_warning "Unknown branch '$branch'. Defaulting deploy environment to development."
+            echo "development"
+            ;;
+    esac
+}
+
+resolve_project_alias() {
+    local environment="$1"
+    case "$environment" in
+        production)
+            echo "production"
+            ;;
+        staging)
+            echo "staging"
+            ;;
+        development)
+            echo "development"
+            ;;
+        *)
+            log_error "Invalid environment '$environment'. Use: development | staging | production"
+            return 1
+            ;;
+    esac
+}
+
 # Main deployment function
 deploy_component() {
     local component=$1
     local deploy_target=$2
+    local firebase_project_alias=$3
     
     log_info "Deploying $component to $deploy_target..."
     
@@ -46,7 +92,7 @@ deploy_component() {
             if [[ $deploy_target == "firebase" ]]; then
                 cd packages/web
                 if command_exists firebase; then
-                    firebase deploy --only hosting
+                    firebase deploy --only hosting --project "$firebase_project_alias"
                     log_success "Web app deployed to Firebase Hosting"
                 else
                     log_error "Firebase CLI not found. Install with: npm i -g firebase-tools"
@@ -59,7 +105,7 @@ deploy_component() {
             if [[ $deploy_target == "firebase" ]]; then
                 cd packages/functions
                 if command_exists firebase; then
-                    firebase deploy --only functions
+                    firebase deploy --only functions --project "$firebase_project_alias"
                     log_success "API server deployed to Firebase Functions"
                 else
                     log_error "Firebase CLI not found. Install with: npm i -g firebase-tools"
@@ -72,7 +118,7 @@ deploy_component() {
             if [[ $deploy_target == "firebase" ]]; then
                 cd packages/mobile
                 if command_exists firebase; then
-                    firebase deploy --only hosting
+                    firebase deploy --only hosting --project "$firebase_project_alias"
                     log_success "Mobile PWA deployed to Firebase Hosting"
                 else
                     log_error "Firebase CLI not found. Install with: npm i -g firebase-tools"
@@ -124,7 +170,7 @@ build_all() {
 show_usage() {
     echo "🚀 Wishlist Wizard Deployment Script"
     echo ""
-    echo "Usage: $0 [OPTION]"
+    echo "Usage: $0 [OPTION] [ENVIRONMENT]"
     echo ""
     echo "Options:"
     echo "  build           Build all components"
@@ -135,11 +181,21 @@ show_usage() {
     echo "  package-ext     Create Chrome extension package"
     echo "  help            Show this help message"
     echo ""
+    echo "Environment (optional): development | staging | production"
+    echo "If omitted, environment is inferred from current branch:"
+    echo "  develop -> development, staging -> staging, main -> production"
+    echo ""
     echo "Examples:"
     echo "  $0 build"
     echo "  $0 deploy-all"
     echo "  $0 deploy-web"
+    echo "  $0 deploy-web development"
 }
+
+# Optional second argument: explicit deploy environment
+DEPLOY_ENVIRONMENT="$(resolve_environment "${2:-}")"
+FIREBASE_PROJECT_ALIAS="$(resolve_project_alias "$DEPLOY_ENVIRONMENT")" || exit 1
+log_info "Resolved deploy environment: $DEPLOY_ENVIRONMENT (firebase project alias: $FIREBASE_PROJECT_ALIAS)"
 
 # Main script logic
 case ${1:-help} in
@@ -148,21 +204,21 @@ case ${1:-help} in
         ;;
     "deploy-web")
         build_all
-        deploy_component "web" "firebase"
+        deploy_component "web" "firebase" "$FIREBASE_PROJECT_ALIAS"
         ;;
     "deploy-api")
         build_all
-        deploy_component "api-server" "firebase"
+        deploy_component "api-server" "firebase" "$FIREBASE_PROJECT_ALIAS"
         ;;
     "deploy-mobile")
         build_all
-        deploy_component "mobile" "firebase"
+        deploy_component "mobile" "firebase" "$FIREBASE_PROJECT_ALIAS"
         ;;
     "deploy-all")
         build_all
-        deploy_component "web" "firebase"
-        deploy_component "api-server" "firebase"
-        deploy_component "mobile" "firebase"
+        deploy_component "web" "firebase" "$FIREBASE_PROJECT_ALIAS"
+        deploy_component "api-server" "firebase" "$FIREBASE_PROJECT_ALIAS"
+        deploy_component "mobile" "firebase" "$FIREBASE_PROJECT_ALIAS"
         deploy_component "extension" "package"
         log_success "All components deployed!"
         ;;
