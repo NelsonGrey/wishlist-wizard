@@ -20,35 +20,6 @@ export default defineConfig({
     rollupOptions: {
       input: {
         main: path.resolve(import.meta.dirname, "index.html")
-      },
-      output: {
-        manualChunks(id) {
-          if (!id.includes("node_modules")) {
-            return;
-          }
-
-          if (id.includes("firebase")) {
-            return "vendor-firebase";
-          }
-
-          if (id.includes("three") || id.includes("@react-three")) {
-            return "vendor-3d";
-          }
-
-          if (id.includes("@radix-ui") || id.includes("lucide-react")) {
-            return "vendor-ui";
-          }
-
-          if (id.includes("recharts") || id.includes("react-big-calendar") || id.includes("date-fns")) {
-            return "vendor-analytics";
-          }
-
-          if (id.includes("react") || id.includes("wouter") || id.includes("@tanstack/react-query")) {
-            return "vendor-core";
-          }
-
-          return "vendor-misc";
-        }
       }
     }
   },
