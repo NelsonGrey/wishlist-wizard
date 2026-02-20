@@ -259,7 +259,7 @@ manage_github_secrets() {
             echo -n "$secret_value" | gh secret set "$secret_name" --repo mnelson3/wishlist-wizard
             log_success "Updated GitHub secret: $secret_name"
         else
-            log_warning "Skipped empty/placeholder secret: $secret_name"
+            log_warning "Skipped empty/default secret: $secret_name"
         fi
     done
 
@@ -378,8 +378,8 @@ show_status() {
 
         # Count configured secrets
         total_secrets=$(grep -c "^[A-Z_][A-Z0-9_]*=" "$ENV_FILE" 2>/dev/null | tr -d '\n' || echo "0")
-        placeholder_secrets=$(grep -c "your_" "$ENV_FILE" 2>/dev/null | tr -d '\n' || echo "0")
-        configured_secrets=$(( ${total_secrets:-0} - ${placeholder_secrets:-0} ))
+        default_secrets=$(grep -c "your_" "$ENV_FILE" 2>/dev/null | tr -d '\n' || echo "0")
+        configured_secrets=$(( ${total_secrets:-0} - ${default_secrets:-0} ))
 
         echo "Secrets configured: $configured_secrets / $total_secrets"
         echo ""

@@ -313,15 +313,9 @@ function PrivacySettingsForm({
               </p>
             )}
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            className="mt-2 w-full"
-            onClick={() => handleAddUser(Date.now())} // Mock user ID for demo
-            disabled={isLoading}
-          >
-            Add User (Demo)
-          </Button>
+          <p className="text-xs text-muted-foreground mt-2 text-center">
+            Direct user lookup for custom access is not available yet.
+          </p>
         </div>
       )}
 

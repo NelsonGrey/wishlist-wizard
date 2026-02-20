@@ -13,12 +13,9 @@ Add products to your WishKeeper wishlists from any online retailer with a single
 
 ## Installation Guide
 
-### Installing from Chrome Web Store (Coming Soon)
+### Installing from Chrome Web Store
 
-1. Visit the WishKeeper Extension page on the Chrome Web Store
-2. Click the "Add to Chrome" button
-3. Confirm the installation when prompted
-4. The WishKeeper icon will appear in your browser toolbar
+The Chrome Web Store listing is not available yet. Use the manual installation steps below until the listing is published.
 
 ### Manual Installation (Developer Mode)
 

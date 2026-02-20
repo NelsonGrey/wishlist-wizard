@@ -22,12 +22,20 @@ export default function Contact() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: Implement contact form submission
+
+    const subject = `[Wishlist Wizard] ${formData.subject.trim()}`;
+    const body = [
+      `Name: ${formData.name.trim()}`,
+      `Email: ${formData.email.trim()}`,
+      '',
+      formData.message.trim()
+    ].join('\n');
+
+    const mailtoUrl = `mailto:support@wishlist-wizard.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    window.location.href = mailtoUrl;
+
     setSubmitted(true);
-    setTimeout(() => {
-      setFormData({ name: "", email: "", subject: "", message: "" });
-      setSubmitted(false);
-    }, 3000);
+    setFormData({ name: "", email: "", subject: "", message: "" });
   };
 
   return (
@@ -99,9 +107,9 @@ export default function Contact() {
             <CardContent>
               {submitted ? (
                 <div className="text-center py-8">
-                  <div className="text-green-600 font-semibold mb-2">Thank you for your message!</div>
+                  <div className="text-green-600 font-semibold mb-2">Your email client is ready.</div>
                   <p className="text-gray-600">
-                    We've received your message and will get back to you soon.
+                    If nothing opened, email us directly at support@wishlist-wizard.com.
                   </p>
                 </div>
               ) : (

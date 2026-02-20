@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Helmet } from 'react-helmet';
 import { Link } from 'wouter';
 import { 
@@ -42,19 +42,24 @@ import {
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useMutation } from '@tanstack/react-query';
+import { useAuth } from '@/contexts/AuthContext';
 
-// Mock user profile data
-const USER_PROFILE = {
-  id: 1,
-  username: "emma_garcia",
-  firstName: "Emma",
-  lastName: "Garcia",
-  email: "emma.garcia@example.com",
-  avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3",
-  bio: "Gift enthusiast | Always looking for the perfect present | Love supporting small businesses",
-  location: "San Francisco, CA",
-  joinDate: "February 2023",
-  interests: ["Tech Gadgets", "Home Decor", "Sustainable Products", "Books", "Art & Design"],
+const createInitialProfile = (user?: {
+  uid?: string;
+  displayName?: string | null;
+  email?: string | null;
+  photoURL?: string | null;
+}) => ({
+  id: user?.uid ? Number.parseInt(user.uid, 10) || 0 : 0,
+  username: user?.email?.split('@')[0] || "",
+  firstName: user?.displayName?.split(' ')[0] || "",
+  lastName: user?.displayName?.split(' ').slice(1).join(' ') || "",
+  email: user?.email || "",
+  avatar: user?.photoURL || "",
+  bio: "",
+  location: "",
+  joinDate: "",
+  interests: [] as string[],
   notifications: {
     email: true,
     push: true,
@@ -73,34 +78,42 @@ const USER_PROFILE = {
   theme: "system",
   language: "en",
   currency: "USD",
-  paymentMethods: [
-    { id: 1, type: "credit_card", lastFour: "4832", brand: "Visa", default: true },
-    { id: 2, type: "paypal", email: "emma.g@example.com", default: false }
-  ],
+  paymentMethods: [] as Array<{
+    id: number;
+    type: "credit_card" | "paypal";
+    lastFour?: string;
+    brand?: string;
+    email?: string;
+    default: boolean;
+  }>,
   giftPreferences: {
     sizes: {
       clothing: "Medium",
       shoes: "US 8"
     },
-    colors: ["Blue", "Green", "White"],
-    doNotWant: ["Animal products", "Heavily scented items"],
-    giftCards: ["Amazon", "Target", "REI"]
+    colors: [] as string[],
+    doNotWant: [] as string[],
+    giftCards: [] as string[]
   },
   stats: {
-    itemsTracked: 127,
-    wishlistsCreated: 14,
-    giftsPurchased: 32,
-    totalSavings: 423.56,
-    averageRating: 4.7,
-    daysActive: 284
+    itemsTracked: 0,
+    wishlistsCreated: 0,
+    giftsPurchased: 0,
+    totalSavings: 0,
+    averageRating: 0,
+    daysActive: 0
   },
-  exchangeHistory: [
-    { id: 1, date: "2024-04-12", type: "Received", item: "Wireless Headphones", from: "Alex Johnson", status: "completed" },
-    { id: 2, date: "2024-03-25", type: "Gave", item: "Coffee Maker", to: "Jamie Smith", status: "completed" },
-    { id: 3, date: "2024-02-14", type: "Received", item: "Book: The Midnight Library", from: "Taylor Parker", status: "completed" }
-  ],
-  favoriteStores: ["Amazon", "Target", "Etsy", "REI", "Nordstrom"]
-};
+  exchangeHistory: [] as Array<{
+    id: number;
+    date: string;
+    type: "Received" | "Gave";
+    item: string;
+    from?: string;
+    to?: string;
+    status: string;
+  }>,
+  favoriteStores: [] as string[]
+});
 
 // Theme options
 const THEME_OPTIONS = [
@@ -143,26 +156,40 @@ const ACHIEVEMENTS = [
   { id: 5, name: "Review Enthusiast", description: "Wrote 15+ product reviews", earned: false, icon: "✍️" }
 ];
 
-// Mock list of friends/connections
-const CONNECTIONS = [
-  { id: 1, name: "Alex Johnson", avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3", mutualFriends: 5 },
-  { id: 2, name: "Taylor Smith", avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3", mutualFriends: 3 },
-  { id: 3, name: "Jordan Lee", avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3", mutualFriends: 7 },
-  { id: 4, name: "Avery Williams", avatar: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3", mutualFriends: 2 }
-];
+const CONNECTIONS: Array<{ id: number; name: string; avatar: string; mutualFriends: number }> = [];
 
 const UserProfile = () => {
-  const [profile, setProfile] = useState(USER_PROFILE);
+  const { user } = useAuth();
+  const [profile, setProfile] = useState(() => createInitialProfile(user || undefined));
   const [selectedTab, setSelectedTab] = useState("profile");
   const [editMode, setEditMode] = useState(false);
-  const [editedProfile, setEditedProfile] = useState(USER_PROFILE);
+  const [editedProfile, setEditedProfile] = useState(() => createInitialProfile(user || undefined));
   const [savingProfile, setSavingProfile] = useState(false);
   const [showConnections, setShowConnections] = useState(false);
   const { toast } = useToast();
 
+  useEffect(() => {
+    if (!user || editMode) {
+      return;
+    }
+
+    const mergedProfile = {
+      ...profile,
+      username: user.email?.split('@')[0] || profile.username,
+      firstName: user.displayName?.split(' ')[0] || profile.firstName,
+      lastName: user.displayName?.split(' ').slice(1).join(' ') || profile.lastName,
+      email: user.email || profile.email,
+      avatar: user.photoURL || profile.avatar,
+    };
+
+    setProfile(mergedProfile);
+    setEditedProfile(mergedProfile);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.uid, user?.email, user?.displayName, user?.photoURL, editMode]);
+
   // Update profile settings
   const { mutate: updateProfile } = useMutation({
-    mutationFn: async (updatedProfile: typeof USER_PROFILE) => {
+    mutationFn: async (updatedProfile: typeof profile) => {
       // Simulate API call to update profile
       setSavingProfile(true);
       await new Promise(resolve => setTimeout(resolve, 1500));
@@ -249,8 +276,9 @@ const UserProfile = () => {
       };
     } else if (Array.isArray(updatedPreferences[category])) {
       // For arrays like colors, doNotWant, giftCards
-      if (value && !updatedPreferences[category].includes(value)) {
-        updatedPreferences[category] = [...updatedPreferences[category], value];
+      const preferenceList = updatedPreferences[category] as string[];
+      if (value && !preferenceList.includes(value)) {
+        updatedPreferences[category] = [...preferenceList, value] as typeof updatedPreferences[typeof category];
       }
     }
     

@@ -345,12 +345,24 @@ export async function updateExtensionBadge(): Promise<void> {
 }
 
 /**
- * Get unread notification count (placeholder - implement based on your data structure)
+ * Get unread notification count from active extension notifications.
  */
 async function getUnreadNotificationCount(): Promise<number> {
-  // TODO: Implement based on your notification storage strategy
-  // This could query Firestore for unread notifications for the current user
-  return 0;
+  if (!chrome?.notifications?.getAll) {
+    return 0;
+  }
+
+  return new Promise((resolve) => {
+    chrome.notifications.getAll((notifications) => {
+      if (chrome.runtime.lastError) {
+        console.warn('[FCM Extension] Failed to read notifications for badge count:', chrome.runtime.lastError.message);
+        resolve(0);
+        return;
+      }
+
+      resolve(Object.keys(notifications).length);
+    });
+  });
 }
 
 /**

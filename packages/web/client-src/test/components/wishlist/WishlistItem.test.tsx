@@ -206,4 +206,20 @@ describe('WishlistItem Component', () => {
     // This test would need to be updated if the component is enhanced to show this
     expect(screen.getByText('Wireless Headphones')).toBeInTheDocument();
   });
+
+  it('should open details dialog when details button is clicked', async () => {
+    render(
+      <WishlistItem
+        item={mockItem}
+        onDelete={mockOnDelete}
+      />
+    );
+
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('button', { name: /details/i }));
+
+    expect(screen.getByText('Detailed item information and actions.')).toBeInTheDocument();
+    expect(screen.getByText('Product URL')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /view product/i })).toBeInTheDocument();
+  });
 });

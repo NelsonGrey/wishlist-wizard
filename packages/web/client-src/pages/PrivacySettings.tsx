@@ -701,10 +701,10 @@ const PrivacySettingsPage = () => {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => setShowAddUserDialog(true)}
+                      disabled
                     >
                       <UserPlus className="h-4 w-4 mr-2" />
-                      Add User
+                      User Search Pending
                     </Button>
                   </div>
 
@@ -849,18 +849,8 @@ const PrivacySettingsPage = () => {
             </div>
 
             <div className="max-h-48 overflow-y-auto space-y-2">
-              {/* Mock user results - in real app, this would be from API */}
-              <div className="flex items-center justify-between p-3 border rounded-lg">
-                <div className="flex items-center space-x-3">
-                  <div className="w-8 h-8 bg-muted rounded-full flex items-center justify-center">
-                    <Users className="h-4 w-4" />
-                  </div>
-                  <div>
-                    <p className="font-medium">john_doe</p>
-                    <p className="text-sm text-muted-foreground">john@example.com</p>
-                  </div>
-                </div>
-                <Button size="sm">Add</Button>
+              <div className="p-4 border rounded-lg text-sm text-muted-foreground">
+                User search and access assignment will be available once the user directory API is enabled.
               </div>
             </div>
           </div>

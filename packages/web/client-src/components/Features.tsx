@@ -41,7 +41,7 @@ export default function Features() {
             </CardContent>
             <CardFooter>
               <Link href="/mobile-app-demo">
-                <Button variant="outline" className="w-full">Try the Mobile Demo</Button>
+                <Button variant="outline" className="w-full">Get Early Access</Button>
               </Link>
             </CardFooter>
           </Card>
@@ -62,8 +62,8 @@ export default function Features() {
               </p>
             </CardContent>
             <CardFooter>
-              <Link href="/ar-visualizer-demo">
-                <Button variant="outline" className="w-full">Experience AR Demo</Button>
+              <Link href="/ar-visualization-demo">
+                <Button variant="outline" className="w-full">Join AR Beta</Button>
               </Link>
             </CardFooter>
           </Card>
@@ -84,8 +84,8 @@ export default function Features() {
               </p>
             </CardContent>
             <CardFooter>
-              <Link href="/social-sharing-demo">
-                <Button variant="outline" className="w-full">Try Social Sharing</Button>
+              <Link href="/social-integration-demo">
+                <Button variant="outline" className="w-full">Start Collaborating</Button>
               </Link>
             </CardFooter>
           </Card>
@@ -107,7 +107,7 @@ export default function Features() {
             </CardContent>
             <CardFooter>
               <Link href="/price-tracking-demo">
-                <Button variant="outline" className="w-full">Try Price Tracking</Button>
+                <Button variant="outline" className="w-full">Start Price Tracking</Button>
               </Link>
             </CardFooter>
           </Card>
@@ -128,7 +128,9 @@ export default function Features() {
               </p>
             </CardContent>
             <CardFooter>
-              <Button variant="outline" className="w-full" disabled>Coming Soon</Button>
+              <Link href="/calendar-integration-demo">
+                <Button variant="outline" className="w-full">Coming Soon</Button>
+              </Link>
             </CardFooter>
           </Card>
           
@@ -148,8 +150,8 @@ export default function Features() {
               </p>
             </CardContent>
             <CardFooter>
-              <Link href="/user-profile">
-                <Button variant="outline" className="w-full">Try User Profiles</Button>
+              <Link href="/advanced-user-profiles-demo">
+                <Button variant="outline" className="w-full">Create Your Profile</Button>
               </Link>
             </CardFooter>
           </Card>
@@ -170,7 +172,9 @@ export default function Features() {
               </p>
             </CardContent>
             <CardFooter>
-              <Button variant="outline" className="w-full" disabled>Coming Soon</Button>
+              <Link href="/ai-gift-recommendations-demo">
+                <Button variant="outline" className="w-full">Coming Soon</Button>
+              </Link>
             </CardFooter>
           </Card>
         </div>

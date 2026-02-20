@@ -274,7 +274,11 @@ export abstract class BaseProductExtractorAdapter implements ProductExtractorAda
       /pixel/i,
       /tracking/i,
       /analytics/i,
-      /placeholder/i,
+      /via\.placeholder\.com/i,
+      /placehold\.it/i,
+      /placehold\.co/i,
+      /dummyimage\.com/i,
+      /placeholder[-_]/i,
       /loading/i
     ];
 

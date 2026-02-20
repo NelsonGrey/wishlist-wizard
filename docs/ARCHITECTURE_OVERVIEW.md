@@ -66,39 +66,12 @@ Full-featured authenticated workspace where users manage their wishlists.
 **Purpose:** Provide powerful tools for wishlist management and discovery
 
 **Pages:**
-- `/dashboard` - Main dashboard and home
-- `/dashboard-firebase` - Alternative dashboard
-- `/recommendations` - AI-powered recommendations
-- `/price-tracking` - Price drop alerts
-- `/calendar` - Event-based wishlists
-- `/notifications` - Notification center
-- `/user-profile` - User profile management
-- `/privacy-settings` - Privacy preferences
-- `/analytics` - Analytics and insights
-- `/wishlist/:id` - Individual wishlist view
-- `/shared/:shareId` - Shared wishlist view
-- `/price-tracking-demo` - Feature demonstrations
-- `/social-sharing-demo` - Feature demonstrations
-- `/mobile-app-demo` - Feature demonstrations
-- `/ar-visualizer-demo` - Feature demonstrations
+
 
 **Design Characteristics:**
-- Rich navigation bar with user account section
-- Notifications and user dropdown menu
-- Feature-rich navigation (Home, Recommendations, Price Tracking, Calendar)
-- Active state indicators for current page
-- Mobile-responsive menu
-- Gray background with clear content hierarchy
 
 **Header Navigation:**
-- Dashboard (Home)
-- Recommendations
-- Price Tracking
-- Calendar
-- Notifications bell (with unread count)
-- User profile dropdown with settings and logout
 
----
 
 ## Smart Layout Routing
 

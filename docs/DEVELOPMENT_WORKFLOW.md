@@ -111,6 +111,11 @@ develop (default, integration branch)
 
 **Title Format**: `[TYPE] Brief description of what changed`
 
+**Repository PR Template**:
+- Use `.github/pull_request_template.md` for every PR.
+- Updating `docs/DELIVERABLE_COMPONENT_MATRIX.md` is required for any change that affects website, mobile apps, or browser extension deliverables.
+- If an affected component remains non-✅, include a waiver (risk, owner, remediation deadline) in the PR.
+
 **Title Examples**:
 ```
 [FEATURE] Add price drop notifications
