@@ -20,7 +20,44 @@ import {
 } from 'firebase/auth';
 import { getToken, isSupported as messagingIsSupported } from 'firebase/messaging';
 
+function resolveEnvironmentSuffixFromHostname(): 'DEVELOPMENT' | 'STAGING' | 'PRODUCTION' | null {
+  if (typeof window === 'undefined' || !window.location?.hostname) {
+    return null;
+  }
+
+  const hostname = window.location.hostname.toLowerCase();
+
+  // Local development always uses development environment variables.
+  if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    return 'DEVELOPMENT';
+  }
+
+  // Firebase Hosting environment-specific domains.
+  if (hostname.includes('wishlist-wizard-dev.web.app')) {
+    return 'DEVELOPMENT';
+  }
+  if (hostname.includes('wishlist-wizard-staging.web.app')) {
+    return 'STAGING';
+  }
+  if (hostname.includes('wishlist-wizard.web.app')) {
+    return 'PRODUCTION';
+  }
+
+  // Generic suffix fallbacks for non-default hostnames.
+  if (hostname.includes('-dev') || hostname.includes('.dev.')) {
+    return 'DEVELOPMENT';
+  }
+  if (hostname.includes('-staging') || hostname.includes('.staging.')) {
+    return 'STAGING';
+  }
+
+  return null;
+}
+
 function resolveEnvironmentSuffix(): 'DEVELOPMENT' | 'STAGING' | 'PRODUCTION' {
+  const hostnameEnv = resolveEnvironmentSuffixFromHostname();
+  if (hostnameEnv) return hostnameEnv;
+
   const explicitEnv = String(import.meta.env.VITE_ENVIRONMENT || '').toLowerCase();
   if (explicitEnv === 'production') return 'PRODUCTION';
   if (explicitEnv === 'staging') return 'STAGING';
