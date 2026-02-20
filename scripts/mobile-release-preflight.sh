@@ -68,7 +68,9 @@ elif [ ! -f "$APK_RELEASE" ]; then
   echo "❌ Missing Android release artifact: $APK_RELEASE"
   exit 1
 fi
-if [ ! -d "$IOS_APP" ]; then
+if [ "${SKIP_IOS_RELEASE_ARTIFACT_CHECK:-false}" = "true" ]; then
+  echo "⚠️ Skipping iOS release artifact check (SKIP_IOS_RELEASE_ARTIFACT_CHECK=true)"
+elif [ ! -d "$IOS_APP" ]; then
   echo "❌ Missing iOS build artifact: $IOS_APP"
   exit 1
 fi
