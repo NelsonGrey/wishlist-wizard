@@ -20,19 +20,48 @@ import {
 } from 'firebase/auth';
 import { getToken, isSupported as messagingIsSupported } from 'firebase/messaging';
 
-// Vite exposes env vars prefixed with VITE_
+function resolveEnvironmentSuffix(): 'DEVELOPMENT' | 'STAGING' | 'PRODUCTION' {
+  const explicitEnv = String(import.meta.env.VITE_ENVIRONMENT || '').toLowerCase();
+  if (explicitEnv === 'production') return 'PRODUCTION';
+  if (explicitEnv === 'staging') return 'STAGING';
+  if (explicitEnv === 'development') return 'DEVELOPMENT';
+
+  const mode = String(import.meta.env.MODE || '').toLowerCase();
+  if (mode === 'production') return 'PRODUCTION';
+  return 'DEVELOPMENT';
+}
+
+const envSuffix = resolveEnvironmentSuffix();
+
+function getEnvValue(baseName: string): string {
+  const env = import.meta.env as Record<string, string | undefined>;
+  return env[`${baseName}_${envSuffix}`] || env[baseName] || '';
+}
+
+// Prefer environment-suffixed vars (VITE_FIREBASE_*_DEVELOPMENT/STAGING/PRODUCTION),
+// while remaining backward compatible with plain VITE_FIREBASE_*.
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID,
-  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID,
+  apiKey: getEnvValue('VITE_FIREBASE_API_KEY'),
+  authDomain: getEnvValue('VITE_FIREBASE_AUTH_DOMAIN'),
+  projectId: getEnvValue('VITE_FIREBASE_PROJECT_ID'),
+  storageBucket: getEnvValue('VITE_FIREBASE_STORAGE_BUCKET'),
+  messagingSenderId: getEnvValue('VITE_FIREBASE_MESSAGING_SENDER_ID'),
+  appId: getEnvValue('VITE_FIREBASE_APP_ID'),
+  // Optional: Analytics is not required for Auth/Firestore to initialize.
+  measurementId: getEnvValue('VITE_FIREBASE_MEASUREMENT_ID') || undefined,
 };
 
 function hasAllConfigValues() {
-  return Object.values(firebaseConfig).every(v => typeof v === 'string' && v.length > 0);
+  const requiredValues = [
+    firebaseConfig.apiKey,
+    firebaseConfig.authDomain,
+    firebaseConfig.projectId,
+    firebaseConfig.storageBucket,
+    firebaseConfig.messagingSenderId,
+    firebaseConfig.appId,
+  ];
+
+  return requiredValues.every(v => typeof v === 'string' && v.length > 0);
 }
 
 interface FirebaseAppError extends Error {
@@ -41,7 +70,7 @@ interface FirebaseAppError extends Error {
 
 function createFirebaseNotConfiguredError(): FirebaseAppError {
   const error = new Error(
-    'Firebase is not configured. Set VITE_FIREBASE_API_KEY, VITE_FIREBASE_AUTH_DOMAIN, and VITE_FIREBASE_PROJECT_ID (plus the remaining VITE_FIREBASE_* values).'
+    `Firebase is not configured. Set VITE_FIREBASE_*_${envSuffix} (or plain VITE_FIREBASE_* fallback values).`
   ) as FirebaseAppError;
   error.code = 'app/firebase-not-configured';
   return error;
