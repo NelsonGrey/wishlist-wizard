@@ -5,6 +5,11 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 DIST_DIR="$ROOT_DIR/packages/browser-extension/dist"
 MANIFEST="$DIST_DIR/manifest.json"
 
+HAS_RG=false
+if command -v rg >/dev/null 2>&1; then
+  HAS_RG=true
+fi
+
 echo "Running extension release preflight..."
 
 if [ ! -d "$DIST_DIR" ]; then
@@ -37,14 +42,26 @@ for file in "${required_files[@]}"; do
   fi
 done
 
-if ! rg -q '"manifest_version"\s*:\s*3' "$MANIFEST"; then
-  echo "❌ Manifest is not MV3"
-  exit 1
-fi
+if [ "$HAS_RG" = true ]; then
+  if ! rg -q '"manifest_version"\s*:\s*3' "$MANIFEST"; then
+    echo "❌ Manifest is not MV3"
+    exit 1
+  fi
 
-if ! rg -q '"version"\s*:\s*"' "$MANIFEST"; then
-  echo "❌ Manifest version is missing"
-  exit 1
+  if ! rg -q '"version"\s*:\s*"' "$MANIFEST"; then
+    echo "❌ Manifest version is missing"
+    exit 1
+  fi
+else
+  if ! grep -Eq '"manifest_version"[[:space:]]*:[[:space:]]*3' "$MANIFEST"; then
+    echo "❌ Manifest is not MV3"
+    exit 1
+  fi
+
+  if ! grep -Eq '"version"[[:space:]]*:[[:space:]]*"' "$MANIFEST"; then
+    echo "❌ Manifest version is missing"
+    exit 1
+  fi
 fi
 
 if ! ls "$DIST_DIR"/wishlist-wizard-extension*.tgz >/dev/null 2>&1; then
