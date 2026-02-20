@@ -145,6 +145,13 @@ jobs:
           node-version: 20
           cache: npm
 
+      - name: Setup Flutter
+        if: ${{ hashFiles('packages/mobile/pubspec.yaml') != '' }}
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
       - name: Run Quality Gates
         run: |
           set -euo pipefail
