@@ -954,12 +954,12 @@ const UserProfile = () => {
                     Manage detailed privacy settings for individual wishlists, items, and your profile.
                     Control visibility, custom access lists, and interaction permissions.
                   </p>
-                  <Link href="/privacy-settings">
-                    <Button size="lg">
+                  <Button asChild size="lg">
+                    <Link href="/privacy-settings">
                       <Settings className="h-4 w-4 mr-2" />
                       Open Privacy Settings
-                    </Button>
-                  </Link>
+                    </Link>
+                  </Button>
                 </div>
               </CardContent>
             </Card>

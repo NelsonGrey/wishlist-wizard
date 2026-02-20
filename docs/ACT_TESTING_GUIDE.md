@@ -32,31 +32,31 @@ cp .act-secrets/test-secrets .act-secrets/secrets
 ./scripts/test-act.sh
 
 # Or test specific workflows directly
-act -W .github/workflows/ci-cd-pipeline.yml --job quality-check --secret-file .act-secrets/test-secrets --container-architecture linux/amd64
+act -W .github/workflows/master-pipeline.yml --job test --secret-file .act-secrets/test-secrets --container-architecture linux/amd64
 ```
 
 ## 🛠️ Common Commands
 
 ### Test Quality Checks
 ```bash
-act -W .github/workflows/ci-cd-pipeline.yml \
-  --job quality-check \
+act -W .github/workflows/master-pipeline.yml \
+  --job test \
   --secret-file .act-secrets/test-secrets \
   --container-architecture linux/amd64
 ```
 
-### Test Web Deployment (Dry Run)
+### Test Web Build (Dry Run)
 ```bash
-act -W .github/workflows/web-deployment.yml \
-  --job deploy-web \
+act -W .github/workflows/master-pipeline.yml \
+  --job build-web \
   --secret-file .act-secrets/test-secrets \
   --container-architecture linux/amd64
 ```
 
-### Test Android Distribution
+### Test Firebase Deployment (Dry Run)
 ```bash
-act -W .github/workflows/android-distribution.yml \
-  --job distribute-android \
+act -W .github/workflows/master-pipeline.yml \
+  --job deploy-firebase \
   --secret-file .act-secrets/test-secrets \
   --container-architecture linux/amd64
 ```
@@ -86,11 +86,11 @@ EOF
 ### Workflow Path Issues
 ```bash
 # Use absolute paths
-act -W /full/path/to/.github/workflows/ci-cd-pipeline.yml
+act -W /full/path/to/.github/workflows/master-pipeline.yml
 
 # Or run from project root
 cd /path/to/project
-act -W .github/workflows/ci-cd-pipeline.yml
+act -W .github/workflows/master-pipeline.yml
 ```
 
 ### Job Selection
@@ -99,7 +99,7 @@ act -W .github/workflows/ci-cd-pipeline.yml
 act --list
 
 # Test specific job
-act -W .github/workflows/ci-cd-pipeline.yml --job quality-check
+act -W .github/workflows/master-pipeline.yml --job test
 ```
 
 ## 📊 Workflow Testing Strategy
@@ -107,19 +107,19 @@ act -W .github/workflows/ci-cd-pipeline.yml --job quality-check
 ### Phase 1: Individual Job Testing
 ```bash
 # Test quality checks first
-act -W .github/workflows/ci-cd-pipeline.yml --job quality-check
+act -W .github/workflows/master-pipeline.yml --job test
 
 # Test build jobs
-act -W .github/workflows/ci-cd-pipeline.yml --job build-web
+act -W .github/workflows/master-pipeline.yml --job build-web
 
 # Test deployment jobs (with dry-run)
-act -W .github/workflows/ci-cd-pipeline.yml --job deploy-web
+act -W .github/workflows/master-pipeline.yml --job deploy-firebase
 ```
 
 ### Phase 2: Full Pipeline Testing
 ```bash
 # Test complete workflow
-act -W .github/workflows/ci-cd-pipeline.yml --secret-file .act-secrets/test-secrets
+act -W .github/workflows/master-pipeline.yml --secret-file .act-secrets/test-secrets
 ```
 
 ### Phase 3: Event Simulation

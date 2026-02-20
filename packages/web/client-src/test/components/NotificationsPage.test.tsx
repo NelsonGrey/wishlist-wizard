@@ -239,4 +239,32 @@ describe('Notifications Page', () => {
     expect(screen.getByText('No notifications yet')).toBeInTheDocument();
     expect(screen.getByText("You'll see notifications about activity on your wishlists here.")).toBeInTheDocument();
   });
+
+  it('should render safely when notification timestamp is invalid', () => {
+    // Arrange
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (useQuery as any).mockReturnValue({
+      data: {
+        notifications: [
+          {
+            id: 7,
+            title: 'Corrupt Notification',
+            content: 'This notification has an invalid timestamp.',
+            isRead: false,
+            createdAt: 'not-a-valid-date',
+            type: 'system',
+          },
+        ],
+        unreadCount: 1,
+      },
+      isLoading: false,
+    });
+
+    // Act
+    render(<Notifications />, { pathname: '/notifications' });
+
+    // Assert
+    expect(screen.getByText('Corrupt Notification')).toBeInTheDocument();
+    expect(screen.getByText('Unknown time')).toBeInTheDocument();
+  });
 });

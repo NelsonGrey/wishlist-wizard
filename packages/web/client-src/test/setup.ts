@@ -43,6 +43,12 @@ Object.defineProperty(window, 'ResizeObserver', {
   value: MockResizeObserver,
 });
 
+// JSDOM does not implement scroll APIs used by layouts.
+Object.defineProperty(window, 'scrollTo', {
+  writable: true,
+  value: vi.fn(),
+});
+
 // Reset all mocks between tests
 afterEach(() => {
   cleanup();

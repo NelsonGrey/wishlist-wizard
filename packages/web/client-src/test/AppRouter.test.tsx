@@ -56,16 +56,20 @@ describe('AppRouter Smoke Tests', () => {
       for (const route of publicRoutes) {
         // Act
         window.history.pushState({}, route, route);
-        render(<AppRouter />);
+        const { unmount } = render(<AppRouter />);
 
         // Assert: Page should render without requiring auth
         expect(document.documentElement).toBeTruthy();
+        unmount();
       }
     });
 
     it('should have accessible navigation structure', async () => {
       // Arrange & Act
       render(<AppRouter />);
+      await waitFor(() => {
+        expect(document.body).toBeTruthy();
+      });
 
       // Assert
       // Check for navigation landmark
@@ -97,6 +101,9 @@ describe('AppRouter Smoke Tests', () => {
     it('should have proper layout structure', async () => {
       // Arrange & Act
       render(<AppRouter />);
+      await waitFor(() => {
+        expect(document.body).toBeTruthy();
+      });
 
       // Assert
       // Check that document has basic structure
@@ -118,10 +125,11 @@ describe('AppRouter Smoke Tests', () => {
       // Act & Assert
       for (const route of expectedRoutes) {
         window.history.pushState({}, route.page, route.path);
-        render(<AppRouter />);
+        const { unmount } = render(<AppRouter />);
 
         // Each route should be accessible without crashing
         expect(document.body).toBeTruthy();
+        unmount();
       }
     });
   });
@@ -150,6 +158,9 @@ describe('AppRouter Smoke Tests', () => {
 
       // Act
       render(<AppRouter />);
+      await waitFor(() => {
+        expect(document.body).toBeTruthy();
+      });
 
       // Assert
       // Check that page renders in public layout context
@@ -195,10 +206,11 @@ describe('AppRouter Smoke Tests', () => {
       
       for (const route of routes) {
         window.history.pushState({}, route, route);
-        render(<AppRouter />);
+        const { unmount } = render(<AppRouter />);
         
         // Should not throw or crash
         expect(document.body).toBeTruthy();
+        unmount();
       }
     });
 
@@ -208,6 +220,9 @@ describe('AppRouter Smoke Tests', () => {
 
       // Act
       render(<AppRouter />);
+      await waitFor(() => {
+        expect(document.body).toBeTruthy();
+      });
 
       // Assert
       const currentSearch = window.location.search;
@@ -236,6 +251,9 @@ describe('AppRouter Smoke Tests', () => {
     it('should have accessible text content', async () => {
       // Arrange & Act
       render(<AppRouter />);
+      await waitFor(() => {
+        expect(document.body).toBeTruthy();
+      });
 
       // Assert
       // Page should have accessible structure for i18n

@@ -5,7 +5,7 @@
 All production-ready builds have been generated and are available in the following locations:
 
 ### 1. 🌐 React Web Application
-- **Location**: `web/dist/`
+- **Location**: `packages/web/dist/`
 - **Type**: Single Page Application (SPA)
 - **Deployment**: Ready for static hosting (Firebase Hosting, Netlify, AWS S3, etc.)
 - **Entry Point**: `dist/index.html`
@@ -51,7 +51,6 @@ firebase login
 firebase init hosting
 
 # Deploy from project root
-cd web
 firebase deploy --only hosting
 ```
 
@@ -60,13 +59,12 @@ firebase deploy --only hosting
 # Install Netlify CLI
 npm install -g netlify-cli
 
-# Deploy
-cd web
-netlify deploy --prod --dir=dist
+# Deploy (from repo root)
+netlify deploy --prod --dir=packages/web/dist
 ```
 
 #### Option 3: Static File Hosting
-Upload the entire `web/dist/` directory to your static file host.
+Upload the entire `packages/web/dist/` directory to your static file host.
 
 ### API Server Deployment
 
@@ -151,11 +149,11 @@ FIREBASE_PROJECT_ID=your-project-id
 npm run build
 
 # Test individual packages
-npm run build -w packages/shared
-npm run build -w packages/browser-extension
-npm run build -w packages/functions
-npm run build -w packages/mobile
-npm run build -w web
+npm run build --workspace=@wishlist-wizard/shared
+npm run build --workspace=@wishlist-wizard/browser-extension
+npm run build --workspace=functions
+npm run build --workspace=@wishlist-wizard/web
+cd packages/mobile && flutter build web --release
 ```
 
 ## 🆘 Troubleshooting
@@ -184,4 +182,4 @@ npm run build -w web
 
 **Generated on**: October 7, 2025  
 **Version**: 1.0.0  
-**Build Status**: ✅ All deliverables ready for production deployment
+**Build Status**: ✅ Builds validated; complete environment and secret configuration before production deployment
