@@ -58,10 +58,8 @@ export default function Blog() {
             <p className="text-gray-600 mb-4">
               Want to stay updated on new blog posts? 
             </p>
-            <Link href="/">
-              <a className="text-emerald-700 hover:text-emerald-800 font-medium transition-colors">
-                Go back home →
-              </a>
+            <Link href="/" className="text-emerald-700 hover:text-emerald-800 font-medium transition-colors">
+              Go back home →
             </Link>
           </section>
         </div>

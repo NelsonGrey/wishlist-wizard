@@ -46,7 +46,7 @@ vi.mock('@/lib/queryClient', async () => {
 // Create a custom render function that includes providers
 function customRender(
   ui: React.ReactElement,
-  options?: Omit<RenderOptions, 'wrapper'> & { 
+  options?: RenderOptions & { 
     queryClient?: QueryClient;
     pathname?: string;
   }
@@ -124,17 +124,24 @@ function customRender(
         },
       },
     }),
+    wrapper: UserWrapper,
     ...renderOptions
   } = options || {};
   
   function AllTheProviders({ children }: PropsWithChildren) {
-    return (
+    const content = (
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
           {children}
         </TooltipProvider>
       </QueryClientProvider>
     );
+
+    if (UserWrapper) {
+      return <UserWrapper>{content}</UserWrapper>;
+    }
+
+    return content;
   }
   
   return render(ui, { wrapper: AllTheProviders, ...renderOptions });

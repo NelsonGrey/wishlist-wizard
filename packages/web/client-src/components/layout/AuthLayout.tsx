@@ -19,11 +19,9 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
       <header className="bg-white/95 backdrop-blur-sm border-b border-emerald-100 sticky top-0 z-10 shadow-sm">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           {/* Logo - links back to public site */}
-          <Link href="/">
-            <a className="flex items-center hover:scale-105 transition-transform duration-200">
-              <img src="/logo.svg" alt="Wishlist Wizard" className="h-8 w-8 mr-2.5" />
-              <span className="font-bold text-xl tracking-tight bg-gradient-to-r from-emerald-800 to-green-800 bg-clip-text text-transparent">Wishlist Wizard</span>
-            </a>
+          <Link href="/" className="flex items-center hover:scale-105 transition-transform duration-200">
+            <img src="/logo.svg" alt="Wishlist Wizard" className="h-8 w-8 mr-2.5" />
+            <span className="font-bold text-xl tracking-tight bg-gradient-to-r from-emerald-800 to-green-800 bg-clip-text text-transparent">Wishlist Wizard</span>
           </Link>
 
           {/* Help text */}

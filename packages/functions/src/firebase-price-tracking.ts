@@ -9,6 +9,7 @@ import { getAuth } from 'firebase-admin/auth';
 import { initializeApp, getApps } from 'firebase-admin/app';
 import { defineSecret } from 'firebase-functions/params';
 import { logger } from 'firebase-functions/v2';
+import { sendNotificationToUser } from './fcm';
 
 // Initialize Firebase Admin (safe for multiple imports)
 const app = getApps().length === 0 ? initializeApp() : getApps()[0];
@@ -523,7 +524,14 @@ async function sendPriceAlertNotifications(notifications: Array<{
         });
       }
       
-      // FCM push notifications will be added once mobile/extension push wiring is finalized
+      // Send push notification via centralized FCM delivery utility.
+      await sendNotificationToUser(notification.userId, {
+        title: notification.title,
+        body: notification.body,
+        data: Object.fromEntries(
+          Object.entries(notification.data || {}).map(([key, value]) => [key, String(value)])
+        )
+      });
       
     } catch (error) {
       logger.error(`Error sending notification to user ${notification.userId}:`, error);

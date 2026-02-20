@@ -13,7 +13,7 @@ This directory contains automated testing for the Wishlist Wizard CI/CD pipeline
 
 This script will:
 - ✅ Test environment determination logic
-- ✅ Run quality checks (TypeScript, unit tests, security audit)
+- ✅ Run quality checks (lint, type-check, unit tests)
 - ✅ Build all packages (web, functions, browser-extension, shared)
 - ✅ Test extension packaging
 - ✅ Test environment file generation
@@ -21,11 +21,11 @@ This script will:
 
 ### GitHub Actions Automated Testing
 
-The CI/CD pipeline includes automated testing that runs on:
+The CI/CD pipeline includes automated testing in `.github/workflows/master-pipeline.yml` and runs on:
 
-- **Push to test branches**: `test-ci-cd`, `test-pipeline`
-- **Scheduled runs**: Daily at 2 AM UTC
-- **Manual trigger**: Via GitHub Actions UI
+- **Push** to `develop`, `staging`, `main`
+- **Pull requests** into `develop`, `staging`, `main`
+- **Manual trigger** via GitHub Actions UI (`workflow_dispatch`)
 
 #### Test Workflow Features
 
@@ -59,10 +59,10 @@ Test results are automatically generated and include:
 ```yaml
 on:
   push:
-    branches: [ test-ci-cd, test-pipeline ]
-  schedule:
-    - cron: '0 2 * * *'  # Daily at 2 AM UTC
-  workflow_dispatch:     # Manual trigger available
+    branches: [ develop, staging, main ]
+  pull_request:
+    branches: [ develop, staging, main ]
+  workflow_dispatch:
 ```
 
 ### Test Scopes
@@ -128,6 +128,6 @@ export DEBUG=test-ci-cd:*
 
 ## 📚 Related Documentation
 
-- [CI/CD Pipeline](../.github/workflows/ci-cd-pipeline.yml)
+- [Master CI/CD Pipeline](../.github/workflows/master-pipeline.yml)
 - [Deployment Guide](../docs/DEPLOYMENT.md)
 - [Development Setup](../docs/ENVIRONMENT_SETUP.md)

@@ -82,25 +82,25 @@ export default function MainLayout({ children }: MainLayoutProps) {
       <header className="bg-white border-b sticky top-0 z-10">
         <div className="container mx-auto px-4 py-3 flex items-center justify-between">
           {/* Logo */}
-          <Link href="/">
-            <a className="flex items-center">
-              <Gift className="h-6 w-6 text-primary mr-2" />
-              <span className="font-bold text-xl tracking-tight">Wishlist Wizard</span>
-            </a>
+          <Link href="/" className="flex items-center">
+            <Gift className="h-6 w-6 text-primary mr-2" />
+            <span className="font-bold text-xl tracking-tight">Wishlist Wizard</span>
           </Link>
           
           {/* Navigation */}
           <nav className="hidden md:flex items-center space-x-1">
             {navItems.map((item) => (
-              <Link key={item.name} href={item.href}>
-                <a className={`px-3 py-2 rounded-md text-sm flex items-center font-medium ${
-                  location === item.href 
-                    ? 'bg-primary/10 text-primary' 
+              <Link
+                key={item.name}
+                href={item.href}
+                className={`px-3 py-2 rounded-md text-sm flex items-center font-medium ${
+                  location === item.href
+                    ? 'bg-primary/10 text-primary'
                     : 'text-gray-700 hover:bg-gray-100'
-                }`}>
-                  {item.icon}
-                  <span className="ml-2">{item.name}</span>
-                </a>
+                }`}
+              >
+                {item.icon}
+                <span className="ml-2">{item.name}</span>
               </Link>
             ))}
           </nav>
@@ -110,15 +110,13 @@ export default function MainLayout({ children }: MainLayoutProps) {
             {currentUser ? (
               <>
                 {/* Notifications */}
-                <Link href="/notifications">
-                  <a className="relative p-2 rounded-full hover:bg-gray-100 transition-colors">
-                    <Bell className="h-5 w-5 text-gray-700" />
-                    {unreadCount > 0 && (
-                      <span className="absolute -top-0.5 -right-0.5 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                        {unreadCount > 9 ? '9+' : unreadCount}
-                      </span>
-                    )}
-                  </a>
+                <Link href="/notifications" className="relative p-2 rounded-full hover:bg-gray-100 transition-colors">
+                  <Bell className="h-5 w-5 text-gray-700" />
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-0.5 -right-0.5 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                      {unreadCount > 9 ? '9+' : unreadCount}
+                    </span>
+                  )}
                 </Link>
                 
                 {/* User dropdown */}
@@ -141,19 +139,15 @@ export default function MainLayout({ children }: MainLayoutProps) {
                     </div>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem asChild>
-                      <Link href="/user-profile">
-                        <a className="flex w-full cursor-pointer items-center">
-                          <User className="h-4 w-4 mr-2 opacity-70" />
-                          Profile
-                        </a>
+                      <Link href="/user-profile" className="flex w-full cursor-pointer items-center">
+                        <User className="h-4 w-4 mr-2 opacity-70" />
+                        Profile
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
-                      <Link href="/privacy-settings">
-                        <a className="flex w-full cursor-pointer items-center">
-                          <Settings className="h-4 w-4 mr-2 opacity-70" />
-                          Settings
-                        </a>
+                      <Link href="/privacy-settings" className="flex w-full cursor-pointer items-center">
+                        <Settings className="h-4 w-4 mr-2 opacity-70" />
+                        Settings
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
@@ -166,15 +160,11 @@ export default function MainLayout({ children }: MainLayoutProps) {
               </>
             ) : (
               <div className="flex items-center space-x-2">
-                <Link href="/login">
-                  <a className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-md">
-                    Login
-                  </a>
+                <Link href="/login" className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-md">
+                  Login
                 </Link>
-                <Link href="/register">
-                  <a className="px-4 py-2 text-sm font-medium text-white bg-primary hover:bg-primary/90 rounded-md">
-                    Register
-                  </a>
+                <Link href="/register" className="px-4 py-2 text-sm font-medium text-white bg-primary hover:bg-primary/90 rounded-md">
+                  Register
                 </Link>
               </div>
             )}

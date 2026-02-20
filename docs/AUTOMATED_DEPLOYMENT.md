@@ -97,7 +97,7 @@ VITE_FIREBASE_PROJECT_ID=your_project_id
 ./scripts/deploy.sh deploy-all
 
 # Deploy individual components
-./scripts/deploy.sh deploy-web      # Deploy to Firebase Hosting
+./scripts/deploy.sh deploy-firebase      # Deploy to Firebase Hosting
 ./scripts/deploy.sh deploy-api      # Deploy to Firebase Functions
 ./scripts/deploy.sh deploy-mobile   # Deploy to Firebase Hosting
 
@@ -128,7 +128,7 @@ firebase deploy --only hosting
 
 #### API Server to Firebase Functions
 ```bash
-cd packages/api-server
+cd packages/functions
 npm run build
 firebase deploy --only functions
 ```
@@ -201,7 +201,7 @@ firebase deploy --only hosting
 The CI/CD pipeline is designed to be flexible and can be customized:
 
 ### Adding New Deployment Targets
-1. Add new job to `.github/workflows/ci-cd-pipeline.yml`
+1. Add new job to `.github/workflows/master-pipeline.yml`
 2. Configure platform-specific secrets
 3. Update deployment script if needed
 
@@ -211,7 +211,7 @@ The CI/CD pipeline is designed to be flexible and can be customized:
 3. Test changes in feature branches first
 
 ### Adding Quality Gates
-1. Add new testing steps to quality-check job
+1. Add new testing steps to test job
 2. Configure additional linting or security checks
 3. Set up branch protection rules
 

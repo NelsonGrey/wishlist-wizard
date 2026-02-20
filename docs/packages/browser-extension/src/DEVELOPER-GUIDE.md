@@ -1,6 +1,8 @@
-# WishKeeper Extension: Developer Guide
+# Wishlist Wizard Extension: Developer Guide
 
-This guide provides detailed instructions for developers on how to package the WishKeeper browser extension for distribution to users.
+> Note: Use `docs/EXTENSION_STORE_SUBMISSION_RUNBOOK.md` as the canonical release checklist.
+
+This guide provides detailed instructions for developers on how to package the Wishlist Wizard browser extension for distribution to users.
 
 ## Prerequisites
 

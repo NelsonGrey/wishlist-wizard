@@ -37,10 +37,10 @@ interface PrivacyControlsProps {
 }
 
 const VISIBILITY_OPTIONS = [
-  { value: 'public', label: 'Public', icon: Globe, color: 'text-green-600' },
-  { value: 'friends', label: 'Friends Only (Coming Soon)', icon: Users, color: 'text-gray-400', disabled: true },
-  { value: 'private', label: 'Private', icon: Lock, color: 'text-red-600' },
-  { value: 'custom', label: 'Custom Access', icon: UserCheck, color: 'text-emerald-800' }
+  { value: 'public', label: 'Public', icon: Globe, color: 'text-green-600', disabled: false },
+  { value: 'friends', label: 'Friends Only', icon: Users, color: 'text-blue-600', disabled: false },
+  { value: 'private', label: 'Private', icon: Lock, color: 'text-red-600', disabled: false },
+  { value: 'custom', label: 'Custom Access', icon: UserCheck, color: 'text-emerald-800', disabled: false }
 ];
 
 export default function PrivacyControls({

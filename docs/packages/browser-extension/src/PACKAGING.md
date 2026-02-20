@@ -1,6 +1,8 @@
-# WishKeeper Extension: Packaging & Installation Guide
+# Wishlist Wizard Extension: Packaging & Installation Guide
 
-This document provides instructions for both developers and end-users on how to package, install, and use the WishKeeper browser extension.
+> Note: The canonical production submission process is documented in `docs/EXTENSION_STORE_SUBMISSION_RUNBOOK.md`.
+
+This document provides instructions for both developers and end-users on how to package, install, and use the Wishlist Wizard browser extension.
 
 ## For Developers: Packaging the Extension
 

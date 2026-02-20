@@ -40,9 +40,9 @@ export default function Features() {
               </p>
             </CardContent>
             <CardFooter>
-              <Link href="/mobile-app-demo">
-                <Button variant="outline" className="w-full">Get Early Access</Button>
-              </Link>
+              <Button asChild variant="outline" className="w-full">
+                <Link href="/mobile-app-demo">Get Early Access</Link>
+              </Button>
             </CardFooter>
           </Card>
           
@@ -62,9 +62,9 @@ export default function Features() {
               </p>
             </CardContent>
             <CardFooter>
-              <Link href="/ar-visualization-demo">
-                <Button variant="outline" className="w-full">Join AR Beta</Button>
-              </Link>
+              <Button asChild variant="outline" className="w-full">
+                <Link href="/ar-visualization-demo">Join AR Beta</Link>
+              </Button>
             </CardFooter>
           </Card>
           
@@ -84,9 +84,9 @@ export default function Features() {
               </p>
             </CardContent>
             <CardFooter>
-              <Link href="/social-integration-demo">
-                <Button variant="outline" className="w-full">Start Collaborating</Button>
-              </Link>
+              <Button asChild variant="outline" className="w-full">
+                <Link href="/social-integration-demo">Start Collaborating</Link>
+              </Button>
             </CardFooter>
           </Card>
           
@@ -106,9 +106,9 @@ export default function Features() {
               </p>
             </CardContent>
             <CardFooter>
-              <Link href="/price-tracking-demo">
-                <Button variant="outline" className="w-full">Start Price Tracking</Button>
-              </Link>
+              <Button asChild variant="outline" className="w-full">
+                <Link href="/price-tracking">Start Price Tracking</Link>
+              </Button>
             </CardFooter>
           </Card>
           
@@ -128,9 +128,9 @@ export default function Features() {
               </p>
             </CardContent>
             <CardFooter>
-              <Link href="/calendar-integration-demo">
-                <Button variant="outline" className="w-full">Coming Soon</Button>
-              </Link>
+              <Button asChild variant="outline" className="w-full">
+                <Link href="/calendar">Open Calendar</Link>
+              </Button>
             </CardFooter>
           </Card>
           
@@ -150,9 +150,9 @@ export default function Features() {
               </p>
             </CardContent>
             <CardFooter>
-              <Link href="/advanced-user-profiles-demo">
-                <Button variant="outline" className="w-full">Create Your Profile</Button>
-              </Link>
+              <Button asChild variant="outline" className="w-full">
+                <Link href="/advanced-user-profiles-demo">Create Your Profile</Link>
+              </Button>
             </CardFooter>
           </Card>
           
@@ -172,9 +172,9 @@ export default function Features() {
               </p>
             </CardContent>
             <CardFooter>
-              <Link href="/ai-gift-recommendations-demo">
-                <Button variant="outline" className="w-full">Coming Soon</Button>
-              </Link>
+              <Button asChild variant="outline" className="w-full">
+                <Link href="/recommendations">Get Recommendations</Link>
+              </Button>
             </CardFooter>
           </Card>
         </div>

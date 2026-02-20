@@ -57,7 +57,7 @@ find /path/to/target/repo -name "*.yml" -o -name "*.sh" | xargs sed -i '' "s/wis
 ## 📋 What's Included
 
 ### Workflows (`.github/workflows/`)
-- `ci-cd-pipeline.yml` - Main CI/CD pipeline with build, test, deploy
+- `master-pipeline.yml` - Main CI/CD pipeline with build, test, deploy
 - `ios-distribution.yml` - iOS app distribution to TestFlight/App Store
 - `android-distribution.yml` - Android app distribution to Play Store
 - `test-ci-cd.yml` - Comprehensive testing and validation
@@ -86,7 +86,7 @@ After applying the setup, customize for your repository:
 
 ### 1. Update Workflow Configuration
 
-Edit `.github/workflows/ci-cd-pipeline.yml`:
+Edit `.github/workflows/master-pipeline.yml`:
 ```yaml
 env:
   NODE_VERSION: '18'  # Adjust for your tech stack

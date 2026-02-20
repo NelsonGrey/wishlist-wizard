@@ -1,7 +1,9 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { render } from '../utils';
 import DashboardFirebase from '@/pages/DashboardFirebase';
+import { useQuery } from '@tanstack/react-query';
 
 // Mock all external dependencies
 vi.mock('@/hooks/useFirebaseData', () => ({
@@ -15,10 +17,12 @@ vi.mock('@/hooks/use-toast', () => ({
 }));
 
 vi.mock('@/components/CreateWishlistDialog', () => ({
-  default: ({ onClose }: { onClose: () => void }) => (
+  default: ({ open, onClose }: { open: boolean; onClose: () => void }) => (
+    open ? (
     <div data-testid="create-dialog">
       <button data-testid="close-dialog" onClick={onClose}>Close</button>
     </div>
+    ) : null
   ),
 }));
 
@@ -68,6 +72,12 @@ describe('Dashboard CRUD Operations', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (useQuery as any).mockReturnValue({
+      data: [],
+      isLoading: false,
+      error: null,
+    });
   });
 
   describe('Dashboard Rendering', () => {
@@ -82,12 +92,19 @@ describe('Dashboard CRUD Operations', () => {
         deleteWishlist: vi.fn(),
         updateWishlist: vi.fn(),
       } as any);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (useQuery as any).mockReturnValue({
+        data: [{ ...mockWishlists[0], id: 1, userId: 1 }],
+        isLoading: false,
+        error: null,
+      });
 
       // Act
       render(<DashboardFirebase />);
 
       // Assert
-      expect(document.body).toBeTruthy();
+      expect(screen.getByText('My Wishlists')).toBeInTheDocument();
+      expect(screen.getByText('Birthday Wishlist')).toBeInTheDocument();
     });
 
     it('should handle loading state', async () => {
@@ -101,12 +118,18 @@ describe('Dashboard CRUD Operations', () => {
         deleteWishlist: vi.fn(),
         updateWishlist: vi.fn(),
       } as any);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (useQuery as any).mockReturnValue({
+        data: undefined,
+        isLoading: true,
+        error: null,
+      });
 
       // Act
       render(<DashboardFirebase />);
 
       // Assert
-      expect(document.body).toBeTruthy();
+      expect(document.querySelectorAll('.animate-pulse').length).toBeGreaterThan(0);
     });
 
     it('should handle empty wishlist state', async () => {
@@ -120,12 +143,19 @@ describe('Dashboard CRUD Operations', () => {
         deleteWishlist: vi.fn(),
         updateWishlist: vi.fn(),
       } as any);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (useQuery as any).mockReturnValue({
+        data: [],
+        isLoading: false,
+        error: null,
+      });
 
       // Act
       render(<DashboardFirebase />);
 
       // Assert
-      expect(document.body).toBeTruthy();
+      expect(screen.getByText('No wishlists yet')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /create wishlist/i })).toBeInTheDocument();
     });
 
     it('should handle error state gracefully', async () => {
@@ -139,12 +169,19 @@ describe('Dashboard CRUD Operations', () => {
         deleteWishlist: vi.fn(),
         updateWishlist: vi.fn(),
       } as any);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (useQuery as any).mockReturnValue({
+        data: undefined,
+        isLoading: false,
+        error: new Error('Fetch failed'),
+      });
 
       // Act
       render(<DashboardFirebase />);
 
       // Assert
-      expect(document.body).toBeTruthy();
+      expect(screen.getByText(/failed to load wishlists/i)).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /retry/i })).toBeInTheDocument();
     });
   });
 
@@ -169,6 +206,48 @@ describe('Dashboard CRUD Operations', () => {
       await waitFor(() => {
         expect(document.body).toBeTruthy();
       });
+    });
+  });
+
+  describe('Interactions', () => {
+    it('opens and closes create wishlist dialog', async () => {
+      const { useWishlists } = await import('@/hooks/useFirebaseData');
+      vi.mocked(useWishlists).mockReturnValue({
+        wishlists: mockWishlists,
+        loading: false,
+        error: null,
+        createWishlist: vi.fn(),
+        deleteWishlist: vi.fn(),
+        updateWishlist: vi.fn(),
+      } as any);
+
+      render(<DashboardFirebase />);
+      const user = userEvent.setup();
+
+      await user.click(screen.getByRole('button', { name: /create new list/i }));
+      expect(screen.getByTestId('create-dialog')).toBeInTheDocument();
+
+      await user.click(screen.getByTestId('close-dialog'));
+      expect(screen.queryByTestId('create-dialog')).not.toBeInTheDocument();
+    });
+
+    it('toggles between Firebase and API server labels', async () => {
+      const { useWishlists } = await import('@/hooks/useFirebaseData');
+      vi.mocked(useWishlists).mockReturnValue({
+        wishlists: mockWishlists,
+        loading: false,
+        error: null,
+        createWishlist: vi.fn(),
+        deleteWishlist: vi.fn(),
+        updateWishlist: vi.fn(),
+      } as any);
+
+      render(<DashboardFirebase />);
+      const user = userEvent.setup();
+
+      expect(screen.getByRole('button', { name: /switch to firebase sdk/i })).toBeInTheDocument();
+      await user.click(screen.getByRole('button', { name: /switch to firebase sdk/i }));
+      expect(screen.getByRole('button', { name: /switch to api server/i })).toBeInTheDocument();
     });
   });
 

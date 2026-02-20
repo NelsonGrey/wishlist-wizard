@@ -175,15 +175,11 @@ export default function FeatureDemo({ feature }: FeatureDemoProps) {
           </div>
 
           <div className="flex flex-wrap gap-3">
-            <Link href={config.appHref}>
-              <a className="inline-flex items-center justify-center rounded-lg bg-emerald-700 px-5 py-3 text-white font-medium hover:bg-emerald-800 transition-colors">
-                {config.appCtaLabel}
-              </a>
+            <Link href={config.appHref} className="inline-flex items-center justify-center rounded-lg bg-emerald-700 px-5 py-3 text-white font-medium hover:bg-emerald-800 transition-colors">
+              {config.appCtaLabel}
             </Link>
-            <Link href="/register">
-              <a className="inline-flex items-center justify-center rounded-lg border border-emerald-700 px-5 py-3 text-emerald-700 font-medium hover:bg-emerald-50 transition-colors">
-                {config.demoCtaLabel}
-              </a>
+            <Link href="/register" className="inline-flex items-center justify-center rounded-lg border border-emerald-700 px-5 py-3 text-emerald-700 font-medium hover:bg-emerald-50 transition-colors">
+              {config.demoCtaLabel}
             </Link>
           </div>
         </div>

@@ -13,6 +13,8 @@ module.exports = {
   ignorePatterns: [
     "/lib/**/*", // Ignore built files.
     "/generated/**/*", // Ignore generated files.
+    "/shared/**/*", // Shared helpers are compiled separately.
+    "/test/**/*", // Test scripts are not part of functions runtime lint scope.
   ],
   plugins: [
     "@typescript-eslint",
