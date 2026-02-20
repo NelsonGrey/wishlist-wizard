@@ -28,6 +28,8 @@ export const LoginForm: React.FC = () => {
   const getErrorMessage = (error: unknown): string => {
     const err = error as { code?: string };
     switch (err.code) {
+      case 'app/firebase-not-configured':
+        return 'Firebase is not configured for this environment. Ask your admin to set VITE_FIREBASE_* env vars.';
       case 'auth/user-not-found':
         return 'No account found with this email address.';
       case 'auth/wrong-password':

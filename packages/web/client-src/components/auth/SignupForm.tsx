@@ -47,6 +47,8 @@ export const SignupForm: React.FC = () => {
 
   const getErrorMessage = (error: FirebaseAuthError): string => {
     switch (error.code) {
+      case 'app/firebase-not-configured':
+        return 'Firebase is not configured for this environment. Ask your admin to set VITE_FIREBASE_* env vars.';
       case 'auth/email-already-in-use':
         return 'An account with this email already exists.';
       case 'auth/invalid-email':
