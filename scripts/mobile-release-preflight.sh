@@ -62,7 +62,9 @@ else
 fi
 
 echo "4) Validate expected release artifacts exist"
-if [ ! -f "$APK_RELEASE" ]; then
+if [ "${SKIP_ANDROID_RELEASE_ARTIFACT_CHECK:-false}" = "true" ]; then
+  echo "⚠️ Skipping Android release artifact check (SKIP_ANDROID_RELEASE_ARTIFACT_CHECK=true)"
+elif [ ! -f "$APK_RELEASE" ]; then
   echo "❌ Missing Android release artifact: $APK_RELEASE"
   exit 1
 fi
