@@ -95,6 +95,8 @@ yarn-error.log*
 *.spec.js
 test-*.js
 mock-*.js
+!packages/browser-extension/src/*.spec.js
+!packages/browser-extension/src/test/mocks/*.js
 
 # Editor and IDE files
 .vscode/settings.json
@@ -153,6 +155,7 @@ packages/mobile/config/*/ios/GoogleService-Info.plist
 packages/mobile/android/app/service-account-key.json
 packages/mobile/ios/service-account-key.json
 **/*service-account-key.json
+**/*service-account-key*.json
 
 # Flutter
 .dart_tool/
