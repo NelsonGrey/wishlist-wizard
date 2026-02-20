@@ -35,6 +35,18 @@ function hasAllConfigValues() {
   return Object.values(firebaseConfig).every(v => typeof v === 'string' && v.length > 0);
 }
 
+interface FirebaseAppError extends Error {
+  code: string;
+}
+
+function createFirebaseNotConfiguredError(): FirebaseAppError {
+  const error = new Error(
+    'Firebase is not configured. Set VITE_FIREBASE_API_KEY, VITE_FIREBASE_AUTH_DOMAIN, and VITE_FIREBASE_PROJECT_ID (plus the remaining VITE_FIREBASE_* values).'
+  ) as FirebaseAppError;
+  error.code = 'app/firebase-not-configured';
+  return error;
+}
+
 // Global FirebaseClient instance
 let firebaseClient: FirebaseClient | null = null;
 export let firebaseApp: FirebaseApp | null = null;
@@ -157,15 +169,17 @@ export function onForegroundMessage(cb: (payload: unknown) => void) {
 // Firebase Auth utility functions
 export async function signIn(email: string, password: string) {
   if (!firebaseClient) {
-    throw new Error('Firebase not initialized');
+    await initFirebase({ enableAuth: true, enableFirestore: true });
   }
+  if (!firebaseClient) throw createFirebaseNotConfiguredError();
   return await signInWithEmailAndPassword(firebaseClient.auth, email, password);
 }
 
 export async function signUp(email: string, password: string, displayName?: string) {
   if (!firebaseClient) {
-    throw new Error('Firebase not initialized');
+    await initFirebase({ enableAuth: true, enableFirestore: true });
   }
+  if (!firebaseClient) throw createFirebaseNotConfiguredError();
   const userCredential = await createUserWithEmailAndPassword(firebaseClient.auth, email, password);
 
   if (displayName && userCredential.user) {
@@ -177,15 +191,17 @@ export async function signUp(email: string, password: string, displayName?: stri
 
 export async function signOutUser() {
   if (!firebaseClient) {
-    throw new Error('Firebase not initialized');
+    await initFirebase({ enableAuth: true, enableFirestore: true });
   }
+  if (!firebaseClient) throw createFirebaseNotConfiguredError();
   return await signOut(firebaseClient.auth);
 }
 
 export async function resetPassword(email: string) {
   if (!firebaseClient) {
-    throw new Error('Firebase not initialized');
+    await initFirebase({ enableAuth: true, enableFirestore: true });
   }
+  if (!firebaseClient) throw createFirebaseNotConfiguredError();
   return await sendPasswordResetEmail(firebaseClient.auth, email);
 }
 
@@ -198,9 +214,10 @@ export async function changePassword(user: User, newPassword: string) {
 }
 
 export function onAuthStateChange(callback: (user: User | null) => void) {
-  if (!firebaseClient) {
-    throw new Error('Firebase not initialized');
+  if (!firebaseClient && !ensureFirebaseCoreInitialized()) {
+    throw createFirebaseNotConfiguredError();
   }
+  if (!firebaseClient) throw createFirebaseNotConfiguredError();
   return onAuthStateChanged(firebaseClient.auth, callback);
 }
 
