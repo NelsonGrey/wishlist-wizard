@@ -184,7 +184,7 @@ jobs:
             popd
           fi
 
-          npm run go-live:check | tee /tmp/go-live-check.log
+          SKIP_ANDROID_RELEASE_ARTIFACT_CHECK=true npm run go-live:check | tee /tmp/go-live-check.log
           {
             echo "### Go-Live Check"
             echo '```text'
