@@ -133,7 +133,7 @@ jobs:
       needs.load-config.outputs.trigger_context == 'test_all' ||
       needs.load-config.outputs.trigger_context == 'build_all' ||
       needs.load-config.outputs.trigger_context == 'build_and_deploy'
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     continue-on-error: false
     steps:
       - name: Checkout Code
