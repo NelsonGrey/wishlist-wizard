@@ -10,6 +10,14 @@ import { Separator } from '@/components/ui/separator';
 import { Link } from 'wouter';
 import { format } from 'date-fns';
 
+function formatNotificationTimestamp(value: unknown): string {
+  const date = new Date(value as string | number | Date);
+  if (Number.isNaN(date.getTime())) {
+    return 'Unknown time';
+  }
+  return format(date, 'MMM d, yyyy h:mm a');
+}
+
 export default function Notifications() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -111,11 +119,11 @@ export default function Notifications() {
         </div>
         <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-2">
-          <Link href="/dashboard">
-            <Button variant="ghost" size="icon" className="mr-2">
+          <Button asChild variant="ghost" size="icon" className="mr-2">
+            <Link href="/dashboard">
               <ArrowLeft className="h-5 w-5" />
-            </Button>
-          </Link>
+            </Link>
+          </Button>
           <h1 className="text-2xl font-bold">Notifications</h1>
         </div>
         
@@ -161,19 +169,18 @@ export default function Notifications() {
               <p className="text-sm text-muted-foreground mb-2">{notification.content}</p>
               <div className="flex justify-between items-center mt-4">
                 <span className="text-xs text-muted-foreground">
-                  {format(new Date(notification.createdAt), 'MMM d, yyyy h:mm a')}
+                  {formatNotificationTimestamp(notification.createdAt)}
                 </span>
                 
                 {notification.actionUrl && (
-                  <Link href={notification.actionUrl}>
-                    <Button 
-                      size="sm"
-                      variant="outline"
-                      onClick={() => handleNotificationRead(notification.id)}
-                    >
-                      View
-                    </Button>
-                  </Link>
+                  <Button
+                    asChild
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleNotificationRead(notification.id)}
+                  >
+                    <Link href={notification.actionUrl}>View</Link>
+                  </Button>
                 )}
                 
                 {!notification.isRead && !notification.actionUrl && (

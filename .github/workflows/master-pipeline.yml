@@ -134,34 +134,50 @@ jobs:
       needs.load-config.outputs.trigger_context == 'build_all' ||
       needs.load-config.outputs.trigger_context == 'build_and_deploy'
     runs-on: self-hosted
-    continue-on-error: true
+    continue-on-error: false
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Run Tests (best effort)
+      - name: Run Quality Gates
         run: |
-          if [ -f "package.json" ]; then
-            if command -v npm &> /dev/null; then
-              npm install
-              npm test 2>/dev/null || echo "[warn] Node tests skipped or failed"
-            else
-              echo "[warn] npm not found, skipping Node tests"
-            fi
-          else
-            echo "[warn] No package.json found at repo root"
+          set -euo pipefail
+
+          if [ ! -f "package.json" ]; then
+            echo "❌ package.json not found at repo root"
+            exit 1
           fi
 
-          if [ -f "pubspec.yaml" ]; then
-            if command -v flutter &> /dev/null; then
-              flutter pub get
-              flutter test 2>/dev/null || echo "[warn] Flutter tests skipped or failed"
-            else
-              echo "[warn] flutter not found, skipping Flutter tests"
-            fi
-          else
-            echo "[warn] No Flutter pubspec found at repo root"
+          if ! command -v npm &> /dev/null; then
+            echo "❌ npm not found on runner"
+            exit 1
           fi
+
+          npm ci
+          npm run lint
+          npm run check
+          npm test
+
+          if [ -f "packages/mobile/pubspec.yaml" ]; then
+            if ! command -v flutter &> /dev/null; then
+              echo "❌ Flutter is required for mobile tests but was not found on runner"
+              exit 1
+            fi
+
+            pushd packages/mobile
+            flutter pub get
+            flutter analyze
+            flutter test
+            popd
+          fi
+
+          npm run go-live:check | tee /tmp/go-live-check.log
+          {
+            echo "### Go-Live Check"
+            echo '```text'
+            cat /tmp/go-live-check.log
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
 
   build-ios:
     name: Build iOS App
@@ -222,8 +238,6 @@ jobs:
 
       - name: Build Shared Packages
         run: |
-          npm run build --workspace=@vehicle-vitals/shared 2>/dev/null || echo "✓ @vehicle-vitals/shared (skip)"
-          npm run build --workspace=@modulo-squares/shared 2>/dev/null || echo "✓ @modulo-squares/shared (skip)"
           npm run build --workspace=@wishlist-wizard/shared 2>/dev/null || echo "✓ @wishlist-wizard/shared (skip)"
           if [ -d "packages/firebase-utils" ]; then
             npm run build --workspace=@shared/firebase-utils

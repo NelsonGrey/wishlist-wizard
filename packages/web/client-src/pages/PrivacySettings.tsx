@@ -76,29 +76,32 @@ const VISIBILITY_OPTIONS = [
     label: 'Public',
     description: 'Anyone with the link can view',
     icon: Globe,
-    color: 'text-green-600'
+    color: 'text-green-600',
+    disabled: false
   },
   {
     value: 'friends',
-    label: 'Friends Only (Coming Soon)',
-    description: 'Only people you\'ve connected with (friends system not yet implemented)',
+    label: 'Friends Only',
+    description: 'Only people you\'ve connected with can view',
     icon: Users,
-    color: 'text-gray-400',
-    disabled: true
+    color: 'text-blue-600',
+    disabled: false
   },
   {
     value: 'private',
     label: 'Private',
     description: 'Only you can view',
     icon: Lock,
-    color: 'text-red-600'
+    color: 'text-red-600',
+    disabled: false
   },
   {
     value: 'custom',
     label: 'Custom Access',
     description: 'Only specific people you choose',
     icon: UserCheck,
-    color: 'text-emerald-800'
+    color: 'text-emerald-800',
+    disabled: false
   }
 ];
 

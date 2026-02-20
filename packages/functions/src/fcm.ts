@@ -421,7 +421,7 @@ export const sendTestNotification = onCall(async (request) => {
 /**
  * Send notification to a specific user
  */
-async function sendNotificationToUser(
+export async function sendNotificationToUser(
   userId: string, 
   notification: {
     title: string;
@@ -487,7 +487,17 @@ async function sendNotificationToUser(
       }
     };
 
-    await messaging.send(message);
+    try {
+      await messaging.send(message);
+    } catch (sendError: any) {
+      // Retry transient delivery failures once before surfacing the error.
+      if (sendError?.code === 'messaging/internal-error' || sendError?.code === 'messaging/server-unavailable') {
+        logger.warn(`Transient FCM error for user ${userId}; retrying once`, { code: sendError.code });
+        await messaging.send(message);
+      } else {
+        throw sendError;
+      }
+    }
     logger.info(`Notification sent to user ${userId}: ${notification.title}`);
     
     // Track notification in Firestore

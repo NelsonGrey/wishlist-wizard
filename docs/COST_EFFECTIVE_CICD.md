@@ -34,7 +34,7 @@ GitHub Actions minutes are expensive during development:
 ./scripts/test-act.sh
 
 # Direct workflow testing
-act -W .github/workflows/ci-cd-pipeline.yml --job quality-check
+act -W .github/workflows/master-pipeline.yml --job test
 ```
 
 #### 2. Local CI/CD Simulation (`test-cicd-local.sh`)
@@ -84,18 +84,18 @@ FIREBASE_SERVICE_ACCOUNT_KEY={"type": "service_account", ...}
 ### Development Phase
 | Task | Local Method | GitHub Method | Cost Impact |
 |------|-------------|----------------|-------------|
-| Code Quality | `npm run lint` | Quality Check Job | $0.00 |
-| Type Checking | `npm run type-check` | Quality Check Job | $0.00 |
-| Unit Tests | `npm test` | Quality Check Job | $0.00 |
-| Build Testing | `npm run build` | Build Job | $0.00 |
+| Code Quality | `npm run lint` | Test job | $0.00 |
+| Type Checking | `npm run check` | Test job | $0.00 |
+| Unit Tests | `npm test` | Test job | $0.00 |
+| Build Testing | `npm run build` | build-web job | $0.00 |
 | **Total Cost** | **$0.00** | **$0.10** | **$0.10 saved** |
 
 ### Integration Phase
 | Task | Local Method | GitHub Method | Cost Impact |
 |------|-------------|----------------|-------------|
-| Workflow Logic | `act --job quality-check` | Full Workflow | $0.00 |
-| Deployment Logic | `act --job deploy-web` | Deploy Job | $0.00 |
-| Cross-Platform | `act --job distribute-android` | Distribution Job | $0.00 |
+| Workflow Logic | `act --job test` | Full Workflow | $0.00 |
+| Deployment Logic | `act --job deploy-firebase` | deploy-firebase job | $0.00 |
+| Cross-Platform | `act --job build-chrome-extension` | build-chrome-extension job | $0.00 |
 | **Total Cost** | **$0.00** | **$0.15** | **$0.15 saved** |
 
 ### Production Phase
@@ -111,7 +111,7 @@ FIREBASE_SERVICE_ACCOUNT_KEY={"type": "service_account", ...}
 ```bash
 # Fast local checks (0 minutes)
 npm run lint
-npm run type-check
+npm run check
 npm test
 npm run build
 
@@ -150,7 +150,7 @@ git push origin develop  # Triggers minimal GitHub Actions
 
 ### 1. Branch-Based Triggers
 ```yaml
-# .github/workflows/ci-cd-pipeline.yml
+# .github/workflows/master-pipeline.yml
 on:
   push:
     branches: [main, staging]  # Not develop!

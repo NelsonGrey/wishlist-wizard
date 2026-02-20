@@ -87,17 +87,14 @@ sudo ./svc.sh start
 ### 3. Workflow Updates
 
 #### Current Workflows Using GitHub Runners:
-- `ci-cd-pipeline.yml`: 8 jobs (ubuntu-latest)
-- `ios-distribution.yml`: 1 job (macos-latest)
-- `android-distribution.yml`: 1 job (ubuntu-latest)
-- `test-secrets.yml`: 1 job (ubuntu-latest)
-- `chrome-extension-submit.yml`: 1 job (ubuntu-latest)
-- `test-ci-cd.yml`: 7 jobs (ubuntu-latest)
+- `master-pipeline.yml`: 8 jobs (ubuntu-latest)
+- Reusable workflows invoked by `master-pipeline.yml` (iOS/Firebase/extension)
+- Archived workflows under `.github/workflows/archive/` (legacy reference only)
 
 #### Updated Workflow Labels:
 ```yaml
 jobs:
-  quality-check:
+  test:
     runs-on: [self-hosted, ubuntu-latest]  # Add self-hosted label
     # ... rest of job config
 ```

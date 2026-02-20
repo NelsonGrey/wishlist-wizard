@@ -104,7 +104,7 @@ ps aux | grep "actions.runner"
 All workflows have been updated to use `runs-on: self-hosted` instead of `ubuntu-latest`. The runner automatically selects the appropriate execution environment based on available labels.
 
 ### Updated Workflows
-- `ci-cd-pipeline.yml`: Main CI/CD pipeline
+- `master-pipeline.yml`: Main CI/CD pipeline
 - `android-distribution.yml`: Android app distribution
 - `chrome-extension-submit.yml`: Chrome extension publishing
 - `test-ci-cd.yml`: CI/CD testing

@@ -122,11 +122,9 @@ export default function Header() {
                 <Link href="/extension" className="text-gray-600 hover:text-gray-900 font-medium">
                   Download Extension
                 </Link>
-                <Link href="/login">
-                  <Button className="bg-primary hover:bg-indigo-700 text-white">
-                    Log In
-                  </Button>
-                </Link>
+                <Button asChild className="bg-primary hover:bg-indigo-700 text-white">
+                  <Link href="/login">Log In</Link>
+                </Button>
               </>
             )}
           </div>
@@ -198,11 +196,9 @@ export default function Header() {
                       >
                         Download Extension
                       </Link>
-                      <Link href="/login" onClick={() => setIsMenuOpen(false)}>
-                        <Button className="bg-primary hover:bg-indigo-700 text-white w-full mt-4">
-                          Log In
-                        </Button>
-                      </Link>
+                      <Button asChild className="bg-primary hover:bg-indigo-700 text-white w-full mt-4">
+                        <Link href="/login" onClick={() => setIsMenuOpen(false)}>Log In</Link>
+                      </Button>
                     </>
                   )}
                 </nav>
