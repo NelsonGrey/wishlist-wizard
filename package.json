@@ -21,7 +21,11 @@
     "deploy:web": "./scripts/deploy.sh deploy-web",
     "deploy:api": "./scripts/deploy.sh deploy-api",
     "deploy:mobile": "./scripts/deploy.sh deploy-mobile",
-    "package:extension": "./scripts/deploy.sh package-ext"
+    "package:extension": "./scripts/deploy.sh package-ext",
+    "package:extension:release": "./scripts/package-extension-release.sh",
+    "preflight:extension": "./scripts/extension-release-preflight.sh",
+    "preflight:mobile": "./scripts/mobile-release-preflight.sh",
+    "go-live:check": "./scripts/release-readiness-check.sh"
   },
   "devDependencies": {
     "@types/node": "^20.16.11",
