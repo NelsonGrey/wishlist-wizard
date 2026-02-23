@@ -89,7 +89,7 @@ function pickEnvValue(
 
 // Prefer environment-suffixed vars (VITE_FIREBASE_*_DEVELOPMENT/STAGING/PRODUCTION),
 // while remaining backward compatible with plain VITE_FIREBASE_*.
-const firebaseConfig = {
+let firebaseConfig = {
   apiKey: pickEnvValue(
     import.meta.env.VITE_FIREBASE_API_KEY_DEVELOPMENT,
     import.meta.env.VITE_FIREBASE_API_KEY_STAGING,
@@ -134,6 +134,52 @@ const firebaseConfig = {
     import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
   ) || undefined,
 };
+
+function mergeWithRuntimeFirebaseConfig(runtimeConfig: Record<string, unknown>) {
+  firebaseConfig = {
+    ...firebaseConfig,
+    apiKey: firebaseConfig.apiKey || String(runtimeConfig.apiKey || ''),
+    authDomain: firebaseConfig.authDomain || String(runtimeConfig.authDomain || ''),
+    projectId: firebaseConfig.projectId || String(runtimeConfig.projectId || ''),
+    storageBucket: firebaseConfig.storageBucket || String(runtimeConfig.storageBucket || ''),
+    messagingSenderId: firebaseConfig.messagingSenderId || String(runtimeConfig.messagingSenderId || ''),
+    appId: firebaseConfig.appId || String(runtimeConfig.appId || ''),
+    measurementId: firebaseConfig.measurementId || String(runtimeConfig.measurementId || '') || undefined,
+  };
+}
+
+async function loadRuntimeFirebaseConfigFromHosting(): Promise<void> {
+  if (hasAllConfigValues()) {
+    return;
+  }
+
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  try {
+    const response = await fetch('/__/firebase/init.json', {
+      method: 'GET',
+      credentials: 'same-origin',
+      cache: 'no-store',
+    });
+
+    if (!response.ok) {
+      return;
+    }
+
+    const runtimeConfig = await response.json();
+    if (!runtimeConfig || typeof runtimeConfig !== 'object') {
+      return;
+    }
+
+    mergeWithRuntimeFirebaseConfig(runtimeConfig as Record<string, unknown>);
+  } catch (error) {
+    if (import.meta.env.DEV) {
+      console.warn('[firebase] Unable to load hosting runtime config', error);
+    }
+  }
+}
 
 function hasAllConfigValues() {
   const requiredValues = [
@@ -196,6 +242,8 @@ export async function initFirebase(options?: {
   enableAuth?: boolean;
   enableFirestore?: boolean;
 }) {
+  await loadRuntimeFirebaseConfigFromHosting();
+
   if (!ensureFirebaseCoreInitialized()) {
     if (import.meta.env.DEV) {
       // eslint-disable-next-line no-console
