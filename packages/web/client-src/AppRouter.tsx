@@ -59,36 +59,17 @@ function LayoutRouter({ children }: { children: React.ReactNode }) {
   const authPages = ['/login', '/register', '/forgot-password', '/reset-password', '/verify-email'];
   const isAuthPage = authPages.some(page => location.startsWith(page));
 
-  // App pages - use AppLayout
-  const appPages = [
-    '/dashboard',
-    '/dashboard-firebase',
-    '/user-profile',
-    '/wishlist',
-    '/recommendations',
-    '/price-tracking',
-    '/app/price-tracking',
-    '/calendar',
-    '/notifications',
-    '/privacy-settings',
-    '/analytics'
-  ];
-  const isAppPage = appPages.some(page => location.startsWith(page));
-
-  // Public pages - use PublicLayout (everything else)
-  // If this is a price-tracking route and the user is not authenticated,
-  // render the PublicLayout so the header matches the marketing site.
-  if (!authLoading && location.startsWith('/price-tracking') && !isAuthenticated) {
-    return <PublicLayout>{children}</PublicLayout>;
-  }
-
   if (isAuthPage) {
     return <AuthLayout>{children}</AuthLayout>;
-  } else if (isAppPage) {
-    return <AppLayout>{children}</AppLayout>;
-  } else {
-    return <PublicLayout>{children}</PublicLayout>;
   }
+
+  // Once authenticated, always use AppLayout on non-auth pages
+  // so navigation updates to solution-specific functionality.
+  if (!authLoading && isAuthenticated) {
+    return <AppLayout>{children}</AppLayout>;
+  }
+
+  return <PublicLayout>{children}</PublicLayout>;
 }
 
 function AppRouter() {

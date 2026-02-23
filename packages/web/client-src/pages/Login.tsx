@@ -39,13 +39,17 @@ export default function Login() {
     setIsLoading(true);
     try {
       await signIn(data.email, data.password);
+
+      const storedRedirect = sessionStorage.getItem('redirectAfterAuth');
+      const redirectTo = storedRedirect || '/dashboard';
+      sessionStorage.removeItem('redirectAfterAuth');
       
       toast({
         title: "Login successful",
         description: "You are now logged in.",
       });
-      
-      // Redirect will be handled by ProtectedRoute and auth state change
+
+      setLocation(redirectTo);
     } catch (error: unknown) {
       console.error("Login error:", error);
       
