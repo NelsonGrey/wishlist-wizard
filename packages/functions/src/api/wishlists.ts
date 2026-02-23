@@ -386,17 +386,19 @@ export const addWishlistItem = onCall(async (request: CallableRequest) => {
       addedBy: userId,
       reservedBy: null,
       purchasedBy: null,
-      metadata: affiliateConversion?.wasConverted
+      ...(affiliateConversion?.wasConverted
         ? {
-            affiliateConversion: {
-              originalUrl: affiliateConversion.originalUrl,
-              affiliateProgram: affiliateConversion.program?.name || null,
-              convertedAt: new Date().toISOString(),
-              commission: affiliateConversion.program?.defaultCommission || 0,
-              tagUsed: affiliateConversion.tagUsed || null,
+            metadata: {
+              affiliateConversion: {
+                originalUrl: affiliateConversion.originalUrl,
+                affiliateProgram: affiliateConversion.program?.name || null,
+                convertedAt: new Date().toISOString(),
+                commission: affiliateConversion.program?.defaultCommission || 0,
+                tagUsed: affiliateConversion.tagUsed || null,
+              },
             },
           }
-        : undefined,
+        : {}),
       createdAt: new Date(),
       updatedAt: new Date()
     };
