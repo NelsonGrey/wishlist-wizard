@@ -192,6 +192,61 @@ jobs:
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
 
+      - name: Run Synthetic User Smoke Suite
+        id: synthetic_smoke
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          npm run test:users:smoke
+
+      - name: Upload Synthetic Smoke Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: synthetic-smoke-report
+          path: artifacts/smoke-users-report.json
+          if-no-files-found: warn
+
+      - name: Enforce Synthetic Smoke Gate
+        if: always()
+        run: |
+          set -euo pipefail
+
+          REPORT_PATH="artifacts/smoke-users-report.json"
+
+          if [ ! -f "$REPORT_PATH" ]; then
+            echo "❌ Synthetic smoke report is missing at $REPORT_PATH"
+            echo "Smoke execution step outcome: ${{ steps.synthetic_smoke.outcome }}"
+            exit 1
+          fi
+
+          FAILED_CALLS=$(node -e "const fs=require('fs'); const p=JSON.parse(fs.readFileSync(process.argv[1],'utf8')); process.stdout.write(String((p.summary&&typeof p.summary.failedCalls==='number')?p.summary.failedCalls:NaN));" "$REPORT_PATH")
+          TOTAL_CALLS=$(node -e "const fs=require('fs'); const p=JSON.parse(fs.readFileSync(process.argv[1],'utf8')); process.stdout.write(String((p.summary&&typeof p.summary.totalCalls==='number')?p.summary.totalCalls:NaN));" "$REPORT_PATH")
+
+          if [ "$FAILED_CALLS" = "NaN" ] || [ "$TOTAL_CALLS" = "NaN" ]; then
+            echo "❌ Synthetic smoke report is malformed"
+            cat "$REPORT_PATH"
+            exit 1
+          fi
+
+          {
+            echo "### Synthetic Smoke Gate"
+            echo "- Total calls: $TOTAL_CALLS"
+            echo "- Failed calls: $FAILED_CALLS"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          if [ "$FAILED_CALLS" -gt 0 ]; then
+            echo "❌ Synthetic smoke gate failed: failedCalls=$FAILED_CALLS"
+            exit 1
+          fi
+
+          if [ "${{ steps.synthetic_smoke.outcome }}" != "success" ]; then
+            echo "❌ Synthetic smoke command did not complete successfully"
+            exit 1
+          fi
+
+          echo "✅ Synthetic smoke gate passed"
+
   build-ios:
     name: Build iOS App
     needs: load-config

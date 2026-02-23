@@ -63,6 +63,20 @@ npm run build
 npm run start
 ```
 
+#### Synthetic Test Users + Functionality Smoke Test
+```bash
+# Runs Firebase emulators (auth/firestore/functions), seeds synthetic users,
+# and exercises callable wishlist flows (create/update/item CRUD/delete)
+npm run test:users:smoke
+
+# If emulators are already running, run only the smoke script
+npm run test:users:smoke:live
+```
+
+Smoke report output:
+- JSON artifact: `artifacts/smoke-users-report.json`
+- Includes per-callable pass/fail, HTTP status, duration, and run summary
+
 #### Flutter Mobile App
 ```bash
 # Navigate to mobile directory
@@ -213,8 +227,8 @@ VITE_FIREBASE_AUTO_INIT=false
 
 3. **Development with Firebase Emulators**:
 ```bash
-npm run firebase:emulators  # Start all Firebase emulators
-npm run firebase:deploy     # Deploy to Firebase hosting
+npx firebase emulators:start --project wishlist-wizard --only auth,firestore,functions
+npx firebase deploy --project wishlist-wizard
 ```
 
 4. **Firebase-Native Features**:
