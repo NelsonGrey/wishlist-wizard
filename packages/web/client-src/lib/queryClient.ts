@@ -6,10 +6,33 @@ const API_BASE_URL = import.meta.env.PROD
   ? "https://api-ph6if7thka-uc.a.run.app"  // Firebase Cloud Functions URL
   : "http://localhost:3001";  // Local Express.js API server
 
+function resolveFunctionsProjectId(): string {
+  const explicit = String(import.meta.env.VITE_FIREBASE_PROJECT_ID || '').trim();
+  if (explicit) return explicit;
+
+  if (typeof window !== 'undefined' && window.location?.hostname) {
+    const hostname = window.location.hostname.toLowerCase();
+    if (hostname.includes('wishlist-wizard-dev.web.app')) {
+      return String(import.meta.env.VITE_FIREBASE_PROJECT_ID_DEVELOPMENT || 'wishlist-wizard-dev');
+    }
+    if (hostname.includes('wishlist-wizard-staging.web.app')) {
+      return String(import.meta.env.VITE_FIREBASE_PROJECT_ID_STAGING || 'wishlist-wizard-staging');
+    }
+    if (hostname.includes('wishlist-wizard.web.app')) {
+      return String(import.meta.env.VITE_FIREBASE_PROJECT_ID_PRODUCTION || 'wishlist-wizard-prod');
+    }
+  }
+
+  return String(import.meta.env.VITE_FIREBASE_PROJECT_ID_PRODUCTION || 'wishlist-wizard-prod');
+}
+
+const FIREBASE_PROJECT_ID = resolveFunctionsProjectId();
+const FIREBASE_FUNCTIONS_REGION = String(import.meta.env.VITE_FIREBASE_FUNCTIONS_REGION || 'us-central1');
+
 // Firebase Functions URL for production
 const FIREBASE_FUNCTIONS_URL = import.meta.env.PROD 
-  ? "https://us-central1-wishlist-wizard.cloudfunctions.net"
-  : "http://localhost:5001/wishlist-wizard/us-central1";
+  ? `https://${FIREBASE_FUNCTIONS_REGION}-${FIREBASE_PROJECT_ID}.cloudfunctions.net`
+  : `http://localhost:5001/wishlist-wizard/${FIREBASE_FUNCTIONS_REGION}`;
 
 /**
  * Get Firebase Auth ID token for authenticated requests
@@ -44,6 +67,8 @@ function shouldUseFirebaseFunctions(url: string): boolean {
   // List of API endpoints that have been migrated to Firebase Functions
   const firebaseFunctionEndpoints = [
     '/api/auth/me',
+    '/api/wishlists',
+    '/api/shared',
     '/api/users/search',
     '/api/notifications',
     '/api/fcm',
