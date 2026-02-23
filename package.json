@@ -26,7 +26,7 @@
     "preflight:extension": "./scripts/extension-release-preflight.sh",
     "preflight:mobile": "./scripts/mobile-release-preflight.sh",
     "go-live:check": "./scripts/release-readiness-check.sh",
-    "test:users:smoke": "npm run build --workspace=functions && npx firebase emulators:exec --project wishlist-wizard --only auth,firestore,functions \"node packages/functions/scripts/emulator-smoke-users.cjs\"",
+    "test:users:smoke": "npm run build --workspace=functions && npx --yes firebase-tools emulators:exec --project wishlist-wizard --only auth,firestore,functions \"node packages/functions/scripts/emulator-smoke-users.cjs\"",
     "test:users:smoke:live": "npm run build --workspace=functions && node packages/functions/scripts/emulator-smoke-users.cjs"
   },
   "devDependencies": {
