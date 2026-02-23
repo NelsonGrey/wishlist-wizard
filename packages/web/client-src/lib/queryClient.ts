@@ -1,38 +1,16 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
 import { getAuth } from "firebase/auth";
+import { connectFunctionsEmulator, getFunctions, httpsCallable } from "firebase/functions";
+import { firebaseApp, initFirebase } from "@/lib/firebase";
 
 // API Base URL - use Firebase Functions in production, Express.js API server in development
 const API_BASE_URL = import.meta.env.PROD 
   ? "https://api-ph6if7thka-uc.a.run.app"  // Firebase Cloud Functions URL
   : "http://localhost:3001";  // Local Express.js API server
 
-function resolveFunctionsProjectId(): string {
-  const explicit = String(import.meta.env.VITE_FIREBASE_PROJECT_ID || '').trim();
-  if (explicit) return explicit;
-
-  if (typeof window !== 'undefined' && window.location?.hostname) {
-    const hostname = window.location.hostname.toLowerCase();
-    if (hostname.includes('wishlist-wizard-dev.web.app')) {
-      return String(import.meta.env.VITE_FIREBASE_PROJECT_ID_DEVELOPMENT || 'wishlist-wizard-dev');
-    }
-    if (hostname.includes('wishlist-wizard-staging.web.app')) {
-      return String(import.meta.env.VITE_FIREBASE_PROJECT_ID_STAGING || 'wishlist-wizard-staging');
-    }
-    if (hostname.includes('wishlist-wizard.web.app')) {
-      return String(import.meta.env.VITE_FIREBASE_PROJECT_ID_PRODUCTION || 'wishlist-wizard-prod');
-    }
-  }
-
-  return String(import.meta.env.VITE_FIREBASE_PROJECT_ID_PRODUCTION || 'wishlist-wizard-prod');
-}
-
-const FIREBASE_PROJECT_ID = resolveFunctionsProjectId();
 const FIREBASE_FUNCTIONS_REGION = String(import.meta.env.VITE_FIREBASE_FUNCTIONS_REGION || 'us-central1');
 
-// Firebase Functions URL for production
-const FIREBASE_FUNCTIONS_URL = import.meta.env.PROD 
-  ? `https://${FIREBASE_FUNCTIONS_REGION}-${FIREBASE_PROJECT_ID}.cloudfunctions.net`
-  : `http://localhost:5001/wishlist-wizard/${FIREBASE_FUNCTIONS_REGION}`;
+let functionsEmulatorConnected = false;
 
 /**
  * Get Firebase Auth ID token for authenticated requests
@@ -205,15 +183,24 @@ export async function apiRequest(
   const headers: Record<string, string> = {};
   
   if (useFunctions) {
-    // Use Firebase Functions
+    // Use Firebase SDK callable functions to ensure proper auth + CORS handling.
     const { functionName, data } = getFirebaseFunctionRoute(url, method, body);
-    fullUrl = `${FIREBASE_FUNCTIONS_URL}/${functionName}`;
-    
-    // Get Firebase Auth token for authenticated requests
-    const token = await getAuthToken();
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
+
+    await initFirebase({ enableAuth: true, enableFirestore: false });
+    if (!firebaseApp) {
+      throw new Error('Firebase app is not initialized');
     }
+
+    const functions = getFunctions(firebaseApp, FIREBASE_FUNCTIONS_REGION);
+
+    if (!import.meta.env.PROD && !functionsEmulatorConnected) {
+      connectFunctionsEmulator(functions, 'localhost', 5001);
+      functionsEmulatorConnected = true;
+    }
+
+    const callable = httpsCallable(functions, functionName);
+    const result = await callable(data);
+    return result.data;
   } else {
     // Use traditional Express.js API
     fullUrl = url.startsWith('http') ? url : `${API_BASE_URL}${url}`;
@@ -230,15 +217,12 @@ export async function apiRequest(
   }
   
   const fetchOptions: RequestInit = {
-    method: useFunctions ? 'POST' : method,
+    method,
     headers,
-    credentials: useFunctions ? 'omit' : 'include', // Firebase Functions don't use cookies
+    credentials: 'include',
   };
   
-  if (useFunctions) {
-    const { data } = getFirebaseFunctionRoute(url, method, body);
-    fetchOptions.body = JSON.stringify({ data });
-  } else if (body) {
+  if (body) {
     fetchOptions.body = JSON.stringify(body);
   }
   
@@ -250,11 +234,6 @@ export async function apiRequest(
   const contentType = res.headers.get("content-type");
   if (contentType && contentType.includes("application/json")) {
     const jsonResponse = await res.json();
-    
-    // Firebase Functions wrap responses in a 'data' property
-    if (useFunctions && jsonResponse.data !== undefined) {
-      return jsonResponse.data;
-    }
     
     return jsonResponse;
   } else {
