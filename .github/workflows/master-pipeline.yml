@@ -283,9 +283,9 @@ jobs:
     runs-on: self-hosted
     env:
       FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
-      FIREBASE_PROJECT_DEV: ${{ secrets.FIREBASE_PROJECT_DEV }}
-      FIREBASE_PROJECT_STAGING: ${{ secrets.FIREBASE_PROJECT_STAGING }}
-      FIREBASE_PROJECT_PROD: ${{ secrets.FIREBASE_PROJECT_PROD }}
+      FIREBASE_PROJECT_DEV: ${{ secrets.FIREBASE_PROJECT_DEVELOPMENT || 'wishlist-wizard-dev' }}
+      FIREBASE_PROJECT_STAGING: ${{ secrets.FIREBASE_PROJECT_STAGING || 'wishlist-wizard-staging' }}
+      FIREBASE_PROJECT_PROD: ${{ secrets.FIREBASE_PROJECT_PRODUCTION || 'wishlist-wizard-prod' }}
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -313,9 +313,6 @@ jobs:
             echo "✓ @shared/firebase-utils (skip)"
           fi
 
-      - name: Build Web App
-        run: npm run build
-
       - name: Resolve Firebase Project
         id: firebase_project
         run: |
@@ -323,14 +320,17 @@ jobs:
             production)
               PROJECT_ID="$FIREBASE_PROJECT_PROD"
               CONFIG_FILE="firebase.prod.json"
+              ENV_SUFFIX="PRODUCTION"
               ;;
             staging)
               PROJECT_ID="$FIREBASE_PROJECT_STAGING"
               CONFIG_FILE="firebase.staging.json"
+              ENV_SUFFIX="STAGING"
               ;;
             development|*)
               PROJECT_ID="$FIREBASE_PROJECT_DEV"
               CONFIG_FILE="firebase.dev.json"
+              ENV_SUFFIX="DEVELOPMENT"
               ;;
           esac
 
@@ -341,6 +341,53 @@ jobs:
 
           echo "project_id=$PROJECT_ID" >> $GITHUB_OUTPUT
           echo "config_file=$CONFIG_FILE" >> $GITHUB_OUTPUT
+          echo "env_suffix=$ENV_SUFFIX" >> $GITHUB_OUTPUT
+
+      - name: Load Firebase Web Config for Build
+        run: |
+          set -euo pipefail
+
+          INIT_URL="https://${{ steps.firebase_project.outputs.project_id }}.web.app/__/firebase/init.json"
+          INIT_JSON="$(curl -sfL "$INIT_URL")"
+
+          if [ -z "$INIT_JSON" ]; then
+            echo "❌ Failed to load Firebase web config from $INIT_URL"
+            exit 1
+          fi
+
+          FIREBASE_INIT_JSON="$INIT_JSON" \
+          ENV_SUFFIX="${{ steps.firebase_project.outputs.env_suffix }}" \
+          VITE_ENVIRONMENT_VALUE="${{ needs.load-config.outputs.target_environment }}" \
+          node <<'NODE'
+          const fs = require('fs');
+
+          const cfg = JSON.parse(process.env.FIREBASE_INIT_JSON || '{}');
+          const suffix = process.env.ENV_SUFFIX;
+          const environment = process.env.VITE_ENVIRONMENT_VALUE || 'development';
+          const envFile = process.env.GITHUB_ENV;
+
+          const mappings = {
+            VITE_FIREBASE_API_KEY: cfg.apiKey || '',
+            VITE_FIREBASE_AUTH_DOMAIN: cfg.authDomain || '',
+            VITE_FIREBASE_PROJECT_ID: cfg.projectId || '',
+            VITE_FIREBASE_STORAGE_BUCKET: cfg.storageBucket || '',
+            VITE_FIREBASE_MESSAGING_SENDER_ID: cfg.messagingSenderId || '',
+            VITE_FIREBASE_APP_ID: cfg.appId || '',
+            VITE_FIREBASE_MEASUREMENT_ID: cfg.measurementId || ''
+          };
+
+          const lines = [`VITE_ENVIRONMENT=${environment}`];
+
+          for (const [key, value] of Object.entries(mappings)) {
+            lines.push(`${key}=${value}`);
+            lines.push(`${key}_${suffix}=${value}`);
+          }
+
+          fs.appendFileSync(envFile, `${lines.join('\n')}\n`);
+          NODE
+
+      - name: Build Web App
+        run: npm run build
 
       - name: Deploy Web Stack (no Data Connect)
         run: |
