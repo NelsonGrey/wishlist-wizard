@@ -8,6 +8,7 @@ import { generateId } from '../utils/helpers.js';
 import { convertAffiliateUrl } from '../utils/affiliate.js';
 
 const db = getFirestore();
+const publicCallableOptions = { invoker: 'public' as const };
 
 // Removed unused interfaces - using Firestore document structure and shared types directly
 
@@ -15,7 +16,7 @@ const db = getFirestore();
  * Get User's Wishlists
  * Replaces: GET /api/wishlists
  */
-export const getUserWishlists = onCall(async (request: CallableRequest) => {
+export const getUserWishlists = onCall(publicCallableOptions, async (request: CallableRequest) => {
   if (!request.auth) {
     throw new HttpsError('unauthenticated', 'User must be authenticated');
   }
@@ -145,7 +146,7 @@ export const getSharedWishlist = onCall(async (request: CallableRequest) => {
  * Create New Wishlist
  * Replaces: POST /api/wishlists
  */
-export const createWishlist = onCall(async (request: CallableRequest) => {
+export const createWishlist = onCall(publicCallableOptions, async (request: CallableRequest) => {
   if (!request.auth) {
     throw new HttpsError('unauthenticated', 'User must be authenticated');
   }
