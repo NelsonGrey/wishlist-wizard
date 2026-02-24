@@ -36,7 +36,42 @@ The Chrome Web Store listing is not available yet. Use Method 1 until the listin
 
 ### For Firefox
 
-Firefox packaging is not available yet. Use a Chromium-based browser and Method 1 for now.
+#### Method 1: Install from Mozilla Add-ons Store (Recommended)
+
+1. **Visit the Add-ons Page**
+   - Click [Install for Firefox](https://addons.mozilla.org/en-US/firefox/addon/wishlist-wizard/) or go to the [Wishlist Wizard Firefox Extension Page](https://addons.mozilla.org/en-US/firefox/addon/wishlist-wizard/)
+
+2. **Add to Firefox**
+   - Click the "Add to Firefox" button
+   - When prompted, click "Add" to confirm the installation
+
+3. **Verify Installation**
+   - The Wishlist Wizard extension icon should appear in your Firefox toolbar
+   - Make sure the extension is enabled
+   - The icon will have a green background
+
+#### Method 2: Manual Installation (Developer Mode)
+
+**Note**: This method is for development/testing. Use Method 1 for normal installation.
+
+1. **Download the Extension**
+   - Visit [wishlist-wizard-prod.web.app/extension](https://wishlist-wizard-prod.web.app/extension)
+   - Click the "Download Extension" button
+   - The file `wishkeeper-extension.zip` will be downloaded
+
+2. **Extract the Files**
+   - Locate the downloaded ZIP file
+   - Right-click and select "Extract All..." (Windows) or double-click (Mac)
+
+3. **Load Temporary Add-on**
+   - Open Firefox and go to `about:debugging#/runtime/this-firefox`
+   - Click "Load Temporary Add-on"
+   - Navigate to the extracted extension folder
+   - Select `manifest.json`
+
+4. **Verify Installation**
+   - The extension should now be loaded and appear in your toolbar
+   - **Note**: Temporary add-ons are unloaded when Firefox restarts. Use Method 1 for permanent installation.
 
 ## Using the WishKeeper Extension
 
