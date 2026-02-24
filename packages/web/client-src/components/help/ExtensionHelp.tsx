@@ -122,8 +122,9 @@ export function ExtensionHelp() {
             <h4 className="text-sm font-medium mt-3 mb-1">For Firefox:</h4>
             <ol className="text-sm list-decimal pl-5 space-y-1">
               <li>Click the &quot;Install for Firefox&quot; button on the extension page</li>
-              <li>In the Firefox Add-ons page, click &quot;Add to Firefox&quot;</li>
-              <li>When prompted, click &quot;Add&quot;</li>
+              <li>You&apos;ll be taken to the Mozilla Add-ons store page</li>
+              <li>Click &quot;Add to Firefox&quot;</li>
+              <li>When prompted, click &quot;Add&quot; to confirm</li>
               <li>The Wishlist Wizard icon will appear in your browser toolbar</li>
               <li>Click the icon and log in to your Wishlist Wizard account</li>
             </ol>
