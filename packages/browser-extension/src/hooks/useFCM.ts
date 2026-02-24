@@ -302,7 +302,7 @@ export const extensionNotificationUtils = {
    */
   clearAllNotifications: () => {
     if (chrome?.notifications) {
-      chrome.notifications.getAll((notifications) => {
+      chrome.notifications.getAll((notifications: any) => {
         Object.keys(notifications).forEach((id) => {
           chrome.notifications.clear(id);
         });
