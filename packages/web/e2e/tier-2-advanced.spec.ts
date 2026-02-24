@@ -1,3 +1,4 @@
+/// <reference types="@playwright/test" />
 import { test, expect, Page } from '@playwright/test';
 
 /**
@@ -8,7 +9,7 @@ import { test, expect, Page } from '@playwright/test';
 test.describe('Tier 2: Advanced Features', () => {
   let page: Page;
 
-  test.beforeAll(async ({ browser }) => {
+  test.beforeAll(async ({ browser }: { browser: any }) => {
     page = await browser.newPage();
   });
 

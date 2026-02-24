@@ -1,3 +1,4 @@
+/// <reference types="@playwright/test" />
 import { test, expect, Page } from '@playwright/test';
 import { testUser } from './fixtures/test-user';
 
@@ -10,7 +11,7 @@ test.describe('Tier 1: Basic Features', () => {
   let page: Page;
   let userId: string;
 
-  test.beforeAll(async ({ browser }) => {
+  test.beforeAll(async ({ browser }: { browser: any }) => {
     page = await browser.newPage();
   });
 

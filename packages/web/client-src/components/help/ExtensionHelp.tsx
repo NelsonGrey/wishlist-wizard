@@ -136,6 +136,15 @@ export function ExtensionHelp() {
               <li>The Wishlist Wizard icon will appear in your browser toolbar</li>
               <li>Click the icon and log in to your Wishlist Wizard account</li>
             </ol>
+
+            <h4 className="text-sm font-medium mt-3 mb-1">For Safari:</h4>
+            <ol className="text-sm list-decimal pl-5 space-y-1">
+              <li>Click the &quot;Install for Safari&quot; button on the extension page</li>
+              <li>Install the Wishlist Wizard app from the App Store</li>
+              <li>Open Safari settings and enable the Wishlist Wizard extension</li>
+              <li>The Wishlist Wizard icon will appear in your Safari toolbar</li>
+              <li>Click the icon and log in to your Wishlist Wizard account</li>
+            </ol>
           </AccordionContent>
         </AccordionItem>
 

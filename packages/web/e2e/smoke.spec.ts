@@ -1,4 +1,5 @@
-import { test, expect } from '@playwright/test';
+/// <reference types="@playwright/test" />
+import { test, expect, Page } from '@playwright/test';
 
 /**
  * SMOKE TEST: Quick validation of critical paths
@@ -6,7 +7,7 @@ import { test, expect } from '@playwright/test';
  */
 
 test.describe('Smoke Test: Critical Features', () => {
-  test('Site loads and is accessible', async ({ page }) => {
+  test('Site loads and is accessible', async ({ page }: { page: Page }) => {
     await page.goto('/');
     await expect(page).toHaveTitle(/(Wishlist|wizard)/i);
     
@@ -15,7 +16,7 @@ test.describe('Smoke Test: Critical Features', () => {
     await expect(nav).toBeVisible({ timeout: 5000 });
   });
 
-  test('Login page accessible', async ({ page }) => {
+  test('Login page accessible', async ({ page }: { page: Page }) => {
     await page.goto('/');
     
     const loginButton = page.locator('button:has-text("Sign In"), button:has-text("Log In"), a:has-text("Login")').first();
@@ -28,7 +29,7 @@ test.describe('Smoke Test: Critical Features', () => {
     }
   });
 
-  test('Can access signup/registration', async ({ page }) => {
+  test('Can access signup/registration', async ({ page }: { page: Page }) => {
     await page.goto('/');
     
     const signupButton = page.locator('button:has-text("Sign Up"), button:has-text("Create Account")').first();
@@ -41,19 +42,19 @@ test.describe('Smoke Test: Critical Features', () => {
     }
   });
 
-  test('Navigation works (authenticated user)', async ({ page, context }) => {
+  test('Navigation works (authenticated user)', async ({ page, context }: { page: Page; context: any }) => {
     // This would be better with a logged-in user context
     // For demo, checking if nav items are clickable
     await page.goto('/');
     
     const navLinks = page.locator('nav a, [role="navigation"] a').all();
-    const linkCount = await navLinks.then(links => links.length);
+    const linkCount = await navLinks.then((links: any) => links.length);
     
     // At least some navigation links should exist
     expect(linkCount).toBeGreaterThan(0);
   });
 
-  test('Footer is visible', async ({ page }) => {
+  test('Footer is visible', async ({ page }: { page: Page }) => {
     await page.goto('/');
     
     const footer = page.locator('footer, [role="contentinfo"]').first();
@@ -66,10 +67,10 @@ test.describe('Smoke Test: Critical Features', () => {
     expect(footerVisible || true).toBeTruthy(); // Footer might be off-screen in mobile
   });
 
-  test('No console errors on homepage', async ({ page }) => {
+  test('No console errors on homepage', async ({ page }: { page: Page }) => {
     const errors: string[] = [];
     
-    page.on('console', msg => {
+    page.on('console', (msg: any) => {
       if (msg.type() === 'error') {
         errors.push(msg.text());
       }
@@ -83,7 +84,7 @@ test.describe('Smoke Test: Critical Features', () => {
     expect(criticalErrors.length).toBe(0);
   });
 
-  test('Responsive on mobile', async ({ browser }) => {
+  test('Responsive on mobile', async ({ browser }: { browser: any }) => {
     // Test on mobile device
     const context = await browser.newContext({
       ...devices['iPhone 12'],
@@ -99,7 +100,7 @@ test.describe('Smoke Test: Critical Features', () => {
     await context.close();
   });
 
-  test('API health check (if available)', async ({ page }) => {
+  test('API health check (if available)', async ({ page }: { page: Page }) => {
     // Try to reach API health endpoint
     const response = await page.request.get('/api/health');
     

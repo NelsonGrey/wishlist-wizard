@@ -1,0 +1,10 @@
+{
+  "extends": "../../../tsconfig.json",
+  "compilerOptions": {
+    "strict": true,
+    "lib": ["esnext", "dom", "dom.iterable"],
+    "types": ["@playwright/test", "node"]
+  },
+  "include": ["**/*.ts"],
+  "exclude": ["node_modules"]
+}

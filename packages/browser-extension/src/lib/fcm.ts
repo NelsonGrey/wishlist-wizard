@@ -92,7 +92,7 @@ export async function requestExtensionNotificationPermission(): Promise<Notifica
     const permission = await new Promise<NotificationPermission>((resolve) => {
       chrome.permissions.request(
         { permissions: ['notifications'] },
-        (granted) => {
+        (granted: boolean) => {
           if (chrome.runtime.lastError) {
             console.error('[FCM Extension] Permission error:', chrome.runtime.lastError);
             resolve('denied');
@@ -353,7 +353,7 @@ async function getUnreadNotificationCount(): Promise<number> {
   }
 
   return new Promise((resolve) => {
-    chrome.notifications.getAll((notifications) => {
+    chrome.notifications.getAll((notifications: any) => {
       if (chrome.runtime.lastError) {
         console.warn('[FCM Extension] Failed to read notifications for badge count:', chrome.runtime.lastError.message);
         resolve(0);

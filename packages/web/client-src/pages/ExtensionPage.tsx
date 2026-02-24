@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 // Using alternative icons from the React Icons library
-import { FaChrome, FaFirefox, FaEdge } from 'react-icons/fa';
+import { FaChrome, FaFirefox, FaEdge, FaSafari } from 'react-icons/fa';
 import { ResponsiveAd } from '@/components/ads/AdUnit';
 import { ExtensionHelp } from '@/components/help/ExtensionHelp';
 
@@ -23,7 +23,7 @@ const ExtensionPage = () => {
           <h1 className="text-4xl font-bold bg-gradient-to-r from-emerald-800 to-green-800 bg-clip-text text-transparent mb-2">
             Wishlist Wizard Browser Extension
           </h1>
-          <div className="flex items-center gap-2 mb-4">
+          <div id="browser-install-help" className="flex items-center gap-2 mb-4">
             <p className="text-xl text-gray-600">
               Add products to your wishlists from any online retailer with a single click
             </p>
@@ -80,7 +80,7 @@ const ExtensionPage = () => {
         </div>
 
         <Tabs defaultValue="chrome" className="w-full mb-16">
-          <TabsList className="grid w-full grid-cols-3 mb-8 bg-gray-100">
+          <TabsList className="grid w-full grid-cols-4 mb-8 bg-gray-100">
             <TabsTrigger value="chrome" className="flex items-center gap-2 data-[state=active]:bg-emerald-700 data-[state=active]:text-white">
               <FaChrome className="h-5 w-5" /> Chrome
             </TabsTrigger>
@@ -89,6 +89,9 @@ const ExtensionPage = () => {
             </TabsTrigger>
             <TabsTrigger value="edge" className="flex items-center gap-2 data-[state=active]:bg-emerald-700 data-[state=active]:text-white">
               <FaEdge className="h-5 w-5" /> Edge
+            </TabsTrigger>
+            <TabsTrigger value="safari" className="flex items-center gap-2 data-[state=active]:bg-emerald-700 data-[state=active]:text-white">
+              <FaSafari className="h-5 w-5" /> Safari
             </TabsTrigger>
           </TabsList>
           
@@ -119,13 +122,13 @@ const ExtensionPage = () => {
               </CardContent>
               <CardFooter className="flex flex-col sm:flex-row gap-4">
                 <Button className="w-full sm:w-auto bg-gradient-to-r from-emerald-700 to-green-700 text-white hover:from-emerald-800 hover:to-green-800" size="lg" asChild>
-                  <Link href="/extension">
+                  <a href="https://chromewebstore.google.com/" target="_blank" rel="noopener noreferrer">
                     <FaChrome className="mr-2 h-5 w-5" />
                     Install for Chrome
-                  </Link>
+                  </a>
                 </Button>
                 <Button variant="outline" className="w-full sm:w-auto border-2 border-emerald-700 text-emerald-700 hover:bg-emerald-50 hover:border-emerald-800 hover:text-emerald-800" asChild>
-                  <a href="https://github.com/mnelson3/wishlist-wizard/blob/develop/docs/packages/browser-extension/src/INSTALLATION-GUIDE.md" target="_blank" rel="noopener noreferrer">
+                  <a href="#browser-install-help">
                     View Installation Guide
                   </a>
                 </Button>
@@ -160,13 +163,13 @@ const ExtensionPage = () => {
               </CardContent>
               <CardFooter className="flex flex-col sm:flex-row gap-4">
                 <Button className="w-full sm:w-auto bg-gradient-to-r from-emerald-700 to-green-700 text-white hover:from-emerald-800 hover:to-green-800" size="lg" asChild>
-                  <Link href="/extension">
+                  <a href="https://addons.mozilla.org/firefox/" target="_blank" rel="noopener noreferrer">
                     <FaFirefox className="mr-2 h-5 w-5" />
                     Install for Firefox
-                  </Link>
+                  </a>
                 </Button>
                 <Button variant="outline" className="w-full sm:w-auto border-2 border-emerald-700 text-emerald-700 hover:bg-emerald-50 hover:border-emerald-800 hover:text-emerald-800" asChild>
-                  <a href="https://github.com/mnelson3/wishlist-wizard/blob/develop/docs/packages/browser-extension/src/INSTALLATION-GUIDE.md" target="_blank" rel="noopener noreferrer">
+                  <a href="#browser-install-help">
                     View Installation Guide
                   </a>
                 </Button>
@@ -201,13 +204,54 @@ const ExtensionPage = () => {
               </CardContent>
               <CardFooter className="flex flex-col sm:flex-row gap-4">
                 <Button className="w-full sm:w-auto bg-gradient-to-r from-emerald-700 to-green-700 text-white hover:from-emerald-800 hover:to-green-800" size="lg" asChild>
-                  <Link href="/extension">
+                  <a href="https://microsoftedge.microsoft.com/addons/" target="_blank" rel="noopener noreferrer">
                     <FaEdge className="mr-2 h-5 w-5" />
                     Install for Edge
-                  </Link>
+                  </a>
                 </Button>
                 <Button variant="outline" className="w-full sm:w-auto border-2 border-emerald-700 text-emerald-700 hover:bg-emerald-50 hover:border-emerald-800 hover:text-emerald-800" asChild>
-                  <a href="https://github.com/mnelson3/wishlist-wizard/blob/develop/docs/packages/browser-extension/src/INSTALLATION-GUIDE.md" target="_blank" rel="noopener noreferrer">
+                  <a href="#browser-install-help">
+                    View Installation Guide
+                  </a>
+                </Button>
+              </CardFooter>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="safari" className="w-full">
+            <Card>
+              <CardHeader>
+                <CardTitle>Install for Safari</CardTitle>
+                <CardDescription>
+                  Apple Safari on macOS and iOS
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <p className="text-gray-700">
+                    Safari support is available through the Wishlist Wizard app bundle and can be enabled from Safari extension settings.
+                  </p>
+
+                  <div className="bg-gray-50 p-4 rounded-md">
+                    <h3 className="font-bold mb-2">Installation Steps</h3>
+                    <ol className="list-decimal list-inside space-y-2 text-gray-700">
+                      <li>Open the App Store and install Wishlist Wizard</li>
+                      <li>Open Safari Settings and go to Extensions</li>
+                      <li>Enable the Wishlist Wizard Safari extension</li>
+                      <li>Sign in to your Wishlist Wizard account when prompted</li>
+                    </ol>
+                  </div>
+                </div>
+              </CardContent>
+              <CardFooter className="flex flex-col sm:flex-row gap-4">
+                <Button className="w-full sm:w-auto bg-gradient-to-r from-emerald-700 to-green-700 text-white hover:from-emerald-800 hover:to-green-800" size="lg" asChild>
+                  <a href="https://apps.apple.com/" target="_blank" rel="noopener noreferrer">
+                    <FaSafari className="mr-2 h-5 w-5" />
+                    Install for Safari
+                  </a>
+                </Button>
+                <Button variant="outline" className="w-full sm:w-auto border-2 border-emerald-700 text-emerald-700 hover:bg-emerald-50 hover:border-emerald-800 hover:text-emerald-800" asChild>
+                  <a href="#browser-install-help">
                     View Installation Guide
                   </a>
                 </Button>
