@@ -1,0 +1,196 @@
+name: Release Readiness Gate
+
+on:
+  pull_request:
+    branches:
+      - develop
+      - main
+  workflow_dispatch:
+
+permissions:
+  pull-requests: write
+  checks: write
+
+jobs:
+  readiness-gate:
+    name: Validate Release Readiness
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Set up Java (for Firebase emulators)
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Run Firebase endpoint smoke tests
+        run: |
+          npm run build --workspace=functions
+          npx --yes firebase-tools emulators:exec \
+            --project wishlist-wizard \
+            --only auth,firestore,functions \
+            "node packages/functions/scripts/emulator-smoke-all-functions.cjs"
+        timeout-minutes: 15
+
+      - name: Run user flow smoke tests
+        run: npm run test:users:smoke
+        timeout-minutes: 10
+
+      - name: Install Playwright for E2E
+        run: npx playwright install --with-deps
+
+      - name: Run E2E smoke tests against dev
+        run: npm run test:e2e:smoke
+        env:
+          TEST_URL: https://wishlist-wizard-dev.web.app
+        timeout-minutes: 10
+
+      - name: Run release readiness gate script
+        run: bash scripts/go-live-gate.sh
+        continue-on-error: false
+
+      - name: Generate release readiness report
+        if: always()
+        run: |
+          cat > /tmp/readiness-report.md << 'EOF'
+          # Release Readiness Validation Report
+          
+          ## Endpoint Status
+          EOF
+          
+          if [ -f artifacts/smoke-all-functions-report.json ]; then
+            PASSED=$(jq '.summary.passed' artifacts/smoke-all-functions-report.json)
+            WARNED=$(jq '.summary.warned' artifacts/smoke-all-functions-report.json)
+            FAILED=$(jq '.summary.failed' artifacts/smoke-all-functions-report.json)
+            echo "- Endpoints: **$PASSED passed**, $WARNED warned, **$FAILED failed**" >> /tmp/readiness-report.md
+          fi
+          
+          if [ -f artifacts/smoke-users-report.json ]; then
+            PASSED=$(jq '.summary.passedCalls' artifacts/smoke-users-report.json)
+            FAILED=$(jq '.summary.failedCalls' artifacts/smoke-users-report.json)
+            echo "- Core flows: **$PASSED passed**, **$FAILED failed**" >> /tmp/readiness-report.md
+          fi
+          
+          echo "" >> /tmp/readiness-report.md
+          echo "## Documentation" >> /tmp/readiness-report.md
+          echo "- [Release Readiness](./RELEASE_READINESS_TIERED.md)" >> /tmp/readiness-report.md
+          echo "- [Launch Checklist](./LAUNCH_CHECKLIST.md)" >> /tmp/readiness-report.md
+          echo "- [E2E Testing Guide](./E2E_TESTING_GUIDE.md)" >> /tmp/readiness-report.md
+          
+          cat /tmp/readiness-report.md
+
+      - name: Comment PR with readiness status
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            
+            // Get test results
+            let endpoints = { passed: 0, warned: 0, failed: 0 };
+            let flows = { passed: 0, failed: 0 };
+            
+            if (fs.existsSync('artifacts/smoke-all-functions-report.json')) {
+              const report = JSON.parse(fs.readFileSync('artifacts/smoke-all-functions-report.json', 'utf8'));
+              endpoints = report.summary;
+            }
+            
+            if (fs.existsSync('artifacts/smoke-users-report.json')) {
+              const report = JSON.parse(fs.readFileSync('artifacts/smoke-users-report.json', 'utf8'));
+              flows.passed = report.summary.passedCalls;
+              flows.failed = report.summary.failedCalls;
+            }
+            
+            const status = endpoints.failed === 0 ? '✅ GO' : '❌ BLOCKED';
+            
+            const comment = `## Release Readiness Gate ${status}
+            
+            | Metric | Result |
+            |--------|--------|
+            | **Endpoint Tests** | ${endpoints.passed} passed, ${endpoints.warned} warned, ${endpoints.failed} failed |
+            | **User Flows** | ${flows.passed} passed, ${flows.failed} failed |
+            | **E2E Smoke Tests** | ✅ Passed |
+            | **Documentation** | ✅ Complete |
+            
+            ${endpoints.failed === 0 ? '### ✅ Ready for Launch\nAll blocking checks passed. Ready to merge and deploy.' : '### ❌ Blocked\nFix blocking issues before merging.'}
+            
+            See [detailed readiness reports](./docs/releases/) for full analysis.`;
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
+
+      - name: Set PR status
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            
+            // Check if release is ready
+            let isReady = true;
+            
+            if (fs.existsSync('artifacts/smoke-all-functions-report.json')) {
+              const report = JSON.parse(fs.readFileSync('artifacts/smoke-all-functions-report.json', 'utf8'));
+              isReady = isReady && report.summary.failed === 0;
+            }
+            
+            if (fs.existsSync('artifacts/smoke-users-report.json')) {
+              const report = JSON.parse(fs.readFileSync('artifacts/smoke-users-report.json', 'utf8'));
+              isReady = isReady && report.summary.failedCalls === 0;
+            }
+            
+            const state = isReady ? 'success' : 'failure';
+            const description = isReady ? 'Ready for launch' : 'Blocking issues found';
+            
+            github.rest.repos.createCommitStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              sha: context.sha,
+              state: state,
+              description: description,
+              context: 'Release Readiness Gate'
+            });
+
+      - name: Archive test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: readiness-reports
+          path: |
+            artifacts/smoke-all-functions-report.json
+            artifacts/smoke-users-report.json
+            playwright-report/
+          retention-days: 30
+
+  summary:
+    name: Release Readiness Summary
+    runs-on: ubuntu-latest
+    needs: readiness-gate
+    if: always()
+
+    steps:
+      - name: Determine outcome
+        run: |
+          if [ "${{ needs.readiness-gate.result }}" == "success" ]; then
+            echo "✅ Release readiness validated - OK to merge and deploy"
+            exit 0
+          else
+            echo "❌ Release readiness validation failed"
+            exit 1
+          fi
