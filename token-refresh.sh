@@ -1,5 +1,19 @@
 #!/bin/bash
 
+# DEPRECATED: This script is no longer needed
+# GitHub CLI authentication is managed directly through 'gh auth login'
+# Token refresh happens automatically when gh commands are run
+# The LaunchAgent service has been removed to prevent keychain password prompts
+
+echo "⚠️  This token-refresh script is deprecated and no longer used."
+echo "GitHub authentication is handled directly by GitHub CLI (gh)."
+echo "To check authentication status: gh auth status"
+echo "To re-authenticate if needed: gh auth login"
+exit 0
+
+# Original script below (preserved for reference but not executed)
+# -----------------------------------------------------------
+
 # Standardized ZERO-TOUCH GitHub Runner Token Refresh Script
 # Uses shared GitHub CLI authentication library for consistent, automated token management
 # Version: 1.0.0
