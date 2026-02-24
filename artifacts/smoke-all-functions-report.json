@@ -1,0 +1,667 @@
+{
+  "meta": {
+    "startedAt": "2026-02-23T23:32:37.621Z",
+    "projectId": "wishlist-wizard",
+    "authHost": "127.0.0.1:9099",
+    "functionsHost": "127.0.0.1:5001",
+    "region": "us-central1",
+    "endedAt": "2026-02-23T23:33:21.065Z",
+    "durationMs": 43444
+  },
+  "summary": {
+    "total": 82,
+    "passed": 67,
+    "warned": 15,
+    "failed": 0
+  },
+  "results": [
+    {
+      "endpoint": "createUserProfile",
+      "type": "onCall",
+      "status": "passed",
+      "durationMs": 517,
+      "httpStatus": 200,
+      "message": "Callable reachable"
+    },
+    {
+      "endpoint": "getUserProfile",
+      "type": "onCall",
+      "status": "passed",
+      "durationMs": 513,
+      "httpStatus": 200,
+      "message": "Callable reachable"
+    },
+    {
+      "endpoint": "updateUserProfile",
+      "type": "onCall",
+      "status": "passed",
+      "durationMs": 511,
+      "httpStatus": 200,
+      "message": "Callable reachable"
+    },
+    {
+      "endpoint": "createDocument",
+      "type": "onCall",
+      "status": "passed",
+      "durationMs": 7,
+      "httpStatus": 200,
+      "message": "Callable reachable"
+    },
+    {
+      "endpoint": "getDocument",
+      "type": "onCall",
+      "status": "passed",
+      "durationMs": 507,
+      "httpStatus": 200,
+      "message": "Callable reachable"
+    },
+    {
+      "endpoint": "updateDocument",
+      "type": "onCall",
+      "status": "passed",
+      "durationMs": 528,
+      "httpStatus": 200,
+      "message": "Callable reachable"
+    },
+    {
+      "endpoint": "deleteDocument",
+      "type": "onCall",
+      "status": "passed",
+      "durationMs": 511,
+      "httpStatus": 200,
+      "message": "Callable reachable"
+    },
+    {
+      "endpoint": "listDocuments",
+      "type": "onCall",
+      "status": "passed",
+      "durationMs": 530,
+      "httpStatus": 200,
+      "message": "Callable reachable"
+    },
+    {
+      "endpoint": "batchCreateDocuments",
+      "type": "onCall",
+      "status": "passed",
+      "durationMs": 9,
+      "httpStatus": 200,
+      "message": "Callable reachable"
+    },
+    {
+      "endpoint": "batchUpdateDocuments",
+      "type": "onCall",
+      "status": "passed",
+      "durationMs": 509,
+      "httpStatus": 200,
+      "message": "Callable reachable"
+    },
+    {
+      "endpoint": "getUserNotifications",
+      "type": "onCall",
+      "status": "passed",
+      "durationMs": 536,
+      "httpStatus": 200,
+      "message": "Callable reachable"
+    },
+    {
+      "endpoint": "markNotificationAsRead",
+      "type": "onCall",
+      "status": "passed",
+      "durationMs": 520,
+      "httpStatus": 200,
+      "message": "Callable reachable"
+    },
+    {
+      "endpoint": "markAllNotificationsAsRead",
+      "type": "onCall",
+      "status": "passed",
+      "durationMs": 519,
+      "httpStatus": 200,
+      "message": "Callable reachable"
+    },
+    {
+      "endpoint": "deleteNotification",
+      "type": "onCall",
+      "status": "passed",
+      "durationMs": 512,
+      "httpStatus": 200,
+      "message": "Callable reachable"
+    },
+    {
+      "endpoint": "createSystemNotification",
+      "type": "onCall",
+      "status": "passed",
+      "durationMs": 6,
+      "httpStatus": 200,
+      "message": "Callable reachable"
+    },
+    {
+      "endpoint": "getNotificationSettings",
+      "type": "onCall",
+      "status": "passed",
+      "durationMs": 503,
+      "httpStatus": 200,
+      "message": "Callable reachable"
+    },
+    {
+      "endpoint": "updateNotificationSettings",
+      "type": "onCall",
+      "status": "passed",
+      "durationMs": 507,
+      "httpStatus": 200,
+      "message": "Callable reachable"
+    },
+    {
+      "endpoint": "authenticateExtension",
+      "type": "onCall",
+      "status": "passed",
+      "durationMs": 531,
+      "httpStatus": 200,
+      "message": "Callable reachable"
+    },
+    {
+      "endpoint": "getExtensionWishlists",
+      "type": "onCall",
+      "status": "passed",
+      "durationMs": 509,
+      "httpStatus": 200,
+      "message": "Callable reachable"
+    },
+    {
+      "endpoint": "addItemFromExtension",
+      "type": "onCall",
+      "status": "passed",
+      "durationMs": 515,
+      "httpStatus": 200,
+      "message": "Callable reachable"
+    },
+    {
+      "endpoint": "getExtensionRecentItems",
+      "type": "onCall",
+      "status": "passed",
+      "durationMs": 526,
+      "httpStatus": 200,
+      "message": "Callable reachable"
+    },
+    {
+      "endpoint": "createExtensionWishlist",
+      "type": "onCall",
+      "status": "passed",
+      "durationMs": 512,
+      "httpStatus": 200,
+      "message": "Callable reachable"
+    },
+    {
+      "endpoint": "deleteExtensionItem",
+      "type": "onCall",
+      "status": "passed",
+      "durationMs": 552,
+      "httpStatus": 200,
+      "message": "Callable reachable"
+    },
+    {
+      "endpoint": "shareExtensionWishlist",
+      "type": "onCall",
+      "status": "passed",
+      "durationMs": 504,
+      "httpStatus": 200,
+      "message": "Callable reachable"
+    },
+    {
+      "endpoint": "getExtensionAnalytics",
+      "type": "onCall",
+      "status": "passed",
+      "durationMs": 525,
+      "httpStatus": 200,
+      "message": "Callable reachable"
+    },
+    {
+      "endpoint": "trackExtensionEvent",
+      "type": "onCall",
+      "status": "passed",
+      "durationMs": 508,
+      "httpStatus": 200,
+      "message": "Callable reachable"
+    },
+    {
+      "endpoint": "getUserWishlists",
+      "type": "onCall",
+      "status": "passed",
+      "durationMs": 547,
+      "httpStatus": 200,
+      "message": "Callable reachable"
+    },
+    {
+      "endpoint": "getWishlistById",
+      "type": "onCall",
+      "status": "passed",
+      "durationMs": 514,
+      "httpStatus": 200,
+      "message": "Callable reachable"
+    },
+    {
+      "endpoint": "getSharedWishlist",
+      "type": "onCall",
+      "status": "passed",
+      "durationMs": 519,
+      "httpStatus": 200,
+      "message": "Callable reachable"
+    },
+    {
+      "endpoint": "createWishlist",
+      "type": "onCall",
+      "status": "passed",
+      "durationMs": 515,
+      "httpStatus": 200,
+      "message": "Callable reachable"
+    },
+    {
+      "endpoint": "updateWishlist",
+      "type": "onCall",
+      "status": "passed",
+      "durationMs": 514,
+      "httpStatus": 200,
+      "message": "Callable reachable"
+    },
+    {
+      "endpoint": "deleteWishlist",
+      "type": "onCall",
+      "status": "passed",
+      "durationMs": 526,
+      "httpStatus": 200,
+      "message": "Callable reachable"
+    },
+    {
+      "endpoint": "getWishlistItems",
+      "type": "onCall",
+      "status": "passed",
+      "durationMs": 520,
+      "httpStatus": 200,
+      "message": "Callable reachable"
+    },
+    {
+      "endpoint": "addWishlistItem",
+      "type": "onCall",
+      "status": "passed",
+      "durationMs": 13,
+      "httpStatus": 200,
+      "message": "Callable reachable"
+    },
+    {
+      "endpoint": "updateWishlistItem",
+      "type": "onCall",
+      "status": "passed",
+      "durationMs": 523,
+      "httpStatus": 200,
+      "message": "Callable reachable"
+    },
+    {
+      "endpoint": "deleteWishlistItem",
+      "type": "onCall",
+      "status": "passed",
+      "durationMs": 532,
+      "httpStatus": 200,
+      "message": "Callable reachable"
+    },
+    {
+      "endpoint": "saveFCMToken",
+      "type": "onCall",
+      "status": "passed",
+      "durationMs": 14,
+      "httpStatus": 200,
+      "message": "Callable reachable"
+    },
+    {
+      "endpoint": "removeFCMToken",
+      "type": "onCall",
+      "status": "passed",
+      "durationMs": 509,
+      "httpStatus": 200,
+      "message": "Callable reachable"
+    },
+    {
+      "endpoint": "subscribeToTopic",
+      "type": "onCall",
+      "status": "warned",
+      "durationMs": 512,
+      "httpStatus": 500,
+      "message": "INTERNAL: Failed to subscribe to topic"
+    },
+    {
+      "endpoint": "unsubscribeFromTopic",
+      "type": "onCall",
+      "status": "warned",
+      "durationMs": 505,
+      "httpStatus": 500,
+      "message": "INTERNAL: Failed to unsubscribe from topic"
+    },
+    {
+      "endpoint": "sendTestPushNotification",
+      "type": "onCall",
+      "status": "warned",
+      "durationMs": 504,
+      "httpStatus": 404,
+      "message": "NOT_FOUND: No FCM token found for user"
+    },
+    {
+      "endpoint": "sendTestNotification",
+      "type": "onCall",
+      "status": "passed",
+      "durationMs": 522,
+      "httpStatus": 200,
+      "message": "Callable reachable"
+    },
+    {
+      "endpoint": "convertAffiliateLink",
+      "type": "onCall",
+      "status": "passed",
+      "durationMs": 518,
+      "httpStatus": 200,
+      "message": "Callable reachable"
+    },
+    {
+      "endpoint": "batchConvertAffiliateLinks",
+      "type": "onCall",
+      "status": "passed",
+      "durationMs": 507,
+      "httpStatus": 200,
+      "message": "Callable reachable"
+    },
+    {
+      "endpoint": "convertWishlistAffiliateLinks",
+      "type": "onCall",
+      "status": "passed",
+      "durationMs": 517,
+      "httpStatus": 200,
+      "message": "Callable reachable"
+    },
+    {
+      "endpoint": "trackAffiliateClick",
+      "type": "onCall",
+      "status": "passed",
+      "durationMs": 512,
+      "httpStatus": 200,
+      "message": "Callable reachable"
+    },
+    {
+      "endpoint": "getAffiliatePrograms",
+      "type": "onCall",
+      "status": "passed",
+      "durationMs": 514,
+      "httpStatus": 200,
+      "message": "Callable reachable"
+    },
+    {
+      "endpoint": "getAffiliateStats",
+      "type": "onCall",
+      "status": "passed",
+      "durationMs": 527,
+      "httpStatus": 200,
+      "message": "Callable reachable"
+    },
+    {
+      "endpoint": "getAffiliateDisclosure",
+      "type": "onCall",
+      "status": "passed",
+      "durationMs": 416,
+      "httpStatus": 200,
+      "message": "Callable reachable"
+    },
+    {
+      "endpoint": "createGroupPaymentIntent",
+      "type": "onCall",
+      "status": "warned",
+      "durationMs": 418,
+      "httpStatus": 400,
+      "message": "FAILED_PRECONDITION: Stripe is not configured"
+    },
+    {
+      "endpoint": "confirmGroupContribution",
+      "type": "onCall",
+      "status": "warned",
+      "durationMs": 421,
+      "httpStatus": 400,
+      "message": "FAILED_PRECONDITION: Stripe is not configured"
+    },
+    {
+      "endpoint": "getGroupGiftSummary",
+      "type": "onCall",
+      "status": "passed",
+      "durationMs": 524,
+      "httpStatus": 200,
+      "message": "Callable reachable"
+    },
+    {
+      "endpoint": "getCalendarEvents",
+      "type": "onCall",
+      "status": "passed",
+      "durationMs": 519,
+      "httpStatus": 200,
+      "message": "Callable reachable"
+    },
+    {
+      "endpoint": "createCalendarEvent",
+      "type": "onCall",
+      "status": "passed",
+      "durationMs": 23,
+      "httpStatus": 200,
+      "message": "Callable reachable"
+    },
+    {
+      "endpoint": "updateCalendarEvent",
+      "type": "onCall",
+      "status": "passed",
+      "durationMs": 509,
+      "httpStatus": 200,
+      "message": "Callable reachable"
+    },
+    {
+      "endpoint": "deleteCalendarEvent",
+      "type": "onCall",
+      "status": "passed",
+      "durationMs": 616,
+      "httpStatus": 200,
+      "message": "Callable reachable"
+    },
+    {
+      "endpoint": "getCalendarAuthUrl",
+      "type": "onCall",
+      "status": "passed",
+      "durationMs": 504,
+      "httpStatus": 200,
+      "message": "Callable reachable"
+    },
+    {
+      "endpoint": "connectCalendar",
+      "type": "onCall",
+      "status": "warned",
+      "durationMs": 416,
+      "httpStatus": 400,
+      "message": "FAILED_PRECONDITION: Apple calendar requires manual subscription"
+    },
+    {
+      "endpoint": "getCalendarConnections",
+      "type": "onCall",
+      "status": "passed",
+      "durationMs": 524,
+      "httpStatus": 200,
+      "message": "Callable reachable"
+    },
+    {
+      "endpoint": "updateCalendarConnectionSettings",
+      "type": "onCall",
+      "status": "warned",
+      "durationMs": 512,
+      "httpStatus": 404,
+      "message": "NOT_FOUND: Connection not found"
+    },
+    {
+      "endpoint": "disconnectCalendar",
+      "type": "onCall",
+      "status": "warned",
+      "durationMs": 506,
+      "httpStatus": 404,
+      "message": "NOT_FOUND: Connection not found"
+    },
+    {
+      "endpoint": "syncCalendarConnection",
+      "type": "onCall",
+      "status": "warned",
+      "durationMs": 505,
+      "httpStatus": 404,
+      "message": "NOT_FOUND: Connection not found"
+    },
+    {
+      "endpoint": "syncCalendar",
+      "type": "onCall",
+      "status": "passed",
+      "durationMs": 514,
+      "httpStatus": 200,
+      "message": "Callable reachable"
+    },
+    {
+      "endpoint": "getCalendarSyncSettings",
+      "type": "onCall",
+      "status": "passed",
+      "durationMs": 512,
+      "httpStatus": 200,
+      "message": "Callable reachable"
+    },
+    {
+      "endpoint": "registerDevice",
+      "type": "onCall",
+      "status": "passed",
+      "durationMs": 12,
+      "httpStatus": 200,
+      "message": "Callable reachable"
+    },
+    {
+      "endpoint": "listDevices",
+      "type": "onCall",
+      "status": "passed",
+      "durationMs": 682,
+      "httpStatus": 200,
+      "message": "Callable reachable"
+    },
+    {
+      "endpoint": "updateDevice",
+      "type": "onCall",
+      "status": "passed",
+      "durationMs": 516,
+      "httpStatus": 200,
+      "message": "Callable reachable"
+    },
+    {
+      "endpoint": "logSyncEvent",
+      "type": "onCall",
+      "status": "passed",
+      "durationMs": 507,
+      "httpStatus": 200,
+      "message": "Callable reachable"
+    },
+    {
+      "endpoint": "getSyncLogs",
+      "type": "onCall",
+      "status": "passed",
+      "durationMs": 516,
+      "httpStatus": 200,
+      "message": "Callable reachable"
+    },
+    {
+      "endpoint": "syncMobileActions",
+      "type": "onCall",
+      "status": "passed",
+      "durationMs": 515,
+      "httpStatus": 200,
+      "message": "Callable reachable"
+    },
+    {
+      "endpoint": "lookupBarcode",
+      "type": "onCall",
+      "status": "passed",
+      "durationMs": 1314,
+      "httpStatus": 200,
+      "message": "Callable reachable"
+    },
+    {
+      "endpoint": "getARModel",
+      "type": "onCall",
+      "status": "passed",
+      "durationMs": 414,
+      "httpStatus": 200,
+      "message": "Callable reachable"
+    },
+    {
+      "endpoint": "trackAnalyticsEvent",
+      "type": "onCall",
+      "status": "passed",
+      "durationMs": 511,
+      "httpStatus": 200,
+      "message": "Callable reachable"
+    },
+    {
+      "endpoint": "getAnalyticsEvents",
+      "type": "onCall",
+      "status": "passed",
+      "durationMs": 566,
+      "httpStatus": 200,
+      "message": "Callable reachable"
+    },
+    {
+      "endpoint": "getAnalyticsSummary",
+      "type": "onCall",
+      "status": "passed",
+      "durationMs": 525,
+      "httpStatus": 200,
+      "message": "Callable reachable"
+    },
+    {
+      "endpoint": "getItemPriceHistory",
+      "type": "onRequest",
+      "status": "passed",
+      "durationMs": 552,
+      "httpStatus": 200,
+      "message": "HTTP endpoint reachable"
+    },
+    {
+      "endpoint": "createCheckoutSession",
+      "type": "onRequest",
+      "status": "warned",
+      "durationMs": 415,
+      "httpStatus": 501,
+      "message": "HTTP 501 (reachable but not fully configured for this payload)"
+    },
+    {
+      "endpoint": "stripeWebhook",
+      "type": "onRequest",
+      "status": "warned",
+      "durationMs": 416,
+      "httpStatus": 501,
+      "message": "HTTP 501 (reachable but not fully configured for this payload)"
+    },
+    {
+      "endpoint": "notifyItemAdded",
+      "type": "unknown",
+      "status": "warned",
+      "message": "Could not classify export from ./fcm"
+    },
+    {
+      "endpoint": "notifyItemReserved",
+      "type": "unknown",
+      "status": "warned",
+      "message": "Could not classify export from ./fcm"
+    },
+    {
+      "endpoint": "notifyItemPurchased",
+      "type": "unknown",
+      "status": "warned",
+      "message": "Could not classify export from ./fcm"
+    },
+    {
+      "endpoint": "notifyPriceAlert",
+      "type": "unknown",
+      "status": "warned",
+      "message": "Could not classify export from ./fcm"
+    }
+  ]
+}

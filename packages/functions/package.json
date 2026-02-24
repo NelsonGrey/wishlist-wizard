@@ -6,6 +6,7 @@
     "build:watch": "tsc --watch",
     "serve": "npm run build && firebase emulators:start --only functions",
     "smoke:users": "node ./scripts/emulator-smoke-users.cjs",
+    "smoke:all": "node ./scripts/emulator-smoke-all-functions.cjs",
     "shell": "npm run build && firebase functions:shell",
     "start": "npm run shell",
     "deploy": "firebase deploy --only functions",

@@ -1,198 +1,198 @@
 {
   "meta": {
-    "startedAt": "2026-02-23T19:42:38.214Z",
+    "startedAt": "2026-02-23T23:16:43.055Z",
     "projectId": "wishlist-wizard",
     "authHost": "127.0.0.1:9099",
     "functionsHost": "127.0.0.1:5001",
     "region": "us-central1",
     "reportPath": "artifacts/smoke-users-report.json",
-    "endedAt": "2026-02-23T19:43:12.910Z"
+    "endedAt": "2026-02-23T23:16:59.489Z"
   },
   "calls": [
     {
       "functionName": "createUserProfile",
       "status": "passed",
-      "durationMs": 1306,
+      "durationMs": 520,
       "httpStatus": 200
     },
     {
       "functionName": "getUserWishlists",
       "status": "passed",
-      "durationMs": 1198,
+      "durationMs": 553,
       "httpStatus": 200
     },
     {
       "functionName": "createWishlist",
       "status": "passed",
-      "durationMs": 1148,
+      "durationMs": 522,
       "httpStatus": 200
     },
     {
       "functionName": "addWishlistItem",
       "status": "passed",
-      "durationMs": 1184,
+      "durationMs": 549,
       "httpStatus": 200
     },
     {
       "functionName": "getWishlistItems",
       "status": "passed",
-      "durationMs": 1327,
+      "durationMs": 867,
       "httpStatus": 200
     },
     {
       "functionName": "updateWishlist",
       "status": "passed",
-      "durationMs": 1179,
+      "durationMs": 907,
       "httpStatus": 200
     },
     {
       "functionName": "updateWishlistItem",
       "status": "passed",
-      "durationMs": 1193,
+      "durationMs": 533,
       "httpStatus": 200
     },
     {
       "functionName": "deleteWishlistItem",
       "status": "passed",
-      "durationMs": 1300,
+      "durationMs": 538,
       "httpStatus": 200
     },
     {
       "functionName": "deleteWishlist",
       "status": "passed",
-      "durationMs": 1271,
+      "durationMs": 532,
       "httpStatus": 200
     },
     {
       "functionName": "authenticateExtension",
       "status": "passed",
-      "durationMs": 1207,
+      "durationMs": 517,
       "httpStatus": 200
     },
     {
       "functionName": "createExtensionWishlist",
       "status": "passed",
-      "durationMs": 1185,
+      "durationMs": 547,
       "httpStatus": 200
     },
     {
       "functionName": "addItemFromExtension",
       "status": "passed",
-      "durationMs": 1179,
+      "durationMs": 528,
       "httpStatus": 200
     },
     {
       "functionName": "shareExtensionWishlist",
       "status": "passed",
-      "durationMs": 1167,
+      "durationMs": 522,
       "httpStatus": 200
     },
     {
       "functionName": "trackExtensionEvent",
       "status": "passed",
-      "durationMs": 1147,
+      "durationMs": 619,
       "httpStatus": 200
     },
     {
       "functionName": "deleteExtensionItem",
       "status": "passed",
-      "durationMs": 1176,
+      "durationMs": 555,
       "httpStatus": 200
     },
     {
       "functionName": "deleteWishlist",
       "status": "passed",
-      "durationMs": 37,
+      "durationMs": 531,
       "httpStatus": 200
     },
     {
       "functionName": "getNotificationSettings",
       "status": "passed",
-      "durationMs": 1168,
+      "durationMs": 518,
       "httpStatus": 200
     },
     {
       "functionName": "updateNotificationSettings",
       "status": "passed",
-      "durationMs": 1153,
+      "durationMs": 525,
       "httpStatus": 200
     },
     {
       "functionName": "createSystemNotification",
       "status": "passed",
-      "durationMs": 1251,
+      "durationMs": 518,
       "httpStatus": 200
     },
     {
       "functionName": "getUserNotifications",
       "status": "passed",
-      "durationMs": 1255,
+      "durationMs": 544,
       "httpStatus": 200
     },
     {
       "functionName": "markNotificationAsRead",
       "status": "passed",
-      "durationMs": 1480,
+      "durationMs": 527,
       "httpStatus": 200
     },
     {
       "functionName": "createSystemNotification",
       "status": "passed",
-      "durationMs": 47,
+      "durationMs": 6,
       "httpStatus": 200
     },
     {
       "functionName": "markAllNotificationsAsRead",
       "status": "passed",
-      "durationMs": 1224,
+      "durationMs": 533,
       "httpStatus": 200
     },
     {
       "functionName": "deleteNotification",
       "status": "passed",
-      "durationMs": 1169,
+      "durationMs": 517,
       "httpStatus": 200
     },
     {
       "functionName": "deleteNotification",
       "status": "passed",
-      "durationMs": 22,
+      "durationMs": 8,
       "httpStatus": 200
     },
     {
       "functionName": "createCalendarEvent",
       "status": "passed",
-      "durationMs": 1219,
+      "durationMs": 515,
       "httpStatus": 200
     },
     {
       "functionName": "getCalendarEvents",
       "status": "passed",
-      "durationMs": 1255,
+      "durationMs": 524,
       "httpStatus": 200
     },
     {
       "functionName": "updateCalendarEvent",
       "status": "passed",
-      "durationMs": 1223,
+      "durationMs": 528,
       "httpStatus": 200
     },
     {
       "functionName": "getCalendarConnections",
       "status": "passed",
-      "durationMs": 1154,
+      "durationMs": 521,
       "httpStatus": 200
     },
     {
       "functionName": "getCalendarSyncSettings",
       "status": "passed",
-      "durationMs": 1164,
+      "durationMs": 520,
       "httpStatus": 200
     },
     {
       "functionName": "deleteCalendarEvent",
       "status": "passed",
-      "durationMs": 1163,
+      "durationMs": 520,
       "httpStatus": 200
     }
   ],
@@ -201,6 +201,6 @@
     "totalCalls": 31,
     "passedCalls": 31,
     "failedCalls": 0,
-    "durationMs": 34696
+    "durationMs": 16434
   }
 }
