@@ -7,5 +7,11 @@
   },
   "terminal.integrated.confirmOnExit": "never",
   "terminal.integrated.enablePersistentSessions": true,
-  "security.workspace.trust.untrustedFiles": "open"
+  "security.workspace.trust.untrustedFiles": "open",
+  "chat.tools.terminal.autoApprove": {
+    "/^test -f ~/Library/LaunchAgents/com\\.wishlist-wizard\\.runner-token-refresh\\.plist && echo \"Wishlist-wizard plist exists\" \\|\\| echo \"Wishlist-wizard plist does not exist\"$/": {
+      "approve": true,
+      "matchCommandLine": true
+    }
+  }
 }
