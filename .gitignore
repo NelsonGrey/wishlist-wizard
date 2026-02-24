@@ -378,3 +378,7 @@ Desktop.ini
 vendor/
 commit-msg.txt
 v2-migration-msg.txt
+
+# Test artifacts
+playwright-report/
+test-results/

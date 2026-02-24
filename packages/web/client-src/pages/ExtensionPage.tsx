@@ -147,25 +147,39 @@ const ExtensionPage = () => {
               <CardContent>
                 <div className="space-y-4">
                   <p className="text-gray-700">
-                    Add the Wishlist Wizard extension to Firefox to easily save products to your wishlists while shopping online.
+                    Wishlist Wizard is available for Firefox! Install the extension to easily save products to your wishlists while shopping online.
                   </p>
+                  
+                  <div className="bg-blue-50 border border-blue-200 p-4 rounded-md">
+                    <p className="text-sm text-blue-900">
+                      <strong>📦 Status:</strong> Available on Mozilla Add-ons Store
+                    </p>
+                  </div>
                   
                   <div className="bg-gray-50 p-4 rounded-md">
                     <h3 className="font-bold mb-2">Installation Steps</h3>
                     <ol className="list-decimal list-inside space-y-2 text-gray-700">
                       <li>Click the &quot;Install for Firefox&quot; button below</li>
-                      <li>When prompted, click &quot;Add to Firefox&quot;</li>
+                      <li>You'll be taken to the Mozilla Add-ons store page</li>
+                      <li>Click &quot;Add to Firefox&quot;</li>
+                      <li>When prompted, click &quot;Add&quot; to confirm</li>
                       <li>The Wishlist Wizard icon will appear in your browser toolbar</li>
                       <li>Sign in to your Wishlist Wizard account when prompted</li>
                     </ol>
                   </div>
+                  
+                  <div className="bg-amber-50 border border-amber-200 p-4 rounded-md">
+                    <p className="text-sm text-amber-900">
+                      <strong>💡 Tip:</strong> Make sure you&apos;re running Firefox 90 or later for best compatibility.
+                    </p>
+                  </div>
                 </div>
               </CardContent>
               <CardFooter className="flex flex-col sm:flex-row gap-4">
-                <Button className="w-full sm:w-auto bg-gradient-to-r from-emerald-700 to-green-700 text-white hover:from-emerald-800 hover:to-green-800" size="lg" asChild>
-                  <a href="https://addons.mozilla.org/firefox/" target="_blank" rel="noopener noreferrer">
+                <Button className="w-full sm:w-auto bg-gradient-to-r from-orange-600 to-red-600 text-white hover:from-orange-700 hover:to-red-700" size="lg" asChild>
+                  <a href="https://addons.mozilla.org/en-US/firefox/addon/wishlist-wizard/" target="_blank" rel="noopener noreferrer">
                     <FaFirefox className="mr-2 h-5 w-5" />
-                    Install for Firefox
+                    Install from Mozilla Add-ons
                   </a>
                 </Button>
                 <Button variant="outline" className="w-full sm:w-auto border-2 border-emerald-700 text-emerald-700 hover:bg-emerald-50 hover:border-emerald-800 hover:text-emerald-800" asChild>

@@ -81,6 +81,26 @@ This document provides instructions for both developers and end-users on how to 
 4. Click "Load unpacked" and select the folder containing the extension files
 5. The WishKeeper extension should now be installed and active
 
+### For Firefox Users
+
+#### Method 1: Install from Mozilla Add-ons Store (Recommended)
+
+1. Visit the [Wishlist Wizard Firefox Extension Page](https://addons.mozilla.org/en-US/firefox/addon/wishlist-wizard/)
+2. Click the "Add to Firefox" button
+3. When prompted, click "Add" to confirm the installation
+4. The extension icon should appear in your Firefox toolbar
+
+#### Method 2: Manual Installation (Developer Mode)
+
+For development or testing:
+
+1. Download the WishKeeper extension files
+2. Open Firefox and go to `about:debugging#/runtime/this-firefox`
+3. Click "Load Temporary Add-on"
+4. Select the `manifest.json` file from the extension folder
+5. The WishKeeper extension should now be loaded
+   - **Note**: Temporary add-ons are unloaded when Firefox restarts
+
 ## Using the Extension
 
 1. **Setting Up**:
