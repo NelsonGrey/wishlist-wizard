@@ -27,9 +27,21 @@
     "preflight:mobile": "./scripts/mobile-release-preflight.sh",
     "go-live:check": "./scripts/release-readiness-check.sh",
     "test:users:smoke": "npm run build --workspace=functions && npx --yes firebase-tools emulators:exec --project wishlist-wizard --only auth,firestore,functions \"node packages/functions/scripts/emulator-smoke-users.cjs\"",
-    "test:users:smoke:live": "npm run build --workspace=functions && node packages/functions/scripts/emulator-smoke-users.cjs"
+    "test:users:smoke:live": "npm run build --workspace=functions && node packages/functions/scripts/emulator-smoke-users.cjs",
+    "test:functions:smoke:all": "npm run build --workspace=functions && npx --yes firebase-tools emulators:exec --project wishlist-wizard --only auth,firestore,functions \"node packages/functions/scripts/emulator-smoke-all-functions.cjs\"",
+    "test:e2e:smoke": "playwright test packages/web/e2e/smoke.spec.ts",
+    "test:e2e:tier1": "playwright test packages/web/e2e/tier-1-basic.spec.ts",
+    "test:e2e:tier2": "playwright test packages/web/e2e/tier-2-advanced.spec.ts",
+    "test:e2e:all": "playwright test packages/web/e2e/",
+    "test:e2e:dev": "TEST_URL=http://localhost:5173 playwright test packages/web/e2e/",
+    "test:e2e:staging": "TEST_URL=https://wishlist-wizard-staging.web.app playwright test packages/web/e2e/",
+    "test:e2e:prod": "TEST_URL=https://wishlist-wizard.web.app playwright test packages/web/e2e/smoke.spec.ts",
+    "test:e2e:ui": "playwright test --ui packages/web/e2e/",
+    "test:e2e:debug": "playwright test --debug packages/web/e2e/",
+    "test:e2e:report": "playwright show-report"
   },
   "devDependencies": {
+    "@playwright/test": "^1.40.0",
     "@types/node": "^20.16.11",
     "@typescript-eslint/eslint-plugin": "^8.0.0",
     "@typescript-eslint/parser": "^8.0.0",
