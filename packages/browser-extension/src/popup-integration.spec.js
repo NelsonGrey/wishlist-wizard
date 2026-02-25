@@ -58,19 +58,25 @@ describe('popup integration smoke', () => {
   });
 
   it('routes login button to web login when unauthenticated', async () => {
-    const fetchMock = vi.fn().mockResolvedValue({ ok: false });
-    global.fetch = fetchMock;
-
     const createSpy = vi.fn();
-    const querySpy = vi.fn().mockResolvedValue([{ id: 7, url: 'https://example.com/product/1' }]);
+    const sendMessageSpy = vi.fn((payload, cb) => {
+      if (payload?.action === 'getActiveTab') {
+        if (typeof cb === 'function') cb({ success: true, tab: { id: 7, url: 'https://example.com/product/1' } });
+        return;
+      }
+      if (payload?.action === 'isAuthenticated') {
+        if (typeof cb === 'function') cb({ success: true, authenticated: false });
+        return;
+      }
+      if (typeof cb === 'function') cb({ success: false });
+    });
 
     global.chrome = {
       runtime: {
         getURL: vi.fn(() => 'chrome-extension://abc123/'),
-        sendMessage: vi.fn()
+        sendMessage: sendMessageSpy
       },
       tabs: {
-        query: querySpy,
         create: createSpy,
         sendMessage: vi.fn()
       },
@@ -93,32 +99,12 @@ describe('popup integration smoke', () => {
     document.getElementById('login-button')?.click();
     await flush();
 
-    expect(querySpy).toHaveBeenCalledWith({ active: true, currentWindow: true });
-    expect(fetchMock).toHaveBeenCalledWith('https://wishlist-wizard.web.app/api/auth/me', {
-      method: 'GET',
-      credentials: 'include'
-    });
-    expect(createSpy).toHaveBeenCalledWith({ url: 'https://wishlist-wizard.web.app/login' });
+    expect(sendMessageSpy).toHaveBeenCalledWith({ action: 'getActiveTab' }, expect.any(Function));
+    expect(sendMessageSpy).toHaveBeenCalledWith({ action: 'isAuthenticated' }, expect.any(Function));
+    expect(createSpy).toHaveBeenCalledWith({ url: 'https://wishlist-wizard-dev.web.app/login' });
   });
 
   it('adds detected product to selected wishlist', async () => {
-    const fetchMock = vi.fn(async (url) => {
-      if (url.endsWith('/api/auth/me')) {
-        return { ok: true, json: async () => ({ id: 1, username: 'mark' }) };
-      }
-      if (url.endsWith('/api/wishlists')) {
-        return { ok: true, json: async () => [{ id: 1, name: 'Main Wishlist' }] };
-      }
-      if (url.endsWith('/api/collaborative-wishlists')) {
-        return { ok: true, json: async () => [] };
-      }
-      if (url.endsWith('/api/extension/add-item')) {
-        return { ok: true, json: async () => ({ id: 42 }) };
-      }
-      return { ok: false, status: 404, json: async () => ({ error: 'not found' }) };
-    });
-    global.fetch = fetchMock;
-
     const sendMessageSpy = vi.fn((tabId, payload) => {
       if (payload?.action === 'getProductInfo') {
         return Promise.resolve({
@@ -136,13 +122,32 @@ describe('popup integration smoke', () => {
       return Promise.resolve({ success: false });
     });
 
+    const runtimeSendMessageSpy = vi.fn((payload, cb) => {
+      if (payload?.action === 'getActiveTab') {
+        if (typeof cb === 'function') cb({ success: true, tab: { id: 9, url: 'https://store.example.com/item/coffee-maker' } });
+        return;
+      }
+      if (payload?.action === 'isAuthenticated') {
+        if (typeof cb === 'function') cb({ success: true, authenticated: true, userData: { id: 1, username: 'mark' } });
+        return;
+      }
+      if (payload?.action === 'fetchWishlists') {
+        if (typeof cb === 'function') cb({ success: true, wishlists: [{ id: 1, name: 'Main Wishlist' }] });
+        return;
+      }
+      if (payload?.action === 'addItemToWishlist') {
+        if (typeof cb === 'function') cb({ success: true, data: { id: 42 } });
+        return;
+      }
+      if (typeof cb === 'function') cb({ success: false });
+    });
+
     global.chrome = {
       runtime: {
         getURL: vi.fn(() => 'chrome-extension://abc123/'),
-        sendMessage: vi.fn()
+        sendMessage: runtimeSendMessageSpy
       },
       tabs: {
-        query: vi.fn().mockResolvedValue([{ id: 9, url: 'https://store.example.com/item/coffee-maker' }]),
         create: vi.fn(),
         sendMessage: sendMessageSpy
       },
@@ -169,12 +174,12 @@ describe('popup integration smoke', () => {
     document.getElementById('add-button')?.click();
     await flush();
 
-    const postCall = fetchMock.mock.calls.find(([url]) => url.endsWith('/api/extension/add-item'));
+    const postCall = runtimeSendMessageSpy.mock.calls.find(([payload]) => payload?.action === 'addItemToWishlist');
     expect(postCall).toBeTruthy();
 
-    const [, request] = postCall;
-    const payload = JSON.parse(request.body);
-    expect(payload.wishlistId).toBe(1);
+    const [message] = postCall;
+    const payload = message.itemData;
+    expect(payload.wishlistId).toBe('1');
     expect(payload.title).toBe('Coffee Maker');
     expect(payload.store).toBe('Example Store');
 

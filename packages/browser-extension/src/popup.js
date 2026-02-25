@@ -194,9 +194,21 @@ async function initPopup() {
   // Get the active tab via background script (more reliable than direct query in popup)
   try {
     const response = await new Promise((resolve) => {
+      let settled = false;
+      const fallbackTimer = setTimeout(() => {
+        if (!settled) {
+          settled = true;
+          resolve(null);
+        }
+      }, 300);
+
       chrome.runtime.sendMessage(
         { action: 'getActiveTab' },
         (response) => {
+          if (settled) return;
+          settled = true;
+          clearTimeout(fallbackTimer);
+
           if (chrome.runtime.lastError) {
             console.warn('Could not get active tab from background:', chrome.runtime.lastError);
             resolve(null);
@@ -212,10 +224,20 @@ async function initPopup() {
       syncGlobalVars();
       console.log('Got active tab from background script:', currentTab.url);
     } else {
-      console.warn('Background script could not find active tab');
+      const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+      currentTab = tabs[0] || null;
+      syncGlobalVars();
+      console.warn('Background script could not find active tab, used direct query fallback');
     }
   } catch (error) {
     console.warn('Error getting active tab from background script:', error);
+    try {
+      const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+      currentTab = tabs[0] || null;
+      syncGlobalVars();
+    } catch (fallbackError) {
+      console.warn('Active tab fallback query failed:', fallbackError);
+    }
   }
   
   // Check login status
@@ -236,15 +258,58 @@ async function resolveAuthStatus() {
     return window.checkAuthentication();
   }
 
+  const baseUrl = await getBaseUrl();
+
   return new Promise((resolve) => {
+    let settled = false;
+
+    const finish = (value) => {
+      if (!settled) {
+        settled = true;
+        resolve(value);
+      }
+    };
+
+    const fallbackTimer = setTimeout(async () => {
+      try {
+        const response = await fetch(`${baseUrl}/api/auth/me`, {
+          method: 'GET',
+          credentials: 'include'
+        });
+
+        if (response.ok) {
+          const userData = await response.json();
+          finish({ isAuthenticated: true, userData });
+        } else {
+          finish({ isAuthenticated: false });
+        }
+      } catch {
+        finish({ isAuthenticated: false });
+      }
+    }, 300);
+
     chrome.runtime.sendMessage({ action: 'isAuthenticated' }, (response) => {
+      clearTimeout(fallbackTimer);
       if (response && response.success && response.authenticated) {
-        resolve({
+        finish({
           isAuthenticated: true,
           userData: response.userData
         });
       } else {
-        resolve({ isAuthenticated: false });
+        // Use the fallback path immediately if background did not provide auth data
+        fetch(`${baseUrl}/api/auth/me`, {
+          method: 'GET',
+          credentials: 'include'
+        })
+          .then((authResponse) => authResponse.ok ? authResponse.json() : null)
+          .then((userData) => {
+            if (userData) {
+              finish({ isAuthenticated: true, userData });
+            } else {
+              finish({ isAuthenticated: false });
+            }
+          })
+          .catch(() => finish({ isAuthenticated: false }));
       }
     });
   });
@@ -1060,18 +1125,59 @@ async function addToWishlist() {
     
     // Send request through background script (uses authenticated Cloud Function calls)
     const responseData = await new Promise((resolve, reject) => {
+      let settled = false;
+
+      const finishResolve = (value) => {
+        if (!settled) {
+          settled = true;
+          resolve(value);
+        }
+      };
+
+      const finishReject = (error) => {
+        if (!settled) {
+          settled = true;
+          reject(error);
+        }
+      };
+
+      const fallbackTimer = setTimeout(async () => {
+        try {
+          const baseUrl = await getBaseUrl();
+          const legacyResponse = await fetch(`${baseUrl}/api/extension/add-item`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            credentials: 'include',
+            body: JSON.stringify(itemData)
+          });
+
+          if (!legacyResponse.ok) {
+            throw new Error(`Failed to add item: ${legacyResponse.status}`);
+          }
+
+          const legacyData = await legacyResponse.json();
+          finishResolve(legacyData);
+        } catch (legacyError) {
+          finishReject(legacyError instanceof Error ? legacyError : new Error('Failed to add item'));
+        }
+      }, 300);
+
       chrome.runtime.sendMessage({ action: 'addItemToWishlist', itemData }, (result) => {
+        clearTimeout(fallbackTimer);
+
         if (chrome.runtime.lastError) {
-          reject(new Error(chrome.runtime.lastError.message));
+          finishReject(new Error(chrome.runtime.lastError.message));
           return;
         }
 
         if (!result || !result.success) {
-          reject(new Error(result?.error || 'Failed to add item'));
+          finishReject(new Error(result?.error || 'Failed to add item'));
           return;
         }
 
-        resolve(result.data || result);
+        finishResolve(result.data || result);
       });
     });
     
@@ -1198,6 +1304,12 @@ async function handleLogout() {
 
 // Set up event listeners
 function setupEventListeners() {
+  const legacyLoginButton = document.getElementById('login-button');
+  const loginForm = document.getElementById('login-form');
+  if (legacyLoginButton && !loginForm) {
+    legacyLoginButton.addEventListener('click', openLoginPage);
+  }
+
   // Logout button
   document.getElementById('logout-button').addEventListener('click', handleLogout);
   
