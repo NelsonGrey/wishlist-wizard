@@ -128,10 +128,17 @@ build_all() {
     echo ""
     
     clean_dist
+
+    # Build bundled assets once; manifests differ per browser but JS/CSS/HTML assets are shared.
+    # Running Vite for each browser would wipe dist/ and remove previously generated browser folders.
+    build_assets "all"
     
     for browser in chrome edge firefox safari; do
         echo ""
-        build_browser "$browser"
+        log_info "Building $browser extension..."
+        copy_assets "$browser"
+        generate_manifest "$browser"
+        log_success "$browser extension ready: $DIST_DIR/$browser/"
         verify_build "$browser"
     done
     
