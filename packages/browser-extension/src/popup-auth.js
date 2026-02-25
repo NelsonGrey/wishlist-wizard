@@ -105,6 +105,11 @@ function initAuthPopup() {
         );
         
         if (result.success) {
+          // Backward-compatible globals for legacy flows/tests
+          window.isLoggedIn = true;
+          window.userId = result.userData?.id;
+          window.username = result.userData?.username;
+
           // Authentication successful - update global state in popup.js
           if (typeof window.updateAuthState === 'function') {
             window.updateAuthState({
