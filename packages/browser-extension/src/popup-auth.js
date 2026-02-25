@@ -34,7 +34,7 @@ async function authenticateUser(username, password) {
         if (response && response.success) {
           resolve({
             success: true,
-            userData: response.userData
+            userData: response.userData || response.user
           });
         } else {
           resolve({
@@ -61,8 +61,13 @@ async function logoutUser() {
   });
 }
 
+// Expose functions globally for cross-script access
+window.checkAuthentication = checkAuthentication;
+window.authenticateUser = authenticateUser;
+window.logoutUser = logoutUser;
+
 // Update the popup interface with JWT auth integration
-window.addEventListener('DOMContentLoaded', function() {
+function initAuthPopup() {
   // Find the login form
   const loginForm = document.getElementById('login-form');
   if (loginForm) {
@@ -100,7 +105,16 @@ window.addEventListener('DOMContentLoaded', function() {
         );
         
         if (result.success) {
-          // Authentication successful - update UI
+          // Authentication successful - update global state in popup.js
+          if (typeof window.updateAuthState === 'function') {
+            window.updateAuthState({
+              isLoggedIn: true,
+              userId: result.userData?.id,
+              username: result.userData?.username
+            });
+          }
+          
+          // Update UI
           const userDisplay = document.getElementById('username');
           if (userDisplay) {
             userDisplay.textContent = result.userData?.username || 'User';
@@ -118,11 +132,7 @@ window.addEventListener('DOMContentLoaded', function() {
             logoutBtn.classList.remove('hidden');
           }
           
-          // Hide login screen and continue to product detection
-          window.isLoggedIn = true;
-          window.userId = result.userData?.id;
-          window.username = result.userData?.username;
-          
+          // Continue to product detection
           if (typeof window.checkProductPage === 'function') {
             await window.checkProductPage();
           }
@@ -174,4 +184,10 @@ window.addEventListener('DOMContentLoaded', function() {
       window.close(); // Close popup
     });
   }
-});
+}
+
+if (document.readyState === 'loading') {
+  window.addEventListener('DOMContentLoaded', initAuthPopup);
+} else {
+  initAuthPopup();
+}

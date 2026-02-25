@@ -327,17 +327,18 @@ export async function initializeExtensionFCM(): Promise<{
  * Update extension badge with notification count
  */
 export async function updateExtensionBadge(): Promise<void> {
-  if (!chrome?.action?.setBadgeText) return;
+  const actionApi = chrome?.action || chrome?.browserAction;
+  if (!actionApi?.setBadgeText) return;
   
   try {
     // Get unread notification count from storage or API
     const count = await getUnreadNotificationCount();
     
     if (count > 0) {
-      chrome.action.setBadgeText({ text: count.toString() });
-      chrome.action.setBadgeBackgroundColor({ color: '#FF4444' });
+      actionApi.setBadgeText({ text: count.toString() });
+      actionApi.setBadgeBackgroundColor?.({ color: '#FF4444' });
     } else {
-      chrome.action.setBadgeText({ text: '' });
+      actionApi.setBadgeText({ text: '' });
     }
   } catch (error) {
     console.error('[FCM Extension] Error updating badge:', error);
@@ -369,7 +370,8 @@ async function getUnreadNotificationCount(): Promise<number> {
  * Clear extension badge
  */
 export function clearExtensionBadge(): void {
-  if (chrome?.action?.setBadgeText) {
-    chrome.action.setBadgeText({ text: '' });
+  const actionApi = chrome?.action || chrome?.browserAction;
+  if (actionApi?.setBadgeText) {
+    actionApi.setBadgeText({ text: '' });
   }
 }

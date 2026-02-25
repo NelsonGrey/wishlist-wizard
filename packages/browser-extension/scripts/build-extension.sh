@@ -55,20 +55,21 @@ build_assets() {
 # Copy assets to browser-specific directory
 copy_assets() {
     local browser=$1
-    local src_dir="$DIST_DIR/temp"  # Vite default output
     local target_dir="$DIST_DIR/$browser"
     
     log_info "Organizing assets for $browser..."
     
     mkdir -p "$target_dir"
     
-    # Copy all built assets
-    if [ -d "$src_dir" ]; then
-        cp -r "$src_dir"/* "$target_dir/" 2>/dev/null || true
-    fi
+    # Copy bundled JavaScript files from Vite output (in dist root)
+    cp "$DIST_DIR"/*.js "$target_dir/" 2>/dev/null || true
+    cp "$DIST_DIR"/*.html "$target_dir/" 2>/dev/null || true
     
-    # Copy source files (for now; ideally Vite would bundle everything)
-    cp -r "$PROJECT_ROOT/src"/* "$target_dir/" 2>/dev/null || true
+    # Copy static assets
+    cp -r "$DIST_DIR/assets" "$target_dir/" 2>/dev/null || true
+    cp -r "$DIST_DIR/icons" "$target_dir/" 2>/dev/null || true
+    
+    # Copy public files (non-bundled assets)
     cp -r "$PROJECT_ROOT/public"/* "$target_dir/" 2>/dev/null || true
     
     log_success "Assets organized for $browser"

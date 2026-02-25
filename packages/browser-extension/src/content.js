@@ -1,6 +1,17 @@
 // Wishlist Wizard Extension - Content Script
 // This script runs on supported shopping websites and extracts product information
 
+// Content script load marker (non-fatal)
+if (window.__WISHLIST_WIZARD_CONTENT_LOADED__) {
+  console.log('🎯 WISHLIST WIZARD: content.js loaded again');
+} else {
+  window.__WISHLIST_WIZARD_CONTENT_LOADED__ = true;
+}
+
+// IMMEDIATE DEBUG - Verify script loads
+console.log('🎯 WISHLIST WIZARD: content.js is LOADING on:', window.location.href);
+console.log('🎯 WISHLIST WIZARD: Timestamp:', new Date().toISOString());
+
 // Function to track content script events
 function trackContentEvent(action, category = 'content', label = null, value = null) {
   try {
@@ -21,9 +32,16 @@ function trackContentEvent(action, category = 'content', label = null, value = n
 
 // Listen for messages from the background script or popup
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  console.log('Content script received message:', message);
+  console.log('🎯 WISHLIST WIZARD: Content script received message:', message);
   
   try {
+    // Handle ping messages to check if content script is loaded
+    if (message.action === 'ping') {
+      console.log('🎯 WISHLIST WIZARD: Responding to PING');
+      sendResponse({ success: true, loaded: true });
+      return true;
+    }
+    
     if (message.action === 'extractProductInfo' || message.action === 'getProductInfo') {
       // If force flag is set, use a more aggressive approach
       if (message.force) {
@@ -177,6 +195,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   
   return true;
 });
+
+console.log('🎯 WISHLIST WIZARD: Message listener registered successfully');
 
 // Extract product information using the enhanced extractor
 function extractProductInfo() {
