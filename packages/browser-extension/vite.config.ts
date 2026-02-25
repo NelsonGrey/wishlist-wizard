@@ -9,10 +9,17 @@ export default defineConfig({
     emptyOutDir: true,
     rollupOptions: {
       input: {
-        popup: resolve(__dirname, 'src/popup.html'),
+        'popup-html': resolve(__dirname, 'src/popup.html'),
+        'popup-bootstrap': resolve(__dirname, 'src/popup-bootstrap.js'),
+        'popup': resolve(__dirname, 'src/popup.js'),
         background: resolve(__dirname, 'src/background.js'),
         content: resolve(__dirname, 'src/content.js'),
-        'enhanced-product-extractor': resolve(__dirname, 'src/enhanced-product-extractor.js')
+        'enhanced-product-extractor': resolve(__dirname, 'src/enhanced-product-extractor.js'),
+        'popup-auth': resolve(__dirname, 'src/popup-auth.js'),
+        'coupons': resolve(__dirname, 'src/coupons.js'),
+        'comparison': resolve(__dirname, 'src/comparison.js'),
+        'quick-add': resolve(__dirname, 'src/quick-add.js'),
+        'popup-extra': resolve(__dirname, 'src/popup-extra.js')
       },
       output: {
         entryFileNames: '[name].js',

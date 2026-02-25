@@ -11,6 +11,24 @@ export {
 } from './auth';
 
 // =============================================================================
+// HTTP EXTENSION API ENDPOINTS
+// =============================================================================
+
+export {
+  extensionGetWishlists,
+  extensionCreateWishlist,
+  extensionAddItem,
+  extensionGetRecentItems,
+  extensionGetWishlistItems,
+  extensionDeleteItem,
+  extensionShareWishlist
+} from './api/http-extension';
+
+export {
+  api
+} from './api/router';
+
+// =============================================================================
 // CRUD FUNCTIONS (Generic Database Operations)
 // =============================================================================
 

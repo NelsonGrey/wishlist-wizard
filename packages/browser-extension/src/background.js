@@ -1,12 +1,27 @@
 // Wishlist Wizard Extension - Background Script
 // This script handles communication between the extension and the website
 
+// Firebase configuration - used for REST API authentication
+const firebaseConfig = {
+  apiKey: "AIzaSyBKaPCEKcIUaqn5GJNFNSBU799_wQPLCZo",
+  authDomain: "wishlist-wizard-dev.firebaseapp.com",
+  projectId: "wishlist-wizard-dev"
+};
+
 // Base URL for the Wishlist Wizard website API
 // Note: Service workers don't have access to window.location, so we hardcode the URLs
-let baseUrl = 'https://wishlist-wizard.web.app';
+// Using dev environment to match Firebase config (wishlist-wizard-dev)
+let baseUrl = 'https://wishlist-wizard-dev.web.app';
 
-// For development, you can manually change this to localhost when testing
+// Cloud Functions base URL - used for extension API calls
+let cloudFunctionsBaseUrl = 'https://us-central1-wishlist-wizard-dev.cloudfunctions.net';
+
+// For localhost development, you can change this to:
 // let baseUrl = 'http://localhost:3001';
+// let cloudFunctionsBaseUrl = 'http://localhost:5001/wishlist-wizard-dev/us-central1';
+// For production, change to:
+// let baseUrl = 'https://wishlist-wizard.web.app';
+// let cloudFunctionsBaseUrl = 'https://us-central1-wishlist-wizard-prod.cloudfunctions.net';
 
 // Auth token storage for JWT-based authentication
 let authToken = null;
@@ -56,8 +71,9 @@ async function saveAuthState(token, expiry, userData) {
 async function clearAuthState() {
   authToken = null;
   tokenExpiry = null;
+  
   return new Promise((resolve) => {
-    chrome.storage.local.remove(['authToken', 'tokenExpiry', 'userData'], resolve);
+    chrome.storage.local.remove(['authToken', 'tokenExpiry', 'userData', 'refreshToken'], resolve);
   });
 }
 
@@ -71,25 +87,44 @@ function needsTokenRefresh() {
   return timeUntilExpiry < TOKEN_REFRESH_THRESHOLD;
 }
 
-// Refresh the authentication token if needed
+// Refresh the authentication token if needed (Firebase REST API)
 async function refreshTokenIfNeeded() {
   if (!needsTokenRefresh()) return authToken;
   
   try {
-    const apiUrl = await getApiUrl();
-    
-    // If we don't have a token at all, we can't refresh
+    // If we don't have a token, we can't refresh
     if (!authToken) {
+      await clearAuthState();
       return null;
     }
     
-    const response = await fetch(`${apiUrl}/api/extension/refresh-token`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${authToken}`,
-        'Content-Type': 'application/json'
-      }
+    // Get the refresh token from storage
+    const result = await new Promise((resolve) => {
+      chrome.storage.local.get(['refreshToken'], resolve);
     });
+    
+    const refreshToken = result.refreshToken;
+    if (!refreshToken) {
+      // No refresh token available, need to re-authenticate
+      await clearAuthState();
+      return null;
+    }
+    
+    // Use Firebase Auth REST API to refresh the token
+    // https://firebase.google.com/docs/reference/rest/auth#section-refresh-token
+    const response = await fetch(
+      `https://securetoken.googleapis.com/v1/token?key=${firebaseConfig.apiKey}`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          grant_type: 'refresh_token',
+          refresh_token: refreshToken
+        })
+      }
+    );
     
     if (!response.ok) {
       console.warn('Token refresh failed, clearing auth state');
@@ -99,19 +134,29 @@ async function refreshTokenIfNeeded() {
     
     const data = await response.json();
     
-    // Parse JWT to get expiration
-    const payload = JSON.parse(atob(data.token.split('.')[1]));
-    const newExpiry = new Date(payload.exp * 1000);
+    // Update tokens
+    const newIdToken = data.id_token;
+    const newRefreshToken = data.refresh_token;
+    const expiresIn = parseInt(data.expires_in) * 1000;
+    const newExpiry = new Date(Date.now() + expiresIn);
     
-    // Save the new token
-    authToken = data.token;
+    authToken = newIdToken;
     tokenExpiry = newExpiry;
-    await saveAuthState(authToken, tokenExpiry);
+    
+    // Save updated tokens
+    await new Promise((resolve) => {
+      chrome.storage.local.set({
+        authToken: newIdToken,
+        tokenExpiry: newExpiry.toISOString(),
+        refreshToken: newRefreshToken
+      }, resolve);
+    });
     
     console.log('Token refreshed successfully, new expiry:', newExpiry);
     return authToken;
   } catch (error) {
     console.error('Error refreshing token:', error);
+    await clearAuthState();
     return null;
   }
 }
@@ -131,42 +176,93 @@ async function isAuthenticated() {
   return true;
 }
 
-// Authenticate with the server using username/password
+function getToolbarActionApi() {
+  if (chrome?.action) {
+    return chrome.action;
+  }
+  if (chrome?.browserAction) {
+    return chrome.browserAction;
+  }
+  return null;
+}
+
+// Authenticate with the server using username/password via Firebase REST API
 async function authenticate(username, password) {
   try {
-    const apiUrl = await getApiUrl();
-    const response = await fetch(`${apiUrl}/api/extension/jwt-auth`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ username, password })
-    });
+    // Use Firebase Auth REST API to sign in
+    // https://firebase.google.com/docs/reference/rest/auth#section-sign-in-email-password
+    const response = await fetch(
+      `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${firebaseConfig.apiKey}`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          email: username,
+          password: password,
+          returnSecureToken: true
+        })
+      }
+    );
     
     if (!response.ok) {
-      let errorData;
-      try {
-        errorData = await response.json();
-      } catch (e) {
-        // If response is not JSON, use status text
-        throw new Error(`Authentication failed: ${response.status} ${response.statusText}`);
+      const errorData = await response.json();
+      let errorMessage = 'Authentication failed';
+      
+      // Map Firebase error codes to user-friendly messages
+      if (errorData.error?.message) {
+        const firebaseError = errorData.error.message;
+        if (firebaseError.includes('EMAIL_NOT_FOUND')) {
+          errorMessage = 'User not found';
+        } else if (firebaseError.includes('INVALID_PASSWORD')) {
+          errorMessage = 'Incorrect password';
+        } else if (firebaseError.includes('INVALID_EMAIL')) {
+          errorMessage = 'Invalid email address';
+        } else if (firebaseError.includes('TOO_MANY_ATTEMPTS')) {
+          errorMessage = 'Too many failed attempts. Please try again later';
+        } else if (firebaseError.includes('USER_DISABLED')) {
+          errorMessage = 'This account has been disabled';
+        }
       }
-      throw new Error(errorData.error || 'Authentication failed');
+      
+      throw new Error(errorMessage);
     }
     
     const data = await response.json();
     
-    // Parse JWT to get expiration
-    const payload = JSON.parse(atob(data.token.split('.')[1]));
-    const expiry = new Date(payload.exp * 1000);
+    // Firebase REST API returns idToken, refreshToken, and expiresIn (in seconds)
+    const idToken = data.idToken;
+    const refreshToken = data.refreshToken;
+    const expiresIn = parseInt(data.expiresIn) * 1000; // Convert to milliseconds
+    const expiry = new Date(Date.now() + expiresIn);
     
-    // Save auth data
-    authToken = data.token;
+    // Parse the JWT to get user info
+    const tokenParts = idToken.split('.');
+    const payload = JSON.parse(atob(tokenParts[1]));
+    
+    const userData = {
+      id: payload.user_id || data.localId,
+      email: data.email,
+      username: data.email?.split('@')[0] || 'User',
+      displayName: data.displayName || data.email?.split('@')[0]
+    };
+    
+    // Save auth data including refresh token
+    authToken = idToken;
     tokenExpiry = expiry;
-    await saveAuthState(authToken, tokenExpiry, data.user);
     
-    console.log('Authentication successful, token expires:', expiry);
-    return data;
+    await new Promise((resolve) => {
+      chrome.storage.local.set({
+        authToken: idToken,
+        tokenExpiry: expiry.toISOString(),
+        refreshToken: refreshToken,
+        userData: userData
+      }, resolve);
+    });
+    
+    console.log('Authentication successful, token expires:', tokenExpiry);
+    return { token: idToken, user: userData };
   } catch (error) {
     console.error('Authentication error:', error);
     throw error;
@@ -180,10 +276,14 @@ chrome.runtime.onInstalled.addListener(async (details) => {
   // Initialize extension state
   if (details.reason === 'install') {
     // First-time installation
-    // Open the welcome page
+    // Note: Disabled opening welcome page during development
+    // Uncomment when welcome page is ready
+    /*
     chrome.tabs.create({
       url: `${await getApiUrl()}/extension-welcome`
     });
+    */
+    console.log('Extension installed - welcome page disabled for development');
   }
 });
 
@@ -253,11 +353,14 @@ function enterRecoveryMode() {
     });
     
     // Notify any open popups about recovery mode
-    chrome.runtime.sendMessage({ 
+    const maybePromise = chrome.runtime.sendMessage({ 
       action: 'recoveryMode', 
       active: true,
       reason: 'Too many errors occurred'
-    }).catch(() => {}); // Ignore errors if no listeners
+    });
+    if (maybePromise && typeof maybePromise.catch === 'function') {
+      maybePromise.catch(() => {});
+    }
   } catch (error) {
     console.error('Failed to perform recovery actions:', error);
   }
@@ -275,6 +378,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       'from popup or other extension page';
     
     console.log(`Message received ${senderInfo}`);
+
+    // Ignore analytics messages here; handled by the tracking listener below
+    if (message && message.type === 'TRACK_EVENT') {
+      return false;
+    }
     
     // JWT Auth Methods
     if (message.action === 'isAuthenticated') {
@@ -396,8 +504,17 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     }
     
     else if (message.action === 'addItemToWishlist') {
+      // Support both legacy payload ({ item, wishlistId, note }) and
+      // current payload ({ itemData }) from popup.
+      const incomingItem = message.itemData || message.item || null;
+      const normalizedItem = incomingItem ? {
+        ...incomingItem,
+        wishlistId: incomingItem.wishlistId || message.wishlistId,
+        note: incomingItem.note ?? message.note ?? ''
+      } : null;
+
       // Validate data
-      if (!message.item || !message.wishlistId || !message.item.title) {
+      if (!normalizedItem || !normalizedItem.wishlistId || !normalizedItem.title) {
         const error = new Error('Invalid item data');
         const trackingInfo = trackError(error, 'addItemToWishlist-validation');
         sendResponse({ 
@@ -407,15 +524,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         });
         return true;
       }
-      
-      // Prepare item data for API
-      const itemData = {
-        ...message.item,
-        wishlistId: message.wishlistId,
-        note: message.note || ''
-      };
-      
-      addItemToWishlist(itemData)
+
+      addItemToWishlist(normalizedItem)
         .then(data => {
           // Reset error count on success
           errorCount = Math.max(0, errorCount - 1);
@@ -434,6 +544,150 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           });
         });
       return true; // Keep sendResponse valid after async operation
+    }
+    
+    else if (message.action === 'getActiveTab') {
+      // Get the active tab (for popup to use)
+      // Try multiple approaches since Firefox popup has limited access to tabs API
+      let found = false;
+      
+      // Approach 1: lastFocusedWindow
+      chrome.tabs.query({ active: true, lastFocusedWindow: true }, function(tabs) {
+        if (tabs && tabs.length > 0) {
+          sendResponse({ success: true, tab: tabs[0] });
+          found = true;
+          return true;
+        }
+        
+        // Approach 2: currentWindow
+        if (!found) {
+          chrome.tabs.query({ active: true, currentWindow: true }, function(tabs) {
+            if (tabs && tabs.length > 0) {
+              sendResponse({ success: true, tab: tabs[0] });
+              found = true;
+              return true;
+            }
+            
+            // Approach 3: Just get all active tabs
+            if (!found) {
+              chrome.tabs.query({ active: true }, function(tabs) {
+                if (tabs && tabs.length > 0) {
+                  // Filter out extension tabs
+                  const realTabs = tabs.filter(tab => 
+                    tab.url && 
+                    !tab.url.startsWith('moz-extension://') && 
+                    !tab.url.startsWith('chrome-extension://') &&
+                    !tab.url.startsWith('about:')
+                  );
+                  
+                  if (realTabs.length > 0) {
+                    sendResponse({ success: true, tab: realTabs[0] });
+                    found = true;
+                  } else {
+                    sendResponse({ success: false, error: 'No active tab found' });
+                  }
+                } else {
+                  sendResponse({ success: false, error: 'No active tab found' });
+                }
+              });
+            }
+          });
+        }
+      });
+      
+      return true; // Keep sendResponse valid
+    }
+
+    else if (message.action === 'injectContentScripts') {
+      const tabId = message.tabId;
+
+      if (!tabId) {
+        sendResponse({ success: false, error: 'tabId is required' });
+        return true;
+      }
+
+      if (!chrome.scripting || !chrome.scripting.executeScript) {
+        sendResponse({ success: false, error: 'chrome.scripting API not available' });
+        return true;
+      }
+
+      (async () => {
+        try {
+          await chrome.scripting.executeScript({
+            target: { tabId },
+            files: ['enhanced-product-extractor.js']
+          });
+
+          await chrome.scripting.executeScript({
+            target: { tabId },
+            files: ['content.js']
+          });
+
+          sendResponse({ success: true });
+        } catch (error) {
+          sendResponse({ success: false, error: error?.message || 'Injection failed' });
+        }
+      })();
+
+      return true;
+    }
+
+    else if (message.action === 'extractProductInfoDirect') {
+      const tabId = message.tabId;
+
+      if (!tabId) {
+        sendResponse({ success: false, error: 'tabId is required' });
+        return true;
+      }
+
+      if (!chrome.scripting || !chrome.scripting.executeScript) {
+        sendResponse({ success: false, error: 'chrome.scripting API not available' });
+        return true;
+      }
+
+      (async () => {
+        try {
+          const existingExtractor = await chrome.scripting.executeScript({
+            target: { tabId },
+            func: () => typeof window.EnhancedProductExtractor === 'function'
+          });
+
+          const hasExtractor = !!(existingExtractor && existingExtractor[0] && existingExtractor[0].result);
+
+          if (!hasExtractor) {
+            await chrome.scripting.executeScript({
+              target: { tabId },
+              files: ['enhanced-product-extractor.js']
+            });
+          }
+
+          const extraction = await chrome.scripting.executeScript({
+            target: { tabId },
+            func: async () => {
+              try {
+                if (typeof window.EnhancedProductExtractor !== 'function') {
+                  return { success: false, error: 'EnhancedProductExtractor not available' };
+                }
+
+                const result = await new window.EnhancedProductExtractor().extract();
+                return result || { success: false, error: 'No extraction result' };
+              } catch (error) {
+                return {
+                  success: false,
+                  error: error?.message || 'Direct extraction failed'
+                };
+              }
+            }
+          });
+
+          const result = extraction && extraction[0] ? extraction[0].result : null;
+          sendResponse({ success: true, result });
+        } catch (error) {
+          sendResponse({ success: false, error: error?.message || 'Direct extraction failed' });
+        }
+      })();
+
+      return true;
     }
     
     else if (message.action === 'extractProductInfo') {
@@ -653,48 +907,79 @@ async function makeAuthenticatedRequest(url, options = {}) {
   const requestOptions = {
     ...options,
     headers,
-    // Include credentials for cookie-based auth as fallback
-    credentials: 'include'
+    // Use bearer-token auth only for extension API calls to avoid CORS preflight
+    // rejection when server responds with Access-Control-Allow-Origin: *
+    credentials: 'omit'
   };
   
   // Make the request
   const response = await fetch(url, requestOptions);
+  const responseText = await response.text();
+  let responseJson = null;
+  try {
+    responseJson = responseText ? JSON.parse(responseText) : null;
+  } catch (parseError) {
+    responseJson = null;
+  }
+  
+  // Add request/response logging for debugging
+  console.log(`[API Request] ${requestOptions.method || 'GET'} ${url}`);
+  console.log(`[API Response] Status: ${response.status}`);
   
   // Handle authentication errors
   if (response.status === 401) {
     // Clear auth state and throw error
     await clearAuthState();
-    const errorData = await response.json();
-    throw new Error(errorData.error || 'Authentication required');
+    if (responseJson && responseJson.error) {
+      throw new Error(responseJson.error);
+    }
+    console.error('[API 401] Response text:', responseText.substring(0, 200));
+    throw new Error('Authentication required (invalid session)');
   }
   
   // Handle other errors
   if (!response.ok) {
-    const errorData = await response.json();
-    throw new Error(errorData.error || `Request failed with status ${response.status}`);
+    console.error(`[API Error] ${response.status} ${response.statusText}`);
+    if (responseJson && responseJson.error) {
+      throw new Error(responseJson.error || `Request failed with status ${response.status}`);
+    }
+
+    console.error(`[API ${response.status}] Response body (first 500 chars):`, responseText.substring(0, 500));
+    
+    // Check if response is HTML (likely 404 or 500 error page)
+    if (responseText.includes('<!DOCTYPE') || responseText.includes('<html')) {
+      throw new Error(`Server error (${response.status}): Backend returned HTML error page. Check API endpoint: ${url}`);
+    }
+    
+    throw new Error(`Request failed with status ${response.status}: ${responseText.substring(0, 100)}`);
   }
   
-  return response.json();
+  // Parse successful response
+  if (responseJson === null && responseText) {
+    console.error('[API Parse Error] Failed to parse response as JSON. Raw body:', responseText.substring(0, 500));
+    throw new Error('Invalid response format from server');
+  }
+
+  console.log('[API Success] Response:', responseJson);
+  return responseJson;
 }
 
 // Fetch wishlists from the API
 async function fetchWishlists() {
   try {
-    const apiUrl = await getApiUrl();
-    
     // Check if we're authenticated
     const authenticated = await isAuthenticated();
     if (!authenticated) {
-      throw new Error('Authentication required. Please sign in to your WishKeeper account.');
+      throw new Error('Authentication required. Please sign in to your account.');
     }
     
-    // Get wishlists from the server
-    const response = await makeAuthenticatedRequest(`${apiUrl}/api/extension/wishlists`);
+    // Get wishlists from the Cloud Function
+    const response = await makeAuthenticatedRequest(`${cloudFunctionsBaseUrl}/extensionGetWishlists`);
     
     // Log for debugging
     console.log('Fetched wishlists:', response);
     
-    // Return the wishlists sorted by name
+    // Response is an array of wishlists
     return Array.isArray(response) ? 
       response.sort((a, b) => a.name.localeCompare(b.name)) : 
       [];
@@ -708,12 +993,10 @@ async function fetchWishlists() {
 // Add item to wishlist
 async function addItemToWishlist(itemData) {
   try {
-    const apiUrl = await getApiUrl();
-    
     // Check if we're authenticated
     const authenticated = await isAuthenticated();
     if (!authenticated) {
-      throw new Error('Authentication required. Please sign in to your WishKeeper account.');
+      throw new Error('Authentication required. Please sign in to your account.');
     }
     
     // Validate item data before sending to server
@@ -731,8 +1014,8 @@ async function addItemToWishlist(itemData) {
     // Log what we're sending for debugging
     console.log('Adding item to wishlist:', enrichedItemData);
     
-    // Send the request
-    const response = await makeAuthenticatedRequest(`${apiUrl}/api/extension/items`, {
+    // Send the request to Cloud Function
+    const response = await makeAuthenticatedRequest(`${cloudFunctionsBaseUrl}/extensionAddItem`, {
       method: 'POST',
       body: JSON.stringify(enrichedItemData)
     });
@@ -741,7 +1024,7 @@ async function addItemToWishlist(itemData) {
     return response;
   } catch (error) {
     console.error('Error adding item to wishlist:', error);
-    trackError(error, 'addItemToWishlist'); // Track for debugging
+    trackError(error, 'addItemToWishlist');
     throw error;
   }
 }
@@ -749,16 +1032,14 @@ async function addItemToWishlist(itemData) {
 // Fetch recent items from the API
 async function fetchRecentItems() {
   try {
-    const apiUrl = await getApiUrl();
-    
     // Check if we're authenticated
     const authenticated = await isAuthenticated();
     if (!authenticated) {
-      throw new Error('Authentication required. Please sign in to your Wishlist Wizard account.');
+      throw new Error('Authentication required. Please sign in to your account.');
     }
     
-    // Get recent items from the server
-    const response = await makeAuthenticatedRequest(`${apiUrl}/api/extension/recent-items`);
+    // Get recent items from Cloud Function
+    const response = await makeAuthenticatedRequest(`${cloudFunctionsBaseUrl}/extensionGetRecentItems`);
     
     console.log('Fetched recent items:', response);
     return Array.isArray(response) ? response : [];
@@ -772,16 +1053,14 @@ async function fetchRecentItems() {
 // Fetch items for a specific wishlist
 async function fetchWishlistItems(wishlistId) {
   try {
-    const apiUrl = await getApiUrl();
-    
     // Check if we're authenticated
     const authenticated = await isAuthenticated();
     if (!authenticated) {
-      throw new Error('Authentication required. Please sign in to your Wishlist Wizard account.');
+      throw new Error('Authentication required. Please sign in to your account.');
     }
     
-    // Get wishlist items from the server
-    const response = await makeAuthenticatedRequest(`${apiUrl}/api/extension/wishlists/${wishlistId}/items`);
+    // Get wishlist items from Cloud Function
+    const response = await makeAuthenticatedRequest(`${cloudFunctionsBaseUrl}/extensionGetWishlistItems?wishlistId=${wishlistId}`);
     
     console.log('Fetched wishlist items:', response);
     return Array.isArray(response) ? response : [];
@@ -795,16 +1074,14 @@ async function fetchWishlistItems(wishlistId) {
 // Create a new wishlist
 async function createWishlist(name) {
   try {
-    const apiUrl = await getApiUrl();
-    
     // Check if we're authenticated
     const authenticated = await isAuthenticated();
     if (!authenticated) {
-      throw new Error('Authentication required. Please sign in to your Wishlist Wizard account.');
+      throw new Error('Authentication required. Please sign in to your account.');
     }
     
-    // Create wishlist on the server
-    const response = await makeAuthenticatedRequest(`${apiUrl}/api/extension/wishlists`, {
+    // Create wishlist on the Cloud Function
+    const response = await makeAuthenticatedRequest(`${cloudFunctionsBaseUrl}/extensionCreateWishlist`, {
       method: 'POST',
       body: JSON.stringify({ name })
     });
@@ -821,16 +1098,14 @@ async function createWishlist(name) {
 // Remove an item from a wishlist
 async function removeItem(itemId) {
   try {
-    const apiUrl = await getApiUrl();
-    
     // Check if we're authenticated
     const authenticated = await isAuthenticated();
     if (!authenticated) {
-      throw new Error('Authentication required. Please sign in to your Wishlist Wizard account.');
+      throw new Error('Authentication required. Please sign in to your account.');
     }
     
-    // Remove item from the server
-    await makeAuthenticatedRequest(`${apiUrl}/api/extension/items/${itemId}`, {
+    // Remove item from Cloud Function
+    await makeAuthenticatedRequest(`${cloudFunctionsBaseUrl}/extensionDeleteItem?itemId=${itemId}`, {
       method: 'DELETE'
     });
     
@@ -846,16 +1121,14 @@ async function removeItem(itemId) {
 // Share a wishlist
 async function shareWishlist(wishlistId) {
   try {
-    const apiUrl = await getApiUrl();
-    
     // Check if we're authenticated
     const authenticated = await isAuthenticated();
     if (!authenticated) {
-      throw new Error('Authentication required. Please sign in to your Wishlist Wizard account.');
+      throw new Error('Authentication required. Please sign in to your account.');
     }
     
-    // Get share URL from the server
-    const response = await makeAuthenticatedRequest(`${apiUrl}/api/extension/wishlists/${wishlistId}/share`, {
+    // Get share URL from Cloud Function
+    const response = await makeAuthenticatedRequest(`${cloudFunctionsBaseUrl}/extensionShareWishlist?wishlistId=${wishlistId}`, {
       method: 'POST'
     });
     
@@ -895,22 +1168,16 @@ async function trackAnalyticsEvent(action, category, label, value) {
       timestamp: new Date().toISOString()
     };
     
-    // Send the event to the server
-    if (await isAuthenticated()) {
-      await makeAuthenticatedRequest(url, {
-        method: 'POST',
-        body: JSON.stringify(eventData)
-      });
-    } else {
-      // For anonymous tracking, we still send the event but without authentication
-      await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(eventData)
-      });
-    }
+    // Send the event without blocking on CORS
+    await fetch(url, {
+      method: 'POST',
+      mode: 'no-cors',
+      keepalive: true,
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(eventData)
+    });
     
     console.log(`Analytics event tracked: ${category} - ${action}`);
     return true;
@@ -922,14 +1189,17 @@ async function trackAnalyticsEvent(action, category, label, value) {
 }
 
 // Initialize browser action icon
-chrome.action.setIcon({
-  path: {
-    "16": "icons/icon16.png",
-    "32": "icons/icon32.png",
-    "48": "icons/icon48.png",
-    "128": "icons/icon128.png"
-  }
-});
+const toolbarActionApi = getToolbarActionApi();
+if (toolbarActionApi?.setIcon) {
+  toolbarActionApi.setIcon({
+    path: {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  });
+}
 
 // Handle events from popup and content scripts
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {

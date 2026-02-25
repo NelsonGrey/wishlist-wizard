@@ -38,6 +38,11 @@ const SHOPPING_SITES = [
   '*://*.samsclub.com/*',
 ];
 
+const EXTENSION_API_HOSTS = [
+  'https://wishlist-wizard-dev.web.app/*',
+  'https://wishlist-wizard.web.app/*',
+];
+
 const ICON_SIZES = {
   '16': 'icons/icon16.png',
   '32': 'icons/icon32.png',
@@ -69,7 +74,7 @@ function manifestV3() {
       'scripting',
       'notifications',
     ],
-    host_permissions: SHOPPING_SITES,
+    host_permissions: [...SHOPPING_SITES, ...EXTENSION_API_HOSTS],
     background: {
       service_worker: 'background.js',
     },
@@ -105,9 +110,11 @@ function manifestV2Firefox() {
     manifest_version: 2,
     permissions: [
       'activeTab',
+      'tabs',
       'storage',
       'notifications',
       ...SHOPPING_SITES,
+      ...EXTENSION_API_HOSTS,
     ],
     browser_action: {
       default_popup: 'popup.html',
@@ -123,7 +130,7 @@ function manifestV2Firefox() {
         run_at: 'document_end',
       },
     ],
-    web_accessible: ['firebase-messaging-sw.js'],
+    web_accessible_resources: ['firebase-messaging-sw.js'],
   };
 }
 
@@ -160,7 +167,7 @@ function manifestSafari() {
  * Write manifest to file
  */
 function writeManifest(browser, manifest) {
-  const outputDir = path.join(__dirname, `dist/${browser}`);
+  const outputDir = path.join(__dirname, `../dist/${browser}`);
   
   // Create directory if it doesn't exist
   if (!fs.existsSync(outputDir)) {

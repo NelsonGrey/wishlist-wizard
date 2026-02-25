@@ -7,15 +7,24 @@ function switchTab(tabId) {
   document.getElementById(`tab-${tabId}`).classList.add('active');
   
   // Save active tab
-  currentActiveTab = tabId;
+  window.currentActiveTab = tabId;
   
   // Show appropriate screen based on tab
   if (tabId === 'product') {
-    showScreen('product-screen');
+    if (typeof window.showScreen === 'function') {
+      window.showScreen('product-screen');
+    }
   } else if (tabId === 'price') {
     loadPriceComparisons();
   } else if (tabId === 'coupon') {
     loadCoupons();
+  } else if (tabId === 'wishlist') {
+    if (typeof window.showScreen === 'function') {
+      window.showScreen('wishlist-screen');
+    }
+    if (typeof window.loadWishlistItemsForSelected === 'function') {
+      window.loadWishlistItemsForSelected();
+    }
   }
 }
 
@@ -332,8 +341,7 @@ async function enableQuickAdd() {
   }
 }
 
-// Setup tab event listeners
-document.addEventListener('DOMContentLoaded', () => {
+function setupPopupExtraEventListeners() {
   const tabButtons = document.querySelectorAll('.tab-button');
   tabButtons.forEach(button => {
     button.addEventListener('click', () => {
@@ -359,4 +367,13 @@ document.addEventListener('DOMContentLoaded', () => {
   if (refreshCouponsButton) {
     refreshCouponsButton.addEventListener('click', loadCoupons);
   }
-});
+}
+
+// Setup tab event listeners (supports both normal DOMContentLoaded and late script bootstrap)
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', setupPopupExtraEventListeners);
+} else {
+  setupPopupExtraEventListeners();
+}
+
+window.switchTab = switchTab;

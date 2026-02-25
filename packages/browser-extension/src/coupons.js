@@ -98,16 +98,10 @@ class CouponFinder {
   }
 
   async resolveBaseUrl() {
-    try {
-      const extensionUrl = chrome.runtime.getURL('');
-      if (extensionUrl.includes('chrome-extension://')) {
-        return 'https://wishlist-wizard.web.app';
-      }
-    } catch (error) {
-      console.warn('CouponFinder: Failed to detect runtime URL, using production base URL', error);
-    }
-
-    return 'http://localhost:3001';
+    // Using dev environment to match Firebase config (wishlist-wizard-dev)
+    // For localhost development, change to: 'http://localhost:3001'
+    // For production, change to: 'https://wishlist-wizard.web.app'
+    return 'https://wishlist-wizard-dev.web.app';
   }
 
   /**

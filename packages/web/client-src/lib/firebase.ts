@@ -136,15 +136,23 @@ let firebaseConfig = {
 };
 
 function mergeWithRuntimeFirebaseConfig(runtimeConfig: Record<string, unknown>) {
+  const hostname = typeof window !== 'undefined' ? String(window.location?.hostname || '').toLowerCase() : '';
+  const preferRuntimeConfig =
+    hostname.includes('wishlist-wizard-dev.web.app') ||
+    hostname.includes('wishlist-wizard-staging.web.app') ||
+    hostname === 'wishlist-wizard.web.app';
+
   firebaseConfig = {
     ...firebaseConfig,
-    apiKey: firebaseConfig.apiKey || String(runtimeConfig.apiKey || ''),
-    authDomain: firebaseConfig.authDomain || String(runtimeConfig.authDomain || ''),
-    projectId: firebaseConfig.projectId || String(runtimeConfig.projectId || ''),
-    storageBucket: firebaseConfig.storageBucket || String(runtimeConfig.storageBucket || ''),
-    messagingSenderId: firebaseConfig.messagingSenderId || String(runtimeConfig.messagingSenderId || ''),
-    appId: firebaseConfig.appId || String(runtimeConfig.appId || ''),
-    measurementId: firebaseConfig.measurementId || String(runtimeConfig.measurementId || '') || undefined,
+    apiKey: preferRuntimeConfig ? String(runtimeConfig.apiKey || firebaseConfig.apiKey || '') : (firebaseConfig.apiKey || String(runtimeConfig.apiKey || '')),
+    authDomain: preferRuntimeConfig ? String(runtimeConfig.authDomain || firebaseConfig.authDomain || '') : (firebaseConfig.authDomain || String(runtimeConfig.authDomain || '')),
+    projectId: preferRuntimeConfig ? String(runtimeConfig.projectId || firebaseConfig.projectId || '') : (firebaseConfig.projectId || String(runtimeConfig.projectId || '')),
+    storageBucket: preferRuntimeConfig ? String(runtimeConfig.storageBucket || firebaseConfig.storageBucket || '') : (firebaseConfig.storageBucket || String(runtimeConfig.storageBucket || '')),
+    messagingSenderId: preferRuntimeConfig ? String(runtimeConfig.messagingSenderId || firebaseConfig.messagingSenderId || '') : (firebaseConfig.messagingSenderId || String(runtimeConfig.messagingSenderId || '')),
+    appId: preferRuntimeConfig ? String(runtimeConfig.appId || firebaseConfig.appId || '') : (firebaseConfig.appId || String(runtimeConfig.appId || '')),
+    measurementId: preferRuntimeConfig
+      ? String(runtimeConfig.measurementId || firebaseConfig.measurementId || '') || undefined
+      : (firebaseConfig.measurementId || String(runtimeConfig.measurementId || '') || undefined),
   };
 }
 

@@ -1,22 +1,18 @@
-import popupAuthScriptUrl from './popup-auth.js?url';
-import couponsScriptUrl from './coupons.js?url';
-import comparisonScriptUrl from './comparison.js?url';
-import quickAddScriptUrl from './quick-add.js?url';
-import popupExtraScriptUrl from './popup-extra.js?url';
-import popupScriptUrl from './popup.js?url';
-
+// Direct script paths for Firefox MV2 compatibility
+// IMPORTANT: popup.js must load BEFORE popup-auth.js so auth can call window.checkProductPage() etc
 const legacyScriptUrls = [
-  popupAuthScriptUrl,
-  couponsScriptUrl,
-  comparisonScriptUrl,
-  quickAddScriptUrl,
-  popupExtraScriptUrl,
-  popupScriptUrl
+  './popup.js',           // Load first - defines window.checkProductPage, window.updateAuthState
+  './popup-auth.js',      // Load second - calls those functions after login
+  './coupons.js',
+  './comparison.js',
+  './quick-add.js',
+  './popup-extra.js'
 ];
 
 async function loadLegacyScript(scriptUrl) {
   return new Promise((resolve, reject) => {
     const script = document.createElement('script');
+    script.type = 'module'; // Load as ES module to avoid variable conflicts
     script.src = scriptUrl;
     script.async = false;
     script.onload = () => resolve(undefined);

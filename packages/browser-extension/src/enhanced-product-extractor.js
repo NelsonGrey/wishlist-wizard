@@ -1,6 +1,13 @@
 // Enhanced Product Extraction Service for Browser Extension
 // Supports major e-commerce platforms with robust extraction methods
 
+// Extractor load marker (non-fatal)
+if (window.EnhancedProductExtractor) {
+  console.log('🎯 WISHLIST WIZARD: enhanced-product-extractor.js loaded again');
+} else {
+  console.log('🎯 WISHLIST WIZARD: enhanced-product-extractor.js is LOADING');
+}
+
 // Import the adapter registry
 import { adapterRegistry } from './lib/adapters/index.js';
 

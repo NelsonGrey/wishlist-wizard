@@ -17,6 +17,7 @@
         <button id="tab-product" class="tab-button active">Product</button>
         <button id="tab-price" class="tab-button">Compare</button>
         <button id="tab-coupon" class="tab-button">Coupons</button>
+        <button id="tab-wishlist" class="tab-button">Wishlists</button>
       </div>
     </div>
 
@@ -100,6 +101,7 @@
         <select id="wishlist-select" class="wishlist-dropdown">
           <option value="" disabled selected>Select a wishlist</option>
         </select>
+        <button id="create-wishlist-button" class="secondary-button">Create New Wishlist</button>
       </div>
       
       <div class="note-section">
@@ -203,6 +205,40 @@
       <p>Item successfully added to your wishlist.</p>
       <button id="done-button" class="primary-button">Done</button>
       <button id="view-wishlist-button" class="secondary-button">View Wishlist</button>
+    </div>
+
+    <!-- Wishlist Management Screen -->
+    <div id="wishlist-screen" class="screen hidden">
+      <h2>Your Wishlists</h2>
+      <div class="wishlist-selection">
+        <label for="wishlist-manage-select">Select wishlist:</label>
+        <select id="wishlist-manage-select" class="wishlist-dropdown">
+          <option value="" disabled selected>Select a wishlist</option>
+        </select>
+      </div>
+
+      <div id="wishlist-items-loading" class="spinner hidden"></div>
+      <div id="wishlist-items-empty" class="message-box hidden">
+        <p>No items in this wishlist yet.</p>
+      </div>
+      <div id="wishlist-items-list" class="coupon-results"></div>
+
+      <template id="wishlist-item-template">
+        <div class="coupon-item">
+          <div class="coupon-details">
+            <div class="coupon-description wishlist-item-title"></div>
+            <div class="coupon-discount wishlist-item-price"></div>
+            <div class="coupon-source wishlist-item-store"></div>
+          </div>
+          <div class="coupon-actions">
+            <button class="remove-item-button secondary-button">Remove</button>
+          </div>
+        </div>
+      </template>
+
+      <div class="button-group">
+        <button id="open-wishlist-website-button" class="secondary-button">Open on Website</button>
+      </div>
     </div>
 
     <!-- Error Screen -->
