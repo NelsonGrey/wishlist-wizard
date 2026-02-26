@@ -49,6 +49,15 @@ async function flush() {
   await new Promise((resolve) => setTimeout(resolve, 20));
 }
 
+async function waitForCondition(predicate, timeoutMs = 1000, intervalMs = 20) {
+  const start = Date.now();
+  while (Date.now() - start < timeoutMs) {
+    if (predicate()) return;
+    await new Promise((resolve) => setTimeout(resolve, intervalMs));
+  }
+  throw new Error('Condition not met within timeout');
+}
+
 describe('popup integration smoke', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
@@ -183,6 +192,7 @@ describe('popup integration smoke', () => {
     expect(payload.title).toBe('Coffee Maker');
     expect(payload.store).toBe('Example Store');
 
+    await waitForCondition(() => document.getElementById('success-screen')?.classList.contains('hidden') === false);
     expect(document.getElementById('success-screen')?.classList.contains('hidden')).toBe(false);
   });
 });
