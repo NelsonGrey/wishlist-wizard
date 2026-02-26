@@ -14,6 +14,7 @@ let contentScriptRetries = 0;
 let contentScriptRetryTimer = null;
 let contentScriptFailedHard = false;
 let checkProductPageInFlight = false;
+let statusBannerTimer = null;
 const MAX_CONTENT_SCRIPT_RETRIES = 2;
 
 // Expose variables globally for cross-script access
@@ -178,6 +179,31 @@ function showScreen(screenId) {
   }
 }
 
+function setLoadingMessage(message = 'Loading...') {
+  const loadingText = document.querySelector('#loading-screen p');
+  if (loadingText) {
+    loadingText.textContent = message;
+  }
+}
+
+function showStatusBanner(message, type = 'info', timeoutMs = 2200) {
+  const banner = document.getElementById('status-banner');
+  if (!banner) return;
+
+  banner.textContent = message;
+  banner.classList.remove('hidden', 'info', 'success', 'error');
+  banner.classList.add(type);
+
+  if (statusBannerTimer) {
+    clearTimeout(statusBannerTimer);
+  }
+
+  statusBannerTimer = setTimeout(() => {
+    banner.classList.add('hidden');
+    statusBannerTimer = null;
+  }, timeoutMs);
+}
+
 // Initialize the popup when it's opened
 async function initPopup() {
   // Show loading screen first
@@ -330,6 +356,8 @@ async function resolveLogout() {
 // Check if user is logged in (using JWT authentication)
 async function checkLoginStatus() {
   try {
+    setLoadingMessage('Checking your session...');
+
     // Check authentication via background script (JWT-based)
     const authResult = await resolveAuthStatus();
     
@@ -364,6 +392,8 @@ async function checkProductPage() {
   checkProductPageInFlight = true;
 
   try {
+    setLoadingMessage('Detecting product details...');
+
     // If we don't have a current tab, show appropriate screen based on auth status
     if (!currentTab || !currentTab.id) {
       console.warn('No current tab available');
@@ -882,6 +912,14 @@ async function getWishlists() {
 
     if (response && response.success) {
       wishlists = response.wishlists || [];
+
+      if (!wishlists.length) {
+        selectedWishlistId = '';
+      } else if (!selectedWishlistId || !wishlists.some((wishlist) => String(wishlist.id) === String(selectedWishlistId))) {
+        selectedWishlistId = String(wishlists[0].id);
+      }
+
+      syncGlobalVars();
       populateWishlistDropdown();
       populateWishlistManagementDropdown();
     } else {
@@ -898,6 +936,7 @@ async function getWishlists() {
 // Populate wishlist dropdown
 function populateWishlistDropdown() {
   const select = document.getElementById('wishlist-select');
+  if (!select) return;
   
   // Clear existing options
   select.innerHTML = '<option value="" disabled selected>Select a wishlist</option>';
@@ -905,10 +944,17 @@ function populateWishlistDropdown() {
   // Add wishlists to dropdown
   wishlists.forEach(wishlist => {
     const option = document.createElement('option');
-    option.value = wishlist.id;
+    option.value = String(wishlist.id);
     option.textContent = wishlist.name;
     select.appendChild(option);
   });
+
+  if (selectedWishlistId) {
+    select.value = String(selectedWishlistId);
+  } else if (wishlists.length > 0) {
+    select.value = String(wishlists[0].id);
+    selectedWishlistId = String(wishlists[0].id);
+  }
 }
 
 function populateWishlistManagementDropdown() {
@@ -928,6 +974,9 @@ function populateWishlistManagementDropdown() {
 
   if (selectedWishlistId) {
     select.value = String(selectedWishlistId);
+  } else if (wishlists.length > 0) {
+    select.value = String(wishlists[0].id);
+    selectedWishlistId = String(wishlists[0].id);
   }
 }
 
@@ -944,6 +993,10 @@ async function loadWishlistItemsForSelected() {
   const wishlistId = String(select.value || selectedWishlistId || '');
   if (!wishlistId) {
     list.innerHTML = '';
+    const emptyMessage = empty.querySelector('p');
+    if (emptyMessage) {
+      emptyMessage.textContent = 'Select a wishlist to view its items.';
+    }
     empty.classList.remove('hidden');
     return;
   }
@@ -972,6 +1025,10 @@ async function loadWishlistItemsForSelected() {
 
     const items = response.items || [];
     if (!items.length) {
+      const emptyMessage = empty.querySelector('p');
+      if (emptyMessage) {
+        emptyMessage.textContent = 'No items in this wishlist yet.';
+      }
       empty.classList.remove('hidden');
       return;
     }
@@ -1004,9 +1061,10 @@ async function loadWishlistItemsForSelected() {
           }
 
           await loadWishlistItemsForSelected();
+          showStatusBanner('Item removed.', 'success');
         } catch (removeError) {
           console.error('Error removing item:', removeError);
-          showErrorScreen(removeError.message || 'Failed to remove item', 'unknown');
+          showStatusBanner(removeError.message || 'Failed to remove item', 'error', 3000);
         }
       });
 
@@ -1020,16 +1078,39 @@ async function loadWishlistItemsForSelected() {
   }
 }
 
+function setInlineWishlistCreateVisible(containerId, visible) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+
+  if (visible) {
+    container.classList.remove('hidden');
+    const input = container.querySelector('input');
+    if (input) {
+      input.focus();
+      input.select();
+    }
+  } else {
+    container.classList.add('hidden');
+    const input = container.querySelector('input');
+    if (input) {
+      input.value = '';
+    }
+  }
+}
+
 // Create a new wishlist from the popup
-async function createWishlistFromPopup() {
-  const name = window.prompt('Enter a name for your new wishlist:');
-  if (!name || !name.trim()) {
+async function createWishlistFromPopup(nameInput) {
+  const name = (nameInput || '').trim();
+  if (!name) {
+    showStatusBanner('Enter a wishlist name first.', 'error');
     return;
   }
 
   try {
+    showStatusBanner('Creating wishlist...', 'info', 1400);
+
     const response = await new Promise((resolve) => {
-      chrome.runtime.sendMessage({ action: 'createWishlist', name: name.trim() }, (result) => {
+      chrome.runtime.sendMessage({ action: 'createWishlist', name }, (result) => {
         if (chrome.runtime.lastError) {
           resolve({ success: false, error: chrome.runtime.lastError.message });
         } else {
@@ -1045,23 +1126,35 @@ async function createWishlistFromPopup() {
     // Refresh wishlists and select the new one if available
     await getWishlists();
     if (response.wishlist?.id) {
+      selectedWishlistId = String(response.wishlist.id);
       const select = document.getElementById('wishlist-select');
+      const manageSelect = document.getElementById('wishlist-manage-select');
       if (select) {
         select.value = String(response.wishlist.id);
       }
+      if (manageSelect) {
+        manageSelect.value = String(response.wishlist.id);
+      }
+
+      setInlineWishlistCreateVisible('create-wishlist-inline', false);
+      setInlineWishlistCreateVisible('create-wishlist-inline-manage', false);
+      showStatusBanner('Wishlist created.', 'success');
+      syncGlobalVars();
     }
   } catch (error) {
     console.error('Error creating wishlist:', error);
-    document.getElementById('error-message').textContent =
-      error.message || 'Failed to create wishlist. Please try again.';
-    showScreen('error-screen');
+    showStatusBanner(error.message || 'Failed to create wishlist. Please try again.', 'error', 3000);
   }
 }
 
 // Add the current product to the selected wishlist
 async function addToWishlist() {
-  // Show loading screen
-  showScreen('loading-screen');
+  const addButton = document.getElementById('add-button');
+  const originalAddButtonText = addButton?.textContent || 'Add to Wishlist';
+  if (addButton) {
+    addButton.disabled = true;
+    addButton.textContent = 'Adding...';
+  }
   
   try {
     // Validate we have a product to add
@@ -1082,6 +1175,9 @@ async function addToWishlist() {
     
     const wishlistId = String(wishlistSelect.value || '');
     const note = noteInput ? noteInput.value : '';
+
+    selectedWishlistId = wishlistId || selectedWishlistId;
+    syncGlobalVars();
     
     // Validate wishlist selection
     if (!wishlistId) {
@@ -1183,6 +1279,7 @@ async function addToWishlist() {
     
     // Item added successfully
     showScreen('success-screen');
+    showStatusBanner('Item added to wishlist.', 'success');
     
     // Update success message with wishlist name
     const wishlist = wishlists.find(w => String(w.id) === String(wishlistId));
@@ -1238,6 +1335,11 @@ async function addToWishlist() {
     }
     
     showErrorScreen(error.message, errorType);
+  } finally {
+    if (addButton) {
+      addButton.disabled = false;
+      addButton.textContent = originalAddButtonText;
+    }
   }
 }
 
@@ -1338,13 +1440,72 @@ function setupEventListeners() {
   // Create wishlist button
   const createWishlistButton = document.getElementById('create-wishlist-button');
   if (createWishlistButton) {
-    createWishlistButton.addEventListener('click', createWishlistFromPopup);
+    createWishlistButton.addEventListener('click', () => {
+      setInlineWishlistCreateVisible('create-wishlist-inline-manage', false);
+      setInlineWishlistCreateVisible('create-wishlist-inline', true);
+    });
+  }
+
+  const saveWishlistButton = document.getElementById('save-wishlist-button');
+  if (saveWishlistButton) {
+    saveWishlistButton.addEventListener('click', () => {
+      const input = document.getElementById('new-wishlist-name-input');
+      createWishlistFromPopup(input?.value || '');
+    });
+  }
+
+  const cancelCreateWishlistButton = document.getElementById('cancel-create-wishlist-button');
+  if (cancelCreateWishlistButton) {
+    cancelCreateWishlistButton.addEventListener('click', () => {
+      setInlineWishlistCreateVisible('create-wishlist-inline', false);
+    });
+  }
+
+  const createWishlistManageButton = document.getElementById('create-wishlist-manage-button');
+  if (createWishlistManageButton) {
+    createWishlistManageButton.addEventListener('click', () => {
+      setInlineWishlistCreateVisible('create-wishlist-inline', false);
+      setInlineWishlistCreateVisible('create-wishlist-inline-manage', true);
+    });
+  }
+
+  const saveWishlistManageButton = document.getElementById('save-wishlist-manage-button');
+  if (saveWishlistManageButton) {
+    saveWishlistManageButton.addEventListener('click', async () => {
+      const input = document.getElementById('new-wishlist-name-manage-input');
+      await createWishlistFromPopup(input?.value || '');
+      await loadWishlistItemsForSelected();
+    });
+  }
+
+  const cancelCreateWishlistManageButton = document.getElementById('cancel-create-wishlist-manage-button');
+  if (cancelCreateWishlistManageButton) {
+    cancelCreateWishlistManageButton.addEventListener('click', () => {
+      setInlineWishlistCreateVisible('create-wishlist-inline-manage', false);
+    });
+  }
+
+  const productWishlistSelect = document.getElementById('wishlist-select');
+  if (productWishlistSelect) {
+    productWishlistSelect.addEventListener('change', () => {
+      selectedWishlistId = String(productWishlistSelect.value || '');
+      syncGlobalVars();
+      populateWishlistManagementDropdown();
+    });
   }
 
   // Wishlist management dropdown
   const wishlistManageSelect = document.getElementById('wishlist-manage-select');
   if (wishlistManageSelect) {
-    wishlistManageSelect.addEventListener('change', loadWishlistItemsForSelected);
+    wishlistManageSelect.addEventListener('change', () => {
+      selectedWishlistId = String(wishlistManageSelect.value || '');
+      syncGlobalVars();
+      const productSelect = document.getElementById('wishlist-select');
+      if (productSelect && selectedWishlistId) {
+        productSelect.value = selectedWishlistId;
+      }
+      loadWishlistItemsForSelected();
+    });
   }
 
   // Open selected wishlist on website (optional)
