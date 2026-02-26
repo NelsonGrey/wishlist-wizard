@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { render } from '../../utils';
 import WishlistCard from '@/components/WishlistCard';
 import { Wishlist as DbWishlist } from '@wishlist-wizard/shared';
+import { useQuery, useMutation } from '@tanstack/react-query';
 
 // Mock Firebase to prevent initialization errors
 vi.mock('firebase/app', () => ({
@@ -15,6 +16,26 @@ vi.mock('firebase/app', () => ({
 vi.mock('firebase/auth', () => ({
   getAuth: vi.fn(() => ({})),
 }));
+
+vi.mock('@/components/privacy/PrivacyControls', () => ({
+  default: () => <span data-testid="privacy-controls" />,
+}));
+
+vi.mock('@/lib/firebase', () => ({
+  firebaseApp: {},
+  firebaseAuth: {},
+  firebaseFirestore: {},
+  initFirebase: vi.fn(async () => ({})),
+}));
+
+vi.mock('@tanstack/react-query', async () => {
+  const actual = await vi.importActual('@tanstack/react-query');
+  return {
+    ...actual,
+    useQuery: vi.fn(),
+    useMutation: vi.fn(),
+  };
+});
 
 // Extended type for UI purposes that includes computed fields
 type Wishlist = DbWishlist & {
@@ -33,6 +54,8 @@ describe('WishlistCard Component', () => {
     createdAt: new Date('2023-05-15'),
     occasion: 'Birthday',
     occasionDate: new Date('2023-06-15'),
+    recurrence: 'yearly',
+    reminderDays: 14,
     description: 'My birthday wishlist',
     itemCount: 5
   };
@@ -42,6 +65,10 @@ describe('WishlistCard Component', () => {
   
   beforeEach(() => {
     vi.clearAllMocks();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (useQuery as any).mockReturnValue({ data: [], isLoading: false, error: null });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (useMutation as any).mockReturnValue({ mutate: vi.fn(), isPending: false });
   });
   
   it('should render wishlist information correctly', () => {

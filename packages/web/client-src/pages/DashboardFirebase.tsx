@@ -1,8 +1,10 @@
 import { useState } from "react";
+import { useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Plus, Database, Cloud } from "lucide-react";
 import WishlistCard from "@/components/WishlistCard";
 import CreateWishlistDialog from "@/components/CreateWishlistDialog";
+import type { CreateWishlistFormValues } from "@/components/CreateWishlistDialog";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -10,13 +12,53 @@ import { Badge } from "@/components/ui/badge";
 import { SidebarAd } from "@/components/ads";
 import { Wishlist as DbWishlist } from "@wishlist-wizard/shared";
 import { useWishlists } from "@/hooks/useFirebaseData";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 // Extended type for UI purposes that includes computed fields
 type Wishlist = DbWishlist & {
   itemCount: number;
 };
 
+type RecurringWishlist = Wishlist & {
+  nextOccurrenceDate: Date;
+};
+
+const formatDate = (date: Date) => date.toLocaleDateString('en-US', {
+  year: 'numeric',
+  month: 'short',
+  day: 'numeric'
+});
+
+const parseOccasionDate = (wishlist: Wishlist): Date | null => {
+  if (!wishlist.occasionDate) return null;
+  if (wishlist.occasionDate instanceof Date) return wishlist.occasionDate;
+  const parsed = new Date(wishlist.occasionDate as unknown as string);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+};
+
+const calculateNextOccurrence = (baseDate: Date, recurrence?: string | null): Date => {
+  if (recurrence !== 'yearly' && recurrence !== 'monthly') {
+    return baseDate;
+  }
+
+  const now = new Date();
+  const next = new Date(baseDate);
+  if (recurrence === 'yearly') {
+    next.setFullYear(now.getFullYear());
+    if (next < now) {
+      next.setFullYear(now.getFullYear() + 1);
+    }
+  } else {
+    next.setFullYear(now.getFullYear(), now.getMonth());
+    if (next < now) {
+      next.setMonth(now.getMonth() + 1);
+    }
+  }
+  return next;
+};
+
 export default function Dashboard() {
+  const [, setLocation] = useLocation();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [useFirebase, setUseFirebase] = useState(
     import.meta.env.VITE_USE_FIREBASE_SDK === 'true'
@@ -43,11 +85,20 @@ export default function Dashboard() {
 
   // API-based create wishlist mutation
   const createWishlistMutation = useMutation({
-    mutationFn: async (name: string) => {
+    mutationFn: async (wishlistData: CreateWishlistFormValues) => {
+      const occasionDateIso = wishlistData.occasionDate
+        ? new Date(`${wishlistData.occasionDate}T12:00:00`).toISOString()
+        : null;
+
       const res = await apiRequest('/api/wishlists', {
         method: 'POST',
         body: {
-          name
+          name: wishlistData.name,
+          description: wishlistData.description?.trim() || '',
+          occasion: wishlistData.occasion?.trim() || null,
+          occasionDate: occasionDateIso,
+          recurrence: wishlistData.isRecurring ? wishlistData.recurrence : 'none',
+          reminderDays: wishlistData.isRecurring ? wishlistData.reminderDays : null,
         }
       });
       return res;
@@ -81,6 +132,8 @@ export default function Dashboard() {
     isCollaborative: wishlist.isCollaborative,
     occasion: wishlist.occasion || null,
     occasionDate: wishlist.occasionDate || null,
+    recurrence: wishlist.recurrence || null,
+    reminderDays: typeof wishlist.reminderDays === 'number' ? wishlist.reminderDays : null,
     description: wishlist.description || null,
     itemCount: 0 // Will be populated separately in a real implementation
   })) as Wishlist[];
@@ -90,14 +143,22 @@ export default function Dashboard() {
   const isLoading = useFirebase ? firebaseLoading : apiLoading;
   const error = useFirebase ? firebaseError : apiError;
 
-  const handleCreateWishlist = async (name: string) => {
+  const handleCreateWishlist = async (wishlistData: CreateWishlistFormValues) => {
+    const occasionDateValue = wishlistData.occasionDate
+      ? new Date(`${wishlistData.occasionDate}T12:00:00`)
+      : undefined;
+
     try {
       if (useFirebase) {
         await createFirebaseWishlist({
-          name,
-          description: '',
+          name: wishlistData.name,
+          description: wishlistData.description?.trim() || '',
           isPublic: false,
-          isCollaborative: false
+          isCollaborative: false,
+          occasion: wishlistData.occasion?.trim() || undefined,
+          occasionDate: occasionDateValue,
+          recurrence: wishlistData.isRecurring ? wishlistData.recurrence : 'none',
+          reminderDays: wishlistData.isRecurring ? wishlistData.reminderDays : undefined,
         });
         setIsCreateDialogOpen(false);
         toast({
@@ -105,7 +166,7 @@ export default function Dashboard() {
           description: "Wishlist created successfully with Firebase",
         });
       } else {
-        createWishlistMutation.mutate(name);
+        createWishlistMutation.mutate(wishlistData);
       }
     } catch (error) {
       toast({
@@ -116,6 +177,22 @@ export default function Dashboard() {
     }
   };
 
+
+  const recurringWishlists: RecurringWishlist[] = (wishlists || [])
+    .filter((wishlist): wishlist is Wishlist => Boolean(wishlist))
+    .map((wishlist) => {
+      const occasionDate = parseOccasionDate(wishlist);
+      if (!occasionDate || !wishlist.recurrence || wishlist.recurrence === 'none') {
+        return null;
+      }
+
+      return {
+        ...wishlist,
+        nextOccurrenceDate: calculateNextOccurrence(occasionDate, wishlist.recurrence),
+      };
+    })
+    .filter((wishlist): wishlist is RecurringWishlist => wishlist !== null)
+    .sort((a, b) => a.nextOccurrenceDate.getTime() - b.nextOccurrenceDate.getTime());
   const toggleDataSource = () => {
     setUseFirebase(!useFirebase);
     toast({
@@ -174,6 +251,35 @@ export default function Dashboard() {
               <span>Create New List</span>
             </Button>
           </div>
+
+          {recurringWishlists.length > 0 && (
+            <Card className="mb-6">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-lg">Recurring Occasions</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {recurringWishlists.slice(0, 5).map((wishlist) => (
+                    <div key={`recurring-${wishlist.id}`} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 border-b pb-2 last:border-b-0 last:pb-0">
+                      <div>
+                        <p className="font-medium text-gray-900">{wishlist.occasion || wishlist.name}</p>
+                        <p className="text-sm text-gray-500">
+                          Next {wishlist.recurrence} event: {formatDate(wishlist.nextOccurrenceDate)}
+                        </p>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setLocation(`/wishlist/${wishlist.id}`)}
+                      >
+                        Manage Current
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
           
           {/* Dashboard layout with content and sidebar */}
           <div className="flex flex-col lg:flex-row gap-6">

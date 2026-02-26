@@ -23,6 +23,13 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 // Extended type for UI purposes that includes computed fields
 type Wishlist = DbWishlist & {
@@ -41,7 +48,40 @@ export default function WishlistCard({ wishlist, onRefresh }: WishlistCardProps)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [newName, setNewName] = useState(wishlist.name);
+  const [newOccasion, setNewOccasion] = useState(wishlist.occasion || '');
+  const [newOccasionDate, setNewOccasionDate] = useState(
+    wishlist.occasionDate ? new Date(wishlist.occasionDate).toISOString().slice(0, 10) : ''
+  );
+  const [newRecurrence, setNewRecurrence] = useState((wishlist.recurrence as string) || 'none');
+  const [newReminderDays, setNewReminderDays] = useState(
+    typeof wishlist.reminderDays === 'number' ? wishlist.reminderDays : 7
+  );
   const { toast } = useToast();
+
+  const occasionDate = wishlist.occasionDate ? new Date(wishlist.occasionDate) : null;
+  const hasRecurringSchedule = Boolean(occasionDate && wishlist.recurrence && wishlist.recurrence !== 'none');
+
+  const getNextOccurrenceDate = () => {
+    if (!occasionDate || !wishlist.recurrence || wishlist.recurrence === 'none') return null;
+    const now = new Date();
+    const next = new Date(occasionDate);
+
+    if (wishlist.recurrence === 'yearly') {
+      next.setFullYear(now.getFullYear());
+      if (next < now) next.setFullYear(now.getFullYear() + 1);
+      return next;
+    }
+
+    if (wishlist.recurrence === 'monthly') {
+      next.setFullYear(now.getFullYear(), now.getMonth());
+      if (next < now) next.setMonth(now.getMonth() + 1);
+      return next;
+    }
+
+    return next;
+  };
+
+  const nextOccurrenceDate = getNextOccurrenceDate();
 
   // Fetch items for the wishlist preview
   const { data: items } = useQuery<WishlistItem[]>({
@@ -51,7 +91,16 @@ export default function WishlistCard({ wishlist, onRefresh }: WishlistCardProps)
   // Update wishlist mutation
   const updateWishlistMutation = useMutation({
     mutationFn: async () => {
-      await apiRequest(`/api/wishlists/${wishlist.id}`, { method: 'PATCH', body: { name: newName } });
+      await apiRequest(`/api/wishlists/${wishlist.id}`, {
+        method: 'PATCH',
+        body: {
+          name: newName,
+          occasion: newOccasion.trim() || null,
+          occasionDate: newOccasionDate ? new Date(`${newOccasionDate}T12:00:00`).toISOString() : null,
+          recurrence: newRecurrence,
+          reminderDays: newRecurrence === 'none' ? null : newReminderDays,
+        }
+      });
     },
     onSuccess: () => {
       setIsEditDialogOpen(false);
@@ -94,6 +143,10 @@ export default function WishlistCard({ wishlist, onRefresh }: WishlistCardProps)
 
   const handleEditClick = () => {
     setNewName(wishlist.name);
+    setNewOccasion(wishlist.occasion || '');
+    setNewOccasionDate(wishlist.occasionDate ? new Date(wishlist.occasionDate).toISOString().slice(0, 10) : '');
+    setNewRecurrence((wishlist.recurrence as string) || 'none');
+    setNewReminderDays(typeof wishlist.reminderDays === 'number' ? wishlist.reminderDays : 7);
     setIsEditDialogOpen(true);
   };
 
@@ -157,6 +210,16 @@ export default function WishlistCard({ wishlist, onRefresh }: WishlistCardProps)
                     showAsBadge={true}
                   />
                 </div>
+                {(wishlist.occasion || hasRecurringSchedule) && (
+                  <div className="mt-2 text-xs text-gray-600 space-y-1">
+                    {wishlist.occasion && <p>Occasion: {wishlist.occasion}</p>}
+                    {nextOccurrenceDate && (
+                      <p>
+                        Next {wishlist.recurrence} event: {nextOccurrenceDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
               <div className="flex space-x-2">
                 <Button
@@ -246,6 +309,36 @@ export default function WishlistCard({ wishlist, onRefresh }: WishlistCardProps)
             onChange={(e) => setNewName(e.target.value)}
             placeholder="Wishlist name"
           />
+          <Input
+            value={newOccasion}
+            onChange={(e) => setNewOccasion(e.target.value)}
+            placeholder="Occasion (optional)"
+          />
+          <Input
+            type="date"
+            value={newOccasionDate}
+            onChange={(e) => setNewOccasionDate(e.target.value)}
+          />
+          <Select value={newRecurrence} onValueChange={setNewRecurrence}>
+            <SelectTrigger>
+              <SelectValue placeholder="Recurrence" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">Does not repeat</SelectItem>
+              <SelectItem value="yearly">Repeats yearly</SelectItem>
+              <SelectItem value="monthly">Repeats monthly</SelectItem>
+            </SelectContent>
+          </Select>
+          {newRecurrence !== 'none' && (
+            <Input
+              type="number"
+              min={0}
+              max={90}
+              value={newReminderDays}
+              onChange={(e) => setNewReminderDays(Number(e.target.value))}
+              placeholder="Reminder days"
+            />
+          )}
           <DialogFooter>
             <Button
               variant="outline"

@@ -151,13 +151,32 @@ export const createWishlist = onCall(publicCallableOptions, async (request: Call
     throw new HttpsError('unauthenticated', 'User must be authenticated');
   }
 
-  const { name, description, isPublic, isCollaborative, beneficiaryId, occasion, occasionDate } = request.data;
+  const {
+    name,
+    description,
+    isPublic,
+    isCollaborative,
+    beneficiaryId,
+    occasion,
+    occasionDate,
+    recurrence,
+    reminderDays,
+  } = request.data;
 
   if (!name || name.trim().length === 0) {
     throw new HttpsError('invalid-argument', 'Wishlist name is required');
   }
 
   try {
+    const validRecurrence = ['none', 'yearly', 'monthly'].includes(String(recurrence))
+      ? String(recurrence)
+      : 'none';
+
+    const parsedReminderDays =
+      reminderDays === null || reminderDays === undefined || reminderDays === ''
+        ? null
+        : Number(reminderDays);
+
     const wishlistData = {
       userId: request.auth.uid,
       name: name.trim(),
@@ -167,6 +186,8 @@ export const createWishlist = onCall(publicCallableOptions, async (request: Call
       beneficiaryId: beneficiaryId || null,
       occasion: occasion || null,
       occasionDate: occasionDate ? new Date(occasionDate) : null,
+      recurrence: validRecurrence,
+      reminderDays: Number.isFinite(parsedReminderDays) ? parsedReminderDays : null,
       shareId: generateId(),
       createdAt: new Date(),
       updatedAt: new Date()
@@ -215,7 +236,7 @@ export const updateWishlist = onCall(async (request: CallableRequest) => {
       throw new HttpsError('permission-denied', 'You can only update your own wishlists');
     }
 
-    const validFields = ['name', 'description', 'isPublic', 'isCollaborative', 'beneficiaryId', 'occasion', 'occasionDate'];
+    const validFields = ['name', 'description', 'isPublic', 'isCollaborative', 'beneficiaryId', 'occasion', 'occasionDate', 'recurrence', 'reminderDays'];
     const filteredUpdateData: any = {};
 
     for (const [key, value] of Object.entries(updateData)) {
@@ -226,6 +247,29 @@ export const updateWishlist = onCall(async (request: CallableRequest) => {
 
     if (Object.keys(filteredUpdateData).length === 0) {
       throw new HttpsError('invalid-argument', 'No valid fields to update');
+    }
+
+    if ('recurrence' in filteredUpdateData) {
+      const recurrenceValue = String(filteredUpdateData.recurrence);
+      filteredUpdateData.recurrence = ['none', 'yearly', 'monthly'].includes(recurrenceValue)
+        ? recurrenceValue
+        : 'none';
+    }
+
+    if ('reminderDays' in filteredUpdateData) {
+      const reminderValue = filteredUpdateData.reminderDays;
+      filteredUpdateData.reminderDays =
+        reminderValue === null || reminderValue === undefined || reminderValue === ''
+          ? null
+          : Number(reminderValue);
+      if (!Number.isFinite(filteredUpdateData.reminderDays) && filteredUpdateData.reminderDays !== null) {
+        throw new HttpsError('invalid-argument', 'Invalid reminderDays value');
+      }
+    }
+
+    if ('occasionDate' in filteredUpdateData) {
+      const occasionDateValue = filteredUpdateData.occasionDate;
+      filteredUpdateData.occasionDate = occasionDateValue ? new Date(String(occasionDateValue)) : null;
     }
 
     filteredUpdateData.updatedAt = new Date();
