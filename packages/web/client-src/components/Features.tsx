@@ -112,7 +112,7 @@ export default function Features() {
             </CardFooter>
           </Card>
           
-          {/* Occasion Reminders Feature */}
+          {/* Event Reminders Feature */}
           <Card className="border-2 hover:border-emerald-200 hover:shadow-lg transition-all">
             <CardHeader className="pb-2">
               <div className="p-2 w-12 h-12 bg-emerald-100 rounded-lg mb-2 flex items-center justify-center">
@@ -123,7 +123,7 @@ export default function Features() {
             </CardHeader>
             <CardContent>
               <p className="text-slate-600">
-                Sync important occasions with your calendar apps and get timely reminders for
+                Sync important events with your calendar apps and get timely reminders for
                 birthdays, anniversaries, and other gift-giving events.
               </p>
             </CardContent>

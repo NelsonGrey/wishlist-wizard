@@ -90,6 +90,17 @@ export default function Dashboard() {
       })
     : null;
 
+  const selectedEventDate = selectedWishlist?.occasionDate
+    ? new Date(selectedWishlist.occasionDate)
+    : null;
+  const formattedSelectedEventDate = selectedEventDate && !Number.isNaN(selectedEventDate.getTime())
+    ? selectedEventDate.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+      })
+    : null;
+
   return (
     <>
       <main className="flex-1">
@@ -115,9 +126,10 @@ export default function Dashboard() {
                   <h3 className="text-lg font-semibold text-gray-900">{selectedWishlist.name}</h3>
                   <p className="text-sm text-gray-500">Created {formattedSelectedCreatedDate}</p>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-sm">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 text-sm">
                   <div><span className="text-gray-500">Items:</span> <span className="font-medium">{selectedWishlist.itemCount}</span></div>
-                  <div><span className="text-gray-500">Occasion:</span> <span className="font-medium">{selectedWishlist.occasion || 'General'}</span></div>
+                  <div><span className="text-gray-500">Event:</span> <span className="font-medium">{selectedWishlist.occasion || 'General'}</span></div>
+                  <div><span className="text-gray-500">Event Date:</span> <span className="font-medium">{formattedSelectedEventDate || '—'}</span></div>
                   <div><span className="text-gray-500">Recurrence:</span> <span className="font-medium">{selectedWishlist.recurrence || 'none'}</span></div>
                   <div><span className="text-gray-500">Reminder:</span> <span className="font-medium">{selectedWishlist.reminderDays ?? '—'} days</span></div>
                 </div>
@@ -194,7 +206,7 @@ export default function Dashboard() {
                 <ul className="text-sm space-y-3">
                   <li>• Share wishlists with friends and family</li>
                   <li>• Add items from any online store</li>
-                  <li>• Organize by occasions like birthdays</li>
+                  <li>• Organize by events like birthdays</li>
                   <li>• Collaborate on gift ideas together</li>
                 </ul>
               </div>

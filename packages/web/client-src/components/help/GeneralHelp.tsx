@@ -44,7 +44,7 @@ export function GeneralHelp() {
             </p>
             <ul className="text-sm list-disc pl-5 space-y-2">
               <li>
-                <strong>Create multiple wishlists:</strong> Make separate lists for different occasions or people
+                <strong>Create multiple wishlists:</strong> Make separate lists for different events or people
               </li>
               <li>
                 <strong>Add items:</strong> Use the browser extension, manual entry, or import from other sites
@@ -110,7 +110,7 @@ export function GeneralHelp() {
                 <strong>Types of notifications:</strong>
                 <ul className="list-disc pl-5 mt-1">
                   <li>Price drops on tracked items</li>
-                  <li>Upcoming occasions (birthdays, anniversaries, etc.)</li>
+                  <li>Upcoming events (birthdays, anniversaries, etc.)</li>
                   <li>Collaborative wishlist activity</li>
                   <li>Group gift contributions and updates</li>
                   <li>Comments and messages from friends</li>

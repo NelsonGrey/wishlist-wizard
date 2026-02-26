@@ -32,7 +32,10 @@ import {
 } from "@/components/ui/select";
 
 // Extended type for UI purposes that includes computed fields
-type Wishlist = DbWishlist & {
+type Wishlist = Omit<DbWishlist, 'id' | 'userId' | 'beneficiaryId'> & {
+  id: string | number;
+  userId: string | number;
+  beneficiaryId?: string | number | null;
   itemCount: number;
 };
 
@@ -58,7 +61,11 @@ export default function WishlistCard({ wishlist, onRefresh, onSelect, selected =
   );
   const { toast } = useToast();
 
-  const occasionDate = wishlist.occasionDate ? new Date(wishlist.occasionDate) : null;
+  const parsedOccasionDate = wishlist.occasionDate ? new Date(wishlist.occasionDate) : null;
+  const occasionDate = parsedOccasionDate && !Number.isNaN(parsedOccasionDate.getTime()) ? parsedOccasionDate : null;
+  const eventDateDisplay = occasionDate
+    ? occasionDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+    : null;
   const hasRecurringSchedule = Boolean(occasionDate && wishlist.recurrence && wishlist.recurrence !== 'none');
 
   const getNextOccurrenceDate = () => {
@@ -207,7 +214,8 @@ export default function WishlistCard({ wishlist, onRefresh, onSelect, selected =
                 </div>
                 {(wishlist.occasion || hasRecurringSchedule) && (
                   <div className="mt-2 text-xs text-gray-600 space-y-1">
-                    {wishlist.occasion && <p>Occasion: {wishlist.occasion}</p>}
+                    {wishlist.occasion && <p>Event: {wishlist.occasion}</p>}
+                    {eventDateDisplay && <p>Event Date: {eventDateDisplay}</p>}
                     {nextOccurrenceDate && (
                       <p>
                         Next {wishlist.recurrence} event: {nextOccurrenceDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
@@ -291,9 +299,9 @@ export default function WishlistCard({ wishlist, onRefresh, onSelect, selected =
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Rename Wishlist</DialogTitle>
+            <DialogTitle>Edit Wishlist</DialogTitle>
             <DialogDescription>
-              Enter a new name for your wishlist.
+              Update wishlist details.
             </DialogDescription>
           </DialogHeader>
           <Input
@@ -304,12 +312,14 @@ export default function WishlistCard({ wishlist, onRefresh, onSelect, selected =
           <Input
             value={newOccasion}
             onChange={(e) => setNewOccasion(e.target.value)}
-            placeholder="Occasion (optional)"
+            placeholder="Event (optional)"
           />
           <Input
             type="date"
             value={newOccasionDate}
             onChange={(e) => setNewOccasionDate(e.target.value)}
+            aria-label="Event Date"
+            placeholder="Event Date (optional)"
           />
           <Select value={newRecurrence} onValueChange={setNewRecurrence}>
             <SelectTrigger>

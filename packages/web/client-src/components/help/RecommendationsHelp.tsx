@@ -63,7 +63,7 @@ export function RecommendationsHelp() {
               <li><strong>Similar Items:</strong> Products like ones you&apos;ve shown interest in</li>
               <li><strong>Trending Now:</strong> Popular items in your favorite categories</li>
               <li><strong>Price Drops:</strong> Items you might like that have recently gone on sale</li>
-              <li><strong>Occasion-Based:</strong> Tailored for birthdays, holidays, and other events</li>
+              <li><strong>Event-Based:</strong> Tailored for birthdays, holidays, and other events</li>
             </ul>
           </AccordionContent>
         </AccordionItem>
@@ -72,7 +72,7 @@ export function RecommendationsHelp() {
           <AccordionTrigger>Event-Based Recommendations</AccordionTrigger>
           <AccordionContent>
             <p className="text-sm mb-2">
-              Our AI can suggest gifts for upcoming occasions:
+              Our AI can suggest gifts for upcoming events:
             </p>
             <ol className="text-sm list-decimal pl-5 space-y-2">
               <li>

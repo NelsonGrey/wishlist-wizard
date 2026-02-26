@@ -86,7 +86,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
     { name: 'AR Visualization', href: '/ar-visualization-demo', icon: <Camera className="h-4 w-4" />, description: 'Try items in your space' },
     { name: 'Social Integration', href: '/dashboard', icon: <Users className="h-4 w-4" />, description: 'Collaborate on shared gifts' },
     { name: 'Price Tracking', href: '/app/price-tracking', icon: <LineChart className="h-4 w-4" />, description: 'Track and alert on price drops' },
-    { name: 'Calendar Integration', href: '/calendar', icon: <Calendar className="h-4 w-4" />, description: 'Occasion reminders and planning' },
+    { name: 'Calendar Integration', href: '/calendar', icon: <Calendar className="h-4 w-4" />, description: 'Event reminders and planning' },
     { name: 'Advanced User Profiles', href: '/user-profile', icon: <User className="h-4 w-4" />, description: 'Personalized gifting preferences' },
     { name: 'AI Gift Recommendations', href: '/recommendations', icon: <Sparkles className="h-4 w-4" />, description: 'Smarter personalized suggestions' },
   ];

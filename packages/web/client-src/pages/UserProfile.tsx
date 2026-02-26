@@ -894,7 +894,7 @@ const UserProfile = () => {
                     <div className="flex items-center justify-between">
                       <div className="space-y-0.5">
                         <Label htmlFor="gift-reminders">Gift Reminders</Label>
-                        <p className="text-sm text-muted-foreground">Receive reminders for upcoming gift occasions</p>
+                        <p className="text-sm text-muted-foreground">Receive reminders for upcoming gift events</p>
                       </div>
                       <Switch 
                         id="gift-reminders" 
