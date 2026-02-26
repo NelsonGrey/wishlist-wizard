@@ -3,6 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { Plus } from "lucide-react";
 import WishlistCard from "@/components/WishlistCard";
 import CreateWishlistDialog from "@/components/CreateWishlistDialog";
+import type { CreateWishlistFormValues } from "@/components/CreateWishlistDialog";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -25,11 +26,20 @@ export default function Dashboard() {
 
   // Create wishlist mutation
   const createWishlistMutation = useMutation({
-    mutationFn: async (name: string) => {
+    mutationFn: async (wishlistData: CreateWishlistFormValues) => {
+      const occasionDateIso = wishlistData.occasionDate
+        ? new Date(`${wishlistData.occasionDate}T12:00:00`).toISOString()
+        : null;
+
       const res = await apiRequest('/api/wishlists', {
         method: 'POST',
         body: {
-          name
+          name: wishlistData.name,
+          description: wishlistData.description?.trim() || '',
+          occasion: wishlistData.occasion?.trim() || null,
+          occasionDate: occasionDateIso,
+          recurrence: wishlistData.isRecurring ? wishlistData.recurrence : 'none',
+          reminderDays: wishlistData.isRecurring ? wishlistData.reminderDays : null,
         }
       });
       return res;
@@ -51,8 +61,8 @@ export default function Dashboard() {
     }
   });
 
-  const handleCreateWishlist = (name: string) => {
-    createWishlistMutation.mutate(name);
+  const handleCreateWishlist = (wishlistData: CreateWishlistFormValues) => {
+    createWishlistMutation.mutate(wishlistData);
   };
 
   return (

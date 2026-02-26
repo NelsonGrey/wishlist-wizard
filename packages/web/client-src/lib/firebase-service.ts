@@ -52,6 +52,8 @@ export interface Wishlist {
   beneficiaryId?: string;
   occasion?: string;
   occasionDate?: Date;
+  recurrence?: 'none' | 'yearly' | 'monthly';
+  reminderDays?: number;
   createdAt: Date;
   updatedAt: Date;
 }

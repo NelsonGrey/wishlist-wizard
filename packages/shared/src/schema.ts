@@ -58,6 +58,8 @@ export const wishlists = pgTable("wishlists", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
   occasion: text("occasion"), // e.g., "Birthday", "Christmas", "Baby Shower"
   occasionDate: timestamp("occasion_date"), // When the event is happening
+  recurrence: text("recurrence"), // none, yearly, monthly
+  reminderDays: integer("reminder_days"), // Reminder lead time before occasion
   description: text("description"), // Additional description for the wishlist
 });
 
