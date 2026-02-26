@@ -21,6 +21,8 @@
       </div>
     </div>
 
+    <div id="status-banner" class="status-banner hidden" role="status" aria-live="polite"></div>
+
     <!-- Login Screen -->
     <div id="login-screen" class="screen">
       <h2>Sign In</h2>
@@ -102,6 +104,13 @@
           <option value="" disabled selected>Select a wishlist</option>
         </select>
         <button id="create-wishlist-button" class="secondary-button">Create New Wishlist</button>
+        <div id="create-wishlist-inline" class="inline-create-wishlist hidden">
+          <input id="new-wishlist-name-input" type="text" class="form-input" maxlength="60" placeholder="Wishlist name">
+          <div class="inline-create-actions">
+            <button id="save-wishlist-button" class="primary-button">Save</button>
+            <button id="cancel-create-wishlist-button" class="secondary-button">Cancel</button>
+          </div>
+        </div>
       </div>
       
       <div class="note-section">
@@ -223,6 +232,14 @@
       </div>
       <div id="wishlist-items-list" class="coupon-results"></div>
 
+      <div id="create-wishlist-inline-manage" class="inline-create-wishlist hidden">
+        <input id="new-wishlist-name-manage-input" type="text" class="form-input" maxlength="60" placeholder="Wishlist name">
+        <div class="inline-create-actions">
+          <button id="save-wishlist-manage-button" class="primary-button">Save</button>
+          <button id="cancel-create-wishlist-manage-button" class="secondary-button">Cancel</button>
+        </div>
+      </div>
+
       <template id="wishlist-item-template">
         <div class="coupon-item">
           <div class="coupon-details">
@@ -237,6 +254,7 @@
       </template>
 
       <div class="button-group">
+        <button id="create-wishlist-manage-button" class="secondary-button">Create New Wishlist</button>
         <button id="open-wishlist-website-button" class="secondary-button">Open on Website</button>
       </div>
     </div>

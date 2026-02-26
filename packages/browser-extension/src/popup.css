@@ -26,6 +26,33 @@ body {
   border-bottom: 1px solid #e5e7eb;
 }
 
+.status-banner {
+  margin-bottom: 12px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  border: 1px solid transparent;
+}
+
+.status-banner.info {
+  background-color: #eef2ff;
+  color: #4338ca;
+  border-color: #c7d2fe;
+}
+
+.status-banner.success {
+  background-color: #ecfdf5;
+  color: #047857;
+  border-color: #a7f3d0;
+}
+
+.status-banner.error {
+  background-color: #fef2f2;
+  color: #b91c1c;
+  border-color: #fecaca;
+}
+
 .header .title-row {
   display: flex;
   align-items: center;
@@ -220,6 +247,25 @@ label {
   margin-bottom: 12px;
 }
 
+.inline-create-wishlist {
+  margin-top: 8px;
+  padding: 10px;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  background-color: #f9fafb;
+}
+
+.inline-create-actions {
+  margin-top: 8px;
+  display: flex;
+  gap: 8px;
+}
+
+.inline-create-actions .primary-button,
+.inline-create-actions .secondary-button {
+  flex: 1;
+}
+
 .edit-form {
   background-color: #f9fafb;
   padding: 12px;
@@ -251,6 +297,13 @@ label {
 
 .primary-button:hover {
   background-color: #4338ca;
+}
+
+.primary-button:disabled,
+.secondary-button:disabled,
+.option-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .secondary-button {
