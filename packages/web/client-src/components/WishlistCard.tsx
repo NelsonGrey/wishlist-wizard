@@ -192,6 +192,8 @@ export default function WishlistCard({ wishlist, onRefresh, onSelect, selected =
     month: 'short',
     day: 'numeric'
   });
+  const numericWishlistId = typeof wishlist.id === 'number' ? wishlist.id : Number(wishlist.id);
+  const hasNumericWishlistId = Number.isFinite(numericWishlistId);
 
   return (
     <>
@@ -205,12 +207,14 @@ export default function WishlistCard({ wishlist, onRefresh, onSelect, selected =
                   <p className="text-sm text-gray-500">
                     {wishlist.itemCount} {wishlist.itemCount === 1 ? 'item' : 'items'} • Created {formattedDate}
                   </p>
-                  <PrivacyControls
-                    entityType="wishlist"
-                    entityId={wishlist.id}
-                    entityName={wishlist.name}
-                    showAsBadge={true}
-                  />
+                  {hasNumericWishlistId && (
+                    <PrivacyControls
+                      entityType="wishlist"
+                      entityId={numericWishlistId}
+                      entityName={wishlist.name}
+                      showAsBadge={true}
+                    />
+                  )}
                 </div>
                 {(wishlist.occasion || hasRecurringSchedule) && (
                   <div className="mt-2 text-xs text-gray-600 space-y-1">

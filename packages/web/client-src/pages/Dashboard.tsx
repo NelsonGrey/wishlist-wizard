@@ -13,14 +13,17 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Wishlist as DbWishlist } from "@wishlist-wizard/shared";
 
 // Extended type for UI purposes that includes computed fields
-type Wishlist = DbWishlist & {
+type Wishlist = Omit<DbWishlist, 'id' | 'userId' | 'beneficiaryId'> & {
+  id: string | number;
+  userId: string | number;
+  beneficiaryId?: string | number | null;
   itemCount: number;
 };
 
 export default function Dashboard() {
   const [, setLocation] = useLocation();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [selectedWishlistId, setSelectedWishlistId] = useState<number | null>(null);
+  const [selectedWishlistId, setSelectedWishlistId] = useState<string | number | null>(null);
   const { toast } = useToast();
 
   // Fetch wishlists
