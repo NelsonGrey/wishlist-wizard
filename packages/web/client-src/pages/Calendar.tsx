@@ -601,7 +601,7 @@ const Calendar: React.FC = () => {
                     <SelectItem value="anniversary">Anniversary</SelectItem>
                     <SelectItem value="reminder">Reminder</SelectItem>
                     <SelectItem value="deadline">Gift Deadline</SelectItem>
-                    <SelectItem value="occasion">Occasion</SelectItem>
+                    <SelectItem value="occasion">Event</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

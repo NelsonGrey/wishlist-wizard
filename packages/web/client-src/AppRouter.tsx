@@ -151,6 +151,14 @@ function AppRouter() {
                     )}
                   />
                   <Route
+                    path="/wishlists/:id"
+                    component={() => (
+                      <ProtectedRoute requireAuth>
+                        <WishlistDetail />
+                      </ProtectedRoute>
+                    )}
+                  />
+                  <Route
                     path="/recommendations"
                     component={() => (
                       <ProtectedRoute requireAuth>

@@ -27,7 +27,8 @@ type WishlistItem = DbWishlistItem;
 type ItemFormErrors = Partial<Record<"title" | "price" | "imageUrl" | "productUrl" | "store", string>>;
 
 export default function WishlistDetail() {
-  const [match, params] = useRoute('/wishlist/:id');
+  const [legacyMatch, legacyParams] = useRoute('/wishlist/:id');
+  const [pluralMatch, pluralParams] = useRoute('/wishlists/:id');
   const [, setLocation] = useLocation();
   const [copied, setCopied] = useState(false);
   const [isItemDialogOpen, setIsItemDialogOpen] = useState(false);
@@ -42,14 +43,24 @@ export default function WishlistDetail() {
   });
   const [itemFormErrors, setItemFormErrors] = useState<ItemFormErrors>({});
   const { toast } = useToast();
-  
-  const id = match ? parseInt(params.id) : -1;
+
+  const wishlistId = (legacyMatch ? legacyParams?.id : pluralParams?.id) || "";
 
   // Fetch wishlist details
   const { data: wishlist, isLoading: isLoadingWishlist } = useQuery<Wishlist>({
-    queryKey: [`/api/wishlists/${id}`],
-    enabled: id > 0,
+    queryKey: [`/api/wishlists/${wishlistId}`],
+    enabled: Boolean(wishlistId),
   });
+
+  const resolvedWishlist = wishlist && !Array.isArray(wishlist)
+    ? wishlist
+    : null;
+  const parsedEventDate = resolvedWishlist?.occasionDate
+    ? new Date(resolvedWishlist.occasionDate)
+    : null;
+  const eventDateLabel = parsedEventDate && !Number.isNaN(parsedEventDate.getTime())
+    ? parsedEventDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+    : null;
 
   // Fetch wishlist items
   const { 
@@ -57,17 +68,17 @@ export default function WishlistDetail() {
     isLoading: isLoadingItems, 
     error 
   } = useQuery<WishlistItem[]>({
-    queryKey: [`/api/wishlists/${id}/items`],
-    enabled: id > 0,
+    queryKey: [`/api/wishlists/${wishlistId}/items`],
+    enabled: Boolean(wishlistId),
   });
 
   // Delete item mutation
   const deleteItemMutation = useMutation({
-    mutationFn: async (itemId: number) => {
+    mutationFn: async (itemId: number | string) => {
       await apiRequest(`/api/items/${itemId}`, { method: 'DELETE' });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/wishlists/${id}/items`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/wishlists/${wishlistId}/items`] });
       toast({
         title: "Item removed",
         description: "The item was removed from your wishlist",
@@ -88,7 +99,7 @@ export default function WishlistDetail() {
       await apiRequest('/api/items', {
         method: 'POST',
         body: {
-          wishlistId: id,
+          wishlistId,
           title: itemForm.title,
           price: itemForm.price,
           imageUrl: itemForm.imageUrl,
@@ -100,7 +111,7 @@ export default function WishlistDetail() {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/wishlists/${id}/items`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/wishlists/${wishlistId}/items`] });
       setIsItemDialogOpen(false);
       resetItemForm();
       toast({
@@ -135,7 +146,7 @@ export default function WishlistDetail() {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/wishlists/${id}/items`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/wishlists/${wishlistId}/items`] });
       setIsItemDialogOpen(false);
       resetItemForm();
       toast({
@@ -254,13 +265,13 @@ export default function WishlistDetail() {
     createItemMutation.mutate();
   };
 
-  const handleDeleteItem = (itemId: number) => {
+  const handleDeleteItem = (itemId: number | string) => {
     deleteItemMutation.mutate(itemId);
   };
 
   const handleShare = () => {
-    if (wishlist) {
-      const shareUrl = `${window.location.origin}/shared/${wishlist.shareId}`;
+    if (resolvedWishlist) {
+      const shareUrl = `${window.location.origin}/shared/${resolvedWishlist.shareId}`;
       navigator.clipboard.writeText(shareUrl).then(
         () => {
           setCopied(true);
@@ -283,7 +294,7 @@ export default function WishlistDetail() {
     }
   };
 
-  if (!match) {
+  if (!wishlistId) {
     return (
       <div className="container mx-auto px-4 py-8 max-w-6xl">
           <h1 className="text-4xl font-bold bg-gradient-to-r from-emerald-800 to-green-800 bg-clip-text text-transparent">Wishlist not found</h1>
@@ -292,6 +303,31 @@ export default function WishlistDetail() {
             Back to Dashboard
           </Button>
       </div>
+    );
+  }
+
+  if (!isLoadingWishlist && !resolvedWishlist) {
+    return (
+      <main className="flex-1">
+        <div className="container mx-auto px-4 py-8 max-w-6xl">
+          <Card>
+            <CardContent className="p-8 text-center">
+              <h2 className="text-2xl font-semibold mb-2">Wishlist not found</h2>
+              <p className="text-gray-500 mb-6">
+                This wishlist may not exist anymore, or you may not have access to view it.
+              </p>
+              <div className="flex items-center justify-center gap-2">
+                <Button variant="outline" onClick={() => queryClient.invalidateQueries({ queryKey: [`/api/wishlists/${wishlistId}`] })}>
+                  Retry
+                </Button>
+                <Button onClick={() => setLocation('/dashboard')}>
+                  Back to Dashboard
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </main>
     );
   }
 
@@ -312,7 +348,16 @@ export default function WishlistDetail() {
               {isLoadingWishlist ? (
                 <Skeleton className="h-8 w-40" />
               ) : (
-                <h1 className="text-4xl font-bold bg-gradient-to-r from-emerald-800 to-green-800 bg-clip-text text-transparent">{wishlist?.name}</h1>
+                <div>
+                  <h1 className="text-4xl font-bold bg-gradient-to-r from-emerald-800 to-green-800 bg-clip-text text-transparent">{resolvedWishlist?.name || "Wishlist Details"}</h1>
+                  {(resolvedWishlist?.occasion || eventDateLabel) && (
+                    <p className="text-sm text-gray-500 mt-1">
+                      {resolvedWishlist?.occasion ? `Event: ${resolvedWishlist.occasion}` : null}
+                      {resolvedWishlist?.occasion && eventDateLabel ? ' • ' : null}
+                      {eventDateLabel ? `Event Date: ${eventDateLabel}` : null}
+                    </p>
+                  )}
+                </div>
               )}
             </div>
             
@@ -328,7 +373,7 @@ export default function WishlistDetail() {
                 variant="outline" 
                 className="flex items-center gap-2"
                 onClick={handleShare}
-                disabled={!wishlist}
+                disabled={!resolvedWishlist}
               >
                 {copied ? (
                   <Check className="h-4 w-4" />
@@ -338,11 +383,11 @@ export default function WishlistDetail() {
                 Share
               </Button>
               
-              {wishlist && (
+              {resolvedWishlist && (
                 <PrivacyControls
                   entityType="wishlist"
-                  entityId={wishlist.id}
-                  entityName={wishlist.name}
+                  entityId={resolvedWishlist.id}
+                  entityName={resolvedWishlist.name}
                 />
               )}
             </div>
@@ -372,7 +417,7 @@ export default function WishlistDetail() {
                 <p className="text-red-500 mb-4">Failed to load wishlist items</p>
                 <Button 
                   variant="outline"
-                  onClick={() => queryClient.invalidateQueries({ queryKey: [`/api/wishlists/${id}/items`] })}
+                  onClick={() => queryClient.invalidateQueries({ queryKey: [`/api/wishlists/${wishlistId}/items`] })}
                 >
                   Retry
                 </Button>

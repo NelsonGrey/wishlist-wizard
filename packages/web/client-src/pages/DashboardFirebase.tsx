@@ -15,7 +15,10 @@ import { useWishlists } from "@/hooks/useFirebaseData";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 // Extended type for UI purposes that includes computed fields
-type Wishlist = DbWishlist & {
+type Wishlist = Omit<DbWishlist, 'id' | 'userId' | 'beneficiaryId'> & {
+  id: string | number;
+  userId: string | number;
+  beneficiaryId?: string | number | null;
   itemCount: number;
 };
 
@@ -60,7 +63,7 @@ const calculateNextOccurrence = (baseDate: Date, recurrence?: string | null): Da
 export default function Dashboard() {
   const [, setLocation] = useLocation();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [selectedWishlistId, setSelectedWishlistId] = useState<number | null>(null);
+  const [selectedWishlistId, setSelectedWishlistId] = useState<string | number | null>(null);
   const [useFirebase, setUseFirebase] = useState(
     import.meta.env.VITE_USE_FIREBASE_SDK === 'true'
   );
@@ -123,11 +126,11 @@ export default function Dashboard() {
 
   // Convert Firebase wishlists to match API format for UI compatibility
   const convertedFirebaseWishlists = firebaseWishlists?.map(wishlist => ({
-    id: parseInt(wishlist.id) || 0, // Convert string ID to number for UI compatibility
+    id: wishlist.id,
     name: wishlist.name,
-    userId: parseInt(wishlist.userId) || 0,
+    userId: wishlist.userId,
     createdAt: wishlist.createdAt,
-    beneficiaryId: wishlist.beneficiaryId ? parseInt(wishlist.beneficiaryId) : null,
+    beneficiaryId: wishlist.beneficiaryId ?? null,
     shareId: wishlist.shareId || '',
     isPublic: wishlist.isPublic,
     isCollaborative: wishlist.isCollaborative,
@@ -214,6 +217,8 @@ export default function Dashboard() {
         day: 'numeric',
       })
     : '';
+  const selectedEventDate = selectedWishlist ? parseOccasionDate(selectedWishlist) : null;
+  const selectedEventDateLabel = selectedEventDate ? formatDate(selectedEventDate) : '—';
 
   const toggleDataSource = () => {
     setUseFirebase(!useFirebase);
@@ -277,7 +282,7 @@ export default function Dashboard() {
           {recurringWishlists.length > 0 && (
             <Card className="mb-6">
               <CardHeader className="pb-2">
-                <CardTitle className="text-lg">Recurring Occasions</CardTitle>
+                <CardTitle className="text-lg">Recurring Events</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
@@ -313,9 +318,10 @@ export default function Dashboard() {
                   <h3 className="text-lg font-semibold text-gray-900">{selectedWishlist.name}</h3>
                   <p className="text-sm text-gray-500">Created {selectedCreatedAt}</p>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-sm">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 text-sm">
                   <div><span className="text-gray-500">Items:</span> <span className="font-medium">{selectedWishlist.itemCount}</span></div>
-                  <div><span className="text-gray-500">Occasion:</span> <span className="font-medium">{selectedWishlist.occasion || 'General'}</span></div>
+                  <div><span className="text-gray-500">Event:</span> <span className="font-medium">{selectedWishlist.occasion || 'General'}</span></div>
+                  <div><span className="text-gray-500">Event Date:</span> <span className="font-medium">{selectedEventDateLabel}</span></div>
                   <div><span className="text-gray-500">Recurrence:</span> <span className="font-medium">{selectedWishlist.recurrence || 'none'}</span></div>
                   <div><span className="text-gray-500">Reminder:</span> <span className="font-medium">{selectedWishlist.reminderDays ?? '—'} days</span></div>
                 </div>
@@ -437,7 +443,7 @@ export default function Dashboard() {
                     <>
                       <li>• Share wishlists with friends and family</li>
                       <li>• Add items from any online store</li>
-                      <li>• Organize by occasions like birthdays</li>
+                      <li>• Organize by events like birthdays</li>
                       <li>• Collaborate on gift ideas together</li>
                     </>
                   )}

@@ -30,7 +30,7 @@ import {
 
 const formSchema = z.object({
   name: z.string().min(1, "Wishlist name is required").max(50, "Name cannot exceed 50 characters"),
-  occasion: z.string().max(50, "Occasion cannot exceed 50 characters").optional(),
+  occasion: z.string().max(50, "Event cannot exceed 50 characters").optional(),
   occasionDate: z.string().optional(),
   isRecurring: z.boolean().default(false),
   recurrence: z.enum(["yearly", "monthly"]),
@@ -110,9 +110,9 @@ export default function CreateWishlistDialog({
                 name="occasion"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Occasion (optional)</FormLabel>
+                    <FormLabel>Event (optional)</FormLabel>
                     <FormControl>
-                      <Input placeholder="e.g., Emma's Birthday" {...field} value={field.value ?? ""} />
+                      <Input placeholder="e.g., Emma's Birthday Party" {...field} value={field.value ?? ""} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -124,7 +124,7 @@ export default function CreateWishlistDialog({
                 name="occasionDate"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Occasion Date (optional)</FormLabel>
+                    <FormLabel>Event Date (optional)</FormLabel>
                     <FormControl>
                       <Input type="date" {...field} value={field.value ?? ""} />
                     </FormControl>

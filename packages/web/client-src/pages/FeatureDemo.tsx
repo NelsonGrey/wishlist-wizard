@@ -90,7 +90,7 @@ const featureConfigs: Record<FeatureKey, FeatureConfig> = {
     title: "Calendar Integration",
     subtitle: "Never miss important dates",
     description:
-      "Plan ahead with occasion reminders and timely prompts so birthdays and anniversaries are always covered.",
+      "Plan ahead with event reminders and timely prompts so birthdays and anniversaries are always covered.",
     highlights: [
       "Track birthdays and milestones",
       "Get reminders before key events",

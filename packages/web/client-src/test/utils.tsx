@@ -117,6 +117,24 @@ function customRender(
                 }
               ];
             }
+
+            if (endpoint?.startsWith('/api/wishlists/')) {
+              return {
+                id: 1,
+                name: 'Test Wishlist',
+                userId: 1,
+                beneficiaryId: null,
+                shareId: 'test-share-id',
+                isPublic: false,
+                isCollaborative: false,
+                createdAt: new Date().toISOString(),
+                occasion: null,
+                occasionDate: null,
+                recurrence: 'none',
+                reminderDays: null,
+                description: null,
+              };
+            }
             
             // For other queries, return empty array or null
             return [];
