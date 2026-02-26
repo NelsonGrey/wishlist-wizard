@@ -104,7 +104,7 @@ describe('Dashboard CRUD Operations', () => {
 
       // Assert
       expect(screen.getByText('My Wishlists')).toBeInTheDocument();
-      expect(screen.getByText('Birthday Wishlist')).toBeInTheDocument();
+      expect(screen.getAllByText('Birthday Wishlist').length).toBeGreaterThan(0);
     });
 
     it('should handle loading state', async () => {

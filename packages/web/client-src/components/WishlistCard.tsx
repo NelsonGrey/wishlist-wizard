@@ -5,7 +5,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Wishlist as DbWishlist, WishlistItem as DbWishlistItem } from "@wishlist-wizard/shared";
+import { Wishlist as DbWishlist } from "@wishlist-wizard/shared";
 import PrivacyControls from "@/components/privacy/PrivacyControls";
 import {
   DropdownMenu,
@@ -22,7 +22,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import {
   Select,
   SelectContent,
@@ -36,14 +36,14 @@ type Wishlist = DbWishlist & {
   itemCount: number;
 };
 
-type WishlistItem = DbWishlistItem;
-
 interface WishlistCardProps {
   wishlist: Wishlist;
   onRefresh: () => void;
+  onSelect?: (wishlist: Wishlist) => void;
+  selected?: boolean;
 }
 
-export default function WishlistCard({ wishlist, onRefresh }: WishlistCardProps) {
+export default function WishlistCard({ wishlist, onRefresh, onSelect, selected = false }: WishlistCardProps) {
   const [, setLocation] = useLocation();
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -82,11 +82,6 @@ export default function WishlistCard({ wishlist, onRefresh }: WishlistCardProps)
   };
 
   const nextOccurrenceDate = getNextOccurrenceDate();
-
-  // Fetch items for the wishlist preview
-  const { data: items } = useQuery<WishlistItem[]>({
-    queryKey: [`/api/wishlists/${wishlist.id}/items`],
-  });
 
   // Update wishlist mutation
   const updateWishlistMutation = useMutation({
@@ -193,7 +188,7 @@ export default function WishlistCard({ wishlist, onRefresh }: WishlistCardProps)
 
   return (
     <>
-      <Card className="hover:shadow-md transition">
+      <Card className={`hover:shadow-md transition ${selected ? 'ring-2 ring-primary/40' : ''}`}>
         <CardContent className="p-0">
           <div className="p-5 border-b">
             <div className="flex justify-between items-center">
@@ -257,40 +252,37 @@ export default function WishlistCard({ wishlist, onRefresh }: WishlistCardProps)
             </div>
           </div>
           
-          <div className="divide-y">
-            {items && items.slice(0, 3).map((item) => (
-              <div key={item.id} className="p-4 flex space-x-3">
-                <img 
-                  src={item.imageUrl} 
-                  alt={item.title}
-                  className="w-16 h-16 object-cover rounded-md"
-                />
-                <div className="flex-1">
-                  <h4 className="font-medium line-clamp-2">{item.title}</h4>
-                  <div className="flex items-center justify-between mt-1">
-                    <div>
-                      <span className="text-sm font-semibold text-gray-900">{item.price}</span>
-                      <span className="text-xs text-gray-500 ml-1">{item.store}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))}
-
-            {(!items || items.length === 0) && (
-              <div className="p-4 text-center text-gray-500">
-                No items in this wishlist yet
-              </div>
-            )}
+          <div className="p-4 text-sm text-gray-600 space-y-2">
+            <div className="flex items-center justify-between">
+              <span>Items</span>
+              <span className="font-medium text-gray-900">{wishlist.itemCount}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span>Visibility</span>
+              <span className="font-medium text-gray-900">{wishlist.isPublic ? 'Public' : 'Private'}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span>Collaboration</span>
+              <span className="font-medium text-gray-900">{wishlist.isCollaborative ? 'Enabled' : 'Disabled'}</span>
+            </div>
           </div>
         </CardContent>
-        <CardFooter className="p-4 text-center border-t">
+        <CardFooter className="p-4 border-t flex items-center gap-2">
+          {onSelect && (
+            <Button
+              variant={selected ? 'default' : 'outline'}
+              className="flex-1"
+              onClick={() => onSelect(wishlist)}
+            >
+              {selected ? 'Selected' : 'Select'}
+            </Button>
+          )}
           <Button 
             variant="link" 
-            className="text-primary hover:text-indigo-700 w-full"
+            className="text-primary hover:text-indigo-700 flex-1"
             onClick={() => setLocation(`/wishlist/${wishlist.id}`)}
           >
-            View All Items
+            View Details
           </Button>
         </CardFooter>
       </Card>

@@ -122,7 +122,6 @@ const Calendar: React.FC = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [isEventDialogOpen, setIsEventDialogOpen] = useState(false);
-  const [isSettingsDialogOpen, setIsSettingsDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('upcoming');
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [formData, setFormData] = useState<EventFormData>({
@@ -167,19 +166,6 @@ const Calendar: React.FC = () => {
     queryFn: async () => {
       const data = await apiRequest('/api/wishlists');
       return data as Wishlist[];
-    }
-  });
-
-  // Query to fetch calendar sync settings
-  const { data: syncSettings } = useQuery({ 
-    queryKey: ['/api/calendar/sync-settings'],
-    queryFn: async () => {
-      const data = await apiRequest('/api/calendar/sync-settings');
-      return data as {
-        google?: { connected: boolean };
-        apple?: { connected: boolean };
-        outlook?: { connected: boolean };
-      };
     }
   });
 
@@ -286,28 +272,6 @@ const Calendar: React.FC = () => {
       toast({
         title: "Error",
         description: "Failed to delete event. Please try again.",
-        variant: "destructive",
-      });
-    }
-  });
-
-  // Sync now mutation
-  const syncNowMutation = useMutation({
-    mutationFn: () => {
-      return apiRequest('/api/calendar/sync', { method: 'POST' });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/calendar/events'] });
-      toast({
-        title: "Success",
-        description: "Calendar synced successfully",
-      });
-    },
-    onError: (error) => {
-      console.error('Error syncing calendar:', error);
-      toast({
-        title: "Error",
-        description: "Failed to sync calendar. Please try again.",
         variant: "destructive",
       });
     }
@@ -540,7 +504,7 @@ const Calendar: React.FC = () => {
           }}>
             Add Event
           </Button>
-          <Button variant="outline" onClick={() => setIsSettingsDialogOpen(true)}>
+          <Button variant="outline" onClick={() => setActiveTab('connections')}>
             Settings
           </Button>
         </div>
@@ -834,116 +798,6 @@ const Calendar: React.FC = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Settings Dialog */}
-      <Dialog open={isSettingsDialogOpen} onOpenChange={setIsSettingsDialogOpen}>
-        <DialogContent className="sm:max-w-[525px]">
-          <DialogHeader>
-            <DialogTitle>Calendar Settings</DialogTitle>
-            <DialogDescription>
-              Configure your calendar integration and synchronization settings.
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="py-4">
-            <h3 className="text-lg font-medium mb-4">External Calendars</h3>
-            
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center">
-                  <img src="/google-calendar-icon.png" alt="Google Calendar" className="w-6 h-6 mr-2" />
-                  <span>Google Calendar</span>
-                </div>
-                
-                <Button variant="outline" size="sm">
-                  {syncSettings?.google?.connected ? 'Disconnect' : 'Connect'}
-                </Button>
-              </div>
-              
-              <div className="flex items-center justify-between">
-                <div className="flex items-center">
-                  <img src="/apple-calendar-icon.png" alt="Apple Calendar" className="w-6 h-6 mr-2" />
-                  <span>Apple Calendar</span>
-                </div>
-                
-                <Button variant="outline" size="sm">
-                  {syncSettings?.apple?.connected ? 'Disconnect' : 'Connect'}
-                </Button>
-              </div>
-              
-              <div className="flex items-center justify-between">
-                <div className="flex items-center">
-                  <img src="/outlook-calendar-icon.png" alt="Outlook Calendar" className="w-6 h-6 mr-2" />
-                  <span>Outlook Calendar</span>
-                </div>
-                
-                <Button variant="outline" size="sm">
-                  {syncSettings?.outlook?.connected ? 'Disconnect' : 'Connect'}
-                </Button>
-              </div>
-            </div>
-            
-            <div className="mt-6">
-              <h3 className="text-lg font-medium mb-4">Sync Settings</h3>
-              
-              <div className="space-y-4">
-                <div className="flex items-center space-x-2">
-                  <Checkbox id="sync-birthdays" />
-                  <label htmlFor="sync-birthdays" className="text-sm font-medium leading-none">
-                    Sync birthday events
-                  </label>
-                </div>
-                
-                <div className="flex items-center space-x-2">
-                  <Checkbox id="sync-wishlists" />
-                  <label htmlFor="sync-wishlists" className="text-sm font-medium leading-none">
-                    Sync wishlist deadlines
-                  </label>
-                </div>
-                
-                <div className="flex items-center space-x-2">
-                  <Checkbox id="sync-reminders" />
-                  <label htmlFor="sync-reminders" className="text-sm font-medium leading-none">
-                    Sync reminders
-                  </label>
-                </div>
-                
-                <div>
-                  <Label>Sync frequency</Label>
-                  <Select defaultValue="daily">
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select sync frequency" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="hourly">Hourly</SelectItem>
-                      <SelectItem value="daily">Daily</SelectItem>
-                      <SelectItem value="weekly">Weekly</SelectItem>
-                      <SelectItem value="manual">Manual only</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              
-              <div className="mt-4">
-                <Button 
-                  type="button" 
-                  variant="secondary"
-                  onClick={() => syncNowMutation.mutate()}
-                  disabled={syncNowMutation.isPending}
-                >
-                  {syncNowMutation.isPending ? 'Syncing...' : 'Sync Now'}
-                </Button>
-              </div>
-            </div>
-          </div>
-          
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsSettingsDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button>Save Settings</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
       </div>
     </>
   );

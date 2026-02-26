@@ -126,6 +126,13 @@ export {
 } from './api/calendar';
 
 export {
+  getContacts,
+  importContacts,
+  hideContact,
+  deleteContact
+} from './api/contacts';
+
+export {
   registerDevice,
   listDevices,
   updateDevice,

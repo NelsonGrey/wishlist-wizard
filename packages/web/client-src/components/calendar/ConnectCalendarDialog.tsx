@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import React, { useEffect, useMemo, useState } from 'react';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -21,8 +21,10 @@ import { LuCalendarPlus } from 'react-icons/lu';
 export type CalendarProvider = 'google' | 'outlook' | 'apple' | 'other';
 
 interface CalendarAuthData {
-  authUrl: string;
+  authUrl?: string;
+  url?: string;
   provider: CalendarProvider;
+  message?: string;
 }
 
 interface ConnectCalendarDialogProps {
@@ -34,23 +36,96 @@ export function ConnectCalendarDialog({ onConnect }: ConnectCalendarDialogProps)
   const [isOpen, setIsOpen] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
   const [selectedProvider, setSelectedProvider] = useState<CalendarProvider | null>(null);
+  const [appleSubscriptionUrl, setAppleSubscriptionUrl] = useState('');
+  const [appleDisplayName, setAppleDisplayName] = useState('Apple Calendar');
+
+  const redirectUri = useMemo(() => `${window.location.origin}/calendar`, []);
+
+  const connectMutation = useMutation({
+    mutationFn: (payload: Record<string, unknown>) =>
+      apiRequest('/api/calendar/connect', { method: 'POST', body: payload }),
+    onSuccess: () => {
+      toast({
+        title: 'Calendar connected',
+        description: 'Your calendar connection is now active.',
+      });
+      if (onConnect && selectedProvider) {
+        onConnect(selectedProvider);
+      }
+    },
+    onError: (error) => {
+      toast({
+        title: 'Connection failed',
+        description: error instanceof Error ? error.message : 'Could not complete calendar connection.',
+        variant: 'destructive',
+      });
+    },
+    onSettled: () => {
+      setIsConnecting(false);
+      setSelectedProvider(null);
+    },
+  });
+
+  useEffect(() => {
+    const search = new URLSearchParams(window.location.search);
+    const code = search.get('code');
+    const state = search.get('state');
+    const error = search.get('error');
+    const providerParam = search.get('provider');
+
+    if (!code && !error) {
+      return;
+    }
+
+    if (error) {
+      toast({
+        title: 'Calendar authorization cancelled',
+        description: 'Authorization was not completed.',
+        variant: 'destructive',
+      });
+      window.history.replaceState({}, document.title, '/calendar');
+      return;
+    }
+
+    const provider: CalendarProvider = providerParam === 'outlook' ? 'outlook' : 'google';
+    setIsConnecting(true);
+    setSelectedProvider(provider);
+    connectMutation.mutate({
+      provider,
+      code,
+      state,
+      redirectUri,
+    });
+
+    window.history.replaceState({}, document.title, '/calendar');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [redirectUri]);
   
   // Fetch auth URLs for each provider
   const { data: googleAuthData, isLoading: isGoogleLoading } = useQuery<CalendarAuthData>({
     queryKey: ['/api/calendar/auth/google'],
-    queryFn: () => apiRequest('/api/calendar/auth/google') as Promise<CalendarAuthData>,
+    queryFn: () => apiRequest('/api/calendar/auth/google', {
+      method: 'POST',
+      body: { provider: 'google', redirectUri }
+    }) as Promise<CalendarAuthData>,
     enabled: isOpen, // Only fetch when dialog is open
   });
   
   const { data: outlookAuthData, isLoading: isOutlookLoading } = useQuery<CalendarAuthData>({
     queryKey: ['/api/calendar/auth/outlook'],
-    queryFn: () => apiRequest('/api/calendar/auth/outlook') as Promise<CalendarAuthData>,
+    queryFn: () => apiRequest('/api/calendar/auth/outlook', {
+      method: 'POST',
+      body: { provider: 'outlook', redirectUri }
+    }) as Promise<CalendarAuthData>,
     enabled: isOpen, // Only fetch when dialog is open
   });
   
   const { data: appleAuthData, isLoading: isAppleLoading } = useQuery<CalendarAuthData>({
     queryKey: ['/api/calendar/auth/apple'],
-    queryFn: () => apiRequest('/api/calendar/auth/apple') as Promise<CalendarAuthData>,
+    queryFn: () => apiRequest('/api/calendar/auth/apple', {
+      method: 'POST',
+      body: { provider: 'apple', redirectUri }
+    }) as Promise<CalendarAuthData>,
     enabled: isOpen, // Only fetch when dialog is open
   });
   
@@ -63,13 +138,13 @@ export function ConnectCalendarDialog({ onConnect }: ConnectCalendarDialogProps)
     
     switch (provider) {
       case 'google':
-        authUrl = googleAuthData?.authUrl || '';
+        authUrl = googleAuthData?.authUrl || googleAuthData?.url || '';
         break;
       case 'outlook':
-        authUrl = outlookAuthData?.authUrl || '';
+        authUrl = outlookAuthData?.authUrl || outlookAuthData?.url || '';
         break;
       case 'apple':
-        authUrl = appleAuthData?.authUrl || '';
+        authUrl = appleAuthData?.authUrl || appleAuthData?.url || '';
         break;
       default:
         toast({
@@ -91,12 +166,36 @@ export function ConnectCalendarDialog({ onConnect }: ConnectCalendarDialogProps)
       return;
     }
     
-    // Open authentication window
-    window.location.href = authUrl;
-    
-    if (onConnect) {
-      onConnect(provider);
+    if (provider === 'google' || provider === 'outlook') {
+      const url = new URL(authUrl);
+      url.searchParams.set('provider', provider);
+      window.location.href = url.toString();
+      return;
     }
+
+    window.open(authUrl, '_blank', 'noopener,noreferrer');
+
+    setIsConnecting(false);
+    setSelectedProvider(null);
+  };
+
+  const handleAppleSubscriptionConnect = () => {
+    if (!appleSubscriptionUrl.trim()) {
+      toast({
+        title: 'Subscription URL required',
+        description: 'Enter your Apple calendar subscription URL to continue.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsConnecting(true);
+    setSelectedProvider('apple');
+    connectMutation.mutate({
+      provider: 'apple',
+      subscriptionUrl: appleSubscriptionUrl.trim(),
+      displayName: appleDisplayName.trim() || 'Apple Calendar',
+    });
   };
   
   return (
@@ -165,11 +264,27 @@ export function ConnectCalendarDialog({ onConnect }: ConnectCalendarDialogProps)
               <SiApple className="h-16 w-16 text-gray-800" />
               <h3 className="text-lg font-medium">Connect Apple Calendar</h3>
               <p className="text-sm text-gray-500 text-center">
-                Sync your events with Apple Calendar. You&apos;ll be asked to grant
-                permission to access your calendars.
+                Add your Apple Calendar subscription URL for read-only import sync.
               </p>
+              <input
+                type="text"
+                className="w-full border rounded-md px-3 py-2 text-sm"
+                placeholder="webcal://... or https://..."
+                value={appleSubscriptionUrl}
+                onChange={(event) => setAppleSubscriptionUrl(event.target.value)}
+              />
+              <input
+                type="text"
+                className="w-full border rounded-md px-3 py-2 text-sm"
+                placeholder="Display name"
+                value={appleDisplayName}
+                onChange={(event) => setAppleDisplayName(event.target.value)}
+              />
+              {appleAuthData?.message && (
+                <p className="text-xs text-gray-500 text-center">{appleAuthData.message}</p>
+              )}
               <Button 
-                onClick={() => handleConnect('apple')} 
+                onClick={handleAppleSubscriptionConnect}
                 disabled={isAppleLoading || isConnecting}
                 className="w-full"
               >

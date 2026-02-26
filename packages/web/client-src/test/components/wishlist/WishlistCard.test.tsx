@@ -199,6 +199,6 @@ describe('WishlistCard Component', () => {
     );
     
     // Assert
-    expect(screen.getByText('View All Items')).toBeInTheDocument();
+    expect(screen.getByText('View Details')).toBeInTheDocument();
   });
 });
