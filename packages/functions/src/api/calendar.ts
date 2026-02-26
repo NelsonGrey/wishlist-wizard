@@ -14,6 +14,7 @@ const MICROSOFT_REDIRECT_URI = process.env.MICROSOFT_REDIRECT_URI || "";
 
 const GOOGLE_SCOPES = [
   "https://www.googleapis.com/auth/calendar",
+  "https://www.googleapis.com/auth/contacts.readonly",
   "https://www.googleapis.com/auth/userinfo.email",
 ].join(" ");
 
@@ -21,6 +22,7 @@ const MICROSOFT_SCOPES = [
   "offline_access",
   "User.Read",
   "Calendars.ReadWrite",
+  "Contacts.Read",
 ].join(" ");
 
 function requireAuth(request: CallableRequest) {
@@ -251,17 +253,22 @@ export const getCalendarAuthUrl = onCall(async (request: CallableRequest) => {
   });
 
   if (provider === "google") {
-    return { url: buildGoogleAuthUrl(state, finalRedirect) };
+    const url = buildGoogleAuthUrl(state, finalRedirect);
+    return { url, authUrl: url, provider };
   }
 
   if (provider === "outlook") {
-    return { url: buildMicrosoftAuthUrl(state, finalRedirect) };
+    const url = buildMicrosoftAuthUrl(state, finalRedirect);
+    return { url, authUrl: url, provider };
   }
 
   if (provider === "apple") {
+    const url = "https://www.icloud.com/calendar";
     return {
-      url: "https://support.apple.com/guide/calendar/subscribe-to-calendars-icl1022",
-      message: "Apple Calendar sync is available via subscription. Use the provided instructions.",
+      url,
+      authUrl: url,
+      provider,
+      message: "Apple Calendar uses read-only subscription URLs in Wishlist Wizard.",
     };
   }
 
@@ -270,10 +277,60 @@ export const getCalendarAuthUrl = onCall(async (request: CallableRequest) => {
 
 export const connectCalendar = onCall(async (request: CallableRequest) => {
   requireAuth(request);
-  const { provider, code, state, redirectUri } = request.data;
+  const { provider, code, state, redirectUri, subscriptionUrl, displayName } = request.data;
 
-  if (!provider || !code) {
-    throw new HttpsError("invalid-argument", "Provider and code are required");
+  if (!provider) {
+    throw new HttpsError("invalid-argument", "Provider is required");
+  }
+
+  if ((provider === "google" || provider === "outlook") && !code) {
+    throw new HttpsError("invalid-argument", "Authorization code is required for this provider");
+  }
+
+  if (provider === "apple") {
+    if (!subscriptionUrl || typeof subscriptionUrl !== "string") {
+      throw new HttpsError("invalid-argument", "Apple calendar subscription URL is required");
+    }
+
+    const connectionData = {
+      userId: request.auth!.uid,
+      calendarType: provider,
+      calendarId: subscriptionUrl.trim(),
+      displayName: (displayName || "Apple Calendar Subscription").toString().trim(),
+      accessToken: null,
+      refreshToken: null,
+      tokenExpiry: null,
+      isActive: true,
+      settings: {
+        syncEvents: true,
+        syncDirection: "import",
+        defaultReminders: [60],
+      },
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      lastSyncedAt: null,
+    };
+
+    const existing = await db
+      .collection("userCalendars")
+      .where("userId", "==", request.auth!.uid)
+      .where("calendarType", "==", "apple")
+      .where("calendarId", "==", connectionData.calendarId)
+      .limit(1)
+      .get();
+
+    if (!existing.empty) {
+      const existingDoc = existing.docs[0];
+      await existingDoc.ref.update({
+        ...connectionData,
+        isActive: true,
+        updatedAt: new Date(),
+      });
+      return { id: existingDoc.id, ...connectionData };
+    }
+
+    const docRef = await db.collection("userCalendars").add(connectionData);
+    return { id: docRef.id, ...connectionData };
   }
 
   let redirect = redirectUri || (provider === "google" ? GOOGLE_REDIRECT_URI : MICROSOFT_REDIRECT_URI);
@@ -296,8 +353,6 @@ export const connectCalendar = onCall(async (request: CallableRequest) => {
       tokenResponse = await exchangeGoogleCode(code, redirect);
     } else if (provider === "outlook") {
       tokenResponse = await exchangeMicrosoftCode(code, redirect);
-    } else if (provider === "apple") {
-      throw new HttpsError("failed-precondition", "Apple calendar requires manual subscription");
     } else {
       throw new HttpsError("invalid-argument", "Unsupported provider");
     }
@@ -473,7 +528,11 @@ async function createMicrosoftEvent(accessToken: string, calendarId: string, eve
 
 async function syncConnectionEvents(connectionId: string, connection: any, userId: string) {
   if (connection.calendarType === "apple") {
-    throw new HttpsError("failed-precondition", "Apple calendar sync is not automated. Use subscription instead.");
+    await db.collection("userCalendars").doc(connectionId).update({
+      lastSyncedAt: new Date(),
+      updatedAt: new Date(),
+    });
+    return 0;
   }
 
   const eventsSnapshot = await db

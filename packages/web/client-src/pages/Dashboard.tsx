@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Plus } from "lucide-react";
+import { useLocation } from "wouter";
 import WishlistCard from "@/components/WishlistCard";
 import CreateWishlistDialog from "@/components/CreateWishlistDialog";
 import type { CreateWishlistFormValues } from "@/components/CreateWishlistDialog";
@@ -8,6 +9,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { SidebarAd } from "@/components/ads";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Wishlist as DbWishlist } from "@wishlist-wizard/shared";
 
 // Extended type for UI purposes that includes computed fields
@@ -16,7 +18,9 @@ type Wishlist = DbWishlist & {
 };
 
 export default function Dashboard() {
+  const [, setLocation] = useLocation();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [selectedWishlistId, setSelectedWishlistId] = useState<number | null>(null);
   const { toast } = useToast();
 
   // Fetch wishlists
@@ -65,6 +69,27 @@ export default function Dashboard() {
     createWishlistMutation.mutate(wishlistData);
   };
 
+  useEffect(() => {
+    if (!wishlists || wishlists.length === 0) {
+      setSelectedWishlistId(null);
+      return;
+    }
+
+    if (selectedWishlistId === null || !wishlists.some((wishlist) => wishlist.id === selectedWishlistId)) {
+      setSelectedWishlistId(wishlists[0].id);
+    }
+  }, [wishlists, selectedWishlistId]);
+
+  const selectedWishlist = wishlists?.find((wishlist) => wishlist.id === selectedWishlistId) ?? null;
+
+  const formattedSelectedCreatedDate = selectedWishlist
+    ? new Date(selectedWishlist.createdAt).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+      })
+    : null;
+
   return (
     <>
       <main className="flex-1">
@@ -79,6 +104,33 @@ export default function Dashboard() {
               <span>Create New List</span>
             </Button>
           </div>
+
+          {selectedWishlist && (
+            <Card className="mb-6">
+              <CardHeader>
+                <CardTitle>Selected Wishlist</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">{selectedWishlist.name}</h3>
+                  <p className="text-sm text-gray-500">Created {formattedSelectedCreatedDate}</p>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-sm">
+                  <div><span className="text-gray-500">Items:</span> <span className="font-medium">{selectedWishlist.itemCount}</span></div>
+                  <div><span className="text-gray-500">Occasion:</span> <span className="font-medium">{selectedWishlist.occasion || 'General'}</span></div>
+                  <div><span className="text-gray-500">Recurrence:</span> <span className="font-medium">{selectedWishlist.recurrence || 'none'}</span></div>
+                  <div><span className="text-gray-500">Reminder:</span> <span className="font-medium">{selectedWishlist.reminderDays ?? '—'} days</span></div>
+                </div>
+                {selectedWishlist.description && (
+                  <p className="text-sm text-gray-600">{selectedWishlist.description}</p>
+                )}
+                <div className="flex gap-2">
+                  <Button onClick={() => setLocation(`/wishlist/${selectedWishlist.id}`)}>Open Wishlist</Button>
+                  <Button variant="outline" onClick={() => setLocation('/calendar')}>Plan on Calendar</Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
           
           {/* Dashboard layout with content and sidebar */}
           <div className="flex flex-col lg:flex-row gap-6">
@@ -115,6 +167,8 @@ export default function Dashboard() {
                     <WishlistCard 
                       key={wishlist.id} 
                       wishlist={wishlist} 
+                      selected={wishlist.id === selectedWishlistId}
+                      onSelect={(selected) => setSelectedWishlistId(selected.id)}
                       onRefresh={() => queryClient.invalidateQueries({ queryKey: ['/api/wishlists'] })}
                     />
                   ))}

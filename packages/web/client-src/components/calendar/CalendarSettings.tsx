@@ -6,8 +6,10 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { ConnectCalendarDialog, CalendarProvider } from './ConnectCalendarDialog';
-import { LuCalendarClock, LuCloudSun, LuTrash2 } from 'react-icons/lu';
+import { LuCalendarClock, LuCloudSun, LuTrash2, LuUserPlus, LuEyeOff, LuUpload } from 'react-icons/lu';
 import { SiGoogle, SiApple } from 'react-icons/si';
 import { FaMicrosoft } from 'react-icons/fa';
 import { format } from 'date-fns';
@@ -32,6 +34,14 @@ interface CalendarSettings {
   defaultReminders: number[];
 }
 
+interface ImportedContact {
+  id: string;
+  name: string;
+  email?: string;
+  phone?: string;
+  sourceProvider?: 'google' | 'outlook' | 'apple' | string;
+}
+
 export function CalendarSettings() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -45,6 +55,17 @@ export function CalendarSettings() {
     queryKey: ['/api/calendar/connections'],
     queryFn: () => apiRequest('/api/calendar/connections') as Promise<ConnectedCalendar[]>
   });
+
+  const {
+    data: contacts = [],
+    isLoading: isLoadingContacts,
+  } = useQuery<ImportedContact[]>({
+    queryKey: ['/api/contacts'],
+    queryFn: () => apiRequest('/api/contacts') as Promise<ImportedContact[]>
+  });
+
+  const [appleVcard, setAppleVcard] = React.useState('');
+  const [appleConnectionId, setAppleConnectionId] = React.useState('');
   
   // Disconnect calendar mutation
   const disconnectMutation = useMutation({
@@ -111,6 +132,66 @@ export function CalendarSettings() {
       });
     }
   });
+
+  const importContactsMutation = useMutation({
+    mutationFn: ({ provider, payload }: { provider: 'google' | 'outlook' | 'apple', payload?: Record<string, unknown> }) => {
+      return apiRequest('/api/contacts/import', { method: 'POST', body: { provider, ...(payload || {}) } });
+    },
+    onSuccess: (result: unknown, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/contacts'] });
+      const response = (result || {}) as { imported?: number; skipped?: number };
+      toast({
+        title: 'Contacts imported',
+        description: `${response.imported ?? 0} imported, ${response.skipped ?? 0} skipped from ${variables.provider}.`,
+      });
+      if (variables.provider === 'apple') {
+        setAppleVcard('');
+      }
+    },
+    onError: (error) => {
+      toast({
+        title: 'Import failed',
+        description: error instanceof Error ? error.message : 'Could not import contacts.',
+        variant: 'destructive',
+      });
+    },
+  });
+
+  const hideContactMutation = useMutation({
+    mutationFn: (contactId: string) => apiRequest(`/api/contacts/${contactId}/hide`, { method: 'POST' }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/contacts'] });
+      toast({
+        title: 'Contact hidden',
+        description: 'The contact is hidden in Wishlist Wizard only.',
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Hide failed',
+        description: error instanceof Error ? error.message : 'Unable to hide contact.',
+        variant: 'destructive',
+      });
+    },
+  });
+
+  const deleteContactMutation = useMutation({
+    mutationFn: (contactId: string) => apiRequest(`/api/contacts/${contactId}`, { method: 'DELETE' }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/contacts'] });
+      toast({
+        title: 'Contact removed',
+        description: 'The contact was deleted from Wishlist Wizard only.',
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Delete failed',
+        description: error instanceof Error ? error.message : 'Unable to delete contact.',
+        variant: 'destructive',
+      });
+    },
+  });
   
   // Handle calendar connection
   const handleCalendarConnected = () => {
@@ -143,6 +224,12 @@ export function CalendarSettings() {
       calendarId: calendar.id,
       settings: newSettings
     });
+  };
+
+  const connectedByProvider = {
+    google: connectedCalendars.find((calendar) => calendar.calendarType === 'google')?.id,
+    outlook: connectedCalendars.find((calendar) => calendar.calendarType === 'outlook')?.id,
+    apple: connectedCalendars.find((calendar) => calendar.calendarType === 'apple')?.id,
   };
   
   // Get icon for calendar type
@@ -256,6 +343,99 @@ export function CalendarSettings() {
           ))}
         </div>
       )}
+
+      <Separator />
+
+      <div className="space-y-4">
+        <div>
+          <h3 className="text-xl font-semibold">Contacts</h3>
+          <p className="text-sm text-gray-500 mt-1">
+            Import from Google, Microsoft, or Apple. Hide and delete actions affect Wishlist Wizard only and never change source provider data.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <Button
+            variant="outline"
+            disabled={importContactsMutation.isPending || !connectedByProvider.google}
+            onClick={() => importContactsMutation.mutate({ provider: 'google', payload: { connectionId: connectedByProvider.google } })}
+          >
+            <LuUserPlus className="h-4 w-4 mr-2" />
+            Import Google
+          </Button>
+          <Button
+            variant="outline"
+            disabled={importContactsMutation.isPending || !connectedByProvider.outlook}
+            onClick={() => importContactsMutation.mutate({ provider: 'outlook', payload: { connectionId: connectedByProvider.outlook } })}
+          >
+            <LuUserPlus className="h-4 w-4 mr-2" />
+            Import Outlook
+          </Button>
+          <Button
+            variant="outline"
+            disabled={importContactsMutation.isPending || !appleVcard.trim()}
+            onClick={() => importContactsMutation.mutate({ provider: 'apple', payload: { connectionId: appleConnectionId || connectedByProvider.apple, vcard: appleVcard } })}
+          >
+            <LuUpload className="h-4 w-4 mr-2" />
+            Import Apple vCard
+          </Button>
+        </div>
+
+        <div className="space-y-2">
+          <Input
+            placeholder="Apple connection ID (optional)"
+            value={appleConnectionId}
+            onChange={(event) => setAppleConnectionId(event.target.value)}
+          />
+          <Textarea
+            value={appleVcard}
+            onChange={(event) => setAppleVcard(event.target.value)}
+            placeholder="Paste Apple vCard content here (BEGIN:VCARD ... END:VCARD)"
+            rows={5}
+          />
+        </div>
+
+        {isLoadingContacts ? (
+          <div className="py-4 text-sm text-gray-500">Loading imported contacts...</div>
+        ) : contacts.length === 0 ? (
+          <div className="py-4 text-sm text-gray-500">No imported contacts yet.</div>
+        ) : (
+          <div className="space-y-2">
+            {contacts.map((contact) => (
+              <div key={contact.id} className="p-3 border rounded-md flex items-center justify-between gap-3">
+                <div>
+                  <div className="font-medium">{contact.name}</div>
+                  <div className="text-xs text-gray-500 flex flex-wrap gap-2">
+                    {contact.email && <span>{contact.email}</span>}
+                    {contact.phone && <span>{contact.phone}</span>}
+                    {contact.sourceProvider && <Badge variant="outline" className="capitalize">{contact.sourceProvider}</Badge>}
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={hideContactMutation.isPending}
+                    onClick={() => hideContactMutation.mutate(contact.id)}
+                  >
+                    <LuEyeOff className="h-4 w-4 mr-1" />
+                    Hide
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={deleteContactMutation.isPending}
+                    onClick={() => deleteContactMutation.mutate(contact.id)}
+                  >
+                    <LuTrash2 className="h-4 w-4 mr-1" />
+                    Delete
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
