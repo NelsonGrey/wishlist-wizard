@@ -5,13 +5,18 @@ import {
   Bell,
   Calendar,
   ChevronDown,
-  Home,
   LineChart,
   LogOut,
   Settings,
   Sparkles,
   User,
-  Menu
+  Menu,
+  LayoutDashboard,
+  Users,
+  Smartphone,
+  Camera,
+  Puzzle,
+  BarChart3
 } from "lucide-react";
 
 import {
@@ -66,11 +71,24 @@ export default function AppLayout({ children }: AppLayoutProps) {
   });
   const unreadCount = notificationData?.unreadCount ?? 0;
 
-  // Define navigation items for app portal
-  const navItems = [
-    { name: 'Recommendations', href: '/recommendations', icon: <Sparkles className="h-5 w-5" /> },
-    { name: 'Price Tracking', href: '/app/price-tracking', icon: <LineChart className="h-5 w-5" /> },
-    { name: 'Calendar', href: '/calendar', icon: <Calendar className="h-5 w-5" /> },
+  const isActivePath = (paths: string[]) => paths.some((path) => location === path || location.startsWith(`${path}/`));
+
+  const primaryNavItems = [
+    { name: 'Dashboard', href: '/dashboard', icon: <LayoutDashboard className="h-5 w-5" />, activePaths: ['/dashboard', '/wishlist'] },
+    { name: 'Recommendations', href: '/recommendations', icon: <Sparkles className="h-5 w-5" />, activePaths: ['/recommendations'] },
+    { name: 'Price Tracking', href: '/app/price-tracking', icon: <LineChart className="h-5 w-5" />, activePaths: ['/app/price-tracking'] },
+    { name: 'Calendar', href: '/calendar', icon: <Calendar className="h-5 w-5" />, activePaths: ['/calendar'] },
+    { name: 'Analytics', href: '/analytics', icon: <BarChart3 className="h-5 w-5" />, activePaths: ['/analytics'] },
+  ];
+
+  const featureNavItems = [
+    { name: 'Mobile App', href: '/dashboard', icon: <Smartphone className="h-4 w-4" />, description: 'Synced wishlists across devices' },
+    { name: 'AR Visualization', href: '/ar-visualization-demo', icon: <Camera className="h-4 w-4" />, description: 'Try items in your space' },
+    { name: 'Social Integration', href: '/dashboard', icon: <Users className="h-4 w-4" />, description: 'Collaborate on shared gifts' },
+    { name: 'Price Tracking', href: '/app/price-tracking', icon: <LineChart className="h-4 w-4" />, description: 'Track and alert on price drops' },
+    { name: 'Calendar Integration', href: '/calendar', icon: <Calendar className="h-4 w-4" />, description: 'Occasion reminders and planning' },
+    { name: 'Advanced User Profiles', href: '/user-profile', icon: <User className="h-4 w-4" />, description: 'Personalized gifting preferences' },
+    { name: 'AI Gift Recommendations', href: '/recommendations', icon: <Sparkles className="h-4 w-4" />, description: 'Smarter personalized suggestions' },
   ];
 
   return (
@@ -86,12 +104,12 @@ export default function AppLayout({ children }: AppLayoutProps) {
 
           {/* Navigation */}
           <nav className="hidden md:flex items-center space-x-1">
-            {navItems.map((item) => (
+            {primaryNavItems.map((item) => (
               <Link
                 key={item.name}
                 href={item.href}
                 className={`px-3 py-2 rounded-lg text-sm flex items-center font-medium transition-all ${
-                  location === item.href
+                  isActivePath(item.activePaths)
                     ? 'bg-gradient-to-r from-emerald-100 to-green-100 text-emerald-800 shadow-sm'
                     : 'text-gray-700 hover:bg-emerald-50 hover:text-emerald-800'
                 }`}
@@ -100,6 +118,29 @@ export default function AppLayout({ children }: AppLayoutProps) {
                 <span className="ml-2">{item.name}</span>
               </Link>
             ))}
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="px-3 py-2 rounded-lg text-sm flex items-center font-medium text-gray-700 hover:bg-emerald-50 hover:text-emerald-800">
+                  <Puzzle className="h-5 w-5" />
+                  <span className="ml-2">Features</span>
+                  <ChevronDown className="h-4 w-4 ml-2 opacity-70" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-80">
+                {featureNavItems.map((item) => (
+                  <DropdownMenuItem key={item.name} asChild>
+                    <Link href={item.href} className="flex w-full cursor-pointer items-start gap-3 py-2">
+                      <span className="mt-0.5 text-emerald-700">{item.icon}</span>
+                      <span>
+                        <span className="block font-medium text-slate-900">{item.name}</span>
+                        <span className="block text-xs text-slate-500">{item.description}</span>
+                      </span>
+                    </Link>
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
           </nav>
 
           {/* User menu */}
@@ -177,7 +218,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
               </SheetTrigger>
               <SheetContent side="right">
                 <nav className="flex flex-col gap-4 mt-8">
-                  {navItems.map((item) => (
+                  {primaryNavItems.map((item) => (
                     <Link
                       key={item.name}
                       href={item.href}
@@ -188,6 +229,23 @@ export default function AppLayout({ children }: AppLayoutProps) {
                       {item.name}
                     </Link>
                   ))}
+
+                  <div className="mt-4 border-t pt-4">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-3">Features</p>
+                    <div className="flex flex-col gap-3">
+                      {featureNavItems.map((item) => (
+                        <Link
+                          key={item.name}
+                          href={item.href}
+                          onClick={() => setIsMenuOpen(false)}
+                          className="flex items-start gap-2 text-sm font-medium hover:text-emerald-700"
+                        >
+                          <span className="mt-0.5">{item.icon}</span>
+                          <span>{item.name}</span>
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
                 </nav>
               </SheetContent>
             </Sheet>
