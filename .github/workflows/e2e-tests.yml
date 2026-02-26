@@ -9,6 +9,17 @@ on:
     # Run tests daily at 2 AM ET on dev environment
     - cron: '0 7 * * *'
   workflow_dispatch:
+    inputs:
+      environment:
+        description: "Target environment for E2E smoke"
+        required: false
+        default: auto
+        type: choice
+        options:
+          - auto
+          - development
+          - staging
+          - production
 
 jobs:
   smoke-test:
@@ -31,10 +42,57 @@ jobs:
       - name: Install Playwright browsers
         run: npx playwright install --with-deps
 
-      - name: Run smoke tests against dev environment
-        run: npm run test:e2e:smoke
+      - name: Resolve target environment
+        id: resolve_env
+        run: |
+          EVENT_NAME="${{ github.event_name }}"
+          REF_NAME="${{ github.ref_name }}"
+          INPUT_ENV="${{ github.event.inputs.environment || 'auto' }}"
+
+          TARGET_ENV=""
+          if [ "$INPUT_ENV" != "auto" ]; then
+            TARGET_ENV="$INPUT_ENV"
+          elif [ "$EVENT_NAME" = "schedule" ]; then
+            TARGET_ENV="development"
+          elif [ "$REF_NAME" = "main" ]; then
+            TARGET_ENV="staging"
+          else
+            TARGET_ENV="development"
+          fi
+
+          case "$TARGET_ENV" in
+            development)
+              TARGET_URL="https://wishlist-wizard-dev.web.app"
+              TARGET_COMMAND="npm run test:e2e:smoke"
+              ;;
+            staging)
+              TARGET_URL="https://wishlist-wizard-staging.web.app"
+              TARGET_COMMAND="npm run test:e2e:smoke"
+              ;;
+            production)
+              TARGET_URL="https://wishlist-wizard.web.app"
+              TARGET_COMMAND="npm run test:e2e:prod"
+              ;;
+            *)
+              echo "❌ Unsupported target environment: $TARGET_ENV"
+              exit 1
+              ;;
+          esac
+
+          echo "target_environment=$TARGET_ENV" >> "$GITHUB_OUTPUT"
+          echo "target_url=$TARGET_URL" >> "$GITHUB_OUTPUT"
+          echo "target_command=$TARGET_COMMAND" >> "$GITHUB_OUTPUT"
+
+          echo "### E2E Target Resolution" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Event: $EVENT_NAME" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Branch: $REF_NAME" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Environment: $TARGET_ENV" >> "$GITHUB_STEP_SUMMARY"
+          echo "- URL: $TARGET_URL" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Run smoke tests against resolved environment
+        run: ${{ steps.resolve_env.outputs.target_command }}
         env:
-          TEST_URL: https://wishlist-wizard-dev.web.app
+          TEST_URL: ${{ steps.resolve_env.outputs.target_url }}
           CI: true
 
       - name: Upload test report
@@ -119,7 +177,7 @@ jobs:
     name: Production Smoke Test (Daily)
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    if: github.event.schedule == '0 7 * * *' || github.event_name == 'workflow_dispatch'
+    if: github.event.schedule == '0 7 * * *' || (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'production')
 
     steps:
       - uses: actions/checkout@v4
