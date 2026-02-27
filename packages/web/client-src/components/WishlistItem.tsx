@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ExternalLink, Trash2, Heart, Bell, Pencil, Info } from "lucide-react";
+import { Check, Copy, ExternalLink, Trash2, Heart, Bell, Pencil, Info } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { WishlistItem as DbWishlistItem } from "@wishlist-wizard/shared";
@@ -59,6 +59,7 @@ export default function WishlistItem({
   const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
   const [isContributionDialogOpen, setIsContributionDialogOpen] = useState(false);
   const [isPriceAlertDialogOpen, setIsPriceAlertDialogOpen] = useState(false);
+  const [isLinkCopied, setIsLinkCopied] = useState(false);
 
   const affiliateConversion = (item.metadata as { affiliateConversion?: { affiliateProgram?: string; commission?: number } } | undefined)
     ?.affiliateConversion;
@@ -132,6 +133,42 @@ export default function WishlistItem({
     setIsPriceAlertDialogOpen(false);
   };
 
+  const handleCopyProductUrl = () => {
+    if (!item.productUrl || isLinkCopied) {
+      return;
+    }
+
+    const fallbackCopy = () => {
+      const textArea = document.createElement('textarea');
+      textArea.value = item.productUrl;
+      textArea.setAttribute('readonly', '');
+      textArea.style.position = 'absolute';
+      textArea.style.left = '-9999px';
+      document.body.appendChild(textArea);
+      textArea.select();
+      const successful = document.execCommand('copy');
+      document.body.removeChild(textArea);
+      if (!successful) {
+        throw new Error('Unable to copy to clipboard');
+      }
+    };
+
+    const copyPromise = navigator.clipboard?.writeText
+      ? navigator.clipboard.writeText(item.productUrl).catch(() => {
+          fallbackCopy();
+        })
+      : Promise.resolve().then(() => fallbackCopy());
+
+    copyPromise.then(() => {
+      setIsLinkCopied(true);
+      setTimeout(() => {
+        setIsLinkCopied(false);
+      }, 2000);
+    }).catch(() => {
+      setIsLinkCopied(false);
+    });
+  };
+
   return (
     <>
       <Card data-testid={`wishlist-item-card-${normalizedItemId}`}>
@@ -195,6 +232,16 @@ export default function WishlistItem({
                   >
                     <ExternalLink className="h-4 w-4" />
                   </a>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={handleCopyProductUrl}
+                    className="text-gray-500 hover:text-emerald-600 h-8 w-8"
+                    aria-label="Copy product link"
+                    data-testid={`wishlist-item-copy-link-${normalizedItemId}`}
+                  >
+                    {isLinkCopied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                  </Button>
                   {onEdit && (
                     <Button
                       variant="ghost"
@@ -393,6 +440,10 @@ export default function WishlistItem({
                 <ExternalLink className="h-4 w-4 mr-2" />
                 View Product
               </a>
+            </Button>
+            <Button variant="outline" onClick={handleCopyProductUrl} data-testid={`wishlist-item-copy-link-dialog-${normalizedItemId}`}>
+              {isLinkCopied ? <Check className="h-4 w-4 mr-2" /> : <Copy className="h-4 w-4 mr-2" />}
+              {isLinkCopied ? 'Copied!' : 'Copy Link'}
             </Button>
           </DialogFooter>
         </DialogContent>

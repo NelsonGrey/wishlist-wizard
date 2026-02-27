@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useRoute, useLocation } from "wouter";
-import { ArrowLeft, Check, Plus, Share2 } from "lucide-react";
+import { ArrowLeft, Check, ExternalLink, Plus, Share2 } from "lucide-react";
 import WishlistItem from "@/components/WishlistItem";
 import PrivacyControls from "@/components/privacy/PrivacyControls";
 import { getApiErrorMessage } from "@/lib/api-errors";
@@ -565,6 +565,15 @@ export default function WishlistDetail() {
     });
   };
 
+  const handleOpenSharedWishlist = () => {
+    if (!resolvedWishlist) {
+      return;
+    }
+
+    const shareUrl = `${window.location.origin}/shared/${resolvedWishlist.shareId}`;
+    window.open(shareUrl, '_blank', 'noopener,noreferrer');
+  };
+
   if (!wishlistId) {
     return (
       <div className="container mx-auto px-4 py-8 max-w-6xl">
@@ -645,7 +654,18 @@ export default function WishlistDetail() {
                 ) : (
                   <Share2 className="h-4 w-4" />
                 )}
-                Share
+                {isSharing ? 'Sharing...' : copied ? 'Copied!' : 'Share'}
+              </Button>
+
+              <Button
+                data-testid="wishlist-detail-open-shared"
+                variant="outline"
+                className="flex items-center gap-2"
+                onClick={handleOpenSharedWishlist}
+                disabled={!resolvedWishlist}
+              >
+                <ExternalLink className="h-4 w-4" />
+                Open Shared Page
               </Button>
               
               {resolvedWishlist && (

@@ -14,6 +14,8 @@ vi.mock('@/components/PriceAlertDialog', () => ({
 }));
 
 describe('WishlistItem Component', () => {
+  let writeTextMock: ReturnType<typeof vi.fn>;
+
   const mockItem: WishlistItemType = {
     id: 1,
     wishlistId: 1,
@@ -48,6 +50,13 @@ describe('WishlistItem Component', () => {
   
   beforeEach(() => {
     vi.clearAllMocks();
+    writeTextMock = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, 'clipboard', {
+      value: {
+        writeText: writeTextMock,
+      },
+      configurable: true,
+    });
   });
   
   it('should render item information correctly', () => {
@@ -223,6 +232,17 @@ describe('WishlistItem Component', () => {
     expect(screen.getByText('Detailed item information and actions.')).toBeInTheDocument();
     expect(screen.getByText('Product URL')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /view product/i })).toBeInTheDocument();
+  });
+
+  it('should render copy product link action', async () => {
+    render(
+      <WishlistItem
+        item={mockItem}
+        onDelete={mockOnDelete}
+      />
+    );
+
+    expect(screen.getByTestId('wishlist-item-copy-link-1')).toBeInTheDocument();
   });
 
   it('should render reserve and purchase actions when handlers are provided', () => {
