@@ -234,7 +234,7 @@ describe('WishlistItem Component', () => {
     expect(screen.getByRole('link', { name: /view product/i })).toBeInTheDocument();
   });
 
-  it('should render copy product link action', async () => {
+  it('should render copy product link action in overflow menu', async () => {
     render(
       <WishlistItem
         item={mockItem}
@@ -242,7 +242,10 @@ describe('WishlistItem Component', () => {
       />
     );
 
-    expect(screen.getByTestId('wishlist-item-copy-link-1')).toBeInTheDocument();
+    const user = userEvent.setup();
+    await user.click(screen.getByTestId('wishlist-item-more-1'));
+
+    expect(await screen.findByTestId('wishlist-item-copy-link-1')).toBeInTheDocument();
   });
 
   it('should render reserve and purchase actions when handlers are provided', () => {

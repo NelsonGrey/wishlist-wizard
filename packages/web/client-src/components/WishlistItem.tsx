@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Check, Copy, ExternalLink, Trash2, Heart, Bell, Pencil, Info } from "lucide-react";
+import { Check, Copy, ExternalLink, MoreHorizontal, Trash2, Heart, Bell, Pencil, Info } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { WishlistItem as DbWishlistItem } from "@wishlist-wizard/shared";
@@ -25,6 +25,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import ContributionDialog from "@/components/ContributionDialog";
 import PriceAlertDialog from "@/components/PriceAlertDialog";
 
@@ -193,26 +199,6 @@ export default function WishlistItem({
                     <Info className="h-3 w-3 mr-1" />
                     Details
                   </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleContribute}
-                    className="text-xs px-2 py-1 h-8"
-                    data-testid={`wishlist-item-contribute-${normalizedItemId}`}
-                  >
-                    <Heart className="h-3 w-3 mr-1" />
-                    Contribute
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handlePriceAlert}
-                    className="text-xs px-2 py-1 h-8"
-                    data-testid={`wishlist-item-alert-${normalizedItemId}`}
-                  >
-                    <Bell className="h-3 w-3 mr-1" />
-                    Alert
-                  </Button>
                   
                   <PrivacyControls
                     entityType="item"
@@ -232,16 +218,33 @@ export default function WishlistItem({
                   >
                     <ExternalLink className="h-4 w-4" />
                   </a>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={handleCopyProductUrl}
-                    className="text-gray-500 hover:text-emerald-600 h-8 w-8"
-                    aria-label="Copy product link"
-                    data-testid={`wishlist-item-copy-link-${normalizedItemId}`}
-                  >
-                    {isLinkCopied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                  </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-gray-500 hover:text-gray-700 h-8 w-8"
+                        aria-label="More item actions"
+                        data-testid={`wishlist-item-more-${normalizedItemId}`}
+                      >
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onSelect={handleContribute} data-testid={`wishlist-item-contribute-${normalizedItemId}`}>
+                        <Heart className="h-4 w-4 mr-2" />
+                        Contribute
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onSelect={handlePriceAlert} data-testid={`wishlist-item-alert-${normalizedItemId}`}>
+                        <Bell className="h-4 w-4 mr-2" />
+                        Alert
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onSelect={handleCopyProductUrl} data-testid={`wishlist-item-copy-link-${normalizedItemId}`}>
+                        {isLinkCopied ? <Check className="h-4 w-4 mr-2" /> : <Copy className="h-4 w-4 mr-2" />}
+                        {isLinkCopied ? 'Copied!' : 'Copy Link'}
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                   {onEdit && (
                     <Button
                       variant="ghost"
