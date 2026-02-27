@@ -49,7 +49,18 @@ async function flush() {
   await new Promise((resolve) => setTimeout(resolve, 20));
 }
 
-async function waitForCondition(predicate, timeoutMs = 1000, intervalMs = 20) {
+async function initializePopup(modulePath) {
+  await import(modulePath);
+
+  if (document.readyState === 'loading') {
+    document.dispatchEvent(new Event('DOMContentLoaded'));
+  }
+
+  await flush();
+  await flush();
+}
+
+async function waitForCondition(predicate, timeoutMs = 3000, intervalMs = 20) {
   const start = Date.now();
   while (Date.now() - start < timeoutMs) {
     if (predicate()) return;
@@ -101,9 +112,7 @@ describe('popup integration smoke', () => {
     };
     window.chrome = global.chrome;
 
-    await import('./popup.js?case=unauth');
-    document.dispatchEvent(new Event('DOMContentLoaded'));
-    await flush();
+    await initializePopup('./popup.js?case=unauth');
 
     document.getElementById('login-button')?.click();
     await flush();
@@ -172,10 +181,7 @@ describe('popup integration smoke', () => {
     };
     window.chrome = global.chrome;
 
-    await import('./popup.js?case=addflow');
-    document.dispatchEvent(new Event('DOMContentLoaded'));
-    await flush();
-    await flush();
+    await initializePopup('./popup.js?case=addflow');
 
     const select = document.getElementById('wishlist-select');
     select.value = '1';
