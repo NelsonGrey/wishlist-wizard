@@ -34,9 +34,27 @@ interface WishlistItemProps {
   item: WishlistItem;
   onEdit?: () => void;
   onDelete: () => void;
+  onReserve?: () => void;
+  onPurchase?: () => void;
+  reserveLabel?: string;
+  purchaseLabel?: string;
+  currentUserId?: string;
+  reserveDisabled?: boolean;
+  purchaseDisabled?: boolean;
 }
 
-export default function WishlistItem({ item, onEdit, onDelete }: WishlistItemProps) {
+export default function WishlistItem({
+  item,
+  onEdit,
+  onDelete,
+  onReserve,
+  onPurchase,
+  reserveLabel,
+  purchaseLabel,
+  currentUserId,
+  reserveDisabled,
+  purchaseDisabled,
+}: WishlistItemProps) {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
   const [isContributionDialogOpen, setIsContributionDialogOpen] = useState(false);
@@ -66,6 +84,31 @@ export default function WishlistItem({ item, onEdit, onDelete }: WishlistItemPro
     setIsDetailsDialogOpen(true);
   };
 
+  const isPurchased = Boolean(item.purchasedByUserId);
+  const isReserved = Boolean(item.reservedByUserId);
+  const normalizedItemId = String(item.id).replace(/[^a-zA-Z0-9_-]/g, '-');
+  const reservedByUserId = item.reservedByUserId == null ? null : String(item.reservedByUserId);
+  const isReservedByCurrentUser = Boolean(currentUserId && reservedByUserId === currentUserId);
+
+  const canReserve = !isPurchased && (!isReserved || isReservedByCurrentUser);
+  const canPurchase = !isPurchased && (!isReserved || isReservedByCurrentUser);
+
+  const actionStatusMessage = isPurchased
+    ? 'Already purchased'
+    : isReserved && !isReservedByCurrentUser
+      ? 'Reserved by another user'
+      : isReservedByCurrentUser
+        ? 'Reserved by you'
+        : null;
+
+  const reserveDisabledReason = !canReserve || Boolean(reserveDisabled)
+    ? actionStatusMessage || 'Action unavailable'
+    : undefined;
+
+  const purchaseDisabledReason = !canPurchase || Boolean(purchaseDisabled)
+    ? actionStatusMessage || 'Action unavailable'
+    : undefined;
+
   const handleAffiliateClick = () => {
     if (!item.productUrl || !affiliateConversion) return;
 
@@ -91,7 +134,7 @@ export default function WishlistItem({ item, onEdit, onDelete }: WishlistItemPro
 
   return (
     <>
-      <Card>
+      <Card data-testid={`wishlist-item-card-${normalizedItemId}`}>
         <CardContent className="p-4">
           <div className="flex space-x-4">
             <img 
@@ -108,6 +151,7 @@ export default function WishlistItem({ item, onEdit, onDelete }: WishlistItemPro
                     size="sm"
                     onClick={handleViewDetails}
                     className="text-xs px-2 py-1 h-8"
+                    data-testid={`wishlist-item-details-${normalizedItemId}`}
                   >
                     <Info className="h-3 w-3 mr-1" />
                     Details
@@ -117,6 +161,7 @@ export default function WishlistItem({ item, onEdit, onDelete }: WishlistItemPro
                     size="sm"
                     onClick={handleContribute}
                     className="text-xs px-2 py-1 h-8"
+                    data-testid={`wishlist-item-contribute-${normalizedItemId}`}
                   >
                     <Heart className="h-3 w-3 mr-1" />
                     Contribute
@@ -126,6 +171,7 @@ export default function WishlistItem({ item, onEdit, onDelete }: WishlistItemPro
                     size="sm"
                     onClick={handlePriceAlert}
                     className="text-xs px-2 py-1 h-8"
+                    data-testid={`wishlist-item-alert-${normalizedItemId}`}
                   >
                     <Bell className="h-3 w-3 mr-1" />
                     Alert
@@ -145,6 +191,7 @@ export default function WishlistItem({ item, onEdit, onDelete }: WishlistItemPro
                     title={`View ${item.title} on ${item.store || 'store'}`}
                     className="text-gray-500 hover:text-primary p-1"
                     onClick={handleAffiliateClick}
+                    data-testid={`wishlist-item-view-product-${normalizedItemId}`}
                   >
                     <ExternalLink className="h-4 w-4" />
                   </a>
@@ -155,6 +202,7 @@ export default function WishlistItem({ item, onEdit, onDelete }: WishlistItemPro
                       onClick={onEdit}
                       className="text-gray-500 hover:text-blue-600 h-8 w-8"
                       aria-label="Edit item"
+                      data-testid={`wishlist-item-edit-${normalizedItemId}`}
                     >
                       <Pencil className="h-4 w-4" />
                     </Button>
@@ -165,6 +213,7 @@ export default function WishlistItem({ item, onEdit, onDelete }: WishlistItemPro
                     onClick={handleDelete}
                     className="text-gray-500 hover:text-red-500 h-8 w-8"
                     aria-label="Delete item"
+                    data-testid={`wishlist-item-delete-${normalizedItemId}`}
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
@@ -174,9 +223,9 @@ export default function WishlistItem({ item, onEdit, onDelete }: WishlistItemPro
                 <span className="text-sm font-semibold text-gray-900">{item.price}</span>
                 <span className="text-xs text-gray-500 ml-1">{item.store}</span>
                 {item.purchasedByUserId ? (
-                  <Badge variant="secondary" className="ml-2">Purchased</Badge>
+                  <Badge variant="secondary" className="ml-2" data-testid={`wishlist-item-status-purchased-${normalizedItemId}`}>Purchased</Badge>
                 ) : item.reservedByUserId ? (
-                  <Badge variant="outline" className="ml-2">Reserved</Badge>
+                  <Badge variant="outline" className="ml-2" data-testid={`wishlist-item-status-reserved-${normalizedItemId}`}>Reserved</Badge>
                 ) : null}
               </div>
               {affiliateConversion && (
@@ -187,13 +236,45 @@ export default function WishlistItem({ item, onEdit, onDelete }: WishlistItemPro
               {item.note && (
                 <p className="text-sm text-gray-500 mt-2">{item.note}</p>
               )}
+
+              {(onReserve || onPurchase) && (
+                <div className="flex flex-wrap gap-2 mt-3">
+                  {onReserve && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={onReserve}
+                      disabled={!canReserve || Boolean(reserveDisabled)}
+                      title={reserveDisabledReason}
+                      data-testid={`wishlist-item-reserve-${normalizedItemId}`}
+                    >
+                      {reserveLabel || 'Reserve'}
+                    </Button>
+                  )}
+                  {onPurchase && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={onPurchase}
+                      disabled={!canPurchase || Boolean(purchaseDisabled)}
+                      title={purchaseDisabledReason}
+                      data-testid={`wishlist-item-purchase-${normalizedItemId}`}
+                    >
+                      {purchaseLabel || 'Mark Purchased'}
+                    </Button>
+                  )}
+                </div>
+              )}
+              {actionStatusMessage && (onReserve || onPurchase) && (
+                <p className="text-xs text-gray-500 mt-2">{actionStatusMessage}</p>
+              )}
             </div>
           </div>
         </CardContent>
       </Card>
 
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <AlertDialogContent>
+        <AlertDialogContent data-testid={`wishlist-item-delete-dialog-${normalizedItemId}`}>
           <AlertDialogHeader>
             <AlertDialogTitle>Remove Item</AlertDialogTitle>
             <AlertDialogDescription>
@@ -201,8 +282,8 @@ export default function WishlistItem({ item, onEdit, onDelete }: WishlistItemPro
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDelete} className="bg-red-500 hover:bg-red-600">
+            <AlertDialogCancel data-testid={`wishlist-item-delete-cancel-${normalizedItemId}`}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-red-500 hover:bg-red-600" data-testid={`wishlist-item-delete-confirm-${normalizedItemId}`}>
               Remove
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -281,6 +362,32 @@ export default function WishlistItem({ item, onEdit, onDelete }: WishlistItemPro
               <Bell className="h-4 w-4 mr-2" />
               Alert
             </Button>
+            {onReserve && (
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setIsDetailsDialogOpen(false);
+                  onReserve();
+                }}
+                disabled={!canReserve || Boolean(reserveDisabled)}
+                title={reserveDisabledReason}
+              >
+                {reserveLabel || 'Reserve'}
+              </Button>
+            )}
+            {onPurchase && (
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setIsDetailsDialogOpen(false);
+                  onPurchase();
+                }}
+                disabled={!canPurchase || Boolean(purchaseDisabled)}
+                title={purchaseDisabledReason}
+              >
+                {purchaseLabel || 'Mark Purchased'}
+              </Button>
+            )}
             <Button asChild>
               <a href={item.productUrl} target="_blank" rel="noopener noreferrer" onClick={handleAffiliateClick}>
                 <ExternalLink className="h-4 w-4 mr-2" />

@@ -1,10 +1,7 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLocation } from 'wouter';
-
-interface FirebaseAuthError extends Error {
-  code: string;
-}
+import { getFirebaseAuthErrorMessage } from '@/lib/firebase-auth-errors';
 
 export const SignupForm: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -13,52 +10,60 @@ export const SignupForm: React.FC = () => {
   const [displayName, setDisplayName] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const isSubmittingRef = useRef(false);
   const { signUp } = useAuth();
   const [, setLocation] = useLocation();
 
+  const isValidEmail = (value: string): boolean => {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmittingRef.current) {
+      return;
+    }
+
+    isSubmittingRef.current = true;
     setError('');
+    const normalizedEmail = email.trim();
 
     // Validate passwords match
     if (password !== confirmPassword) {
-      setError('Passwords do not match');
+      setError('Passwords do not match.');
+      isSubmittingRef.current = false;
       return;
     }
 
     // Basic password strength validation
     if (password.length < 6) {
-      setError('Password must be at least 6 characters long');
+      setError('Password must be at least 6 characters long.');
+      isSubmittingRef.current = false;
+      return;
+    }
+
+    if (!normalizedEmail) {
+      setError('Email is required.');
+      isSubmittingRef.current = false;
+      return;
+    }
+
+    if (!isValidEmail(normalizedEmail)) {
+      setError('Please enter a valid email address.');
+      isSubmittingRef.current = false;
       return;
     }
 
     setLoading(true);
 
     try {
-      await signUp(email, password, displayName.trim() || undefined);
+      await signUp(normalizedEmail, password, displayName.trim() || undefined);
       // ProtectedRoute will handle redirect after auth state change
     } catch (err: unknown) {
-      const error = err as FirebaseAuthError;
-      setError(getErrorMessage(error));
+      setError(getFirebaseAuthErrorMessage(err, 'signup'));
     } finally {
+      isSubmittingRef.current = false;
       setLoading(false);
-    }
-  };
-
-  const getErrorMessage = (error: FirebaseAuthError): string => {
-    switch (error.code) {
-      case 'app/firebase-not-configured':
-        return 'Firebase is not configured for this environment. Ask your admin to set VITE_FIREBASE_* env vars.';
-      case 'auth/email-already-in-use':
-        return 'An account with this email already exists.';
-      case 'auth/invalid-email':
-        return 'Invalid email address.';
-      case 'auth/weak-password':
-        return 'Password is too weak. Please choose a stronger password.';
-      case 'auth/operation-not-allowed':
-        return 'Email/password accounts are not enabled.';
-      default:
-        return 'Failed to create account. Please try again.';
     }
   };
 
@@ -130,7 +135,7 @@ export const SignupForm: React.FC = () => {
         </div>
 
         {error && (
-          <div className="text-red-600 text-sm mt-2 p-2 bg-red-50 border border-red-200 rounded">
+          <div role="alert" className="text-red-600 text-sm mt-2 p-2 bg-red-50 border border-red-200 rounded">
             {error}
           </div>
         )}

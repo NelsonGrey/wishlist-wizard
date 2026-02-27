@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import AffiliateIndicator from "@/components/AffiliateIndicator";
+import { getApiErrorMessage } from "@/lib/api-errors";
 import { apiRequest } from "@/lib/queryClient";
 
 type Wishlist = {
@@ -43,16 +44,19 @@ export default function SharedWishlist() {
   const [match, params] = useRoute('/shared/:shareId');
   const [, setLocation] = useLocation();
   
-  const shareId = match ? params.shareId : '';
+  const shareId = match ? String(params.shareId || '').trim() : '';
+  const isShareIdValid = /^[A-Za-z0-9_-]+$/.test(shareId);
 
   // Fetch shared wishlist
   const { 
     data, 
     isLoading, 
-    error 
+    error,
+    isError,
+    refetch,
   } = useQuery<SharedWishlistResponse>({
     queryKey: [`/api/shared/${shareId}`],
-    enabled: !!shareId,
+    enabled: Boolean(shareId && isShareIdValid),
   });
 
   // Check access to the wishlist
@@ -111,12 +115,34 @@ export default function SharedWishlist() {
     );
   }
 
+  if (!isShareIdValid) {
+    return (
+      <div className="flex flex-col">
+        <main className="flex-1">
+          <div className="container mx-auto px-4 py-8 max-w-6xl">
+            <Card>
+              <CardContent className="p-8 text-center">
+                <h2 className="text-2xl font-semibold mb-2">Invalid share link</h2>
+                <p className="text-gray-500 mb-6">
+                  This shared wishlist link appears malformed. Please verify the link and try again.
+                </p>
+                <Button onClick={() => setLocation('/')}>
+                  Back to Home
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col">
       <main className="flex-1">
         <div className="container mx-auto px-4 py-8 max-w-6xl">
           <div className="mb-8 bg-white p-6 rounded-lg shadow-sm border">
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-emerald-800 to-green-800 bg-clip-text text-transparent mb-2">
+            <h1 data-testid="shared-wishlist-title" className="text-4xl font-bold bg-gradient-to-r from-emerald-800 to-green-800 bg-clip-text text-transparent mb-2">
               {isLoading ? (
                 <Skeleton className="h-8 w-64" />
               ) : canViewWishlist ? (
@@ -167,16 +193,25 @@ export default function SharedWishlist() {
                 </div>
               </AlertDescription>
             </Alert>
-          ) : error ? (
+          ) : isError ? (
             <Card>
               <CardContent className="p-8 text-center">
-                <p className="text-red-500 mb-4">Failed to load shared wishlist</p>
-                <Button 
-                  variant="outline"
-                  onClick={() => setLocation('/')}
-                >
-                  Go to Home
-                </Button>
+                <p className="text-red-500 mb-2">Failed to load shared wishlist</p>
+                <p className="text-sm text-gray-500 mb-4">{getApiErrorMessage(error, 'Please try again.')}</p>
+                <div className="flex items-center justify-center gap-2">
+                  <Button 
+                    variant="outline"
+                    onClick={() => refetch()}
+                  >
+                    Retry
+                  </Button>
+                  <Button 
+                    variant="outline"
+                    onClick={() => setLocation('/')}
+                  >
+                    Go to Home
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           ) : accessibleItems && accessibleItems.length > 0 ? (

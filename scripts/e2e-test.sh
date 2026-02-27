@@ -1,10 +1,11 @@
 #!/bin/bash
 
 # E2E Testing Quick Start Script
-# Usage: ./scripts/e2e-test.sh [smoke|tier1|tier2|all|ui|debug] [environment]
+# Usage: ./scripts/e2e-test.sh [smoke|tier1|tier1-chromium|tier2|all|ui|debug] [environment]
 # Examples:
 #   ./scripts/e2e-test.sh smoke              # Run smoke test on dev
 #   ./scripts/e2e-test.sh tier1 staging      # Run tier 1 on staging
+#   ./scripts/e2e-test.sh tier1-chromium     # Run fast tier 1 on Chromium only
 #   ./scripts/e2e-test.sh ui                 # Open interactive test runner
 #   ./scripts/e2e-test.sh all staging        # Run all tests on staging
 
@@ -91,6 +92,9 @@ case $TEST_TYPE in
   tier1)
     TEST_URL="$TEST_URL" npm run test:e2e:tier1
     ;;
+  tier1-chromium)
+    TEST_URL="$TEST_URL" npm run test:e2e:tier1:chromium
+    ;;
   tier2)
     TEST_URL="$TEST_URL" npm run test:e2e:tier2
     ;;
@@ -107,7 +111,7 @@ case $TEST_TYPE in
     ;;
   *)
     echo -e "${RED}Unknown test type: $TEST_TYPE${NC}"
-    echo "Valid options: smoke, tier1, tier2, all, ui, debug"
+    echo "Valid options: smoke, tier1, tier1-chromium, tier2, all, ui, debug"
     exit 1
     ;;
 esac

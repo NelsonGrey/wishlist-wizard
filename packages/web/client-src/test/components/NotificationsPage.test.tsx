@@ -65,7 +65,10 @@ describe('Notifications Page', () => {
         ],
         unreadCount: 1
       },
-      isLoading: false
+      isLoading: false,
+      isError: false,
+      error: null,
+      refetch: vi.fn(),
     });
     
     // Mock useMutation
@@ -113,14 +116,17 @@ describe('Notifications Page', () => {
         ],
         unreadCount: 0
       },
-      isLoading: false
+      isLoading: false,
+      isError: false,
+      error: null,
+      refetch: vi.fn(),
     });
     
     // Act
     render(<Notifications />, { pathname: '/notifications' });
     
-    // Assert - Button should still show since there are notifications
-    expect(screen.getByText('Mark all as read')).toBeInTheDocument();
+    // Assert - Button should be hidden when there are no unread notifications
+    expect(screen.queryByText('Mark all as read')).not.toBeInTheDocument();
   });
 
   it('should show formatted date for each notification', () => {
@@ -160,7 +166,10 @@ describe('Notifications Page', () => {
         ],
         unreadCount: 1
       },
-      isLoading: false
+      isLoading: false,
+      isError: false,
+      error: null,
+      refetch: vi.fn(),
     });
     
     // Act
@@ -188,7 +197,10 @@ describe('Notifications Page', () => {
         ],
         unreadCount: 1
       },
-      isLoading: false
+      isLoading: false,
+      isError: false,
+      error: null,
+      refetch: vi.fn(),
     });
     
     const markAsReadMutation = { mutate: vi.fn() };
@@ -210,7 +222,10 @@ describe('Notifications Page', () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (useQuery as any).mockReturnValue({
       data: undefined,
-      isLoading: true
+      isLoading: true,
+      isError: false,
+      error: null,
+      refetch: vi.fn(),
     });
     
     // Act
@@ -229,7 +244,10 @@ describe('Notifications Page', () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (useQuery as any).mockReturnValue({
       data: { notifications: [], unreadCount: 0 },
-      isLoading: false
+      isLoading: false,
+      isError: false,
+      error: null,
+      refetch: vi.fn(),
     });
     
     // Act
@@ -258,6 +276,9 @@ describe('Notifications Page', () => {
         unreadCount: 1,
       },
       isLoading: false,
+      isError: false,
+      error: null,
+      refetch: vi.fn(),
     });
 
     // Act
@@ -266,5 +287,27 @@ describe('Notifications Page', () => {
     // Assert
     expect(screen.getByText('Corrupt Notification')).toBeInTheDocument();
     expect(screen.getByText('Unknown time')).toBeInTheDocument();
+  });
+
+  it('should show query error state and retry action', async () => {
+    const refetch = vi.fn();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (useQuery as any).mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      isError: true,
+      error: new Error('Network down'),
+      refetch,
+    });
+
+    render(<Notifications />, { pathname: '/notifications' });
+
+    expect(screen.getByText('Unable to load notifications')).toBeInTheDocument();
+    expect(screen.getByText('Network down')).toBeInTheDocument();
+
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('button', { name: 'Retry' }));
+
+    expect(refetch).toHaveBeenCalledTimes(1);
   });
 });

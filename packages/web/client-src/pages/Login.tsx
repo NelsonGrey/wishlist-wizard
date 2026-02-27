@@ -5,6 +5,7 @@ import { z } from "zod";
 import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
+import { getFirebaseAuthErrorMessage } from "@/lib/firebase-auth-errors";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,7 +14,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 
 // Define form validation schema - Updated for Firebase Auth (email instead of username)
 const loginSchema = z.object({
-  email: z.string().email("Please enter a valid email address"),
+  email: z.string().trim().email("Please enter a valid email address"),
   password: z.string().min(6, "Password must be at least 6 characters"),
 });
 
@@ -36,9 +37,13 @@ export default function Login() {
 
   // Handle form submission with Firebase Auth
   const onSubmit = async (data: LoginFormValues) => {
+    if (isLoading) {
+      return;
+    }
+
     setIsLoading(true);
     try {
-      await signIn(data.email, data.password);
+      await signIn(data.email.trim(), data.password);
 
       const storedRedirect = sessionStorage.getItem('redirectAfterAuth');
       const redirectTo = storedRedirect || '/dashboard';
@@ -52,29 +57,10 @@ export default function Login() {
       setLocation(redirectTo);
     } catch (error: unknown) {
       console.error("Login error:", error);
-      
-      let errorMessage = "Failed to sign in";
-      const err = error as { code?: string; message?: string };
-      switch (err.code) {
-        case 'auth/user-not-found':
-          errorMessage = "No account found with this email address";
-          break;
-        case 'auth/wrong-password':
-          errorMessage = "Incorrect password";
-          break;
-        case 'auth/invalid-email':
-          errorMessage = "Invalid email address";
-          break;
-        case 'auth/too-many-requests':
-          errorMessage = "Too many failed attempts. Please try again later";
-          break;
-        default:
-          errorMessage = err.message || "Failed to sign in";
-      }
-      
+
       toast({
         title: "Login failed",
-        description: errorMessage,
+        description: getFirebaseAuthErrorMessage(error, "login"),
         variant: "destructive",
       });
     } finally {
@@ -101,7 +87,7 @@ export default function Login() {
                   <FormItem>
                     <FormLabel>Email</FormLabel>
                     <FormControl>
-                      <Input type="email" placeholder="Enter your email" {...field} />
+                      <Input data-testid="login-email-input" type="email" placeholder="Enter your email" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -115,14 +101,14 @@ export default function Login() {
                   <FormItem>
                     <FormLabel>Password</FormLabel>
                     <FormControl>
-                      <Input type="password" placeholder="••••••••" {...field} />
+                      <Input data-testid="login-password-input" type="password" placeholder="••••••••" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
               
-              <Button type="submit" className="w-full" disabled={isLoading}>
+              <Button data-testid="login-submit" type="submit" className="w-full" disabled={isLoading}>
                 {isLoading ? "Signing in..." : "Sign in"}
               </Button>
             </form>

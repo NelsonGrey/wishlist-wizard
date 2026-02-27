@@ -308,8 +308,8 @@ const UserProfile = () => {
         <title>Profile | Wishlist Wizard</title>
         <meta name="description" content="Manage your profile, preferences, and account settings." />
       </Helmet>
-      <div className="container mx-auto px-4 py-8 max-w-6xl">
-        <h1 className="text-4xl font-bold bg-gradient-to-r from-emerald-800 to-green-800 bg-clip-text text-transparent mb-8">Profile & Settings</h1>
+      <div data-testid="user-profile-page" className="container mx-auto px-4 py-8 max-w-6xl">
+        <h1 data-testid="user-profile-title" className="text-4xl font-bold bg-gradient-to-r from-emerald-800 to-green-800 bg-clip-text text-transparent mb-8">Profile & Settings</h1>
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Sidebar */}
         <div className="lg:col-span-1">
@@ -416,6 +416,7 @@ const UserProfile = () => {
                   <CardDescription>Manage your personal information</CardDescription>
                 </div>
                 <Button 
+                  data-testid="user-profile-edit-toggle"
                   variant={editMode ? "default" : "outline"} 
                   onClick={() => setEditMode(!editMode)}
                   disabled={savingProfile}
@@ -459,6 +460,7 @@ const UserProfile = () => {
                           <div className="space-y-2">
                             <Label htmlFor="firstName">First Name</Label>
                             <Input 
+                              data-testid="user-profile-first-name-input"
                               id="firstName" 
                               value={editedProfile.firstName}
                               onChange={e => setEditedProfile({...editedProfile, firstName: e.target.value})}
@@ -534,7 +536,7 @@ const UserProfile = () => {
                         </div>
                         
                         <div className="pt-4 flex gap-2">
-                          <Button onClick={handleSaveProfile} disabled={savingProfile}>
+                          <Button data-testid="user-profile-save" onClick={handleSaveProfile} disabled={savingProfile}>
                             {savingProfile && <Loader2 size={16} className="mr-2 animate-spin" />}
                             Save Changes
                           </Button>

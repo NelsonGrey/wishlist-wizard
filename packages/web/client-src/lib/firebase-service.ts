@@ -16,6 +16,7 @@ import {
 } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 import { firebaseApp, firebaseAuth, firebaseFirestore } from './firebase';
+import { apiRequest } from './queryClient';
 
 function getDb() {
   if (firebaseFirestore) {
@@ -320,8 +321,10 @@ export class FirebaseWishlistService {
    * Reserve an item
    */
   static async reserveItem(itemId: string, userId: string): Promise<void> {
-    await this.updateWishlistItem(itemId, {
-      reservedByUserId: userId
+    await apiRequest(`/api/items/${itemId}/reserve`, {
+      method: 'POST',
+      body: { userId },
+      useFirebaseFunctions: true,
     });
   }
   
@@ -329,9 +332,10 @@ export class FirebaseWishlistService {
    * Mark an item as purchased
    */
   static async markItemPurchased(itemId: string, userId: string): Promise<void> {
-    await this.updateWishlistItem(itemId, {
-      purchasedByUserId: userId,
-      reservedByUserId: undefined // Clear reservation when purchased
+    await apiRequest(`/api/items/${itemId}/purchase`, {
+      method: 'POST',
+      body: { userId },
+      useFirebaseFunctions: true,
     });
   }
 }

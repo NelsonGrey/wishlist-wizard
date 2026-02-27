@@ -77,6 +77,8 @@ export {
   deleteWishlist,
   getWishlistItems,
   addWishlistItem,
+  reserveWishlistItem,
+  purchaseWishlistItem,
   updateWishlistItem,
   deleteWishlistItem
 } from './api/wishlists';

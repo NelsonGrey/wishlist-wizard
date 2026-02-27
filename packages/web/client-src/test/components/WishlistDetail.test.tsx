@@ -5,6 +5,12 @@ import { render } from '../utils';
 import WishlistDetail from '@/pages/WishlistDetail';
 import { apiRequest } from '@/lib/queryClient';
 
+vi.mock('@/contexts/AuthContext', () => ({
+  useAuth: () => ({
+    user: { uid: 'test-user-1' },
+  }),
+}));
+
 vi.mock('wouter', async () => {
   const actual = await vi.importActual<typeof import('wouter')>('wouter');
   return {
@@ -36,6 +42,39 @@ describe('WishlistDetail Item CRUD', () => {
 
     await waitFor(() => {
       expect(apiRequest).toHaveBeenCalledWith('/api/items', expect.objectContaining({ method: 'POST' }));
+    });
+  });
+
+  it('trims item fields before creating an item', async () => {
+    render(<WishlistDetail />);
+    const user = userEvent.setup();
+
+    await user.click(screen.getByRole('button', { name: /add item/i }));
+
+    await user.type(screen.getByLabelText('Title'), '  Trimmed Title  ');
+    await user.type(screen.getByLabelText('Price'), '  $20.00  ');
+    await user.type(screen.getByLabelText('Store'), '  Demo Store  ');
+    await user.type(screen.getByLabelText('Product URL'), '  https://example.com/trimmed-item  ');
+    await user.type(screen.getByLabelText('Image URL'), '  https://example.com/trimmed-item.png  ');
+    await user.type(screen.getByLabelText('Note (optional)'), '  keep note  ');
+
+    await user.click(screen.getByRole('button', { name: 'Add Item' }));
+
+    await waitFor(() => {
+      expect(apiRequest).toHaveBeenCalledWith(
+        '/api/items',
+        expect.objectContaining({
+          method: 'POST',
+          body: expect.objectContaining({
+            title: 'Trimmed Title',
+            price: '$20.00',
+            store: 'Demo Store',
+            productUrl: 'https://example.com/trimmed-item',
+            imageUrl: 'https://example.com/trimmed-item.png',
+            note: 'keep note',
+          }),
+        })
+      );
     });
   });
 

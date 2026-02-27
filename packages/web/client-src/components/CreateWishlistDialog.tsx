@@ -29,7 +29,7 @@ import {
 } from "@/components/ui/select";
 
 const formSchema = z.object({
-  name: z.string().min(1, "Wishlist name is required").max(50, "Name cannot exceed 50 characters"),
+  name: z.string().trim().min(1, "Wishlist name is required").max(50, "Name cannot exceed 50 characters"),
   occasion: z.string().max(50, "Event cannot exceed 50 characters").optional(),
   occasionDate: z.string().optional(),
   isRecurring: z.boolean().default(false),
@@ -74,6 +74,10 @@ export default function CreateWishlistDialog({
 
   // Reset form when dialog closes
   const handleDialogChange = (open: boolean) => {
+    if (!open && isPending) {
+      return;
+    }
+
     if (!open) {
       form.reset();
       onClose();
@@ -98,7 +102,7 @@ export default function CreateWishlistDialog({
                 <FormItem>
                   <FormLabel>Wishlist Name</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g., Birthday Wishlist" {...field} />
+                    <Input data-testid="create-wishlist-name-input" placeholder="e.g., Birthday Wishlist" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -209,14 +213,16 @@ export default function CreateWishlistDialog({
             </div>
             <DialogFooter className="mt-4">
               <Button 
+                data-testid="create-wishlist-cancel"
                 type="button" 
                 variant="outline" 
-                onClick={onClose}
+                onClick={() => handleDialogChange(false)}
                 disabled={isPending}
               >
                 Cancel
               </Button>
               <Button 
+                data-testid="create-wishlist-submit"
                 type="submit" 
                 disabled={isPending}
               >
