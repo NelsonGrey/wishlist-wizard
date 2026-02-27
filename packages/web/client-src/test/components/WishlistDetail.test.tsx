@@ -25,6 +25,22 @@ describe('WishlistDetail Item CRUD', () => {
     vi.clearAllMocks();
   });
 
+  it('opens shared wishlist page from header action', async () => {
+    const openSpy = vi.spyOn(window, 'open').mockImplementation(() => null);
+    render(<WishlistDetail />);
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByTestId('wishlist-detail-open-shared'));
+
+    expect(openSpy).toHaveBeenCalledWith(
+      `${window.location.origin}/shared/test-share-id`,
+      '_blank',
+      'noopener,noreferrer'
+    );
+
+    openSpy.mockRestore();
+  });
+
   it('creates an item from Add Item dialog', async () => {
     render(<WishlistDetail />);
     const user = userEvent.setup();
