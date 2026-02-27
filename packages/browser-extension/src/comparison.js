@@ -124,10 +124,33 @@ class PriceComparison {
   }
 
   async resolveBaseUrl() {
-    // Using dev environment to match Firebase config (wishlist-wizard-dev)
-    // For localhost development, change to: 'http://localhost:3001'
-    // For production, change to: 'https://wishlist-wizard.web.app'
-    return 'https://wishlist-wizard-dev.web.app';
+    const envConfig = {
+      development: 'https://wishlist-wizard-dev.web.app',
+      staging: 'https://wishlist-wizard-staging.web.app',
+      production: 'https://wishlist-wizard.web.app',
+      local: 'http://localhost:3001'
+    };
+
+    const normalize = (value) => {
+      const env = String(value || 'development').toLowerCase();
+      if (env === 'dev') return 'development';
+      if (env === 'stage') return 'staging';
+      if (env === 'prod') return 'production';
+      if (env === 'localhost') return 'local';
+      return Object.prototype.hasOwnProperty.call(envConfig, env) ? env : 'development';
+    };
+
+    return new Promise((resolve) => {
+      if (!chrome?.storage?.local?.get) {
+        resolve(envConfig.development);
+        return;
+      }
+
+      chrome.storage.local.get(['wwEnvironment', 'wwBaseUrlOverride'], (result) => {
+        const env = normalize(result?.wwEnvironment);
+        resolve(result?.wwBaseUrlOverride || envConfig[env]);
+      });
+    });
   }
 
   /**
