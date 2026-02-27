@@ -5,7 +5,7 @@ project:
 
 targets:
   ios:
-    enabled: true
+    enabled: false
     schemes:
       - name: "Runner"
         path: "packages/mobile/ios"
