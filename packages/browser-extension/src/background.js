@@ -8,13 +8,102 @@ const firebaseConfig = {
   projectId: "wishlist-wizard-dev"
 };
 
+const EXTENSION_ENVIRONMENTS = {
+  development: {
+    baseUrl: 'https://wishlist-wizard-dev.web.app',
+    cloudFunctionsBaseUrl: 'https://us-central1-wishlist-wizard-dev.cloudfunctions.net'
+  },
+  staging: {
+    baseUrl: 'https://wishlist-wizard-staging.web.app',
+    cloudFunctionsBaseUrl: 'https://us-central1-wishlist-wizard-staging.cloudfunctions.net'
+  },
+  production: {
+    baseUrl: 'https://wishlist-wizard.web.app',
+    cloudFunctionsBaseUrl: 'https://us-central1-wishlist-wizard-prod.cloudfunctions.net'
+  },
+  local: {
+    baseUrl: 'http://localhost:3001',
+    cloudFunctionsBaseUrl: 'http://localhost:5001/wishlist-wizard-dev/us-central1'
+  }
+};
+
+function normalizeExtensionEnvironment(value) {
+  const env = String(value || 'development').toLowerCase();
+
+  if (env === 'dev') return 'development';
+  if (env === 'stage') return 'staging';
+  if (env === 'prod') return 'production';
+  if (env === 'localhost') return 'local';
+
+  return Object.prototype.hasOwnProperty.call(EXTENSION_ENVIRONMENTS, env)
+    ? env
+    : 'development';
+}
+
 // Base URL for the Wishlist Wizard website API
 // Note: Service workers don't have access to window.location, so we hardcode the URLs
 // Using dev environment to match Firebase config (wishlist-wizard-dev)
-let baseUrl = 'https://wishlist-wizard-dev.web.app';
+let baseUrl = EXTENSION_ENVIRONMENTS.development.baseUrl;
 
 // Cloud Functions base URL - used for extension API calls
-let cloudFunctionsBaseUrl = 'https://us-central1-wishlist-wizard-dev.cloudfunctions.net';
+let cloudFunctionsBaseUrl = EXTENSION_ENVIRONMENTS.development.cloudFunctionsBaseUrl;
+
+let extensionConfigPromise = null;
+
+async function loadExtensionEnvironmentConfig() {
+  const defaultConfig = EXTENSION_ENVIRONMENTS.development;
+
+  return new Promise((resolve) => {
+    if (!chrome?.storage?.local?.get) {
+      resolve(defaultConfig);
+      return;
+    }
+
+    chrome.storage.local.get(
+      ['wwEnvironment', 'wwBaseUrlOverride', 'wwCloudFunctionsBaseUrlOverride'],
+      (result) => {
+        const env = normalizeExtensionEnvironment(result?.wwEnvironment);
+        const envConfig = EXTENSION_ENVIRONMENTS[env] || defaultConfig;
+
+        resolve({
+          baseUrl: result?.wwBaseUrlOverride || envConfig.baseUrl,
+          cloudFunctionsBaseUrl: result?.wwCloudFunctionsBaseUrlOverride || envConfig.cloudFunctionsBaseUrl
+        });
+      }
+    );
+  });
+}
+
+async function ensureExtensionEnvironmentConfig() {
+  if (!extensionConfigPromise) {
+    extensionConfigPromise = loadExtensionEnvironmentConfig()
+      .then((config) => {
+        baseUrl = config.baseUrl;
+        cloudFunctionsBaseUrl = config.cloudFunctionsBaseUrl;
+        return config;
+      })
+      .catch(() => {
+        baseUrl = EXTENSION_ENVIRONMENTS.development.baseUrl;
+        cloudFunctionsBaseUrl = EXTENSION_ENVIRONMENTS.development.cloudFunctionsBaseUrl;
+        return EXTENSION_ENVIRONMENTS.development;
+      });
+  }
+
+  return extensionConfigPromise;
+}
+
+if (chrome?.storage?.onChanged) {
+  chrome.storage.onChanged.addListener((changes, areaName) => {
+    if (areaName !== 'local') {
+      return;
+    }
+
+    if (changes.wwEnvironment || changes.wwBaseUrlOverride || changes.wwCloudFunctionsBaseUrlOverride) {
+      extensionConfigPromise = null;
+      ensureExtensionEnvironmentConfig();
+    }
+  });
+}
 
 // For localhost development, you can change this to:
 // let baseUrl = 'http://localhost:3001';
@@ -30,6 +119,7 @@ const TOKEN_REFRESH_THRESHOLD = 15 * 60 * 1000; // 15 minutes in milliseconds
 
 // Get API base URL
 async function getApiUrl() {
+  await ensureExtensionEnvironmentConfig();
   // For development environments, can be detected automatically
   if (baseUrl.includes('localhost')) {
     return baseUrl;
@@ -39,6 +129,7 @@ async function getApiUrl() {
 
 // Get the base URL for the website (not the API)
 async function getBaseUrl() {
+  await ensureExtensionEnvironmentConfig();
   return baseUrl;
 }
 
@@ -272,6 +363,7 @@ async function authenticate(username, password) {
 // Listen for extension installation or update
 chrome.runtime.onInstalled.addListener(async (details) => {
   console.log('Extension installed or updated:', details.reason);
+  await ensureExtensionEnvironmentConfig();
   
   // Initialize extension state
   if (details.reason === 'install') {
@@ -368,6 +460,8 @@ function enterRecoveryMode() {
 
 // Handle messages from content scripts or popup
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  ensureExtensionEnvironmentConfig();
+
   try {
     // Log messages for debugging
     console.log('Background script received message:', message);
