@@ -16,6 +16,44 @@ let contentScriptFailedHard = false;
 let checkProductPageInFlight = false;
 let statusBannerTimer = null;
 const MAX_CONTENT_SCRIPT_RETRIES = 2;
+const EXTENSION_ENV_OPTIONS = {
+  development: 'https://wishlist-wizard-dev.web.app',
+  staging: 'https://wishlist-wizard-staging.web.app',
+  production: 'https://wishlist-wizard.web.app',
+  local: 'http://localhost:3001'
+};
+
+function normalizeExtensionEnvironment(value) {
+  const env = String(value || 'development').toLowerCase();
+  if (env === 'dev') return 'development';
+  if (env === 'stage') return 'staging';
+  if (env === 'prod') return 'production';
+  if (env === 'localhost') return 'local';
+  return Object.prototype.hasOwnProperty.call(EXTENSION_ENV_OPTIONS, env) ? env : 'development';
+}
+
+async function loadSelectedEnvironment() {
+  return new Promise((resolve) => {
+    if (!chrome?.storage?.local?.get) {
+      resolve('development');
+      return;
+    }
+
+    chrome.storage.local.get(['wwEnvironment'], (result) => {
+      resolve(normalizeExtensionEnvironment(result?.wwEnvironment));
+    });
+  });
+}
+
+async function initializeEnvironmentSelector() {
+  const selector = document.getElementById('environment-select');
+  if (!selector) {
+    return;
+  }
+
+  const selectedEnvironment = await loadSelectedEnvironment();
+  selector.value = selectedEnvironment;
+}
 
 // Expose variables globally for cross-script access
 window.currentProductInfo = null;
@@ -208,6 +246,8 @@ function showStatusBanner(message, type = 'info', timeoutMs = 2200) {
 async function initPopup() {
   // Show loading screen first
   showScreen('loading-screen');
+
+  await initializeEnvironmentSelector();
   
   // Reset content script retry counter
   contentScriptRetries = 0;
@@ -1366,31 +1406,15 @@ function updateProductInfo() {
 
 // Get the base URL for API requests
 async function getBaseUrl() {
-  const envConfig = {
-    development: 'https://wishlist-wizard-dev.web.app',
-    staging: 'https://wishlist-wizard-staging.web.app',
-    production: 'https://wishlist-wizard.web.app',
-    local: 'http://localhost:3001'
-  };
-
-  const normalize = (value) => {
-    const env = String(value || 'development').toLowerCase();
-    if (env === 'dev') return 'development';
-    if (env === 'stage') return 'staging';
-    if (env === 'prod') return 'production';
-    if (env === 'localhost') return 'local';
-    return Object.prototype.hasOwnProperty.call(envConfig, env) ? env : 'development';
-  };
-
   return new Promise((resolve) => {
     if (!chrome?.storage?.local?.get) {
-      resolve(envConfig.development);
+      resolve(EXTENSION_ENV_OPTIONS.development);
       return;
     }
 
     chrome.storage.local.get(['wwEnvironment', 'wwBaseUrlOverride'], (result) => {
-      const env = normalize(result?.wwEnvironment);
-      resolve(result?.wwBaseUrlOverride || envConfig[env]);
+      const env = normalizeExtensionEnvironment(result?.wwEnvironment);
+      resolve(result?.wwBaseUrlOverride || EXTENSION_ENV_OPTIONS[env]);
     });
   });
 }
@@ -1433,6 +1457,23 @@ function setupEventListeners() {
   const loginForm = document.getElementById('login-form');
   if (legacyLoginButton && !loginForm) {
     legacyLoginButton.addEventListener('click', openLoginPage);
+  }
+
+  const environmentSelect = document.getElementById('environment-select');
+  if (environmentSelect) {
+    environmentSelect.addEventListener('change', () => {
+      const value = normalizeExtensionEnvironment(environmentSelect.value);
+      environmentSelect.value = value;
+
+      if (!chrome?.storage?.local?.set) {
+        return;
+      }
+
+      chrome.storage.local.set({ wwEnvironment: value }, () => {
+        const envLabel = value.charAt(0).toUpperCase() + value.slice(1);
+        showStatusBanner(`Environment set to ${envLabel}.`, 'info');
+      });
+    });
   }
 
   // Logout button

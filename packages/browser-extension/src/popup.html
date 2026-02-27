@@ -270,6 +270,15 @@
 
     <div class="footer">
       <span id="user-info" class="user-info hidden">Signed in as <span id="username"></span></span>
+      <div class="environment-control">
+        <label for="environment-select">Env</label>
+        <select id="environment-select" class="environment-select" aria-label="Environment">
+          <option value="development">Development</option>
+          <option value="staging">Staging</option>
+          <option value="production">Production</option>
+          <option value="local">Local</option>
+        </select>
+      </div>
       <button id="logout-button" class="text-button hidden">Sign Out</button>
     </div>
   </div>
