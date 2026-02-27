@@ -5,6 +5,7 @@ import { z } from "zod";
 import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
+import { getFirebaseAuthErrorMessage } from "@/lib/firebase-auth-errors";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,7 +15,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 // Define form validation schema - Updated for Firebase Auth
 const registerSchema = z.object({
   displayName: z.string().min(2, "Display name must be at least 2 characters").optional(),
-  email: z.string().email("Please enter a valid email address"),
+  email: z.string().trim().email("Please enter a valid email address"),
   password: z.string().min(6, "Password must be at least 6 characters"),
   confirmPassword: z.string(),
 }).refine(data => data.password === data.confirmPassword, {
@@ -43,9 +44,13 @@ export default function Register() {
 
   // Handle form submission with Firebase Auth
   const onSubmit = async (data: RegisterFormValues) => {
+    if (isLoading) {
+      return;
+    }
+
     setIsLoading(true);
     try {
-      await signUp(data.email, data.password, data.displayName || undefined);
+      await signUp(data.email.trim(), data.password, data.displayName?.trim() || undefined);
       
       toast({
         title: "Registration successful",
@@ -54,30 +59,11 @@ export default function Register() {
       
       // Redirect will be handled by ProtectedRoute and auth state change
     } catch (error: unknown) {
-      const authError = error as { code?: string; message?: string };
-      console.error("Registration error:", authError);
-      
-      let errorMessage = "Failed to create account";
-      switch (authError.code) {
-        case 'auth/email-already-in-use':
-          errorMessage = "An account with this email already exists";
-          break;
-        case 'auth/invalid-email':
-          errorMessage = "Invalid email address";
-          break;
-        case 'auth/weak-password':
-          errorMessage = "Password is too weak. Please choose a stronger password";
-          break;
-        case 'auth/operation-not-allowed':
-          errorMessage = "Email/password accounts are not enabled";
-          break;
-        default:
-          errorMessage = authError.message || "Failed to create account";
-      }
-      
+      console.error("Registration error:", error);
+
       toast({
         title: "Registration failed",
-        description: errorMessage,
+        description: getFirebaseAuthErrorMessage(error, "signup"),
         variant: "destructive",
       });
     } finally {
@@ -104,7 +90,7 @@ export default function Register() {
                   <FormItem>
                     <FormLabel>Display Name (optional)</FormLabel>
                     <FormControl>
-                      <Input placeholder="Your display name" {...field} />
+                      <Input data-testid="register-display-name-input" placeholder="Your display name" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -118,7 +104,7 @@ export default function Register() {
                   <FormItem>
                     <FormLabel>Email</FormLabel>
                     <FormControl>
-                      <Input type="email" placeholder="your.email@example.com" {...field} />
+                      <Input data-testid="register-email-input" type="email" placeholder="your.email@example.com" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -132,7 +118,7 @@ export default function Register() {
                   <FormItem>
                     <FormLabel>Password</FormLabel>
                     <FormControl>
-                      <Input type="password" placeholder="••••••••" {...field} />
+                      <Input data-testid="register-password-input" type="password" placeholder="••••••••" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -146,14 +132,14 @@ export default function Register() {
                   <FormItem>
                     <FormLabel>Confirm Password</FormLabel>
                     <FormControl>
-                      <Input type="password" placeholder="••••••••" {...field} />
+                      <Input data-testid="register-confirm-password-input" type="password" placeholder="••••••••" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
               
-              <Button type="submit" className="w-full" disabled={isLoading}>
+              <Button data-testid="register-submit" type="submit" className="w-full" disabled={isLoading}>
                 {isLoading ? "Creating account..." : "Create account"}
               </Button>
             </form>

@@ -429,6 +429,9 @@ export const addWishlistItem = onCall(async (request: CallableRequest) => {
       priority: priority || 1,
       note: note || null,
       addedBy: userId,
+      reservedByUserId: null,
+      purchasedByUserId: null,
+      purchasedAt: null,
       reservedBy: null,
       purchasedBy: null,
       ...(affiliateConversion?.wasConverted
@@ -465,6 +468,139 @@ export const addWishlistItem = onCall(async (request: CallableRequest) => {
     logger.error('Error adding wishlist item:', error);
     if (error instanceof HttpsError) throw error;
     throw new HttpsError('internal', 'Failed to add wishlist item');
+  }
+});
+
+/**
+ * Reserve Wishlist Item
+ * Replaces: POST /api/items/:id/reserve
+ */
+export const reserveWishlistItem = onCall(async (request: CallableRequest) => {
+  if (!request.auth) {
+    throw new HttpsError('unauthenticated', 'User must be authenticated');
+  }
+
+  const { itemId } = request.data;
+  if (!itemId) {
+    throw new HttpsError('invalid-argument', 'Item ID is required');
+  }
+
+  try {
+    const itemDoc = await db.collection('wishlistItems').doc(itemId).get();
+    if (!itemDoc.exists) {
+      throw new HttpsError('not-found', 'Item not found');
+    }
+
+    const itemData = itemDoc.data() || {};
+    const wishlistDoc = await db.collection('wishlists').doc(String(itemData.wishlistId || '')).get();
+    if (!wishlistDoc.exists) {
+      throw new HttpsError('not-found', 'Wishlist not found');
+    }
+
+    const wishlistData = wishlistDoc.data() || {};
+    const userId = request.auth.uid;
+    const isOwner = wishlistData.userId === userId;
+    const isCollaborator = wishlistData.isCollaborative && await isUserCollaborator(wishlistDoc.id, userId);
+    const canReserve = isOwner || isCollaborator || !!wishlistData.isPublic;
+
+    if (!canReserve) {
+      throw new HttpsError('permission-denied', 'You do not have permission to reserve this item');
+    }
+
+    const purchasedByUserId = itemData.purchasedByUserId || itemData.purchasedBy || null;
+    if (purchasedByUserId) {
+      throw new HttpsError('failed-precondition', 'This item has already been purchased');
+    }
+
+    const reservedByUserId = itemData.reservedByUserId || itemData.reservedBy || null;
+    if (reservedByUserId && reservedByUserId !== userId) {
+      throw new HttpsError('failed-precondition', 'This item is already reserved by another user');
+    }
+
+    if (reservedByUserId === userId) {
+      return { success: true, id: itemId, ...itemData };
+    }
+
+    const updates = {
+      reservedByUserId: userId,
+      reservedBy: userId,
+      updatedAt: new Date()
+    };
+
+    await db.collection('wishlistItems').doc(itemId).update(updates);
+    return { success: true, id: itemId, ...itemData, ...updates };
+  } catch (error) {
+    logger.error('Error reserving wishlist item:', error);
+    if (error instanceof HttpsError) throw error;
+    throw new HttpsError('internal', 'Failed to reserve wishlist item');
+  }
+});
+
+/**
+ * Purchase Wishlist Item
+ * Replaces: POST /api/items/:id/purchase
+ */
+export const purchaseWishlistItem = onCall(async (request: CallableRequest) => {
+  if (!request.auth) {
+    throw new HttpsError('unauthenticated', 'User must be authenticated');
+  }
+
+  const { itemId } = request.data;
+  if (!itemId) {
+    throw new HttpsError('invalid-argument', 'Item ID is required');
+  }
+
+  try {
+    const itemDoc = await db.collection('wishlistItems').doc(itemId).get();
+    if (!itemDoc.exists) {
+      throw new HttpsError('not-found', 'Item not found');
+    }
+
+    const itemData = itemDoc.data() || {};
+    const wishlistDoc = await db.collection('wishlists').doc(String(itemData.wishlistId || '')).get();
+    if (!wishlistDoc.exists) {
+      throw new HttpsError('not-found', 'Wishlist not found');
+    }
+
+    const wishlistData = wishlistDoc.data() || {};
+    const userId = request.auth.uid;
+    const isOwner = wishlistData.userId === userId;
+    const isCollaborator = wishlistData.isCollaborative && await isUserCollaborator(wishlistDoc.id, userId);
+    const canPurchase = isOwner || isCollaborator || !!wishlistData.isPublic;
+
+    if (!canPurchase) {
+      throw new HttpsError('permission-denied', 'You do not have permission to purchase this item');
+    }
+
+    const purchasedByUserId = itemData.purchasedByUserId || itemData.purchasedBy || null;
+    if (purchasedByUserId && purchasedByUserId !== userId) {
+      throw new HttpsError('failed-precondition', 'This item has already been purchased by another user');
+    }
+
+    if (purchasedByUserId === userId) {
+      return { success: true, id: itemId, ...itemData };
+    }
+
+    const reservedByUserId = itemData.reservedByUserId || itemData.reservedBy || null;
+    if (reservedByUserId && reservedByUserId !== userId) {
+      throw new HttpsError('failed-precondition', 'This item is reserved by another user');
+    }
+
+    const updates = {
+      purchasedByUserId: userId,
+      purchasedBy: userId,
+      purchasedAt: new Date(),
+      reservedByUserId: userId,
+      reservedBy: userId,
+      updatedAt: new Date()
+    };
+
+    await db.collection('wishlistItems').doc(itemId).update(updates);
+    return { success: true, id: itemId, ...itemData, ...updates };
+  } catch (error) {
+    logger.error('Error purchasing wishlist item:', error);
+    if (error instanceof HttpsError) throw error;
+    throw new HttpsError('internal', 'Failed to purchase wishlist item');
   }
 });
 

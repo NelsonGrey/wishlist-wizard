@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { CheckCircle, Loader2, ArrowLeft } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { getFirebaseAuthErrorMessage } from "@/lib/firebase-auth-errors";
 
 export default function ForgotPassword() {
   const [, setLocation] = useLocation();
@@ -15,11 +16,25 @@ export default function ForgotPassword() {
   const [email, setEmail] = useState('');
   const [message, setMessage] = useState('');
 
+  const isValidEmail = (value: string): boolean => {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (status === 'loading') {
+      return;
+    }
+
+    const normalizedEmail = email.trim();
     
-    if (!email) {
+    if (!normalizedEmail) {
       setMessage('Please enter your email address');
+      return;
+    }
+
+    if (!isValidEmail(normalizedEmail)) {
+      setMessage('Please enter a valid email address.');
       return;
     }
 
@@ -27,31 +42,11 @@ export default function ForgotPassword() {
     setMessage('');
 
     try {
-      await resetPassword(email);
+      await resetPassword(normalizedEmail);
       setStatus('success');
     } catch (error: unknown) {
       setStatus('form');
-      
-      let errorMessage = 'Failed to send password reset email. Please try again.';
-      if (error && typeof error === 'object' && 'code' in error) {
-        switch ((error as { code: string }).code) {
-          case 'auth/user-not-found':
-            errorMessage = 'No account found with this email address.';
-            break;
-          case 'auth/invalid-email':
-            errorMessage = 'Invalid email address.';
-            break;
-          case 'auth/too-many-requests':
-            errorMessage = 'Too many requests. Please try again later.';
-            break;
-          default:
-            errorMessage = ('message' in error && typeof error.message === 'string') 
-              ? error.message 
-              : 'Failed to send password reset email. Please try again.';
-        }
-      }
-      
-      setMessage(errorMessage);
+      setMessage(getFirebaseAuthErrorMessage(error, 'reset-password'));
     }
   };
 
@@ -112,6 +107,7 @@ export default function ForgotPassword() {
             <div className="space-y-2">
               <Label htmlFor="email">Email Address</Label>
               <Input
+                data-testid="forgot-password-email-input"
                 id="email"
                 type="email"
                 value={email}
@@ -123,12 +119,13 @@ export default function ForgotPassword() {
             </div>
 
             {message && (
-              <div className="text-sm text-red-600">
+              <div data-testid="forgot-password-message" className="text-sm text-red-600">
                 {message}
               </div>
             )}
 
             <Button
+              data-testid="forgot-password-submit"
               type="submit"
               className="w-full"
               disabled={status === 'loading'}

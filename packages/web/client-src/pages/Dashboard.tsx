@@ -6,6 +6,7 @@ import WishlistCard from "@/components/WishlistCard";
 import CreateWishlistDialog from "@/components/CreateWishlistDialog";
 import type { CreateWishlistFormValues } from "@/components/CreateWishlistDialog";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { getApiErrorMessage } from "@/lib/api-errors";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { SidebarAd } from "@/components/ads";
@@ -20,11 +21,15 @@ type Wishlist = Omit<DbWishlist, 'id' | 'userId' | 'beneficiaryId'> & {
   itemCount: number;
 };
 
+const SELECTED_WISHLIST_STORAGE_KEY = 'dashboard.selectedWishlistId';
+
 export default function Dashboard() {
   const [, setLocation] = useLocation();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [selectedWishlistId, setSelectedWishlistId] = useState<string | number | null>(null);
   const { toast } = useToast();
+
+  const toSelectionKey = (id: string | number) => String(id);
 
   // Fetch wishlists
   const { data: wishlists, isLoading, error } = useQuery<Wishlist[]>({
@@ -34,6 +39,11 @@ export default function Dashboard() {
   // Create wishlist mutation
   const createWishlistMutation = useMutation({
     mutationFn: async (wishlistData: CreateWishlistFormValues) => {
+      const normalizedName = wishlistData.name.trim();
+      if (!normalizedName) {
+        throw new Error('Wishlist name is required');
+      }
+
       const occasionDateIso = wishlistData.occasionDate
         ? new Date(`${wishlistData.occasionDate}T12:00:00`).toISOString()
         : null;
@@ -41,7 +51,7 @@ export default function Dashboard() {
       const res = await apiRequest('/api/wishlists', {
         method: 'POST',
         body: {
-          name: wishlistData.name,
+          name: normalizedName,
           description: wishlistData.description?.trim() || '',
           occasion: wishlistData.occasion?.trim() || null,
           occasionDate: occasionDateIso,
@@ -59,10 +69,10 @@ export default function Dashboard() {
         description: "Wishlist created successfully",
       });
     },
-    onError: () => {
+    onError: (error) => {
       toast({
         title: "Error",
-        description: "Failed to create wishlist",
+        description: getApiErrorMessage(error, "Failed to create wishlist"),
         variant: "destructive",
       });
     }
@@ -75,13 +85,48 @@ export default function Dashboard() {
   useEffect(() => {
     if (!wishlists || wishlists.length === 0) {
       setSelectedWishlistId(null);
+      try {
+        localStorage.removeItem(SELECTED_WISHLIST_STORAGE_KEY);
+      } catch {
+        // Ignore localStorage errors in restricted environments
+      }
       return;
     }
 
-    if (selectedWishlistId === null || !wishlists.some((wishlist) => wishlist.id === selectedWishlistId)) {
-      setSelectedWishlistId(wishlists[0].id);
+    const hasCurrentSelection =
+      selectedWishlistId !== null &&
+      wishlists.some((wishlist) => toSelectionKey(wishlist.id) === toSelectionKey(selectedWishlistId));
+    if (hasCurrentSelection) {
+      return;
     }
+
+    let nextSelectedId: string | number = wishlists[0].id;
+    try {
+      const storedId = localStorage.getItem(SELECTED_WISHLIST_STORAGE_KEY);
+      if (storedId) {
+        const matchedWishlist = wishlists.find((wishlist) => toSelectionKey(wishlist.id) === storedId);
+        if (matchedWishlist) {
+          nextSelectedId = matchedWishlist.id;
+        }
+      }
+    } catch {
+      // Ignore localStorage errors in restricted environments
+    }
+
+    setSelectedWishlistId(nextSelectedId);
   }, [wishlists, selectedWishlistId]);
+
+  useEffect(() => {
+    if (selectedWishlistId === null) {
+      return;
+    }
+
+    try {
+      localStorage.setItem(SELECTED_WISHLIST_STORAGE_KEY, toSelectionKey(selectedWishlistId));
+    } catch {
+      // Ignore localStorage errors in restricted environments
+    }
+  }, [selectedWishlistId]);
 
   const selectedWishlist = wishlists?.find((wishlist) => wishlist.id === selectedWishlistId) ?? null;
 
@@ -107,11 +152,13 @@ export default function Dashboard() {
   return (
     <>
       <main className="flex-1">
-        <div className="container mx-auto px-4 py-8 max-w-6xl">
+        <div data-testid="dashboard-page" className="container mx-auto px-4 py-8 max-w-6xl">
           <div className="flex justify-between items-center mb-8">
-            <h2 className="text-4xl font-bold bg-gradient-to-r from-emerald-800 to-green-800 bg-clip-text text-transparent">My Wishlists</h2>
+            <h2 data-testid="dashboard-title" className="text-4xl font-bold bg-gradient-to-r from-emerald-800 to-green-800 bg-clip-text text-transparent">My Wishlists</h2>
             <Button 
+              data-testid="dashboard-create-wishlist"
               onClick={() => setIsCreateDialogOpen(true)}
+              disabled={createWishlistMutation.isPending}
               className="flex items-center space-x-2 bg-primary hover:bg-indigo-700"
             >
               <Plus className="h-5 w-5" />
@@ -193,7 +240,9 @@ export default function Dashboard() {
                   <h3 className="text-lg font-medium text-gray-900 mb-2">No wishlists yet</h3>
                   <p className="text-gray-500 mb-6">Create your first wishlist to get started</p>
                   <Button 
+                    data-testid="dashboard-empty-create-wishlist"
                     onClick={() => setIsCreateDialogOpen(true)}
+                    disabled={createWishlistMutation.isPending}
                     className="bg-primary hover:bg-indigo-700"
                   >
                     Create Wishlist

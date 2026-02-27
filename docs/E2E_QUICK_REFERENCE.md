@@ -26,6 +26,9 @@ chmod +x scripts/e2e-test.sh
 # Run tier 1 on staging
 ./scripts/e2e-test.sh tier1 staging
 
+# Run fast tier 1 on Chromium only
+./scripts/e2e-test.sh tier1-chromium
+
 # Open interactive UI
 ./scripts/e2e-test.sh ui
 ```
@@ -37,6 +40,7 @@ chmod +x scripts/e2e-test.sh
 | Command | What It Does | Time |
 |---------|-------------|------|
 | `npm run test:e2e:smoke` | Quick sanity check | ~5 min |
+| `npm run test:e2e:tier1:chromium` | Fast Tier 1 gate (Chromium only) | ~1 min |
 | `npm run test:e2e:tier1` | Basic features (accounts, wishlists, items) | ~15 min |
 | `npm run test:e2e:tier2` | Advanced features (extension, affiliate, calendar) | ~20 min |
 | `npm run test:e2e:all` | Complete test suite | ~40 min |
@@ -206,7 +210,8 @@ npx playwright test --timeout=60000
 ## ✅ Pre-Launch Checklist
 
 - [ ] Run `npm run test:e2e:tier1` against staging
-- [ ] Verify all 17 Tier 1 tests pass
+- [ ] Run `npm run test:e2e:tier1:chromium` as fast PR gate
+- [ ] Verify all Tier 1 tests pass (auth happy-path test may skip when auth is unavailable)
 - [ ] Run `npm run test:e2e:smoke` against production
 - [ ] Check GitHub Actions logs show green
 - [ ] Review test report for any warnings

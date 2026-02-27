@@ -127,6 +127,14 @@ function AppRouter() {
                     )}
                   />
                   <Route
+                    path="/wishlists"
+                    component={() => (
+                      <ProtectedRoute requireAuth>
+                        <Dashboard />
+                      </ProtectedRoute>
+                    )}
+                  />
+                  <Route
                     path="/dashboard-firebase"
                     component={() => (
                       <ProtectedRoute requireAuth>

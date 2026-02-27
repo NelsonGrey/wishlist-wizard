@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useLocation } from "wouter";
 import { Edit, Share2, MoreVertical, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { getApiErrorMessage } from "@/lib/api-errors";
 import { apiRequest } from "@/lib/queryClient";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -59,6 +60,7 @@ export default function WishlistCard({ wishlist, onRefresh, onSelect, selected =
   const [newReminderDays, setNewReminderDays] = useState(
     typeof wishlist.reminderDays === 'number' ? wishlist.reminderDays : 7
   );
+  const [isSharing, setIsSharing] = useState(false);
   const { toast } = useToast();
 
   const parsedOccasionDate = wishlist.occasionDate ? new Date(wishlist.occasionDate) : null;
@@ -93,10 +95,15 @@ export default function WishlistCard({ wishlist, onRefresh, onSelect, selected =
   // Update wishlist mutation
   const updateWishlistMutation = useMutation({
     mutationFn: async () => {
+      const normalizedName = newName.trim();
+      if (!normalizedName) {
+        throw new Error('Wishlist name cannot be empty.');
+      }
+
       await apiRequest(`/api/wishlists/${wishlist.id}`, {
         method: 'PATCH',
         body: {
-          name: newName,
+          name: normalizedName,
           occasion: newOccasion.trim() || null,
           occasionDate: newOccasionDate ? new Date(`${newOccasionDate}T12:00:00`).toISOString() : null,
           recurrence: newRecurrence,
@@ -112,10 +119,13 @@ export default function WishlistCard({ wishlist, onRefresh, onSelect, selected =
         description: "Your wishlist has been renamed successfully.",
       });
     },
-    onError: () => {
+    onError: (error) => {
       toast({
         title: "Error",
-        description: "Failed to update wishlist.",
+        description: getApiErrorMessage(error, "Failed to update wishlist.", {
+          conflictCodes: ['wishlist_conflict'],
+          conflictMessage: 'This wishlist was updated elsewhere. Refresh and try again.',
+        }),
         variant: "destructive",
       });
     }
@@ -134,14 +144,19 @@ export default function WishlistCard({ wishlist, onRefresh, onSelect, selected =
         description: "Your wishlist has been deleted successfully.",
       });
     },
-    onError: () => {
+    onError: (error) => {
       toast({
         title: "Error",
-        description: "Failed to delete wishlist.",
+        description: getApiErrorMessage(error, "Failed to delete wishlist.", {
+          conflictCodes: ['wishlist_conflict'],
+          conflictMessage: 'This wishlist was updated elsewhere. Refresh and try again.',
+        }),
         variant: "destructive",
       });
     }
   });
+
+  const isMutating = updateWishlistMutation.isPending || deleteWishlistMutation.isPending;
 
   const handleEditClick = () => {
     setNewName(wishlist.name);
@@ -157,6 +172,10 @@ export default function WishlistCard({ wishlist, onRefresh, onSelect, selected =
   };
 
   const handleSaveEdit = () => {
+    if (isMutating) {
+      return;
+    }
+
     if (newName.trim() === "") {
       toast({
         title: "Error",
@@ -169,8 +188,35 @@ export default function WishlistCard({ wishlist, onRefresh, onSelect, selected =
   };
 
   const handleShare = () => {
+    if (isSharing) {
+      return;
+    }
+
     const shareUrl = `${window.location.origin}/shared/${wishlist.shareId}`;
-    navigator.clipboard.writeText(shareUrl).then(
+    setIsSharing(true);
+
+    const fallbackCopy = () => {
+      const textArea = document.createElement('textarea');
+      textArea.value = shareUrl;
+      textArea.setAttribute('readonly', '');
+      textArea.style.position = 'absolute';
+      textArea.style.left = '-9999px';
+      document.body.appendChild(textArea);
+      textArea.select();
+      const successful = document.execCommand('copy');
+      document.body.removeChild(textArea);
+      if (!successful) {
+        throw new Error('Unable to copy to clipboard');
+      }
+    };
+
+    const copyPromise = navigator.clipboard?.writeText
+      ? navigator.clipboard.writeText(shareUrl).catch(() => {
+          fallbackCopy();
+        })
+      : Promise.resolve().then(() => fallbackCopy());
+
+    copyPromise.then(
       () => {
         toast({
           title: "Link copied",
@@ -180,11 +226,13 @@ export default function WishlistCard({ wishlist, onRefresh, onSelect, selected =
       () => {
         toast({
           title: "Error",
-          description: "Failed to copy link",
+          description: "Failed to copy link. Please copy the URL from your browser address bar.",
           variant: "destructive",
         });
       }
-    );
+    ).finally(() => {
+      setIsSharing(false);
+    });
   };
 
   const formattedDate = new Date(wishlist.createdAt).toLocaleDateString('en-US', {
@@ -197,7 +245,7 @@ export default function WishlistCard({ wishlist, onRefresh, onSelect, selected =
 
   return (
     <>
-      <Card className={`hover:shadow-md transition ${selected ? 'ring-2 ring-primary/40' : ''}`}>
+      <Card data-testid={`wishlist-card-${wishlist.id}`} className={`hover:shadow-md transition ${selected ? 'ring-2 ring-primary/40' : ''}`}>
         <CardContent className="p-0">
           <div className="p-5 border-b">
             <div className="flex justify-between items-center">
@@ -230,9 +278,11 @@ export default function WishlistCard({ wishlist, onRefresh, onSelect, selected =
               </div>
               <div className="flex space-x-2">
                 <Button
+                  data-testid={`wishlist-share-${wishlist.id}`}
                   variant="ghost"
                   size="icon"
                   onClick={handleShare}
+                  disabled={isMutating || isSharing}
                   className="text-gray-500 hover:text-gray-700"
                   aria-label="Share wishlist"
                 >
@@ -241,8 +291,10 @@ export default function WishlistCard({ wishlist, onRefresh, onSelect, selected =
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button
+                      data-testid={`wishlist-menu-${wishlist.id}`}
                       variant="ghost"
                       size="icon"
+                      disabled={isMutating}
                       className="text-gray-500 hover:text-gray-700"
                       aria-label="More options"
                     >
@@ -250,11 +302,11 @@ export default function WishlistCard({ wishlist, onRefresh, onSelect, selected =
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={handleEditClick}>
+                    <DropdownMenuItem data-testid={`wishlist-edit-action-${wishlist.id}`} onClick={handleEditClick}>
                       <Edit className="h-4 w-4 mr-2" />
                       Rename
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={handleDeleteClick} className="text-red-600">
+                    <DropdownMenuItem data-testid={`wishlist-delete-action-${wishlist.id}`} onClick={handleDeleteClick} className="text-red-600">
                       <Trash2 className="h-4 w-4 mr-2" />
                       Delete
                     </DropdownMenuItem>
@@ -284,14 +336,17 @@ export default function WishlistCard({ wishlist, onRefresh, onSelect, selected =
             <Button
               variant={selected ? 'default' : 'outline'}
               className="flex-1"
+              disabled={isMutating}
               onClick={() => onSelect(wishlist)}
             >
               {selected ? 'Selected' : 'Select'}
             </Button>
           )}
           <Button 
+            data-testid={`wishlist-view-${wishlist.id}`}
             variant="link" 
             className="text-primary hover:text-indigo-700 flex-1"
+            disabled={isMutating}
             onClick={() => setLocation(`/wishlist/${wishlist.id}`)}
           >
             View Details
@@ -300,8 +355,15 @@ export default function WishlistCard({ wishlist, onRefresh, onSelect, selected =
       </Card>
 
       {/* Edit Dialog */}
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent>
+      <Dialog
+        open={isEditDialogOpen}
+        onOpenChange={(open) => {
+          if (!updateWishlistMutation.isPending) {
+            setIsEditDialogOpen(open);
+          }
+        }}
+      >
+        <DialogContent data-testid={`wishlist-edit-dialog-${wishlist.id}`}>
           <DialogHeader>
             <DialogTitle>Edit Wishlist</DialogTitle>
             <DialogDescription>
@@ -309,14 +371,17 @@ export default function WishlistCard({ wishlist, onRefresh, onSelect, selected =
             </DialogDescription>
           </DialogHeader>
           <Input
+            data-testid={`wishlist-edit-name-input-${wishlist.id}`}
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
             placeholder="Wishlist name"
+            disabled={updateWishlistMutation.isPending}
           />
           <Input
             value={newOccasion}
             onChange={(e) => setNewOccasion(e.target.value)}
             placeholder="Event (optional)"
+            disabled={updateWishlistMutation.isPending}
           />
           <Input
             type="date"
@@ -324,8 +389,9 @@ export default function WishlistCard({ wishlist, onRefresh, onSelect, selected =
             onChange={(e) => setNewOccasionDate(e.target.value)}
             aria-label="Event Date"
             placeholder="Event Date (optional)"
+            disabled={updateWishlistMutation.isPending}
           />
-          <Select value={newRecurrence} onValueChange={setNewRecurrence}>
+          <Select value={newRecurrence} onValueChange={setNewRecurrence} disabled={updateWishlistMutation.isPending}>
             <SelectTrigger>
               <SelectValue placeholder="Recurrence" />
             </SelectTrigger>
@@ -343,10 +409,12 @@ export default function WishlistCard({ wishlist, onRefresh, onSelect, selected =
               value={newReminderDays}
               onChange={(e) => setNewReminderDays(Number(e.target.value))}
               placeholder="Reminder days"
+              disabled={updateWishlistMutation.isPending}
             />
           )}
           <DialogFooter>
             <Button
+              data-testid={`wishlist-edit-cancel-${wishlist.id}`}
               variant="outline"
               onClick={() => setIsEditDialogOpen(false)}
               disabled={updateWishlistMutation.isPending}
@@ -354,6 +422,7 @@ export default function WishlistCard({ wishlist, onRefresh, onSelect, selected =
               Cancel
             </Button>
             <Button
+              data-testid={`wishlist-edit-save-${wishlist.id}`}
               onClick={handleSaveEdit}
               disabled={updateWishlistMutation.isPending}
             >
@@ -364,8 +433,15 @@ export default function WishlistCard({ wishlist, onRefresh, onSelect, selected =
       </Dialog>
 
       {/* Delete Confirmation Dialog */}
-      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <DialogContent>
+      <Dialog
+        open={isDeleteDialogOpen}
+        onOpenChange={(open) => {
+          if (!deleteWishlistMutation.isPending) {
+            setIsDeleteDialogOpen(open);
+          }
+        }}
+      >
+        <DialogContent data-testid={`wishlist-delete-dialog-${wishlist.id}`}>
           <DialogHeader>
             <DialogTitle>Delete Wishlist</DialogTitle>
             <DialogDescription>
@@ -374,6 +450,7 @@ export default function WishlistCard({ wishlist, onRefresh, onSelect, selected =
           </DialogHeader>
           <DialogFooter>
             <Button
+              data-testid={`wishlist-delete-cancel-${wishlist.id}`}
               variant="outline"
               onClick={() => setIsDeleteDialogOpen(false)}
               disabled={deleteWishlistMutation.isPending}
@@ -381,6 +458,7 @@ export default function WishlistCard({ wishlist, onRefresh, onSelect, selected =
               Cancel
             </Button>
             <Button
+              data-testid={`wishlist-delete-confirm-${wishlist.id}`}
               variant="destructive"
               onClick={() => deleteWishlistMutation.mutate()}
               disabled={deleteWishlistMutation.isPending}

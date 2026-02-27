@@ -48,6 +48,12 @@ jobs:
         run: npm run test:users:smoke
         timeout-minutes: 10
 
+      - name: Validate requirements verification matrix
+        run: npm run requirements:verify
+        env:
+          REQUIREMENTS_STRICT_ALL: 'false'
+        timeout-minutes: 5
+
       - name: Install Playwright for E2E
         run: npx playwright install --with-deps
 
@@ -175,6 +181,7 @@ jobs:
           path: |
             artifacts/smoke-all-functions-report.json
             artifacts/smoke-users-report.json
+            artifacts/requirements-verification-report.json
             playwright-report/
           retention-days: 30
 

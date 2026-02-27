@@ -11,14 +11,22 @@ import {
 } from "@/components/ui/select";
 import { InboxIcon } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { RecommendationsHelp } from "@/components/help/RecommendationsHelp";
+import { getApiErrorMessage } from "@/lib/api-errors";
 import { Wishlist } from "@wishlist-wizard/shared";
 
 export default function Recommendations() {
   const [selectedWishlistId, setSelectedWishlistId] = useState<string>("");
 
   // Fetch the user's wishlists
-  const { data: wishlists } = useQuery<Wishlist[]>({ 
+  const {
+    data: wishlists,
+    isLoading: isWishlistsLoading,
+    isError: isWishlistsError,
+    error: wishlistsError,
+    refetch: refetchWishlists,
+  } = useQuery<Wishlist[]>({ 
     queryKey: ['/api/wishlists'],
   });
 
@@ -46,8 +54,18 @@ export default function Recommendations() {
             <RecommendationsHelp />
           </div>
 
-          {wishlists && wishlists.length > 0 && (
-            <div className="mt-4 md:mt-0 w-full md:w-64">
+          <div className="mt-4 md:mt-0 w-full md:w-64">
+            {isWishlistsLoading ? (
+              <p className="text-sm text-gray-500">Loading wishlists...</p>
+            ) : isWishlistsError ? (
+              <div className="space-y-2">
+                <p className="text-sm text-red-500">Failed to load wishlists. Please try again.</p>
+                <p className="text-xs text-gray-500">{getApiErrorMessage(wishlistsError, "Temporary connection issue.")}</p>
+                <Button variant="outline" size="sm" onClick={() => refetchWishlists()}>
+                  Retry
+                </Button>
+              </div>
+            ) : wishlists && wishlists.length > 0 ? (
               <Select 
                 value={selectedWishlistId} 
                 onValueChange={setSelectedWishlistId}
@@ -63,8 +81,10 @@ export default function Recommendations() {
                   ))}
                 </SelectContent>
               </Select>
-            </div>
-          )}
+            ) : (
+              <p className="text-sm text-gray-500">No wishlists yet.</p>
+            )}
+          </div>
         </div>
 
         <div className="space-y-8">

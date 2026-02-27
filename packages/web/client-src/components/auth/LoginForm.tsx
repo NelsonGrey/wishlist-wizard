@@ -1,45 +1,59 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLocation } from 'wouter';
+import { getFirebaseAuthErrorMessage } from '@/lib/firebase-auth-errors';
 
 export const LoginForm: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const isSubmittingRef = useRef(false);
   const { signIn } = useAuth();
   const [, setLocation] = useLocation();
 
+  const isValidEmail = (value: string): boolean => {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmittingRef.current) {
+      return;
+    }
+
+    isSubmittingRef.current = true;
     setError('');
+    const normalizedEmail = email.trim();
+
+    if (!normalizedEmail) {
+      setError('Email is required.');
+      isSubmittingRef.current = false;
+      return;
+    }
+
+    if (!isValidEmail(normalizedEmail)) {
+      setError('Please enter a valid email address.');
+      isSubmittingRef.current = false;
+      return;
+    }
+
+    if (!password.trim()) {
+      setError('Password is required.');
+      isSubmittingRef.current = false;
+      return;
+    }
+
     setLoading(true);
 
     try {
-      await signIn(email, password);
+      await signIn(normalizedEmail, password);
       // ProtectedRoute will handle redirect after auth state change
     } catch (err: unknown) {
-      setError(getErrorMessage(err));
+      setError(getFirebaseAuthErrorMessage(err, 'login'));
     } finally {
+      isSubmittingRef.current = false;
       setLoading(false);
-    }
-  };
-
-  const getErrorMessage = (error: unknown): string => {
-    const err = error as { code?: string };
-    switch (err.code) {
-      case 'app/firebase-not-configured':
-        return 'Firebase is not configured for this environment. Ask your admin to set VITE_FIREBASE_* env vars.';
-      case 'auth/user-not-found':
-        return 'No account found with this email address.';
-      case 'auth/wrong-password':
-        return 'Incorrect password.';
-      case 'auth/invalid-email':
-        return 'Invalid email address.';
-      case 'auth/too-many-requests':
-        return 'Too many failed attempts. Please try again later.';
-      default:
-        return 'Failed to sign in. Please try again.';
     }
   };
 
@@ -79,7 +93,7 @@ export const LoginForm: React.FC = () => {
         </div>
 
         {error && (
-          <div className="text-red-600 text-sm mt-2 p-2 bg-red-50 border border-red-200 rounded">
+          <div role="alert" className="text-red-600 text-sm mt-2 p-2 bg-red-50 border border-red-200 rounded">
             {error}
           </div>
         )}

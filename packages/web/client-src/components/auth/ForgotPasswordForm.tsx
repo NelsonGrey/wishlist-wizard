@@ -1,42 +1,54 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLocation } from 'wouter';
+import { getFirebaseAuthErrorMessage } from '@/lib/firebase-auth-errors';
 
 export const ForgotPasswordForm: React.FC = () => {
   const [email, setEmail] = useState('');
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const isSubmittingRef = useRef(false);
   const { resetPassword } = useAuth();
   const [, setLocation] = useLocation();
 
+  const isValidEmail = (value: string): boolean => {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmittingRef.current) {
+      return;
+    }
+
+    isSubmittingRef.current = true;
     setError('');
     setMessage('');
+    const normalizedEmail = email.trim();
+
+    if (!normalizedEmail) {
+      setError('Email is required.');
+      isSubmittingRef.current = false;
+      return;
+    }
+
+    if (!isValidEmail(normalizedEmail)) {
+      setError('Please enter a valid email address.');
+      isSubmittingRef.current = false;
+      return;
+    }
+
     setLoading(true);
 
     try {
-      await resetPassword(email);
+      await resetPassword(normalizedEmail);
       setMessage('Password reset email sent! Check your inbox.');
     } catch (err: unknown) {
-      setError(getErrorMessage(err));
+      setError(getFirebaseAuthErrorMessage(err, 'reset-password'));
     } finally {
+      isSubmittingRef.current = false;
       setLoading(false);
-    }
-  };
-
-  const getErrorMessage = (error: unknown): string => {
-    const err = error as { code?: string };
-    switch (err.code) {
-      case 'auth/user-not-found':
-        return 'No account found with this email address.';
-      case 'auth/invalid-email':
-        return 'Invalid email address.';
-      case 'auth/too-many-requests':
-        return 'Too many requests. Please try again later.';
-      default:
-        return 'Failed to send password reset email. Please try again.';
     }
   };
 
@@ -65,13 +77,13 @@ export const ForgotPasswordForm: React.FC = () => {
         </div>
 
         {error && (
-          <div className="text-red-600 text-sm mt-2 p-2 bg-red-50 border border-red-200 rounded">
+          <div role="alert" className="text-red-600 text-sm mt-2 p-2 bg-red-50 border border-red-200 rounded">
             {error}
           </div>
         )}
 
         {message && (
-          <div className="text-green-600 text-sm mt-2 p-2 bg-green-50 border border-green-200 rounded">
+          <div role="status" className="text-green-600 text-sm mt-2 p-2 bg-green-50 border border-green-200 rounded">
             {message}
           </div>
         )}

@@ -43,6 +43,8 @@ describe('WishlistItem Component', () => {
   
   // Mock function for delete
   const mockOnDelete = vi.fn();
+  const mockOnReserve = vi.fn();
+  const mockOnPurchase = vi.fn();
   
   beforeEach(() => {
     vi.clearAllMocks();
@@ -221,5 +223,123 @@ describe('WishlistItem Component', () => {
     expect(screen.getByText('Detailed item information and actions.')).toBeInTheDocument();
     expect(screen.getByText('Product URL')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /view product/i })).toBeInTheDocument();
+  });
+
+  it('should render reserve and purchase actions when handlers are provided', () => {
+    render(
+      <WishlistItem
+        item={mockItem}
+        onDelete={mockOnDelete}
+        onReserve={mockOnReserve}
+        onPurchase={mockOnPurchase}
+        currentUserId="user-1"
+      />
+    );
+
+    expect(screen.getByRole('button', { name: 'Reserve' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Mark Purchased' })).toBeInTheDocument();
+  });
+
+  it('should call reserve and purchase handlers when action buttons are clicked', async () => {
+    render(
+      <WishlistItem
+        item={mockItem}
+        onDelete={mockOnDelete}
+        onReserve={mockOnReserve}
+        onPurchase={mockOnPurchase}
+        currentUserId="user-1"
+      />
+    );
+
+    const user = userEvent.setup();
+
+    await user.click(screen.getByRole('button', { name: 'Reserve' }));
+    await user.click(screen.getByRole('button', { name: 'Mark Purchased' }));
+
+    expect(mockOnReserve).toHaveBeenCalledTimes(1);
+    expect(mockOnPurchase).toHaveBeenCalledTimes(1);
+  });
+
+  it('should disable reserve and purchase when item is purchased', () => {
+    const purchasedItem = {
+      ...mockItem,
+      purchasedByUserId: 42,
+      purchasedAt: new Date('2024-01-01'),
+    };
+
+    render(
+      <WishlistItem
+        item={purchasedItem}
+        onDelete={mockOnDelete}
+        onReserve={mockOnReserve}
+        onPurchase={mockOnPurchase}
+        currentUserId="user-1"
+      />
+    );
+
+    expect(screen.getByRole('button', { name: 'Reserve' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Mark Purchased' })).toBeDisabled();
+    expect(screen.getByText('Already purchased')).toBeInTheDocument();
+  });
+
+  it('should disable reserve and purchase when reserved by another user', () => {
+    const reservedByOtherItem = {
+      ...mockItem,
+      reservedByUserId: 999,
+      purchasedByUserId: null,
+    };
+
+    render(
+      <WishlistItem
+        item={reservedByOtherItem}
+        onDelete={mockOnDelete}
+        onReserve={mockOnReserve}
+        onPurchase={mockOnPurchase}
+        currentUserId="user-1"
+      />
+    );
+
+    expect(screen.getByRole('button', { name: 'Reserve' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Mark Purchased' })).toBeDisabled();
+    expect(screen.getByText('Reserved by another user')).toBeInTheDocument();
+  });
+
+  it('should allow purchase when reserved by current user', () => {
+    const reservedByCurrentUserItem = {
+      ...mockItem,
+      reservedByUserId: 123,
+      purchasedByUserId: null,
+    };
+
+    render(
+      <WishlistItem
+        item={reservedByCurrentUserItem}
+        onDelete={mockOnDelete}
+        onReserve={mockOnReserve}
+        onPurchase={mockOnPurchase}
+        currentUserId="123"
+      />
+    );
+
+    expect(screen.getByRole('button', { name: 'Reserve' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Mark Purchased' })).toBeEnabled();
+    expect(screen.getByText('Reserved by you')).toBeInTheDocument();
+  });
+
+  it('should render custom reserve and purchase labels when provided', () => {
+    render(
+      <WishlistItem
+        item={mockItem}
+        onDelete={mockOnDelete}
+        onReserve={mockOnReserve}
+        onPurchase={mockOnPurchase}
+        reserveLabel="Reserving..."
+        purchaseLabel="Marking..."
+        currentUserId="user-1"
+      />
+    );
+
+    expect(screen.getByRole('button', { name: 'Reserving...' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Marking...' })).toBeInTheDocument();
   });
 });

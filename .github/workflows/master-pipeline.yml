@@ -176,6 +176,17 @@ jobs:
           npm run lint
           npm run check
           npm test
+          npm run requirements:verify
+
+          if [ -f "artifacts/requirements-verification-report.json" ]; then
+            BLOCKING=$(node -e "const fs=require('fs');const p=JSON.parse(fs.readFileSync(process.argv[1],'utf8'));process.stdout.write(String((p.summary&&typeof p.summary.blockingFailures==='number')?p.summary.blockingFailures:NaN));" artifacts/requirements-verification-report.json)
+            UNMAPPED=$(node -e "const fs=require('fs');const p=JSON.parse(fs.readFileSync(process.argv[1],'utf8'));process.stdout.write(String((p.summary&&typeof p.summary.unmappedCompleted==='number')?p.summary.unmappedCompleted:NaN));" artifacts/requirements-verification-report.json)
+            {
+              echo "### Requirements Verification"
+              echo "- Blocking failures: $BLOCKING"
+              echo "- Unmapped completed requirements: $UNMAPPED"
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
 
           if [ -f "packages/mobile/pubspec.yaml" ]; then
             if ! command -v flutter &> /dev/null; then
