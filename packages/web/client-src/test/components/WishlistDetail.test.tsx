@@ -139,6 +139,30 @@ describe('WishlistDetail Item CRUD', () => {
     });
   });
 
+  it('focuses first visible item details action on ArrowDown from search input', async () => {
+    window.history.replaceState({}, '', '/wishlist/1?sort=title-az');
+    render(<WishlistDetail />);
+
+    await screen.findByTestId('wishlist-item-details-1');
+    const input = await screen.findByTestId('wishlist-detail-search-input');
+    input.focus();
+    fireEvent.keyDown(input, { key: 'ArrowDown' });
+
+    expect(await screen.findByTestId('wishlist-item-details-1')).toHaveFocus();
+  });
+
+  it('focuses last visible item details action on ArrowUp from search input', async () => {
+    window.history.replaceState({}, '', '/wishlist/1?sort=title-az');
+    render(<WishlistDetail />);
+
+    await screen.findByTestId('wishlist-item-details-2');
+    const input = await screen.findByTestId('wishlist-detail-search-input');
+    input.focus();
+    fireEvent.keyDown(input, { key: 'ArrowUp' });
+
+    expect(await screen.findByTestId('wishlist-item-details-2')).toHaveFocus();
+  });
+
   it('shows and handles mobile scroll-to-top action', async () => {
     const scrollToSpy = vi.spyOn(window, 'scrollTo').mockImplementation(() => {});
     Object.defineProperty(window, 'scrollY', {

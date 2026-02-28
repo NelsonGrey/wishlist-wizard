@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { KeyboardEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useRoute, useLocation } from "wouter";
 import { ArrowLeft, Check, ChevronUp, ExternalLink, Plus, Share2 } from "lucide-react";
@@ -49,6 +49,8 @@ const getInitialItemSearch = (): string => {
   const params = new URLSearchParams(window.location.search);
   return params.get('q') || '';
 };
+
+const getNormalizedItemId = (id: number | string): string => String(id).replace(/[^a-zA-Z0-9_-]/g, '-');
 
 export default function WishlistDetail() {
   const [legacyMatch, legacyParams] = useRoute('/wishlist/:id');
@@ -305,6 +307,31 @@ export default function WishlistDetail() {
       return searchableText.includes(query);
     });
   }, [sortedItems, itemSearch]);
+
+  const focusItemDetailsButton = (itemId: number | string) => {
+    const normalizedItemId = getNormalizedItemId(itemId);
+    const detailsButton = document.querySelector<HTMLButtonElement>(
+      `[data-testid="wishlist-item-details-${normalizedItemId}"]`
+    );
+    detailsButton?.focus();
+  };
+
+  const handleSearchInputKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+    if (!filteredItems.length) {
+      return;
+    }
+
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      focusItemDetailsButton(filteredItems[0].id);
+      return;
+    }
+
+    if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      focusItemDetailsButton(filteredItems[filteredItems.length - 1].id);
+    }
+  };
 
   // Delete item mutation
   const deleteItemMutation = useMutation({
@@ -1025,6 +1052,7 @@ export default function WishlistDetail() {
                         ref={itemSearchInputRef}
                         data-testid="wishlist-detail-search-input"
                         value={itemSearch}
+                        onKeyDown={handleSearchInputKeyDown}
                         onChange={(event) => setItemSearch(event.target.value)}
                         placeholder="Search title, store, price, or link"
                       />
