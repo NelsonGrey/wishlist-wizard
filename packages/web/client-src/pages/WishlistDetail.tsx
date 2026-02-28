@@ -1061,6 +1061,7 @@ export default function WishlistDetail() {
                     <WishlistItem 
                       key={item.id} 
                       item={item} 
+                      searchQuery={itemSearch}
                       onEdit={() => openEditItemDialog(item)}
                       onDelete={() => handleDeleteItem(item.id)}
                       onReserve={() => handleReserveItem(item.id)}
@@ -1079,7 +1080,7 @@ export default function WishlistDetail() {
                   <CardContent className="p-8 text-center">
                     <h3 className="text-lg font-medium mb-2">No items match your search</h3>
                     <p className="text-gray-500 mb-4">
-                      Try a different title or store keyword.
+                      Try a different keyword.
                     </p>
                   </CardContent>
                 </Card>

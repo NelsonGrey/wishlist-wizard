@@ -74,6 +74,20 @@ describe('WishlistItem Component', () => {
     expect(screen.getByText('Electronics Store')).toBeInTheDocument();
     expect(screen.getByText('Would love these for my commute')).toBeInTheDocument();
   });
+
+  it('should highlight matching text when search query is provided', () => {
+    render(
+      <WishlistItem
+        item={mockItem}
+        onDelete={mockOnDelete}
+        searchQuery="wire"
+      />
+    );
+
+    const highlights = screen.getAllByTestId('wishlist-item-highlight-1');
+    expect(highlights.length).toBeGreaterThan(0);
+    expect(highlights[0]).toHaveTextContent(/wire/i);
+  });
   
   it('should display item image', () => {
     // Arrange & Act
