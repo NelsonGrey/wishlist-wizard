@@ -1,7 +1,7 @@
 # Wishlist Wizard - Documentation Index
 
 **Version**: 1.0  
-**Last Updated**: February 16, 2026  
+**Last Updated**: February 27, 2026  
 **Owner**: Mark Nelson
 
 ---
@@ -58,6 +58,7 @@ Project overview and planning:
 2. [PRODUCT_DESIGN.md](PRODUCT_DESIGN.md) - UI/UX design specifications
 3. [REQUIREMENTS.md](REQUIREMENTS.md) - Implementation status
 4. [DELIVERABLE_COMPONENT_MATRIX.md](DELIVERABLE_COMPONENT_MATRIX.md) - Component-level completion tracker for website/mobile/extension
+5. [RELEASE_SUMMARY.md](RELEASE_SUMMARY.md) - Latest incremental release notes and shipped scope
 
 ---
 
@@ -115,6 +116,7 @@ Project overview and planning:
 | [PRODUCT_DESIGN.md](PRODUCT_DESIGN.md) | UI/UX design, features, user flows | Designers, PM |
 | [REQUIREMENTS.md](REQUIREMENTS.md) | Feature status and implementation details | All |
 | [DELIVERABLE_COMPONENT_MATRIX.md](DELIVERABLE_COMPONENT_MATRIX.md) | Execution tracker for component completion by deliverable | Product, Engineering Leads, PM |
+| [RELEASE_SUMMARY.md](RELEASE_SUMMARY.md) | Incremental releases, shipped features, and delivery notes | Product, Engineering Leads, PM |
 
 ### Platform-Specific
 
