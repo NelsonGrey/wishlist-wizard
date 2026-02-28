@@ -343,7 +343,8 @@ export default function WishlistDetail() {
 
     if (event.key === 'Enter') {
       event.preventDefault();
-      openItemDetails(filteredItems[0].id);
+      const targetItem = event.shiftKey ? filteredItems[filteredItems.length - 1] : filteredItems[0];
+      openItemDetails(targetItem.id);
     }
   };
 
