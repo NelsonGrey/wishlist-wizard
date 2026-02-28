@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { screen, waitFor } from '@testing-library/react';
+import { fireEvent, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { render } from '../utils';
 import WishlistDetail from '@/pages/WishlistDetail';
@@ -122,6 +122,21 @@ describe('WishlistDetail Item CRUD', () => {
     window.dispatchEvent(new KeyboardEvent('keydown', { key: '/' }));
 
     expect(input).toHaveFocus();
+  });
+
+  it('clears search when escape is pressed while search is focused', async () => {
+    render(<WishlistDetail />);
+    const user = userEvent.setup();
+
+    const input = await screen.findByTestId('wishlist-detail-search-input');
+    await user.type(input, 'Another');
+    input.focus();
+
+    fireEvent.keyDown(window, { key: 'Escape' });
+
+    await waitFor(() => {
+      expect(input).toHaveValue('');
+    });
   });
 
   it('shows and handles mobile scroll-to-top action', async () => {

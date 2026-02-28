@@ -204,6 +204,14 @@ export default function WishlistDetail() {
 
   useEffect(() => {
     const handleSearchShortcut = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        if (document.activeElement === itemSearchInputRef.current) {
+          event.preventDefault();
+          setItemSearch('');
+        }
+        return;
+      }
+
       if (event.key !== '/' || event.metaKey || event.ctrlKey || event.altKey) {
         return;
       }
