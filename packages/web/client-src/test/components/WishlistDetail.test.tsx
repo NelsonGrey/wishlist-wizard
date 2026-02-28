@@ -66,6 +66,16 @@ describe('WishlistDetail Item CRUD', () => {
     expect(await screen.findByTestId('wishlist-detail-sort-trigger')).toBeInTheDocument();
   });
 
+  it('filters items by search term', async () => {
+    render(<WishlistDetail />);
+    const user = userEvent.setup();
+
+    await user.type(await screen.findByTestId('wishlist-detail-search-input'), 'Another');
+
+    expect(screen.getByText('Test Item 2')).toBeInTheDocument();
+    expect(screen.queryByText('Test Item 1')).not.toBeInTheDocument();
+  });
+
   it('shows and handles mobile scroll-to-top action', async () => {
     const scrollToSpy = vi.spyOn(window, 'scrollTo').mockImplementation(() => {});
     Object.defineProperty(window, 'scrollY', {

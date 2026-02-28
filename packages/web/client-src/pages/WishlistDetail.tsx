@@ -46,6 +46,7 @@ export default function WishlistDetail() {
   const [isItemDialogOpen, setIsItemDialogOpen] = useState(false);
   const [isEditingWishlist, setIsEditingWishlist] = useState(false);
   const [itemSort, setItemSort] = useState<'newest' | 'price-low' | 'price-high' | 'title-az' | 'store-az'>('newest');
+  const [itemSearch, setItemSearch] = useState('');
   const [editingItem, setEditingItem] = useState<WishlistItem | null>(null);
   const [reservePendingItemId, setReservePendingItemId] = useState<number | string | null>(null);
   const [purchasePendingItemId, setPurchasePendingItemId] = useState<number | string | null>(null);
@@ -213,6 +214,19 @@ export default function WishlistDetail() {
       return parseDate(right) - parseDate(left);
     });
   }, [items, itemSort]);
+
+  const filteredItems = useMemo(() => {
+    if (!itemSearch.trim()) {
+      return sortedItems;
+    }
+
+    const query = itemSearch.trim().toLowerCase();
+    return sortedItems.filter((item) => {
+      const title = String(item.title || '').toLowerCase();
+      const store = String(item.store || '').toLowerCase();
+      return title.includes(query) || store.includes(query);
+    });
+  }, [sortedItems, itemSearch]);
 
   // Delete item mutation
   const deleteItemMutation = useMutation({
@@ -923,11 +937,17 @@ export default function WishlistDetail() {
               </div>
 
               <div className="text-sm text-gray-500 mb-4">
-                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex flex-col gap-2 sm:gap-3">
                   <span>
                     Total items: <span className="font-medium text-gray-900">{items?.length ?? 0}</span>
                   </span>
-                  <div className="w-full sm:w-52">
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-3">
+                    <Input
+                      data-testid="wishlist-detail-search-input"
+                      value={itemSearch}
+                      onChange={(event) => setItemSearch(event.target.value)}
+                      placeholder="Search by item or store"
+                    />
                     <Select value={itemSort} onValueChange={(value) => setItemSort(value as typeof itemSort)}>
                       <SelectTrigger data-testid="wishlist-detail-sort-trigger">
                         <SelectValue placeholder="Sort items" />
@@ -974,9 +994,9 @@ export default function WishlistDetail() {
                     </Button>
                   </CardContent>
                 </Card>
-              ) : sortedItems && sortedItems.length > 0 ? (
+              ) : filteredItems && filteredItems.length > 0 ? (
                 <div data-testid="wishlist-detail-items-list" className="space-y-4">
-                  {sortedItems.map((item) => {
+                  {filteredItems.map((item) => {
                     const isReservePendingForItem = reservePendingItemId === item.id && reserveItemMutation.isPending;
                     const isPurchasePendingForItem = purchasePendingItemId === item.id && purchaseItemMutation.isPending;
                     const disableItemActions = isReservePendingForItem || isPurchasePendingForItem;
@@ -998,6 +1018,15 @@ export default function WishlistDetail() {
                     );
                   })}
                 </div>
+              ) : items && items.length > 0 ? (
+                <Card>
+                  <CardContent className="p-8 text-center">
+                    <h3 className="text-lg font-medium mb-2">No items match your search</h3>
+                    <p className="text-gray-500 mb-4">
+                      Try a different title or store keyword.
+                    </p>
+                  </CardContent>
+                </Card>
               ) : (
                 <Card>
                   <CardContent className="p-8 text-center">
