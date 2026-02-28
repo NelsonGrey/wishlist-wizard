@@ -115,6 +115,15 @@ describe('WishlistDetail Item CRUD', () => {
     expect(screen.queryByText('Test Item 1')).not.toBeInTheDocument();
   });
 
+  it('focuses search input when slash shortcut is pressed', async () => {
+    render(<WishlistDetail />);
+
+    const input = await screen.findByTestId('wishlist-detail-search-input');
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: '/' }));
+
+    expect(input).toHaveFocus();
+  });
+
   it('shows and handles mobile scroll-to-top action', async () => {
     const scrollToSpy = vi.spyOn(window, 'scrollTo').mockImplementation(() => {});
     Object.defineProperty(window, 'scrollY', {

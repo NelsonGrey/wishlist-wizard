@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useRoute, useLocation } from "wouter";
 import { ArrowLeft, Check, ChevronUp, ExternalLink, Plus, Share2 } from "lucide-react";
@@ -61,6 +61,7 @@ export default function WishlistDetail() {
   const [isEditingWishlist, setIsEditingWishlist] = useState(false);
   const [itemSort, setItemSort] = useState<ItemSortOption>(() => getInitialItemSort());
   const [itemSearch, setItemSearch] = useState(() => getInitialItemSearch());
+  const itemSearchInputRef = useRef<HTMLInputElement | null>(null);
   const [editingItem, setEditingItem] = useState<WishlistItem | null>(null);
   const [reservePendingItemId, setReservePendingItemId] = useState<number | string | null>(null);
   const [purchasePendingItemId, setPurchasePendingItemId] = useState<number | string | null>(null);
@@ -200,6 +201,31 @@ export default function WishlistDetail() {
     const nextUrl = `${window.location.pathname}${nextQuery ? `?${nextQuery}` : ''}`;
     window.history.replaceState(null, '', nextUrl);
   }, [itemSort, itemSearch]);
+
+  useEffect(() => {
+    const handleSearchShortcut = (event: KeyboardEvent) => {
+      if (event.key !== '/' || event.metaKey || event.ctrlKey || event.altKey) {
+        return;
+      }
+
+      const target = event.target as HTMLElement | null;
+      const tagName = target?.tagName?.toLowerCase();
+      const isEditableTarget = tagName === 'input' || tagName === 'textarea' || Boolean(target?.isContentEditable);
+
+      if (isEditableTarget) {
+        return;
+      }
+
+      event.preventDefault();
+      itemSearchInputRef.current?.focus();
+      itemSearchInputRef.current?.select();
+    };
+
+    window.addEventListener('keydown', handleSearchShortcut);
+    return () => {
+      window.removeEventListener('keydown', handleSearchShortcut);
+    };
+  }, []);
 
   // Fetch wishlist items
   const { 
@@ -988,6 +1014,7 @@ export default function WishlistDetail() {
                   <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-3">
                     <div className="flex gap-2">
                       <Input
+                        ref={itemSearchInputRef}
                         data-testid="wishlist-detail-search-input"
                         value={itemSearch}
                         onChange={(event) => setItemSearch(event.target.value)}
