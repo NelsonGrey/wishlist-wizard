@@ -54,6 +54,25 @@ describe('WishlistDetail Item CRUD', () => {
     expect(await screen.findByTestId('wishlist-detail-mobile-sticky-share')).toBeInTheDocument();
   });
 
+  it('shows and handles mobile scroll-to-top action', async () => {
+    const scrollToSpy = vi.spyOn(window, 'scrollTo').mockImplementation(() => {});
+    Object.defineProperty(window, 'scrollY', {
+      value: 500,
+      writable: true,
+      configurable: true,
+    });
+
+    render(<WishlistDetail />);
+    window.dispatchEvent(new Event('scroll'));
+
+    const user = userEvent.setup();
+    const button = await screen.findByTestId('wishlist-detail-mobile-scroll-top');
+    await user.click(button);
+
+    expect(scrollToSpy).toHaveBeenCalledWith({ top: 0, behavior: 'smooth' });
+    scrollToSpy.mockRestore();
+  });
+
   it('creates an item from Add Item dialog', async () => {
     render(<WishlistDetail />);
     const user = userEvent.setup();
