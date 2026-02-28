@@ -47,6 +47,13 @@ describe('WishlistDetail Item CRUD', () => {
     expect(await screen.findByTestId('wishlist-detail-mobile-share')).toBeInTheDocument();
   });
 
+  it('renders sticky mobile quick actions', async () => {
+    render(<WishlistDetail />);
+
+    expect(await screen.findByTestId('wishlist-detail-mobile-add-item')).toBeInTheDocument();
+    expect(await screen.findByTestId('wishlist-detail-mobile-sticky-share')).toBeInTheDocument();
+  });
+
   it('creates an item from Add Item dialog', async () => {
     render(<WishlistDetail />);
     const user = userEvent.setup();

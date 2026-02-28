@@ -615,7 +615,7 @@ export default function WishlistDetail() {
   return (
     <>
       <main className="flex-1">
-        <div data-testid="wishlist-detail-page" className="container mx-auto px-4 py-8 max-w-6xl">
+        <div data-testid="wishlist-detail-page" className="container mx-auto px-4 py-8 pb-24 sm:pb-8 max-w-6xl">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-6">
             <div className="flex items-start sm:items-center">
               <Button 
@@ -923,6 +923,30 @@ export default function WishlistDetail() {
           </Card>
         </div>
       </main>
+
+      <div className="sm:hidden fixed bottom-0 inset-x-0 z-40 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+        <div className="container mx-auto max-w-6xl px-4 py-3">
+          <div className="grid grid-cols-2 gap-2">
+            <Button
+              data-testid="wishlist-detail-mobile-add-item"
+              className="w-full"
+              onClick={openCreateItemDialog}
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Quick Add
+            </Button>
+            <Button
+              data-testid="wishlist-detail-mobile-sticky-share"
+              variant="outline"
+              className="w-full"
+              onClick={handleShare}
+              disabled={!resolvedWishlist || isSharing}
+            >
+              {isSharing ? 'Sharing...' : copied ? 'Copied!' : 'Share'}
+            </Button>
+          </div>
+        </div>
+      </div>
 
       <Dialog open={isItemDialogOpen} onOpenChange={(open) => {
         if (isItemMutationPending && !open) {
