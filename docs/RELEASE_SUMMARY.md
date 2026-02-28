@@ -1,5 +1,35 @@
 # Wishlist Wizard - Major Feature Release Summary
 
+## 📌 2026-02-27 Incremental Release: Wishlist Search & Keyboard UX
+
+### ✅ **Web Wishlist Detail Enhancements Shipped**
+- Added URL-backed state for list controls (`q` + `sort`) so search/sort persist across refresh and shareable links.
+- Added explicit clear-search action and filtered empty-state messaging.
+- Expanded search matching beyond title/store to include price, numeric price, product URL, and note content.
+- Added inline result highlighting for matched text in item title/price/store/note.
+
+### ⌨️ **Keyboard Accessibility Improvements**
+- `/` focuses and selects the search field from non-editable page context.
+- `Escape` clears the search field when search is focused.
+- `ArrowDown` focuses first visible item Details action from search.
+- `ArrowUp` focuses last visible item Details action from search.
+- `Enter` opens Details for first visible item.
+- `Shift+Enter` opens Details for last visible item.
+
+### 🧪 **Validation Coverage**
+- Added/updated focused component tests across wishlist detail and item interactions.
+- Verified all targeted tests passing after each slice (`39 passed` in final focused run for wishlist suites).
+
+### 🔖 **Related Commits (develop)**
+- `35e8d55` feat(web): persist wishlist search and sort in url
+- `c4537ab` feat(web): expand wishlist search matching
+- `5ecc41e` feat(web): highlight wishlist search matches
+- `99a5789` feat(web): add slash shortcut for wishlist search
+- `031242a` feat(web): clear wishlist search with escape
+- `9a8b561` feat(web): add arrow navigation from wishlist search
+- `7cd9791` feat(web): open first wishlist item with enter
+- `70b2dee` feat(web): support shift-enter in wishlist search
+
 ## 🎉 Successfully Completed Features (6/10)
 
 This commit represents a major milestone in the Wishlist Wizard development with **6 completed core features** and comprehensive infrastructure improvements.
