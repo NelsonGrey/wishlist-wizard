@@ -77,6 +77,22 @@ describe('WishlistDetail Item CRUD', () => {
     expect(screen.queryByText('Test Item 1')).not.toBeInTheDocument();
   });
 
+  it('filters items by price and product url terms', async () => {
+    render(<WishlistDetail />);
+    const user = userEvent.setup();
+
+    const input = await screen.findByTestId('wishlist-detail-search-input');
+
+    await user.type(input, '49.99');
+    expect(screen.getByText('Test Item 2')).toBeInTheDocument();
+    expect(screen.queryByText('Test Item 1')).not.toBeInTheDocument();
+
+    await user.clear(input);
+    await user.type(input, 'product-1');
+    expect(screen.getByText('Test Item 1')).toBeInTheDocument();
+    expect(screen.queryByText('Test Item 2')).not.toBeInTheDocument();
+  });
+
   it('clears search filter and restores item list', async () => {
     render(<WishlistDetail />);
     const user = userEvent.setup();

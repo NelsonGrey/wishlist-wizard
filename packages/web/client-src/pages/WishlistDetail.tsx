@@ -256,9 +256,19 @@ export default function WishlistDetail() {
 
     const query = itemSearch.trim().toLowerCase();
     return sortedItems.filter((item) => {
-      const title = String(item.title || '').toLowerCase();
-      const store = String(item.store || '').toLowerCase();
-      return title.includes(query) || store.includes(query);
+      const searchableText = [
+        item.title,
+        item.store,
+        item.price,
+        item.numericPrice,
+        item.productUrl,
+        item.note,
+      ]
+        .filter((value): value is string => typeof value === 'string' && value.trim().length > 0)
+        .join(' ')
+        .toLowerCase();
+
+      return searchableText.includes(query);
     });
   }, [sortedItems, itemSearch]);
 
@@ -981,7 +991,7 @@ export default function WishlistDetail() {
                         data-testid="wishlist-detail-search-input"
                         value={itemSearch}
                         onChange={(event) => setItemSearch(event.target.value)}
-                        placeholder="Search by item or store"
+                        placeholder="Search title, store, price, or link"
                       />
                       {itemSearch.trim() && (
                         <Button
