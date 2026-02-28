@@ -123,6 +123,14 @@ export default function WishlistDetail() {
   const eventDateLabel = parsedEventDate && !Number.isNaN(parsedEventDate.getTime())
     ? parsedEventDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
     : null;
+  const parsedUpdatedAt = resolvedWishlist?.updatedAt
+    ? new Date(resolvedWishlist.updatedAt)
+    : resolvedWishlist?.createdAt
+      ? new Date(resolvedWishlist.createdAt)
+      : null;
+  const updatedAtLabel = parsedUpdatedAt && !Number.isNaN(parsedUpdatedAt.getTime())
+    ? parsedUpdatedAt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+    : null;
 
   useEffect(() => {
     if (!resolvedWishlist) {
@@ -652,6 +660,11 @@ export default function WishlistDetail() {
                       {eventDateLabel ? `Event Date: ${eventDateLabel}` : null}
                     </p>
                   )}
+                  {updatedAtLabel && (
+                    <p className="text-xs text-gray-500 mt-1" data-testid="wishlist-detail-last-updated">
+                      Last updated: {updatedAtLabel}
+                    </p>
+                  )}
                 </div>
               )}
             </div>
@@ -717,6 +730,11 @@ export default function WishlistDetail() {
                   {eventDateLabel && (
                     <span className="inline-flex items-center rounded-full bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-700">
                       Event: {eventDateLabel}
+                    </span>
+                  )}
+                  {updatedAtLabel && (
+                    <span className="inline-flex items-center rounded-full bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700">
+                      Updated: {updatedAtLabel}
                     </span>
                   )}
                 </div>

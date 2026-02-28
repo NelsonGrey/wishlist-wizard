@@ -128,6 +128,7 @@ function customRender(
                 isPublic: false,
                 isCollaborative: false,
                 createdAt: new Date().toISOString(),
+                updatedAt: '2026-02-20T12:00:00.000Z',
                 occasion: null,
                 occasionDate: null,
                 recurrence: 'none',
