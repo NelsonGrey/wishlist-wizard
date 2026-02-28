@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { ReactNode, useState } from "react";
 import { Check, Copy, ExternalLink, MoreHorizontal, Trash2, Heart, Bell, Pencil, Info } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -48,6 +48,7 @@ interface WishlistItemProps {
   currentUserId?: string;
   reserveDisabled?: boolean;
   purchaseDisabled?: boolean;
+  searchQuery?: string;
 }
 
 export default function WishlistItem({
@@ -61,6 +62,7 @@ export default function WishlistItem({
   currentUserId,
   reserveDisabled,
   purchaseDisabled,
+  searchQuery,
 }: WishlistItemProps) {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
@@ -176,6 +178,37 @@ export default function WishlistItem({
     });
   };
 
+  const renderHighlightedText = (text?: string | null): ReactNode => {
+    const content = String(text || '');
+    const query = String(searchQuery || '').trim();
+
+    if (!content || !query) {
+      return content;
+    }
+
+    const escapedQuery = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const regex = new RegExp(`(${escapedQuery})`, 'ig');
+    const parts = content.split(regex);
+
+    if (parts.length <= 1) {
+      return content;
+    }
+
+    return parts.map((part, index) =>
+      part.toLowerCase() === query.toLowerCase() ? (
+        <mark
+          key={`${part}-${index}`}
+          data-testid={`wishlist-item-highlight-${normalizedItemId}`}
+          className="rounded px-0.5 bg-muted text-foreground"
+        >
+          {part}
+        </mark>
+      ) : (
+        <span key={`${part}-${index}`}>{part}</span>
+      )
+    );
+  };
+
   return (
     <>
       <Card data-testid={`wishlist-item-card-${normalizedItemId}`}>
@@ -188,7 +221,7 @@ export default function WishlistItem({
             />
             <div className="flex-1">
               <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                <h3 className="font-medium line-clamp-2">{item.title}</h3>
+                <h3 className="font-medium line-clamp-2">{renderHighlightedText(item.title)}</h3>
                 <div className="flex flex-wrap items-center gap-1 sm:gap-2 sm:ml-2">
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -300,8 +333,8 @@ export default function WishlistItem({
                 </div>
               </div>
               <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1">
-                <span className="text-sm font-semibold text-gray-900">{item.price}</span>
-                <span className="text-xs text-gray-500">{item.store}</span>
+                <span className="text-sm font-semibold text-gray-900">{renderHighlightedText(item.price)}</span>
+                <span className="text-xs text-gray-500">{renderHighlightedText(item.store)}</span>
                 {item.purchasedByUserId ? (
                   <Badge variant="secondary" className="ml-2" data-testid={`wishlist-item-status-purchased-${normalizedItemId}`}>Purchased</Badge>
                 ) : item.reservedByUserId ? (
@@ -314,7 +347,7 @@ export default function WishlistItem({
                 </div>
               )}
               {item.note && (
-                <p className="text-sm text-gray-500 mt-2">{item.note}</p>
+                <p className="text-sm text-gray-500 mt-2">{renderHighlightedText(item.note)}</p>
               )}
 
               {(onReserve || onPurchase) && (
