@@ -23,6 +23,7 @@ vi.mock('wouter', async () => {
 describe('WishlistDetail Item CRUD', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    window.history.replaceState({}, '', '/wishlist/1');
   });
 
   it('opens shared wishlist page from header action', async () => {
@@ -72,6 +73,28 @@ describe('WishlistDetail Item CRUD', () => {
 
     await user.type(await screen.findByTestId('wishlist-detail-search-input'), 'Another');
 
+    expect(screen.getByText('Test Item 2')).toBeInTheDocument();
+    expect(screen.queryByText('Test Item 1')).not.toBeInTheDocument();
+  });
+
+  it('clears search filter and restores item list', async () => {
+    render(<WishlistDetail />);
+    const user = userEvent.setup();
+
+    await user.type(await screen.findByTestId('wishlist-detail-search-input'), 'Another');
+    await user.click(await screen.findByTestId('wishlist-detail-search-clear'));
+
+    expect(screen.getByText('Test Item 1')).toBeInTheDocument();
+    expect(screen.getByText('Test Item 2')).toBeInTheDocument();
+  });
+
+  it('hydrates search from query params', async () => {
+    window.history.replaceState({}, '', '/wishlist/1?q=Another');
+    render(<WishlistDetail />);
+
+    await screen.findByTestId('wishlist-detail-title');
+    const input = await screen.findByTestId('wishlist-detail-search-input');
+    expect(input).toHaveValue('Another');
     expect(screen.getByText('Test Item 2')).toBeInTheDocument();
     expect(screen.queryByText('Test Item 1')).not.toBeInTheDocument();
   });
