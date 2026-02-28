@@ -728,7 +728,7 @@ export default function WishlistDetail() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
                 <div className="grid gap-2">
                   <Label htmlFor="wishlist-name">Wishlist Name</Label>
                   <Input
@@ -768,7 +768,7 @@ export default function WishlistDetail() {
                     onValueChange={(value) => setWishlistForm((prev) => ({ ...prev, recurrence: value }))}
                     disabled={!isEditingWishlist}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="w-full">
                       <SelectValue placeholder="Recurrence" />
                     </SelectTrigger>
                     <SelectContent>
@@ -784,8 +784,10 @@ export default function WishlistDetail() {
                   <Input
                     id="wishlist-reminder-days"
                     type="number"
+                    inputMode="numeric"
                     min={0}
                     max={365}
+                    placeholder="e.g., 7"
                     value={wishlistForm.reminderDays}
                     onChange={(e) => setWishlistForm((prev) => ({ ...prev, reminderDays: e.target.value }))}
                     disabled={!isEditingWishlist || wishlistForm.recurrence === 'none'}
