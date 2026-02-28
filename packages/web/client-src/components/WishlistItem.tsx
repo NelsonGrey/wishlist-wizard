@@ -180,23 +180,23 @@ export default function WishlistItem({
     <>
       <Card data-testid={`wishlist-item-card-${normalizedItemId}`}>
         <CardContent className="p-4">
-          <div className="flex space-x-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
             <img 
               src={item.imageUrl} 
               alt={item.title}
-              className="w-16 h-16 object-cover rounded-md"
+              className="w-16 h-16 object-cover rounded-md self-center sm:self-start"
             />
             <div className="flex-1">
-              <div className="flex justify-between">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                 <h3 className="font-medium line-clamp-2">{item.title}</h3>
-                <div className="flex space-x-2 ml-2">
+                <div className="flex flex-wrap items-center gap-1 sm:gap-2 sm:ml-2">
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={handleViewDetails}
-                        className="text-xs px-2 py-1 h-8"
+                        className="text-xs px-2 py-1 h-8 shrink-0"
                         data-testid={`wishlist-item-details-${normalizedItemId}`}
                       >
                         <Info className="h-3 w-3 mr-1" />
@@ -299,9 +299,9 @@ export default function WishlistItem({
                   </Tooltip>
                 </div>
               </div>
-              <div className="flex items-center mt-1">
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1">
                 <span className="text-sm font-semibold text-gray-900">{item.price}</span>
-                <span className="text-xs text-gray-500 ml-1">{item.store}</span>
+                <span className="text-xs text-gray-500">{item.store}</span>
                 {item.purchasedByUserId ? (
                   <Badge variant="secondary" className="ml-2" data-testid={`wishlist-item-status-purchased-${normalizedItemId}`}>Purchased</Badge>
                 ) : item.reservedByUserId ? (
