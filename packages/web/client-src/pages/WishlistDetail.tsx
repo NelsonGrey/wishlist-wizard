@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useRoute, useLocation } from "wouter";
-import { ArrowLeft, Check, ExternalLink, Plus, Share2 } from "lucide-react";
+import { ArrowLeft, Check, ChevronUp, ExternalLink, Plus, Share2 } from "lucide-react";
 import WishlistItem from "@/components/WishlistItem";
 import PrivacyControls from "@/components/privacy/PrivacyControls";
 import { getApiErrorMessage } from "@/lib/api-errors";
@@ -42,6 +42,7 @@ export default function WishlistDetail() {
   const [, setLocation] = useLocation();
   const [copied, setCopied] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
+  const [showScrollTop, setShowScrollTop] = useState(false);
   const [isItemDialogOpen, setIsItemDialogOpen] = useState(false);
   const [isEditingWishlist, setIsEditingWishlist] = useState(false);
   const [editingItem, setEditingItem] = useState<WishlistItem | null>(null);
@@ -142,6 +143,19 @@ export default function WishlistDetail() {
       reminderDays: typeof resolvedWishlist.reminderDays === 'number' ? String(resolvedWishlist.reminderDays) : "",
     });
   }, [resolvedWishlist]);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setShowScrollTop(window.scrollY > 300);
+    };
+
+    handleScroll();
+    window.addEventListener('scroll', handleScroll, { passive: true });
+
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, []);
 
   // Fetch wishlist items
   const { 
@@ -947,6 +961,19 @@ export default function WishlistDetail() {
           </div>
         </div>
       </div>
+
+      {showScrollTop && (
+        <Button
+          data-testid="wishlist-detail-mobile-scroll-top"
+          size="icon"
+          variant="secondary"
+          className="sm:hidden fixed bottom-24 right-4 z-40 rounded-full shadow-md"
+          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+          aria-label="Scroll to top"
+        >
+          <ChevronUp className="h-4 w-4" />
+        </Button>
+      )}
 
       <Dialog open={isItemDialogOpen} onOpenChange={(open) => {
         if (isItemMutationPending && !open) {
