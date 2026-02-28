@@ -316,6 +316,14 @@ export default function WishlistDetail() {
     detailsButton?.focus();
   };
 
+  const openItemDetails = (itemId: number | string) => {
+    const normalizedItemId = getNormalizedItemId(itemId);
+    const detailsButton = document.querySelector<HTMLButtonElement>(
+      `[data-testid="wishlist-item-details-${normalizedItemId}"]`
+    );
+    detailsButton?.click();
+  };
+
   const handleSearchInputKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
     if (!filteredItems.length) {
       return;
@@ -330,6 +338,12 @@ export default function WishlistDetail() {
     if (event.key === 'ArrowUp') {
       event.preventDefault();
       focusItemDetailsButton(filteredItems[filteredItems.length - 1].id);
+      return;
+    }
+
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      openItemDetails(filteredItems[0].id);
     }
   };
 

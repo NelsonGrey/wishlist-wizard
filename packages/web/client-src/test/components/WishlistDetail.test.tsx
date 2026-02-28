@@ -163,6 +163,18 @@ describe('WishlistDetail Item CRUD', () => {
     expect(await screen.findByTestId('wishlist-item-details-2')).toHaveFocus();
   });
 
+  it('opens first visible item details dialog on Enter from search input', async () => {
+    window.history.replaceState({}, '', '/wishlist/1?sort=title-az');
+    render(<WishlistDetail />);
+
+    await screen.findByTestId('wishlist-item-details-1');
+    const input = await screen.findByTestId('wishlist-detail-search-input');
+    input.focus();
+    fireEvent.keyDown(input, { key: 'Enter' });
+
+    expect(await screen.findByText('Detailed item information and actions.')).toBeInTheDocument();
+  });
+
   it('shows and handles mobile scroll-to-top action', async () => {
     const scrollToSpy = vi.spyOn(window, 'scrollTo').mockImplementation(() => {});
     Object.defineProperty(window, 'scrollY', {
