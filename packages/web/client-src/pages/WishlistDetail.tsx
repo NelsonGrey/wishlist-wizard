@@ -700,9 +700,10 @@ export default function WishlistDetail() {
                   <h2 className="text-lg font-semibold">Wishlist Details</h2>
                   <p className="text-sm text-gray-500">Manage this wishlist&apos;s core details and schedule.</p>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
                   {isEditingWishlist && (
                     <Button
+                      className="w-full sm:w-auto"
                       variant="outline"
                       onClick={() => setIsEditingWishlist(false)}
                       disabled={updateWishlistMutation.isPending}
@@ -711,6 +712,7 @@ export default function WishlistDetail() {
                     </Button>
                   )}
                   <Button
+                    className="w-full sm:w-auto"
                     onClick={() => {
                       if (isEditingWishlist) {
                         handleSaveWishlist();
