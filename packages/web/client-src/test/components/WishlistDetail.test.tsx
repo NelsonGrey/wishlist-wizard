@@ -41,6 +41,12 @@ describe('WishlistDetail Item CRUD', () => {
     openSpy.mockRestore();
   });
 
+  it('renders mobile summary share action', async () => {
+    render(<WishlistDetail />);
+
+    expect(await screen.findByTestId('wishlist-detail-mobile-share')).toBeInTheDocument();
+  });
+
   it('creates an item from Add Item dialog', async () => {
     render(<WishlistDetail />);
     const user = userEvent.setup();
