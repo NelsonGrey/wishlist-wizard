@@ -60,6 +60,12 @@ describe('WishlistDetail Item CRUD', () => {
     expect(await screen.findByTestId('wishlist-detail-last-updated')).toHaveTextContent(/Last updated:/i);
   });
 
+  it('renders item sort control', async () => {
+    render(<WishlistDetail />);
+
+    expect(await screen.findByTestId('wishlist-detail-sort-trigger')).toBeInTheDocument();
+  });
+
   it('shows and handles mobile scroll-to-top action', async () => {
     const scrollToSpy = vi.spyOn(window, 'scrollTo').mockImplementation(() => {});
     Object.defineProperty(window, 'scrollY', {

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useRoute, useLocation } from "wouter";
 import { ArrowLeft, Check, ChevronUp, ExternalLink, Plus, Share2 } from "lucide-react";
@@ -45,6 +45,7 @@ export default function WishlistDetail() {
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [isItemDialogOpen, setIsItemDialogOpen] = useState(false);
   const [isEditingWishlist, setIsEditingWishlist] = useState(false);
+  const [itemSort, setItemSort] = useState<'newest' | 'price-low' | 'price-high' | 'title-az' | 'store-az'>('newest');
   const [editingItem, setEditingItem] = useState<WishlistItem | null>(null);
   const [reservePendingItemId, setReservePendingItemId] = useState<number | string | null>(null);
   const [purchasePendingItemId, setPurchasePendingItemId] = useState<number | string | null>(null);
@@ -174,6 +175,44 @@ export default function WishlistDetail() {
     queryKey: [`/api/wishlists/${wishlistId}/items`],
     enabled: Boolean(wishlistId),
   });
+
+  const sortedItems = useMemo(() => {
+    if (!items || items.length <= 1) {
+      return items || [];
+    }
+
+    const parsePrice = (item: WishlistItem) => {
+      if (item.numericPrice && !Number.isNaN(Number(item.numericPrice))) {
+        return Number(item.numericPrice);
+      }
+      return Number(String(item.price || '').replace(/[^0-9.]/g, '')) || 0;
+    };
+
+    const parseDate = (item: WishlistItem) => {
+      const timestamp = new Date(item.createdAt).getTime();
+      return Number.isNaN(timestamp) ? 0 : timestamp;
+    };
+
+    return [...items].sort((left, right) => {
+      if (itemSort === 'price-low') {
+        return parsePrice(left) - parsePrice(right);
+      }
+
+      if (itemSort === 'price-high') {
+        return parsePrice(right) - parsePrice(left);
+      }
+
+      if (itemSort === 'title-az') {
+        return (left.title || '').localeCompare(right.title || '');
+      }
+
+      if (itemSort === 'store-az') {
+        return (left.store || '').localeCompare(right.store || '');
+      }
+
+      return parseDate(right) - parseDate(left);
+    });
+  }, [items, itemSort]);
 
   // Delete item mutation
   const deleteItemMutation = useMutation({
@@ -884,7 +923,25 @@ export default function WishlistDetail() {
               </div>
 
               <div className="text-sm text-gray-500 mb-4">
-                Total items: <span className="font-medium text-gray-900">{items?.length ?? 0}</span>
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <span>
+                    Total items: <span className="font-medium text-gray-900">{items?.length ?? 0}</span>
+                  </span>
+                  <div className="w-full sm:w-52">
+                    <Select value={itemSort} onValueChange={(value) => setItemSort(value as typeof itemSort)}>
+                      <SelectTrigger data-testid="wishlist-detail-sort-trigger">
+                        <SelectValue placeholder="Sort items" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="newest">Newest</SelectItem>
+                        <SelectItem value="price-low">Price: Low to High</SelectItem>
+                        <SelectItem value="price-high">Price: High to Low</SelectItem>
+                        <SelectItem value="title-az">Title: A to Z</SelectItem>
+                        <SelectItem value="store-az">Store: A to Z</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
               </div>
 
               {isLoadingItems ? (
@@ -917,9 +974,9 @@ export default function WishlistDetail() {
                     </Button>
                   </CardContent>
                 </Card>
-              ) : items && items.length > 0 ? (
+              ) : sortedItems && sortedItems.length > 0 ? (
                 <div data-testid="wishlist-detail-items-list" className="space-y-4">
-                  {items.map((item) => {
+                  {sortedItems.map((item) => {
                     const isReservePendingForItem = reservePendingItemId === item.id && reserveItemMutation.isPending;
                     const isPurchasePendingForItem = purchasePendingItemId === item.id && purchaseItemMutation.isPending;
                     const disableItemActions = isReservePendingForItem || isPurchasePendingForItem;
