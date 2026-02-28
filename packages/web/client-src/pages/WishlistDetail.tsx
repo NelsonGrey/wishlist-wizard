@@ -29,6 +29,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Wishlist as DbWishlist, WishlistItem as DbWishlistItem } from "@wishlist-wizard/shared";
 
 type Wishlist = DbWishlist;
@@ -642,31 +643,45 @@ export default function WishlistDetail() {
             </div>
             
             <div className="flex items-center space-x-2">
-              <Button 
-                data-testid="wishlist-detail-share"
-                variant="outline" 
-                className="flex items-center gap-2"
-                onClick={handleShare}
-                disabled={!resolvedWishlist || isSharing}
-              >
-                {copied ? (
-                  <Check className="h-4 w-4" />
-                ) : (
-                  <Share2 className="h-4 w-4" />
-                )}
-                {isSharing ? 'Sharing...' : copied ? 'Copied!' : 'Share'}
-              </Button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button 
+                    data-testid="wishlist-detail-share"
+                    variant="outline" 
+                    className="flex items-center gap-2"
+                    onClick={handleShare}
+                    disabled={!resolvedWishlist || isSharing}
+                  >
+                    {copied ? (
+                      <Check className="h-4 w-4" />
+                    ) : (
+                      <Share2 className="h-4 w-4" />
+                    )}
+                    {isSharing ? 'Sharing...' : copied ? 'Copied!' : 'Share'}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  Copy a public wishlist link
+                </TooltipContent>
+              </Tooltip>
 
-              <Button
-                data-testid="wishlist-detail-open-shared"
-                variant="outline"
-                className="flex items-center gap-2"
-                onClick={handleOpenSharedWishlist}
-                disabled={!resolvedWishlist}
-              >
-                <ExternalLink className="h-4 w-4" />
-                Open Shared Page
-              </Button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    data-testid="wishlist-detail-open-shared"
+                    variant="outline"
+                    className="flex items-center gap-2"
+                    onClick={handleOpenSharedWishlist}
+                    disabled={!resolvedWishlist}
+                  >
+                    <ExternalLink className="h-4 w-4" />
+                    Open Shared Page
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  Preview the public shared wishlist
+                </TooltipContent>
+              </Tooltip>
               
               {resolvedWishlist && (
                 <PrivacyControls

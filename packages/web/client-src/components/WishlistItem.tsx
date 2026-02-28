@@ -31,6 +31,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import ContributionDialog from "@/components/ContributionDialog";
 import PriceAlertDialog from "@/components/PriceAlertDialog";
 
@@ -189,16 +190,23 @@ export default function WishlistItem({
               <div className="flex justify-between">
                 <h3 className="font-medium line-clamp-2">{item.title}</h3>
                 <div className="flex space-x-2 ml-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleViewDetails}
-                    className="text-xs px-2 py-1 h-8"
-                    data-testid={`wishlist-item-details-${normalizedItemId}`}
-                  >
-                    <Info className="h-3 w-3 mr-1" />
-                    Details
-                  </Button>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleViewDetails}
+                        className="text-xs px-2 py-1 h-8"
+                        data-testid={`wishlist-item-details-${normalizedItemId}`}
+                      >
+                        <Info className="h-3 w-3 mr-1" />
+                        Details
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      View full item details and actions
+                    </TooltipContent>
+                  </Tooltip>
                   
                   <PrivacyControls
                     entityType="item"
@@ -207,17 +215,24 @@ export default function WishlistItem({
                     showAsBadge={true}
                   />
                   
-                  <a
-                    href={item.productUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    title={`View ${item.title} on ${item.store || 'store'}`}
-                    className="text-gray-500 hover:text-primary p-1"
-                    onClick={handleAffiliateClick}
-                    data-testid={`wishlist-item-view-product-${normalizedItemId}`}
-                  >
-                    <ExternalLink className="h-4 w-4" />
-                  </a>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <a
+                        href={item.productUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title={`View ${item.title} on ${item.store || 'store'}`}
+                        className="text-gray-500 hover:text-primary p-1"
+                        onClick={handleAffiliateClick}
+                        data-testid={`wishlist-item-view-product-${normalizedItemId}`}
+                      >
+                        <ExternalLink className="h-4 w-4" />
+                      </a>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      Open product page
+                    </TooltipContent>
+                  </Tooltip>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button
@@ -225,6 +240,7 @@ export default function WishlistItem({
                         size="icon"
                         className="text-gray-500 hover:text-gray-700 h-8 w-8"
                         aria-label="More item actions"
+                        title="More item actions"
                         data-testid={`wishlist-item-more-${normalizedItemId}`}
                       >
                         <MoreHorizontal className="h-4 w-4" />
@@ -246,27 +262,41 @@ export default function WishlistItem({
                     </DropdownMenuContent>
                   </DropdownMenu>
                   {onEdit && (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={onEdit}
-                      className="text-gray-500 hover:text-blue-600 h-8 w-8"
-                      aria-label="Edit item"
-                      data-testid={`wishlist-item-edit-${normalizedItemId}`}
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </Button>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={onEdit}
+                          className="text-gray-500 hover:text-blue-600 h-8 w-8"
+                          aria-label="Edit item"
+                          data-testid={`wishlist-item-edit-${normalizedItemId}`}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        Edit item details
+                      </TooltipContent>
+                    </Tooltip>
                   )}
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    onClick={handleDelete}
-                    className="text-gray-500 hover:text-red-500 h-8 w-8"
-                    aria-label="Delete item"
-                    data-testid={`wishlist-item-delete-${normalizedItemId}`}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        onClick={handleDelete}
+                        className="text-gray-500 hover:text-red-500 h-8 w-8"
+                        aria-label="Delete item"
+                        data-testid={`wishlist-item-delete-${normalizedItemId}`}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      Remove item from wishlist
+                    </TooltipContent>
+                  </Tooltip>
                 </div>
               </div>
               <div className="flex items-center mt-1">
