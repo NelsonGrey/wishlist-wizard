@@ -427,23 +427,24 @@ export default function WishlistItem({
             </div>
           </div>
 
-          <DialogFooter className="flex-wrap gap-2">
+          <DialogFooter className="flex-col gap-2 sm:flex-row sm:flex-wrap">
             {onEdit && (
-              <Button variant="outline" onClick={() => { setIsDetailsDialogOpen(false); onEdit(); }}>
+              <Button className="w-full sm:w-auto" variant="outline" onClick={() => { setIsDetailsDialogOpen(false); onEdit(); }}>
                 <Pencil className="h-4 w-4 mr-2" />
                 Edit
               </Button>
             )}
-            <Button variant="outline" onClick={() => { setIsDetailsDialogOpen(false); handleContribute(); }}>
+            <Button className="w-full sm:w-auto" variant="outline" onClick={() => { setIsDetailsDialogOpen(false); handleContribute(); }}>
               <Heart className="h-4 w-4 mr-2" />
               Contribute
             </Button>
-            <Button variant="outline" onClick={() => { setIsDetailsDialogOpen(false); handlePriceAlert(); }}>
+            <Button className="w-full sm:w-auto" variant="outline" onClick={() => { setIsDetailsDialogOpen(false); handlePriceAlert(); }}>
               <Bell className="h-4 w-4 mr-2" />
               Alert
             </Button>
             {onReserve && (
               <Button
+                className="w-full sm:w-auto"
                 variant="outline"
                 onClick={() => {
                   setIsDetailsDialogOpen(false);
@@ -457,6 +458,7 @@ export default function WishlistItem({
             )}
             {onPurchase && (
               <Button
+                className="w-full sm:w-auto"
                 variant="outline"
                 onClick={() => {
                   setIsDetailsDialogOpen(false);
@@ -468,13 +470,13 @@ export default function WishlistItem({
                 {purchaseLabel || 'Mark Purchased'}
               </Button>
             )}
-            <Button asChild>
+            <Button className="w-full sm:w-auto" asChild>
               <a href={item.productUrl} target="_blank" rel="noopener noreferrer" onClick={handleAffiliateClick}>
                 <ExternalLink className="h-4 w-4 mr-2" />
                 View Product
               </a>
             </Button>
-            <Button variant="outline" onClick={handleCopyProductUrl} data-testid={`wishlist-item-copy-link-dialog-${normalizedItemId}`}>
+            <Button className="w-full sm:w-auto" variant="outline" onClick={handleCopyProductUrl} data-testid={`wishlist-item-copy-link-dialog-${normalizedItemId}`}>
               {isLinkCopied ? <Check className="h-4 w-4 mr-2" /> : <Copy className="h-4 w-4 mr-2" />}
               {isLinkCopied ? 'Copied!' : 'Copy Link'}
             </Button>
