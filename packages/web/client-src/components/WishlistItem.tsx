@@ -404,7 +404,10 @@ export default function WishlistItem({
       </AlertDialog>
 
       <Dialog open={isDetailsDialogOpen} onOpenChange={setIsDetailsDialogOpen}>
-        <DialogContent className="sm:max-w-[620px] max-h-[80vh] overflow-y-auto">
+        <DialogContent
+          className="sm:max-w-[620px] max-h-[80vh] overflow-y-auto"
+          data-testid={`wishlist-item-details-dialog-${normalizedItemId}`}
+        >
           <DialogHeader>
             <DialogTitle>{item.title}</DialogTitle>
             <DialogDescription>
