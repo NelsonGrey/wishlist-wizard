@@ -35,6 +35,20 @@ import { Wishlist as DbWishlist, WishlistItem as DbWishlistItem } from "@wishlis
 type Wishlist = DbWishlist;
 type WishlistItem = DbWishlistItem;
 type ItemFormErrors = Partial<Record<"title" | "price" | "imageUrl" | "productUrl" | "store", string>>;
+type ItemSortOption = 'newest' | 'price-low' | 'price-high' | 'title-az' | 'store-az';
+
+const VALID_ITEM_SORTS: ItemSortOption[] = ['newest', 'price-low', 'price-high', 'title-az', 'store-az'];
+
+const getInitialItemSort = (): ItemSortOption => {
+  const params = new URLSearchParams(window.location.search);
+  const fromQuery = params.get('sort') as ItemSortOption | null;
+  return fromQuery && VALID_ITEM_SORTS.includes(fromQuery) ? fromQuery : 'newest';
+};
+
+const getInitialItemSearch = (): string => {
+  const params = new URLSearchParams(window.location.search);
+  return params.get('q') || '';
+};
 
 export default function WishlistDetail() {
   const [legacyMatch, legacyParams] = useRoute('/wishlist/:id');
@@ -45,8 +59,8 @@ export default function WishlistDetail() {
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [isItemDialogOpen, setIsItemDialogOpen] = useState(false);
   const [isEditingWishlist, setIsEditingWishlist] = useState(false);
-  const [itemSort, setItemSort] = useState<'newest' | 'price-low' | 'price-high' | 'title-az' | 'store-az'>('newest');
-  const [itemSearch, setItemSearch] = useState('');
+  const [itemSort, setItemSort] = useState<ItemSortOption>(() => getInitialItemSort());
+  const [itemSearch, setItemSearch] = useState(() => getInitialItemSearch());
   const [editingItem, setEditingItem] = useState<WishlistItem | null>(null);
   const [reservePendingItemId, setReservePendingItemId] = useState<number | string | null>(null);
   const [purchasePendingItemId, setPurchasePendingItemId] = useState<number | string | null>(null);
@@ -166,6 +180,26 @@ export default function WishlistDetail() {
       window.removeEventListener('scroll', handleScroll);
     };
   }, []);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+
+    if (itemSort === 'newest') {
+      params.delete('sort');
+    } else {
+      params.set('sort', itemSort);
+    }
+
+    if (itemSearch.trim()) {
+      params.set('q', itemSearch.trim());
+    } else {
+      params.delete('q');
+    }
+
+    const nextQuery = params.toString();
+    const nextUrl = `${window.location.pathname}${nextQuery ? `?${nextQuery}` : ''}`;
+    window.history.replaceState(null, '', nextUrl);
+  }, [itemSort, itemSearch]);
 
   // Fetch wishlist items
   const { 
@@ -942,12 +976,24 @@ export default function WishlistDetail() {
                     Total items: <span className="font-medium text-gray-900">{items?.length ?? 0}</span>
                   </span>
                   <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-3">
-                    <Input
-                      data-testid="wishlist-detail-search-input"
-                      value={itemSearch}
-                      onChange={(event) => setItemSearch(event.target.value)}
-                      placeholder="Search by item or store"
-                    />
+                    <div className="flex gap-2">
+                      <Input
+                        data-testid="wishlist-detail-search-input"
+                        value={itemSearch}
+                        onChange={(event) => setItemSearch(event.target.value)}
+                        placeholder="Search by item or store"
+                      />
+                      {itemSearch.trim() && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          data-testid="wishlist-detail-search-clear"
+                          onClick={() => setItemSearch('')}
+                        >
+                          Clear
+                        </Button>
+                      )}
+                    </div>
                     <Select value={itemSort} onValueChange={(value) => setItemSort(value as typeof itemSort)}>
                       <SelectTrigger data-testid="wishlist-detail-sort-trigger">
                         <SelectValue placeholder="Sort items" />
