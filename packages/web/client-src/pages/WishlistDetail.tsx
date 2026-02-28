@@ -616,8 +616,8 @@ export default function WishlistDetail() {
     <>
       <main className="flex-1">
         <div data-testid="wishlist-detail-page" className="container mx-auto px-4 py-8 max-w-6xl">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-6">
+            <div className="flex items-start sm:items-center">
               <Button 
                 variant="ghost" 
                 className="mr-2"
@@ -630,7 +630,7 @@ export default function WishlistDetail() {
                 <Skeleton className="h-8 w-40" />
               ) : (
                 <div>
-                  <h1 data-testid="wishlist-detail-title" className="text-4xl font-bold bg-gradient-to-r from-emerald-800 to-green-800 bg-clip-text text-transparent">{resolvedWishlist?.name || "Wishlist Details"}</h1>
+                  <h1 data-testid="wishlist-detail-title" className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-emerald-800 to-green-800 bg-clip-text text-transparent">{resolvedWishlist?.name || "Wishlist Details"}</h1>
                   {(resolvedWishlist?.occasion || eventDateLabel) && (
                     <p className="text-sm text-gray-500 mt-1">
                       {resolvedWishlist?.occasion ? `Event: ${resolvedWishlist.occasion}` : null}
@@ -642,7 +642,7 @@ export default function WishlistDetail() {
               )}
             </div>
             
-            <div className="flex items-center space-x-2">
+            <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:justify-end">
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button 
