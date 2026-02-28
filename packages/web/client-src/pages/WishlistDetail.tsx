@@ -693,6 +693,32 @@ export default function WishlistDetail() {
             </div>
           </div>
 
+          <Card className="mb-4 sm:hidden">
+            <CardContent className="p-3">
+              <div className="flex flex-col gap-2">
+                <div className="flex flex-wrap items-center gap-2 text-sm">
+                  <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-1 text-xs font-medium text-gray-700">
+                    Items: {items?.length ?? 0}
+                  </span>
+                  {eventDateLabel && (
+                    <span className="inline-flex items-center rounded-full bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-700">
+                      Event: {eventDateLabel}
+                    </span>
+                  )}
+                </div>
+                <Button
+                  data-testid="wishlist-detail-mobile-share"
+                  variant="outline"
+                  className="w-full"
+                  onClick={handleShare}
+                  disabled={!resolvedWishlist || isSharing}
+                >
+                  {isSharing ? 'Sharing...' : copied ? 'Copied!' : 'Share Wishlist'}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
           <Card className="mb-6">
             <CardContent className="p-6 space-y-4">
               <div className="flex items-center justify-between">
