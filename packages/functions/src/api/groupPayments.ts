@@ -2,8 +2,10 @@ import { onCall, CallableRequest, HttpsError } from "firebase-functions/v2/https
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
 import { logger } from "firebase-functions/v2";
 import Stripe from "stripe";
+import { ensureFirebaseAdmin } from "../firebase-admin.js";
 import { parsePrice } from "../utils/helpers.js";
 
+ensureFirebaseAdmin();
 const db = getFirestore();
 const stripeSecretKey = process.env.STRIPE_SECRET_KEY || "";
 

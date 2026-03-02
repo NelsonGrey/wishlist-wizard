@@ -2,7 +2,9 @@ import { onCall, CallableRequest, HttpsError } from "firebase-functions/v2/https
 import { getFirestore, Query, DocumentData } from "firebase-admin/firestore";
 import { logger } from "firebase-functions/v2";
 import { AFFILIATE_PROGRAMS, convertAffiliateUrl } from "../utils/affiliate.js";
+import { ensureFirebaseAdmin } from "../firebase-admin.js";
 
+ensureFirebaseAdmin();
 const db = getFirestore();
 
 export const convertAffiliateLink = onCall(async (request: CallableRequest) => {
