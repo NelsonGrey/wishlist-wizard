@@ -174,6 +174,7 @@ async function buildFixtureContext(testUser) {
       wishlistId: null,
       wishlistShareId: null,
       itemId: null,
+      extensionDeleteItemId: null,
       notificationId: null,
       calendarEventId: null,
       deviceId: null,
@@ -208,6 +209,16 @@ async function buildFixtureContext(testUser) {
       priority: 1,
     });
     ctx.ids.itemId = item?.id || null;
+
+    const extensionDeleteItem = await callCallableExpectSuccess('addWishlistItem', testUser.idToken, {
+      wishlistId: ctx.ids.wishlistId,
+      title: 'Smoke Extension Delete Item',
+      productUrl: 'https://www.amazon.com/dp/B000000005',
+      price: '$7.99',
+      store: 'Fixture Store',
+      priority: 1,
+    });
+    ctx.ids.extensionDeleteItemId = extensionDeleteItem?.id || null;
   }
 
   const notification = await callCallableExpectSuccess('createSystemNotification', testUser.idToken, {
@@ -444,14 +455,89 @@ async function resolveCallablePayload(functionName, ctx) {
 }
 
 function resolveHttpRequest(functionName, ctx) {
+  const authorizedHeaders = {
+    Authorization: `Bearer ${ctx.user.idToken}`,
+  };
+
+  if (functionName === 'extensionGetWishlists') {
+    return {
+      method: 'GET',
+      pathSuffix: '',
+      headers: authorizedHeaders,
+    };
+  }
+
+  if (functionName === 'extensionCreateWishlist') {
+    return {
+      method: 'POST',
+      pathSuffix: '',
+      headers: authorizedHeaders,
+      body: { name: `Smoke HTTP Wishlist ${Date.now()}`, description: 'HTTP smoke coverage' },
+    };
+  }
+
+  if (functionName === 'extensionAddItem') {
+    return {
+      method: 'POST',
+      pathSuffix: '',
+      headers: authorizedHeaders,
+      body: {
+        wishlistId: ctx.ids.wishlistId,
+        title: 'Smoke HTTP Extension Item',
+        productUrl: 'https://www.amazon.com/dp/B000000006',
+        price: '$12.50',
+        store: 'HTTP Smoke Store',
+      },
+    };
+  }
+
+  if (functionName === 'extensionGetRecentItems') {
+    return {
+      method: 'GET',
+      pathSuffix: '',
+      headers: authorizedHeaders,
+    };
+  }
+
+  if (functionName === 'extensionGetWishlistItems') {
+    return {
+      method: 'GET',
+      pathSuffix: `/api/extension/wishlists/${ctx.ids.wishlistId}/items`,
+      headers: authorizedHeaders,
+    };
+  }
+
+  if (functionName === 'extensionDeleteItem') {
+    return {
+      method: 'DELETE',
+      pathSuffix: `/api/extension/items/${ctx.ids.extensionDeleteItemId}`,
+      headers: authorizedHeaders,
+    };
+  }
+
+  if (functionName === 'extensionShareWishlist') {
+    return {
+      method: 'POST',
+      pathSuffix: `/api/extension/wishlists/${ctx.ids.wishlistId}/share`,
+      headers: authorizedHeaders,
+      body: {},
+    };
+  }
+
+  if (functionName === 'api') {
+    return {
+      method: 'GET',
+      pathSuffix: '/api/extension/wishlists',
+      headers: authorizedHeaders,
+    };
+  }
+
   if (functionName === 'getItemPriceHistory') {
     const query = new URLSearchParams({ itemId: String(ctx.ids.itemId || '') }).toString();
     return {
       method: 'GET',
       pathSuffix: `?${query}`,
-      headers: {
-        Authorization: `Bearer ${ctx.user.idToken}`,
-      },
+      headers: authorizedHeaders,
     };
   }
 
