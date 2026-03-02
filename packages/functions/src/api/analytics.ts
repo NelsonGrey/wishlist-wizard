@@ -11,6 +11,29 @@ const DEFAULT_EVENTS_LIMIT = 50;
 const DEFAULT_SUMMARY_WINDOW_DAYS = 30;
 const MAX_SUMMARY_WINDOW_DAYS = 365;
 
+const requireAuthenticatedUser = (request: CallableRequest): string => {
+  if (!request.auth?.uid) {
+    throw new HttpsError("unauthenticated", "User must be authenticated");
+  }
+  return request.auth.uid;
+};
+
+const isAdminRequest = async (request: CallableRequest): Promise<boolean> => {
+  const token = request.auth?.token as Record<string, unknown> | undefined;
+  if (token?.admin === true || token?.role === "admin") {
+    return true;
+  }
+
+  const uid = request.auth?.uid;
+  if (!uid) {
+    return false;
+  }
+
+  const userDoc = await db.collection("users").doc(uid).get();
+  const userData = userDoc.exists ? userDoc.data() : null;
+  return Boolean(userData?.isAdmin || userData?.role === "admin");
+};
+
 const normalizeLimit = (value: unknown, fallback: number): number => {
   const parsed = Number(value);
   if (!Number.isFinite(parsed) || parsed <= 0) {
@@ -72,14 +95,19 @@ export const trackAnalyticsEvent = onCall(async (request: CallableRequest) => {
 });
 
 export const getAnalyticsEvents = onCall(async (request: CallableRequest) => {
-  const { limit = DEFAULT_EVENTS_LIMIT, category, action } = request.data || {};
-  const userId = request.auth?.uid || null;
+  const requesterId = requireAuthenticatedUser(request);
+  const { limit = DEFAULT_EVENTS_LIMIT, category, action, includeGlobal = false } = request.data || {};
 
   try {
     let query: Query<DocumentData> = db.collection("analyticsEvents").orderBy("createdAt", "desc");
 
-    if (userId) {
-      query = query.where("userId", "==", userId);
+    if (includeGlobal) {
+      const isAdmin = await isAdminRequest(request);
+      if (!isAdmin) {
+        throw new HttpsError("permission-denied", "Admin role required for global analytics access");
+      }
+    } else {
+      query = query.where("userId", "==", requesterId);
     }
 
     if (typeof category === "string" && category.trim()) {
@@ -103,13 +131,19 @@ export const getAnalyticsEvents = onCall(async (request: CallableRequest) => {
 });
 
 export const getAnalyticsSummary = onCall(async (request: CallableRequest) => {
-  const userId = request.auth?.uid || null;
-  const { windowDays = DEFAULT_SUMMARY_WINDOW_DAYS } = request.data || {};
+  const requesterId = requireAuthenticatedUser(request);
+  const { windowDays = DEFAULT_SUMMARY_WINDOW_DAYS, includeGlobal = false } = request.data || {};
 
   try {
     let query: Query<DocumentData> = db.collection("analyticsEvents");
-    if (userId) {
-      query = query.where("userId", "==", userId);
+
+    if (includeGlobal) {
+      const isAdmin = await isAdminRequest(request);
+      if (!isAdmin) {
+        throw new HttpsError("permission-denied", "Admin role required for global analytics access");
+      }
+    } else {
+      query = query.where("userId", "==", requesterId);
     }
 
     const summaryWindowDays = normalizeWindowDays(windowDays);
