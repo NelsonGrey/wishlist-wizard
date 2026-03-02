@@ -32,6 +32,10 @@ vi.mock('@/hooks/use-toast', () => ({
   })
 }));
 
+vi.mock('@/components/notifications/NotificationSettings', () => ({
+  NotificationSettings: () => <div>Notification Settings Panel</div>
+}));
+
 describe('Notifications Page', () => {
   const mockDate = new Date('2023-05-19T12:00:00Z');
   const formattedDate = format(mockDate, 'MMM d, yyyy h:mm a');
@@ -97,6 +101,18 @@ describe('Notifications Page', () => {
     
     // Assert
     expect(screen.getByText('Mark all as read')).toBeInTheDocument();
+  });
+
+  it('should toggle notification preferences panel from inbox controls', async () => {
+    render(<Notifications />, { pathname: '/notifications' });
+
+    const user = userEvent.setup();
+
+    expect(screen.queryByText('Notification Settings Panel')).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Manage preferences' }));
+    expect(screen.getByText('Notification Settings Panel')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Hide preferences' }));
+    expect(screen.queryByText('Notification Settings Panel')).not.toBeInTheDocument();
   });
 
   it('should not show "Mark all as read" button when all notifications are read', () => {
