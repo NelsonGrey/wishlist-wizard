@@ -134,12 +134,17 @@ function unwrapCallableResult(payload) {
 }
 
 async function callCallableRaw(functionName, idToken, data) {
+  const headers = {
+    'Content-Type': 'application/json',
+  };
+
+  if (idToken) {
+    headers.Authorization = `Bearer ${idToken}`;
+  }
+
   const response = await fetch(`http://${functionsHost}/${projectId}/${region}/${functionName}`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${idToken}`,
-    },
+    headers,
     body: JSON.stringify({ data: data || {} }),
   });
 
@@ -272,6 +277,113 @@ async function buildFixtureContext(testUser) {
     : [];
 
   return ctx;
+}
+
+async function seedAdminUser() {
+  const adminUser = {
+    email: 'smoke-admin-functions@wishlist-wizard.test',
+    password: 'SmokePass123!',
+    displayName: 'Smoke Admin Functions',
+  };
+
+  try {
+    const existing = await auth.getUserByEmail(adminUser.email);
+    await auth.deleteUser(existing.uid);
+  } catch (error) {
+    if (!error || error.code !== 'auth/user-not-found') {
+      throw error;
+    }
+  }
+
+  const created = await auth.createUser({
+    email: adminUser.email,
+    password: adminUser.password,
+    displayName: adminUser.displayName,
+    emailVerified: true,
+  });
+
+  await auth.setCustomUserClaims(created.uid, {
+    admin: true,
+    role: 'admin',
+  });
+
+  const signedIn = await signInWithPassword(adminUser.email, adminUser.password);
+  return { ...adminUser, uid: created.uid, ...signedIn };
+}
+
+function recordOutcome(endpoint, type, outcome) {
+  report.results.push({ endpoint, type, ...outcome });
+  report.summary.total += 1;
+  report.summary[outcome.status] += 1;
+  const icon = outcome.status === 'passed' ? '✅' : outcome.status === 'warned' ? '⚠️' : '❌';
+  console.log(`${icon} ${endpoint} (${type}) - ${outcome.message}`);
+}
+
+async function runAnalyticsAccessContractChecks(fixtureContext) {
+  const checks = [];
+
+  const unauthSummary = await callCallableRaw('getAnalyticsSummary', null, { windowDays: 7 });
+  checks.push({
+    endpoint: 'contract:getAnalyticsSummary:unauthenticated',
+    type: 'contract',
+    ...(unauthSummary.errorStatus === 'UNAUTHENTICATED'
+      ? { status: 'passed', message: 'Unauthenticated analytics summary access correctly denied' }
+      : {
+          status: 'failed',
+          message: `Expected UNAUTHENTICATED, got ${unauthSummary.errorStatus || unauthSummary.response.status}`,
+          httpStatus: unauthSummary.response.status,
+        }),
+  });
+
+  const unauthEvents = await callCallableRaw('getAnalyticsEvents', null, { limit: 5 });
+  checks.push({
+    endpoint: 'contract:getAnalyticsEvents:unauthenticated',
+    type: 'contract',
+    ...(unauthEvents.errorStatus === 'UNAUTHENTICATED'
+      ? { status: 'passed', message: 'Unauthenticated analytics events access correctly denied' }
+      : {
+          status: 'failed',
+          message: `Expected UNAUTHENTICATED, got ${unauthEvents.errorStatus || unauthEvents.response.status}`,
+          httpStatus: unauthEvents.response.status,
+        }),
+  });
+
+  const nonAdminGlobal = await callCallableRaw('getAnalyticsSummary', fixtureContext.user.idToken, {
+    includeGlobal: true,
+    windowDays: 7,
+  });
+  checks.push({
+    endpoint: 'contract:getAnalyticsSummary:nonadmin-global-denied',
+    type: 'contract',
+    ...(nonAdminGlobal.errorStatus === 'PERMISSION_DENIED'
+      ? { status: 'passed', message: 'Non-admin global analytics access correctly denied' }
+      : {
+          status: 'failed',
+          message: `Expected PERMISSION_DENIED, got ${nonAdminGlobal.errorStatus || nonAdminGlobal.response.status}`,
+          httpStatus: nonAdminGlobal.response.status,
+        }),
+  });
+
+  const adminUser = await seedAdminUser();
+  const adminGlobal = await callCallableRaw('getAnalyticsSummary', adminUser.idToken, {
+    includeGlobal: true,
+    windowDays: 7,
+  });
+  checks.push({
+    endpoint: 'contract:getAnalyticsSummary:admin-global-allowed',
+    type: 'contract',
+    ...(!adminGlobal.errorStatus && adminGlobal.response.ok
+      ? { status: 'passed', message: 'Admin global analytics summary access allowed' }
+      : {
+          status: 'failed',
+          message: `Expected success, got ${adminGlobal.errorStatus || adminGlobal.response.status}`,
+          httpStatus: adminGlobal.response.status,
+        }),
+  });
+
+  for (const check of checks) {
+    recordOutcome(check.endpoint, check.type, check);
+  }
 }
 
 async function createTempWishlist(ctx) {
@@ -736,24 +848,18 @@ async function main() {
   const fixtureContext = await buildFixtureContext(testUser);
   console.log('✅ Prepared fixture data for contract payload validation');
 
+  await runAnalyticsAccessContractChecks(fixtureContext);
+
   for (const entry of callableEntries) {
     const payload = await resolveCallablePayload(entry.name, fixtureContext);
     const outcome = await invokeCallable(entry.name, testUser.idToken, payload);
-    report.results.push({ endpoint: entry.name, type: entry.type, ...outcome });
-    report.summary.total += 1;
-    report.summary[outcome.status] += 1;
-    const icon = outcome.status === 'passed' ? '✅' : outcome.status === 'warned' ? '⚠️' : '❌';
-    console.log(`${icon} ${entry.name} (${entry.type}) - ${outcome.message}`);
+    recordOutcome(entry.name, entry.type, outcome);
   }
 
   for (const entry of requestEntries) {
     const requestConfig = resolveHttpRequest(entry.name, fixtureContext);
     const outcome = await invokeHttp(entry.name, requestConfig);
-    report.results.push({ endpoint: entry.name, type: entry.type, ...outcome });
-    report.summary.total += 1;
-    report.summary[outcome.status] += 1;
-    const icon = outcome.status === 'passed' ? '✅' : outcome.status === 'warned' ? '⚠️' : '❌';
-    console.log(`${icon} ${entry.name} (${entry.type}) - ${outcome.message}`);
+    recordOutcome(entry.name, entry.type, outcome);
   }
 
   if (unknown.length > 0) {
