@@ -25,7 +25,7 @@ export default function PrivacyPolicy() {
           <section>
             <h2 className="text-2xl font-semibold text-gray-900 mb-4">1. Introduction</h2>
             <p className="text-gray-700 mb-4">
-              Wishlist Wizard ("we" or "us" or "our") operates the Wishlist Wizard website, mobile application and related services (the "Service"). This page informs you of our policies regarding the collection, use, and disclosure of personal data when you use our Service and the choices you have associated with that data.
+              Wishlist Wizard ("we" or "us" or "our") operates the Wishlist Wizard website, mobile application, and related services (the "Service"). This page informs you of our policies regarding the collection, use, and disclosure of personal data when you use our Service and the choices you have associated with that data.
             </p>
           </section>
 
@@ -99,9 +99,13 @@ export default function PrivacyPolicy() {
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold text-gray-900 mb-4">Contact Us</h2>
+            <h2 className="text-2xl font-semibold text-gray-900 mb-4">8. Contact Us</h2>
             <p className="text-gray-700">
-              If you have any questions about this Privacy Policy, please contact us at privacy@wishlist-wizard.com.
+              If you have any questions about this Privacy Policy, please contact us at{" "}
+              <a href="mailto:privacy@wishlist-wizard.com" className="text-emerald-700 hover:text-emerald-800">
+                privacy@wishlist-wizard.com
+              </a>
+              .
             </p>
           </section>
         </div>

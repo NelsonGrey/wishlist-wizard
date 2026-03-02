@@ -221,10 +221,10 @@ function ContributionForm({
   }, [item.id]);
 
   return (
-    <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+    <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto" aria-label={`Contribute to ${item.title}`}>
       <DialogHeader>
         <DialogTitle className="flex items-center">
-          <Heart className="h-5 w-5 mr-2 text-red-500" />
+          <Heart className="h-5 w-5 mr-2 text-red-500" aria-hidden="true" />
           Contribute to Gift
         </DialogTitle>
         <DialogDescription>
@@ -264,7 +264,7 @@ function ContributionForm({
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-base flex items-center">
-              <Users className="h-4 w-4 mr-2" />
+              <Users className="h-4 w-4 mr-2" aria-hidden="true" />
               Group Progress
             </CardTitle>
           </CardHeader>
@@ -283,6 +283,12 @@ function ContributionForm({
                 <>Goal reached! 🎉</>
               )}
             </div>
+
+            {isLoadingParticipants && (
+              <p className="text-xs text-muted-foreground" role="status" aria-live="polite">
+                Loading contributor activity...
+              </p>
+            )}
 
             {/* Participants */}
             {participants.length > 0 && (
@@ -317,7 +323,7 @@ function ContributionForm({
                   <FormLabel>Your Contribution</FormLabel>
                   <FormControl>
                     <div className="relative">
-                      <DollarSign className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                      <DollarSign className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" aria-hidden="true" />
                       <Input
                         type="number"
                         step="0.01"
@@ -380,7 +386,7 @@ function ContributionForm({
               <Card className="border-dashed">
                 <CardContent className="p-4">
                   <div className="flex items-center space-x-2 mb-2">
-                    <Lock className="h-4 w-4 text-green-600" />
+                    <Lock className="h-4 w-4 text-green-600" aria-hidden="true" />
                     <span className="text-sm font-medium">Secure Payment</span>
                   </div>
                   <CardElement

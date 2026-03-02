@@ -247,16 +247,19 @@ export default function SharedWishlist() {
                             <span className="text-sm font-semibold text-gray-900">{item.price}</span>
                             <span className="text-xs text-gray-500 ml-1">{item.store}</span>
                           </div>
-                          <a
-                            href={item.productUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            title={`View ${item.title} on ${item.store || 'store'}`}
-                            className="text-primary hover:text-indigo-700"
-                            onClick={handleAffiliateClick}
-                          >
-                            <ExternalLink className="h-5 w-5" />
-                          </a>
+                          <Button asChild size="sm" className="flex items-center gap-1">
+                            <a
+                              href={item.productUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              title={`View ${item.title} on ${item.store || 'store'}`}
+                              onClick={handleAffiliateClick}
+                              data-testid={`shared-wishlist-buy-now-${item.id}`}
+                            >
+                              Buy Now
+                              <ExternalLink className="h-4 w-4" />
+                            </a>
+                          </Button>
                         </div>
                         {affiliateConversion && (
                           <div className="mt-2">

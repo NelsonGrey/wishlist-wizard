@@ -723,12 +723,13 @@ const PrivacySettingsPage = () => {
                         <Button
                           variant="ghost"
                           size="sm"
+                          aria-label={`Remove custom access user ${userId}`}
                           onClick={() => {
                             const newList = selectedEntity.privacySettings!.customAccessList!.filter(id => id !== userId);
                             handleAccessListUpdate(selectedEntity, newList);
                           }}
                         >
-                          <UserMinus className="h-4 w-4" />
+                          <UserMinus className="h-4 w-4" aria-hidden="true" />
                         </Button>
                       </div>
                     ))}

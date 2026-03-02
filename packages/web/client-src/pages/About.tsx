@@ -8,7 +8,7 @@ export default function About() {
         <title>About Wishlist Wizard | Wishlist Wizard</title>
         <meta 
           name="description" 
-          content="Learn about Wishlist Wizard and our mission to make wishlist management magical."
+          content="Learn about Wishlist Wizard and our mission to make gifting and wishlist planning simpler."
         />
       </Helmet>
 
@@ -18,7 +18,7 @@ export default function About() {
             About Wishlist Wizard
           </h1>
           <p className="text-gray-600 mt-2">
-            Making wishlist management magical, one item at a time
+            Making gifting and wishlist planning simpler.
           </p>
         </div>
 
@@ -26,17 +26,17 @@ export default function About() {
           <section>
             <h2 className="text-2xl font-semibold text-gray-900 mb-4">Our Mission</h2>
             <p className="text-gray-700 mb-4">
-              Wishlist Wizard is dedicated to revolutionizing how people create, manage, and share their wishlists. We believe that everyone deserves an easy, delightful way to keep track of the things they want and to help their friends and family find the perfect gifts.
+              Wishlist Wizard helps people create, manage, and share wishlists with less friction. We believe everyone should have an easy, reliable way to track the things they want and help friends and family choose the right gifts.
             </p>
           </section>
 
           <section>
             <h2 className="text-2xl font-semibold text-gray-900 mb-4">Our Story</h2>
             <p className="text-gray-700 mb-4">
-              What started as a simple idea has grown into a comprehensive platform for wishlist management. We saw the problem: people scattered their wants across multiple platforms, friends and family had trouble finding the right gifts, and managing wishlists was unnecessarily complicated. So we built Wishlist Wizard.
+              What started as a simple idea has grown into a comprehensive wishlist platform. We saw the problem: people scattered items across multiple stores, gift coordination was difficult, and list management was more complicated than it should be. So we built Wishlist Wizard.
             </p>
             <p className="text-gray-700">
-              Today, Wishlist Wizard helps countless users organize their desires, share their wishlists with loved ones, and discover amazing new products they'll love. We're just getting started, and the future is bright.
+              Today, Wishlist Wizard helps users organize what they want, share lists with people they trust, and discover relevant products. We continue to improve the product based on real user feedback.
             </p>
           </section>
 
@@ -100,10 +100,10 @@ export default function About() {
           <section>
             <h2 className="text-2xl font-semibold text-gray-900 mb-4">Our Commitment</h2>
             <p className="text-gray-700 mb-4">
-              We're committed to protecting your privacy, maintaining the highest standards of security, and providing outstanding customer support. Your trust is everything to us, and we work tirelessly to earn it every single day.
+              We are committed to protecting your privacy, maintaining strong security practices, and providing responsive support. Trust is foundational to how we build and operate.
             </p>
             <p className="text-gray-700">
-              Thank you for being part of the Wishlist Wizard community. We can't wait to help you discover, manage, and share the things you love.
+              Thank you for using Wishlist Wizard.
             </p>
           </section>
 

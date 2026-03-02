@@ -245,7 +245,7 @@ describe('WishlistItem Component', () => {
 
     expect(screen.getByText('Detailed item information and actions.')).toBeInTheDocument();
     expect(screen.getByText('Product URL')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /view product/i })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /view .*product page/i })).toBeInTheDocument();
   });
 
   it('should render copy product link action in overflow menu', async () => {

@@ -90,7 +90,7 @@ export default function Register() {
                   <FormItem>
                     <FormLabel>Display Name (optional)</FormLabel>
                     <FormControl>
-                      <Input data-testid="register-display-name-input" placeholder="Your display name" {...field} />
+                      <Input data-testid="register-display-name-input" autoComplete="name" placeholder="Your display name" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -104,7 +104,7 @@ export default function Register() {
                   <FormItem>
                     <FormLabel>Email</FormLabel>
                     <FormControl>
-                      <Input data-testid="register-email-input" type="email" placeholder="your.email@example.com" {...field} />
+                      <Input data-testid="register-email-input" type="email" autoComplete="email" placeholder="your.email@example.com" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -118,7 +118,7 @@ export default function Register() {
                   <FormItem>
                     <FormLabel>Password</FormLabel>
                     <FormControl>
-                      <Input data-testid="register-password-input" type="password" placeholder="••••••••" {...field} />
+                      <Input data-testid="register-password-input" type="password" autoComplete="new-password" placeholder="••••••••" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -132,7 +132,7 @@ export default function Register() {
                   <FormItem>
                     <FormLabel>Confirm Password</FormLabel>
                     <FormControl>
-                      <Input data-testid="register-confirm-password-input" type="password" placeholder="••••••••" {...field} />
+                      <Input data-testid="register-confirm-password-input" type="password" autoComplete="new-password" placeholder="••••••••" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -148,7 +148,7 @@ export default function Register() {
         <CardFooter className="flex flex-col space-y-4">
           <div className="text-center text-sm">
             Already have an account?{" "}
-            <Button variant="link" className="p-0" onClick={() => setLocation("/login")}>
+            <Button type="button" variant="link" className="p-0" onClick={() => setLocation("/login")}>
               Sign in
             </Button>
           </div>

@@ -33,7 +33,7 @@ export default function Blog() {
             </CardHeader>
             <CardContent>
               <a
-                href="mailto:support@wishlist-wizard-prod.web.app?subject=Blog%20Update%20Notifications"
+                href="mailto:support@wishlist-wizard.com?subject=Blog%20Update%20Notifications"
                 className="text-emerald-700 hover:text-emerald-800 font-medium transition-colors"
               >
                 Request blog update notifications
@@ -47,7 +47,7 @@ export default function Blog() {
               For release updates, contact our team directly.
             </p>
             <a
-              href="mailto:support@wishlist-wizard-prod.web.app?subject=Wishlist%20Wizard%20Newsletter"
+              href="mailto:support@wishlist-wizard.com?subject=Wishlist%20Wizard%20Newsletter"
               className="text-emerald-700 hover:text-emerald-800 font-medium transition-colors"
             >
               Contact support for updates

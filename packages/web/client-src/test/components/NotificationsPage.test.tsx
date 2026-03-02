@@ -139,13 +139,13 @@ describe('Notifications Page', () => {
     expect(dateElements.length).toBe(2);
   });
 
-  it('should show the "View" button for notifications with action URLs', () => {
+  it('should show contextual action buttons for notifications with action URLs', () => {
     // Arrange & Act
     render(<Notifications />, { pathname: '/notifications' });
     
     // Assert
-    const viewButtons = screen.getAllByText('View');
-    expect(viewButtons.length).toBe(2); // Both notifications have actionUrls
+    expect(screen.getByRole('link', { name: 'Open Wishlist' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'View Item' })).toBeInTheDocument();
   });
 
   it('should show the "Mark as read" button for unread notifications without action URLs', () => {
@@ -254,8 +254,8 @@ describe('Notifications Page', () => {
     render(<Notifications />, { pathname: '/notifications' });
     
     // Assert
-    expect(screen.getByText('No notifications yet')).toBeInTheDocument();
-    expect(screen.getByText("You'll see notifications about activity on your wishlists here.")).toBeInTheDocument();
+    expect(screen.getByText('No notifications in this view')).toBeInTheDocument();
+    expect(screen.getByText("You'll see notifications about wishlist activity here.")).toBeInTheDocument();
   });
 
   it('should render safely when notification timestamp is invalid', () => {

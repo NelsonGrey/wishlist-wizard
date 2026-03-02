@@ -16,10 +16,9 @@ export default function Features() {
     <section className="py-16 bg-slate-50">
       <div className="container mx-auto px-4">
         <div className="text-center mb-16">
-          <h2 className="text-3xl md:text-4xl font-bold mb-4 bg-gradient-to-r from-emerald-800 to-green-700 bg-clip-text text-transparent">Our Exclusive Features</h2>
+          <h2 className="text-3xl md:text-4xl font-bold mb-4 bg-gradient-to-r from-emerald-800 to-green-700 bg-clip-text text-transparent">Product Features</h2>
           <p className="text-lg text-slate-600 max-w-2xl mx-auto">
-            Wishlist Wizard goes beyond basic wishlists with these powerful and exclusive features
-            that make gift-giving easier and more delightful.
+            Wishlist Wizard combines planning, sharing, and tracking capabilities that make gift-giving easier.
           </p>
         </div>
         

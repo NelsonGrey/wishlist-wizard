@@ -109,8 +109,13 @@ export function ARProductViewer({ product, className = "" }: ARProductViewerProp
           </div>
           
           <div className="flex space-x-2">
-            <Button variant="outline" size="icon" onClick={handleShare}>
-              <Share2 className="h-4 w-4" />
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={handleShare}
+              aria-label={`Share AR view for ${product?.title || 'this product'}`}
+            >
+              <Share2 className="h-4 w-4" aria-hidden="true" />
             </Button>
           </div>
         </div>
@@ -135,11 +140,11 @@ export function ARProductViewer({ product, className = "" }: ARProductViewerProp
           
           <TabsContent value="viewar" className="mt-0">
             <div className="h-[400px] bg-muted flex flex-col items-center justify-center p-6 text-center">
-              <Camera className="h-16 w-16 mb-4 text-muted-foreground" />
+              <Camera className="h-16 w-16 mb-4 text-muted-foreground" aria-hidden="true" />
               <h3 className="text-lg font-semibold mb-2">AR Experience</h3>
               <p className="text-muted-foreground mb-6">Point your camera at a flat surface to place this item in your space.</p>
               
-              <Button onClick={() => {
+              <Button aria-label={`Launch AR experience for ${product?.title || 'this product'}`} onClick={() => {
                 toast({
                   title: "AR Mode Activated",
                   description: "For full AR functionality, please use the mobile app or enable AR in your device settings.",

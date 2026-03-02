@@ -40,6 +40,11 @@ type PriceAlert = {
   };
 };
 
+const parsePrice = (value?: string): number => {
+  const parsed = parseFloat(String(value || "").replace(/[$,]/g, ""));
+  return Number.isFinite(parsed) ? parsed : 0;
+};
+
 interface PriceAlertsListProps {
   limit?: number;
 }
@@ -188,6 +193,7 @@ export default function PriceAlertsList({ limit }: PriceAlertsListProps) {
               <TableHead>Item</TableHead>
               <TableHead>Current Price</TableHead>
               <TableHead>Target Price</TableHead>
+              <TableHead>To Target</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
@@ -195,42 +201,66 @@ export default function PriceAlertsList({ limit }: PriceAlertsListProps) {
           <TableBody>
             {displayedAlerts.map((alert) => (
               <TableRow key={alert.id}>
-                <TableCell className="font-medium">
-                  <div className="flex items-center">
-                    {alert.item.imageUrl && (
-                      <img
-                        src={alert.item.imageUrl}
-                        alt={alert.item.title}
-                        className="w-8 h-8 object-cover rounded mr-2"
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).src = "https://placehold.co/80x80/e2e8f0/64748b?text=Item";
-                        }}
-                      />
-                    )}
-                    <div className="line-clamp-1 max-w-[150px]">
-                      {alert.item.title}
-                    </div>
-                  </div>
-                </TableCell>
-                <TableCell>{alert.item.price}</TableCell>
-                <TableCell>${parseFloat(alert.targetPrice).toFixed(2)}</TableCell>
-                <TableCell>
-                  {alert.notified ? (
-                    <Badge variant="success">Triggered</Badge>
-                  ) : (
-                    <Badge>Active</Badge>
-                  )}
-                </TableCell>
-                <TableCell className="text-right">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => handleDeleteAlert(alert.id)}
-                    disabled={deletePriceAlertMutation.isPending}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </TableCell>
+                {(() => {
+                  const current = parsePrice(alert.currentPrice || alert.item.price);
+                  const target = parsePrice(alert.targetPrice);
+                  const diff = Number((current - target).toFixed(2));
+                  const percent = target > 0 ? Number(((diff / target) * 100).toFixed(1)) : 0;
+                  const isAtOrBelowTarget = current > 0 && target > 0 && current <= target;
+
+                  return (
+                    <>
+                      <TableCell className="font-medium">
+                        <div className="flex items-center">
+                          {alert.item.imageUrl && (
+                            <img
+                              src={alert.item.imageUrl}
+                              alt={alert.item.title}
+                              className="w-8 h-8 object-cover rounded mr-2"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).src = "https://placehold.co/80x80/e2e8f0/64748b?text=Item";
+                              }}
+                            />
+                          )}
+                          <div className="line-clamp-1 max-w-[150px]">
+                            {alert.item.title}
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell>${current.toFixed(2)}</TableCell>
+                      <TableCell>${target.toFixed(2)}</TableCell>
+                      <TableCell>
+                        {isAtOrBelowTarget ? (
+                          <span className="text-green-700 text-sm font-medium">Reached</span>
+                        ) : (
+                          <span className="text-sm">
+                            ${Math.max(0, diff).toFixed(2)} ({Math.max(0, percent).toFixed(1)}%)
+                          </span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {alert.notified ? (
+                          <Badge variant="success">Triggered</Badge>
+                        ) : isAtOrBelowTarget ? (
+                          <Badge variant="outline">At Target</Badge>
+                        ) : (
+                          <Badge>Active</Badge>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          aria-label={`Delete price alert for ${alert.item.title}`}
+                          onClick={() => handleDeleteAlert(alert.id)}
+                          disabled={deletePriceAlertMutation.isPending}
+                        >
+                          <Trash2 className="h-4 w-4" aria-hidden="true" />
+                        </Button>
+                      </TableCell>
+                    </>
+                  );
+                })()}
               </TableRow>
             ))}
           </TableBody>

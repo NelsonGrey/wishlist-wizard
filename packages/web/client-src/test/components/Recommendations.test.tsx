@@ -54,7 +54,7 @@ describe('Recommendations Page', () => {
   it('shows wishlist selector when wishlists load successfully', () => {
     render(<Recommendations />);
 
-    expect(screen.getByText('Select wishlist for adding items')).toBeInTheDocument();
+    expect(screen.getByText('Choose a wishlist directly in the recommendations card when adding items.')).toBeInTheDocument();
   });
 
   it('shows loading state while wishlists are loading', () => {

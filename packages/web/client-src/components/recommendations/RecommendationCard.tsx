@@ -88,7 +88,7 @@ export default function RecommendationCard({
       }
     }
     
-    window.open(productUrl, "_blank");
+    window.open(productUrl, "_blank", "noopener,noreferrer");
   };
   
   // Handle saving or rejecting a recommendation
@@ -189,7 +189,12 @@ export default function RecommendationCard({
           <div className="absolute top-2 left-2">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-8 w-8 p-0 bg-white/80 hover:bg-white/90 rounded-full">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0 bg-white/80 hover:bg-white/90 rounded-full"
+                  aria-label={`More actions for ${title}`}
+                >
                   <MoreHorizontal className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
@@ -226,6 +231,7 @@ export default function RecommendationCard({
                 <Star
                   key={i}
                   size={16}
+                  aria-hidden="true"
                   className={`${
                     i < stars ? "text-yellow-400 fill-yellow-400" : "text-gray-300"
                   }`}
@@ -248,6 +254,7 @@ export default function RecommendationCard({
           size="sm" 
           className="flex-1"
           onClick={handleView}
+          aria-label={`View product details for ${title}`}
         >
           <ExternalLink size={16} className="mr-1" /> View
         </Button>
@@ -257,6 +264,7 @@ export default function RecommendationCard({
             size="sm" 
             className="flex-1 bg-gradient-to-r from-purple-600 to-blue-500 hover:from-purple-700 hover:to-blue-600"
             disabled={isLoading}
+            aria-label={`Add ${title} to selected wishlist`}
           >
             <ShoppingCart size={16} className="mr-1" /> 
             {isLoading ? "Adding..." : "Add"}

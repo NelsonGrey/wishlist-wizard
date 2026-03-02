@@ -97,6 +97,7 @@ export default function WishlistItem({
   const isPurchased = Boolean(item.purchasedByUserId);
   const isReserved = Boolean(item.reservedByUserId);
   const normalizedItemId = String(item.id).replace(/[^a-zA-Z0-9_-]/g, '-');
+  const itemDisplayTitle = String(item.title || 'item');
   const reservedByUserId = item.reservedByUserId == null ? null : String(item.reservedByUserId);
   const isReservedByCurrentUser = Boolean(currentUserId && reservedByUserId === currentUserId);
 
@@ -254,12 +255,13 @@ export default function WishlistItem({
                         href={item.productUrl}
                         target="_blank"
                         rel="noopener noreferrer"
+                        aria-label={`Open ${itemDisplayTitle} on ${item.store || 'store'} in a new tab`}
                         title={`View ${item.title} on ${item.store || 'store'}`}
                         className="text-gray-500 hover:text-primary p-1"
                         onClick={handleAffiliateClick}
                         data-testid={`wishlist-item-view-product-${normalizedItemId}`}
                       >
-                        <ExternalLink className="h-4 w-4" />
+                        <ExternalLink className="h-4 w-4" aria-hidden="true" />
                       </a>
                     </TooltipTrigger>
                     <TooltipContent>
@@ -272,24 +274,24 @@ export default function WishlistItem({
                         variant="ghost"
                         size="icon"
                         className="text-gray-500 hover:text-gray-700 h-8 w-8"
-                        aria-label="More item actions"
+                        aria-label={`More actions for ${itemDisplayTitle}`}
                         title="More item actions"
                         data-testid={`wishlist-item-more-${normalizedItemId}`}
                       >
-                        <MoreHorizontal className="h-4 w-4" />
+                        <MoreHorizontal className="h-4 w-4" aria-hidden="true" />
                       </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onSelect={handleContribute} data-testid={`wishlist-item-contribute-${normalizedItemId}`}>
-                        <Heart className="h-4 w-4 mr-2" />
+                    <DropdownMenuContent align="end" aria-label={`Actions for ${itemDisplayTitle}`}>
+                      <DropdownMenuItem aria-label={`Contribute to ${itemDisplayTitle}`} onSelect={handleContribute} data-testid={`wishlist-item-contribute-${normalizedItemId}`}>
+                        <Heart className="h-4 w-4 mr-2" aria-hidden="true" />
                         Contribute
                       </DropdownMenuItem>
-                      <DropdownMenuItem onSelect={handlePriceAlert} data-testid={`wishlist-item-alert-${normalizedItemId}`}>
-                        <Bell className="h-4 w-4 mr-2" />
+                      <DropdownMenuItem aria-label={`Set price alert for ${itemDisplayTitle}`} onSelect={handlePriceAlert} data-testid={`wishlist-item-alert-${normalizedItemId}`}>
+                        <Bell className="h-4 w-4 mr-2" aria-hidden="true" />
                         Alert
                       </DropdownMenuItem>
-                      <DropdownMenuItem onSelect={handleCopyProductUrl} data-testid={`wishlist-item-copy-link-${normalizedItemId}`}>
-                        {isLinkCopied ? <Check className="h-4 w-4 mr-2" /> : <Copy className="h-4 w-4 mr-2" />}
+                      <DropdownMenuItem aria-label={`Copy product link for ${itemDisplayTitle}`} onSelect={handleCopyProductUrl} data-testid={`wishlist-item-copy-link-${normalizedItemId}`}>
+                        {isLinkCopied ? <Check className="h-4 w-4 mr-2" aria-hidden="true" /> : <Copy className="h-4 w-4 mr-2" aria-hidden="true" />}
                         {isLinkCopied ? 'Copied!' : 'Copy Link'}
                       </DropdownMenuItem>
                     </DropdownMenuContent>
@@ -379,7 +381,7 @@ export default function WishlistItem({
                 </div>
               )}
               {actionStatusMessage && (onReserve || onPurchase) && (
-                <p className="text-xs text-gray-500 mt-2">{actionStatusMessage}</p>
+                <p className="text-xs text-gray-500 mt-2" role="status" aria-live="polite">{actionStatusMessage}</p>
               )}
             </div>
           </div>
@@ -406,6 +408,7 @@ export default function WishlistItem({
       <Dialog open={isDetailsDialogOpen} onOpenChange={setIsDetailsDialogOpen}>
         <DialogContent
           className="sm:max-w-[620px] max-h-[80vh] overflow-y-auto"
+          aria-label={`Item details for ${itemDisplayTitle}`}
           data-testid={`wishlist-item-details-dialog-${normalizedItemId}`}
         >
           <DialogHeader>
@@ -456,6 +459,7 @@ export default function WishlistItem({
                 href={item.productUrl}
                 target="_blank"
                 rel="noopener noreferrer"
+                aria-label={`Open ${itemDisplayTitle} product page in a new tab`}
                 className="text-sm text-primary underline break-all"
               >
                 {item.productUrl}
@@ -507,18 +511,28 @@ export default function WishlistItem({
               </Button>
             )}
             <Button className="w-full sm:w-auto" asChild>
-              <a href={item.productUrl} target="_blank" rel="noopener noreferrer" onClick={handleAffiliateClick}>
-                <ExternalLink className="h-4 w-4 mr-2" />
+              <a
+                href={item.productUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={`View ${itemDisplayTitle} product page in a new tab`}
+                onClick={handleAffiliateClick}
+              >
+                <ExternalLink className="h-4 w-4 mr-2" aria-hidden="true" />
                 View Product
               </a>
             </Button>
             <Button className="w-full sm:w-auto" variant="outline" onClick={handleCopyProductUrl} data-testid={`wishlist-item-copy-link-dialog-${normalizedItemId}`}>
-              {isLinkCopied ? <Check className="h-4 w-4 mr-2" /> : <Copy className="h-4 w-4 mr-2" />}
+              {isLinkCopied ? <Check className="h-4 w-4 mr-2" aria-hidden="true" /> : <Copy className="h-4 w-4 mr-2" aria-hidden="true" />}
               {isLinkCopied ? 'Copied!' : 'Copy Link'}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <span className="sr-only" role="status" aria-live="polite" data-testid={`wishlist-item-copy-status-${normalizedItemId}`}>
+        {isLinkCopied ? `Product link copied for ${itemDisplayTitle}` : ''}
+      </span>
 
       <ContributionDialog
         open={isContributionDialogOpen}

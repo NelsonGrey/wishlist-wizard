@@ -1,14 +1,7 @@
-import React, { useState } from "react";
+import React from "react";
 import { Helmet } from "react-helmet";
 import { useQuery } from "@tanstack/react-query";
 import RecommendationsSection from "@/components/recommendations/RecommendationsSection";
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from "@/components/ui/select";
 import { InboxIcon } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -17,8 +10,6 @@ import { getApiErrorMessage } from "@/lib/api-errors";
 import { Wishlist } from "@wishlist-wizard/shared";
 
 export default function Recommendations() {
-  const [selectedWishlistId, setSelectedWishlistId] = useState<string>("");
-
   // Fetch the user's wishlists
   const {
     data: wishlists,
@@ -29,6 +20,11 @@ export default function Recommendations() {
   } = useQuery<Wishlist[]>({ 
     queryKey: ['/api/wishlists'],
   });
+
+  const wishlistOptions = (wishlists || []).map((wishlist) => ({
+    id: Number(wishlist.id),
+    name: wishlist.name,
+  }));
 
   return (
     <>
@@ -54,7 +50,7 @@ export default function Recommendations() {
             <RecommendationsHelp />
           </div>
 
-          <div className="mt-4 md:mt-0 w-full md:w-64">
+          <div className="mt-4 md:mt-0 w-full md:w-80">
             {isWishlistsLoading ? (
               <p className="text-sm text-gray-500">Loading wishlists...</p>
             ) : isWishlistsError ? (
@@ -66,21 +62,9 @@ export default function Recommendations() {
                 </Button>
               </div>
             ) : wishlists && wishlists.length > 0 ? (
-              <Select 
-                value={selectedWishlistId} 
-                onValueChange={setSelectedWishlistId}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select wishlist for adding items" />
-                </SelectTrigger>
-                <SelectContent>
-                  {wishlists.map((wishlist) => (
-                    <SelectItem key={wishlist.id} value={wishlist.id.toString()}>
-                      {wishlist.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <p className="text-sm text-gray-600">
+                Choose a wishlist directly in the recommendations card when adding items.
+              </p>
             ) : (
               <p className="text-sm text-gray-500">No wishlists yet.</p>
             )}
@@ -89,7 +73,7 @@ export default function Recommendations() {
 
         <div className="space-y-8">
           {/* Display AI-Powered Recommendations */}
-          <RecommendationsSection />
+          <RecommendationsSection wishlistOptions={wishlistOptions} />
 
           {/* How it works section */}
           <Card>

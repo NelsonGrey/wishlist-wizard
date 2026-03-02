@@ -5,6 +5,7 @@ import { onCall, HttpsError, CallableRequest } from 'firebase-functions/v2/https
 import { getFirestore } from 'firebase-admin/firestore';
 import { logger } from 'firebase-functions/v2';
 import { ensureFirebaseAdmin } from '../firebase-admin.js';
+import { requireAuthenticatedUser, requireAdminUser } from '../utils/auth-guards.js';
 
 ensureFirebaseAdmin();
 const db = getFirestore();
@@ -16,15 +17,11 @@ const db = getFirestore();
  * Replaces: GET /api/notifications
  */
 export const getUserNotifications = onCall(async (request: CallableRequest) => {
-  if (!request.auth) {
-    throw new HttpsError('unauthenticated', 'User must be authenticated');
-  }
+  const userId = requireAuthenticatedUser(request);
 
   const { limit = 20 } = request.data;
 
   try {
-    const userId = request.auth.uid;
-    
     // Get notifications for the user
     const notificationsSnapshot = await db
       .collection('notifications')
@@ -61,9 +58,7 @@ export const getUserNotifications = onCall(async (request: CallableRequest) => {
  * Replaces: PATCH /api/notifications/:id/read
  */
 export const markNotificationAsRead = onCall(async (request: CallableRequest) => {
-  if (!request.auth) {
-    throw new HttpsError('unauthenticated', 'User must be authenticated');
-  }
+  const userId = requireAuthenticatedUser(request);
 
   const { notificationId } = request.data;
   if (!notificationId) {
@@ -71,7 +66,6 @@ export const markNotificationAsRead = onCall(async (request: CallableRequest) =>
   }
 
   try {
-    const userId = request.auth.uid;
     const notificationDoc = await db.collection('notifications').doc(notificationId).get();
 
     if (!notificationDoc.exists) {
@@ -106,13 +100,9 @@ export const markNotificationAsRead = onCall(async (request: CallableRequest) =>
  * Replaces: POST /api/notifications/mark-all-read
  */
 export const markAllNotificationsAsRead = onCall(async (request: CallableRequest) => {
-  if (!request.auth) {
-    throw new HttpsError('unauthenticated', 'User must be authenticated');
-  }
+  const userId = requireAuthenticatedUser(request);
 
   try {
-    const userId = request.auth.uid;
-    
     // Get all unread notifications
     const unreadNotificationsSnapshot = await db
       .collection('notifications')
@@ -149,9 +139,7 @@ export const markAllNotificationsAsRead = onCall(async (request: CallableRequest
  * Replaces: DELETE /api/notifications/:id
  */
 export const deleteNotification = onCall(async (request: CallableRequest) => {
-  if (!request.auth) {
-    throw new HttpsError('unauthenticated', 'User must be authenticated');
-  }
+  const userId = requireAuthenticatedUser(request);
 
   const { notificationId } = request.data;
   if (!notificationId) {
@@ -159,7 +147,6 @@ export const deleteNotification = onCall(async (request: CallableRequest) => {
   }
 
   try {
-    const userId = request.auth.uid;
     const notificationDoc = await db.collection('notifications').doc(notificationId).get();
 
     if (!notificationDoc.exists) {
@@ -186,9 +173,7 @@ export const deleteNotification = onCall(async (request: CallableRequest) => {
  * Internal function for creating system notifications
  */
 export const createSystemNotification = onCall(async (request: CallableRequest) => {
-  if (!request.auth) {
-    throw new HttpsError('unauthenticated', 'User must be authenticated');
-  }
+  await requireAdminUser(request, 'Admin role required to create system notifications');
 
   const { targetUserId, type, title, content, data, actionUrl } = request.data;
 
@@ -222,12 +207,9 @@ export const createSystemNotification = onCall(async (request: CallableRequest) 
  * Get user's notification preferences
  */
 export const getNotificationSettings = onCall(async (request: CallableRequest) => {
-  if (!request.auth) {
-    throw new HttpsError('unauthenticated', 'User must be authenticated');
-  }
+  const userId = requireAuthenticatedUser(request);
 
   try {
-    const userId = request.auth.uid;
     const userDoc = await db.collection('users').doc(userId).get();
 
     if (!userDoc.exists) {
@@ -257,9 +239,7 @@ export const getNotificationSettings = onCall(async (request: CallableRequest) =
  * Update user's notification preferences
  */
 export const updateNotificationSettings = onCall(async (request: CallableRequest) => {
-  if (!request.auth) {
-    throw new HttpsError('unauthenticated', 'User must be authenticated');
-  }
+  const userId = requireAuthenticatedUser(request);
 
   const { settings } = request.data;
   if (!settings || typeof settings !== 'object') {
@@ -267,8 +247,6 @@ export const updateNotificationSettings = onCall(async (request: CallableRequest
   }
 
   try {
-    const userId = request.auth.uid;
-    
     const allowedSettings = [
       'email', 'push', 'priceAlerts', 'wishlistUpdates', 
       'collaborationUpdates', 'marketingEmails'
@@ -304,11 +282,7 @@ export const updateNotificationSettings = onCall(async (request: CallableRequest
  * Internal function to clean up old notifications (called by scheduled function)
  */
 export const cleanOldNotifications = onCall(async (request: CallableRequest) => {
-  // This should typically be called by a scheduled function, not directly by users
-  // Adding basic auth check for security
-  if (!request.auth) {
-    throw new HttpsError('unauthenticated', 'User must be authenticated');
-  }
+  await requireAdminUser(request, 'Admin role required to clean notifications');
 
   try {
     // Delete notifications older than 90 days
