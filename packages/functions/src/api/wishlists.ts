@@ -4,9 +4,11 @@
 import { onCall, HttpsError, CallableRequest } from 'firebase-functions/v2/https';
 import { getFirestore } from 'firebase-admin/firestore';
 import { logger } from 'firebase-functions/v2';
+import { ensureFirebaseAdmin } from '../firebase-admin.js';
 import { generateId } from '../utils/helpers.js';
 import { convertAffiliateUrl } from '../utils/affiliate.js';
 
+ensureFirebaseAdmin();
 const db = getFirestore();
 const publicCallableOptions = { invoker: 'public' as const };
 

@@ -4,7 +4,9 @@
 import { onCall, HttpsError, CallableRequest } from 'firebase-functions/v2/https';
 import { getFirestore } from 'firebase-admin/firestore';
 import { logger } from 'firebase-functions/v2';
+import { ensureFirebaseAdmin } from '../firebase-admin.js';
 
+ensureFirebaseAdmin();
 const db = getFirestore();
 
 // Removed unused NotificationData interface - using Firestore document structure directly

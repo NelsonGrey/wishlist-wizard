@@ -1,7 +1,9 @@
 import { onCall, CallableRequest, HttpsError } from "firebase-functions/v2/https";
 import { getFirestore, Query, DocumentData } from "firebase-admin/firestore";
 import { logger } from "firebase-functions/v2";
+import { ensureFirebaseAdmin } from "../firebase-admin.js";
 
+ensureFirebaseAdmin();
 const db = getFirestore();
 
 export const trackAnalyticsEvent = onCall(async (request: CallableRequest) => {

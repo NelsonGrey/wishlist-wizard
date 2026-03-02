@@ -2,7 +2,9 @@ import { onRequest } from 'firebase-functions/v2/https';
 import { getFirestore } from 'firebase-admin/firestore';
 import { getAuth } from 'firebase-admin/auth';
 import { logger } from 'firebase-functions/v2';
+import { ensureFirebaseAdmin } from '../firebase-admin.js';
 
+ensureFirebaseAdmin();
 const db = getFirestore();
 const auth = getAuth();
 

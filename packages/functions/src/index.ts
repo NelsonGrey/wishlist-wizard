@@ -1,5 +1,7 @@
 // Firebase Functions v1 - no global options needed
 
+import './firebase-admin';
+
 // =============================================================================
 // AUTHENTICATION FUNCTIONS
 // =============================================================================

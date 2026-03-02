@@ -2,7 +2,9 @@ import { onCall, CallableRequest, HttpsError } from "firebase-functions/v2/https
 import { getFirestore } from "firebase-admin/firestore";
 import { logger } from "firebase-functions/v2";
 import { randomUUID } from "crypto";
+import { ensureFirebaseAdmin } from "../firebase-admin.js";
 
+ensureFirebaseAdmin();
 const db = getFirestore();
 
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || "";

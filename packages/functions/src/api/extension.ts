@@ -5,8 +5,10 @@ import { onCall, HttpsError, CallableRequest } from 'firebase-functions/v2/https
 import { getAuth } from 'firebase-admin/auth';
 import { getFirestore } from 'firebase-admin/firestore';
 import { logger } from 'firebase-functions/v2';
+import { ensureFirebaseAdmin } from '../firebase-admin.js';
 import { convertAffiliateUrl } from '../utils/affiliate.js';
 
+ensureFirebaseAdmin();
 const auth = getAuth();
 const db = getFirestore();
 
