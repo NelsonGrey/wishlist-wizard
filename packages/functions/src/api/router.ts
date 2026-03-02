@@ -139,20 +139,23 @@ export const api = onRequest(async (req, res) => {
         return;
       }
 
-      const itemRef = db.collection('wishlists').doc(wishlistId).collection('items').doc();
-      const now = new Date().toISOString();
+      const itemRef = db.collection('wishlistItems').doc();
+      const now = new Date();
 
       const itemData = {
-        title,
-        productUrl: productUrl || '',
-        imageUrl: imageUrl || '',
-        price: price ? parseFloat(price.toString()) : 0,
-        store: store || 'Unknown',
-        addedAt: addedAt || now,
-        updatedAt: now,
+        wishlistId,
+        title: String(title).trim(),
+        productUrl: productUrl || null,
+        imageUrl: imageUrl || null,
+        price: price || null,
+        store: store || null,
+        note: req.body?.note || '',
         purchased: false,
         reserved: false,
-        notes: ''
+        addedBy: userId,
+        createdAt: now,
+        updatedAt: now,
+        addedAt: addedAt || now,
       };
 
       await itemRef.set(itemData);
@@ -178,9 +181,9 @@ export const api = onRequest(async (req, res) => {
       const items: any[] = [];
 
       for (const wishlistDoc of wishlistsSnapshot.docs) {
-        const itemsSnapshot = await wishlistDoc.ref
-          .collection('items')
-          .orderBy('addedAt', 'desc')
+        const itemsSnapshot = await db
+          .collection('wishlistItems')
+          .where('wishlistId', '==', wishlistDoc.id)
           .limit(10)
           .get();
 
@@ -195,7 +198,15 @@ export const api = onRequest(async (req, res) => {
       }
 
       const recentItems = items
-        .sort((a, b) => new Date(b.addedAt).getTime() - new Date(a.addedAt).getTime())
+        .sort((a, b) => {
+          const getTime = (value: any): number => {
+            if (!value) return 0;
+            if (typeof value?.toMillis === 'function') return value.toMillis();
+            const parsed = new Date(value).getTime();
+            return Number.isNaN(parsed) ? 0 : parsed;
+          };
+          return getTime(b.createdAt || b.addedAt) - getTime(a.createdAt || a.addedAt);
+        })
         .slice(0, 20);
 
       sendJson(res, recentItems);
@@ -215,48 +226,63 @@ export const api = onRequest(async (req, res) => {
         return;
       }
 
-      const itemsSnapshot = await wishlistDoc.ref
-        .collection('items')
-        .orderBy('addedAt', 'desc')
+      const itemsSnapshot = await db
+        .collection('wishlistItems')
+        .where('wishlistId', '==', wishlistId)
         .get();
 
-      const items = itemsSnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
+      const items = itemsSnapshot.docs
+        .map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }))
+        .sort((a, b) => {
+          const getTime = (value: any): number => {
+            if (!value) return 0;
+            if (typeof value?.toMillis === 'function') return value.toMillis();
+            const parsed = new Date(value).getTime();
+            return Number.isNaN(parsed) ? 0 : parsed;
+          };
+          return getTime((b as any).createdAt || (b as any).addedAt) - getTime((a as any).createdAt || (a as any).addedAt);
+        });
 
       sendJson(res, items);
     }
     else if (method === 'DELETE' && path.match(/^\/api\/extension\/items\/[^/]+$/)) {
       // DELETE /api/extension/items/:itemId
       const itemId = path.split('/')[4];
-      
-      const wishlistsSnapshot = await db
-        .collection('wishlists')
-        .where('userId', '==', userId)
-        .get();
 
-      let itemDeleted = false;
-      for (const wishlistDoc of wishlistsSnapshot.docs) {
-        const itemDoc = await wishlistDoc.ref.collection('items').doc(itemId).get();
-        if (itemDoc.exists) {
-          await itemDoc.ref.delete();
-          
-          const wishlistData = wishlistDoc.data();
-          await wishlistDoc.ref.update({
-            itemCount: Math.max(0, (wishlistData?.itemCount || 0) - 1),
-            updatedAt: new Date().toISOString()
-          });
-          
-          itemDeleted = true;
-          break;
-        }
-      }
-
-      if (!itemDeleted) {
+      const itemDoc = await db.collection('wishlistItems').doc(itemId).get();
+      if (!itemDoc.exists) {
         sendError(res, 404, 'Item not found');
         return;
       }
+
+      const itemData = itemDoc.data();
+      const wishlistId = itemData?.wishlistId;
+      if (!wishlistId) {
+        sendError(res, 400, 'Invalid item data');
+        return;
+      }
+
+      const wishlistDoc = await db.collection('wishlists').doc(wishlistId).get();
+      if (!wishlistDoc.exists) {
+        sendError(res, 404, 'Wishlist not found');
+        return;
+      }
+
+      if (wishlistDoc.data()?.userId !== userId) {
+        sendError(res, 403, 'You can only remove items from your own wishlists');
+        return;
+      }
+
+      await itemDoc.ref.delete();
+
+      const wishlistData = wishlistDoc.data();
+      await wishlistDoc.ref.update({
+        itemCount: Math.max(0, (wishlistData?.itemCount || 0) - 1),
+        updatedAt: new Date()
+      });
 
       sendJson(res, { success: true, message: 'Item deleted' });
     }
