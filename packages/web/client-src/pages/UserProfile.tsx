@@ -315,54 +315,75 @@ const UserProfile = () => {
         <div className="lg:col-span-1">
           <Card>
             <CardContent className="p-0">
-              <nav className="flex flex-col">
+              <nav className="flex flex-col" aria-label="Profile settings sections">
                 <button 
+                  type="button"
                   className={`flex items-center gap-3 p-4 text-left transition-colors hover:bg-muted ${selectedTab === 'profile' ? 'bg-muted font-medium' : ''}`}
                   onClick={() => setSelectedTab('profile')}
+                  aria-pressed={selectedTab === 'profile'}
+                  aria-label="Open Profile section"
                 >
-                  <User size={18} />
+                  <User size={18} aria-hidden="true" />
                   <span>Profile</span>
                 </button>
                 <button 
+                  type="button"
                   className={`flex items-center gap-3 p-4 text-left transition-colors hover:bg-muted ${selectedTab === 'preferences' ? 'bg-muted font-medium' : ''}`}
                   onClick={() => setSelectedTab('preferences')}
+                  aria-pressed={selectedTab === 'preferences'}
+                  aria-label="Open Gift Preferences section"
                 >
-                  <Gift size={18} />
+                  <Gift size={18} aria-hidden="true" />
                   <span>Gift Preferences</span>
                 </button>
                 <button 
+                  type="button"
                   className={`flex items-center gap-3 p-4 text-left transition-colors hover:bg-muted ${selectedTab === 'notifications' ? 'bg-muted font-medium' : ''}`}
                   onClick={() => setSelectedTab('notifications')}
+                  aria-pressed={selectedTab === 'notifications'}
+                  aria-label="Open Notifications section"
                 >
-                  <Bell size={18} />
+                  <Bell size={18} aria-hidden="true" />
                   <span>Notifications</span>
                 </button>
                 <button 
+                  type="button"
                   className={`flex items-center gap-3 p-4 text-left transition-colors hover:bg-muted ${selectedTab === 'privacy' ? 'bg-muted font-medium' : ''}`}
                   onClick={() => setSelectedTab('privacy')}
+                  aria-pressed={selectedTab === 'privacy'}
+                  aria-label="Open Privacy section"
                 >
-                  <Lock size={18} />
+                  <Lock size={18} aria-hidden="true" />
                   <span>Privacy</span>
                 </button>
                 <button 
+                  type="button"
                   className={`flex items-center gap-3 p-4 text-left transition-colors hover:bg-muted ${selectedTab === 'connections' ? 'bg-muted font-medium' : ''}`}
                   onClick={() => setSelectedTab('connections')}
+                  aria-pressed={selectedTab === 'connections'}
+                  aria-label="Open Connections section"
                 >
-                  <HeartHandshake size={18} />
+                  <HeartHandshake size={18} aria-hidden="true" />
                   <span>Connections</span>
                 </button>
                 <button 
+                  type="button"
                   className={`flex items-center gap-3 p-4 text-left transition-colors hover:bg-muted ${selectedTab === 'stats' ? 'bg-muted font-medium' : ''}`}
                   onClick={() => setSelectedTab('stats')}
+                  aria-pressed={selectedTab === 'stats'}
+                  aria-label="Open Stats and Achievements section"
                 >
-                  <BarChart3 size={18} />
+                  <BarChart3 size={18} aria-hidden="true" />
                   <span>Stats & Achievements</span>
                 </button>
                 <button 
+                  type="button"
                   className={`flex items-center gap-3 p-4 text-left transition-colors hover:bg-muted ${selectedTab === 'settings' ? 'bg-muted font-medium' : ''}`}
                   onClick={() => setSelectedTab('settings')}
+                  aria-pressed={selectedTab === 'settings'}
+                  aria-label="Open Account Settings section"
                 >
-                  <Settings size={18} />
+                  <Settings size={18} aria-hidden="true" />
                   <span>Account Settings</span>
                 </button>
               </nav>
@@ -516,8 +537,9 @@ const UserProfile = () => {
                                   size="icon" 
                                   className="h-5 w-5 ml-1" 
                                   onClick={() => removeInterest(interest)}
+                                  aria-label={`Remove interest ${interest}`}
                                 >
-                                  <X size={12} />
+                                  <X size={12} aria-hidden="true" />
                                 </Button>
                               </div>
                             ))}
@@ -667,8 +689,9 @@ const UserProfile = () => {
                                 size="icon" 
                                 className="h-5 w-5 ml-1" 
                                 onClick={() => removeGiftPreferenceItem('colors', color)}
+                                aria-label={`Remove favorite color ${color}`}
                               >
-                                <X size={12} />
+                                <X size={12} aria-hidden="true" />
                               </Button>
                             </div>
                           ))}
@@ -711,8 +734,9 @@ const UserProfile = () => {
                                 size="icon" 
                                 className="h-5 w-5 ml-1" 
                                 onClick={() => removeGiftPreferenceItem('doNotWant', item)}
+                                aria-label={`Remove uninterested item ${item}`}
                               >
-                                <X size={12} />
+                                <X size={12} aria-hidden="true" />
                               </Button>
                             </div>
                           ))}
@@ -755,8 +779,9 @@ const UserProfile = () => {
                                 size="icon" 
                                 className="h-5 w-5 ml-1" 
                                 onClick={() => removeGiftPreferenceItem('giftCards', card)}
+                                aria-label={`Remove gift card preference ${card}`}
                               >
-                                <X size={12} />
+                                <X size={12} aria-hidden="true" />
                               </Button>
                             </div>
                           ))}
@@ -799,8 +824,9 @@ const UserProfile = () => {
                                 size="icon" 
                                 className="h-5 w-5 ml-1" 
                                 onClick={() => removeFavoriteStore(store)}
+                                aria-label={`Remove favorite store ${store}`}
                               >
-                                <X size={12} />
+                                <X size={12} aria-hidden="true" />
                               </Button>
                             </div>
                           ))}
@@ -1006,8 +1032,8 @@ const UserProfile = () => {
                             </div>
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon">
-                                  <ChevronDown size={16} />
+                                <Button variant="ghost" size="icon" aria-label={`Open actions for ${friend.name}`}>
+                                  <ChevronDown size={16} aria-hidden="true" />
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">

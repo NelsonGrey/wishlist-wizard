@@ -1,7 +1,7 @@
 import { KeyboardEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useRoute, useLocation } from "wouter";
-import { ArrowLeft, Check, ChevronUp, ExternalLink, Plus, Share2 } from "lucide-react";
+import { ArrowLeft, Check, ChevronUp, Download, ExternalLink, Plus, Share2 } from "lucide-react";
 import WishlistItem from "@/components/WishlistItem";
 import PrivacyControls from "@/components/privacy/PrivacyControls";
 import { getApiErrorMessage } from "@/lib/api-errors";
@@ -58,6 +58,7 @@ export default function WishlistDetail() {
   const [, setLocation] = useLocation();
   const [copied, setCopied] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
+  const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [isItemDialogOpen, setIsItemDialogOpen] = useState(false);
   const [isEditingWishlist, setIsEditingWishlist] = useState(false);
@@ -136,6 +137,12 @@ export default function WishlistDetail() {
   const resolvedWishlist = wishlist && !Array.isArray(wishlist)
     ? wishlist
     : null;
+  const shareUrl = resolvedWishlist ? `${window.location.origin}/shared/${resolvedWishlist.shareId}` : "";
+  const shareMessage = resolvedWishlist
+    ? `Check out this wishlist: ${resolvedWishlist.name}`
+    : "Check out this wishlist";
+  const encodedShareMessage = encodeURIComponent(shareMessage);
+  const encodedShareUrl = encodeURIComponent(shareUrl);
   const parsedEventDate = resolvedWishlist?.occasionDate
     ? new Date(resolvedWishlist.occasionDate)
     : null;
@@ -307,6 +314,75 @@ export default function WishlistDetail() {
       return searchableText.includes(query);
     });
   }, [sortedItems, itemSearch]);
+
+  const coordinationSummary = useMemo(() => {
+    const sourceItems = items || [];
+    const total = sourceItems.length;
+    const purchased = sourceItems.filter((item) => Boolean(item.purchasedByUserId)).length;
+    const reserved = sourceItems.filter(
+      (item) => Boolean(item.reservedByUserId) && !item.purchasedByUserId
+    ).length;
+    const available = Math.max(0, total - purchased - reserved);
+
+    return {
+      total,
+      purchased,
+      reserved,
+      available,
+      completionPercent: total > 0 ? Math.round((purchased / total) * 100) : 0,
+    };
+  }, [items]);
+
+  const handleExportCoordinationCsv = () => {
+    if (!items || items.length === 0 || !resolvedWishlist) {
+      toast({
+        title: "No items to export",
+        description: "Add items first to export coordination data.",
+      });
+      return;
+    }
+
+    const sanitize = (value: unknown) => String(value ?? "").replace(/"/g, '""');
+    const rows = items.map((item) => {
+      const status = item.purchasedByUserId
+        ? "Purchased"
+        : item.reservedByUserId
+          ? "Reserved"
+          : "Available";
+
+      return [
+        item.title,
+        item.store,
+        item.price,
+        status,
+        item.reservedByUserId ?? "",
+        item.purchasedByUserId ?? "",
+      ];
+    });
+
+    const header = ["Title", "Store", "Price", "Status", "Reserved By", "Purchased By"];
+    const csv = [header, ...rows]
+      .map((columns) => columns.map((column) => `"${sanitize(column)}"`).join(","))
+      .join("\n");
+
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute(
+      "download",
+      `${resolvedWishlist.name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-coordination.csv`
+    );
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    toast({
+      title: "Export complete",
+      description: "Coordination CSV downloaded.",
+    });
+  };
 
   const focusItemDetailsButton = (itemId: number | string) => {
     const normalizedItemId = getNormalizedItemId(itemId);
@@ -715,7 +791,6 @@ export default function WishlistDetail() {
       return;
     }
 
-    const shareUrl = `${window.location.origin}/shared/${resolvedWishlist.shareId}`;
     setIsSharing(true);
 
     const fallbackCopy = () => {
@@ -766,8 +841,23 @@ export default function WishlistDetail() {
       return;
     }
 
-    const shareUrl = `${window.location.origin}/shared/${resolvedWishlist.shareId}`;
     window.open(shareUrl, '_blank', 'noopener,noreferrer');
+  };
+
+  const handleNativeShare = async () => {
+    if (!resolvedWishlist || !navigator.share) {
+      return;
+    }
+
+    try {
+      await navigator.share({
+        title: resolvedWishlist.name,
+        text: shareMessage,
+        url: shareUrl,
+      });
+    } catch {
+      // User cancellation is expected in some flows; no toast needed.
+    }
   };
 
   if (!wishlistId) {
@@ -862,6 +952,24 @@ export default function WishlistDetail() {
                 </TooltipTrigger>
                 <TooltipContent>
                   Copy a public wishlist link
+                </TooltipContent>
+              </Tooltip>
+
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    data-testid="wishlist-detail-share-options"
+                    variant="outline"
+                    className="flex items-center gap-2"
+                    onClick={() => setIsShareDialogOpen(true)}
+                    disabled={!resolvedWishlist}
+                  >
+                    <Share2 className="h-4 w-4" />
+                    Share Options
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  Share via messaging and social channels
                 </TooltipContent>
               </Tooltip>
 
@@ -1036,6 +1144,55 @@ export default function WishlistDetail() {
                   />
                 </div>
               </div>
+            </CardContent>
+          </Card>
+
+          <Card className="mb-6">
+            <CardContent className="p-6 space-y-4">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <h2 className="text-lg font-semibold">Coordination Status</h2>
+                  <p className="text-sm text-gray-500">Track purchase commitments and export current status.</p>
+                </div>
+                <Button
+                  variant="outline"
+                  className="w-full sm:w-auto flex items-center gap-2"
+                  onClick={handleExportCoordinationCsv}
+                  disabled={!items || items.length === 0}
+                >
+                  <Download className="h-4 w-4" />
+                  Export CSV
+                </Button>
+              </div>
+
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                <div className="rounded-lg border p-3">
+                  <p className="text-gray-500">Total</p>
+                  <p className="text-lg font-semibold">{coordinationSummary.total}</p>
+                </div>
+                <div className="rounded-lg border p-3">
+                  <p className="text-gray-500">Available</p>
+                  <p className="text-lg font-semibold">{coordinationSummary.available}</p>
+                </div>
+                <div className="rounded-lg border p-3">
+                  <p className="text-gray-500">Reserved</p>
+                  <p className="text-lg font-semibold">{coordinationSummary.reserved}</p>
+                </div>
+                <div className="rounded-lg border p-3">
+                  <p className="text-gray-500">Purchased</p>
+                  <p className="text-lg font-semibold">{coordinationSummary.purchased}</p>
+                </div>
+              </div>
+
+              <div className="h-2 w-full rounded bg-gray-100 overflow-hidden">
+                <div
+                  className="h-full bg-gradient-to-r from-emerald-600 to-green-600"
+                  style={{ width: `${coordinationSummary.completionPercent}%` }}
+                />
+              </div>
+              <p className="text-xs text-gray-500">
+                Purchase completion: {coordinationSummary.completionPercent}%
+              </p>
             </CardContent>
           </Card>
 
@@ -1275,6 +1432,88 @@ export default function WishlistDetail() {
               {isItemMutationPending
                 ? (editingItem ? "Saving..." : "Adding...")
                 : (editingItem ? "Save Changes" : "Add Item")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isShareDialogOpen} onOpenChange={setIsShareDialogOpen}>
+        <DialogContent className="sm:max-w-[560px]">
+          <DialogHeader>
+            <DialogTitle>Share Wishlist</DialogTitle>
+            <DialogDescription>
+              Share this wishlist link with friends and family.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="rounded-md border p-3 text-sm break-all">{shareUrl || 'No share link available.'}</div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <Button variant="outline" onClick={handleShare} disabled={!resolvedWishlist || isSharing}>
+                {isSharing ? 'Copying...' : 'Copy Link'}
+              </Button>
+              {typeof navigator !== 'undefined' && typeof navigator.share === 'function' ? (
+                <Button variant="outline" onClick={handleNativeShare} disabled={!resolvedWishlist}>
+                  Use Device Share
+                </Button>
+              ) : (
+                <Button variant="outline" onClick={handleOpenSharedWishlist} disabled={!resolvedWishlist}>
+                  Open Shared Page
+                </Button>
+              )}
+              <Button asChild variant="outline" disabled={!resolvedWishlist}>
+                <a
+                  href={`https://wa.me/?text=${encodedShareMessage}%20${encodedShareUrl}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  WhatsApp
+                </a>
+              </Button>
+              <Button asChild variant="outline" disabled={!resolvedWishlist}>
+                <a
+                  href={`https://t.me/share/url?url=${encodedShareUrl}&text=${encodedShareMessage}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Telegram
+                </a>
+              </Button>
+              <Button asChild variant="outline" disabled={!resolvedWishlist}>
+                <a
+                  href={`mailto:?subject=${encodeURIComponent(resolvedWishlist?.name || 'Wishlist')}&body=${encodedShareMessage}%0A%0A${encodedShareUrl}`}
+                >
+                  Email
+                </a>
+              </Button>
+              <Button asChild variant="outline" disabled={!resolvedWishlist}>
+                <a href={`sms:?body=${encodedShareMessage}%20${encodedShareUrl}`}>SMS</a>
+              </Button>
+              <Button asChild variant="outline" disabled={!resolvedWishlist}>
+                <a
+                  href={`https://discord.com/channels/@me`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Discord
+                </a>
+              </Button>
+              <Button asChild variant="outline" disabled={!resolvedWishlist}>
+                <a
+                  href={`https://www.facebook.com/sharer/sharer.php?u=${encodedShareUrl}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Facebook
+                </a>
+              </Button>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsShareDialogOpen(false)}>
+              Close
             </Button>
           </DialogFooter>
         </DialogContent>

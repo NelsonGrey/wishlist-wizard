@@ -173,8 +173,10 @@ async function callCallableExpectSuccess(functionName, idToken, data) {
 }
 
 async function buildFixtureContext(testUser) {
+  const adminUser = await seedAdminUser();
   const ctx = {
     user: testUser,
+    admin: adminUser,
     ids: {
       wishlistId: null,
       wishlistShareId: null,
@@ -226,7 +228,7 @@ async function buildFixtureContext(testUser) {
     ctx.ids.extensionDeleteItemId = extensionDeleteItem?.id || null;
   }
 
-  const notification = await callCallableExpectSuccess('createSystemNotification', testUser.idToken, {
+  const notification = await callCallableExpectSuccess('createSystemNotification', adminUser.idToken, {
     targetUserId: testUser.uid,
     type: 'smoke_fixture',
     title: 'Fixture Notification',
@@ -386,6 +388,306 @@ async function runAnalyticsAccessContractChecks(fixtureContext) {
   }
 }
 
+async function runAnalyticsNormalizationContractChecks(fixtureContext) {
+  const checks = [];
+
+  const highWindow = await callCallableRaw('getAnalyticsSummary', fixtureContext.user.idToken, {
+    windowDays: 9999,
+  });
+  checks.push({
+    endpoint: 'contract:getAnalyticsSummary:window-max-clamped',
+    type: 'contract',
+    ...(!highWindow.errorStatus
+      && highWindow.response.ok
+      && highWindow.result?.summary
+      && highWindow.result.summary.windowDays === 365
+      ? { status: 'passed', message: 'Analytics summary windowDays is clamped to max (365)' }
+      : {
+          status: 'failed',
+          message: `Expected windowDays=365, got ${highWindow.result?.summary?.windowDays ?? highWindow.errorStatus ?? highWindow.response.status}`,
+          httpStatus: highWindow.response.status,
+        }),
+  });
+
+  const lowWindow = await callCallableRaw('getAnalyticsSummary', fixtureContext.user.idToken, {
+    windowDays: -1,
+  });
+  checks.push({
+    endpoint: 'contract:getAnalyticsSummary:window-default-fallback',
+    type: 'contract',
+    ...(!lowWindow.errorStatus
+      && lowWindow.response.ok
+      && lowWindow.result?.summary
+      && lowWindow.result.summary.windowDays === 30
+      ? { status: 'passed', message: 'Analytics summary windowDays falls back to default (30)' }
+      : {
+          status: 'failed',
+          message: `Expected windowDays=30, got ${lowWindow.result?.summary?.windowDays ?? lowWindow.errorStatus ?? lowWindow.response.status}`,
+          httpStatus: lowWindow.response.status,
+        }),
+  });
+
+  const zeroLimit = await callCallableRaw('getAnalyticsEvents', fixtureContext.user.idToken, {
+    limit: 0,
+  });
+  checks.push({
+    endpoint: 'contract:getAnalyticsEvents:limit-default-fallback',
+    type: 'contract',
+    ...(!zeroLimit.errorStatus && zeroLimit.response.ok && Array.isArray(zeroLimit.result?.events)
+      ? { status: 'passed', message: 'Analytics events limit=0 falls back to default without failure' }
+      : {
+          status: 'failed',
+          message: `Expected successful fallback for limit=0, got ${zeroLimit.errorStatus || zeroLimit.response.status}`,
+          httpStatus: zeroLimit.response.status,
+        }),
+  });
+
+  const highLimit = await callCallableRaw('getAnalyticsEvents', fixtureContext.user.idToken, {
+    limit: 5000,
+  });
+  checks.push({
+    endpoint: 'contract:getAnalyticsEvents:limit-max-clamped',
+    type: 'contract',
+    ...(!highLimit.errorStatus && highLimit.response.ok && Array.isArray(highLimit.result?.events)
+      ? { status: 'passed', message: 'Analytics events high limit is accepted and normalized without failure' }
+      : {
+          status: 'failed',
+          message: `Expected successful normalization for high limit, got ${highLimit.errorStatus || highLimit.response.status}`,
+          httpStatus: highLimit.response.status,
+        }),
+  });
+
+  for (const check of checks) {
+    recordOutcome(check.endpoint, check.type, check);
+  }
+}
+
+async function runNotificationAccessContractChecks(fixtureContext) {
+  const checks = [];
+  const systemNotificationPayload = {
+    targetUserId: fixtureContext.user.uid,
+    type: 'contract_system_notification',
+    title: 'Contract System Notification',
+    content: 'Contract content',
+  };
+
+  const unauthSystemNotification = await callCallableRaw('createSystemNotification', null, systemNotificationPayload);
+  checks.push({
+    endpoint: 'contract:createSystemNotification:unauthenticated',
+    type: 'contract',
+    ...(unauthSystemNotification.errorStatus === 'UNAUTHENTICATED'
+      ? { status: 'passed', message: 'Unauthenticated system notification access correctly denied' }
+      : {
+          status: 'failed',
+          message: `Expected UNAUTHENTICATED, got ${unauthSystemNotification.errorStatus || unauthSystemNotification.response.status}`,
+          httpStatus: unauthSystemNotification.response.status,
+        }),
+  });
+
+  const nonAdminSystemNotification = await callCallableRaw('createSystemNotification', fixtureContext.user.idToken, systemNotificationPayload);
+  checks.push({
+    endpoint: 'contract:createSystemNotification:nonadmin-denied',
+    type: 'contract',
+    ...(nonAdminSystemNotification.errorStatus === 'PERMISSION_DENIED'
+      ? { status: 'passed', message: 'Non-admin system notification access correctly denied' }
+      : {
+          status: 'failed',
+          message: `Expected PERMISSION_DENIED, got ${nonAdminSystemNotification.errorStatus || nonAdminSystemNotification.response.status}`,
+          httpStatus: nonAdminSystemNotification.response.status,
+        }),
+  });
+
+  const adminSystemNotification = await callCallableRaw('createSystemNotification', fixtureContext.admin.idToken, systemNotificationPayload);
+  checks.push({
+    endpoint: 'contract:createSystemNotification:admin-allowed',
+    type: 'contract',
+    ...(!adminSystemNotification.errorStatus && adminSystemNotification.response.ok
+      ? { status: 'passed', message: 'Admin system notification access allowed' }
+      : {
+          status: 'failed',
+          message: `Expected success, got ${adminSystemNotification.errorStatus || adminSystemNotification.response.status}`,
+          httpStatus: adminSystemNotification.response.status,
+        }),
+  });
+
+  const unauthCleanup = await callCallableRaw('cleanOldNotifications', null, {});
+  checks.push({
+    endpoint: 'contract:cleanOldNotifications:unauthenticated',
+    type: 'contract',
+    ...(unauthCleanup.errorStatus === 'UNAUTHENTICATED'
+      ? { status: 'passed', message: 'Unauthenticated cleanOldNotifications access correctly denied' }
+      : {
+          status: 'failed',
+          message: `Expected UNAUTHENTICATED, got ${unauthCleanup.errorStatus || unauthCleanup.response.status}`,
+          httpStatus: unauthCleanup.response.status,
+        }),
+  });
+
+  const nonAdminCleanup = await callCallableRaw('cleanOldNotifications', fixtureContext.user.idToken, {});
+  checks.push({
+    endpoint: 'contract:cleanOldNotifications:nonadmin-denied',
+    type: 'contract',
+    ...(nonAdminCleanup.errorStatus === 'PERMISSION_DENIED'
+      ? { status: 'passed', message: 'Non-admin cleanOldNotifications access correctly denied' }
+      : {
+          status: 'failed',
+          message: `Expected PERMISSION_DENIED, got ${nonAdminCleanup.errorStatus || nonAdminCleanup.response.status}`,
+          httpStatus: nonAdminCleanup.response.status,
+        }),
+  });
+
+  const adminCleanup = await callCallableRaw('cleanOldNotifications', fixtureContext.admin.idToken, {});
+  checks.push({
+    endpoint: 'contract:cleanOldNotifications:admin-allowed',
+    type: 'contract',
+    ...(!adminCleanup.errorStatus && adminCleanup.response.ok
+      ? { status: 'passed', message: 'Admin cleanOldNotifications access allowed' }
+      : {
+          status: 'failed',
+          message: `Expected success, got ${adminCleanup.errorStatus || adminCleanup.response.status}`,
+          httpStatus: adminCleanup.response.status,
+        }),
+  });
+
+  const payload = {
+    userIds: [fixtureContext.user.uid],
+    notification: {
+      title: 'Contract Batch Notification',
+      body: 'Batch contract payload',
+    },
+  };
+
+  const unauthBatch = await callCallableRaw('sendBatchNotification', null, payload);
+  checks.push({
+    endpoint: 'contract:sendBatchNotification:unauthenticated',
+    type: 'contract',
+    ...(unauthBatch.errorStatus === 'UNAUTHENTICATED'
+      ? { status: 'passed', message: 'Unauthenticated batch notification access correctly denied' }
+      : {
+          status: 'failed',
+          message: `Expected UNAUTHENTICATED, got ${unauthBatch.errorStatus || unauthBatch.response.status}`,
+          httpStatus: unauthBatch.response.status,
+        }),
+  });
+
+  const nonAdminBatch = await callCallableRaw('sendBatchNotification', fixtureContext.user.idToken, payload);
+  checks.push({
+    endpoint: 'contract:sendBatchNotification:nonadmin-denied',
+    type: 'contract',
+    ...(nonAdminBatch.errorStatus === 'PERMISSION_DENIED'
+      ? { status: 'passed', message: 'Non-admin batch notification access correctly denied' }
+      : {
+          status: 'failed',
+          message: `Expected PERMISSION_DENIED, got ${nonAdminBatch.errorStatus || nonAdminBatch.response.status}`,
+          httpStatus: nonAdminBatch.response.status,
+        }),
+  });
+
+  const adminBatch = await callCallableRaw('sendBatchNotification', fixtureContext.admin.idToken, payload);
+  const adminBatchResult = adminBatch.result;
+  const hasValidBatchShape =
+    adminBatchResult
+    && typeof adminBatchResult === 'object'
+    && ['success', 'partial', 'failure'].includes(adminBatchResult.status)
+    && typeof adminBatchResult.attempted === 'number'
+    && typeof adminBatchResult.sent === 'number'
+    && typeof adminBatchResult.skipped === 'number'
+    && typeof adminBatchResult.failed === 'number'
+    && adminBatchResult.attempted === payload.userIds.length
+    && (adminBatchResult.sent + adminBatchResult.skipped + adminBatchResult.failed) === adminBatchResult.attempted;
+  checks.push({
+    endpoint: 'contract:sendBatchNotification:admin-allowed',
+    type: 'contract',
+    ...(!adminBatch.errorStatus && adminBatch.response.ok && hasValidBatchShape
+      ? { status: 'passed', message: 'Admin batch notification access returns explicit delivery status and counts' }
+      : {
+          status: 'failed',
+          message: `Expected semantic batch status response, got ${adminBatch.errorStatus || adminBatch.response.status}`,
+          httpStatus: adminBatch.response.status,
+        }),
+  });
+
+  for (const check of checks) {
+    recordOutcome(check.endpoint, check.type, check);
+  }
+}
+
+async function runFcmAccessContractChecks(fixtureContext) {
+  const checks = [];
+
+  const unauthSubscribe = await callCallableRaw('subscribeToTopic', null, { topic: 'smoke-contract-topic' });
+  checks.push({
+    endpoint: 'contract:subscribeToTopic:unauthenticated',
+    type: 'contract',
+    ...(unauthSubscribe.errorStatus === 'UNAUTHENTICATED'
+      ? { status: 'passed', message: 'Unauthenticated subscribeToTopic access correctly denied' }
+      : {
+          status: 'failed',
+          message: `Expected UNAUTHENTICATED, got ${unauthSubscribe.errorStatus || unauthSubscribe.response.status}`,
+          httpStatus: unauthSubscribe.response.status,
+        }),
+  });
+
+  const invalidSubscribe = await callCallableRaw('subscribeToTopic', fixtureContext.user.idToken, { topic: '' });
+  checks.push({
+    endpoint: 'contract:subscribeToTopic:invalid-argument',
+    type: 'contract',
+    ...(invalidSubscribe.errorStatus === 'INVALID_ARGUMENT'
+      ? { status: 'passed', message: 'subscribeToTopic invalid argument correctly rejected' }
+      : {
+          status: 'failed',
+          message: `Expected INVALID_ARGUMENT, got ${invalidSubscribe.errorStatus || invalidSubscribe.response.status}`,
+          httpStatus: invalidSubscribe.response.status,
+        }),
+  });
+
+  const unauthUnsubscribe = await callCallableRaw('unsubscribeFromTopic', null, { topic: 'smoke-contract-topic' });
+  checks.push({
+    endpoint: 'contract:unsubscribeFromTopic:unauthenticated',
+    type: 'contract',
+    ...(unauthUnsubscribe.errorStatus === 'UNAUTHENTICATED'
+      ? { status: 'passed', message: 'Unauthenticated unsubscribeFromTopic access correctly denied' }
+      : {
+          status: 'failed',
+          message: `Expected UNAUTHENTICATED, got ${unauthUnsubscribe.errorStatus || unauthUnsubscribe.response.status}`,
+          httpStatus: unauthUnsubscribe.response.status,
+        }),
+  });
+
+  const invalidUnsubscribe = await callCallableRaw('unsubscribeFromTopic', fixtureContext.user.idToken, { topic: '' });
+  checks.push({
+    endpoint: 'contract:unsubscribeFromTopic:invalid-argument',
+    type: 'contract',
+    ...(invalidUnsubscribe.errorStatus === 'INVALID_ARGUMENT'
+      ? { status: 'passed', message: 'unsubscribeFromTopic invalid argument correctly rejected' }
+      : {
+          status: 'failed',
+          message: `Expected INVALID_ARGUMENT, got ${invalidUnsubscribe.errorStatus || invalidUnsubscribe.response.status}`,
+          httpStatus: invalidUnsubscribe.response.status,
+        }),
+  });
+
+  const unauthTestPush = await callCallableRaw('sendTestPushNotification', null, {
+    title: 'Contract Push',
+    body: 'Contract push body',
+  });
+  checks.push({
+    endpoint: 'contract:sendTestPushNotification:unauthenticated',
+    type: 'contract',
+    ...(unauthTestPush.errorStatus === 'UNAUTHENTICATED'
+      ? { status: 'passed', message: 'Unauthenticated sendTestPushNotification access correctly denied' }
+      : {
+          status: 'failed',
+          message: `Expected UNAUTHENTICATED, got ${unauthTestPush.errorStatus || unauthTestPush.response.status}`,
+          httpStatus: unauthTestPush.response.status,
+        }),
+  });
+
+  for (const check of checks) {
+    recordOutcome(check.endpoint, check.type, check);
+  }
+}
+
 async function createTempWishlist(ctx) {
   const created = await callCallableExpectSuccess('createWishlist', ctx.user.idToken, {
     name: `Temp Wishlist ${Date.now()}`,
@@ -443,7 +745,7 @@ async function resolveCallablePayload(functionName, ctx) {
     case 'markNotificationAsRead':
       return { notificationId: ctx.ids.notificationId };
     case 'deleteNotification': {
-      const note = await callCallableExpectSuccess('createSystemNotification', ctx.user.idToken, {
+      const note = await callCallableExpectSuccess('createSystemNotification', ctx.admin.idToken, {
         targetUserId: uid,
         type: 'smoke_delete',
         title: 'Delete me',
@@ -849,10 +1151,18 @@ async function main() {
   console.log('✅ Prepared fixture data for contract payload validation');
 
   await runAnalyticsAccessContractChecks(fixtureContext);
+  await runAnalyticsNormalizationContractChecks(fixtureContext);
+  await runNotificationAccessContractChecks(fixtureContext);
+  await runFcmAccessContractChecks(fixtureContext);
+
+  const adminCallableNames = new Set(['createSystemNotification', 'sendBatchNotification', 'cleanOldNotifications']);
 
   for (const entry of callableEntries) {
     const payload = await resolveCallablePayload(entry.name, fixtureContext);
-    const outcome = await invokeCallable(entry.name, testUser.idToken, payload);
+    const idToken = adminCallableNames.has(entry.name)
+      ? fixtureContext.admin.idToken
+      : testUser.idToken;
+    const outcome = await invokeCallable(entry.name, idToken, payload);
     recordOutcome(entry.name, entry.type, outcome);
   }
 

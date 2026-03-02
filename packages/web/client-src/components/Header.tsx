@@ -133,8 +133,8 @@ export default function Header() {
           <div className="md:hidden">
             <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
               <SheetTrigger asChild>
-                <Button variant="ghost" size="icon">
-                  <Menu className="h-6 w-6" />
+                <Button variant="ghost" size="icon" aria-label="Open navigation menu">
+                  <Menu className="h-6 w-6" aria-hidden="true" />
                   <span className="sr-only">Open menu</span>
                 </Button>
               </SheetTrigger>

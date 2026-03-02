@@ -297,7 +297,7 @@ export default function Dashboard() {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => setLocation(`/wishlist/${wishlist.id}`)}
+                        onClick={() => setLocation(`/wishlists/${wishlist.id}`)}
                       >
                         Manage Current
                       </Button>
@@ -329,7 +329,7 @@ export default function Dashboard() {
                   <p className="text-sm text-gray-600">{selectedWishlist.description}</p>
                 )}
                 <div className="flex gap-2">
-                  <Button onClick={() => setLocation(`/wishlist/${selectedWishlist.id}`)}>Open Wishlist</Button>
+                  <Button onClick={() => setLocation(`/wishlists/${selectedWishlist.id}`)}>Open Wishlist</Button>
                   <Button variant="outline" onClick={() => setLocation('/calendar')}>Plan on Calendar</Button>
                 </div>
               </CardContent>

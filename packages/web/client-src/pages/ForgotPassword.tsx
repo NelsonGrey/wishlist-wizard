@@ -73,12 +73,13 @@ export default function ForgotPassword() {
             </div>
 
             <div className="space-y-4">
-              <Button onClick={() => setLocation('/login')} className="w-full">
+              <Button type="button" onClick={() => setLocation('/login')} className="w-full">
                 Back to Login
               </Button>
               
               <div className="text-center">
                 <Button 
+                  type="button"
                   variant="link" 
                   onClick={() => setStatus('form')}
                   className="text-sm"
@@ -110,6 +111,7 @@ export default function ForgotPassword() {
                 data-testid="forgot-password-email-input"
                 id="email"
                 type="email"
+                autoComplete="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="Enter your email address"
@@ -119,7 +121,7 @@ export default function ForgotPassword() {
             </div>
 
             {message && (
-              <div data-testid="forgot-password-message" className="text-sm text-red-600">
+              <div data-testid="forgot-password-message" role="alert" aria-live="assertive" className="text-sm text-red-600">
                 {message}
               </div>
             )}
@@ -142,6 +144,7 @@ export default function ForgotPassword() {
 
             <div className="text-center">
               <Button 
+                type="button"
                 variant="link" 
                 onClick={() => setLocation('/login')}
                 className="text-sm"

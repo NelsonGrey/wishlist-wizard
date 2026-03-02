@@ -87,7 +87,7 @@ export default function Login() {
                   <FormItem>
                     <FormLabel>Email</FormLabel>
                     <FormControl>
-                      <Input data-testid="login-email-input" type="email" placeholder="Enter your email" {...field} />
+                      <Input data-testid="login-email-input" type="email" autoComplete="email" placeholder="Enter your email" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -101,7 +101,7 @@ export default function Login() {
                   <FormItem>
                     <FormLabel>Password</FormLabel>
                     <FormControl>
-                      <Input data-testid="login-password-input" type="password" placeholder="••••••••" {...field} />
+                      <Input data-testid="login-password-input" type="password" autoComplete="current-password" placeholder="••••••••" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -116,13 +116,13 @@ export default function Login() {
         </CardContent>
         <CardFooter className="flex flex-col space-y-4">
           <div className="text-center text-sm">
-            <Button variant="link" className="p-0" onClick={() => setLocation("/forgot-password")}>
+            <Button type="button" variant="link" className="p-0" onClick={() => setLocation("/forgot-password")}>
               Forgot your password?
             </Button>
           </div>
           <div className="text-center text-sm">
             Don&apos;t have an account?{" "}
-            <Button variant="link" className="p-0" onClick={() => setLocation("/register")}>
+            <Button type="button" variant="link" className="p-0" onClick={() => setLocation("/register")}>
               Register
             </Button>
           </div>

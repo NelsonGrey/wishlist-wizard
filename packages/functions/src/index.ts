@@ -55,7 +55,8 @@ export {
   deleteNotification,
   createSystemNotification,
   getNotificationSettings,
-  updateNotificationSettings
+  updateNotificationSettings,
+  cleanOldNotifications
 } from './api/notifications';
 
 export {
@@ -92,6 +93,7 @@ export {
   unsubscribeFromTopic,
   sendTestPushNotification,
   sendTestNotification,
+  sendBatchNotification,
   notifyItemAdded,
   notifyItemReserved,
   notifyItemPurchased,

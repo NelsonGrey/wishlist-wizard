@@ -23,7 +23,7 @@ export default function CookiePolicy() {
 
         <div className="space-y-8">
           <section>
-            <h2 className="text-2xl font-semibold text-gray-900 mb-4">1. What are Cookies?</h2>
+            <h2 className="text-2xl font-semibold text-gray-900 mb-4">1. What Are Cookies?</h2>
             <p className="text-gray-700 mb-4">
               Cookies are small pieces of data stored on your device (computer, tablet, or mobile phone) when you visit a website. They are used to remember information about your visit, including your preferences and login information. This makes your next visit to the website easier and the website more useful to you.
             </p>
@@ -89,7 +89,11 @@ export default function CookiePolicy() {
           <section>
             <h2 className="text-2xl font-semibold text-gray-900 mb-4">6. Contact Us</h2>
             <p className="text-gray-700">
-              If you have questions about our cookie policy or how we use cookies, please contact us at privacy@wishlist-wizard.com.
+              If you have questions about our cookie policy or how we use cookies, please contact us at{" "}
+              <a href="mailto:privacy@wishlist-wizard.com" className="text-emerald-700 hover:text-emerald-800">
+                privacy@wishlist-wizard.com
+              </a>
+              .
             </p>
           </section>
         </div>

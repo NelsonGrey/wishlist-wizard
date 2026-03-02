@@ -16,14 +16,14 @@ vi.mock('wouter', async () => {
   return {
     ...actual,
     useRoute: vi.fn(() => [true, { id: '1' }]),
-    useLocation: vi.fn(() => ['/wishlist/1', vi.fn()]),
+    useLocation: vi.fn(() => ['/wishlists/1', vi.fn()]),
   };
 });
 
 describe('WishlistDetail Item CRUD', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    window.history.replaceState({}, '', '/wishlist/1');
+    window.history.replaceState({}, '', '/wishlists/1');
   });
 
   it('opens shared wishlist page from header action', async () => {
@@ -105,7 +105,7 @@ describe('WishlistDetail Item CRUD', () => {
   });
 
   it('hydrates search from query params', async () => {
-    window.history.replaceState({}, '', '/wishlist/1?q=Another');
+    window.history.replaceState({}, '', '/wishlists/1?q=Another');
     render(<WishlistDetail />);
 
     await screen.findByTestId('wishlist-detail-title');
@@ -140,7 +140,7 @@ describe('WishlistDetail Item CRUD', () => {
   });
 
   it('focuses first visible item details action on ArrowDown from search input', async () => {
-    window.history.replaceState({}, '', '/wishlist/1?sort=title-az');
+    window.history.replaceState({}, '', '/wishlists/1?sort=title-az');
     render(<WishlistDetail />);
 
     await screen.findByTestId('wishlist-item-details-1');
@@ -152,7 +152,7 @@ describe('WishlistDetail Item CRUD', () => {
   });
 
   it('focuses last visible item details action on ArrowUp from search input', async () => {
-    window.history.replaceState({}, '', '/wishlist/1?sort=title-az');
+    window.history.replaceState({}, '', '/wishlists/1?sort=title-az');
     render(<WishlistDetail />);
 
     await screen.findByTestId('wishlist-item-details-2');
@@ -164,7 +164,7 @@ describe('WishlistDetail Item CRUD', () => {
   });
 
   it('opens first visible item details dialog on Enter from search input', async () => {
-    window.history.replaceState({}, '', '/wishlist/1?sort=title-az');
+    window.history.replaceState({}, '', '/wishlists/1?sort=title-az');
     render(<WishlistDetail />);
 
     await screen.findByTestId('wishlist-item-details-1');
@@ -176,7 +176,7 @@ describe('WishlistDetail Item CRUD', () => {
   });
 
   it('opens last visible item details dialog on Shift+Enter from search input', async () => {
-    window.history.replaceState({}, '', '/wishlist/1?sort=title-az');
+    window.history.replaceState({}, '', '/wishlists/1?sort=title-az');
     render(<WishlistDetail />);
 
     await screen.findByTestId('wishlist-item-details-2');

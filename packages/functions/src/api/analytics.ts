@@ -2,6 +2,7 @@ import { onCall, CallableRequest, HttpsError } from "firebase-functions/v2/https
 import { getFirestore, Query, DocumentData } from "firebase-admin/firestore";
 import { logger } from "firebase-functions/v2";
 import { ensureFirebaseAdmin } from "../firebase-admin.js";
+import { requireAuthenticatedUser, requireAdminUser } from "../utils/auth-guards.js";
 
 ensureFirebaseAdmin();
 const db = getFirestore();
@@ -10,29 +11,6 @@ const MAX_EVENTS_LIMIT = 200;
 const DEFAULT_EVENTS_LIMIT = 50;
 const DEFAULT_SUMMARY_WINDOW_DAYS = 30;
 const MAX_SUMMARY_WINDOW_DAYS = 365;
-
-const requireAuthenticatedUser = (request: CallableRequest): string => {
-  if (!request.auth?.uid) {
-    throw new HttpsError("unauthenticated", "User must be authenticated");
-  }
-  return request.auth.uid;
-};
-
-const isAdminRequest = async (request: CallableRequest): Promise<boolean> => {
-  const token = request.auth?.token as Record<string, unknown> | undefined;
-  if (token?.admin === true || token?.role === "admin") {
-    return true;
-  }
-
-  const uid = request.auth?.uid;
-  if (!uid) {
-    return false;
-  }
-
-  const userDoc = await db.collection("users").doc(uid).get();
-  const userData = userDoc.exists ? userDoc.data() : null;
-  return Boolean(userData?.isAdmin || userData?.role === "admin");
-};
 
 const normalizeLimit = (value: unknown, fallback: number): number => {
   const parsed = Number(value);
@@ -102,10 +80,7 @@ export const getAnalyticsEvents = onCall(async (request: CallableRequest) => {
     let query: Query<DocumentData> = db.collection("analyticsEvents").orderBy("createdAt", "desc");
 
     if (includeGlobal) {
-      const isAdmin = await isAdminRequest(request);
-      if (!isAdmin) {
-        throw new HttpsError("permission-denied", "Admin role required for global analytics access");
-      }
+      await requireAdminUser(request, "Admin role required for global analytics access");
     } else {
       query = query.where("userId", "==", requesterId);
     }
@@ -125,6 +100,9 @@ export const getAnalyticsEvents = onCall(async (request: CallableRequest) => {
 
     return { events };
   } catch (error) {
+    if (error instanceof HttpsError) {
+      throw error;
+    }
     logger.error("Error getting analytics events:", error);
     throw new HttpsError("internal", "Failed to get analytics events");
   }
@@ -138,10 +116,7 @@ export const getAnalyticsSummary = onCall(async (request: CallableRequest) => {
     let query: Query<DocumentData> = db.collection("analyticsEvents");
 
     if (includeGlobal) {
-      const isAdmin = await isAdminRequest(request);
-      if (!isAdmin) {
-        throw new HttpsError("permission-denied", "Admin role required for global analytics access");
-      }
+      await requireAdminUser(request, "Admin role required for global analytics access");
     } else {
       query = query.where("userId", "==", requesterId);
     }
@@ -201,6 +176,9 @@ export const getAnalyticsSummary = onCall(async (request: CallableRequest) => {
       },
     };
   } catch (error) {
+    if (error instanceof HttpsError) {
+      throw error;
+    }
     logger.error("Error getting analytics summary:", error);
     throw new HttpsError("internal", "Failed to get analytics summary");
   }

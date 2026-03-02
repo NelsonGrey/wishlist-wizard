@@ -74,7 +74,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
   const isActivePath = (paths: string[]) => paths.some((path) => location === path || location.startsWith(`${path}/`));
 
   const primaryNavItems = [
-    { name: 'Dashboard', href: '/dashboard', icon: <LayoutDashboard className="h-5 w-5" />, activePaths: ['/dashboard', '/wishlist'] },
+    { name: 'Dashboard', href: '/dashboard', icon: <LayoutDashboard className="h-5 w-5" />, activePaths: ['/dashboard', '/wishlists', '/wishlist'] },
     { name: 'Recommendations', href: '/recommendations', icon: <Sparkles className="h-5 w-5" />, activePaths: ['/recommendations'] },
     { name: 'Price Tracking', href: '/app/price-tracking', icon: <LineChart className="h-5 w-5" />, activePaths: ['/app/price-tracking'] },
     { name: 'Calendar', href: '/calendar', icon: <Calendar className="h-5 w-5" />, activePaths: ['/calendar'] },
@@ -121,7 +121,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="px-3 py-2 rounded-lg text-sm flex items-center font-medium text-gray-700 hover:bg-emerald-50 hover:text-emerald-800">
+                <Button variant="ghost" className="px-3 py-2 rounded-lg text-sm flex items-center font-medium text-gray-700 hover:bg-emerald-50 hover:text-emerald-800" aria-label="Open features menu">
                   <Puzzle className="h-5 w-5" />
                   <span className="ml-2">Features</span>
                   <ChevronDown className="h-4 w-4 ml-2 opacity-70" />
@@ -148,8 +148,8 @@ export default function AppLayout({ children }: AppLayoutProps) {
             {currentUser ? (
               <>
                 {/* Notifications */}
-                <Link href="/notifications" className="relative p-2 rounded-full hover:bg-gray-100 transition-colors">
-                  <Bell className="h-5 w-5 text-gray-700" />
+                <Link href="/notifications" aria-label={`Notifications${unreadCount > 0 ? `, ${unreadCount} unread` : ''}`} className="relative p-2 rounded-full hover:bg-gray-100 transition-colors">
+                  <Bell className="h-5 w-5 text-gray-700" aria-hidden="true" />
                   {unreadCount > 0 && (
                     <span className="absolute -top-0.5 -right-0.5 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
                       {unreadCount > 9 ? '9+' : unreadCount}
@@ -160,7 +160,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
                 {/* User dropdown */}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="gap-2 flex items-center">
+                    <Button variant="ghost" className="gap-2 flex items-center" aria-label="Open account menu">
                       <Avatar className="h-8 w-8">
                         <AvatarImage src={currentUser?.photoURL || undefined} />
                         <AvatarFallback>
@@ -212,8 +212,8 @@ export default function AppLayout({ children }: AppLayoutProps) {
           <div className="md:hidden ml-4">
             <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
               <SheetTrigger asChild>
-                <Button variant="ghost" size="icon">
-                  <Menu className="h-6 w-6" />
+                <Button variant="ghost" size="icon" aria-label="Open navigation menu">
+                  <Menu className="h-6 w-6" aria-hidden="true" />
                 </Button>
               </SheetTrigger>
               <SheetContent side="right">

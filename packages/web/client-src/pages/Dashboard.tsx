@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Plus } from "lucide-react";
+import { BarChart3, Gift, Plus, Share2 } from "lucide-react";
 import { useLocation } from "wouter";
 import WishlistCard from "@/components/WishlistCard";
 import CreateWishlistDialog from "@/components/CreateWishlistDialog";
@@ -24,12 +24,25 @@ type Wishlist = Omit<DbWishlist, 'id' | 'userId' | 'beneficiaryId'> & {
 const SELECTED_WISHLIST_STORAGE_KEY = 'dashboard.selectedWishlistId';
 
 export default function Dashboard() {
-  const [, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [selectedWishlistId, setSelectedWishlistId] = useState<string | number | null>(null);
   const { toast } = useToast();
 
   const toSelectionKey = (id: string | number) => String(id);
+
+  const updateSelectionInUrl = (selectionId: string | number | null) => {
+    const params = new URLSearchParams(window.location.search);
+    if (selectionId === null) {
+      params.delete('wishlist');
+    } else {
+      params.set('wishlist', toSelectionKey(selectionId));
+    }
+
+    const nextQuery = params.toString();
+    const nextUrl = `${window.location.pathname}${nextQuery ? `?${nextQuery}` : ''}`;
+    window.history.replaceState(null, '', nextUrl);
+  };
 
   // Fetch wishlists
   const { data: wishlists, isLoading, error } = useQuery<Wishlist[]>({
@@ -85,6 +98,7 @@ export default function Dashboard() {
   useEffect(() => {
     if (!wishlists || wishlists.length === 0) {
       setSelectedWishlistId(null);
+      updateSelectionInUrl(null);
       try {
         localStorage.removeItem(SELECTED_WISHLIST_STORAGE_KEY);
       } catch {
@@ -101,9 +115,17 @@ export default function Dashboard() {
     }
 
     let nextSelectedId: string | number = wishlists[0].id;
+    const wishlistFromUrl = new URLSearchParams(window.location.search).get('wishlist');
+    if (wishlistFromUrl) {
+      const matchedFromUrl = wishlists.find((wishlist) => toSelectionKey(wishlist.id) === wishlistFromUrl);
+      if (matchedFromUrl) {
+        nextSelectedId = matchedFromUrl.id;
+      }
+    }
+
     try {
       const storedId = localStorage.getItem(SELECTED_WISHLIST_STORAGE_KEY);
-      if (storedId) {
+      if (!wishlistFromUrl && storedId) {
         const matchedWishlist = wishlists.find((wishlist) => toSelectionKey(wishlist.id) === storedId);
         if (matchedWishlist) {
           nextSelectedId = matchedWishlist.id;
@@ -114,7 +136,24 @@ export default function Dashboard() {
     }
 
     setSelectedWishlistId(nextSelectedId);
+    updateSelectionInUrl(nextSelectedId);
   }, [wishlists, selectedWishlistId]);
+
+  useEffect(() => {
+    if (!wishlists || wishlists.length === 0) {
+      return;
+    }
+
+    const wishlistFromUrl = new URLSearchParams(window.location.search).get('wishlist');
+    if (!wishlistFromUrl) {
+      return;
+    }
+
+    const matchedWishlist = wishlists.find((wishlist) => toSelectionKey(wishlist.id) === wishlistFromUrl);
+    if (matchedWishlist && toSelectionKey(matchedWishlist.id) !== toSelectionKey(selectedWishlistId ?? '')) {
+      setSelectedWishlistId(matchedWishlist.id);
+    }
+  }, [location, wishlists, selectedWishlistId]);
 
   useEffect(() => {
     if (selectedWishlistId === null) {
@@ -126,6 +165,8 @@ export default function Dashboard() {
     } catch {
       // Ignore localStorage errors in restricted environments
     }
+
+    updateSelectionInUrl(selectedWishlistId);
   }, [selectedWishlistId]);
 
   const selectedWishlist = wishlists?.find((wishlist) => wishlist.id === selectedWishlistId) ?? null;
@@ -149,12 +190,42 @@ export default function Dashboard() {
       })
     : null;
 
+  const handleShareSelectedWishlist = async () => {
+    if (!selectedWishlist?.shareId) {
+      return;
+    }
+
+    const shareUrl = `${window.location.origin}/shared/${selectedWishlist.shareId}`;
+
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      toast({
+        title: "Link copied",
+        description: "Shared wishlist link copied to clipboard.",
+      });
+    } catch {
+      toast({
+        title: "Copy failed",
+        description: "Unable to copy link right now. Try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const guidanceMessage = selectedWishlist
+    ? selectedWishlist.itemCount === 0
+      ? 'Start by adding items so this wishlist is ready to share.'
+      : selectedWishlist.isCollaborative
+        ? 'This wishlist is collaborative—share it so contributors can reserve or purchase items.'
+        : 'Next step: open details to manage items, reminders, and sharing options.'
+    : 'Select a wishlist to see context-aware actions and details.';
+
   return (
     <>
       <main className="flex-1">
         <div data-testid="dashboard-page" className="container mx-auto px-4 py-8 max-w-6xl">
           <div className="flex justify-between items-center mb-8">
-            <h2 data-testid="dashboard-title" className="text-4xl font-bold bg-gradient-to-r from-emerald-800 to-green-800 bg-clip-text text-transparent">My Wishlists</h2>
+            <h1 data-testid="dashboard-title" className="text-4xl font-bold bg-gradient-to-r from-emerald-800 to-green-800 bg-clip-text text-transparent">My Wishlists</h1>
             <Button 
               data-testid="dashboard-create-wishlist"
               onClick={() => setIsCreateDialogOpen(true)}
@@ -186,13 +257,70 @@ export default function Dashboard() {
                 {selectedWishlist.description && (
                   <p className="text-sm text-gray-600">{selectedWishlist.description}</p>
                 )}
+                <p className="text-sm text-emerald-800 bg-emerald-50 border border-emerald-100 rounded-md px-3 py-2" role="status" aria-live="polite">
+                  {guidanceMessage}
+                </p>
                 <div className="flex gap-2">
-                  <Button onClick={() => setLocation(`/wishlist/${selectedWishlist.id}`)}>Open Wishlist</Button>
+                  <Button onClick={() => setLocation(`/wishlists/${selectedWishlist.id}`)}>Open Wishlist</Button>
                   <Button variant="outline" onClick={() => setLocation('/calendar')}>Plan on Calendar</Button>
                 </div>
               </CardContent>
             </Card>
           )}
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            <Card className="border-emerald-100">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-xl">
+                  <Gift className="h-5 w-5 text-emerald-700" />
+                  Gift Coordination
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <p className="text-sm text-gray-600">
+                  Move from discovery to purchase quickly while preventing duplicate gifts.
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => selectedWishlist && setLocation(`/wishlists/${selectedWishlist.id}`)}
+                    disabled={!selectedWishlist}
+                  >
+                    Open Active Wishlist
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="flex items-center gap-2"
+                    onClick={handleShareSelectedWishlist}
+                    disabled={!selectedWishlist?.shareId}
+                  >
+                    <Share2 className="h-4 w-4" />
+                    Copy Share Link
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-emerald-100">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-xl">
+                  <BarChart3 className="h-5 w-5 text-emerald-700" />
+                  Performance Insights
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <p className="text-sm text-gray-600">
+                  Track click-to-purchase performance and commission trends for your curated lists.
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  <Button onClick={() => setLocation('/analytics')}>Open Analytics</Button>
+                  <Button variant="outline" onClick={() => setLocation('/recommendations')}>
+                    Build Next List Theme
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
           
           {/* Dashboard layout with content and sidebar */}
           <div className="flex flex-col lg:flex-row gap-6">
@@ -230,7 +358,10 @@ export default function Dashboard() {
                       key={wishlist.id} 
                       wishlist={wishlist} 
                       selected={wishlist.id === selectedWishlistId}
-                      onSelect={(selected) => setSelectedWishlistId(selected.id)}
+                      onSelect={(selected) => {
+                        setSelectedWishlistId(selected.id);
+                        updateSelectionInUrl(selected.id);
+                      }}
                       onRefresh={() => queryClient.invalidateQueries({ queryKey: ['/api/wishlists'] })}
                     />
                   ))}

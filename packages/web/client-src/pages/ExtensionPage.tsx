@@ -25,7 +25,7 @@ const ExtensionPage = () => {
           </h1>
           <div id="browser-install-help" className="flex items-center gap-2 mb-4">
             <p className="text-xl text-gray-600">
-              Add products to your wishlists from any online retailer with a single click
+              Save products to your wishlists from any online retailer in one click
             </p>
             <ExtensionHelp />
           </div>
@@ -323,9 +323,9 @@ const ExtensionPage = () => {
         </div>
 
         <div className="bg-gray-50 rounded-lg p-8 text-center mb-16">
-          <h2 className="text-2xl font-bold mb-4">Ready to simplify your wishlist management?</h2>
+          <h2 className="text-2xl font-bold mb-4">Ready to simplify wishlist planning?</h2>
           <p className="text-gray-600 max-w-2xl mx-auto mb-6">
-            Install the Wishlist Wizard extension today and start adding items to your wishlists with just one click from any online store.
+            Install the Wishlist Wizard extension and start adding items to your wishlists with one click from any online store.
           </p>
           <div className="flex flex-wrap justify-center gap-4">
             <Button size="lg" className="py-6 px-8 bg-gradient-to-r from-emerald-700 to-green-700 text-white hover:from-emerald-800 hover:to-green-800" asChild>

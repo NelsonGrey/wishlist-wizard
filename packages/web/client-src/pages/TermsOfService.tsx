@@ -88,7 +88,11 @@ export default function TermsOfService() {
           <section>
             <h2 className="text-2xl font-semibold text-gray-900 mb-4">Contact Us</h2>
             <p className="text-gray-700">
-              If you have any questions about these Terms of Service, please contact us at support@wishlist-wizard.com.
+              If you have any questions about these Terms of Service, please contact us at{" "}
+              <a href="mailto:support@wishlist-wizard.com" className="text-emerald-700 hover:text-emerald-800">
+                support@wishlist-wizard.com
+              </a>
+              .
             </p>
           </section>
         </div>

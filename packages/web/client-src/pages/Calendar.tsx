@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Helmet } from 'react-helmet';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useLocation } from 'wouter';
 import { Calendar as CalendarComponent, dateFnsLocalizer } from 'react-big-calendar';
 import { format, parse, startOfWeek, getDay } from 'date-fns';
 import { enUS } from 'date-fns/locale';
@@ -32,6 +33,7 @@ import { DatePicker } from "@/components/ui/date-picker";
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { apiRequest } from '@/lib/queryClient';
+import { getApiErrorMessage } from '@/lib/api-errors';
 import { useToast } from '@/hooks/use-toast';
 import { CalendarSettings } from '@/components/calendar/CalendarSettings';
 
@@ -120,6 +122,7 @@ const eventTypeColors = {
 
 const Calendar: React.FC = () => {
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
   const [isEventDialogOpen, setIsEventDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('upcoming');
@@ -138,7 +141,13 @@ const Calendar: React.FC = () => {
   });
 
   // Query to fetch events
-  const { data: events = [] } = useQuery({ 
+  const {
+    data: events = [],
+    isLoading: isEventsLoading,
+    isError: isEventsError,
+    error: eventsError,
+    refetch: refetchEvents,
+  } = useQuery<CalendarEvent[]>({ 
     queryKey: ['/api/calendar/events'],
     queryFn: async () => {
       const data = await apiRequest('/api/calendar/events') as CalendarEventResponse[];
@@ -293,6 +302,23 @@ const Calendar: React.FC = () => {
     });
   };
 
+  const openCreateEventDialog = (type: EventFormData['type'] = 'reminder') => {
+    setSelectedEvent(null);
+    setFormData({
+      title: '',
+      description: '',
+      startDate: new Date(),
+      allDay: true,
+      location: '',
+      type,
+      recurYearly: false,
+      reminderDays: 7,
+      color: eventTypeColors[type as keyof typeof eventTypeColors] || '#6366F1',
+      sharedWith: []
+    });
+    setIsEventDialogOpen(true);
+  };
+
   // Handle form field changes
   const handleChange = (field: keyof EventFormData, value: string | number | boolean | Date | undefined | number[]) => {
     setFormData(prevData => ({
@@ -356,6 +382,13 @@ const Calendar: React.FC = () => {
     setIsEventDialogOpen(true);
   };
 
+  const handleEventCardKeyDown = (keyboardEvent: React.KeyboardEvent<HTMLDivElement>, event: CalendarEvent) => {
+    if (keyboardEvent.key === 'Enter' || keyboardEvent.key === ' ') {
+      keyboardEvent.preventDefault();
+      handleSelectEvent(event);
+    }
+  };
+
   // Handle delete event
   const handleDeleteEvent = () => {
     if (selectedEvent) {
@@ -391,13 +424,22 @@ const Calendar: React.FC = () => {
     return (
       <div className="space-y-4">
         {upcoming.length === 0 ? (
-          <p className="text-center text-gray-500">No upcoming events.</p>
+          <div className="text-center py-6">
+            <p className="text-gray-500 mb-3">No upcoming events.</p>
+            <Button variant="outline" size="sm" onClick={() => openCreateEventDialog('occasion')}>
+              Add Event
+            </Button>
+          </div>
         ) : (
           upcoming.map((event: CalendarEvent) => (
             <div 
               key={event.id} 
               className="p-4 border rounded-lg hover:bg-gray-50 cursor-pointer flex justify-between items-center"
               onClick={() => handleSelectEvent(event)}
+              onKeyDown={(keyboardEvent) => handleEventCardKeyDown(keyboardEvent, event)}
+              tabIndex={0}
+              role="button"
+              aria-label={`Open event details for ${event.title}`}
             >
               <div>
                 <h3 className="font-semibold">{event.title}</h3>
@@ -409,12 +451,26 @@ const Calendar: React.FC = () => {
                   <p className="text-sm text-gray-700 mt-1">{event.description}</p>
                 )}
               </div>
-              <Badge 
-                style={{backgroundColor: event.color}}
-                className="text-white"
-              >
-                {event.type}
-              </Badge>
+              <div className="flex flex-col items-end gap-2">
+                <Badge 
+                  style={{backgroundColor: event.color}}
+                  className="text-white"
+                >
+                  {event.type}
+                </Badge>
+                {event.wishlistId && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={(clickEvent) => {
+                      clickEvent.stopPropagation();
+                      setLocation(`/wishlists/${event.wishlistId}`);
+                    }}
+                  >
+                    Open Wishlist
+                  </Button>
+                )}
+              </div>
             </div>
           ))
         )}
@@ -429,13 +485,22 @@ const Calendar: React.FC = () => {
     return (
       <div className="space-y-4">
         {birthdays.length === 0 ? (
-          <p className="text-center text-gray-500">No birthdays added yet.</p>
+          <div className="text-center py-6">
+            <p className="text-gray-500 mb-3">No birthdays added yet.</p>
+            <Button variant="outline" size="sm" onClick={() => openCreateEventDialog('birthday')}>
+              Add Birthday
+            </Button>
+          </div>
         ) : (
           birthdays.map((event: CalendarEvent) => (
             <div 
               key={event.id} 
               className="p-4 border rounded-lg hover:bg-gray-50 cursor-pointer"
               onClick={() => handleSelectEvent(event)}
+              onKeyDown={(keyboardEvent) => handleEventCardKeyDown(keyboardEvent, event)}
+              tabIndex={0}
+              role="button"
+              aria-label={`Open event details for ${event.title}`}
             >
               <h3 className="font-semibold">{event.title}</h3>
               <div className="text-sm text-gray-500">
@@ -458,22 +523,43 @@ const Calendar: React.FC = () => {
     return (
       <div className="space-y-4">
         {deadlines.length === 0 ? (
-          <p className="text-center text-gray-500">No wishlist deadlines set.</p>
+          <div className="text-center py-6">
+            <p className="text-gray-500 mb-3">No wishlist deadlines set.</p>
+            <Button variant="outline" size="sm" onClick={() => openCreateEventDialog('deadline')}>
+              Add Deadline
+            </Button>
+          </div>
         ) : (
           deadlines.map((event: CalendarEvent) => (
             <div 
               key={event.id} 
               className="p-4 border rounded-lg hover:bg-gray-50 cursor-pointer"
               onClick={() => handleSelectEvent(event)}
+              onKeyDown={(keyboardEvent) => handleEventCardKeyDown(keyboardEvent, event)}
+              tabIndex={0}
+              role="button"
+              aria-label={`Open event details for ${event.title}`}
             >
               <h3 className="font-semibold">{event.title}</h3>
               <div className="text-sm text-gray-500">
                 {format(event.start, 'PPP')}
               </div>
-              <div className="mt-2">
+              <div className="mt-2 flex items-center justify-between gap-2">
                 <Badge>
                   {wishlists.find((w: Wishlist) => w.id === event.wishlistId)?.name || 'Unknown wishlist'}
                 </Badge>
+                {event.wishlistId && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={(clickEvent) => {
+                      clickEvent.stopPropagation();
+                      setLocation(`/wishlists/${event.wishlistId}`);
+                    }}
+                  >
+                    Open Wishlist
+                  </Button>
+                )}
               </div>
             </div>
           ))
@@ -498,9 +584,7 @@ const Calendar: React.FC = () => {
           </div>
         <div className="flex gap-2">
           <Button onClick={() => {
-            setSelectedEvent(null);
-            resetForm();
-            setIsEventDialogOpen(true);
+            openCreateEventDialog('reminder');
           }}>
             Add Event
           </Button>
@@ -509,6 +593,18 @@ const Calendar: React.FC = () => {
           </Button>
         </div>
       </div>
+
+      {isEventsLoading ? (
+        <div className="bg-white p-8 rounded-lg shadow text-center text-gray-500">
+          Loading calendar events…
+        </div>
+      ) : isEventsError ? (
+        <div className="bg-white p-8 rounded-lg shadow text-center">
+          <p className="text-red-500 mb-2">Unable to load calendar events.</p>
+          <p className="text-sm text-gray-500 mb-4">{getApiErrorMessage(eventsError, 'Please try again.')}</p>
+          <Button variant="outline" onClick={() => refetchEvents()}>Retry</Button>
+        </div>
+      ) : (
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">
@@ -552,6 +648,7 @@ const Calendar: React.FC = () => {
           </div>
         </div>
       </div>
+      )}
 
       {/* Create/Edit Event Dialog */}
       <Dialog open={isEventDialogOpen} onOpenChange={setIsEventDialogOpen}>

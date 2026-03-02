@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -52,6 +52,7 @@ export default function PriceAlertDialog({
 }: PriceAlertDialogProps) {
   const [isCreating, setIsCreating] = useState(false);
   const { toast } = useToast();
+  const itemDisplayTitle = String(item.title || 'item');
 
   const form = useForm<PriceAlertFormValues>({
     resolver: zodResolver(formSchema),
@@ -61,17 +62,48 @@ export default function PriceAlertDialog({
   });
 
   const currentPrice = parseFloat(item.price.replace(/[$,]/g, '')) || 0;
+  const targetPrice = form.watch("targetPrice") || 0;
+
+  const defaultTargetPrice = useMemo(() => {
+    if (currentPrice <= 0) {
+      return 0;
+    }
+    return Math.max(0.01, Number((currentPrice * 0.9).toFixed(2)));
+  }, [currentPrice]);
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    form.reset({
+      targetPrice: defaultTargetPrice,
+    });
+  }, [open, item.id, defaultTargetPrice, form]);
 
   const onSubmit = async (data: PriceAlertFormValues) => {
+    if (currentPrice > 0 && data.targetPrice >= currentPrice) {
+      form.setError("targetPrice", {
+        type: "validate",
+        message: "Target price should be below the current price.",
+      });
+      toast({
+        title: "Choose a lower target",
+        description: `Current price is $${currentPrice.toFixed(2)}. Set a lower threshold to receive a drop alert.`,
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsCreating(true);
 
     try {
       await apiRequest("/api/price-alerts", {
         method: "POST",
-        body: JSON.stringify({
+        body: {
           itemId: item.id,
           targetPrice: data.targetPrice,
-        }),
+        },
       });
 
       toast({
@@ -100,12 +132,19 @@ export default function PriceAlertDialog({
     Math.max(0.01, currentPrice - 10), // $10 off
   ].filter(price => price < currentPrice).slice(0, 4);
 
+  const targetDelta = currentPrice > 0 && targetPrice > 0
+    ? Number((currentPrice - targetPrice).toFixed(2))
+    : 0;
+  const targetDeltaPercent = currentPrice > 0 && targetDelta > 0
+    ? Number(((targetDelta / currentPrice) * 100).toFixed(1))
+    : 0;
+
   return (
     <Dialog open={open} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[500px]" aria-label={`Create price alert for ${itemDisplayTitle}`}>
         <DialogHeader>
           <DialogTitle className="flex items-center">
-            <Bell className="h-5 w-5 mr-2 text-emerald-800" />
+            <Bell className="h-5 w-5 mr-2 text-emerald-800" aria-hidden="true" />
             Create Price Alert
           </DialogTitle>
           <DialogDescription>
@@ -150,7 +189,7 @@ export default function PriceAlertDialog({
                   <FormLabel>Target Price</FormLabel>
                   <FormControl>
                     <div className="relative">
-                      <DollarSign className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                      <DollarSign className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" aria-hidden="true" />
                       <Input
                         type="number"
                         step="0.01"
@@ -164,6 +203,13 @@ export default function PriceAlertDialog({
                     </div>
                   </FormControl>
                   <FormMessage />
+                  {currentPrice > 0 && targetPrice > 0 && (
+                    <p className="text-xs text-muted-foreground" role="status" aria-live="polite">
+                      {targetDelta > 0
+                        ? `Alert triggers after a $${targetDelta.toFixed(2)} (${targetDeltaPercent}%) drop.`
+                        : "Choose a target below current price to trigger future drop alerts."}
+                    </p>
+                  )}
                 </FormItem>
               )}
             />
@@ -179,6 +225,7 @@ export default function PriceAlertDialog({
                       type="button"
                       variant="outline"
                       size="sm"
+                      aria-label={`Set target price to $${price.toFixed(2)}`}
                       onClick={() => form.setValue("targetPrice", price)}
                       className="text-xs"
                     >
@@ -194,14 +241,14 @@ export default function PriceAlertDialog({
             )}
 
             {/* Preview */}
-            {form.watch("targetPrice") > 0 && (
+            {targetPrice > 0 && (
               <Card className="bg-emerald-50 border-emerald-200">
                 <CardContent className="p-4">
                   <div className="flex items-center space-x-2">
-                    <TrendingDown className="h-4 w-4 text-emerald-800" />
-                    <div className="text-sm text-emerald-900">
-                      {form.watch("targetPrice") < currentPrice ? (
-                        <>You&apos;ll be notified when the price drops below <strong>${form.watch("targetPrice").toFixed(2)}</strong></>
+                    <TrendingDown className="h-4 w-4 text-emerald-800" aria-hidden="true" />
+                    <div className="text-sm text-emerald-900" role="status" aria-live="polite">
+                      {targetPrice < currentPrice ? (
+                        <>You&apos;ll be notified when the price drops below <strong>${targetPrice.toFixed(2)}</strong></>
                       ) : (
                         <>Current price (${currentPrice.toFixed(2)}) is already below your target</>
                       )}
@@ -223,7 +270,8 @@ export default function PriceAlertDialog({
               </Button>
               <Button
                 type="submit"
-                disabled={isCreating || form.watch("targetPrice") <= 0}
+                disabled={isCreating || targetPrice <= 0}
+                aria-label={isCreating ? `Creating price alert for ${itemDisplayTitle}` : `Create price alert for ${itemDisplayTitle}`}
                 className="w-full sm:w-auto"
               >
                 {isCreating ? (

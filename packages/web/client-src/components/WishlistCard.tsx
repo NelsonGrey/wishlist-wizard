@@ -286,7 +286,7 @@ export default function WishlistCard({ wishlist, onRefresh, onSelect, selected =
                   className="text-gray-500 hover:text-gray-700"
                   aria-label="Share wishlist"
                 >
-                  <Share2 className="h-5 w-5" />
+                  <Share2 className="h-5 w-5" aria-hidden="true" />
                 </Button>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -298,7 +298,7 @@ export default function WishlistCard({ wishlist, onRefresh, onSelect, selected =
                       className="text-gray-500 hover:text-gray-700"
                       aria-label="More options"
                     >
-                      <MoreVertical className="h-5 w-5" />
+                      <MoreVertical className="h-5 w-5" aria-hidden="true" />
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
@@ -347,7 +347,7 @@ export default function WishlistCard({ wishlist, onRefresh, onSelect, selected =
             variant="link" 
             className="text-primary hover:text-indigo-700 flex-1"
             disabled={isMutating}
-            onClick={() => setLocation(`/wishlist/${wishlist.id}`)}
+            onClick={() => setLocation(`/wishlists/${wishlist.id}`)}
           >
             View Details
           </Button>

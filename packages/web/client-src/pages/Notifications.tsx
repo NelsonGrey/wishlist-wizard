@@ -11,6 +11,8 @@ import { Separator } from '@/components/ui/separator';
 import { Link } from 'wouter';
 import { format } from 'date-fns';
 
+type NotificationFilter = 'all' | 'unread' | 'read';
+
 function formatNotificationTimestamp(value: unknown): string {
   const date = new Date(value as string | number | Date);
   if (Number.isNaN(date.getTime())) {
@@ -24,6 +26,7 @@ export default function Notifications() {
   const queryClient = useQueryClient();
   const [markingNotificationId, setMarkingNotificationId] = useState<number | null>(null);
   const [deletingNotificationId, setDeletingNotificationId] = useState<number | null>(null);
+  const [filter, setFilter] = useState<NotificationFilter>('all');
   
   // Query for notifications
   const { data, isLoading, isError, error, refetch } = useQuery<{
@@ -36,6 +39,13 @@ export default function Notifications() {
   
   const notifications = data?.notifications || [];
   const unreadCount = data?.unreadCount ?? notifications.filter((notification) => !notification.isRead).length;
+  const readCount = Math.max(0, notifications.length - unreadCount);
+
+  const filteredNotifications = notifications.filter((notification) => {
+    if (filter === 'unread') return !notification.isRead;
+    if (filter === 'read') return notification.isRead;
+    return true;
+  });
   
   // Mark a notification as read
   const markAsReadMutation = useMutation({
@@ -119,6 +129,35 @@ export default function Notifications() {
   const handleDeleteNotification = (id: number) => {
     deleteNotificationMutation.mutate(id);
   };
+
+  const getActionLabel = (notification: Notification) => {
+    if (!notification.actionUrl) {
+      return 'View';
+    }
+
+    const type = String(notification.type || '').toLowerCase();
+    if (type.includes('price')) return 'View Price Tracking';
+    if (type.includes('wishlist')) return 'Open Wishlist';
+    if (type.includes('item')) return 'View Item';
+    if (type.includes('collab')) return 'View Collaboration';
+    return 'Open';
+  };
+
+  const isExternalUrl = (url: string) => /^https?:\/\//i.test(url);
+
+  const handleActionClick = (notification: Notification) => {
+    if (!notification.actionUrl) {
+      return;
+    }
+
+    if (!notification.isRead) {
+      handleNotificationRead(notification.id);
+    }
+
+    if (isExternalUrl(notification.actionUrl)) {
+      window.open(notification.actionUrl, '_blank', 'noopener,noreferrer');
+    }
+  };
   
   return (
     <>
@@ -133,16 +172,50 @@ export default function Notifications() {
             Stay updated with alerts and activity
           </p>
         </div>
+
+        <div className="grid grid-cols-3 gap-3 mb-6">
+          <button
+            type="button"
+            onClick={() => setFilter('all')}
+            aria-pressed={filter === 'all'}
+            aria-label="Show all notifications"
+            className={`rounded-lg border p-3 text-left transition ${filter === 'all' ? 'border-emerald-300 bg-emerald-50' : 'border-gray-200 bg-white'}`}
+          >
+            <p className="text-xs text-gray-500">All</p>
+            <p className="text-lg font-semibold text-gray-900">{notifications.length}</p>
+          </button>
+          <button
+            type="button"
+            onClick={() => setFilter('unread')}
+            aria-pressed={filter === 'unread'}
+            aria-label="Show unread notifications"
+            className={`rounded-lg border p-3 text-left transition ${filter === 'unread' ? 'border-emerald-300 bg-emerald-50' : 'border-gray-200 bg-white'}`}
+          >
+            <p className="text-xs text-gray-500">Unread</p>
+            <p className="text-lg font-semibold text-gray-900">{unreadCount}</p>
+          </button>
+          <button
+            type="button"
+            onClick={() => setFilter('read')}
+            aria-pressed={filter === 'read'}
+            aria-label="Show read notifications"
+            className={`rounded-lg border p-3 text-left transition ${filter === 'read' ? 'border-emerald-300 bg-emerald-50' : 'border-gray-200 bg-white'}`}
+          >
+            <p className="text-xs text-gray-500">Read</p>
+            <p className="text-lg font-semibold text-gray-900">{readCount}</p>
+          </button>
+        </div>
+
         <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-2">
           <Button asChild variant="ghost" size="icon" className="mr-2">
-            <Link href="/dashboard">
+            <Link href="/dashboard" aria-label="Back to dashboard">
               <ArrowLeft className="h-5 w-5" />
             </Link>
           </Button>
-          <h1 className="text-2xl font-bold">Notifications</h1>
+          <h2 className="text-2xl font-bold">Inbox</h2>
         </div>
-        
+
         {notifications.length > 0 && unreadCount > 0 && (
           <Button 
             data-testid="notifications-mark-all-read"
@@ -158,7 +231,7 @@ export default function Notifications() {
       <Separator className="mb-6" />
       
       {isLoading ? (
-        <div className="flex justify-center py-8">
+        <div className="flex justify-center py-8" aria-live="polite" role="status">
           <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
         </div>
       ) : isError ? (
@@ -169,9 +242,9 @@ export default function Notifications() {
             <span data-testid="notifications-retry">Retry</span>
           </Button>
         </div>
-      ) : notifications.length > 0 ? (
+      ) : filteredNotifications.length > 0 ? (
         <div data-testid="notifications-list" className="space-y-4">
-          {notifications.map((notification) => (
+          {filteredNotifications.map((notification) => (
             <div 
               key={notification.id}
               data-testid={`notification-item-${notification.id}`}
@@ -201,17 +274,28 @@ export default function Notifications() {
                 </span>
                 
                 {notification.actionUrl && (
-                  <Button
-                    asChild
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleNotificationRead(notification.id)}
-                    disabled={markAsReadMutation.isPending && markingNotificationId === notification.id}
-                  >
-                    <Link href={notification.actionUrl}>
-                      {markAsReadMutation.isPending && markingNotificationId === notification.id ? 'Opening...' : 'View'}
-                    </Link>
-                  </Button>
+                  isExternalUrl(notification.actionUrl) ? (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleActionClick(notification)}
+                      disabled={markAsReadMutation.isPending && markingNotificationId === notification.id}
+                    >
+                      {markAsReadMutation.isPending && markingNotificationId === notification.id ? 'Opening...' : getActionLabel(notification)}
+                    </Button>
+                  ) : (
+                    <Button
+                      asChild
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleActionClick(notification)}
+                      disabled={markAsReadMutation.isPending && markingNotificationId === notification.id}
+                    >
+                      <Link href={notification.actionUrl}>
+                        {markAsReadMutation.isPending && markingNotificationId === notification.id ? 'Opening...' : getActionLabel(notification)}
+                      </Link>
+                    </Button>
+                  )
                 )}
                 
                 {!notification.isRead && !notification.actionUrl && (
@@ -231,9 +315,13 @@ export default function Notifications() {
       ) : (
         <div data-testid="notifications-empty" className="text-center py-16">
           <Bell className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-          <h2 className="text-xl font-medium mb-2">No notifications yet</h2>
+          <h2 className="text-xl font-medium mb-2">No notifications in this view</h2>
           <p className="text-muted-foreground">
-            You&apos;ll see notifications about activity on your wishlists here.
+            {filter === 'all'
+              ? "You\'ll see notifications about wishlist activity here."
+              : filter === 'unread'
+                ? "You\'re all caught up."
+                : "Read notifications will appear here."}
           </p>
         </div>
       )}

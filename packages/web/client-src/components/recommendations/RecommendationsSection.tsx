@@ -20,6 +20,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { apiRequest } from "@/lib/queryClient";
+import { getApiErrorMessage } from "@/lib/api-errors";
 
 interface Recommendation {
   id?: number;
@@ -60,6 +61,8 @@ export default function RecommendationsSection({
     data: fetchedRecommendations,
     isLoading,
     isError,
+    isFetching,
+    error,
     refetch
   } = useQuery<Recommendation[]>({
     queryKey: beneficiaryId 
@@ -74,6 +77,22 @@ export default function RecommendationsSection({
       setRecommendations(fetchedRecommendations);
     }
   }, [fetchedRecommendations]);
+
+  useEffect(() => {
+    if (!wishlistOptions || wishlistOptions.length === 0) {
+      return;
+    }
+
+    if (!selectedWishlistId) {
+      setSelectedWishlistId(String(wishlistOptions[0].id));
+      return;
+    }
+
+    const exists = wishlistOptions.some((wishlist) => String(wishlist.id) === selectedWishlistId);
+    if (!exists) {
+      setSelectedWishlistId(String(wishlistOptions[0].id));
+    }
+  }, [wishlistOptions, selectedWishlistId]);
   
   // Mutation for updating recommendation status
   const updateStatusMutation = useMutation({
@@ -143,18 +162,10 @@ export default function RecommendationsSection({
         category: recommendation.category || null
       };
 
-      // Send a POST request to add the item
-      const response = await fetch('/api/items', {
+      await apiRequest('/api/items', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(itemData),
+        body: itemData,
       });
-
-      if (!response.ok) {
-        throw new Error('Failed to add item to wishlist');
-      }
 
       // If the recommendation has an ID, mark it as saved
       if (recommendation.id) {
@@ -175,7 +186,7 @@ export default function RecommendationsSection({
       // Show error toast
       toast({
         title: "Failed to add item",
-        description: "There was an error adding this item to your wishlist.",
+        description: getApiErrorMessage(error, "There was an error adding this item to your wishlist."),
         variant: "destructive",
       });
       return false;
@@ -199,7 +210,7 @@ export default function RecommendationsSection({
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4" role="status" aria-live="polite">
             {Array(4).fill(0).map((_, i) => (
               <Card key={i} className="overflow-hidden">
                 <div className="h-40 bg-gray-200 animate-pulse" />
@@ -286,7 +297,7 @@ export default function RecommendationsSection({
                 value={selectedWishlistId}
                 onValueChange={setSelectedWishlistId}
               >
-                <SelectTrigger className="w-[180px]">
+                <SelectTrigger className="w-[180px]" aria-label="Select wishlist for recommendation adds">
                   <SelectValue placeholder="Select wishlist" />
                 </SelectTrigger>
                 <SelectContent>
@@ -303,16 +314,23 @@ export default function RecommendationsSection({
               variant="outline"
               size="sm"
               onClick={() => refetch()}
+              disabled={isFetching}
               className="h-9 px-2"
             >
-              <RefreshCw className="mr-1 h-4 w-4" />
-              Refresh
+              <RefreshCw className={`mr-1 h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} />
+              {isFetching ? 'Refreshing...' : 'Refresh'}
             </Button>
           </div>
         </div>
         <CardDescription>
           Personalized suggestions based on your preferences
         </CardDescription>
+        {isFetching && !isLoading && (
+          <p className="text-xs text-gray-500 mt-1" role="status" aria-live="polite">Updating recommendations…</p>
+        )}
+        {isError && (
+          <p className="text-xs text-red-500 mt-1">{getApiErrorMessage(error, "Unable to refresh recommendations right now.")}</p>
+        )}
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">

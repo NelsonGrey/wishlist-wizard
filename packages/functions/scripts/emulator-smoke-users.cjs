@@ -212,6 +212,38 @@ async function seedAuthAndProfiles() {
   return users;
 }
 
+async function seedAdminUser() {
+  const adminUser = {
+    email: 'smoke-admin-users@wishlist-wizard.test',
+    password: 'SmokePass123!',
+    displayName: 'Smoke Admin Users'
+  };
+
+  try {
+    const existing = await auth.getUserByEmail(adminUser.email);
+    await auth.deleteUser(existing.uid);
+  } catch (error) {
+    if (!error || error.code !== 'auth/user-not-found') {
+      throw error;
+    }
+  }
+
+  const createdUser = await auth.createUser({
+    email: adminUser.email,
+    password: adminUser.password,
+    displayName: adminUser.displayName,
+    emailVerified: true
+  });
+
+  await auth.setCustomUserClaims(createdUser.uid, {
+    admin: true,
+    role: 'admin'
+  });
+
+  const tokenResult = await signInWithPassword(adminUser.email, adminUser.password);
+  return { ...adminUser, uid: createdUser.uid, ...tokenResult };
+}
+
 function assertCondition(condition, message) {
   if (!condition) {
     throw new Error(message);
@@ -324,7 +356,7 @@ async function runExtensionSmoke(ownerToken) {
   logStep('Verified extension-created wishlist cleanup');
 }
 
-async function runNotificationSmoke(ownerToken, ownerUid) {
+async function runNotificationSmoke(ownerToken, ownerUid, adminToken) {
   const settingsBefore = await callFunction('getNotificationSettings', ownerToken, {});
   assertCondition(settingsBefore && typeof settingsBefore === 'object', 'Expected getNotificationSettings to return settings object');
   logStep('Verified getNotificationSettings returns settings');
@@ -342,7 +374,7 @@ async function runNotificationSmoke(ownerToken, ownerUid) {
   assertCondition(updateSettingsResult && updateSettingsResult.success === true, 'Expected updateNotificationSettings success=true');
   logStep('Verified updateNotificationSettings updates preferences');
 
-  const createdNotification = await callFunction('createSystemNotification', ownerToken, {
+  const createdNotification = await callFunction('createSystemNotification', adminToken, {
     targetUserId: ownerUid,
     type: 'smoke_test',
     title: 'Smoke Notification',
@@ -365,7 +397,7 @@ async function runNotificationSmoke(ownerToken, ownerUid) {
   assertCondition(markReadResult && markReadResult.isRead === true, 'Expected markNotificationAsRead to set isRead=true');
   logStep('Verified markNotificationAsRead marks notification as read');
 
-  const createdNotification2 = await callFunction('createSystemNotification', ownerToken, {
+  const createdNotification2 = await callFunction('createSystemNotification', adminToken, {
     targetUserId: ownerUid,
     type: 'smoke_test',
     title: 'Smoke Notification 2',
@@ -442,6 +474,7 @@ async function main() {
   logStep(`Authenticated ${signedIn.length} synthetic users via Auth Emulator`);
 
   const owner = signedIn[0];
+  const adminUser = await seedAdminUser();
 
   await callFunction('createUserProfile', owner.idToken, {
     userId: owner.uid,
@@ -452,7 +485,7 @@ async function main() {
 
   await runWishlistSmoke(owner.idToken);
   await runExtensionSmoke(owner.idToken);
-  await runNotificationSmoke(owner.idToken, owner.uid);
+  await runNotificationSmoke(owner.idToken, owner.uid, adminUser.idToken);
   await runCalendarSmoke(owner.idToken);
 
   console.log('🎉 Smoke test completed: synthetic users can authenticate and execute wishlist, extension, notification, and calendar flows.');

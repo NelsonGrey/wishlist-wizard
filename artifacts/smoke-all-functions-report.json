@@ -1,25 +1,157 @@
 {
   "meta": {
-    "startedAt": "2026-02-23T23:32:37.621Z",
+    "startedAt": "2026-03-02T20:23:03.762Z",
     "projectId": "wishlist-wizard",
     "authHost": "127.0.0.1:9099",
     "functionsHost": "127.0.0.1:5001",
     "region": "us-central1",
-    "endedAt": "2026-02-23T23:33:21.065Z",
-    "durationMs": 43444
+    "endedAt": "2026-03-02T20:23:53.448Z",
+    "durationMs": 49686
   },
   "summary": {
-    "total": 82,
-    "passed": 67,
-    "warned": 15,
+    "total": 120,
+    "passed": 100,
+    "warned": 20,
     "failed": 0
   },
   "results": [
     {
+      "endpoint": "contract:getAnalyticsSummary:unauthenticated",
+      "type": "contract",
+      "status": "passed",
+      "message": "Unauthenticated analytics summary access correctly denied"
+    },
+    {
+      "endpoint": "contract:getAnalyticsEvents:unauthenticated",
+      "type": "contract",
+      "status": "passed",
+      "message": "Unauthenticated analytics events access correctly denied"
+    },
+    {
+      "endpoint": "contract:getAnalyticsSummary:nonadmin-global-denied",
+      "type": "contract",
+      "status": "passed",
+      "message": "Non-admin global analytics access correctly denied"
+    },
+    {
+      "endpoint": "contract:getAnalyticsSummary:admin-global-allowed",
+      "type": "contract",
+      "status": "passed",
+      "message": "Admin global analytics summary access allowed"
+    },
+    {
+      "endpoint": "contract:getAnalyticsSummary:window-max-clamped",
+      "type": "contract",
+      "status": "passed",
+      "message": "Analytics summary windowDays is clamped to max (365)"
+    },
+    {
+      "endpoint": "contract:getAnalyticsSummary:window-default-fallback",
+      "type": "contract",
+      "status": "passed",
+      "message": "Analytics summary windowDays falls back to default (30)"
+    },
+    {
+      "endpoint": "contract:getAnalyticsEvents:limit-default-fallback",
+      "type": "contract",
+      "status": "passed",
+      "message": "Analytics events limit=0 falls back to default without failure"
+    },
+    {
+      "endpoint": "contract:getAnalyticsEvents:limit-max-clamped",
+      "type": "contract",
+      "status": "passed",
+      "message": "Analytics events high limit is accepted and normalized without failure"
+    },
+    {
+      "endpoint": "contract:createSystemNotification:unauthenticated",
+      "type": "contract",
+      "status": "passed",
+      "message": "Unauthenticated system notification access correctly denied"
+    },
+    {
+      "endpoint": "contract:createSystemNotification:nonadmin-denied",
+      "type": "contract",
+      "status": "passed",
+      "message": "Non-admin system notification access correctly denied"
+    },
+    {
+      "endpoint": "contract:createSystemNotification:admin-allowed",
+      "type": "contract",
+      "status": "passed",
+      "message": "Admin system notification access allowed"
+    },
+    {
+      "endpoint": "contract:cleanOldNotifications:unauthenticated",
+      "type": "contract",
+      "status": "passed",
+      "message": "Unauthenticated cleanOldNotifications access correctly denied"
+    },
+    {
+      "endpoint": "contract:cleanOldNotifications:nonadmin-denied",
+      "type": "contract",
+      "status": "passed",
+      "message": "Non-admin cleanOldNotifications access correctly denied"
+    },
+    {
+      "endpoint": "contract:cleanOldNotifications:admin-allowed",
+      "type": "contract",
+      "status": "passed",
+      "message": "Admin cleanOldNotifications access allowed"
+    },
+    {
+      "endpoint": "contract:sendBatchNotification:unauthenticated",
+      "type": "contract",
+      "status": "passed",
+      "message": "Unauthenticated batch notification access correctly denied"
+    },
+    {
+      "endpoint": "contract:sendBatchNotification:nonadmin-denied",
+      "type": "contract",
+      "status": "passed",
+      "message": "Non-admin batch notification access correctly denied"
+    },
+    {
+      "endpoint": "contract:sendBatchNotification:admin-allowed",
+      "type": "contract",
+      "status": "passed",
+      "message": "Admin batch notification access returns explicit delivery status and counts"
+    },
+    {
+      "endpoint": "contract:subscribeToTopic:unauthenticated",
+      "type": "contract",
+      "status": "passed",
+      "message": "Unauthenticated subscribeToTopic access correctly denied"
+    },
+    {
+      "endpoint": "contract:subscribeToTopic:invalid-argument",
+      "type": "contract",
+      "status": "passed",
+      "message": "subscribeToTopic invalid argument correctly rejected"
+    },
+    {
+      "endpoint": "contract:unsubscribeFromTopic:unauthenticated",
+      "type": "contract",
+      "status": "passed",
+      "message": "Unauthenticated unsubscribeFromTopic access correctly denied"
+    },
+    {
+      "endpoint": "contract:unsubscribeFromTopic:invalid-argument",
+      "type": "contract",
+      "status": "passed",
+      "message": "unsubscribeFromTopic invalid argument correctly rejected"
+    },
+    {
+      "endpoint": "contract:sendTestPushNotification:unauthenticated",
+      "type": "contract",
+      "status": "passed",
+      "message": "Unauthenticated sendTestPushNotification access correctly denied"
+    },
+    {
       "endpoint": "createUserProfile",
       "type": "onCall",
       "status": "passed",
-      "durationMs": 517,
+      "durationMs": 8,
       "httpStatus": 200,
       "message": "Callable reachable"
     },
@@ -27,7 +159,7 @@
       "endpoint": "getUserProfile",
       "type": "onCall",
       "status": "passed",
-      "durationMs": 513,
+      "durationMs": 509,
       "httpStatus": 200,
       "message": "Callable reachable"
     },
@@ -35,7 +167,7 @@
       "endpoint": "updateUserProfile",
       "type": "onCall",
       "status": "passed",
-      "durationMs": 511,
+      "durationMs": 512,
       "httpStatus": 200,
       "message": "Callable reachable"
     },
@@ -51,7 +183,7 @@
       "endpoint": "getDocument",
       "type": "onCall",
       "status": "passed",
-      "durationMs": 507,
+      "durationMs": 520,
       "httpStatus": 200,
       "message": "Callable reachable"
     },
@@ -59,7 +191,7 @@
       "endpoint": "updateDocument",
       "type": "onCall",
       "status": "passed",
-      "durationMs": 528,
+      "durationMs": 514,
       "httpStatus": 200,
       "message": "Callable reachable"
     },
@@ -67,7 +199,7 @@
       "endpoint": "deleteDocument",
       "type": "onCall",
       "status": "passed",
-      "durationMs": 511,
+      "durationMs": 509,
       "httpStatus": 200,
       "message": "Callable reachable"
     },
@@ -75,7 +207,7 @@
       "endpoint": "listDocuments",
       "type": "onCall",
       "status": "passed",
-      "durationMs": 530,
+      "durationMs": 518,
       "httpStatus": 200,
       "message": "Callable reachable"
     },
@@ -83,7 +215,7 @@
       "endpoint": "batchCreateDocuments",
       "type": "onCall",
       "status": "passed",
-      "durationMs": 9,
+      "durationMs": 7,
       "httpStatus": 200,
       "message": "Callable reachable"
     },
@@ -91,7 +223,7 @@
       "endpoint": "batchUpdateDocuments",
       "type": "onCall",
       "status": "passed",
-      "durationMs": 509,
+      "durationMs": 523,
       "httpStatus": 200,
       "message": "Callable reachable"
     },
@@ -99,7 +231,7 @@
       "endpoint": "getUserNotifications",
       "type": "onCall",
       "status": "passed",
-      "durationMs": 536,
+      "durationMs": 546,
       "httpStatus": 200,
       "message": "Callable reachable"
     },
@@ -107,7 +239,7 @@
       "endpoint": "markNotificationAsRead",
       "type": "onCall",
       "status": "passed",
-      "durationMs": 520,
+      "durationMs": 536,
       "httpStatus": 200,
       "message": "Callable reachable"
     },
@@ -115,7 +247,7 @@
       "endpoint": "markAllNotificationsAsRead",
       "type": "onCall",
       "status": "passed",
-      "durationMs": 519,
+      "durationMs": 533,
       "httpStatus": 200,
       "message": "Callable reachable"
     },
@@ -123,7 +255,7 @@
       "endpoint": "deleteNotification",
       "type": "onCall",
       "status": "passed",
-      "durationMs": 512,
+      "durationMs": 522,
       "httpStatus": 200,
       "message": "Callable reachable"
     },
@@ -139,7 +271,7 @@
       "endpoint": "getNotificationSettings",
       "type": "onCall",
       "status": "passed",
-      "durationMs": 503,
+      "durationMs": 512,
       "httpStatus": 200,
       "message": "Callable reachable"
     },
@@ -147,7 +279,15 @@
       "endpoint": "updateNotificationSettings",
       "type": "onCall",
       "status": "passed",
-      "durationMs": 507,
+      "durationMs": 511,
+      "httpStatus": 200,
+      "message": "Callable reachable"
+    },
+    {
+      "endpoint": "cleanOldNotifications",
+      "type": "onCall",
+      "status": "passed",
+      "durationMs": 8,
       "httpStatus": 200,
       "message": "Callable reachable"
     },
@@ -155,7 +295,7 @@
       "endpoint": "authenticateExtension",
       "type": "onCall",
       "status": "passed",
-      "durationMs": 531,
+      "durationMs": 523,
       "httpStatus": 200,
       "message": "Callable reachable"
     },
@@ -163,7 +303,7 @@
       "endpoint": "getExtensionWishlists",
       "type": "onCall",
       "status": "passed",
-      "durationMs": 509,
+      "durationMs": 515,
       "httpStatus": 200,
       "message": "Callable reachable"
     },
@@ -171,7 +311,7 @@
       "endpoint": "addItemFromExtension",
       "type": "onCall",
       "status": "passed",
-      "durationMs": 515,
+      "durationMs": 633,
       "httpStatus": 200,
       "message": "Callable reachable"
     },
@@ -179,7 +319,7 @@
       "endpoint": "getExtensionRecentItems",
       "type": "onCall",
       "status": "passed",
-      "durationMs": 526,
+      "durationMs": 631,
       "httpStatus": 200,
       "message": "Callable reachable"
     },
@@ -187,7 +327,7 @@
       "endpoint": "createExtensionWishlist",
       "type": "onCall",
       "status": "passed",
-      "durationMs": 512,
+      "durationMs": 522,
       "httpStatus": 200,
       "message": "Callable reachable"
     },
@@ -195,7 +335,7 @@
       "endpoint": "deleteExtensionItem",
       "type": "onCall",
       "status": "passed",
-      "durationMs": 552,
+      "durationMs": 529,
       "httpStatus": 200,
       "message": "Callable reachable"
     },
@@ -203,7 +343,7 @@
       "endpoint": "shareExtensionWishlist",
       "type": "onCall",
       "status": "passed",
-      "durationMs": 504,
+      "durationMs": 513,
       "httpStatus": 200,
       "message": "Callable reachable"
     },
@@ -211,7 +351,7 @@
       "endpoint": "getExtensionAnalytics",
       "type": "onCall",
       "status": "passed",
-      "durationMs": 525,
+      "durationMs": 532,
       "httpStatus": 200,
       "message": "Callable reachable"
     },
@@ -219,7 +359,7 @@
       "endpoint": "trackExtensionEvent",
       "type": "onCall",
       "status": "passed",
-      "durationMs": 508,
+      "durationMs": 510,
       "httpStatus": 200,
       "message": "Callable reachable"
     },
@@ -227,7 +367,7 @@
       "endpoint": "getUserWishlists",
       "type": "onCall",
       "status": "passed",
-      "durationMs": 547,
+      "durationMs": 526,
       "httpStatus": 200,
       "message": "Callable reachable"
     },
@@ -235,7 +375,7 @@
       "endpoint": "getWishlistById",
       "type": "onCall",
       "status": "passed",
-      "durationMs": 514,
+      "durationMs": 519,
       "httpStatus": 200,
       "message": "Callable reachable"
     },
@@ -243,7 +383,7 @@
       "endpoint": "getSharedWishlist",
       "type": "onCall",
       "status": "passed",
-      "durationMs": 519,
+      "durationMs": 537,
       "httpStatus": 200,
       "message": "Callable reachable"
     },
@@ -251,7 +391,7 @@
       "endpoint": "createWishlist",
       "type": "onCall",
       "status": "passed",
-      "durationMs": 515,
+      "durationMs": 9,
       "httpStatus": 200,
       "message": "Callable reachable"
     },
@@ -259,7 +399,7 @@
       "endpoint": "updateWishlist",
       "type": "onCall",
       "status": "passed",
-      "durationMs": 514,
+      "durationMs": 530,
       "httpStatus": 200,
       "message": "Callable reachable"
     },
@@ -267,7 +407,7 @@
       "endpoint": "deleteWishlist",
       "type": "onCall",
       "status": "passed",
-      "durationMs": 526,
+      "durationMs": 531,
       "httpStatus": 200,
       "message": "Callable reachable"
     },
@@ -275,7 +415,7 @@
       "endpoint": "getWishlistItems",
       "type": "onCall",
       "status": "passed",
-      "durationMs": 520,
+      "durationMs": 533,
       "httpStatus": 200,
       "message": "Callable reachable"
     },
@@ -288,10 +428,26 @@
       "message": "Callable reachable"
     },
     {
+      "endpoint": "reserveWishlistItem",
+      "type": "onCall",
+      "status": "warned",
+      "durationMs": 414,
+      "httpStatus": 400,
+      "message": "INVALID_ARGUMENT: Item ID is required"
+    },
+    {
+      "endpoint": "purchaseWishlistItem",
+      "type": "onCall",
+      "status": "warned",
+      "durationMs": 414,
+      "httpStatus": 400,
+      "message": "INVALID_ARGUMENT: Item ID is required"
+    },
+    {
       "endpoint": "updateWishlistItem",
       "type": "onCall",
       "status": "passed",
-      "durationMs": 523,
+      "durationMs": 533,
       "httpStatus": 200,
       "message": "Callable reachable"
     },
@@ -299,7 +455,7 @@
       "endpoint": "deleteWishlistItem",
       "type": "onCall",
       "status": "passed",
-      "durationMs": 532,
+      "durationMs": 625,
       "httpStatus": 200,
       "message": "Callable reachable"
     },
@@ -315,7 +471,7 @@
       "endpoint": "removeFCMToken",
       "type": "onCall",
       "status": "passed",
-      "durationMs": 509,
+      "durationMs": 609,
       "httpStatus": 200,
       "message": "Callable reachable"
     },
@@ -323,7 +479,7 @@
       "endpoint": "subscribeToTopic",
       "type": "onCall",
       "status": "warned",
-      "durationMs": 512,
+      "durationMs": 124,
       "httpStatus": 500,
       "message": "INTERNAL: Failed to subscribe to topic"
     },
@@ -331,7 +487,7 @@
       "endpoint": "unsubscribeFromTopic",
       "type": "onCall",
       "status": "warned",
-      "durationMs": 505,
+      "durationMs": 120,
       "httpStatus": 500,
       "message": "INTERNAL: Failed to unsubscribe from topic"
     },
@@ -339,7 +495,7 @@
       "endpoint": "sendTestPushNotification",
       "type": "onCall",
       "status": "warned",
-      "durationMs": 504,
+      "durationMs": 125,
       "httpStatus": 404,
       "message": "NOT_FOUND: No FCM token found for user"
     },
@@ -347,7 +503,15 @@
       "endpoint": "sendTestNotification",
       "type": "onCall",
       "status": "passed",
-      "durationMs": 522,
+      "durationMs": 523,
+      "httpStatus": 200,
+      "message": "Callable reachable"
+    },
+    {
+      "endpoint": "sendBatchNotification",
+      "type": "onCall",
+      "status": "passed",
+      "durationMs": 12,
       "httpStatus": 200,
       "message": "Callable reachable"
     },
@@ -355,7 +519,7 @@
       "endpoint": "convertAffiliateLink",
       "type": "onCall",
       "status": "passed",
-      "durationMs": 518,
+      "durationMs": 414,
       "httpStatus": 200,
       "message": "Callable reachable"
     },
@@ -371,7 +535,7 @@
       "endpoint": "convertWishlistAffiliateLinks",
       "type": "onCall",
       "status": "passed",
-      "durationMs": 517,
+      "durationMs": 524,
       "httpStatus": 200,
       "message": "Callable reachable"
     },
@@ -387,7 +551,7 @@
       "endpoint": "getAffiliatePrograms",
       "type": "onCall",
       "status": "passed",
-      "durationMs": 514,
+      "durationMs": 414,
       "httpStatus": 200,
       "message": "Callable reachable"
     },
@@ -403,7 +567,7 @@
       "endpoint": "getAffiliateDisclosure",
       "type": "onCall",
       "status": "passed",
-      "durationMs": 416,
+      "durationMs": 413,
       "httpStatus": 200,
       "message": "Callable reachable"
     },
@@ -411,7 +575,7 @@
       "endpoint": "createGroupPaymentIntent",
       "type": "onCall",
       "status": "warned",
-      "durationMs": 418,
+      "durationMs": 415,
       "httpStatus": 400,
       "message": "FAILED_PRECONDITION: Stripe is not configured"
     },
@@ -419,7 +583,7 @@
       "endpoint": "confirmGroupContribution",
       "type": "onCall",
       "status": "warned",
-      "durationMs": 421,
+      "durationMs": 413,
       "httpStatus": 400,
       "message": "FAILED_PRECONDITION: Stripe is not configured"
     },
@@ -427,7 +591,7 @@
       "endpoint": "getGroupGiftSummary",
       "type": "onCall",
       "status": "passed",
-      "durationMs": 524,
+      "durationMs": 519,
       "httpStatus": 200,
       "message": "Callable reachable"
     },
@@ -435,7 +599,7 @@
       "endpoint": "getCalendarEvents",
       "type": "onCall",
       "status": "passed",
-      "durationMs": 519,
+      "durationMs": 517,
       "httpStatus": 200,
       "message": "Callable reachable"
     },
@@ -443,7 +607,7 @@
       "endpoint": "createCalendarEvent",
       "type": "onCall",
       "status": "passed",
-      "durationMs": 23,
+      "durationMs": 18,
       "httpStatus": 200,
       "message": "Callable reachable"
     },
@@ -451,7 +615,7 @@
       "endpoint": "updateCalendarEvent",
       "type": "onCall",
       "status": "passed",
-      "durationMs": 509,
+      "durationMs": 524,
       "httpStatus": 200,
       "message": "Callable reachable"
     },
@@ -459,7 +623,7 @@
       "endpoint": "deleteCalendarEvent",
       "type": "onCall",
       "status": "passed",
-      "durationMs": 616,
+      "durationMs": 517,
       "httpStatus": 200,
       "message": "Callable reachable"
     },
@@ -467,7 +631,7 @@
       "endpoint": "getCalendarAuthUrl",
       "type": "onCall",
       "status": "passed",
-      "durationMs": 504,
+      "durationMs": 516,
       "httpStatus": 200,
       "message": "Callable reachable"
     },
@@ -475,15 +639,15 @@
       "endpoint": "connectCalendar",
       "type": "onCall",
       "status": "warned",
-      "durationMs": 416,
+      "durationMs": 417,
       "httpStatus": 400,
-      "message": "FAILED_PRECONDITION: Apple calendar requires manual subscription"
+      "message": "INVALID_ARGUMENT: Apple calendar subscription URL is required"
     },
     {
       "endpoint": "getCalendarConnections",
       "type": "onCall",
       "status": "passed",
-      "durationMs": 524,
+      "durationMs": 517,
       "httpStatus": 200,
       "message": "Callable reachable"
     },
@@ -491,7 +655,7 @@
       "endpoint": "updateCalendarConnectionSettings",
       "type": "onCall",
       "status": "warned",
-      "durationMs": 512,
+      "durationMs": 519,
       "httpStatus": 404,
       "message": "NOT_FOUND: Connection not found"
     },
@@ -499,7 +663,7 @@
       "endpoint": "disconnectCalendar",
       "type": "onCall",
       "status": "warned",
-      "durationMs": 506,
+      "durationMs": 510,
       "httpStatus": 404,
       "message": "NOT_FOUND: Connection not found"
     },
@@ -507,7 +671,7 @@
       "endpoint": "syncCalendarConnection",
       "type": "onCall",
       "status": "warned",
-      "durationMs": 505,
+      "durationMs": 514,
       "httpStatus": 404,
       "message": "NOT_FOUND: Connection not found"
     },
@@ -515,7 +679,7 @@
       "endpoint": "syncCalendar",
       "type": "onCall",
       "status": "passed",
-      "durationMs": 514,
+      "durationMs": 658,
       "httpStatus": 200,
       "message": "Callable reachable"
     },
@@ -523,15 +687,47 @@
       "endpoint": "getCalendarSyncSettings",
       "type": "onCall",
       "status": "passed",
-      "durationMs": 512,
+      "durationMs": 621,
       "httpStatus": 200,
       "message": "Callable reachable"
+    },
+    {
+      "endpoint": "getContacts",
+      "type": "onCall",
+      "status": "passed",
+      "durationMs": 546,
+      "httpStatus": 200,
+      "message": "Callable reachable"
+    },
+    {
+      "endpoint": "importContacts",
+      "type": "onCall",
+      "status": "warned",
+      "durationMs": 417,
+      "httpStatus": 400,
+      "message": "INVALID_ARGUMENT: Provider is required"
+    },
+    {
+      "endpoint": "hideContact",
+      "type": "onCall",
+      "status": "warned",
+      "durationMs": 415,
+      "httpStatus": 400,
+      "message": "INVALID_ARGUMENT: Contact ID is required"
+    },
+    {
+      "endpoint": "deleteContact",
+      "type": "onCall",
+      "status": "warned",
+      "durationMs": 416,
+      "httpStatus": 400,
+      "message": "INVALID_ARGUMENT: Contact ID is required"
     },
     {
       "endpoint": "registerDevice",
       "type": "onCall",
       "status": "passed",
-      "durationMs": 12,
+      "durationMs": 24,
       "httpStatus": 200,
       "message": "Callable reachable"
     },
@@ -539,7 +735,7 @@
       "endpoint": "listDevices",
       "type": "onCall",
       "status": "passed",
-      "durationMs": 682,
+      "durationMs": 517,
       "httpStatus": 200,
       "message": "Callable reachable"
     },
@@ -547,7 +743,7 @@
       "endpoint": "updateDevice",
       "type": "onCall",
       "status": "passed",
-      "durationMs": 516,
+      "durationMs": 517,
       "httpStatus": 200,
       "message": "Callable reachable"
     },
@@ -555,7 +751,7 @@
       "endpoint": "logSyncEvent",
       "type": "onCall",
       "status": "passed",
-      "durationMs": 507,
+      "durationMs": 515,
       "httpStatus": 200,
       "message": "Callable reachable"
     },
@@ -563,7 +759,7 @@
       "endpoint": "getSyncLogs",
       "type": "onCall",
       "status": "passed",
-      "durationMs": 516,
+      "durationMs": 523,
       "httpStatus": 200,
       "message": "Callable reachable"
     },
@@ -571,7 +767,7 @@
       "endpoint": "syncMobileActions",
       "type": "onCall",
       "status": "passed",
-      "durationMs": 515,
+      "durationMs": 524,
       "httpStatus": 200,
       "message": "Callable reachable"
     },
@@ -579,7 +775,7 @@
       "endpoint": "lookupBarcode",
       "type": "onCall",
       "status": "passed",
-      "durationMs": 1314,
+      "durationMs": 1045,
       "httpStatus": 200,
       "message": "Callable reachable"
     },
@@ -587,7 +783,7 @@
       "endpoint": "getARModel",
       "type": "onCall",
       "status": "passed",
-      "durationMs": 414,
+      "durationMs": 415,
       "httpStatus": 200,
       "message": "Callable reachable"
     },
@@ -603,7 +799,7 @@
       "endpoint": "getAnalyticsEvents",
       "type": "onCall",
       "status": "passed",
-      "durationMs": 566,
+      "durationMs": 14,
       "httpStatus": 200,
       "message": "Callable reachable"
     },
@@ -611,15 +807,79 @@
       "endpoint": "getAnalyticsSummary",
       "type": "onCall",
       "status": "passed",
-      "durationMs": 525,
+      "durationMs": 24,
       "httpStatus": 200,
       "message": "Callable reachable"
+    },
+    {
+      "endpoint": "extensionGetWishlists",
+      "type": "onRequest",
+      "status": "passed",
+      "durationMs": 525,
+      "httpStatus": 200,
+      "message": "HTTP endpoint reachable"
+    },
+    {
+      "endpoint": "extensionCreateWishlist",
+      "type": "onRequest",
+      "status": "passed",
+      "durationMs": 520,
+      "httpStatus": 200,
+      "message": "HTTP endpoint reachable"
+    },
+    {
+      "endpoint": "extensionAddItem",
+      "type": "onRequest",
+      "status": "passed",
+      "durationMs": 525,
+      "httpStatus": 200,
+      "message": "HTTP endpoint reachable"
+    },
+    {
+      "endpoint": "extensionGetRecentItems",
+      "type": "onRequest",
+      "status": "passed",
+      "durationMs": 532,
+      "httpStatus": 200,
+      "message": "HTTP endpoint reachable"
+    },
+    {
+      "endpoint": "extensionGetWishlistItems",
+      "type": "onRequest",
+      "status": "passed",
+      "durationMs": 521,
+      "httpStatus": 200,
+      "message": "HTTP endpoint reachable"
+    },
+    {
+      "endpoint": "extensionDeleteItem",
+      "type": "onRequest",
+      "status": "passed",
+      "durationMs": 534,
+      "httpStatus": 200,
+      "message": "HTTP endpoint reachable"
+    },
+    {
+      "endpoint": "extensionShareWishlist",
+      "type": "onRequest",
+      "status": "passed",
+      "durationMs": 521,
+      "httpStatus": 200,
+      "message": "HTTP endpoint reachable"
+    },
+    {
+      "endpoint": "api",
+      "type": "onRequest",
+      "status": "passed",
+      "durationMs": 523,
+      "httpStatus": 200,
+      "message": "HTTP endpoint reachable"
     },
     {
       "endpoint": "getItemPriceHistory",
       "type": "onRequest",
       "status": "passed",
-      "durationMs": 552,
+      "durationMs": 532,
       "httpStatus": 200,
       "message": "HTTP endpoint reachable"
     },
@@ -627,7 +887,7 @@
       "endpoint": "createCheckoutSession",
       "type": "onRequest",
       "status": "warned",
-      "durationMs": 415,
+      "durationMs": 417,
       "httpStatus": 501,
       "message": "HTTP 501 (reachable but not fully configured for this payload)"
     },
@@ -635,7 +895,7 @@
       "endpoint": "stripeWebhook",
       "type": "onRequest",
       "status": "warned",
-      "durationMs": 416,
+      "durationMs": 415,
       "httpStatus": 501,
       "message": "HTTP 501 (reachable but not fully configured for this payload)"
     },
