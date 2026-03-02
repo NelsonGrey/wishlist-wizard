@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Link } from 'wouter';
 import { format } from 'date-fns';
+import { NotificationSettings } from '@/components/notifications/NotificationSettings';
 
 type NotificationFilter = 'all' | 'unread' | 'read';
 
@@ -27,6 +28,7 @@ export default function Notifications() {
   const [markingNotificationId, setMarkingNotificationId] = useState<number | null>(null);
   const [deletingNotificationId, setDeletingNotificationId] = useState<number | null>(null);
   const [filter, setFilter] = useState<NotificationFilter>('all');
+  const [showSettings, setShowSettings] = useState(false);
   
   // Query for notifications
   const { data, isLoading, isError, error, refetch } = useQuery<{
@@ -216,17 +218,35 @@ export default function Notifications() {
           <h2 className="text-2xl font-bold">Inbox</h2>
         </div>
 
-        {notifications.length > 0 && unreadCount > 0 && (
-          <Button 
-            data-testid="notifications-mark-all-read"
-            variant="outline" 
-            onClick={handleMarkAllAsRead}
-            disabled={markAllAsReadMutation.isPending}
+        <div className="flex items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            aria-expanded={showSettings}
+            aria-controls="notification-preferences-panel"
+            onClick={() => setShowSettings((prev) => !prev)}
           >
-            {markAllAsReadMutation.isPending ? 'Marking all...' : 'Mark all as read'}
+            {showSettings ? 'Hide preferences' : 'Manage preferences'}
           </Button>
-        )}
+
+          {notifications.length > 0 && unreadCount > 0 && (
+            <Button 
+              data-testid="notifications-mark-all-read"
+              variant="outline" 
+              onClick={handleMarkAllAsRead}
+              disabled={markAllAsReadMutation.isPending}
+            >
+              {markAllAsReadMutation.isPending ? 'Marking all...' : 'Mark all as read'}
+            </Button>
+          )}
+        </div>
       </div>
+
+      {showSettings && (
+        <section id="notification-preferences-panel" className="mb-8" aria-label="Notification preferences">
+          <NotificationSettings />
+        </section>
+      )}
       
       <Separator className="mb-6" />
       

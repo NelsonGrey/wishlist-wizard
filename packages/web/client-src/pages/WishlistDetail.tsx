@@ -1,4 +1,4 @@
-import { KeyboardEvent, useEffect, useMemo, useRef, useState } from "react";
+import { KeyboardEvent as ReactKeyboardEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useRoute, useLocation } from "wouter";
 import { ArrowLeft, Check, ChevronUp, Download, ExternalLink, Plus, Share2 } from "lucide-react";
@@ -149,8 +149,11 @@ export default function WishlistDetail() {
   const eventDateLabel = parsedEventDate && !Number.isNaN(parsedEventDate.getTime())
     ? parsedEventDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
     : null;
-  const parsedUpdatedAt = resolvedWishlist?.updatedAt
-    ? new Date(resolvedWishlist.updatedAt)
+  const wishlistUpdatedAt = resolvedWishlist
+    ? (resolvedWishlist as Wishlist & { updatedAt?: string | Date | null }).updatedAt
+    : null;
+  const parsedUpdatedAt = wishlistUpdatedAt
+    ? new Date(wishlistUpdatedAt)
     : resolvedWishlist?.createdAt
       ? new Date(resolvedWishlist.createdAt)
       : null;
@@ -212,7 +215,7 @@ export default function WishlistDetail() {
   }, [itemSort, itemSearch]);
 
   useEffect(() => {
-    const handleSearchShortcut = (event: KeyboardEvent) => {
+    const handleSearchShortcut = (event: globalThis.KeyboardEvent) => {
       if (event.key === 'Escape') {
         if (document.activeElement === itemSearchInputRef.current) {
           event.preventDefault();
@@ -400,7 +403,7 @@ export default function WishlistDetail() {
     detailsButton?.click();
   };
 
-  const handleSearchInputKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+  const handleSearchInputKeyDown = (event: ReactKeyboardEvent<HTMLInputElement>) => {
     if (!filteredItems.length) {
       return;
     }
