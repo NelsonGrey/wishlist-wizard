@@ -2,6 +2,7 @@ import { onCall, CallableRequest, HttpsError } from "firebase-functions/v2/https
 import { getFirestore } from "firebase-admin/firestore";
 import { logger } from "firebase-functions/v2";
 import { ensureFirebaseAdmin } from "../firebase-admin.js";
+import { getValidCalendarAccessToken } from "../utils/calendar-tokens.js";
 
 ensureFirebaseAdmin();
 const db = getFirestore();
@@ -212,11 +213,9 @@ export const importContacts = onCall(async (request: CallableRequest) => {
         throw new HttpsError("failed-precondition", `No active ${normalizedProvider} calendar connection found`);
       }
 
-      const connection = snapshot.docs[0].data();
-      const accessToken = connection.accessToken;
-      if (!accessToken) {
-        throw new HttpsError("failed-precondition", "Connected provider has no access token");
-      }
+      const connectionDoc = snapshot.docs[0];
+      const connection = connectionDoc.data();
+      const accessToken = await getValidCalendarAccessToken(connectionDoc.id, connection);
 
       contactsToImport = normalizedProvider === "google"
         ? await fetchGoogleContacts(accessToken)

@@ -3,6 +3,7 @@ import { getFirestore } from "firebase-admin/firestore";
 import { logger } from "firebase-functions/v2";
 import { randomUUID } from "crypto";
 import { ensureFirebaseAdmin } from "../firebase-admin.js";
+import { getValidCalendarAccessToken } from "../utils/calendar-tokens.js";
 
 ensureFirebaseAdmin();
 const db = getFirestore();
@@ -31,6 +32,32 @@ function requireAuth(request: CallableRequest) {
   if (!request.auth) {
     throw new HttpsError("unauthenticated", "User must be authenticated");
   }
+}
+
+function requireOAuthProviderConfig(provider: string) {
+  if (provider === "google") {
+    if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) {
+      throw new HttpsError("failed-precondition", "Google calendar OAuth is not configured");
+    }
+    return;
+  }
+
+  if (provider === "outlook") {
+    if (!MICROSOFT_CLIENT_ID || !MICROSOFT_CLIENT_SECRET) {
+      throw new HttpsError("failed-precondition", "Outlook calendar OAuth is not configured");
+    }
+  }
+}
+
+function sanitizeCalendarConnection(connection: Record<string, unknown>, id: string) {
+  const { accessToken, refreshToken, ...safe } = connection;
+  void accessToken;
+  void refreshToken;
+  return {
+    id,
+    ...safe,
+    hasRefreshToken: Boolean(refreshToken),
+  };
 }
 
 function normalizeText(value: unknown, fallback = ""): string {
@@ -272,10 +299,19 @@ export const getCalendarAuthUrl = onCall(async (request: CallableRequest) => {
   const state = randomUUID();
   const finalRedirect = redirectUri || (provider === "google" ? GOOGLE_REDIRECT_URI : MICROSOFT_REDIRECT_URI);
 
+  if ((provider === "google" || provider === "outlook") && !finalRedirect) {
+    throw new HttpsError("failed-precondition", "Redirect URI is required for OAuth providers");
+  }
+
+  if (provider === "google" || provider === "outlook") {
+    requireOAuthProviderConfig(provider);
+  }
+
   await db.collection("calendarAuthStates").doc(state).set({
     userId: request.auth!.uid,
     provider,
     redirectUri: finalRedirect,
+    expiresAt: new Date(Date.now() + 10 * 60 * 1000),
     createdAt: new Date(),
   });
 
@@ -312,6 +348,10 @@ export const connectCalendar = onCall(async (request: CallableRequest) => {
 
   if ((provider === "google" || provider === "outlook") && !code) {
     throw new HttpsError("invalid-argument", "Authorization code is required for this provider");
+  }
+
+  if (provider === "google" || provider === "outlook") {
+    requireOAuthProviderConfig(provider);
   }
 
   if (provider === "apple") {
@@ -353,11 +393,11 @@ export const connectCalendar = onCall(async (request: CallableRequest) => {
         isActive: true,
         updatedAt: new Date(),
       });
-      return { id: existingDoc.id, ...connectionData };
+      return sanitizeCalendarConnection(connectionData, existingDoc.id);
     }
 
     const docRef = await db.collection("userCalendars").add(connectionData);
-    return { id: docRef.id, ...connectionData };
+    return sanitizeCalendarConnection(connectionData, docRef.id);
   }
 
   let redirect = redirectUri || (provider === "google" ? GOOGLE_REDIRECT_URI : MICROSOFT_REDIRECT_URI);
@@ -369,6 +409,22 @@ export const connectCalendar = onCall(async (request: CallableRequest) => {
       if (stateData?.userId !== request.auth!.uid) {
         throw new HttpsError("permission-denied", "Invalid auth state");
       }
+
+      if (stateData?.provider && stateData.provider !== provider) {
+        throw new HttpsError("invalid-argument", "Auth state provider does not match");
+      }
+
+      const expiresAtRaw = stateData?.expiresAt;
+      const expiresAt = expiresAtRaw && typeof expiresAtRaw.toDate === "function"
+        ? expiresAtRaw.toDate()
+        : expiresAtRaw instanceof Date
+          ? expiresAtRaw
+          : null;
+      if (expiresAt && expiresAt.getTime() < Date.now()) {
+        await db.collection("calendarAuthStates").doc(state).delete();
+        throw new HttpsError("failed-precondition", "Calendar auth state has expired. Please try again.");
+      }
+
       redirect = stateData?.redirectUri || redirect;
       await db.collection("calendarAuthStates").doc(state).delete();
     }
@@ -428,8 +484,26 @@ export const connectCalendar = onCall(async (request: CallableRequest) => {
       updatedAt: new Date(),
     };
 
+    const existingConnection = await db
+      .collection("userCalendars")
+      .where("userId", "==", request.auth!.uid)
+      .where("calendarType", "==", provider)
+      .where("calendarId", "==", calendarId)
+      .limit(1)
+      .get();
+
+    if (!existingConnection.empty) {
+      const doc = existingConnection.docs[0];
+      await doc.ref.update({
+        ...connectionData,
+        isActive: true,
+        updatedAt: new Date(),
+      });
+      return sanitizeCalendarConnection(connectionData, doc.id);
+    }
+
     const docRef = await db.collection("userCalendars").add(connectionData);
-    return { id: docRef.id, ...connectionData };
+    return sanitizeCalendarConnection(connectionData, docRef.id);
   } catch (error) {
     logger.error("Error connecting calendar:", error);
     if (error instanceof HttpsError) throw error;
@@ -447,7 +521,7 @@ export const getCalendarConnections = onCall(async (request: CallableRequest) =>
       .where("isActive", "==", true)
       .get();
 
-    const connections = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+    const connections = snapshot.docs.map((doc) => sanitizeCalendarConnection(doc.data(), doc.id));
     return connections;
   } catch (error) {
     logger.error("Error fetching calendar connections:", error);
@@ -583,6 +657,8 @@ async function syncConnectionEvents(connectionId: string, connection: any, userI
     ...(doc.data() as CalendarEventData)
   }));
 
+  const accessToken = await getValidCalendarAccessToken(connectionId, connection);
+
   let syncedCount = 0;
 
   for (const event of events) {
@@ -619,9 +695,9 @@ async function syncConnectionEvents(connectionId: string, connection: any, userI
 
     let externalEvent;
     if (connection.calendarType === "google") {
-      externalEvent = await createGoogleEvent(connection.accessToken, connection.calendarId, payload);
+      externalEvent = await createGoogleEvent(accessToken, connection.calendarId, payload);
     } else if (connection.calendarType === "outlook") {
-      externalEvent = await createMicrosoftEvent(connection.accessToken, connection.calendarId, payload);
+      externalEvent = await createMicrosoftEvent(accessToken, connection.calendarId, payload);
     }
 
     if (externalEvent?.id) {
