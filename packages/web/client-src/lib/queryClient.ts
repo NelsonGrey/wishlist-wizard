@@ -111,12 +111,15 @@ function resolveFirebaseProjectId(): string {
 function buildFirebaseApiRouterUrl(url: string): string {
   const projectId = resolveFirebaseProjectId();
   const normalizedPath = url.startsWith('/') ? url : `/${url}`;
+  const routerPath = normalizedPath.startsWith('/api/')
+    ? normalizedPath.slice('/api'.length)
+    : normalizedPath;
 
   if (import.meta.env.PROD) {
-    return `https://${FIREBASE_FUNCTIONS_REGION}-${projectId}.cloudfunctions.net/api${normalizedPath}`;
+    return `https://${FIREBASE_FUNCTIONS_REGION}-${projectId}.cloudfunctions.net/api${routerPath}`;
   }
 
-  return `http://localhost:5001/${projectId}/${FIREBASE_FUNCTIONS_REGION}/api${normalizedPath}`;
+  return `http://localhost:5001/${projectId}/${FIREBASE_FUNCTIONS_REGION}/api${routerPath}`;
 }
 
 /**
@@ -292,7 +295,7 @@ export async function apiRequest(
   const fetchOptions: RequestInit = {
     method,
     headers,
-    credentials: 'include',
+    credentials: useApiRouter ? 'omit' : 'include',
   };
   
   if (normalizedBody) {
