@@ -2216,6 +2216,104 @@ async function runApiRouterContractChecks(fixtureContext) {
         }),
   });
 
+  const foreignWishlist = await callCallableExpectSuccess('createDocument', fixtureContext.user.idToken, {
+    collection: 'wishlists',
+    data: {
+      userId: 'someone-else',
+      name: `Foreign Wishlist ${Date.now()}`,
+      isPublic: false,
+      itemCount: 1,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    },
+  });
+
+  const foreignWishlistItem = await callCallableExpectSuccess('createDocument', fixtureContext.user.idToken, {
+    collection: 'wishlistItems',
+    data: {
+      wishlistId: foreignWishlist?.id,
+      title: 'Foreign Wishlist Item',
+      productUrl: 'https://example.com/foreign-item',
+      createdAt: new Date().toISOString(),
+    },
+  });
+
+  const apiWishlistItemsResponse = await fetch(
+    `http://${functionsHost}/${projectId}/${region}/api/api/wishlist-items`,
+    {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${fixtureContext.user.idToken}`,
+      },
+    }
+  );
+  let apiWishlistItemsJson = null;
+  try {
+    apiWishlistItemsJson = await apiWishlistItemsResponse.json();
+  } catch (_) {
+    apiWishlistItemsJson = null;
+  }
+
+  const wishlistItemsArray = Array.isArray(apiWishlistItemsJson) ? apiWishlistItemsJson : [];
+  const includesFixtureItem = wishlistItemsArray.some((entry) => entry?.id === fixtureContext.ids.itemId);
+  const includesForeignItem = wishlistItemsArray.some((entry) => entry?.id === foreignWishlistItem?.id);
+  const hasWishlistItemsShape = wishlistItemsArray.every((entry) => typeof entry?.id === 'string' && typeof entry?.wishlistId === 'string');
+
+  checks.push({
+    endpoint: 'contract:api-router:wishlist-items-shape-and-ownership',
+    type: 'contract',
+    ...(apiWishlistItemsResponse.status === 200
+      && hasWishlistItemsShape
+      && includesFixtureItem
+      && !includesForeignItem
+      ? { status: 'passed', message: 'API router wishlist-items returns shaped records and excludes foreign wishlist items' }
+      : {
+          status: 'failed',
+          message: `Expected HTTP 200 with shaped items and ownership filtering, got ${apiWishlistItemsResponse.status}`,
+          httpStatus: apiWishlistItemsResponse.status,
+        }),
+  });
+
+  const apiWishlistItemsWrongMethod = await invokeHttp('api', {
+    method: 'POST',
+    pathSuffix: '/api/wishlist-items',
+    headers: {
+      Authorization: `Bearer ${fixtureContext.user.idToken}`,
+    },
+    body: {},
+  });
+  checks.push({
+    endpoint: 'contract:api-router:wishlist-items-method-not-allowed',
+    type: 'contract',
+    ...([404, 405].includes(apiWishlistItemsWrongMethod.httpStatus || 0)
+      ? { status: 'passed', message: 'API router wishlist-items route rejects unsupported HTTP methods' }
+      : {
+          status: 'failed',
+          message: `Expected HTTP 404/405, got ${apiWishlistItemsWrongMethod.httpStatus ?? apiWishlistItemsWrongMethod.message}`,
+          httpStatus: apiWishlistItemsWrongMethod.httpStatus,
+        }),
+  });
+
+  const apiWishlistItemsMalformedPath = await invokeHttp('api', {
+    method: 'GET',
+    pathSuffix: '/api/wishlist-items/%5Bobject%20Object%5D',
+    headers: {
+      Authorization: `Bearer ${fixtureContext.user.idToken}`,
+    },
+  });
+  checks.push({
+    endpoint: 'contract:api-router:wishlist-items-malformed-path-id',
+    type: 'contract',
+    ...(apiWishlistItemsMalformedPath.httpStatus === 404
+      ? { status: 'passed', message: 'API router wishlist-items malformed path correctly returns not found' }
+      : {
+          status: 'failed',
+          message: `Expected HTTP 404, got ${apiWishlistItemsMalformedPath.httpStatus ?? apiWishlistItemsMalformedPath.message}`,
+          httpStatus: apiWishlistItemsMalformedPath.httpStatus,
+        }),
+  });
+
   const apiAnalyticsPath = await invokeHttp('api', {
     method: 'GET',
     pathSuffix: '/api/analytics/summary',
