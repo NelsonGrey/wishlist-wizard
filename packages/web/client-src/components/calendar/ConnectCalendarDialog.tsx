@@ -225,7 +225,7 @@ export function ConnectCalendarDialog({ onConnect }: ConnectCalendarDialogProps)
           
           <TabsContent value="google" className="py-4">
             <div className="flex flex-col items-center space-y-4">
-              <SiGoogle className="h-16 w-16 text-blue-500" />
+              <SiGoogle className="h-16 w-16 text-emerald-700" />
               <h3 className="text-lg font-medium">Connect Google Calendar</h3>
               <p className="text-sm text-gray-500 text-center">
                 Sync your events with Google Calendar. You&apos;ll be asked to grant
@@ -243,7 +243,7 @@ export function ConnectCalendarDialog({ onConnect }: ConnectCalendarDialogProps)
           
           <TabsContent value="outlook" className="py-4">
             <div className="flex flex-col items-center space-y-4">
-              <FaMicrosoft className="h-16 w-16 text-blue-500" />
+              <FaMicrosoft className="h-16 w-16 text-emerald-700" />
               <h3 className="text-lg font-medium">Connect Outlook Calendar</h3>
               <p className="text-sm text-gray-500 text-center">
                 Sync your events with Microsoft Outlook Calendar. You&apos;ll be asked to grant

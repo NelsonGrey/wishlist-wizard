@@ -1066,7 +1066,7 @@ const UserProfile = () => {
                           <Mail size={14} className="mr-1" />
                           Invite via Email
                         </Button>
-                        <Button variant="outline" size="sm" className="bg-blue-50 text-blue-700 hover:bg-blue-100 border-blue-200">
+                        <Button variant="outline" size="sm" className="bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border-emerald-200">
                           Import from Facebook
                         </Button>
                         <Button variant="outline" size="sm" className="bg-slate-50 text-slate-700 hover:bg-slate-100 border-slate-200">
@@ -1209,7 +1209,7 @@ const UserProfile = () => {
                       <div key={exchange.id} className="flex items-center justify-between border rounded-lg p-3">
                         <div>
                           <div className="flex items-center gap-2">
-                            <span className={exchange.type === "Received" ? "text-blue-600" : "text-green-600"}>
+                            <span className={exchange.type === "Received" ? "text-emerald-700" : "text-green-600"}>
                               {exchange.type}
                             </span>
                             <span className="font-medium">{exchange.item}</span>

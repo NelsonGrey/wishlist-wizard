@@ -1017,7 +1017,7 @@ export default function WishlistDetail() {
                     </span>
                   )}
                   {updatedAtLabel && (
-                    <span className="inline-flex items-center rounded-full bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700">
+                    <span className="inline-flex items-center rounded-full bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-700">
                       Updated: {updatedAtLabel}
                     </span>
                   )}

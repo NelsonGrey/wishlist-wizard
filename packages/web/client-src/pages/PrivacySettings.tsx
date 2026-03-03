@@ -84,7 +84,7 @@ const VISIBILITY_OPTIONS = [
     label: 'Friends Only',
     description: 'Only people you\'ve connected with can view',
     icon: Users,
-    color: 'text-blue-600',
+    color: 'text-emerald-700',
     disabled: false
   },
   {

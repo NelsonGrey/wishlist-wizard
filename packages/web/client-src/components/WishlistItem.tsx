@@ -303,7 +303,7 @@ export default function WishlistItem({
                           variant="ghost"
                           size="icon"
                           onClick={onEdit}
-                          className="text-gray-500 hover:text-blue-600 h-8 w-8"
+                          className="text-gray-500 hover:text-emerald-700 h-8 w-8"
                           aria-label="Edit item"
                           data-testid={`wishlist-item-edit-${normalizedItemId}`}
                         >

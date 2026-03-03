@@ -82,7 +82,7 @@ export const SignupForm: React.FC = () => {
             value={displayName}
             onChange={(e) => setDisplayName(e.target.value)}
             disabled={loading}
-            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50"
+            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 disabled:opacity-50"
           />
         </div>
 
@@ -97,7 +97,7 @@ export const SignupForm: React.FC = () => {
             onChange={(e) => setEmail(e.target.value)}
             required
             disabled={loading}
-            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50"
+            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 disabled:opacity-50"
           />
         </div>
 
@@ -112,7 +112,7 @@ export const SignupForm: React.FC = () => {
             onChange={(e) => setPassword(e.target.value)}
             required
             disabled={loading}
-            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50"
+            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 disabled:opacity-50"
           />
           <p className="text-xs text-gray-500 mt-1">
             Must be at least 6 characters long
@@ -130,7 +130,7 @@ export const SignupForm: React.FC = () => {
             onChange={(e) => setConfirmPassword(e.target.value)}
             required
             disabled={loading}
-            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50"
+            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 disabled:opacity-50"
           />
         </div>
 
