@@ -3,10 +3,12 @@ import { getAuth } from "firebase/auth";
 import { connectFunctionsEmulator, getFunctions, httpsCallable } from "firebase/functions";
 import { firebaseApp, initFirebase } from "@/lib/firebase";
 
-// API Base URL - use Firebase Functions in production, Express.js API server in development
-const API_BASE_URL = import.meta.env.PROD 
-  ? "https://api-ph6if7thka-uc.a.run.app"  // Firebase Cloud Functions URL
-  : "http://localhost:3001";  // Local Express.js API server
+// API Base URL
+// - Uses explicit env override when provided
+// - Falls back to local API server in development
+// - Falls back to current origin in production to avoid cross-origin CORS issues
+const configuredApiBaseUrl = String(import.meta.env.VITE_API_BASE_URL || '').trim();
+const API_BASE_URL = configuredApiBaseUrl || (import.meta.env.PROD ? '' : 'http://localhost:3001');
 
 const FIREBASE_FUNCTIONS_REGION = String(import.meta.env.VITE_FIREBASE_FUNCTIONS_REGION || 'us-central1');
 
@@ -50,15 +52,11 @@ function shouldUseFirebaseFunctions(url: string): boolean {
     '/api/users/search',
     '/api/notifications',
     '/api/fcm',
-    '/api/price-alerts',
-    '/api/calendar',
     '/api/contacts',
     '/api/affiliate',
     '/api/items',
-    '/api/group-payments',
     '/api/mobile',
     '/api/devices',
-    '/api/analytics',
     '/api/ar'
   ];
   

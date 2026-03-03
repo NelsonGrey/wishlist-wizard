@@ -37,7 +37,8 @@ import { Heart, Users, DollarSign, Lock } from "lucide-react";
 import "@/styles/progress.css";
 
 // Initialize Stripe
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || "");
+const stripePublishableKey = String(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '').trim();
+const stripePromise = stripePublishableKey ? loadStripe(stripePublishableKey) : null;
 
 const formSchema = z.object({
   contributionAmount: z.number().min(0.5, "Minimum contribution is $0.50").max(10000, "Maximum contribution is $10,000"),
@@ -460,6 +461,24 @@ function ContributionForm({
 }
 
 export default function ContributionDialog(props: ContributionDialogProps) {
+  if (!stripePromise) {
+    return (
+      <Dialog open={props.open} onOpenChange={(open) => !open && props.onClose()}>
+        <DialogContent className="sm:max-w-[520px]">
+          <DialogHeader>
+            <DialogTitle>Payments unavailable</DialogTitle>
+            <DialogDescription>
+              Group contributions are temporarily unavailable because Stripe is not configured for this environment.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={props.onClose}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
   return (
     <Dialog open={props.open} onOpenChange={(open) => !open && props.onClose()}>
       <Elements stripe={stripePromise}>
