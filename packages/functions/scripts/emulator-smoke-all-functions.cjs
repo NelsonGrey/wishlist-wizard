@@ -1634,6 +1634,25 @@ async function runApiRouterContractChecks(fixtureContext) {
         }),
   });
 
+  const apiBeneficiaries = await invokeHttp('api', {
+    method: 'GET',
+    pathSuffix: '/api/beneficiaries',
+    headers: {
+      Authorization: `Bearer ${fixtureContext.user.idToken}`,
+    },
+  });
+  checks.push({
+    endpoint: 'contract:api-router:beneficiaries-reachable',
+    type: 'contract',
+    ...(apiBeneficiaries.httpStatus === 200
+      ? { status: 'passed', message: 'API router beneficiaries route is reachable with authenticated Bearer token' }
+      : {
+          status: 'failed',
+          message: `Expected HTTP 200, got ${apiBeneficiaries.httpStatus ?? apiBeneficiaries.message}`,
+          httpStatus: apiBeneficiaries.httpStatus,
+        }),
+  });
+
   const apiUnknownPath = await invokeHttp('api', {
     method: 'GET',
     pathSuffix: '/api/extension/does-not-exist',

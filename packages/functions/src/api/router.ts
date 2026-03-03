@@ -341,7 +341,7 @@ export const api = onRequest(async (req, res) => {
 
       sendJson(res, items);
     }
-    if (method === 'GET' && path === '/api/extension/wishlists') {
+    else if (method === 'GET' && path === '/api/extension/wishlists') {
       // GET /api/extension/wishlists
       const wishlistsSnapshot = await db
         .collection('wishlists')
