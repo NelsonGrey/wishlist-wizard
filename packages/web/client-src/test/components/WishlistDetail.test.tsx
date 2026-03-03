@@ -48,6 +48,50 @@ describe('WishlistDetail Item CRUD', () => {
     expect(await screen.findByTestId('wishlist-detail-mobile-share')).toBeInTheDocument();
   });
 
+  it('copies shared wishlist link from header share action', async () => {
+    render(<WishlistDetail />);
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByTestId('wishlist-detail-share'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('wishlist-detail-share')).toHaveTextContent('Copied!');
+    });
+  });
+
+  it('shows share options dialog with social channel links', async () => {
+    render(<WishlistDetail />);
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByTestId('wishlist-detail-share-options'));
+
+    expect(await screen.findByRole('heading', { name: 'Share Wishlist' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'WhatsApp' })).toHaveAttribute('href', expect.stringContaining('wa.me'));
+    expect(screen.getByRole('link', { name: 'Telegram' })).toHaveAttribute('href', expect.stringContaining('t.me'));
+    expect(screen.getByRole('link', { name: 'Facebook' })).toHaveAttribute('href', expect.stringContaining('facebook.com/sharer'));
+  });
+
+  it('uses native device share when available in share options', async () => {
+    const shareMock = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, 'share', {
+      value: shareMock,
+      configurable: true,
+    });
+
+    render(<WishlistDetail />);
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByTestId('wishlist-detail-share-options'));
+    await user.click(await screen.findByRole('button', { name: 'Use Device Share' }));
+
+    expect(shareMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: 'Test Wishlist',
+        url: `${window.location.origin}/shared/test-share-id`,
+      })
+    );
+  });
+
   it('renders sticky mobile quick actions', async () => {
     render(<WishlistDetail />);
 
