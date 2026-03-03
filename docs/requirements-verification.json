@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "updatedAt": "2026-02-27",
+  "updatedAt": "2026-03-03",
   "policy": {
     "mode": "phased",
     "description": "Only enforced requirements block CI. Expand enforced coverage over time until all completed requirements are mapped and verified.",
@@ -108,31 +108,33 @@
       "id": "core-reservations-purchasing",
       "section": "1. Core Platform",
       "requirement": "Reserve & purchase items with audit fields",
-      "enforced": false,
-      "verificationStatus": "partial",
+      "enforced": true,
+      "verificationStatus": "verified",
       "persona": "Social Gift-Giver",
       "flow": "Flow 4: Buy from Wishlist",
       "designRef": "docs/PRODUCT_DESIGN.md#flow-4-buy-from-wishlist",
       "owner": "backend",
       "evidence": [
-        "packages/functions/scripts/emulator-smoke-all-functions.cjs"
+        "npm run test:functions:smoke:all",
+        "artifacts/smoke-all-functions-report.json"
       ],
-      "lastVerifiedAt": "2026-02-27"
+      "lastVerifiedAt": "2026-03-03"
     },
     {
       "id": "advanced-price-tracking",
       "section": "2. Advanced Features",
       "requirement": "Track price history, manual update, price alerts, price drop query",
-      "enforced": false,
-      "verificationStatus": "partial",
+      "enforced": true,
+      "verificationStatus": "verified",
       "persona": "Budget-Conscious Shopper",
       "flow": "Flow 2: Add Item to Wishlist",
       "designRef": "docs/PRODUCT_DESIGN.md#flow-2-add-item-to-wishlist-product-discovery",
       "owner": "backend",
       "evidence": [
-        "packages/functions/scripts/emulator-smoke-all-functions.cjs"
+        "npm run test:functions:smoke:all",
+        "artifacts/smoke-all-functions-report.json"
       ],
-      "lastVerifiedAt": "2026-02-27"
+      "lastVerifiedAt": "2026-03-03"
     },
     {
       "id": "advanced-privacy-sharing-controls",
