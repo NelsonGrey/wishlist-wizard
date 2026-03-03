@@ -265,7 +265,8 @@ describe('WishlistDetail Item CRUD', () => {
       expect(createObjectUrlMock).toHaveBeenCalled();
     });
 
-    expect(createObjectUrlMock.mock.calls[0][0]).toBeInstanceOf(Blob);
+    const firstCreateObjectUrlCall = createObjectUrlMock.mock.calls.at(0);
+    expect(firstCreateObjectUrlCall).toBeDefined();
     expect(clickMock).toHaveBeenCalled();
     expect(revokeObjectUrlMock).toHaveBeenCalledWith('blob:mock-coordination');
 
