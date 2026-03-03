@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { render } from '../utils';
 import WishlistDetail from '@/pages/WishlistDetail';
 import { apiRequest } from '@/lib/queryClient';
+import { QueryClient } from '@tanstack/react-query';
 
 vi.mock('@/contexts/AuthContext', () => ({
   useAuth: () => ({
@@ -25,6 +26,44 @@ describe('WishlistDetail Item CRUD', () => {
     vi.clearAllMocks();
     window.history.replaceState({}, '', '/wishlists/1');
   });
+
+  const buildQueryClientWithItems = (items: Array<Record<string, unknown>>) => {
+    return new QueryClient({
+      defaultOptions: {
+        queries: {
+          retry: false,
+          queryFn: async ({ queryKey }) => {
+            const [endpoint] = queryKey as string[];
+
+            if (endpoint?.startsWith('/api/wishlists/') && endpoint?.endsWith('/items')) {
+              return items;
+            }
+
+            if (endpoint?.startsWith('/api/wishlists/')) {
+              return {
+                id: 1,
+                name: 'Test Wishlist',
+                userId: 1,
+                beneficiaryId: null,
+                shareId: 'test-share-id',
+                isPublic: false,
+                isCollaborative: false,
+                createdAt: new Date().toISOString(),
+                updatedAt: '2026-02-20T12:00:00.000Z',
+                occasion: null,
+                occasionDate: null,
+                recurrence: 'none',
+                reminderDays: null,
+                description: null,
+              };
+            }
+
+            return [];
+          },
+        },
+      },
+    });
+  };
 
   it('opens shared wishlist page from header action', async () => {
     const openSpy = vi.spyOn(window, 'open').mockImplementation(() => null);
@@ -109,6 +148,128 @@ describe('WishlistDetail Item CRUD', () => {
     render(<WishlistDetail />);
 
     expect(await screen.findByTestId('wishlist-detail-sort-trigger')).toBeInTheDocument();
+  });
+
+  it('renders coordinator status summary for available, reserved, and purchased items', async () => {
+    const queryClient = buildQueryClientWithItems([
+      {
+        id: 1,
+        wishlistId: 1,
+        title: 'Available Item',
+        price: '$10.00',
+        numericPrice: '10.00',
+        imageUrl: 'https://example.com/available.jpg',
+        productUrl: 'https://example.com/available',
+        store: 'Store A',
+        note: null,
+        createdAt: new Date().toISOString(),
+        reservedByUserId: null,
+        reservedAt: null,
+        purchasedByUserId: null,
+        purchasedAt: null,
+      },
+      {
+        id: 2,
+        wishlistId: 1,
+        title: 'Reserved Item',
+        price: '$20.00',
+        numericPrice: '20.00',
+        imageUrl: 'https://example.com/reserved.jpg',
+        productUrl: 'https://example.com/reserved',
+        store: 'Store B',
+        note: null,
+        createdAt: new Date().toISOString(),
+        reservedByUserId: 'user-2',
+        reservedAt: new Date().toISOString(),
+        purchasedByUserId: null,
+        purchasedAt: null,
+      },
+      {
+        id: 3,
+        wishlistId: 1,
+        title: 'Purchased Item',
+        price: '$30.00',
+        numericPrice: '30.00',
+        imageUrl: 'https://example.com/purchased.jpg',
+        productUrl: 'https://example.com/purchased',
+        store: 'Store C',
+        note: null,
+        createdAt: new Date().toISOString(),
+        reservedByUserId: 'user-3',
+        reservedAt: new Date().toISOString(),
+        purchasedByUserId: 'user-4',
+        purchasedAt: new Date().toISOString(),
+      },
+    ]);
+
+    render(<WishlistDetail />, { queryClient });
+
+    expect(await screen.findByTestId('wishlist-detail-title')).toBeInTheDocument();
+    expect(await screen.findByText('Coordination Status')).toBeInTheDocument();
+    expect(screen.getByText('Purchase completion: 33%')).toBeInTheDocument();
+
+    const totalLabel = screen.getByText('Total');
+    const availableLabel = screen.getByText('Available');
+    const reservedLabel = screen.getAllByText('Reserved')[0];
+    const purchasedLabel = screen.getAllByText('Purchased')[0];
+
+    expect(totalLabel.parentElement).toHaveTextContent('3');
+    expect(availableLabel.parentElement).toHaveTextContent('1');
+    expect(reservedLabel.parentElement).toHaveTextContent('1');
+    expect(purchasedLabel.parentElement).toHaveTextContent('1');
+  });
+
+  it('calls reserve API contract from coordinator item action', async () => {
+    render(<WishlistDetail />);
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByTestId('wishlist-item-reserve-1'));
+
+    await waitFor(() => {
+      expect(apiRequest).toHaveBeenCalledWith('/api/items/1/reserve', expect.objectContaining({ method: 'POST' }));
+    });
+  });
+
+  it('calls purchase API contract from coordinator item action', async () => {
+    render(<WishlistDetail />);
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByTestId('wishlist-item-purchase-1'));
+
+    await waitFor(() => {
+      expect(apiRequest).toHaveBeenCalledWith('/api/items/1/purchase', expect.objectContaining({ method: 'POST' }));
+    });
+  });
+
+  it('exports coordinator CSV snapshot with commitment status fields', async () => {
+    const createObjectUrlMock = vi.fn(() => 'blob:mock-coordination');
+    const revokeObjectUrlMock = vi.fn();
+    const clickMock = vi
+      .spyOn(HTMLAnchorElement.prototype, 'click')
+      .mockImplementation(() => {});
+    Object.defineProperty(URL, 'createObjectURL', {
+      value: createObjectUrlMock,
+      configurable: true,
+    });
+    Object.defineProperty(URL, 'revokeObjectURL', {
+      value: revokeObjectUrlMock,
+      configurable: true,
+    });
+
+    render(<WishlistDetail />);
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByRole('button', { name: 'Export CSV' }));
+
+    await waitFor(() => {
+      expect(createObjectUrlMock).toHaveBeenCalled();
+    });
+
+    expect(createObjectUrlMock.mock.calls[0][0]).toBeInstanceOf(Blob);
+    expect(clickMock).toHaveBeenCalled();
+    expect(revokeObjectUrlMock).toHaveBeenCalledWith('blob:mock-coordination');
+
+    clickMock.mockRestore();
   });
 
   it('filters items by search term', async () => {
