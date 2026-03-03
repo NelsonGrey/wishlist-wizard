@@ -7,6 +7,7 @@ import { getAuth } from 'firebase-admin/auth';
 import { getFirestore } from 'firebase-admin/firestore';
 import { logger } from 'firebase-functions/v2';
 import { ensureFirebaseAdmin } from '../firebase-admin.js';
+import { getBearerTokenFromHeaders } from '../utils/http-normalization.js';
 
 ensureFirebaseAdmin();
 const auth = getAuth();
@@ -14,12 +15,11 @@ const db = getFirestore();
 
 // Middleware to verify Firebase ID token from Authorization header
 async function verifyFirebaseToken(req: Request): Promise<string | null> {
-  const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+  const token = getBearerTokenFromHeaders(req.headers);
+  if (!token) {
     return null;
   }
 
-  const token = authHeader.substring(7);
   try {
     const decodedToken = await auth.verifyIdToken(token);
     return decodedToken.uid;

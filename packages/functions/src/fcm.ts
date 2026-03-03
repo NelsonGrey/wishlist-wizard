@@ -409,23 +409,38 @@ export const notifyPriceAlert = onDocumentUpdated('priceAlerts/{alertId}', async
   if (!beforeData.triggered && afterData.triggered) {
     try {
       const db = getFirestore();
+      const itemId = toStringId(afterData.itemId);
+      const userId = toStringId(afterData.userId);
+
+      if (!itemId || !userId) {
+        logger.warn(`Skipping price alert notification for ${event.params.alertId}: missing itemId or userId`);
+        return;
+      }
       
       // Get item details
-      const itemDoc = await db.collection('wishlistItems').doc(afterData.itemId.toString()).get();
+      const itemDoc = await db.collection('wishlistItems').doc(itemId).get();
       if (!itemDoc.exists) return;
       
       const itemData = itemDoc.data()!;
+      const wishlistId = toStringId(itemData.wishlistId);
+      if (!wishlistId) {
+        logger.warn(`Skipping price alert notification for ${event.params.alertId}: missing wishlistId on item ${itemId}`);
+        return;
+      }
+      const currentPrice = itemData.price === undefined || itemData.price === null ? '' : String(itemData.price);
+      const targetPrice = toStringId(afterData.targetPrice) || '';
+      const productUrl = toStringId(itemData.productUrl) || '';
 
-      await sendNotificationToUser(afterData.userId, {
+      await sendNotificationToUser(userId, {
         title: 'Price Alert! 🏷️',
         body: `"${itemData.title}" is now ${itemData.price} (was ${afterData.originalPrice || 'higher'})`,
         data: {
           type: 'price_alert',
-          itemId: afterData.itemId.toString(),
-          wishlistId: itemData.wishlistId.toString(),
-          currentPrice: itemData.price,
-          targetPrice: afterData.targetPrice.toString(),
-          productUrl: itemData.productUrl
+          itemId,
+          wishlistId,
+          currentPrice,
+          targetPrice,
+          productUrl
         }
       });
 
@@ -443,7 +458,7 @@ export const sendTestNotification = onCall(async (request) => {
   const userId = requireAuthenticatedUser(request);
 
   try {
-    await sendNotificationToUser(userId, {
+    const result = await deliverNotificationToUser(userId, {
       title: 'Test Notification',
       body: 'This is a test notification from Wishlist Wizard!',
       data: {
@@ -452,7 +467,22 @@ export const sendTestNotification = onCall(async (request) => {
       }
     });
 
-    return { success: true };
+    const sent = result.status === 'sent' ? 1 : 0;
+    const skipped = result.status === 'skipped' ? 1 : 0;
+    const failed = result.status === 'failed' ? 1 : 0;
+    const status: 'success' | 'skipped' | 'failure' =
+      result.status === 'sent' ? 'success' : result.status === 'skipped' ? 'skipped' : 'failure';
+
+    return {
+      success: status !== 'failure',
+      status,
+      attempted: 1,
+      sent,
+      skipped,
+      failed,
+      reason: result.reason || null,
+      errorCode: result.errorCode || null,
+    };
   } catch (error) {
     logger.error('Error sending test notification:', error);
     throw new HttpsError('internal', 'Failed to send test notification');

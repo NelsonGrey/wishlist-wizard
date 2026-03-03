@@ -11,8 +11,8 @@
 | Metric | Result | Impact |
 |--------|--------|--------|
 | **Basic Features** | 33/33 ✅ | All core user flows work |
-| **Code Failures** | 0/82 ✅ | Zero bugs blocking launch |
-| **MVP Endpoints** | 60/82 ✅ | Sufficient for v1.0 |
+| **Code Failures** | 0/200 ✅ | Zero hard failures in full function-contract smoke |
+| **Contract Smoke** | 193/200 ✅ | Strict mode pass count; env-aware mode is 200/200 |
 | **Advanced Ready** | 37/49 ✅ | Most earn features working |
 | **User Flow Tests** | 31/31 ✅ | Real sequences validated |
 
@@ -88,7 +88,7 @@
 | Missing Stripe | 🟡 Low | Feature gracefully hidden in v1.0 |
 | Calendar OAuth | 🟢 None | Reading works; full OAuth in v1.1 |
 | FCM topics | 🟢 None | Firebase production fully supports |
-| Code stability | 🟢 None | 67/82 endpoints pass smoke tests |
+| Code stability | 🟢 None | Strict 193/200 pass (7 expected warns), env-aware 200/200 pass |
 
 ---
 
@@ -105,12 +105,14 @@ npm run test:users:smoke
 cat artifacts/smoke-all-functions-report.json | jq '.summary'
 ```
 
+For strict vs env-aware interpretation of function-smoke results, see [README.md — Full Functions Contract Smoke Test](../README.md#full-functions-contract-smoke-test).
+
 Expected output:
 ```json
 {
-  "total": 82,
-  "passed": 67,
-  "warned": 15,
+  "total": 200,
+  "passed": 193,
+  "warned": 7,
   "failed": 0
 }
 ```

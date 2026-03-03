@@ -8,8 +8,16 @@ import { Button } from "@/components/ui/button";
 import { RecommendationsHelp } from "@/components/help/RecommendationsHelp";
 import { getApiErrorMessage } from "@/lib/api-errors";
 import { Wishlist } from "@wishlist-wizard/shared";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
+type Beneficiary = {
+  id: number | string;
+  name: string;
+};
 
 export default function Recommendations() {
+  const [selectedBeneficiaryId, setSelectedBeneficiaryId] = React.useState<string>("all");
+
   // Fetch the user's wishlists
   const {
     data: wishlists,
@@ -21,10 +29,29 @@ export default function Recommendations() {
     queryKey: ['/api/wishlists'],
   });
 
+  const {
+    data: beneficiaries,
+    isLoading: isBeneficiariesLoading,
+  } = useQuery<Beneficiary[]>({
+    queryKey: ['/api/beneficiaries'],
+  });
+
   const wishlistOptions = (wishlists || []).map((wishlist) => ({
     id: Number(wishlist.id),
     name: wishlist.name,
   }));
+
+  const beneficiaryOptions = (beneficiaries || []).map((beneficiary) => ({
+    id: String(beneficiary.id),
+    name: beneficiary.name,
+  }));
+
+  const parsedBeneficiaryId = selectedBeneficiaryId === "all" ? undefined : Number(selectedBeneficiaryId);
+
+  const recommendationsTitle =
+    selectedBeneficiaryId === "all"
+      ? "AI-Powered Recommendations"
+      : `AI Recommendations for ${beneficiaryOptions.find((option) => option.id === selectedBeneficiaryId)?.name || "Beneficiary"}`;
 
   return (
     <>
@@ -50,7 +77,30 @@ export default function Recommendations() {
             <RecommendationsHelp />
           </div>
 
-          <div className="mt-4 md:mt-0 w-full md:w-80">
+          <div className="mt-4 md:mt-0 w-full md:w-80 space-y-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-700" htmlFor="recommendations-beneficiary-filter">
+                Recommendation focus
+              </label>
+              <Select
+                value={selectedBeneficiaryId}
+                onValueChange={setSelectedBeneficiaryId}
+                disabled={isBeneficiariesLoading}
+              >
+                <SelectTrigger id="recommendations-beneficiary-filter" aria-label="Select recommendation focus">
+                  <SelectValue placeholder={isBeneficiariesLoading ? "Loading recipients..." : "All wishlists"} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All wishlists</SelectItem>
+                  {beneficiaryOptions.map((beneficiary) => (
+                    <SelectItem key={beneficiary.id} value={beneficiary.id}>
+                      {beneficiary.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
             {isWishlistsLoading ? (
               <p className="text-sm text-gray-500">Loading wishlists...</p>
             ) : isWishlistsError ? (
@@ -73,7 +123,11 @@ export default function Recommendations() {
 
         <div className="space-y-8">
           {/* Display AI-Powered Recommendations */}
-          <RecommendationsSection wishlistOptions={wishlistOptions} />
+          <RecommendationsSection
+            beneficiaryId={parsedBeneficiaryId}
+            wishlistOptions={wishlistOptions}
+            title={recommendationsTitle}
+          />
 
           {/* How it works section */}
           <Card>

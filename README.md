@@ -77,6 +77,28 @@ Smoke report output:
 - JSON artifact: `artifacts/smoke-users-report.json`
 - Includes per-callable pass/fail, HTTP status, duration, and run summary
 
+#### Full Functions Contract Smoke Test
+```bash
+# Strict mode: preserves environment/config warnings (FCM/Stripe gaps remain warned)
+npm run test:functions:smoke:all:strict
+
+# Env-aware mode: treats known dependency/config gaps as expected passes
+npm run test:functions:smoke:all:env-aware
+```
+
+Notes:
+- `test:functions:smoke:all` is the strict baseline and is equivalent to `test:functions:smoke:all:strict`.
+- Env-aware mode sets `SMOKE_TREAT_EXPECTED_DEPENDENCY_GAPS_AS_PASS=true` for the emulator run.
+- Full report artifact: `artifacts/smoke-all-functions-report.json`.
+- In env-aware mode, report metadata includes `treatExpectedDependencyGapsAsPass: true`.
+
+Latest comparison snapshot:
+
+| Mode | Total | Passed | Warned | Failed | Warning scope |
+| --- | ---: | ---: | ---: | ---: | --- |
+| Strict | 200 | 193 | 7 | 0 | FCM topic/test notification callables (3), Stripe group-gifting callables (2), Stripe HTTP endpoints (2) |
+| Env-aware | 200 | 200 | 0 | 0 | Same 7 expected dependency gaps are treated as pass |
+
 #### Flutter Mobile App
 ```bash
 # Navigate to mobile directory

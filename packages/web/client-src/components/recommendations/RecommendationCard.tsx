@@ -38,7 +38,7 @@ interface Recommendation {
 
 interface RecommendationCardProps {
   recommendation: Recommendation;
-  onAddToWishlist?: (recommendation: Recommendation) => void;
+  onAddToWishlist?: (recommendation: Recommendation) => Promise<boolean | void> | boolean | void;
   onStatusChange?: (id: number, status: {isViewed?: boolean, isSaved?: boolean, isRejected?: boolean}) => void;
 }
 
@@ -146,16 +146,15 @@ export default function RecommendationCard({
   
   // Handle adding to wishlist
   const handleAddToWishlist = async () => {
+    if (isSaved) {
+      return;
+    }
+
     setIsLoading(true);
     try {
       // Call the parent handler
       if (onAddToWishlist) {
         await onAddToWishlist(recommendation);
-      }
-      
-      // If this is a stored recommendation, also mark it as saved
-      if (id) {
-        await handleStatusUpdate({ isSaved: true });
       }
     } finally {
       setIsLoading(false);
@@ -263,11 +262,11 @@ export default function RecommendationCard({
             onClick={handleAddToWishlist} 
             size="sm" 
             className="flex-1 bg-gradient-to-r from-purple-600 to-blue-500 hover:from-purple-700 hover:to-blue-600"
-            disabled={isLoading}
+            disabled={isLoading || !!isSaved}
             aria-label={`Add ${title} to selected wishlist`}
           >
             <ShoppingCart size={16} className="mr-1" /> 
-            {isLoading ? "Adding..." : "Add"}
+            {isSaved ? "Saved" : isLoading ? "Adding..." : "Add"}
           </Button>
         )}
       </CardFooter>
