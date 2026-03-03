@@ -345,7 +345,7 @@ export default function WishlistCard({ wishlist, onRefresh, onSelect, selected =
           <Button 
             data-testid={`wishlist-view-${wishlist.id}`}
             variant="link" 
-            className="text-primary hover:text-indigo-700 flex-1"
+            className="text-emerald-700 hover:text-emerald-800 flex-1"
             disabled={isMutating}
             onClick={() => setLocation(`/wishlists/${wishlist.id}`)}
           >

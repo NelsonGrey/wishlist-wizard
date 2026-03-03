@@ -272,7 +272,7 @@ export default function Dashboard() {
             <h2 className="text-4xl font-bold bg-gradient-to-r from-emerald-800 to-green-800 bg-clip-text text-transparent">My Wishlists</h2>
             <Button 
               onClick={() => setIsCreateDialogOpen(true)}
-              className="flex items-center space-x-2 bg-primary hover:bg-indigo-700"
+              className="flex items-center space-x-2 bg-gradient-to-r from-emerald-700 to-green-700 text-white hover:from-emerald-800 hover:to-green-800"
             >
               <Plus className="h-5 w-5" />
               <span>Create New List</span>
@@ -417,7 +417,7 @@ export default function Dashboard() {
                   </p>
                   <Button 
                     onClick={() => setIsCreateDialogOpen(true)}
-                    className="bg-primary hover:bg-indigo-700"
+                    className="bg-gradient-to-r from-emerald-700 to-green-700 text-white hover:from-emerald-800 hover:to-green-800"
                   >
                     Create Wishlist
                   </Button>

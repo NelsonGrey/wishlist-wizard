@@ -217,7 +217,7 @@ export default function Analytics() {
                 action="navigation"
                 label="dashboard_from_overview"
                 href="/dashboard"
-                className="text-primary hover:underline"
+                className="text-emerald-700 hover:text-emerald-800 hover:underline"
               >
                 Go to Dashboard
               </AnalyticsLink>
@@ -259,7 +259,7 @@ export default function Analytics() {
                       action="link_click"
                       label="price_tracking"
                       href="/app/price-tracking"
-                      className="text-primary hover:underline"
+                      className="text-emerald-700 hover:text-emerald-800 hover:underline"
                     >
                       Go to Price Tracking
                     </AnalyticsLink>
