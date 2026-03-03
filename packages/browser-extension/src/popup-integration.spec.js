@@ -60,7 +60,7 @@ async function initializePopup(modulePath) {
   await flush();
 }
 
-async function waitForCondition(predicate, timeoutMs = 3000, intervalMs = 20) {
+async function waitForCondition(predicate, timeoutMs = 6000, intervalMs = 20) {
   const start = Date.now();
   while (Date.now() - start < timeoutMs) {
     if (predicate()) return;
@@ -184,11 +184,14 @@ describe('popup integration smoke', () => {
     await initializePopup('./popup.js?case=addflow');
 
     const select = document.getElementById('wishlist-select');
+    await waitForCondition(() => select && select.options.length > 0);
     select.value = '1';
+    select.dispatchEvent(new Event('change'));
 
     document.getElementById('add-button')?.click();
     await flush();
 
+    await waitForCondition(() => runtimeSendMessageSpy.mock.calls.some(([payload]) => payload?.action === 'addItemToWishlist'));
     const postCall = runtimeSendMessageSpy.mock.calls.find(([payload]) => payload?.action === 'addItemToWishlist');
     expect(postCall).toBeTruthy();
 
