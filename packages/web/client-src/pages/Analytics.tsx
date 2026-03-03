@@ -36,7 +36,7 @@ export default function Analytics() {
 
   const summaryQuery = useQuery<{ summary: AnalyticsSummary }>({
     queryKey: ["/api/analytics/summary"],
-    queryFn: () => apiRequest("/api/analytics/summary", { method: "GET", useFirebaseFunctions: true }) as Promise<{ summary: AnalyticsSummary }>,
+    queryFn: () => apiRequest("/api/analytics/summary", { method: "GET" }) as Promise<{ summary: AnalyticsSummary }>,
   });
 
   const eventsQuery = useQuery<{ events: AnalyticsEvent[] }>({
@@ -44,7 +44,6 @@ export default function Analytics() {
     queryFn: () => apiRequest("/api/analytics/events", {
       method: "POST",
       body: { limit: 10 },
-      useFirebaseFunctions: true,
     }) as Promise<{ events: AnalyticsEvent[] }>,
   });
 
