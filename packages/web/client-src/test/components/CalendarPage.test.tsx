@@ -47,25 +47,25 @@ const setQueryStates = ({
   (useQuery as any).mockImplementation(({ queryKey }: { queryKey: string[] }) => {
     if (queryKey?.[0] === '/api/calendar/events') {
       return {
-        data: [],
-        refetch: vi.fn(),
         ...events,
+        data: events.data ?? [],
+        refetch: events.refetch ?? vi.fn(),
       };
     }
 
     if (queryKey?.[0] === '/api/beneficiaries') {
       return {
-        data: [],
-        refetch: vi.fn(),
         ...beneficiaries,
+        data: beneficiaries.data ?? [],
+        refetch: beneficiaries.refetch ?? vi.fn(),
       };
     }
 
     if (queryKey?.[0] === '/api/wishlists') {
       return {
-        data: [],
-        refetch: vi.fn(),
         ...wishlists,
+        data: wishlists.data ?? [],
+        refetch: wishlists.refetch ?? vi.fn(),
       };
     }
 
