@@ -110,6 +110,9 @@ type Wishlist = {
   name: string;
 };
 
+const NO_BENEFICIARY_VALUE = 'none';
+const NO_WISHLIST_VALUE = 'none';
+
 // Default colors for event types
 const eventTypeColors = {
   birthday: '#FF5733',
@@ -787,14 +790,14 @@ const Calendar: React.FC = () => {
                     Person
                   </Label>
                   <Select 
-                    value={formData.beneficiaryId?.toString() || ''} 
-                    onValueChange={(value) => handleChange('beneficiaryId', value ? parseInt(value) : undefined)}
+                    value={formData.beneficiaryId?.toString() || NO_BENEFICIARY_VALUE}
+                    onValueChange={(value) => handleChange('beneficiaryId', value === NO_BENEFICIARY_VALUE ? undefined : parseInt(value, 10))}
                   >
                     <SelectTrigger className="col-span-3">
                       <SelectValue placeholder="Select a person" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">None</SelectItem>
+                      <SelectItem value={NO_BENEFICIARY_VALUE}>None</SelectItem>
                       {beneficiaries.map((beneficiary: Beneficiary) => (
                         <SelectItem key={beneficiary.id} value={beneficiary.id.toString()}>
                           {beneficiary.name}
@@ -811,14 +814,14 @@ const Calendar: React.FC = () => {
                     Wishlist
                   </Label>
                   <Select 
-                    value={formData.wishlistId?.toString() || ''} 
-                    onValueChange={(value) => handleChange('wishlistId', value ? parseInt(value) : undefined)}
+                    value={formData.wishlistId?.toString() || NO_WISHLIST_VALUE}
+                    onValueChange={(value) => handleChange('wishlistId', value === NO_WISHLIST_VALUE ? undefined : parseInt(value, 10))}
                   >
                     <SelectTrigger className="col-span-3">
                       <SelectValue placeholder="Select a wishlist" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">None</SelectItem>
+                      <SelectItem value={NO_WISHLIST_VALUE}>None</SelectItem>
                       {wishlists.map((wishlist: Wishlist) => (
                         <SelectItem key={wishlist.id} value={wishlist.id.toString()}>
                           {wishlist.name}

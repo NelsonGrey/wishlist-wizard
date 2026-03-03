@@ -34,12 +34,12 @@ const toCurrency = (value: number) =>
 export default function Analytics() {
   const [tabValue, setTabValue] = useState("overview");
 
-  const { data: summaryData } = useQuery<{ summary: AnalyticsSummary }>({
+  const summaryQuery = useQuery<{ summary: AnalyticsSummary }>({
     queryKey: ["/api/analytics/summary"],
     queryFn: () => apiRequest("/api/analytics/summary", { method: "GET", useFirebaseFunctions: true }) as Promise<{ summary: AnalyticsSummary }>,
   });
 
-  const { data: eventsData } = useQuery<{ events: AnalyticsEvent[] }>({
+  const eventsQuery = useQuery<{ events: AnalyticsEvent[] }>({
     queryKey: ["/api/analytics/events"],
     queryFn: () => apiRequest("/api/analytics/events", {
       method: "POST",
@@ -48,8 +48,10 @@ export default function Analytics() {
     }) as Promise<{ events: AnalyticsEvent[] }>,
   });
 
-  const summary = summaryData?.summary;
-  const recentEvents = eventsData?.events || [];
+  const summary = summaryQuery.data?.summary;
+  const recentEvents = eventsQuery.data?.events || [];
+  const isLoading = summaryQuery.isLoading || eventsQuery.isLoading;
+  const isError = summaryQuery.isError || eventsQuery.isError;
 
   const campaignClicks = recentEvents.filter((event) =>
     ["affiliate_click", "outbound_click", "wishlist_click"].some((keyword) =>
@@ -69,11 +71,7 @@ export default function Analytics() {
     return isCommissionEvent ? total + Number(event.value || 0) : total;
   }, 0);
 
-  const weeklyPerformanceSnapshot = {
-    clicks: campaignClicks || 47,
-    purchases: campaignPurchases || 3,
-    commission: campaignCommission > 0 ? campaignCommission : 12.5,
-  };
+  const conversionRate = campaignClicks > 0 ? (campaignPurchases / campaignClicks) * 100 : 0;
 
   // Track tab changes
   const handleTabChange = (value: string) => {
@@ -109,6 +107,19 @@ export default function Analytics() {
               <CardDescription>How analytics enhance Wishlist Wizard</CardDescription>
             </CardHeader>
             <CardContent>
+              {isLoading ? (
+                <div className="flex items-center gap-3 py-4 text-sm text-muted-foreground">
+                  <div className="h-5 w-5 animate-spin rounded-full border-2 border-emerald-200 border-t-emerald-600" />
+                  Loading analytics data...
+                </div>
+              ) : null}
+
+              {isError ? (
+                <div className="mb-4 rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
+                  We couldn&apos;t load analytics data right now. Please try again.
+                </div>
+              ) : null}
+
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                 <Card className="p-4">
                   <p className="text-sm text-muted-foreground">Total Events</p>
@@ -133,15 +144,19 @@ export default function Analytics() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                 <Card className="p-4 border-emerald-100">
                   <p className="text-sm text-muted-foreground">Weekly Clicks</p>
-                  <p className="text-2xl font-bold">{weeklyPerformanceSnapshot.clicks}</p>
+                  <p className="text-2xl font-bold">{campaignClicks}</p>
                 </Card>
                 <Card className="p-4 border-emerald-100">
                   <p className="text-sm text-muted-foreground">Weekly Purchases</p>
-                  <p className="text-2xl font-bold">{weeklyPerformanceSnapshot.purchases}</p>
+                  <p className="text-2xl font-bold">{campaignPurchases}</p>
                 </Card>
                 <Card className="p-4 border-emerald-100">
                   <p className="text-sm text-muted-foreground">Weekly Commission</p>
-                  <p className="text-2xl font-bold">{toCurrency(weeklyPerformanceSnapshot.commission)}</p>
+                  <p className="text-2xl font-bold">{toCurrency(campaignCommission)}</p>
+                </Card>
+                <Card className="p-4 border-emerald-100 md:col-span-3">
+                  <p className="text-sm text-muted-foreground">Weekly Conversion Rate</p>
+                  <p className="text-2xl font-bold">{conversionRate.toFixed(1)}%</p>
                 </Card>
               </div>
 

@@ -44,7 +44,12 @@ async function fetchGoogleContacts(accessToken: string): Promise<NormalizedConta
 
   return contacts
     .map((contact: any) => {
-      const id = (contact.resourceName || "").toString().split("/").pop() || "";
+      const resourceName = typeof contact.resourceName === "string"
+        ? contact.resourceName
+        : contact.resourceName === null || contact.resourceName === undefined
+          ? ""
+          : String(contact.resourceName);
+      const id = resourceName.split("/").filter(Boolean).pop() || "";
       const name = contact.names?.[0]?.displayName || "";
       if (!id || !name) return null;
 

@@ -33,6 +33,31 @@ function requireAuth(request: CallableRequest) {
   }
 }
 
+function normalizeText(value: unknown, fallback = ""): string {
+  const normalized = typeof value === "string" ? value : value === null || value === undefined ? "" : String(value);
+  const trimmed = normalized.trim();
+  return trimmed || fallback;
+}
+
+function toDateOnly(value: unknown): string | null {
+  const normalized = normalizeText(value);
+  if (!normalized) {
+    return null;
+  }
+
+  const isoDateMatch = normalized.match(/^(\d{4}-\d{2}-\d{2})/);
+  if (isoDateMatch) {
+    return isoDateMatch[1];
+  }
+
+  const parsed = new Date(normalized);
+  if (Number.isNaN(parsed.getTime())) {
+    return null;
+  }
+
+  return parsed.toISOString().split("T")[0];
+}
+
 function buildGoogleAuthUrl(state: string, redirectUri: string) {
   const url = new URL("https://accounts.google.com/o/oauth2/v2/auth");
   url.searchParams.set("client_id", GOOGLE_CLIENT_ID);
@@ -298,7 +323,7 @@ export const connectCalendar = onCall(async (request: CallableRequest) => {
       userId: request.auth!.uid,
       calendarType: provider,
       calendarId: subscriptionUrl.trim(),
-      displayName: (displayName || "Apple Calendar Subscription").toString().trim(),
+      displayName: normalizeText(displayName, "Apple Calendar Subscription"),
       accessToken: null,
       refreshToken: null,
       tokenExpiry: null,
@@ -565,17 +590,31 @@ async function syncConnectionEvents(connectionId: string, connection: any, userI
       continue;
     }
 
-    const endDate = event.endDate || event.startDate || "";
+    const startDateTime = normalizeText(event.startDate);
+    const endDateTime = normalizeText(event.endDate) || startDateTime;
+    const startDateOnly = toDateOnly(event.startDate);
+    const endDateOnly = toDateOnly(event.endDate) || startDateOnly;
+
+    if (event.allDay && (!startDateOnly || !endDateOnly)) {
+      logger.warn("Skipping calendar sync event due to invalid all-day dates", { eventId: event.id });
+      continue;
+    }
+
+    if (!event.allDay && !startDateTime) {
+      logger.warn("Skipping calendar sync event due to missing startDate", { eventId: event.id });
+      continue;
+    }
+
     const payload = {
       summary: event.title,
       description: event.description || "",
       location: event.location || "",
       start: event.allDay
-        ? { date: (event.startDate as string).split("T")[0] }
-        : { dateTime: event.startDate },
+        ? { date: startDateOnly }
+        : { dateTime: startDateTime },
       end: event.allDay
-        ? { date: (endDate as string).split("T")[0] }
-        : { dateTime: endDate },
+        ? { date: endDateOnly }
+        : { dateTime: endDateTime },
     };
 
     let externalEvent;

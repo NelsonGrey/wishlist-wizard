@@ -3,6 +3,7 @@ import { getFirestore } from 'firebase-admin/firestore';
 import { getAuth } from 'firebase-admin/auth';
 import { logger } from 'firebase-functions/v2';
 import { ensureFirebaseAdmin } from '../firebase-admin.js';
+import { getBearerTokenFromHeaders, normalizeText } from '../utils/http-normalization.js';
 
 ensureFirebaseAdmin();
 const db = getFirestore();
@@ -24,7 +25,8 @@ export const getItemPriceHistory = onRequest(async (req, res) => {
     // Parse itemId from path: expects /api/items/:itemId/price-history
     const requestUrl = (req.path || req.url || '');
     const match = requestUrl.match(/\/api\/items\/([^\/]+)\/price-history/);
-    const itemId = match ? match[1] : req.query.itemId;
+    const rawItemId = match ? match[1] : req.query.itemId;
+    const itemId = normalizeText(rawItemId);
 
     if (!itemId) {
       res.status(400).send({ error: 'Missing itemId' });
@@ -32,14 +34,12 @@ export const getItemPriceHistory = onRequest(async (req, res) => {
     }
 
     // Verify Authorization header contains Firebase ID token
-    const headers = req.headers || {};
-    const authHeader = (headers['authorization'] as string) || (headers['Authorization'] as string);
-    if (!authHeader || typeof authHeader !== 'string' || !authHeader.startsWith('Bearer ')) {
+    const idToken = getBearerTokenFromHeaders(req.headers);
+    if (!idToken) {
       res.status(401).send({ error: 'Missing Authorization header' });
       return;
     }
 
-    const idToken = authHeader.split('Bearer ')[1].trim();
     let uid: string | null = null;
     try {
       const decoded = await auth.verifyIdToken(idToken);
@@ -51,23 +51,31 @@ export const getItemPriceHistory = onRequest(async (req, res) => {
     }
 
     // Fetch wishlist item to get product URL
-    const itemDoc = await db.collection('wishlistItems').doc(itemId.toString()).get();
+    const itemDoc = await db.collection('wishlistItems').doc(itemId).get();
     if (!itemDoc.exists) {
       res.status(404).send({ error: 'Item not found' });
       return;
     }
 
     const item = itemDoc.data() as any;
+    const wishlistId = String(item?.wishlistId ?? '').trim();
+    if (!wishlistId) {
+      res.status(404).send({ error: 'Wishlist not found' });
+      return;
+    }
 
     // Ensure user has access to this wishlist item (owner or collaborator via wishlist)
-    const wishlistDoc = await db.collection('wishlists').doc(item.wishlistId).get();
+    const wishlistDoc = await db.collection('wishlists').doc(wishlistId).get();
     if (!wishlistDoc.exists) {
       res.status(404).send({ error: 'Wishlist not found' });
       return;
     }
 
     const wishlist = wishlistDoc.data() as any;
-    const hasAccess = Array.isArray(wishlist.collaborators) && wishlist.collaborators.includes(uid) || wishlist.isPublic;
+    const isOwner = String(wishlist?.userId ?? '') === uid;
+    const isCollaborator = Array.isArray(wishlist?.collaborators) && wishlist.collaborators.includes(uid);
+    const isPublic = Boolean(wishlist?.isPublic);
+    const hasAccess = isOwner || isCollaborator || isPublic;
     if (!hasAccess) {
       res.status(403).send({ error: 'Access denied' });
       return;
@@ -83,8 +91,13 @@ export const getItemPriceHistory = onRequest(async (req, res) => {
         .orderBy('timestamp', 'asc')
         .limit(500);
     } else if (item.priceAlertId) {
+      const alertId = String(item.priceAlertId ?? '').trim();
+      if (!alertId) {
+        res.status(200).send([]);
+        return;
+      }
       historyQuery = db.collection('priceHistory')
-        .where('alertId', '==', item.priceAlertId.toString())
+        .where('alertId', '==', alertId)
         .orderBy('timestamp', 'asc')
         .limit(500);
     } else {

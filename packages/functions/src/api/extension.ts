@@ -433,16 +433,16 @@ export const trackExtensionEvent = onCall(async (request: CallableRequest) => {
   }
 
   try {
-    await db.collection('extensionAnalytics').add({
+    await db.collection('extensionAnalytics').add(sanitizeFirestoreValue({
       userId: request.auth?.uid || null,
       action,
       category: category || 'extension',
       label: label || null,
-      value: value || null,
+      value: value ?? null,
       url: url || null,
       timestamp: timestamp ? new Date(timestamp) : new Date(),
       userAgent: 'browser-extension'
-    });
+    }) as Record<string, unknown>);
 
     return { success: true };
   } catch (error) {
@@ -463,7 +463,7 @@ async function trackExtensionUsage(userId: string, action: string, data: any) {
     await db.collection('extensionAnalytics').add({
       userId,
       action,
-      data,
+      data: sanitizeFirestoreValue(data),
       timestamp: new Date(),
       userAgent: 'browser-extension'
     });
@@ -471,4 +471,30 @@ async function trackExtensionUsage(userId: string, action: string, data: any) {
     logger.error('Error tracking extension usage:', error);
     // Don't throw - analytics shouldn't break main functionality
   }
+}
+
+function sanitizeFirestoreValue(value: unknown): unknown {
+  if (value === undefined) {
+    return null;
+  }
+
+  if (value === null || value instanceof Date) {
+    return value;
+  }
+
+  if (Array.isArray(value)) {
+    return value
+      .map((entry) => sanitizeFirestoreValue(entry))
+      .filter((entry) => entry !== undefined);
+  }
+
+  if (typeof value === 'object') {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>)
+        .filter(([, entry]) => entry !== undefined)
+        .map(([key, entry]) => [key, sanitizeFirestoreValue(entry)])
+    );
+  }
+
+  return value;
 }

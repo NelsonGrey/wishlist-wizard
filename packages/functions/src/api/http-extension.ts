@@ -8,6 +8,7 @@ import { getAuth } from 'firebase-admin/auth';
 import { getFirestore } from 'firebase-admin/firestore';
 import { logger } from 'firebase-functions/v2';
 import { ensureFirebaseAdmin } from '../firebase-admin.js';
+import { getBearerTokenFromHeaders, getRequestIdentifier, normalizeText } from '../utils/http-normalization.js';
 
 ensureFirebaseAdmin();
 const auth = getAuth();
@@ -15,12 +16,11 @@ const db = getFirestore();
 
 // Middleware to verify Firebase ID token from Authorization header
 async function verifyFirebaseToken(req: Request): Promise<string | null> {
-  const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+  const token = getBearerTokenFromHeaders(req.headers);
+  if (!token) {
     return null;
   }
 
-  const token = authHeader.substring(7);
   try {
     const decodedToken = await auth.verifyIdToken(token);
     return decodedToken.uid;
@@ -179,7 +179,15 @@ export const extensionAddItem = onRequest(async (req, res) => {
     return;
   }
 
-  const { wishlistId, title, productUrl, imageUrl, price, store, addedAt } = req.body;
+  const body = (req.body || {}) as Record<string, unknown>;
+  const wishlistId = normalizeText(body.wishlistId);
+  const title = normalizeText(body.title);
+  const productUrl = normalizeText(body.productUrl) || null;
+  const imageUrl = normalizeText(body.imageUrl) || null;
+  const price = normalizeText(body.price) || null;
+  const store = normalizeText(body.store) || null;
+  const note = normalizeText(body.note);
+  const addedAt = body.addedAt;
   
   if (!wishlistId || !title) {
     sendError(res, 400, 'Wishlist ID and title are required');
@@ -206,12 +214,12 @@ export const extensionAddItem = onRequest(async (req, res) => {
 
     const itemData = {
       wishlistId,
-      title: title.trim(),
-      productUrl: productUrl || null,
-      imageUrl: imageUrl || null,
-      price: price || null,
-      store: store || null,
-      note: req.body?.note || '',
+      title,
+      productUrl,
+      imageUrl,
+      price,
+      store,
+      note,
       purchased: false,
       reserved: false,
       addedBy: userId,
@@ -331,7 +339,7 @@ export const extensionGetWishlistItems = onRequest(async (req, res) => {
     return;
   }
 
-  const wishlistId = (req.path.split('/')[4] || req.query.wishlistId || req.body?.wishlistId) as string | undefined;
+  const wishlistId = getRequestIdentifier(req, 4, 'wishlistId', 'wishlistId');
   if (!wishlistId) {
     sendError(res, 400, 'Wishlist ID is required');
     return;
@@ -400,7 +408,7 @@ export const extensionDeleteItem = onRequest(async (req, res) => {
     return;
   }
 
-  const itemId = (req.path.split('/')[4] || req.query.itemId || req.body?.itemId) as string | undefined;
+  const itemId = getRequestIdentifier(req, 4, 'itemId', 'itemId');
   if (!itemId) {
     sendError(res, 400, 'Item ID is required');
     return;
@@ -414,7 +422,7 @@ export const extensionDeleteItem = onRequest(async (req, res) => {
     }
 
     const itemData = itemDoc.data();
-    const wishlistIdFromItem = itemData?.wishlistId;
+    const wishlistIdFromItem = normalizeText(itemData?.wishlistId);
     if (!wishlistIdFromItem) {
       sendError(res, 400, 'Invalid item data');
       return;
@@ -470,7 +478,7 @@ export const extensionShareWishlist = onRequest(async (req, res) => {
     return;
   }
 
-  const wishlistId = (req.path.split('/')[4] || req.query.wishlistId || req.body?.wishlistId) as string | undefined;
+  const wishlistId = getRequestIdentifier(req, 4, 'wishlistId', 'wishlistId');
   if (!wishlistId) {
     sendError(res, 400, 'Wishlist ID is required');
     return;

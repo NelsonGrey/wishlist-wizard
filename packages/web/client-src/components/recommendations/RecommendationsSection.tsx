@@ -150,6 +150,10 @@ export default function RecommendationsSection({
     }
 
     try {
+      const selectedWishlist = wishlistOptions?.find(
+        (wishlist) => String(wishlist.id) === selectedWishlistId
+      );
+
       // Prepare the item data
       const itemData = {
         wishlistId: parseInt(selectedWishlistId),
@@ -168,14 +172,14 @@ export default function RecommendationsSection({
       });
 
       // If the recommendation has an ID, mark it as saved
-      if (recommendation.id) {
+      if (recommendation.id && !recommendation.isSaved) {
         handleStatusChange(recommendation.id, { isSaved: true });
       }
 
       // Show success toast
       toast({
         title: "Item added!",
-        description: `"${recommendation.title}" was added to your wishlist.`,
+        description: `"${recommendation.title}" was added to ${selectedWishlist?.name || 'your wishlist'}.`,
       });
       
       // Invalidate queries to refresh data

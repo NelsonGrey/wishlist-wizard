@@ -1,5 +1,6 @@
 import { onRequest } from 'firebase-functions/v2/https';
 import { logger } from 'firebase-functions/v2';
+import { normalizeText } from '../utils/http-normalization.js';
 
 /**
  * POST /api/stripe/create-checkout
@@ -31,11 +32,20 @@ export const createCheckoutSession = onRequest(async (req, res) => {
       return;
     }
 
-    const body = req.body || {};
-    const priceId = body.priceId;
-    const quantity = Number(body.quantity || 1) || 1;
-    const successUrl = body.successUrl || body.success || 'https://example.com/success';
-    const cancelUrl = body.cancelUrl || body.cancel || 'https://example.com/cancel';
+    const body = (req.body || {}) as Record<string, unknown>;
+    const priceId = normalizeText(body.priceId);
+    const requestedQuantity = Number(body.quantity ?? 1);
+    const quantity = Number.isFinite(requestedQuantity) && requestedQuantity > 0
+      ? Math.floor(requestedQuantity)
+      : 1;
+    const successUrl =
+      normalizeText(body.successUrl) ||
+      normalizeText(body.success) ||
+      'https://example.com/success';
+    const cancelUrl =
+      normalizeText(body.cancelUrl) ||
+      normalizeText(body.cancel) ||
+      'https://example.com/cancel';
 
     if (!priceId) {
       res.status(400).send({ error: 'Missing priceId' });

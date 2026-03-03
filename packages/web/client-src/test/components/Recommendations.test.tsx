@@ -5,6 +5,41 @@ import { render } from '../utils';
 import Recommendations from '@/pages/Recommendations';
 import { useQuery } from '@tanstack/react-query';
 
+type QueryState = {
+  data: unknown;
+  isLoading: boolean;
+  isError: boolean;
+  error: unknown;
+  refetch: ReturnType<typeof vi.fn>;
+};
+
+const setQueryStates = ({
+  wishlists,
+  beneficiaries,
+}: {
+  wishlists: QueryState;
+  beneficiaries: QueryState;
+}) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (useQuery as any).mockImplementation(({ queryKey }: { queryKey: string[] }) => {
+    if (queryKey?.[0] === '/api/wishlists') {
+      return wishlists;
+    }
+
+    if (queryKey?.[0] === '/api/beneficiaries') {
+      return beneficiaries;
+    }
+
+    return {
+      data: undefined,
+      isLoading: false,
+      isError: false,
+      error: null,
+      refetch: vi.fn(),
+    };
+  });
+};
+
 vi.mock('@/components/recommendations/RecommendationsSection', () => ({
   default: () => <div data-testid="recommendations-section">Recommendations Section</div>,
 }));
@@ -25,29 +60,37 @@ describe('Recommendations Page', () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (useQuery as any).mockReturnValue({
-      data: [
-        {
-          id: 1,
-          name: 'Birthday Wishlist',
-          userId: 1,
-          beneficiaryId: null,
-          shareId: 'share-1',
-          isPublic: false,
-          isCollaborative: false,
-          createdAt: new Date().toISOString(),
-          occasion: null,
-          occasionDate: null,
-          recurrence: 'none',
-          reminderDays: null,
-          description: null,
-        },
-      ],
-      isLoading: false,
-      isError: false,
-      error: null,
-      refetch: vi.fn(),
+    setQueryStates({
+      wishlists: {
+        data: [
+          {
+            id: 1,
+            name: 'Birthday Wishlist',
+            userId: 1,
+            beneficiaryId: null,
+            shareId: 'share-1',
+            isPublic: false,
+            isCollaborative: false,
+            createdAt: new Date().toISOString(),
+            occasion: null,
+            occasionDate: null,
+            recurrence: 'none',
+            reminderDays: null,
+            description: null,
+          },
+        ],
+        isLoading: false,
+        isError: false,
+        error: null,
+        refetch: vi.fn(),
+      },
+      beneficiaries: {
+        data: [{ id: 10, name: 'Alex' }],
+        isLoading: false,
+        isError: false,
+        error: null,
+        refetch: vi.fn(),
+      },
     });
   });
 
@@ -58,13 +101,21 @@ describe('Recommendations Page', () => {
   });
 
   it('shows loading state while wishlists are loading', () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (useQuery as any).mockReturnValue({
-      data: undefined,
-      isLoading: true,
-      isError: false,
-      error: null,
-      refetch: vi.fn(),
+    setQueryStates({
+      wishlists: {
+        data: undefined,
+        isLoading: true,
+        isError: false,
+        error: null,
+        refetch: vi.fn(),
+      },
+      beneficiaries: {
+        data: [],
+        isLoading: false,
+        isError: false,
+        error: null,
+        refetch: vi.fn(),
+      },
     });
 
     render(<Recommendations />);
@@ -75,13 +126,21 @@ describe('Recommendations Page', () => {
   it('shows error state and retries wishlist query', async () => {
     const refetch = vi.fn();
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (useQuery as any).mockReturnValue({
-      data: undefined,
-      isLoading: false,
-      isError: true,
-      error: new Error('Service unavailable'),
-      refetch,
+    setQueryStates({
+      wishlists: {
+        data: undefined,
+        isLoading: false,
+        isError: true,
+        error: new Error('Service unavailable'),
+        refetch,
+      },
+      beneficiaries: {
+        data: [],
+        isLoading: false,
+        isError: false,
+        error: null,
+        refetch: vi.fn(),
+      },
     });
 
     render(<Recommendations />);
@@ -96,17 +155,32 @@ describe('Recommendations Page', () => {
   });
 
   it('shows empty state when user has no wishlists', () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (useQuery as any).mockReturnValue({
-      data: [],
-      isLoading: false,
-      isError: false,
-      error: null,
-      refetch: vi.fn(),
+    setQueryStates({
+      wishlists: {
+        data: [],
+        isLoading: false,
+        isError: false,
+        error: null,
+        refetch: vi.fn(),
+      },
+      beneficiaries: {
+        data: [],
+        isLoading: false,
+        isError: false,
+        error: null,
+        refetch: vi.fn(),
+      },
     });
 
     render(<Recommendations />);
 
     expect(screen.getByText('No wishlists yet.')).toBeInTheDocument();
+  });
+
+  it('renders recommendation focus selector', () => {
+    render(<Recommendations />);
+
+    expect(screen.getByText('Recommendation focus')).toBeInTheDocument();
+    expect(screen.getByRole('combobox', { name: 'Select recommendation focus' })).toBeInTheDocument();
   });
 });

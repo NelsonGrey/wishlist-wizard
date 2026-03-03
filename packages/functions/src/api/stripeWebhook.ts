@@ -1,5 +1,6 @@
 import { onRequest } from 'firebase-functions/v2/https';
 import { logger } from 'firebase-functions/v2';
+import { getNormalizedHeader } from '../utils/http-normalization.js';
 
 /**
  * POST /api/stripe/webhook
@@ -18,7 +19,7 @@ export const stripeWebhook = onRequest(async (req, res) => {
     return;
   }
 
-  const sig = (req.headers['stripe-signature'] || req.headers['Stripe-Signature']) as string | undefined;
+  const sig = getNormalizedHeader(req.headers, 'stripe-signature');
   if (!sig) {
     res.status(400).send({ error: 'Missing Stripe signature header' });
     return;
