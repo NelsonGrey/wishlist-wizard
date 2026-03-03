@@ -1732,6 +1732,307 @@ async function runApiRouterContractChecks(fixtureContext) {
         }),
   });
 
+  const recommendation = await callCallableExpectSuccess('createDocument', fixtureContext.user.idToken, {
+    collection: 'recommendations',
+    data: {
+      userId: fixtureContext.user.uid,
+      targetBeneficiaryId: 'contract-beneficiary',
+      title: 'Contract Recommendation',
+      createdAt: new Date().toISOString(),
+      isViewed: false,
+      isSaved: false,
+      isRejected: false,
+    },
+  });
+  const recommendationId = recommendation?.id;
+
+  const recommendationForeign = await callCallableExpectSuccess('createDocument', fixtureContext.user.idToken, {
+    collection: 'recommendations',
+    data: {
+      userId: 'someone-else',
+      targetBeneficiaryId: 'contract-beneficiary',
+      title: 'Foreign Recommendation',
+      createdAt: new Date().toISOString(),
+      isViewed: false,
+      isSaved: false,
+      isRejected: false,
+    },
+  });
+  const recommendationForeignId = recommendationForeign?.id;
+
+  const apiRecommendations = await invokeHttp('api', {
+    method: 'GET',
+    pathSuffix: '/api/recommendations',
+    headers: {
+      Authorization: `Bearer ${fixtureContext.user.idToken}`,
+    },
+  });
+  checks.push({
+    endpoint: 'contract:api-router:recommendations-reachable',
+    type: 'contract',
+    ...(apiRecommendations.httpStatus === 200
+      ? { status: 'passed', message: 'API router recommendations route is reachable with authenticated Bearer token' }
+      : {
+          status: 'failed',
+          message: `Expected HTTP 200, got ${apiRecommendations.httpStatus ?? apiRecommendations.message}`,
+          httpStatus: apiRecommendations.httpStatus,
+        }),
+  });
+
+  const apiRecommendationsByBeneficiary = await invokeHttp('api', {
+    method: 'GET',
+    pathSuffix: '/api/recommendations/beneficiary/contract-beneficiary',
+    headers: {
+      Authorization: `Bearer ${fixtureContext.user.idToken}`,
+    },
+  });
+  checks.push({
+    endpoint: 'contract:api-router:recommendations-by-beneficiary-reachable',
+    type: 'contract',
+    ...(apiRecommendationsByBeneficiary.httpStatus === 200
+      ? { status: 'passed', message: 'API router beneficiary recommendations route is reachable with authenticated Bearer token' }
+      : {
+          status: 'failed',
+          message: `Expected HTTP 200, got ${apiRecommendationsByBeneficiary.httpStatus ?? apiRecommendationsByBeneficiary.message}`,
+          httpStatus: apiRecommendationsByBeneficiary.httpStatus,
+        }),
+  });
+
+  const apiRecommendationStatus = await invokeHttp('api', {
+    method: 'PATCH',
+    pathSuffix: `/api/recommendations/${encodeURIComponent(String(recommendationId || 'missing-id'))}/status`,
+    headers: {
+      Authorization: `Bearer ${fixtureContext.user.idToken}`,
+    },
+    body: {
+      isViewed: true,
+      isSaved: true,
+    },
+  });
+  checks.push({
+    endpoint: 'contract:api-router:recommendation-status-update-owner',
+    type: 'contract',
+    ...(apiRecommendationStatus.httpStatus === 200
+      ? { status: 'passed', message: 'API router recommendation status update allows owner updates' }
+      : {
+          status: 'failed',
+          message: `Expected HTTP 200, got ${apiRecommendationStatus.httpStatus ?? apiRecommendationStatus.message}`,
+          httpStatus: apiRecommendationStatus.httpStatus,
+        }),
+  });
+
+  const apiRecommendationStatusForeign = await invokeHttp('api', {
+    method: 'PATCH',
+    pathSuffix: `/api/recommendations/${encodeURIComponent(String(recommendationForeignId || 'missing-id'))}/status`,
+    headers: {
+      Authorization: `Bearer ${fixtureContext.user.idToken}`,
+    },
+    body: {
+      isViewed: true,
+    },
+  });
+  checks.push({
+    endpoint: 'contract:api-router:recommendation-status-update-foreign-denied',
+    type: 'contract',
+    ...(apiRecommendationStatusForeign.httpStatus === 403
+      ? { status: 'passed', message: 'API router recommendation status update denies non-owner updates' }
+      : {
+          status: 'failed',
+          message: `Expected HTTP 403, got ${apiRecommendationStatusForeign.httpStatus ?? apiRecommendationStatusForeign.message}`,
+          httpStatus: apiRecommendationStatusForeign.httpStatus,
+        }),
+  });
+
+  const apiRecommendationsWrongMethod = await invokeHttp('api', {
+    method: 'POST',
+    pathSuffix: '/api/recommendations',
+    headers: {
+      Authorization: `Bearer ${fixtureContext.user.idToken}`,
+    },
+    body: {},
+  });
+  checks.push({
+    endpoint: 'contract:api-router:recommendations-method-not-allowed',
+    type: 'contract',
+    ...([404, 405].includes(apiRecommendationsWrongMethod.httpStatus || 0)
+      ? { status: 'passed', message: 'API router recommendations route rejects unsupported HTTP methods' }
+      : {
+          status: 'failed',
+          message: `Expected HTTP 404/405, got ${apiRecommendationsWrongMethod.httpStatus ?? apiRecommendationsWrongMethod.message}`,
+          httpStatus: apiRecommendationsWrongMethod.httpStatus,
+        }),
+  });
+
+  const apiPrivacyDefaults = await invokeHttp('api', {
+    method: 'GET',
+    pathSuffix: '/api/privacy/defaults',
+    headers: {
+      Authorization: `Bearer ${fixtureContext.user.idToken}`,
+    },
+  });
+  checks.push({
+    endpoint: 'contract:api-router:privacy-defaults-reachable',
+    type: 'contract',
+    ...(apiPrivacyDefaults.httpStatus === 200
+      ? { status: 'passed', message: 'API router privacy defaults route is reachable with authenticated Bearer token' }
+      : {
+          status: 'failed',
+          message: `Expected HTTP 200, got ${apiPrivacyDefaults.httpStatus ?? apiPrivacyDefaults.message}`,
+          httpStatus: apiPrivacyDefaults.httpStatus,
+        }),
+  });
+
+  const apiPrivacyCreateInvalid = await invokeHttp('api', {
+    method: 'POST',
+    pathSuffix: '/api/privacy/settings',
+    headers: {
+      Authorization: `Bearer ${fixtureContext.user.idToken}`,
+    },
+    body: {
+      visibilityLevel: 'private',
+    },
+  });
+  checks.push({
+    endpoint: 'contract:api-router:privacy-settings-invalid-body',
+    type: 'contract',
+    ...(apiPrivacyCreateInvalid.httpStatus === 400
+      ? { status: 'passed', message: 'API router privacy settings rejects missing entity fields' }
+      : {
+          status: 'failed',
+          message: `Expected HTTP 400, got ${apiPrivacyCreateInvalid.httpStatus ?? apiPrivacyCreateInvalid.message}`,
+          httpStatus: apiPrivacyCreateInvalid.httpStatus,
+        }),
+  });
+
+  const privacyEntityId = `contract-privacy-${Date.now()}`;
+  const apiPrivacyCreate = await invokeHttp('api', {
+    method: 'POST',
+    pathSuffix: '/api/privacy/settings',
+    headers: {
+      Authorization: `Bearer ${fixtureContext.user.idToken}`,
+    },
+    body: {
+      entityType: 'wishlist',
+      entityId: privacyEntityId,
+      visibilityLevel: 'custom',
+      customAccessList: ['friend-1'],
+      requireApproval: true,
+    },
+  });
+  checks.push({
+    endpoint: 'contract:api-router:privacy-settings-create',
+    type: 'contract',
+    ...(apiPrivacyCreate.httpStatus === 200
+      ? { status: 'passed', message: 'API router privacy settings create accepts valid payloads' }
+      : {
+          status: 'failed',
+          message: `Expected HTTP 200, got ${apiPrivacyCreate.httpStatus ?? apiPrivacyCreate.message}`,
+          httpStatus: apiPrivacyCreate.httpStatus,
+        }),
+  });
+
+  const apiPrivacyGet = await invokeHttp('api', {
+    method: 'GET',
+    pathSuffix: `/api/privacy/settings/wishlist/${encodeURIComponent(privacyEntityId)}`,
+    headers: {
+      Authorization: `Bearer ${fixtureContext.user.idToken}`,
+    },
+  });
+  checks.push({
+    endpoint: 'contract:api-router:privacy-settings-get-owner',
+    type: 'contract',
+    ...(apiPrivacyGet.httpStatus === 200
+      ? { status: 'passed', message: 'API router privacy settings get returns owner settings' }
+      : {
+          status: 'failed',
+          message: `Expected HTTP 200, got ${apiPrivacyGet.httpStatus ?? apiPrivacyGet.message}`,
+          httpStatus: apiPrivacyGet.httpStatus,
+        }),
+  });
+
+  const apiPrivacyCheckAccess = await invokeHttp('api', {
+    method: 'POST',
+    pathSuffix: '/api/privacy/check-access',
+    headers: {
+      Authorization: `Bearer ${fixtureContext.user.idToken}`,
+    },
+    body: {
+      entityType: 'wishlist',
+      entityId: privacyEntityId,
+    },
+  });
+  checks.push({
+    endpoint: 'contract:api-router:privacy-check-access-owner',
+    type: 'contract',
+    ...(apiPrivacyCheckAccess.httpStatus === 200
+      ? { status: 'passed', message: 'API router privacy access check responds for owner requests' }
+      : {
+          status: 'failed',
+          message: `Expected HTTP 200, got ${apiPrivacyCheckAccess.httpStatus ?? apiPrivacyCheckAccess.message}`,
+          httpStatus: apiPrivacyCheckAccess.httpStatus,
+        }),
+  });
+
+  const apiPrivacyAccessListUpdate = await invokeHttp('api', {
+    method: 'PUT',
+    pathSuffix: `/api/privacy/settings/wishlist/${encodeURIComponent(privacyEntityId)}/access-list`,
+    headers: {
+      Authorization: `Bearer ${fixtureContext.user.idToken}`,
+    },
+    body: {
+      userIds: ['friend-1', 'friend-2'],
+    },
+  });
+  checks.push({
+    endpoint: 'contract:api-router:privacy-access-list-update-owner',
+    type: 'contract',
+    ...(apiPrivacyAccessListUpdate.httpStatus === 200
+      ? { status: 'passed', message: 'API router privacy access list update allows owner updates' }
+      : {
+          status: 'failed',
+          message: `Expected HTTP 200, got ${apiPrivacyAccessListUpdate.httpStatus ?? apiPrivacyAccessListUpdate.message}`,
+          httpStatus: apiPrivacyAccessListUpdate.httpStatus,
+        }),
+  });
+
+  const apiPrivacyDelete = await invokeHttp('api', {
+    method: 'DELETE',
+    pathSuffix: `/api/privacy/settings/wishlist/${encodeURIComponent(privacyEntityId)}`,
+    headers: {
+      Authorization: `Bearer ${fixtureContext.user.idToken}`,
+    },
+  });
+  checks.push({
+    endpoint: 'contract:api-router:privacy-settings-delete-owner',
+    type: 'contract',
+    ...(apiPrivacyDelete.httpStatus === 200
+      ? { status: 'passed', message: 'API router privacy settings delete allows owner deletes' }
+      : {
+          status: 'failed',
+          message: `Expected HTTP 200, got ${apiPrivacyDelete.httpStatus ?? apiPrivacyDelete.message}`,
+          httpStatus: apiPrivacyDelete.httpStatus,
+        }),
+  });
+
+  const apiPrivacyGetAfterDelete = await invokeHttp('api', {
+    method: 'GET',
+    pathSuffix: `/api/privacy/settings/wishlist/${encodeURIComponent(privacyEntityId)}`,
+    headers: {
+      Authorization: `Bearer ${fixtureContext.user.idToken}`,
+    },
+  });
+  checks.push({
+    endpoint: 'contract:api-router:privacy-settings-get-after-delete',
+    type: 'contract',
+    ...(apiPrivacyGetAfterDelete.httpStatus === 404
+      ? { status: 'passed', message: 'API router privacy settings get returns not found after delete' }
+      : {
+          status: 'failed',
+          message: `Expected HTTP 404, got ${apiPrivacyGetAfterDelete.httpStatus ?? apiPrivacyGetAfterDelete.message}`,
+          httpStatus: apiPrivacyGetAfterDelete.httpStatus,
+        }),
+  });
+
   const apiAnalyticsPath = await invokeHttp('api', {
     method: 'GET',
     pathSuffix: '/api/analytics/summary',
