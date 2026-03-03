@@ -110,8 +110,8 @@ For strict vs env-aware interpretation of function-smoke results, see [README.md
 Expected output:
 ```json
 {
-  "total": 229,
-  "passed": 222,
+  "total": 232,
+  "passed": 225,
   "warned": 7,
   "failed": 0
 }
