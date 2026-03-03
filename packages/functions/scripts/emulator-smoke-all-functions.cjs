@@ -1997,6 +1997,44 @@ async function runApiRouterContractChecks(fixtureContext) {
         }),
   });
 
+  const apiRecommendationStatusResponse = await fetch(
+    `http://${functionsHost}/${projectId}/${region}/api/api/recommendations/${encodeURIComponent(String(recommendationId || 'missing-id'))}/status`,
+    {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${fixtureContext.user.idToken}`,
+      },
+      body: JSON.stringify({
+        isViewed: true,
+        isSaved: true,
+      }),
+    }
+  );
+  let apiRecommendationStatusJson = null;
+  try {
+    apiRecommendationStatusJson = await apiRecommendationStatusResponse.json();
+  } catch (_) {
+    apiRecommendationStatusJson = null;
+  }
+
+  checks.push({
+    endpoint: 'contract:api-router:recommendation-status-response-shape',
+    type: 'contract',
+    ...(apiRecommendationStatusResponse.status === 200
+      && apiRecommendationStatusJson
+      && apiRecommendationStatusJson.success === true
+      && apiRecommendationStatusJson.id === recommendationId
+      && typeof apiRecommendationStatusJson.isViewed === 'boolean'
+      && typeof apiRecommendationStatusJson.isSaved === 'boolean'
+      ? { status: 'passed', message: 'API router recommendation status update returns expected response shape' }
+      : {
+          status: 'failed',
+          message: `Expected status update response shape, got HTTP ${apiRecommendationStatusResponse.status}`,
+          httpStatus: apiRecommendationStatusResponse.status,
+        }),
+  });
+
   const apiRecommendationStatusForeign = await invokeHttp('api', {
     method: 'PATCH',
     pathSuffix: `/api/recommendations/${encodeURIComponent(String(recommendationForeignId || 'missing-id'))}/status`,
@@ -2016,6 +2054,69 @@ async function runApiRouterContractChecks(fixtureContext) {
           status: 'failed',
           message: `Expected HTTP 403, got ${apiRecommendationStatusForeign.httpStatus ?? apiRecommendationStatusForeign.message}`,
           httpStatus: apiRecommendationStatusForeign.httpStatus,
+        }),
+  });
+
+  const apiRecommendationStatusMissing = await invokeHttp('api', {
+    method: 'PATCH',
+    pathSuffix: '/api/recommendations/non-existent-recommendation/status',
+    headers: {
+      Authorization: `Bearer ${fixtureContext.user.idToken}`,
+    },
+    body: {
+      isViewed: true,
+    },
+  });
+  checks.push({
+    endpoint: 'contract:api-router:recommendation-status-update-missing-id',
+    type: 'contract',
+    ...(apiRecommendationStatusMissing.httpStatus === 404
+      ? { status: 'passed', message: 'API router recommendation status update returns not found for missing IDs' }
+      : {
+          status: 'failed',
+          message: `Expected HTTP 404, got ${apiRecommendationStatusMissing.httpStatus ?? apiRecommendationStatusMissing.message}`,
+          httpStatus: apiRecommendationStatusMissing.httpStatus,
+        }),
+  });
+
+  const apiRecommendationStatusWrongMethod = await invokeHttp('api', {
+    method: 'GET',
+    pathSuffix: `/api/recommendations/${encodeURIComponent(String(recommendationId || 'missing-id'))}/status`,
+    headers: {
+      Authorization: `Bearer ${fixtureContext.user.idToken}`,
+    },
+  });
+  checks.push({
+    endpoint: 'contract:api-router:recommendation-status-method-not-allowed',
+    type: 'contract',
+    ...([404, 405].includes(apiRecommendationStatusWrongMethod.httpStatus || 0)
+      ? { status: 'passed', message: 'API router recommendation status route rejects unsupported HTTP methods' }
+      : {
+          status: 'failed',
+          message: `Expected HTTP 404/405, got ${apiRecommendationStatusWrongMethod.httpStatus ?? apiRecommendationStatusWrongMethod.message}`,
+          httpStatus: apiRecommendationStatusWrongMethod.httpStatus,
+        }),
+  });
+
+  const apiRecommendationsByBeneficiaryWrongMethod = await invokeHttp('api', {
+    method: 'PATCH',
+    pathSuffix: '/api/recommendations/beneficiary/contract-beneficiary',
+    headers: {
+      Authorization: `Bearer ${fixtureContext.user.idToken}`,
+    },
+    body: {
+      isViewed: true,
+    },
+  });
+  checks.push({
+    endpoint: 'contract:api-router:recommendations-by-beneficiary-method-not-allowed',
+    type: 'contract',
+    ...([404, 405].includes(apiRecommendationsByBeneficiaryWrongMethod.httpStatus || 0)
+      ? { status: 'passed', message: 'API router beneficiary recommendations route rejects unsupported HTTP methods' }
+      : {
+          status: 'failed',
+          message: `Expected HTTP 404/405, got ${apiRecommendationsByBeneficiaryWrongMethod.httpStatus ?? apiRecommendationsByBeneficiaryWrongMethod.message}`,
+          httpStatus: apiRecommendationsByBeneficiaryWrongMethod.httpStatus,
         }),
   });
 
