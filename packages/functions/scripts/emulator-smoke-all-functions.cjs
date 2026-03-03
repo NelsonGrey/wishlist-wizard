@@ -361,6 +361,33 @@ async function seedAdminUser() {
   return { ...adminUser, uid: created.uid, ...signedIn };
 }
 
+async function seedForeignUser() {
+  const foreignUser = {
+    email: 'smoke-foreign-functions@wishlist-wizard.test',
+    password: 'SmokePass123!',
+    displayName: 'Smoke Foreign Functions',
+  };
+
+  try {
+    const existing = await auth.getUserByEmail(foreignUser.email);
+    await auth.deleteUser(existing.uid);
+  } catch (error) {
+    if (!error || error.code !== 'auth/user-not-found') {
+      throw error;
+    }
+  }
+
+  const created = await auth.createUser({
+    email: foreignUser.email,
+    password: foreignUser.password,
+    displayName: foreignUser.displayName,
+    emailVerified: true,
+  });
+
+  const signedIn = await signInWithPassword(foreignUser.email, foreignUser.password);
+  return { ...foreignUser, uid: created.uid, ...signedIn };
+}
+
 function recordOutcome(endpoint, type, outcome) {
   report.results.push({ endpoint, type, ...outcome });
   report.summary.total += 1;
@@ -1559,6 +1586,7 @@ async function runHttpAccessContractChecks(fixtureContext) {
 
 async function runApiRouterContractChecks(fixtureContext) {
   const checks = [];
+  const foreignUser = await seedForeignUser();
 
   const apiUnauth = await invokeHttp('api', {
     method: 'GET',
@@ -2098,6 +2126,25 @@ async function runApiRouterContractChecks(fixtureContext) {
         }),
   });
 
+  const apiPrivacyGetForeign = await invokeHttp('api', {
+    method: 'GET',
+    pathSuffix: `/api/privacy/settings/wishlist/${encodeURIComponent(privacyEntityId)}`,
+    headers: {
+      Authorization: `Bearer ${foreignUser.idToken}`,
+    },
+  });
+  checks.push({
+    endpoint: 'contract:api-router:privacy-settings-get-foreign-denied',
+    type: 'contract',
+    ...(apiPrivacyGetForeign.httpStatus === 403
+      ? { status: 'passed', message: 'API router privacy settings get denies non-owner access' }
+      : {
+          status: 'failed',
+          message: `Expected HTTP 403, got ${apiPrivacyGetForeign.httpStatus ?? apiPrivacyGetForeign.message}`,
+          httpStatus: apiPrivacyGetForeign.httpStatus,
+        }),
+  });
+
   const apiPrivacyCheckAccess = await invokeHttp('api', {
     method: 'POST',
     pathSuffix: '/api/privacy/check-access',
@@ -2121,6 +2168,43 @@ async function runApiRouterContractChecks(fixtureContext) {
         }),
   });
 
+  const apiPrivacyCheckAccessForeignResponse = await fetch(
+    `http://${functionsHost}/${projectId}/${region}/api/api/privacy/check-access`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${foreignUser.idToken}`,
+      },
+      body: JSON.stringify({
+        entityType: 'wishlist',
+        entityId: privacyEntityId,
+      }),
+    }
+  );
+  let apiPrivacyCheckAccessForeignJson = null;
+  try {
+    apiPrivacyCheckAccessForeignJson = await apiPrivacyCheckAccessForeignResponse.json();
+  } catch (_) {
+    apiPrivacyCheckAccessForeignJson = null;
+  }
+
+  checks.push({
+    endpoint: 'contract:api-router:privacy-check-access-foreign-semantics',
+    type: 'contract',
+    ...(apiPrivacyCheckAccessForeignResponse.status === 200
+      && apiPrivacyCheckAccessForeignJson
+      && apiPrivacyCheckAccessForeignJson.isOwner === false
+      && apiPrivacyCheckAccessForeignJson.hasAccess === false
+      && apiPrivacyCheckAccessForeignJson.requiresApproval === true
+      ? { status: 'passed', message: 'API router privacy check-access returns expected non-owner/private semantics' }
+      : {
+          status: 'failed',
+          message: `Expected non-owner private access semantics, got HTTP ${apiPrivacyCheckAccessForeignResponse.status}`,
+          httpStatus: apiPrivacyCheckAccessForeignResponse.status,
+        }),
+  });
+
   const apiPrivacyAccessListUpdate = await invokeHttp('api', {
     method: 'PUT',
     pathSuffix: `/api/privacy/settings/wishlist/${encodeURIComponent(privacyEntityId)}/access-list`,
@@ -2140,6 +2224,47 @@ async function runApiRouterContractChecks(fixtureContext) {
           status: 'failed',
           message: `Expected HTTP 200, got ${apiPrivacyAccessListUpdate.httpStatus ?? apiPrivacyAccessListUpdate.message}`,
           httpStatus: apiPrivacyAccessListUpdate.httpStatus,
+        }),
+  });
+
+  const apiPrivacyAccessListUpdateForeign = await invokeHttp('api', {
+    method: 'PUT',
+    pathSuffix: `/api/privacy/settings/wishlist/${encodeURIComponent(privacyEntityId)}/access-list`,
+    headers: {
+      Authorization: `Bearer ${foreignUser.idToken}`,
+    },
+    body: {
+      userIds: ['hijack-user'],
+    },
+  });
+  checks.push({
+    endpoint: 'contract:api-router:privacy-access-list-update-foreign-denied',
+    type: 'contract',
+    ...(apiPrivacyAccessListUpdateForeign.httpStatus === 403
+      ? { status: 'passed', message: 'API router privacy access list update denies non-owner updates' }
+      : {
+          status: 'failed',
+          message: `Expected HTTP 403, got ${apiPrivacyAccessListUpdateForeign.httpStatus ?? apiPrivacyAccessListUpdateForeign.message}`,
+          httpStatus: apiPrivacyAccessListUpdateForeign.httpStatus,
+        }),
+  });
+
+  const apiPrivacyDeleteForeign = await invokeHttp('api', {
+    method: 'DELETE',
+    pathSuffix: `/api/privacy/settings/wishlist/${encodeURIComponent(privacyEntityId)}`,
+    headers: {
+      Authorization: `Bearer ${foreignUser.idToken}`,
+    },
+  });
+  checks.push({
+    endpoint: 'contract:api-router:privacy-settings-delete-foreign-denied',
+    type: 'contract',
+    ...(apiPrivacyDeleteForeign.httpStatus === 403
+      ? { status: 'passed', message: 'API router privacy settings delete denies non-owner deletes' }
+      : {
+          status: 'failed',
+          message: `Expected HTTP 403, got ${apiPrivacyDeleteForeign.httpStatus ?? apiPrivacyDeleteForeign.message}`,
+          httpStatus: apiPrivacyDeleteForeign.httpStatus,
         }),
   });
 
