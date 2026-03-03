@@ -52,9 +52,11 @@
       "owner": "backend",
       "evidence": [
         "npm run test:users:smoke",
-        "artifacts/smoke-users-report.json"
+        "npm run test:functions:smoke:all",
+        "artifacts/smoke-users-report.json",
+        "artifacts/smoke-all-functions-report.json"
       ],
-      "lastVerifiedAt": "2026-02-27"
+      "lastVerifiedAt": "2026-03-03"
     },
     {
       "id": "core-collaboration-management",
@@ -150,7 +152,7 @@
         "npm run test:e2e:smoke",
         "npm run test:functions:smoke:all"
       ],
-      "lastVerifiedAt": "2026-02-27"
+      "lastVerifiedAt": "2026-03-03"
     },
     {
       "id": "extension-auth-refresh",
