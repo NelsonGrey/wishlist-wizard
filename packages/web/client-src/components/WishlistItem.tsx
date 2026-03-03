@@ -96,6 +96,7 @@ export default function WishlistItem({
 
   const isPurchased = Boolean(item.purchasedByUserId);
   const isReserved = Boolean(item.reservedByUserId);
+  const isStripeReady = Boolean(String(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '').trim());
   const normalizedItemId = String(item.id).replace(/[^a-zA-Z0-9_-]/g, '-');
   const itemDisplayTitle = String(item.title || 'item');
   const reservedByUserId = item.reservedByUserId == null ? null : String(item.reservedByUserId);
@@ -282,10 +283,12 @@ export default function WishlistItem({
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" aria-label={`Actions for ${itemDisplayTitle}`}>
-                      <DropdownMenuItem aria-label={`Contribute to ${itemDisplayTitle}`} onSelect={handleContribute} data-testid={`wishlist-item-contribute-${normalizedItemId}`}>
-                        <Heart className="h-4 w-4 mr-2" aria-hidden="true" />
-                        Contribute
-                      </DropdownMenuItem>
+                      {isStripeReady && (
+                        <DropdownMenuItem aria-label={`Contribute to ${itemDisplayTitle}`} onSelect={handleContribute} data-testid={`wishlist-item-contribute-${normalizedItemId}`}>
+                          <Heart className="h-4 w-4 mr-2" aria-hidden="true" />
+                          Contribute
+                        </DropdownMenuItem>
+                      )}
                       <DropdownMenuItem aria-label={`Set price alert for ${itemDisplayTitle}`} onSelect={handlePriceAlert} data-testid={`wishlist-item-alert-${normalizedItemId}`}>
                         <Bell className="h-4 w-4 mr-2" aria-hidden="true" />
                         Alert
@@ -474,10 +477,12 @@ export default function WishlistItem({
                 Edit
               </Button>
             )}
-            <Button className="w-full sm:w-auto" variant="outline" onClick={() => { setIsDetailsDialogOpen(false); handleContribute(); }}>
-              <Heart className="h-4 w-4 mr-2" />
-              Contribute
-            </Button>
+            {isStripeReady && (
+              <Button className="w-full sm:w-auto" variant="outline" onClick={() => { setIsDetailsDialogOpen(false); handleContribute(); }}>
+                <Heart className="h-4 w-4 mr-2" />
+                Contribute
+              </Button>
+            )}
             <Button className="w-full sm:w-auto" variant="outline" onClick={() => { setIsDetailsDialogOpen(false); handlePriceAlert(); }}>
               <Bell className="h-4 w-4 mr-2" />
               Alert
@@ -534,12 +539,14 @@ export default function WishlistItem({
         {isLinkCopied ? `Product link copied for ${itemDisplayTitle}` : ''}
       </span>
 
-      <ContributionDialog
-        open={isContributionDialogOpen}
-        onClose={() => setIsContributionDialogOpen(false)}
-        item={item}
-        onContributionSuccess={handleContributionSuccess}
-      />
+      {isStripeReady && (
+        <ContributionDialog
+          open={isContributionDialogOpen}
+          onClose={() => setIsContributionDialogOpen(false)}
+          item={item}
+          onContributionSuccess={handleContributionSuccess}
+        />
+      )}
 
       <PriceAlertDialog
         open={isPriceAlertDialogOpen}

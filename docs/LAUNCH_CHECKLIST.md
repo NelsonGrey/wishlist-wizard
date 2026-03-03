@@ -67,9 +67,9 @@
 - [ ] Authentication providers enabled (Google, Apple, etc.)
 
 **Client Setup:**
-- [ ] Hide/disable "Checkout" UI (not implemented)
-- [ ] Hide "Connect Google Calendar" until v1.1 (but users can create events locally)
-- [ ] Hide "Group Payments" if Stripe not ready
+- [x] Hide/disable "Checkout" UI (not implemented)
+- [x] Hide "Connect Google Calendar" until v1.1 (but users can create events locally)
+- [x] Hide "Group Payments" if Stripe not ready
 - [ ] Test browser extension URL on production
 - [ ] Verify affiliate dashboard points to production environment
 
