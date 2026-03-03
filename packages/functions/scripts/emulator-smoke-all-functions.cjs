@@ -2205,6 +2205,171 @@ async function runApiRouterContractChecks(fixtureContext) {
         }),
   });
 
+  const missingPrivacyEntityId = `contract-privacy-missing-${Date.now()}`;
+  const apiPrivacyCheckAccessMissingResponse = await fetch(
+    `http://${functionsHost}/${projectId}/${region}/api/api/privacy/check-access`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${fixtureContext.user.idToken}`,
+      },
+      body: JSON.stringify({
+        entityType: 'wishlist',
+        entityId: missingPrivacyEntityId,
+      }),
+    }
+  );
+  let apiPrivacyCheckAccessMissingJson = null;
+  try {
+    apiPrivacyCheckAccessMissingJson = await apiPrivacyCheckAccessMissingResponse.json();
+  } catch (_) {
+    apiPrivacyCheckAccessMissingJson = null;
+  }
+
+  checks.push({
+    endpoint: 'contract:api-router:privacy-check-access-missing-default-open',
+    type: 'contract',
+    ...(apiPrivacyCheckAccessMissingResponse.status === 200
+      && apiPrivacyCheckAccessMissingJson
+      && apiPrivacyCheckAccessMissingJson.isOwner === true
+      && apiPrivacyCheckAccessMissingJson.hasAccess === true
+      && apiPrivacyCheckAccessMissingJson.requiresApproval === false
+      ? { status: 'passed', message: 'API router privacy check-access returns default-open semantics for missing settings' }
+      : {
+          status: 'failed',
+          message: `Expected default-open semantics for missing settings, got HTTP ${apiPrivacyCheckAccessMissingResponse.status}`,
+          httpStatus: apiPrivacyCheckAccessMissingResponse.status,
+        }),
+  });
+
+  const publicPrivacyEntityId = `contract-privacy-public-${Date.now()}`;
+  const apiPrivacyCreatePublic = await invokeHttp('api', {
+    method: 'POST',
+    pathSuffix: '/api/privacy/settings',
+    headers: {
+      Authorization: `Bearer ${fixtureContext.user.idToken}`,
+    },
+    body: {
+      entityType: 'wishlist',
+      entityId: publicPrivacyEntityId,
+      visibilityLevel: 'public',
+      requireApproval: false,
+    },
+  });
+  checks.push({
+    endpoint: 'contract:api-router:privacy-settings-create-public',
+    type: 'contract',
+    ...(apiPrivacyCreatePublic.httpStatus === 200
+      ? { status: 'passed', message: 'API router privacy settings create accepts public visibility payloads' }
+      : {
+          status: 'failed',
+          message: `Expected HTTP 200, got ${apiPrivacyCreatePublic.httpStatus ?? apiPrivacyCreatePublic.message}`,
+          httpStatus: apiPrivacyCreatePublic.httpStatus,
+        }),
+  });
+
+  const apiPrivacyCheckAccessPublicResponse = await fetch(
+    `http://${functionsHost}/${projectId}/${region}/api/api/privacy/check-access`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${foreignUser.idToken}`,
+      },
+      body: JSON.stringify({
+        entityType: 'wishlist',
+        entityId: publicPrivacyEntityId,
+      }),
+    }
+  );
+  let apiPrivacyCheckAccessPublicJson = null;
+  try {
+    apiPrivacyCheckAccessPublicJson = await apiPrivacyCheckAccessPublicResponse.json();
+  } catch (_) {
+    apiPrivacyCheckAccessPublicJson = null;
+  }
+
+  checks.push({
+    endpoint: 'contract:api-router:privacy-check-access-public-semantics',
+    type: 'contract',
+    ...(apiPrivacyCheckAccessPublicResponse.status === 200
+      && apiPrivacyCheckAccessPublicJson
+      && apiPrivacyCheckAccessPublicJson.isOwner === false
+      && apiPrivacyCheckAccessPublicJson.hasAccess === true
+      && apiPrivacyCheckAccessPublicJson.requiresApproval === false
+      ? { status: 'passed', message: 'API router privacy check-access returns expected semantics for public visibility' }
+      : {
+          status: 'failed',
+          message: `Expected public-visibility semantics, got HTTP ${apiPrivacyCheckAccessPublicResponse.status}`,
+          httpStatus: apiPrivacyCheckAccessPublicResponse.status,
+        }),
+  });
+
+  const customPrivacyEntityId = `contract-privacy-custom-${Date.now()}`;
+  const apiPrivacyCreateCustom = await invokeHttp('api', {
+    method: 'POST',
+    pathSuffix: '/api/privacy/settings',
+    headers: {
+      Authorization: `Bearer ${fixtureContext.user.idToken}`,
+    },
+    body: {
+      entityType: 'wishlist',
+      entityId: customPrivacyEntityId,
+      visibilityLevel: 'custom',
+      customAccessList: [foreignUser.uid],
+      requireApproval: true,
+    },
+  });
+  checks.push({
+    endpoint: 'contract:api-router:privacy-settings-create-custom-with-allowlist',
+    type: 'contract',
+    ...(apiPrivacyCreateCustom.httpStatus === 200
+      ? { status: 'passed', message: 'API router privacy settings create accepts custom allowlist payloads' }
+      : {
+          status: 'failed',
+          message: `Expected HTTP 200, got ${apiPrivacyCreateCustom.httpStatus ?? apiPrivacyCreateCustom.message}`,
+          httpStatus: apiPrivacyCreateCustom.httpStatus,
+        }),
+  });
+
+  const apiPrivacyCheckAccessCustomResponse = await fetch(
+    `http://${functionsHost}/${projectId}/${region}/api/api/privacy/check-access`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${foreignUser.idToken}`,
+      },
+      body: JSON.stringify({
+        entityType: 'wishlist',
+        entityId: customPrivacyEntityId,
+      }),
+    }
+  );
+  let apiPrivacyCheckAccessCustomJson = null;
+  try {
+    apiPrivacyCheckAccessCustomJson = await apiPrivacyCheckAccessCustomResponse.json();
+  } catch (_) {
+    apiPrivacyCheckAccessCustomJson = null;
+  }
+
+  checks.push({
+    endpoint: 'contract:api-router:privacy-check-access-custom-allowlist-semantics',
+    type: 'contract',
+    ...(apiPrivacyCheckAccessCustomResponse.status === 200
+      && apiPrivacyCheckAccessCustomJson
+      && apiPrivacyCheckAccessCustomJson.isOwner === false
+      && apiPrivacyCheckAccessCustomJson.hasAccess === true
+      && apiPrivacyCheckAccessCustomJson.requiresApproval === true
+      ? { status: 'passed', message: 'API router privacy check-access returns allowlisted custom-visibility semantics' }
+      : {
+          status: 'failed',
+          message: `Expected custom allowlist semantics, got HTTP ${apiPrivacyCheckAccessCustomResponse.status}`,
+          httpStatus: apiPrivacyCheckAccessCustomResponse.status,
+        }),
+  });
+
   const apiPrivacyAccessListUpdate = await invokeHttp('api', {
     method: 'PUT',
     pathSuffix: `/api/privacy/settings/wishlist/${encodeURIComponent(privacyEntityId)}/access-list`,
