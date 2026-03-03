@@ -39,17 +39,14 @@ async function getAuthToken(): Promise<string | null> {
  * Determine if we should use Firebase Functions instead of Express API
  */
 function shouldUseFirebaseFunctions(url: string): boolean {
-  // Use Firebase Functions for specific endpoints in production
-  if (!import.meta.env.PROD) {
-    return false;
-  }
-  
-  // List of API endpoints that have been migrated to Firebase Functions
+  // List of API endpoints that are backed by callable Firebase Functions
   const firebaseFunctionEndpoints = [
     '/api/auth/me',
     '/api/wishlists',
     '/api/shared',
     '/api/users/search',
+    '/api/calendar',
+    '/api/analytics',
     '/api/notifications',
     '/api/fcm',
     '/api/contacts',
@@ -61,6 +58,65 @@ function shouldUseFirebaseFunctions(url: string): boolean {
   ];
   
   return firebaseFunctionEndpoints.some(endpoint => url.startsWith(endpoint));
+}
+
+/**
+ * Endpoints served by the HTTP `api` Firebase function router (non-callable).
+ */
+function shouldUseFirebaseApiRouter(url: string): boolean {
+  const routerEndpoints = [
+    '/api/privacy',
+    '/api/recommendations',
+    '/api/price-alerts',
+    '/api/price-drops',
+    '/api/beneficiaries',
+    '/api/wishlist-items',
+  ];
+
+  return routerEndpoints.some(endpoint => url.startsWith(endpoint));
+}
+
+function normalizeBody(body: unknown): unknown {
+  if (typeof body === 'string') {
+    try {
+      return JSON.parse(body);
+    } catch {
+      return body;
+    }
+  }
+  return body;
+}
+
+function resolveFirebaseProjectId(): string {
+  const fromApp = String(firebaseApp?.options?.projectId || '').trim();
+  if (fromApp) {
+    return fromApp;
+  }
+
+  const fromEnv = String(
+    import.meta.env.VITE_FIREBASE_PROJECT_ID ||
+    import.meta.env.VITE_FIREBASE_PROJECT_ID_DEVELOPMENT ||
+    import.meta.env.VITE_FIREBASE_PROJECT_ID_STAGING ||
+    import.meta.env.VITE_FIREBASE_PROJECT_ID_PRODUCTION ||
+    ''
+  ).trim();
+
+  if (!fromEnv) {
+    throw new Error('Firebase projectId is not configured for API router requests');
+  }
+
+  return fromEnv;
+}
+
+function buildFirebaseApiRouterUrl(url: string): string {
+  const projectId = resolveFirebaseProjectId();
+  const normalizedPath = url.startsWith('/') ? url : `/${url}`;
+
+  if (import.meta.env.PROD) {
+    return `https://${FIREBASE_FUNCTIONS_REGION}-${projectId}.cloudfunctions.net/api${normalizedPath}`;
+  }
+
+  return `http://localhost:5001/${projectId}/${FIREBASE_FUNCTIONS_REGION}/api${normalizedPath}`;
 }
 
 /**
@@ -181,16 +237,18 @@ export async function apiRequest(
   }
 ): Promise<unknown> {
   const { method = "GET", body, useFirebaseFunctions } = options || {};
+  const normalizedBody = normalizeBody(body);
   
   // Determine if we should use Firebase Functions
   const useFunctions = useFirebaseFunctions ?? shouldUseFirebaseFunctions(url);
+  const useApiRouter = shouldUseFirebaseApiRouter(url);
   
   let fullUrl: string;
   const headers: Record<string, string> = {};
   
   if (useFunctions) {
     // Use Firebase SDK callable functions to ensure proper auth + CORS handling.
-    const { functionName, data } = getFirebaseFunctionRoute(url, method, body);
+    const { functionName, data } = getFirebaseFunctionRoute(url, method, normalizedBody);
 
     await initFirebase({ enableAuth: true, enableFirestore: false });
     if (!firebaseApp) {
@@ -207,6 +265,15 @@ export async function apiRequest(
     const callable = httpsCallable(functions, functionName);
     const result = await callable(data);
     return result.data;
+  } else if (useApiRouter) {
+    await initFirebase({ enableAuth: true, enableFirestore: false });
+
+    const token = await getAuthToken();
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    fullUrl = buildFirebaseApiRouterUrl(url);
   } else {
     // Use traditional Express.js API
     fullUrl = url.startsWith('http') ? url : `${API_BASE_URL}${url}`;
@@ -218,7 +285,7 @@ export async function apiRequest(
     }
   }
   
-  if (body) {
+  if (normalizedBody) {
     headers['Content-Type'] = 'application/json';
   }
   
@@ -228,8 +295,8 @@ export async function apiRequest(
     credentials: 'include',
   };
   
-  if (body) {
-    fetchOptions.body = JSON.stringify(body);
+  if (normalizedBody) {
+    fetchOptions.body = JSON.stringify(normalizedBody);
   }
   
   const res = await fetch(fullUrl, fetchOptions);
