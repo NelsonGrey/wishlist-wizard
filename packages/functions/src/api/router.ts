@@ -44,6 +44,31 @@ function sendError(res: Response, code: number, message: string, details?: any) 
   });
 }
 
+function parseBody(req: Request): Record<string, any> {
+  const body = req.body;
+  if (!body) return {};
+  if (typeof body === 'string') {
+    try {
+      const parsed = JSON.parse(body);
+      return typeof parsed === 'object' && parsed !== null ? parsed as Record<string, any> : {};
+    } catch {
+      return {};
+    }
+  }
+  return typeof body === 'object' ? body as Record<string, any> : {};
+}
+
+function getDateLike(value: any): Date | null {
+  if (!value) return null;
+  if (value instanceof Date) return Number.isNaN(value.getTime()) ? null : value;
+  if (typeof value?.toDate === 'function') {
+    const parsed = value.toDate();
+    return parsed instanceof Date && !Number.isNaN(parsed.getTime()) ? parsed : null;
+  }
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
 // Main API router function
 export const api = onRequest(async (req, res) => {
   // Enable CORS
@@ -68,6 +93,254 @@ export const api = onRequest(async (req, res) => {
     }
 
     // Route requests based on method and path
+    if (method === 'GET' && path === '/api/beneficiaries') {
+      const snapshot = await db
+        .collection('beneficiaries')
+        .where('ownerId', '==', userId)
+        .get();
+
+      const beneficiaries = snapshot.docs
+        .map((doc) => ({ id: doc.id, ...doc.data() }))
+        .filter((entry: any) => !entry.isHidden)
+        .sort((left: any, right: any) => {
+          const leftTime = getDateLike(left.updatedAt || left.createdAt)?.getTime() || 0;
+          const rightTime = getDateLike(right.updatedAt || right.createdAt)?.getTime() || 0;
+          return rightTime - leftTime;
+        });
+
+      sendJson(res, beneficiaries);
+    }
+    else if (method === 'GET' && path === '/api/recommendations') {
+      const snapshot = await db
+        .collection('recommendations')
+        .where('userId', '==', userId)
+        .orderBy('createdAt', 'desc')
+        .limit(40)
+        .get();
+
+      const recommendations = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+      sendJson(res, recommendations);
+    }
+    else if (method === 'GET' && path.match(/^\/api\/recommendations\/beneficiary\/[^/]+$/)) {
+      const beneficiaryId = path.split('/')[4];
+      const snapshot = await db
+        .collection('recommendations')
+        .where('userId', '==', userId)
+        .where('targetBeneficiaryId', '==', beneficiaryId)
+        .orderBy('createdAt', 'desc')
+        .limit(40)
+        .get();
+
+      const recommendations = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+      sendJson(res, recommendations);
+    }
+    else if (method === 'PATCH' && path.match(/^\/api\/recommendations\/[^/]+\/status$/)) {
+      const recommendationId = path.split('/')[3];
+      const updates = parseBody(req);
+      const recommendationRef = db.collection('recommendations').doc(recommendationId);
+      const recommendationDoc = await recommendationRef.get();
+
+      if (!recommendationDoc.exists) {
+        sendError(res, 404, 'Recommendation not found');
+        return;
+      }
+
+      if (recommendationDoc.data()?.userId !== userId) {
+        sendError(res, 403, 'You can only update your own recommendations');
+        return;
+      }
+
+      const patch = {
+        ...(typeof updates.isViewed === 'boolean' ? { isViewed: updates.isViewed } : {}),
+        ...(typeof updates.isSaved === 'boolean' ? { isSaved: updates.isSaved } : {}),
+        ...(typeof updates.isRejected === 'boolean' ? { isRejected: updates.isRejected } : {}),
+        updatedAt: new Date(),
+      };
+
+      await recommendationRef.update(patch);
+      sendJson(res, { success: true, id: recommendationId, ...patch });
+    }
+    else if (method === 'GET' && path === '/api/privacy/defaults') {
+      const defaultsDoc = await db.collection('privacyDefaults').doc(userId).get();
+      const defaults = defaultsDoc.exists
+        ? defaultsDoc.data()
+        : {
+            defaultWishlistVisibility: 'private',
+            defaultItemVisibility: 'private',
+            allowComments: true,
+            allowReservations: true,
+            requireApproval: false,
+          };
+      sendJson(res, defaults);
+    }
+    else if (method === 'GET' && path.match(/^\/api\/privacy\/settings\/(wishlist|item)\/[^/]+$/)) {
+      const entityType = path.split('/')[4];
+      const entityId = path.split('/')[5];
+      const ref = db.collection('privacySettings').doc(`${entityType}:${entityId}`);
+      const doc = await ref.get();
+      if (!doc.exists) {
+        sendError(res, 404, 'Privacy settings not found');
+        return;
+      }
+      const data = doc.data() || {};
+      if (data.userId !== userId) {
+        sendError(res, 403, 'Access denied');
+        return;
+      }
+      sendJson(res, { id: doc.id, ...data });
+    }
+    else if (method === 'POST' && path === '/api/privacy/settings') {
+      const body = parseBody(req);
+      const entityType = String(body.entityType || '').trim();
+      const entityId = String(body.entityId || '').trim();
+
+      if (!entityType || !entityId) {
+        sendError(res, 400, 'Entity type and entity ID are required');
+        return;
+      }
+
+      const ref = db.collection('privacySettings').doc(`${entityType}:${entityId}`);
+      await ref.set({
+        userId,
+        entityType,
+        entityId,
+        visibilityLevel: body.visibilityLevel || 'private',
+        customAccessList: Array.isArray(body.customAccessList) ? body.customAccessList : [],
+        expirationDate: body.expirationDate || null,
+        allowComments: typeof body.allowComments === 'boolean' ? body.allowComments : true,
+        allowReservations: typeof body.allowReservations === 'boolean' ? body.allowReservations : true,
+        requireApproval: typeof body.requireApproval === 'boolean' ? body.requireApproval : false,
+        updatedAt: new Date(),
+        createdAt: new Date(),
+      }, { merge: true });
+
+      const updated = await ref.get();
+      sendJson(res, { id: updated.id, ...updated.data() });
+    }
+    else if (method === 'PUT' && path.match(/^\/api\/privacy\/settings\/(wishlist|item)\/[^/]+\/access-list$/)) {
+      const entityType = path.split('/')[4];
+      const entityId = path.split('/')[5];
+      const body = parseBody(req);
+      const userIds = Array.isArray(body.userIds) ? body.userIds : [];
+      const ref = db.collection('privacySettings').doc(`${entityType}:${entityId}`);
+      const existing = await ref.get();
+      if (existing.exists && existing.data()?.userId !== userId) {
+        sendError(res, 403, 'Access denied');
+        return;
+      }
+      await ref.set({ userId, entityType, entityId, customAccessList: userIds, updatedAt: new Date() }, { merge: true });
+      sendJson(res, { success: true, customAccessList: userIds });
+    }
+    else if (method === 'DELETE' && path.match(/^\/api\/privacy\/settings\/(wishlist|item)\/[^/]+$/)) {
+      const entityType = path.split('/')[4];
+      const entityId = path.split('/')[5];
+      const ref = db.collection('privacySettings').doc(`${entityType}:${entityId}`);
+      const existing = await ref.get();
+      if (existing.exists && existing.data()?.userId !== userId) {
+        sendError(res, 403, 'Access denied');
+        return;
+      }
+      await ref.delete();
+      sendJson(res, { success: true });
+    }
+    else if (method === 'POST' && path === '/api/privacy/check-access') {
+      const body = parseBody(req);
+      const entityType = String(body.entityType || '').trim();
+      const entityId = String(body.entityId || '').trim();
+      const ref = db.collection('privacySettings').doc(`${entityType}:${entityId}`);
+      const doc = await ref.get();
+
+      if (!doc.exists) {
+        sendJson(res, { hasAccess: true, requiresApproval: false, isOwner: true });
+        return;
+      }
+
+      const data = doc.data() || {};
+      const isOwner = data.userId === userId;
+      const visibilityLevel = String(data.visibilityLevel || 'private');
+      const customAccessList = Array.isArray(data.customAccessList) ? data.customAccessList.map(String) : [];
+      const hasAccess = isOwner
+        || visibilityLevel === 'public'
+        || (visibilityLevel === 'custom' && customAccessList.includes(String(userId)));
+
+      sendJson(res, {
+        hasAccess,
+        requiresApproval: Boolean(data.requireApproval) && !isOwner,
+        isOwner,
+      });
+    }
+    else if (method === 'GET' && path === '/api/price-alerts') {
+      const snapshot = await db
+        .collection('priceAlerts')
+        .where('userId', '==', userId)
+        .orderBy('createdAt', 'desc')
+        .limit(100)
+        .get();
+
+      const alerts = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+      sendJson(res, alerts);
+    }
+    else if (method === 'DELETE' && path.match(/^\/api\/price-alerts\/[^/]+$/)) {
+      const alertId = path.split('/')[3];
+      const ref = db.collection('priceAlerts').doc(alertId);
+      const doc = await ref.get();
+      if (!doc.exists) {
+        sendError(res, 404, 'Price alert not found');
+        return;
+      }
+      if (doc.data()?.userId !== userId) {
+        sendError(res, 403, 'Access denied');
+        return;
+      }
+      await ref.delete();
+      sendJson(res, { success: true });
+    }
+    else if (method === 'GET' && path === '/api/price-drops') {
+      const snapshot = await db
+        .collection('priceHistory')
+        .where('userId', '==', userId)
+        .orderBy('timestamp', 'desc')
+        .limit(50)
+        .get();
+
+      const drops = snapshot.docs
+        .map((doc) => ({ id: doc.id, ...doc.data() }))
+        .filter((entry: any) => Number(entry.change) < 0)
+        .map((entry: any) => ({
+          id: entry.id,
+          title: entry.productTitle || 'Tracked item',
+          imageUrl: entry.imageUrl || null,
+          price: entry.newPrice,
+          currentPrice: entry.newPrice,
+          previousPrice: entry.oldPrice,
+          dropPercentage: Math.abs(Number(entry.changePercent) || 0),
+          percentDrop: Math.abs(Number(entry.changePercent) || 0),
+          store: entry.store || null,
+        }));
+      sendJson(res, drops);
+    }
+    else if (method === 'GET' && path === '/api/wishlist-items') {
+      const wishlistsSnapshot = await db.collection('wishlists').where('userId', '==', userId).limit(100).get();
+      const wishlistIds = wishlistsSnapshot.docs.map((doc) => doc.id);
+
+      if (wishlistIds.length === 0) {
+        sendJson(res, []);
+        return;
+      }
+
+      const chunks: string[][] = [];
+      for (let index = 0; index < wishlistIds.length; index += 10) {
+        chunks.push(wishlistIds.slice(index, index + 10));
+      }
+
+      const items: any[] = [];
+      for (const chunk of chunks) {
+        const itemsSnapshot = await db.collection('wishlistItems').where('wishlistId', 'in', chunk).get();
+        itemsSnapshot.docs.forEach((doc) => items.push({ id: doc.id, ...doc.data() }));
+      }
+
+      sendJson(res, items);
+    }
     if (method === 'GET' && path === '/api/extension/wishlists') {
       // GET /api/extension/wishlists
       const wishlistsSnapshot = await db
