@@ -184,10 +184,15 @@ export const getCalendarEvents = onCall(async (request: CallableRequest) => {
     const snapshot = await db
       .collection("calendarEvents")
       .where("userId", "==", request.auth!.uid)
-      .orderBy("startDate", "asc")
       .get();
 
-    const events = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+    const events = snapshot.docs
+      .map((doc) => ({ id: doc.id, ...doc.data() }))
+      .sort((left: any, right: any) => {
+        const leftTime = new Date(left.startDate || 0).getTime();
+        const rightTime = new Date(right.startDate || 0).getTime();
+        return leftTime - rightTime;
+      });
     return events;
   } catch (error) {
     logger.error("Error fetching calendar events:", error);
