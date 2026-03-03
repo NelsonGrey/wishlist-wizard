@@ -439,6 +439,40 @@ async function runAnalyticsAccessContractChecks(fixtureContext) {
 async function runAnalyticsNormalizationContractChecks(fixtureContext) {
   const checks = [];
 
+  const missingAction = await callCallableRaw('trackAnalyticsEvent', fixtureContext.user.idToken, {
+    category: 'smoke',
+    label: 'missing-action',
+  });
+  checks.push({
+    endpoint: 'contract:trackAnalyticsEvent:missing-action-rejected',
+    type: 'contract',
+    ...(missingAction.errorStatus === 'INVALID_ARGUMENT'
+      ? { status: 'passed', message: 'Analytics tracking requires action and rejects invalid payloads' }
+      : {
+          status: 'failed',
+          message: `Expected INVALID_ARGUMENT, got ${missingAction.errorStatus || missingAction.response.status}`,
+          httpStatus: missingAction.response.status,
+        }),
+  });
+
+  const trackedEvent = await callCallableRaw('trackAnalyticsEvent', fixtureContext.user.idToken, {
+    action: 'contract_shape_event',
+    category: 'smoke',
+    label: 'normalization-check',
+    value: 1,
+  });
+  checks.push({
+    endpoint: 'contract:trackAnalyticsEvent:valid-payload-accepted',
+    type: 'contract',
+    ...(!trackedEvent.errorStatus && trackedEvent.response.ok && trackedEvent.result?.success === true
+      ? { status: 'passed', message: 'Analytics tracking accepts valid payload and returns success=true' }
+      : {
+          status: 'failed',
+          message: `Expected success=true, got ${trackedEvent.errorStatus || trackedEvent.response.status}`,
+          httpStatus: trackedEvent.response.status,
+        }),
+  });
+
   const highWindow = await callCallableRaw('getAnalyticsSummary', fixtureContext.user.idToken, {
     windowDays: 9999,
   });
@@ -502,6 +536,51 @@ async function runAnalyticsNormalizationContractChecks(fixtureContext) {
           status: 'failed',
           message: `Expected successful normalization for high limit, got ${highLimit.errorStatus || highLimit.response.status}`,
           httpStatus: highLimit.response.status,
+        }),
+  });
+
+  const eventsShape = await callCallableRaw('getAnalyticsEvents', fixtureContext.user.idToken, {
+    limit: 1,
+  });
+  const firstEvent = Array.isArray(eventsShape.result?.events) ? eventsShape.result.events[0] : null;
+  checks.push({
+    endpoint: 'contract:getAnalyticsEvents:response-shape',
+    type: 'contract',
+    ...(!eventsShape.errorStatus
+      && eventsShape.response.ok
+      && Array.isArray(eventsShape.result?.events)
+      && firstEvent
+      && typeof firstEvent.id === 'string'
+      && typeof firstEvent.action === 'string'
+      ? { status: 'passed', message: 'Analytics events response includes typed event records (id, action)' }
+      : {
+          status: 'failed',
+          message: `Expected events[0] with id/action, got ${eventsShape.errorStatus || eventsShape.response.status}`,
+          httpStatus: eventsShape.response.status,
+        }),
+  });
+
+  const summaryShape = await callCallableRaw('getAnalyticsSummary', fixtureContext.user.idToken, {
+    windowDays: 7,
+  });
+  const summary = summaryShape.result?.summary;
+  checks.push({
+    endpoint: 'contract:getAnalyticsSummary:response-shape',
+    type: 'contract',
+    ...(!summaryShape.errorStatus
+      && summaryShape.response.ok
+      && summary
+      && typeof summary.totalEvents === 'number'
+      && typeof summary.windowDays === 'number'
+      && typeof summary.byCategory === 'object'
+      && typeof summary.byAction === 'object'
+      && Array.isArray(summary.topActions)
+      && Array.isArray(summary.trendByDay)
+      ? { status: 'passed', message: 'Analytics summary response exposes expected summary fields' }
+      : {
+          status: 'failed',
+          message: `Expected summary shape, got ${summaryShape.errorStatus || summaryShape.response.status}`,
+          httpStatus: summaryShape.response.status,
         }),
   });
 
@@ -1650,6 +1729,25 @@ async function runApiRouterContractChecks(fixtureContext) {
           status: 'failed',
           message: `Expected HTTP 200, got ${apiBeneficiaries.httpStatus ?? apiBeneficiaries.message}`,
           httpStatus: apiBeneficiaries.httpStatus,
+        }),
+  });
+
+  const apiAnalyticsPath = await invokeHttp('api', {
+    method: 'GET',
+    pathSuffix: '/api/analytics/summary',
+    headers: {
+      Authorization: `Bearer ${fixtureContext.user.idToken}`,
+    },
+  });
+  checks.push({
+    endpoint: 'contract:api-router:analytics-path-not-routed',
+    type: 'contract',
+    ...(apiAnalyticsPath.httpStatus === 404
+      ? { status: 'passed', message: 'API router does not shadow callable analytics routes (returns 404)' }
+      : {
+          status: 'failed',
+          message: `Expected HTTP 404, got ${apiAnalyticsPath.httpStatus ?? apiAnalyticsPath.message}`,
+          httpStatus: apiAnalyticsPath.httpStatus,
         }),
   });
 
