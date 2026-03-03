@@ -13,7 +13,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
-import { SiGoogle, SiApple } from 'react-icons/si';
+import { SiApple } from 'react-icons/si';
 import { FaMicrosoft } from 'react-icons/fa';
 import { LuCalendarPlus } from 'react-icons/lu';
 
@@ -102,15 +102,6 @@ export function ConnectCalendarDialog({ onConnect }: ConnectCalendarDialogProps)
   }, [redirectUri]);
   
   // Fetch auth URLs for each provider
-  const { data: googleAuthData, isLoading: isGoogleLoading } = useQuery<CalendarAuthData>({
-    queryKey: ['/api/calendar/auth/google'],
-    queryFn: () => apiRequest('/api/calendar/auth/google', {
-      method: 'POST',
-      body: { provider: 'google', redirectUri }
-    }) as Promise<CalendarAuthData>,
-    enabled: isOpen, // Only fetch when dialog is open
-  });
-  
   const { data: outlookAuthData, isLoading: isOutlookLoading } = useQuery<CalendarAuthData>({
     queryKey: ['/api/calendar/auth/outlook'],
     queryFn: () => apiRequest('/api/calendar/auth/outlook', {
@@ -216,30 +207,11 @@ export function ConnectCalendarDialog({ onConnect }: ConnectCalendarDialogProps)
           </DialogDescription>
         </DialogHeader>
         
-        <Tabs defaultValue="google" className="mt-4">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="google">Google</TabsTrigger>
+        <Tabs defaultValue="outlook" className="mt-4">
+          <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="outlook">Outlook</TabsTrigger>
             <TabsTrigger value="apple">Apple</TabsTrigger>
           </TabsList>
-          
-          <TabsContent value="google" className="py-4">
-            <div className="flex flex-col items-center space-y-4">
-              <SiGoogle className="h-16 w-16 text-emerald-700" />
-              <h3 className="text-lg font-medium">Connect Google Calendar</h3>
-              <p className="text-sm text-gray-500 text-center">
-                Sync your events with Google Calendar. You&apos;ll be asked to grant
-                permission to access your calendars.
-              </p>
-              <Button 
-                onClick={() => handleConnect('google')} 
-                disabled={isGoogleLoading || isConnecting}
-                className="w-full"
-              >
-                {isConnecting && selectedProvider === 'google' ? 'Connecting...' : 'Connect Google Calendar'}
-              </Button>
-            </div>
-          </TabsContent>
           
           <TabsContent value="outlook" className="py-4">
             <div className="flex flex-col items-center space-y-4">
