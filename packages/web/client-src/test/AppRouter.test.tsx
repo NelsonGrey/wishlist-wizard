@@ -111,6 +111,17 @@ describe('AppRouter Smoke Tests', () => {
       expect(html).toBeTruthy();
       expect(html.children.length).toBeGreaterThan(0);
     });
+
+    it('stores redirect target for protected routes when unauthenticated', async () => {
+      sessionStorage.removeItem('redirectAfterAuth');
+      window.history.pushState({}, 'Dashboard', '/dashboard');
+
+      render(<AppRouter />);
+
+      await waitFor(() => {
+        expect(sessionStorage.getItem('redirectAfterAuth')).toBe('/dashboard');
+      });
+    });
   });
 
   describe('Route Configuration', () => {
@@ -244,6 +255,19 @@ describe('AppRouter Smoke Tests', () => {
       await waitFor(() => {
         expect(document.body).toBeTruthy();
       });
+    });
+
+    it('keeps shared routes public without auth redirect guards', async () => {
+      sessionStorage.removeItem('redirectAfterAuth');
+      window.history.pushState({}, 'Shared', '/shared/public-link-123');
+
+      render(<AppRouter />);
+
+      await waitFor(() => {
+        expect(window.location.pathname).toBe('/shared/public-link-123');
+      });
+
+      expect(sessionStorage.getItem('redirectAfterAuth')).toBeNull();
     });
   });
 
