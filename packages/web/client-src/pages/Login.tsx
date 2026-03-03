@@ -70,7 +70,7 @@ export default function Login() {
 
   return (
     <div className="container flex items-center justify-center min-h-[80vh] py-8">
-      <Card className="w-full max-w-md">
+      <Card className="w-full max-w-md border-emerald-200/70">
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl font-bold text-center">Sign in to Wishlist Wizard</CardTitle>
           <CardDescription className="text-center">
@@ -87,7 +87,14 @@ export default function Login() {
                   <FormItem>
                     <FormLabel>Email</FormLabel>
                     <FormControl>
-                      <Input data-testid="login-email-input" type="email" autoComplete="email" placeholder="Enter your email" {...field} />
+                      <Input
+                        data-testid="login-email-input"
+                        type="email"
+                        autoComplete="email"
+                        placeholder="Enter your email"
+                        className="focus-visible:ring-emerald-600 focus-visible:border-emerald-600"
+                        {...field}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -101,14 +108,26 @@ export default function Login() {
                   <FormItem>
                     <FormLabel>Password</FormLabel>
                     <FormControl>
-                      <Input data-testid="login-password-input" type="password" autoComplete="current-password" placeholder="••••••••" {...field} />
+                      <Input
+                        data-testid="login-password-input"
+                        type="password"
+                        autoComplete="current-password"
+                        placeholder="••••••••"
+                        className="focus-visible:ring-emerald-600 focus-visible:border-emerald-600"
+                        {...field}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
               
-              <Button data-testid="login-submit" type="submit" className="w-full" disabled={isLoading}>
+              <Button
+                data-testid="login-submit"
+                type="submit"
+                className="w-full bg-gradient-to-r from-emerald-700 to-green-700 text-white hover:from-emerald-800 hover:to-green-800"
+                disabled={isLoading}
+              >
                 {isLoading ? "Signing in..." : "Sign in"}
               </Button>
             </form>
@@ -116,13 +135,23 @@ export default function Login() {
         </CardContent>
         <CardFooter className="flex flex-col space-y-4">
           <div className="text-center text-sm">
-            <Button type="button" variant="link" className="p-0" onClick={() => setLocation("/forgot-password")}>
+            <Button
+              type="button"
+              variant="link"
+              className="p-0 text-emerald-700 hover:text-emerald-800"
+              onClick={() => setLocation("/forgot-password")}
+            >
               Forgot your password?
             </Button>
           </div>
           <div className="text-center text-sm">
             Don&apos;t have an account?{" "}
-            <Button type="button" variant="link" className="p-0" onClick={() => setLocation("/register")}>
+            <Button
+              type="button"
+              variant="link"
+              className="p-0 text-emerald-700 hover:text-emerald-800"
+              onClick={() => setLocation("/register")}
+            >
               Register
             </Button>
           </div>

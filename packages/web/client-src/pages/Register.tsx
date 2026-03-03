@@ -73,7 +73,7 @@ export default function Register() {
 
   return (
     <div className="container flex items-center justify-center min-h-[80vh] py-8">
-      <Card className="w-full max-w-md">
+      <Card className="w-full max-w-md border-emerald-200/70">
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl font-bold text-center">Create an account</CardTitle>
           <CardDescription className="text-center">
@@ -90,7 +90,13 @@ export default function Register() {
                   <FormItem>
                     <FormLabel>Display Name (optional)</FormLabel>
                     <FormControl>
-                      <Input data-testid="register-display-name-input" autoComplete="name" placeholder="Your display name" {...field} />
+                      <Input
+                        data-testid="register-display-name-input"
+                        autoComplete="name"
+                        placeholder="Your display name"
+                        className="focus-visible:ring-emerald-600 focus-visible:border-emerald-600"
+                        {...field}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -104,7 +110,14 @@ export default function Register() {
                   <FormItem>
                     <FormLabel>Email</FormLabel>
                     <FormControl>
-                      <Input data-testid="register-email-input" type="email" autoComplete="email" placeholder="your.email@example.com" {...field} />
+                      <Input
+                        data-testid="register-email-input"
+                        type="email"
+                        autoComplete="email"
+                        placeholder="your.email@example.com"
+                        className="focus-visible:ring-emerald-600 focus-visible:border-emerald-600"
+                        {...field}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -118,7 +131,14 @@ export default function Register() {
                   <FormItem>
                     <FormLabel>Password</FormLabel>
                     <FormControl>
-                      <Input data-testid="register-password-input" type="password" autoComplete="new-password" placeholder="••••••••" {...field} />
+                      <Input
+                        data-testid="register-password-input"
+                        type="password"
+                        autoComplete="new-password"
+                        placeholder="••••••••"
+                        className="focus-visible:ring-emerald-600 focus-visible:border-emerald-600"
+                        {...field}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -132,14 +152,26 @@ export default function Register() {
                   <FormItem>
                     <FormLabel>Confirm Password</FormLabel>
                     <FormControl>
-                      <Input data-testid="register-confirm-password-input" type="password" autoComplete="new-password" placeholder="••••••••" {...field} />
+                      <Input
+                        data-testid="register-confirm-password-input"
+                        type="password"
+                        autoComplete="new-password"
+                        placeholder="••••••••"
+                        className="focus-visible:ring-emerald-600 focus-visible:border-emerald-600"
+                        {...field}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
               
-              <Button data-testid="register-submit" type="submit" className="w-full" disabled={isLoading}>
+              <Button
+                data-testid="register-submit"
+                type="submit"
+                className="w-full bg-gradient-to-r from-emerald-700 to-green-700 text-white hover:from-emerald-800 hover:to-green-800"
+                disabled={isLoading}
+              >
                 {isLoading ? "Creating account..." : "Create account"}
               </Button>
             </form>
@@ -148,7 +180,12 @@ export default function Register() {
         <CardFooter className="flex flex-col space-y-4">
           <div className="text-center text-sm">
             Already have an account?{" "}
-            <Button type="button" variant="link" className="p-0" onClick={() => setLocation("/login")}>
+            <Button
+              type="button"
+              variant="link"
+              className="p-0 text-emerald-700 hover:text-emerald-800"
+              onClick={() => setLocation("/login")}
+            >
               Sign in
             </Button>
           </div>
