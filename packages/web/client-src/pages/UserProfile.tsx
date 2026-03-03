@@ -160,6 +160,7 @@ const CONNECTIONS: Array<{ id: number; name: string; avatar: string; mutualFrien
 
 const UserProfile = () => {
   const { user } = useAuth();
+  const isStripeReady = Boolean(String(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '').trim());
   const [profile, setProfile] = useState(() => createInitialProfile(user || undefined));
   const [selectedTab, setSelectedTab] = useState("profile");
   const [editMode, setEditMode] = useState(false);
@@ -1291,64 +1292,72 @@ const UserProfile = () => {
                   </div>
                 </div>
                 
-                {/* Payment Methods */}
-                <div className="space-y-3">
-                  <h3 className="text-base font-medium">Payment Methods</h3>
-                  
-                  <div className="space-y-2">
-                    {profile.paymentMethods.map(method => (
-                      <div key={method.id} className="flex items-center justify-between border rounded-lg p-3">
-                        <div className="flex items-center gap-3">
-                          <div>
-                            {method.type === 'credit_card' ? (
-                              <CreditCard className="text-primary" />
-                            ) : (
-                              <BadgeDollarSign className="text-emerald-800" />
-                            )}
-                          </div>
-                          <div>
-                            {method.type === 'credit_card' ? (
+                {isStripeReady ? (
+                  <>
+                    {/* Payment Methods */}
+                    <div className="space-y-3">
+                      <h3 className="text-base font-medium">Payment Methods</h3>
+                      
+                      <div className="space-y-2">
+                        {profile.paymentMethods.map(method => (
+                          <div key={method.id} className="flex items-center justify-between border rounded-lg p-3">
+                            <div className="flex items-center gap-3">
                               <div>
-                                <p className="font-medium">{method.brand} ••••{method.lastFour}</p>
+                                {method.type === 'credit_card' ? (
+                                  <CreditCard className="text-primary" />
+                                ) : (
+                                  <BadgeDollarSign className="text-emerald-800" />
+                                )}
                               </div>
-                            ) : (
                               <div>
-                                <p className="font-medium">PayPal</p>
-                                <p className="text-sm text-muted-foreground">{method.email}</p>
+                                {method.type === 'credit_card' ? (
+                                  <div>
+                                    <p className="font-medium">{method.brand} ••••{method.lastFour}</p>
+                                  </div>
+                                ) : (
+                                  <div>
+                                    <p className="font-medium">PayPal</p>
+                                    <p className="text-sm text-muted-foreground">{method.email}</p>
+                                  </div>
+                                )}
                               </div>
-                            )}
+                            </div>
+                            <div>
+                              {method.default && (
+                                <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">
+                                  Default
+                                </span>
+                              )}
+                            </div>
                           </div>
-                        </div>
-                        <div>
-                          {method.default && (
-                            <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">
-                              Default
-                            </span>
-                          )}
+                        ))}
+                        
+                        <Button variant="outline" size="sm">
+                          <CreditCard size={16} className="mr-2" />
+                          Add Payment Method
+                        </Button>
+                      </div>
+                    </div>
+
+                    {/* Payment History */}
+                    <div className="space-y-3">
+                      <h3 className="text-base font-medium">Payment History</h3>
+
+                      <div className="space-y-2">
+                        {/* This would be populated with actual payment history data */}
+                        <div className="text-center py-8 text-muted-foreground">
+                          <Receipt className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                          <p className="text-sm">No payment history available</p>
+                          <p className="text-xs mt-1">Your contribution and purchase history will appear here</p>
                         </div>
                       </div>
-                    ))}
-                    
-                    <Button variant="outline" size="sm">
-                      <CreditCard size={16} className="mr-2" />
-                      Add Payment Method
-                    </Button>
-                  </div>
-                </div>
-
-                {/* Payment History */}
-                <div className="space-y-3">
-                  <h3 className="text-base font-medium">Payment History</h3>
-
-                  <div className="space-y-2">
-                    {/* This would be populated with actual payment history data */}
-                    <div className="text-center py-8 text-muted-foreground">
-                      <Receipt className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                      <p className="text-sm">No payment history available</p>
-                      <p className="text-xs mt-1">Your contribution and purchase history will appear here</p>
                     </div>
+                  </>
+                ) : (
+                  <div className="rounded-lg border p-4 text-sm text-muted-foreground" data-testid="profile-payments-deferred">
+                    Payments and checkout features are coming in v1.1.
                   </div>
-                </div>
+                )}
                 
                 {/* Security */}
                 <div className="space-y-3">
