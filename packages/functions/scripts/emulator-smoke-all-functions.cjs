@@ -1713,6 +1713,42 @@ async function runApiRouterContractChecks(fixtureContext) {
         }),
   });
 
+  const beneficiaryVisible = await callCallableExpectSuccess('createDocument', fixtureContext.user.idToken, {
+    collection: 'beneficiaries',
+    data: {
+      ownerId: fixtureContext.user.uid,
+      name: `Contract Beneficiary Visible ${Date.now()}`,
+      relationship: 'friend',
+      isHidden: false,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    },
+  });
+
+  const beneficiaryHidden = await callCallableExpectSuccess('createDocument', fixtureContext.user.idToken, {
+    collection: 'beneficiaries',
+    data: {
+      ownerId: fixtureContext.user.uid,
+      name: `Contract Beneficiary Hidden ${Date.now()}`,
+      relationship: 'friend',
+      isHidden: true,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    },
+  });
+
+  const beneficiaryForeign = await callCallableExpectSuccess('createDocument', fixtureContext.user.idToken, {
+    collection: 'beneficiaries',
+    data: {
+      ownerId: 'someone-else',
+      name: `Contract Beneficiary Foreign ${Date.now()}`,
+      relationship: 'friend',
+      isHidden: false,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    },
+  });
+
   const apiBeneficiaries = await invokeHttp('api', {
     method: 'GET',
     pathSuffix: '/api/beneficiaries',
@@ -1729,6 +1765,45 @@ async function runApiRouterContractChecks(fixtureContext) {
           status: 'failed',
           message: `Expected HTTP 200, got ${apiBeneficiaries.httpStatus ?? apiBeneficiaries.message}`,
           httpStatus: apiBeneficiaries.httpStatus,
+        }),
+  });
+
+  const apiBeneficiariesResponse = await fetch(
+    `http://${functionsHost}/${projectId}/${region}/api/api/beneficiaries`,
+    {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${fixtureContext.user.idToken}`,
+      },
+    }
+  );
+  let apiBeneficiariesJson = null;
+  try {
+    apiBeneficiariesJson = await apiBeneficiariesResponse.json();
+  } catch (_) {
+    apiBeneficiariesJson = null;
+  }
+
+  const beneficiaries = Array.isArray(apiBeneficiariesJson) ? apiBeneficiariesJson : [];
+  const includesVisibleBeneficiary = beneficiaries.some((entry) => entry?.id === beneficiaryVisible?.id);
+  const includesHiddenBeneficiary = beneficiaries.some((entry) => entry?.id === beneficiaryHidden?.id);
+  const includesForeignBeneficiary = beneficiaries.some((entry) => entry?.id === beneficiaryForeign?.id);
+  const beneficiariesHaveShape = beneficiaries.every((entry) => typeof entry?.id === 'string' && typeof entry?.ownerId === 'string');
+
+  checks.push({
+    endpoint: 'contract:api-router:beneficiaries-shape-and-filtering',
+    type: 'contract',
+    ...(apiBeneficiariesResponse.status === 200
+      && beneficiariesHaveShape
+      && includesVisibleBeneficiary
+      && !includesHiddenBeneficiary
+      && !includesForeignBeneficiary
+      ? { status: 'passed', message: 'API router beneficiaries returns shaped owner records and filters hidden/foreign entries' }
+      : {
+          status: 'failed',
+          message: `Expected HTTP 200 with beneficiaries ownership+visibility filtering, got ${apiBeneficiariesResponse.status}`,
+          httpStatus: apiBeneficiariesResponse.status,
         }),
   });
 
@@ -1779,6 +1854,43 @@ async function runApiRouterContractChecks(fixtureContext) {
         }),
   });
 
+  const apiRecommendationsResponse = await fetch(
+    `http://${functionsHost}/${projectId}/${region}/api/api/recommendations`,
+    {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${fixtureContext.user.idToken}`,
+      },
+    }
+  );
+  let apiRecommendationsJson = null;
+  try {
+    apiRecommendationsJson = await apiRecommendationsResponse.json();
+  } catch (_) {
+    apiRecommendationsJson = null;
+  }
+
+  const recommendations = Array.isArray(apiRecommendationsJson) ? apiRecommendationsJson : [];
+  const includesOwnerRecommendation = recommendations.some((entry) => entry?.id === recommendationId);
+  const includesForeignRecommendation = recommendations.some((entry) => entry?.id === recommendationForeignId);
+  const recommendationsHaveShape = recommendations.every((entry) => typeof entry?.id === 'string' && typeof entry?.userId === 'string');
+
+  checks.push({
+    endpoint: 'contract:api-router:recommendations-shape-and-filtering',
+    type: 'contract',
+    ...(apiRecommendationsResponse.status === 200
+      && recommendationsHaveShape
+      && includesOwnerRecommendation
+      && !includesForeignRecommendation
+      ? { status: 'passed', message: 'API router recommendations returns shaped owner records and excludes foreign recommendations' }
+      : {
+          status: 'failed',
+          message: `Expected HTTP 200 with recommendations ownership filtering, got ${apiRecommendationsResponse.status}`,
+          httpStatus: apiRecommendationsResponse.status,
+        }),
+  });
+
   const apiRecommendationsByBeneficiary = await invokeHttp('api', {
     method: 'GET',
     pathSuffix: '/api/recommendations/beneficiary/contract-beneficiary',
@@ -1795,6 +1907,42 @@ async function runApiRouterContractChecks(fixtureContext) {
           status: 'failed',
           message: `Expected HTTP 200, got ${apiRecommendationsByBeneficiary.httpStatus ?? apiRecommendationsByBeneficiary.message}`,
           httpStatus: apiRecommendationsByBeneficiary.httpStatus,
+        }),
+  });
+
+  const apiRecommendationsByBeneficiaryResponse = await fetch(
+    `http://${functionsHost}/${projectId}/${region}/api/api/recommendations/beneficiary/contract-beneficiary`,
+    {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${fixtureContext.user.idToken}`,
+      },
+    }
+  );
+  let apiRecommendationsByBeneficiaryJson = null;
+  try {
+    apiRecommendationsByBeneficiaryJson = await apiRecommendationsByBeneficiaryResponse.json();
+  } catch (_) {
+    apiRecommendationsByBeneficiaryJson = null;
+  }
+
+  const beneficiaryRecommendations = Array.isArray(apiRecommendationsByBeneficiaryJson)
+    ? apiRecommendationsByBeneficiaryJson
+    : [];
+  const beneficiaryRecommendationsAllMatch = beneficiaryRecommendations.every(
+    (entry) => entry?.targetBeneficiaryId === 'contract-beneficiary' && entry?.userId === fixtureContext.user.uid
+  );
+
+  checks.push({
+    endpoint: 'contract:api-router:recommendations-by-beneficiary-filtering',
+    type: 'contract',
+    ...(apiRecommendationsByBeneficiaryResponse.status === 200 && beneficiaryRecommendationsAllMatch
+      ? { status: 'passed', message: 'API router beneficiary recommendations are scoped to requested beneficiary and owner' }
+      : {
+          status: 'failed',
+          message: `Expected HTTP 200 with beneficiary-scoped owner recommendations, got ${apiRecommendationsByBeneficiaryResponse.status}`,
+          httpStatus: apiRecommendationsByBeneficiaryResponse.status,
         }),
   });
 
