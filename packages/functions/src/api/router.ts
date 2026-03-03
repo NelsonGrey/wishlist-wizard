@@ -114,11 +114,17 @@ export const api = onRequest(async (req, res) => {
       const snapshot = await db
         .collection('recommendations')
         .where('userId', '==', userId)
-        .orderBy('createdAt', 'desc')
         .limit(40)
         .get();
 
-      const recommendations = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+      const recommendations = snapshot.docs
+        .map((doc) => ({ id: doc.id, ...doc.data() }))
+        .sort((left: any, right: any) => {
+          const leftTime = getDateLike(left.createdAt)?.getTime() || 0;
+          const rightTime = getDateLike(right.createdAt)?.getTime() || 0;
+          return rightTime - leftTime;
+        })
+        .slice(0, 40);
       sendJson(res, recommendations);
     }
     else if (method === 'GET' && path.match(/^\/api\/recommendations\/beneficiary\/[^/]+$/)) {
@@ -127,11 +133,17 @@ export const api = onRequest(async (req, res) => {
         .collection('recommendations')
         .where('userId', '==', userId)
         .where('targetBeneficiaryId', '==', beneficiaryId)
-        .orderBy('createdAt', 'desc')
         .limit(40)
         .get();
 
-      const recommendations = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+      const recommendations = snapshot.docs
+        .map((doc) => ({ id: doc.id, ...doc.data() }))
+        .sort((left: any, right: any) => {
+          const leftTime = getDateLike(left.createdAt)?.getTime() || 0;
+          const rightTime = getDateLike(right.createdAt)?.getTime() || 0;
+          return rightTime - leftTime;
+        })
+        .slice(0, 40);
       sendJson(res, recommendations);
     }
     else if (method === 'PATCH' && path.match(/^\/api\/recommendations\/[^/]+\/status$/)) {
@@ -273,11 +285,17 @@ export const api = onRequest(async (req, res) => {
       const snapshot = await db
         .collection('priceAlerts')
         .where('userId', '==', userId)
-        .orderBy('createdAt', 'desc')
         .limit(100)
         .get();
 
-      const alerts = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+      const alerts = snapshot.docs
+        .map((doc) => ({ id: doc.id, ...doc.data() }))
+        .sort((left: any, right: any) => {
+          const leftTime = getDateLike(left.createdAt)?.getTime() || 0;
+          const rightTime = getDateLike(right.createdAt)?.getTime() || 0;
+          return rightTime - leftTime;
+        })
+        .slice(0, 100);
       sendJson(res, alerts);
     }
     else if (method === 'DELETE' && path.match(/^\/api\/price-alerts\/[^/]+$/)) {
@@ -299,12 +317,17 @@ export const api = onRequest(async (req, res) => {
       const snapshot = await db
         .collection('priceHistory')
         .where('userId', '==', userId)
-        .orderBy('timestamp', 'desc')
         .limit(50)
         .get();
 
       const drops = snapshot.docs
         .map((doc) => ({ id: doc.id, ...doc.data() }))
+        .sort((left: any, right: any) => {
+          const leftTime = getDateLike(left.timestamp)?.getTime() || 0;
+          const rightTime = getDateLike(right.timestamp)?.getTime() || 0;
+          return rightTime - leftTime;
+        })
+        .slice(0, 50)
         .filter((entry: any) => Number(entry.change) < 0)
         .map((entry: any) => ({
           id: entry.id,
