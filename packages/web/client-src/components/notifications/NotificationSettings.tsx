@@ -409,7 +409,7 @@ export function NotificationSettings() {
                       title="Quiet hours start time"
                       value={preferences.quietHours.start}
                       onChange={(e) => handleQuietHoursTimeUpdate('start', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500"
                     />
                   </div>
                   <div className="space-y-2">
@@ -419,7 +419,7 @@ export function NotificationSettings() {
                       title="Quiet hours end time"
                       value={preferences.quietHours.end}
                       onChange={(e) => handleQuietHoursTimeUpdate('end', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500"
                     />
                   </div>
                 </div>

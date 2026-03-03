@@ -150,8 +150,8 @@ const ExtensionPage = () => {
                     Wishlist Wizard is available for Firefox! Install the extension to easily save products to your wishlists while shopping online.
                   </p>
                   
-                  <div className="bg-blue-50 border border-blue-200 p-4 rounded-md">
-                    <p className="text-sm text-blue-900">
+                  <div className="bg-emerald-50 border border-emerald-200 p-4 rounded-md">
+                    <p className="text-sm text-emerald-900">
                       <strong>📦 Status:</strong> Available on Mozilla Add-ons Store
                     </p>
                   </div>
@@ -176,7 +176,7 @@ const ExtensionPage = () => {
                 </div>
               </CardContent>
               <CardFooter className="flex flex-col sm:flex-row gap-4">
-                <Button className="w-full sm:w-auto bg-gradient-to-r from-orange-600 to-red-600 text-white hover:from-orange-700 hover:to-red-700" size="lg" asChild>
+                <Button className="w-full sm:w-auto bg-gradient-to-r from-emerald-700 to-green-700 text-white hover:from-emerald-800 hover:to-green-800" size="lg" asChild>
                   <a href="https://addons.mozilla.org/en-US/firefox/addon/wishlist-wizard/" target="_blank" rel="noopener noreferrer">
                     <FaFirefox className="mr-2 h-5 w-5" />
                     Install from Mozilla Add-ons

@@ -178,7 +178,7 @@ export default function RecommendationCard({
           }}
         />
         <Badge 
-          className="absolute top-2 right-2 bg-gradient-to-r from-purple-600 to-blue-500"
+          className="absolute top-2 right-2 bg-emerald-700"
           variant="secondary"
         >
           {store}
@@ -261,7 +261,7 @@ export default function RecommendationCard({
           <Button 
             onClick={handleAddToWishlist} 
             size="sm" 
-            className="flex-1 bg-gradient-to-r from-purple-600 to-blue-500 hover:from-purple-700 hover:to-blue-600"
+            className="flex-1 bg-emerald-700 hover:bg-emerald-800"
             disabled={isLoading || !!isSaved}
             aria-label={`Add ${title} to selected wishlist`}
           >
