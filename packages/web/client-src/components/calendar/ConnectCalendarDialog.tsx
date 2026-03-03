@@ -128,9 +128,6 @@ export function ConnectCalendarDialog({ onConnect }: ConnectCalendarDialogProps)
     let authUrl = '';
     
     switch (provider) {
-      case 'google':
-        authUrl = googleAuthData?.authUrl || googleAuthData?.url || '';
-        break;
       case 'outlook':
         authUrl = outlookAuthData?.authUrl || outlookAuthData?.url || '';
         break;
@@ -157,7 +154,7 @@ export function ConnectCalendarDialog({ onConnect }: ConnectCalendarDialogProps)
       return;
     }
     
-    if (provider === 'google' || provider === 'outlook') {
+    if (provider === 'outlook') {
       const url = new URL(authUrl);
       url.searchParams.set('provider', provider);
       window.location.href = url.toString();
