@@ -2033,6 +2033,189 @@ async function runApiRouterContractChecks(fixtureContext) {
         }),
   });
 
+  const ownerPriceAlert = await callCallableExpectSuccess('createDocument', fixtureContext.user.idToken, {
+    collection: 'priceAlerts',
+    data: {
+      userId: fixtureContext.user.uid,
+      itemId: fixtureContext.ids.itemId,
+      targetPrice: 10.99,
+      createdAt: new Date().toISOString(),
+    },
+  });
+
+  const foreignPriceAlert = await callCallableExpectSuccess('createDocument', fixtureContext.user.idToken, {
+    collection: 'priceAlerts',
+    data: {
+      userId: 'someone-else',
+      itemId: fixtureContext.ids.itemId,
+      targetPrice: 9.99,
+      createdAt: new Date().toISOString(),
+    },
+  });
+
+  await callCallableExpectSuccess('createDocument', fixtureContext.user.idToken, {
+    collection: 'priceHistory',
+    data: {
+      userId: fixtureContext.user.uid,
+      itemId: fixtureContext.ids.itemId,
+      productTitle: 'Contract Price Drop Item',
+      oldPrice: 50,
+      newPrice: 40,
+      change: -10,
+      changePercent: -20,
+      store: 'Contract Store',
+      timestamp: new Date().toISOString(),
+    },
+  });
+
+  const apiPriceAlerts = await invokeHttp('api', {
+    method: 'GET',
+    pathSuffix: '/api/price-alerts',
+    headers: {
+      Authorization: `Bearer ${fixtureContext.user.idToken}`,
+    },
+  });
+  checks.push({
+    endpoint: 'contract:api-router:price-alerts-reachable',
+    type: 'contract',
+    ...(apiPriceAlerts.httpStatus === 200
+      ? { status: 'passed', message: 'API router price alerts route is reachable with authenticated Bearer token' }
+      : {
+          status: 'failed',
+          message: `Expected HTTP 200, got ${apiPriceAlerts.httpStatus ?? apiPriceAlerts.message}`,
+          httpStatus: apiPriceAlerts.httpStatus,
+        }),
+  });
+
+  const apiPriceAlertDeleteOwner = await invokeHttp('api', {
+    method: 'DELETE',
+    pathSuffix: `/api/price-alerts/${encodeURIComponent(String(ownerPriceAlert?.id || 'missing-id'))}`,
+    headers: {
+      Authorization: `Bearer ${fixtureContext.user.idToken}`,
+    },
+  });
+  checks.push({
+    endpoint: 'contract:api-router:price-alert-delete-owner',
+    type: 'contract',
+    ...(apiPriceAlertDeleteOwner.httpStatus === 200
+      ? { status: 'passed', message: 'API router price alert delete allows owner deletes' }
+      : {
+          status: 'failed',
+          message: `Expected HTTP 200, got ${apiPriceAlertDeleteOwner.httpStatus ?? apiPriceAlertDeleteOwner.message}`,
+          httpStatus: apiPriceAlertDeleteOwner.httpStatus,
+        }),
+  });
+
+  const apiPriceAlertDeleteForeign = await invokeHttp('api', {
+    method: 'DELETE',
+    pathSuffix: `/api/price-alerts/${encodeURIComponent(String(foreignPriceAlert?.id || 'missing-id'))}`,
+    headers: {
+      Authorization: `Bearer ${fixtureContext.user.idToken}`,
+    },
+  });
+  checks.push({
+    endpoint: 'contract:api-router:price-alert-delete-foreign-denied',
+    type: 'contract',
+    ...(apiPriceAlertDeleteForeign.httpStatus === 403
+      ? { status: 'passed', message: 'API router price alert delete denies non-owner deletes' }
+      : {
+          status: 'failed',
+          message: `Expected HTTP 403, got ${apiPriceAlertDeleteForeign.httpStatus ?? apiPriceAlertDeleteForeign.message}`,
+          httpStatus: apiPriceAlertDeleteForeign.httpStatus,
+        }),
+  });
+
+  const apiPriceAlertDeleteMissing = await invokeHttp('api', {
+    method: 'DELETE',
+    pathSuffix: '/api/price-alerts/non-existent-alert-id',
+    headers: {
+      Authorization: `Bearer ${fixtureContext.user.idToken}`,
+    },
+  });
+  checks.push({
+    endpoint: 'contract:api-router:price-alert-delete-missing',
+    type: 'contract',
+    ...(apiPriceAlertDeleteMissing.httpStatus === 404
+      ? { status: 'passed', message: 'API router price alert delete returns not found for missing IDs' }
+      : {
+          status: 'failed',
+          message: `Expected HTTP 404, got ${apiPriceAlertDeleteMissing.httpStatus ?? apiPriceAlertDeleteMissing.message}`,
+          httpStatus: apiPriceAlertDeleteMissing.httpStatus,
+        }),
+  });
+
+  const apiPriceAlertsWrongMethod = await invokeHttp('api', {
+    method: 'POST',
+    pathSuffix: '/api/price-alerts',
+    headers: {
+      Authorization: `Bearer ${fixtureContext.user.idToken}`,
+    },
+    body: {},
+  });
+  checks.push({
+    endpoint: 'contract:api-router:price-alerts-method-not-allowed',
+    type: 'contract',
+    ...([404, 405].includes(apiPriceAlertsWrongMethod.httpStatus || 0)
+      ? { status: 'passed', message: 'API router price alerts route rejects unsupported HTTP methods' }
+      : {
+          status: 'failed',
+          message: `Expected HTTP 404/405, got ${apiPriceAlertsWrongMethod.httpStatus ?? apiPriceAlertsWrongMethod.message}`,
+          httpStatus: apiPriceAlertsWrongMethod.httpStatus,
+        }),
+  });
+
+  const apiPriceDropsResponse = await fetch(
+    `http://${functionsHost}/${projectId}/${region}/api/api/price-drops`,
+    {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${fixtureContext.user.idToken}`,
+      },
+    }
+  );
+  let apiPriceDropsJson = null;
+  try {
+    apiPriceDropsJson = await apiPriceDropsResponse.json();
+  } catch (_) {
+    apiPriceDropsJson = null;
+  }
+
+  checks.push({
+    endpoint: 'contract:api-router:price-drops-shape',
+    type: 'contract',
+    ...(apiPriceDropsResponse.status === 200
+      && Array.isArray(apiPriceDropsJson)
+      && apiPriceDropsJson.length > 0
+      && typeof apiPriceDropsJson[0]?.title === 'string'
+      && typeof apiPriceDropsJson[0]?.percentDrop === 'number'
+      ? { status: 'passed', message: 'API router price drops returns mapped response shape (title, percentDrop)' }
+      : {
+          status: 'failed',
+          message: `Expected HTTP 200 with mapped drops array, got ${apiPriceDropsResponse.status}`,
+          httpStatus: apiPriceDropsResponse.status,
+        }),
+  });
+
+  const apiPriceDropsWrongMethod = await invokeHttp('api', {
+    method: 'DELETE',
+    pathSuffix: '/api/price-drops',
+    headers: {
+      Authorization: `Bearer ${fixtureContext.user.idToken}`,
+    },
+  });
+  checks.push({
+    endpoint: 'contract:api-router:price-drops-method-not-allowed',
+    type: 'contract',
+    ...([404, 405].includes(apiPriceDropsWrongMethod.httpStatus || 0)
+      ? { status: 'passed', message: 'API router price drops route rejects unsupported HTTP methods' }
+      : {
+          status: 'failed',
+          message: `Expected HTTP 404/405, got ${apiPriceDropsWrongMethod.httpStatus ?? apiPriceDropsWrongMethod.message}`,
+          httpStatus: apiPriceDropsWrongMethod.httpStatus,
+        }),
+  });
+
   const apiAnalyticsPath = await invokeHttp('api', {
     method: 'GET',
     pathSuffix: '/api/analytics/summary',
