@@ -40,8 +40,14 @@ import "@/styles/progress.css";
 const stripePublishableKey = String(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '').trim();
 const stripePromise = stripePublishableKey ? loadStripe(stripePublishableKey) : null;
 
+export const MIN_CONTRIBUTION_AMOUNT = 0.5;
+export const MAX_CONTRIBUTION_AMOUNT = 10000;
+
 const formSchema = z.object({
-  contributionAmount: z.number().min(0.5, "Minimum contribution is $0.50").max(10000, "Maximum contribution is $10,000"),
+  contributionAmount: z
+    .number()
+    .min(MIN_CONTRIBUTION_AMOUNT, "Minimum contribution is $0.50")
+    .max(MAX_CONTRIBUTION_AMOUNT, "Maximum contribution is $10,000"),
   message: z.string().max(500, "Message cannot exceed 500 characters").optional(),
   isAnonymous: z.boolean().default(false),
 });
@@ -77,6 +83,15 @@ interface Participant {
 interface PaymentIntentResponse {
   clientSecret: string;
   contributionId: string;
+}
+
+export function getContributionLimit(targetPrice: number, currentTotal: number): number {
+  const remainingAmount = Math.max(0, targetPrice - currentTotal);
+  const effectiveCap = remainingAmount > 0 ? remainingAmount : MAX_CONTRIBUTION_AMOUNT;
+  return Math.max(
+    MIN_CONTRIBUTION_AMOUNT,
+    Math.min(MAX_CONTRIBUTION_AMOUNT, Number(effectiveCap.toFixed(2)))
+  );
 }
 
 function ContributionForm({
@@ -119,6 +134,15 @@ function ContributionForm({
       toast({
         title: "Payment method required",
         description: "Please enter your payment information.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (data.contributionAmount > maxAllowedContribution) {
+      toast({
+        title: "Contribution exceeds allowed range",
+        description: `Enter an amount between $${MIN_CONTRIBUTION_AMOUNT.toFixed(2)} and $${maxAllowedContribution.toFixed(2)}.`,
         variant: "destructive",
       });
       return;
@@ -180,6 +204,7 @@ function ContributionForm({
 
   const targetPrice = parseFloat(item.price.replace(/[$,]/g, '')) || 0;
   const remainingAmount = Math.max(0, targetPrice - currentTotal);
+  const maxAllowedContribution = getContributionLimit(targetPrice, currentTotal);
   const contributionAmount = form.watch("contributionAmount") || 0;
   const newTotal = currentTotal + contributionAmount;
   const progressPercentage = Math.min(100, (newTotal / targetPrice) * 100);
@@ -329,7 +354,7 @@ function ContributionForm({
                         type="number"
                         step="0.01"
                         min="0.50"
-                        max="10000"
+                        max={String(maxAllowedContribution)}
                         placeholder="0.00"
                         className="pl-9"
                         {...field}
@@ -337,6 +362,9 @@ function ContributionForm({
                       />
                     </div>
                   </FormControl>
+                  <p className="text-xs text-muted-foreground" data-testid="contribution-amount-hint">
+                    Allowed range: ${MIN_CONTRIBUTION_AMOUNT.toFixed(2)} - ${maxAllowedContribution.toFixed(2)}
+                  </p>
                   <FormMessage />
                 </FormItem>
               )}
@@ -443,7 +471,12 @@ function ContributionForm({
               </Button>
               <Button
                 type="submit"
-                disabled={isProcessing || !stripe || contributionAmount < 0.5}
+                disabled={
+                  isProcessing ||
+                  !stripe ||
+                  contributionAmount < MIN_CONTRIBUTION_AMOUNT ||
+                  contributionAmount > maxAllowedContribution
+                }
                 className="w-full sm:w-auto"
               >
                 {isProcessing ? (
