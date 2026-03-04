@@ -243,9 +243,9 @@ Automatic builds on every commit ensure:
 ## 📊 Quality Metrics
 
 ### Test Coverage
-- **Backend function contracts (strict):** 236 covered (229 passing, 7 warned, 0 failed)
+- **Backend function contracts (strict):** 245 covered (238 passing, 7 warned, 0 failed)
 - **E2E scenarios:** 45+ test cases
-- **Backend function contracts (env-aware):** 236 covered (236 passing, 0 warned, 0 failed)
+- **Backend function contracts (env-aware):** 245 covered (245 passing, 0 warned, 0 failed)
 - **Release gates:** 10 automated checks
 
 ### Browser Support
