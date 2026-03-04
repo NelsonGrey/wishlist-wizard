@@ -441,8 +441,7 @@ async function runAnalyticsAccessContractChecks(fixtureContext) {
         }),
   });
 
-  const adminUser = await seedAdminUser();
-  const adminGlobal = await callCallableRaw('getAnalyticsSummary', adminUser.idToken, {
+  const adminGlobal = await callCallableRaw('getAnalyticsSummary', fixtureContext.admin.idToken, {
     includeGlobal: true,
     windowDays: 7,
   });
@@ -2733,13 +2732,36 @@ async function runApiRouterContractChecks(fixtureContext) {
     },
   });
 
-  const apiReplayStatusResponse = await fetch(
+  const apiReplayStatusForbiddenResponse = await fetch(
     `http://${functionsHost}/${projectId}/${region}/api/api/price-alerts/replay-status`,
     {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${fixtureContext.user.idToken}`,
+      },
+    }
+  );
+
+  checks.push({
+    endpoint: 'contract:api-router:price-alert-replay-status-non-admin-denied',
+    type: 'contract',
+    ...(apiReplayStatusForbiddenResponse.status === 403
+      ? { status: 'passed', message: 'API router replay-status route denies non-admin users' }
+      : {
+          status: 'failed',
+          message: `Expected HTTP 403 for non-admin user, got ${apiReplayStatusForbiddenResponse.status}`,
+          httpStatus: apiReplayStatusForbiddenResponse.status,
+        }),
+  });
+
+  const apiReplayStatusResponse = await fetch(
+    `http://${functionsHost}/${projectId}/${region}/api/api/price-alerts/replay-status`,
+    {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${fixtureContext.admin.idToken}`,
       },
     }
   );
@@ -2754,7 +2776,7 @@ async function runApiRouterContractChecks(fixtureContext) {
     endpoint: 'contract:api-router:price-alert-replay-status-reachable',
     type: 'contract',
     ...(apiReplayStatusResponse.status === 200
-      ? { status: 'passed', message: 'API router replay-status route is reachable with authenticated Bearer token' }
+      ? { status: 'passed', message: 'API router replay-status route is reachable for admin users' }
       : {
           status: 'failed',
           message: `Expected HTTP 200, got ${apiReplayStatusResponse.status}`,
@@ -2785,7 +2807,7 @@ async function runApiRouterContractChecks(fixtureContext) {
     method: 'POST',
     pathSuffix: '/api/price-alerts/replay-status',
     headers: {
-      Authorization: `Bearer ${fixtureContext.user.idToken}`,
+      Authorization: `Bearer ${fixtureContext.admin.idToken}`,
     },
     body: {},
   });
