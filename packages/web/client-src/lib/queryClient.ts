@@ -117,16 +117,22 @@ function resolveFirebaseProjectId(): string {
 }
 
 function buildFirebaseApiRouterUrl(url: string): string {
-  const projectId = resolveFirebaseProjectId();
+  // In production, use relative paths that go through Firebase Hosting rewrites.
+  // The hosting config rewrites /api/** to the Cloud Function named 'api'.
+  // For local dev, keep direct emulator URL since hosting emulator isn't always running.
+  
   const normalizedPath = url.startsWith('/') ? url : `/${url}`;
-  const routerPath = normalizedPath.startsWith('/api/')
-    ? normalizedPath.slice('/api'.length)
-    : normalizedPath;
+  const apiPath = normalizedPath.startsWith('/api/')
+    ? normalizedPath
+    : `/api${normalizedPath}`;
 
   if (import.meta.env.PROD) {
-    return `https://${FIREBASE_FUNCTIONS_REGION}-${projectId}.cloudfunctions.net/api${routerPath}`;
+    return apiPath; // Relative URL, Firebase Hosting handles the rewrite
   }
 
+  // Local development: direct emulator URL
+  const projectId = resolveFirebaseProjectId();
+  const routerPath = apiPath.slice('/api'.length);
   return `http://localhost:5001/${projectId}/${FIREBASE_FUNCTIONS_REGION}/api${routerPath}`;
 }
 
