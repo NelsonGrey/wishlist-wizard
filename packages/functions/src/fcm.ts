@@ -17,6 +17,75 @@ const toStringId = (value: unknown): string | null => {
   return normalized.length > 0 ? normalized : null;
 };
 
+const toDateLike = (value: unknown): Date | null => {
+  if (!value) return null;
+  if (value instanceof Date) {
+    return Number.isNaN(value.getTime()) ? null : value;
+  }
+  if (typeof (value as any)?.toDate === 'function') {
+    const parsed = (value as any).toDate();
+    return parsed instanceof Date && !Number.isNaN(parsed.getTime()) ? parsed : null;
+  }
+  const parsed = new Date(String(value));
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+};
+
+type AlertQuietHours = {
+  startHour: number;
+  endHour: number;
+  timezone: string;
+};
+
+const toAlertQuietHours = (value: unknown): AlertQuietHours | null => {
+  if (!value || typeof value !== 'object') return null;
+  const startHour = Number.parseInt(String((value as any).startHour), 10);
+  const endHour = Number.parseInt(String((value as any).endHour), 10);
+  const timezone = toStringId((value as any).timezone);
+
+  if (!Number.isInteger(startHour) || startHour < 0 || startHour > 23) return null;
+  if (!Number.isInteger(endHour) || endHour < 0 || endHour > 23) return null;
+  if (!timezone) return null;
+
+  return { startHour, endHour, timezone };
+};
+
+const getTimezoneHourMinute = (date: Date, timezone: string): { hour: number; minute: number } | null => {
+  try {
+    const parts = new Intl.DateTimeFormat('en-US', {
+      timeZone: timezone,
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    }).formatToParts(date);
+
+    const hour = Number.parseInt(parts.find((part) => part.type === 'hour')?.value || '', 10);
+    const minute = Number.parseInt(parts.find((part) => part.type === 'minute')?.value || '', 10);
+    if (!Number.isInteger(hour) || !Number.isInteger(minute)) {
+      return null;
+    }
+    return { hour, minute };
+  } catch {
+    return null;
+  }
+};
+
+const isInAlertQuietHours = (date: Date, quietHours: AlertQuietHours): boolean => {
+  const zoned = getTimezoneHourMinute(date, quietHours.timezone);
+  if (!zoned) return false;
+
+  const current = zoned.hour * 60 + zoned.minute;
+  const start = quietHours.startHour * 60;
+  const end = quietHours.endHour * 60;
+
+  if (start === end) {
+    return true;
+  }
+  if (start < end) {
+    return current >= start && current < end;
+  }
+  return current >= start || current < end;
+};
+
 /**
  * Firebase Cloud Messaging Functions for Wishlist Wizard
  * Handles push notifications, token management, and automated notifications
@@ -431,7 +500,41 @@ export const notifyPriceAlert = onDocumentUpdated('priceAlerts/{alertId}', async
       const targetPrice = toStringId(afterData.targetPrice) || '';
       const productUrl = toStringId(itemData.productUrl) || '';
 
-      await sendNotificationToUser(userId, {
+      const alertRef = db.collection('priceAlerts').doc(event.params.alertId);
+      const now = new Date();
+      const cooldownMinutes = Number.parseInt(String(afterData.cooldownMinutes ?? '60'), 10);
+      const normalizedCooldownMinutes = Number.isInteger(cooldownMinutes) && cooldownMinutes >= 5 ? cooldownMinutes : 60;
+      const lastNotifiedAt = toDateLike(afterData.lastNotifiedAt);
+
+      if (lastNotifiedAt) {
+        const elapsedMs = now.getTime() - lastNotifiedAt.getTime();
+        const cooldownMs = normalizedCooldownMinutes * 60 * 1000;
+        if (elapsedMs >= 0 && elapsedMs < cooldownMs) {
+          await alertRef.set({
+            lastNotificationStatus: 'skipped_cooldown',
+            lastNotificationSuppressedAt: now,
+            lastNotificationSuppressedReason: 'cooldown',
+            cooldownMinutes: normalizedCooldownMinutes,
+          }, { merge: true });
+          logger.info(`Price alert notification suppressed by cooldown for alert ${event.params.alertId}`);
+          return;
+        }
+      }
+
+      const alertQuietHours = toAlertQuietHours(afterData.quietHours);
+      if (alertQuietHours && isInAlertQuietHours(now, alertQuietHours)) {
+        await alertRef.set({
+          lastNotificationStatus: 'deferred_quiet_hours',
+          lastNotificationSuppressedAt: now,
+          lastNotificationSuppressedReason: 'quiet_hours',
+          notificationDeferred: true,
+          notificationDeferredQuietHours: alertQuietHours,
+        }, { merge: true });
+        logger.info(`Price alert notification deferred by quiet hours for alert ${event.params.alertId}`);
+        return;
+      }
+
+      const deliveryResult = await sendNotificationToUser(userId, {
         title: 'Price Alert! 🏷️',
         body: `"${itemData.title}" is now ${itemData.price} (was ${afterData.originalPrice || 'higher'})`,
         data: {
@@ -444,7 +547,32 @@ export const notifyPriceAlert = onDocumentUpdated('priceAlerts/{alertId}', async
         }
       });
 
-      logger.info(`Price alert notification sent for alert ${event.params.alertId}`);
+      if (deliveryResult.status === 'sent') {
+        await alertRef.set({
+          lastNotifiedAt: now,
+          lastNotificationStatus: 'sent',
+          lastNotificationSuppressedAt: null,
+          lastNotificationSuppressedReason: null,
+          notificationDeferred: false,
+        }, { merge: true });
+      } else if (deliveryResult.status === 'skipped') {
+        await alertRef.set({
+          lastNotificationStatus: 'skipped',
+          lastNotificationSuppressedAt: now,
+          lastNotificationSuppressedReason: deliveryResult.reason || 'skipped',
+        }, { merge: true });
+      } else {
+        await alertRef.set({
+          lastNotificationStatus: 'failed',
+          lastNotificationSuppressedAt: now,
+          lastNotificationSuppressedReason: deliveryResult.errorCode || deliveryResult.reason || 'failed',
+        }, { merge: true });
+      }
+
+      logger.info(`Price alert notification processed for alert ${event.params.alertId}`, {
+        deliveryStatus: deliveryResult.status,
+        reason: deliveryResult.reason || null,
+      });
     } catch (error) {
       logger.error('Error sending price alert notification:', error);
     }
@@ -628,8 +756,8 @@ async function deliverNotificationToUser(
 export async function sendNotificationToUser(
   userId: string,
   notification: NotificationPayload
-): Promise<void> {
-  await deliverNotificationToUser(userId, notification);
+): Promise<NotificationDeliveryResult> {
+  return deliverNotificationToUser(userId, notification);
 }
 
 /**

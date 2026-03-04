@@ -60,6 +60,19 @@ Accepted fields:
 - `quietHours` object or `null`
 - `active` (boolean)
 
+## Runtime Dispatch Enforcement
+
+When a price alert transitions to `triggered=true`, notification dispatch now enforces:
+- **Cooldown gate**: if `lastNotifiedAt` is within `cooldownMinutes`, the send is skipped.
+- **Alert quiet-hours gate**: if current time (in `quietHours.timezone`) is within the quiet window, send is deferred.
+
+Alert docs record processing metadata:
+- `lastNotifiedAt`
+- `lastNotificationStatus` (`sent|skipped|failed|deferred_quiet_hours|skipped_cooldown`)
+- `lastNotificationSuppressedAt`
+- `lastNotificationSuppressedReason`
+- `notificationDeferred`
+
 ## Refresh Cadence Policy
 Default frequency is policy-based, not one-size-fits-all:
 - High intent: every 1-3 hours
