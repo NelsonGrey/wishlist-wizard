@@ -96,8 +96,8 @@ Latest comparison snapshot:
 
 | Mode | Total | Passed | Warned | Failed | Warning scope |
 | --- | ---: | ---: | ---: | ---: | --- |
-| Strict | 269 | 261 | 8 | 0 | FCM topic/test notification callables (3), Stripe group-gifting callables (2), Stripe HTTP endpoints (2), upstream barcode provider callable dependency (1) |
-| Env-aware | 269 | 269 | 0 | 0 | Same 8 expected dependency gaps are treated as pass |
+| Strict | 273 | 265 | 8 | 0 | FCM topic/test notification callables (3), Stripe group-gifting callables (2), Stripe HTTP endpoints (2), upstream barcode provider callable dependency (1) |
+| Env-aware | 273 | 273 | 0 | 0 | Same 8 expected dependency gaps are treated as pass |
 
 #### Flutter Mobile App
 ```bash

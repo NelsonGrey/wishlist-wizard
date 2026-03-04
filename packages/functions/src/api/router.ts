@@ -424,6 +424,28 @@ export const api = onRequest(async (req, res) => {
         .slice(0, 100);
       sendJson(res, alerts);
     }
+    else if (method === 'GET' && path === '/api/price-alerts/replay-status') {
+      const replayStateDoc = await db.collection('systemJobs').doc('priceAlertReplay').get();
+      const replayState = replayStateDoc.exists ? replayStateDoc.data() || {} : {};
+
+      const statusPayload = {
+        cursorDocId: normalizeTextLike(replayState.cursorDocId),
+        lastRunAt: getDateLike(replayState.lastRunAt)?.toISOString() || null,
+        replayBatchSize: parseIntegerLike(replayState.replayBatchSize) ?? null,
+        replayMaxPagesPerRun: parseIntegerLike(replayState.replayMaxPagesPerRun) ?? null,
+        replayMaxDeferredAgeHours: parseIntegerLike(replayState.replayMaxDeferredAgeHours) ?? null,
+        lastRunStats: {
+          processed: parseIntegerLike(replayState.lastRunStats?.processed) ?? 0,
+          sent: parseIntegerLike(replayState.lastRunStats?.sent) ?? 0,
+          stillDeferred: parseIntegerLike(replayState.lastRunStats?.stillDeferred) ?? 0,
+          skipped: parseIntegerLike(replayState.lastRunStats?.skipped) ?? 0,
+          expired: parseIntegerLike(replayState.lastRunStats?.expired) ?? 0,
+          pagesProcessed: parseIntegerLike(replayState.lastRunStats?.pagesProcessed) ?? 0,
+        },
+      };
+
+      sendJson(res, statusPayload);
+    }
     else if (method === 'PATCH' && path.match(/^\/api\/price-alerts\/[^/]+$/)) {
       const alertId = path.split('/')[3];
       const ref = db.collection('priceAlerts').doc(alertId);

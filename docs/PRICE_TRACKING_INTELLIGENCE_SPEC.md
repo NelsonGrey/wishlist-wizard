@@ -48,6 +48,17 @@ Each alert should expose policy fields usable by UI:
 - `alertCadence` (`high|normal|low`)
 - `quietHours` (`startHour`, `endHour`, `timezone`) or `null`
 
+### GET `/api/price-alerts/replay-status`
+Operational observability endpoint for replay processing state.
+
+Returns:
+- `cursorDocId`
+- `lastRunAt`
+- `replayBatchSize`
+- `replayMaxPagesPerRun`
+- `replayMaxDeferredAgeHours`
+- `lastRunStats` (`processed`, `sent`, `stillDeferred`, `skipped`, `expired`, `pagesProcessed`)
+
 ### PATCH `/api/price-alerts/:alertId`
 Owner-only policy update endpoint with validation.
 
