@@ -91,13 +91,13 @@ export default function Header() {
             </Link>
             {isLoggedIn ? (
               <>
-                <Link href="/dashboard" className="text-gray-600 hover:text-gray-900 font-medium">
+                <Link href="/app/dashboard" className="text-gray-600 hover:text-gray-900 font-medium">
                   My Wishlists
                 </Link>
                 {isLoggedIn && <NotificationDropdown />}
                 {isHome ? (
                   <Button
-                    onClick={() => window.location.href = "/dashboard"}
+                    onClick={() => window.location.href = "/app/dashboard"}
                     className="bg-primary hover:bg-indigo-700 text-white"
                   >
                     Dashboard
@@ -150,14 +150,14 @@ export default function Header() {
                   {isLoggedIn ? (
                     <>
                       <Link 
-                        href="/dashboard"
+                        href="/app/dashboard"
                         className="text-lg font-medium hover:text-primary"
                         onClick={() => setIsMenuOpen(false)}
                       >
                         My Wishlists
                       </Link>
                       <Link 
-                        href="/notifications"
+                        href="/app/notifications"
                         className="text-lg font-medium hover:text-primary flex items-center gap-2"
                         onClick={() => setIsMenuOpen(false)}
                       >

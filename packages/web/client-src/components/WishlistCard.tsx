@@ -347,7 +347,7 @@ export default function WishlistCard({ wishlist, onRefresh, onSelect, selected =
             variant="link" 
             className="text-emerald-700 hover:text-emerald-800 flex-1"
             disabled={isMutating}
-            onClick={() => setLocation(`/wishlists/${wishlist.id}`)}
+            onClick={() => setLocation(`/app/wishlist/${wishlist.id}`)}
           >
             View Details
           </Button>

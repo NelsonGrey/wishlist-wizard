@@ -73,20 +73,20 @@ export default function AppLayout({ children }: AppLayoutProps) {
   const isActivePath = (paths: string[]) => paths.some((path) => location === path || location.startsWith(`${path}/`));
 
   const primaryNavItems = [
-    { name: 'Dashboard', href: '/dashboard', icon: <LayoutDashboard className="h-5 w-5" />, activePaths: ['/dashboard', '/wishlists', '/wishlist'] },
-    { name: 'Recommendations', href: '/recommendations', icon: <Sparkles className="h-5 w-5" />, activePaths: ['/recommendations'] },
+    { name: 'Dashboard', href: '/app/dashboard', icon: <LayoutDashboard className="h-5 w-5" />, activePaths: ['/app/dashboard', '/app/wishlists', '/app/wishlist', '/dashboard', '/wishlists', '/wishlist'] },
+    { name: 'Recommendations', href: '/app/recommendations', icon: <Sparkles className="h-5 w-5" />, activePaths: ['/app/recommendations', '/recommendations'] },
     { name: 'Price Tracking', href: '/app/price-tracking', icon: <LineChart className="h-5 w-5" />, activePaths: ['/app/price-tracking'] },
-    { name: 'Calendar', href: '/calendar', icon: <Calendar className="h-5 w-5" />, activePaths: ['/calendar'] },
-    { name: 'Analytics', href: '/analytics', icon: <BarChart3 className="h-5 w-5" />, activePaths: ['/analytics'] },
+    { name: 'Calendar', href: '/app/calendar', icon: <Calendar className="h-5 w-5" />, activePaths: ['/app/calendar', '/calendar'] },
+    { name: 'Analytics', href: '/app/analytics', icon: <BarChart3 className="h-5 w-5" />, activePaths: ['/app/analytics', '/analytics'] },
   ];
 
   const featureNavItems = [
-    { name: 'Mobile App', href: '/dashboard', icon: <Smartphone className="h-4 w-4" />, description: 'Synced wishlists across devices' },
-    { name: 'Social Integration', href: '/dashboard', icon: <Users className="h-4 w-4" />, description: 'Collaborate on shared gifts' },
+    { name: 'Mobile App', href: '/app/dashboard', icon: <Smartphone className="h-4 w-4" />, description: 'Synced wishlists across devices' },
+    { name: 'Social Integration', href: '/app/dashboard', icon: <Users className="h-4 w-4" />, description: 'Collaborate on shared gifts' },
     { name: 'Price Tracking', href: '/app/price-tracking', icon: <LineChart className="h-4 w-4" />, description: 'Track and alert on price drops' },
-    { name: 'Calendar Integration', href: '/calendar', icon: <Calendar className="h-4 w-4" />, description: 'Event reminders and planning' },
-    { name: 'Advanced User Profiles', href: '/user-profile', icon: <User className="h-4 w-4" />, description: 'Personalized gifting preferences' },
-    { name: 'AI Gift Recommendations', href: '/recommendations', icon: <Sparkles className="h-4 w-4" />, description: 'Smarter personalized suggestions' },
+    { name: 'Calendar Integration', href: '/app/calendar', icon: <Calendar className="h-4 w-4" />, description: 'Event reminders and planning' },
+    { name: 'Advanced User Profiles', href: '/app/user-profile', icon: <User className="h-4 w-4" />, description: 'Personalized gifting preferences' },
+    { name: 'AI Gift Recommendations', href: '/app/recommendations', icon: <Sparkles className="h-4 w-4" />, description: 'Smarter personalized suggestions' },
   ];
 
   return (
@@ -95,7 +95,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
       <header className="bg-white border-b border-emerald-100 sticky top-0 z-10 shadow-sm">
         <div className="container mx-auto px-4 py-3 flex items-center justify-between">
           {/* Logo */}
-          <Link href="/dashboard" className="flex items-center hover:scale-105 transition-transform duration-200">
+          <Link href="/app/dashboard" className="flex items-center hover:scale-105 transition-transform duration-200">
             <img src="/logo.svg" alt="Wishlist Wizard" className="h-8 w-8 mr-2.5" />
             <span className="font-bold text-xl tracking-tight bg-gradient-to-r from-emerald-800 to-green-800 bg-clip-text text-transparent">Wishlist Wizard</span>
           </Link>
@@ -146,7 +146,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
             {currentUser ? (
               <>
                 {/* Notifications */}
-                <Link href="/notifications" aria-label={`Notifications${unreadCount > 0 ? `, ${unreadCount} unread` : ''}`} className="relative p-2 rounded-full hover:bg-gray-100 transition-colors">
+                <Link href="/app/notifications" aria-label={`Notifications${unreadCount > 0 ? `, ${unreadCount} unread` : ''}`} className="relative p-2 rounded-full hover:bg-gray-100 transition-colors">
                   <Bell className="h-5 w-5 text-gray-700" aria-hidden="true" />
                   {unreadCount > 0 && (
                     <span className="absolute -top-0.5 -right-0.5 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
@@ -175,13 +175,13 @@ export default function AppLayout({ children }: AppLayoutProps) {
                     </div>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem asChild>
-                      <Link href="/user-profile" className="flex w-full cursor-pointer items-center">
+                      <Link href="/app/user-profile" className="flex w-full cursor-pointer items-center">
                         <User className="h-4 w-4 mr-2" />
                         Profile
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
-                      <Link href="/privacy-settings" className="flex w-full cursor-pointer items-center">
+                      <Link href="/app/privacy-settings" className="flex w-full cursor-pointer items-center">
                         <Settings className="h-4 w-4 mr-2" />
                         Settings
                       </Link>

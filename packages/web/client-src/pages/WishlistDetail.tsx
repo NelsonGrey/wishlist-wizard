@@ -868,7 +868,7 @@ export default function WishlistDetail() {
       <div className="container mx-auto px-4 py-8 max-w-6xl">
           <h1 className="text-4xl font-bold bg-gradient-to-r from-emerald-800 to-green-800 bg-clip-text text-transparent">Wishlist not found</h1>
           <p className="mt-4">The wishlist you&apos;re looking for doesn&apos;t exist or has been removed.</p>
-          <Button className="mt-6" onClick={() => setLocation('/dashboard')}>
+          <Button className="mt-6" onClick={() => setLocation('/app/dashboard')}>
             Back to Dashboard
           </Button>
       </div>
@@ -889,7 +889,7 @@ export default function WishlistDetail() {
                 <Button variant="outline" onClick={() => queryClient.invalidateQueries({ queryKey: [`/api/wishlists/${wishlistId}`] })}>
                   Retry
                 </Button>
-                <Button onClick={() => setLocation('/dashboard')}>
+                <Button onClick={() => setLocation('/app/dashboard')}>
                   Back to Dashboard
                 </Button>
               </div>
@@ -909,7 +909,7 @@ export default function WishlistDetail() {
               <Button 
                 variant="ghost" 
                 className="mr-2"
-                onClick={() => setLocation('/dashboard')}
+                onClick={() => setLocation('/app/dashboard')}
               >
                 <ArrowLeft className="h-5 w-5" />
               </Button>

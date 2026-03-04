@@ -270,10 +270,10 @@ export const PrivacyConsentBanner: React.FC<{
         )}
 
         <div className="consent-links">
-          <a href="/privacy-settings" target="_blank" rel="noopener noreferrer">
+          <a href="/app/privacy-settings" target="_blank" rel="noopener noreferrer">
             Privacy Policy
           </a>
-          <a href="/privacy-settings" target="_blank" rel="noopener noreferrer">
+          <a href="/app/privacy-settings" target="_blank" rel="noopener noreferrer">
             Terms of Service
           </a>
         </div>

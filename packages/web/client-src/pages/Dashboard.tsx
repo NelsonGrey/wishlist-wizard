@@ -261,8 +261,8 @@ export default function Dashboard() {
                   {guidanceMessage}
                 </p>
                 <div className="flex gap-2">
-                  <Button onClick={() => setLocation(`/wishlists/${selectedWishlist.id}`)}>Open Wishlist</Button>
-                  <Button variant="outline" onClick={() => setLocation('/calendar')}>Plan on Calendar</Button>
+                  <Button onClick={() => setLocation(`/app/wishlist/${selectedWishlist.id}`)}>Open Wishlist</Button>
+                  <Button variant="outline" onClick={() => setLocation('/app/calendar')}>Plan on Calendar</Button>
                 </div>
               </CardContent>
             </Card>
@@ -283,7 +283,7 @@ export default function Dashboard() {
                 <div className="flex flex-wrap gap-2">
                   <Button
                     variant="outline"
-                    onClick={() => selectedWishlist && setLocation(`/wishlists/${selectedWishlist.id}`)}
+                    onClick={() => selectedWishlist && setLocation(`/app/wishlist/${selectedWishlist.id}`)}
                     disabled={!selectedWishlist}
                   >
                     Open Active Wishlist
@@ -313,8 +313,8 @@ export default function Dashboard() {
                   Track click-to-purchase performance and commission trends for your curated lists.
                 </p>
                 <div className="flex flex-wrap gap-2">
-                  <Button onClick={() => setLocation('/analytics')}>Open Analytics</Button>
-                  <Button variant="outline" onClick={() => setLocation('/recommendations')}>
+                  <Button onClick={() => setLocation('/app/analytics')}>Open Analytics</Button>
+                  <Button variant="outline" onClick={() => setLocation('/app/recommendations')}>
                     Build Next List Theme
                   </Button>
                 </div>

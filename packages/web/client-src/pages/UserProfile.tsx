@@ -984,7 +984,7 @@ const UserProfile = () => {
                     Control visibility, custom access lists, and interaction permissions.
                   </p>
                   <Button asChild size="lg">
-                    <Link href="/privacy-settings">
+                    <Link href="/app/privacy-settings">
                       <Settings className="h-4 w-4 mr-2" />
                       Open Privacy Settings
                     </Link>

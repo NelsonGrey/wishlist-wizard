@@ -21,7 +21,7 @@ export default function Hero() {
               >
                 Download Extension
               </Link>
-              <Link href="/dashboard" className="bg-emerald-800/30 backdrop-blur-sm text-white px-8 py-4 rounded-xl font-semibold hover:bg-emerald-800/40 transition-all border-2 border-white/30 hover:border-white/50 inline-block">
+              <Link href="/app/dashboard" className="bg-emerald-800/30 backdrop-blur-sm text-white px-8 py-4 rounded-xl font-semibold hover:bg-emerald-800/40 transition-all border-2 border-white/30 hover:border-white/50 inline-block">
                 Try It Now
               </Link>
             </div>
