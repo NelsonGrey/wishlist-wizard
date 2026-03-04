@@ -1,6 +1,5 @@
 import { Link } from "wouter";
 import { 
-  CameraIcon, 
   Share2, 
   CalendarClock, 
   BadgeDollarSign,
@@ -41,28 +40,6 @@ export default function Features() {
             <CardFooter>
               <Button asChild variant="outline" className="w-full">
                 <Link href="/mobile-app-demo">Get Early Access</Link>
-              </Button>
-            </CardFooter>
-          </Card>
-          
-          {/* AR Visualization Feature */}
-          <Card className="border-2 hover:border-emerald-200 hover:shadow-lg transition-all">
-            <CardHeader className="pb-2">
-              <div className="p-2 w-12 h-12 bg-emerald-100 rounded-lg mb-2 flex items-center justify-center">
-                <CameraIcon className="text-emerald-800" size={24} />
-              </div>
-              <CardTitle>AR Visualization</CardTitle>
-              <CardDescription>Try before you buy</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-slate-600">
-                See how items will look in your space with augmented reality. Compare true size and
-                check if furniture will fit before purchasing.
-              </p>
-            </CardContent>
-            <CardFooter>
-              <Button asChild variant="outline" className="w-full">
-                <Link href="/ar-visualization-demo">Join AR Beta</Link>
               </Button>
             </CardFooter>
           </Card>
