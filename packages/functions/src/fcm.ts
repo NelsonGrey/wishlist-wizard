@@ -2,7 +2,7 @@ import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { onDocumentCreated, onDocumentUpdated } from 'firebase-functions/v2/firestore';
 import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { getMessaging } from 'firebase-admin/messaging';
-import { getFirestore } from 'firebase-admin/firestore';
+import { FieldPath, getFirestore } from 'firebase-admin/firestore';
 import { logger } from 'firebase-functions';
 import { ensureFirebaseAdmin } from './firebase-admin.js';
 import { requireAuthenticatedUser, requireAdminUser } from './utils/auth-guards.js';
@@ -94,6 +94,20 @@ const resolveCooldownMinutes = (value: unknown): number => {
   }
   return parsed;
 };
+
+const resolveIntegerEnv = (value: unknown, fallback: number, min: number, max: number): number => {
+  const parsed = Number.parseInt(String(value ?? ''), 10);
+  if (!Number.isInteger(parsed)) return fallback;
+  if (parsed < min) return min;
+  if (parsed > max) return max;
+  return parsed;
+};
+
+const REPLAY_BATCH_SIZE = resolveIntegerEnv(process.env.PRICE_ALERT_REPLAY_BATCH_SIZE, 75, 10, 500);
+const REPLAY_MAX_PAGES_PER_RUN = resolveIntegerEnv(process.env.PRICE_ALERT_REPLAY_MAX_PAGES, 4, 1, 25);
+const REPLAY_MAX_DEFERRED_AGE_HOURS = resolveIntegerEnv(process.env.PRICE_ALERT_REPLAY_MAX_AGE_HOURS, 72, 1, 24 * 30);
+const REPLAY_STATE_COLLECTION = 'systemJobs';
+const REPLAY_STATE_DOC_ID = 'priceAlertReplay';
 
 /**
  * Firebase Cloud Messaging Functions for Wishlist Wizard
@@ -500,38 +514,107 @@ export const replayDeferredPriceAlerts = onSchedule({
   timeoutSeconds: 540,
 }, async () => {
   const db = getFirestore();
-  const deferredSnapshot = await db
-    .collection('priceAlerts')
-    .where('triggered', '==', true)
-    .where('notificationDeferred', '==', true)
-    .limit(200)
-    .get();
-
-  if (deferredSnapshot.empty) {
-    logger.info('No deferred price alerts to replay');
-    return;
-  }
+  const stateRef = db.collection(REPLAY_STATE_COLLECTION).doc(REPLAY_STATE_DOC_ID);
+  const stateSnapshot = await stateRef.get();
+  const stateData = stateSnapshot.exists ? stateSnapshot.data() || {} : {};
+  let cursorDocId = toStringId(stateData.cursorDocId);
 
   let processed = 0;
   let sent = 0;
   let stillDeferred = 0;
   let skipped = 0;
+  let expired = 0;
+  let pagesProcessed = 0;
 
-  for (const alertDoc of deferredSnapshot.docs) {
-    processed += 1;
-    try {
-      const result = await processPriceAlertDispatch(alertDoc.id, alertDoc.data(), 'deferred_replay');
-      if (result.status === 'sent') {
-        sent += 1;
-      } else if (result.status === 'deferred') {
-        stillDeferred += 1;
-      } else {
-        skipped += 1;
-      }
-    } catch (error) {
-      skipped += 1;
-      logger.error(`Deferred replay failed for alert ${alertDoc.id}`, error);
+  const now = new Date();
+  const staleCutoff = new Date(now.getTime() - (REPLAY_MAX_DEFERRED_AGE_HOURS * 60 * 60 * 1000));
+
+  for (let page = 0; page < REPLAY_MAX_PAGES_PER_RUN; page += 1) {
+    let query = db
+      .collection('priceAlerts')
+      .where('triggered', '==', true)
+      .where('notificationDeferred', '==', true)
+      .orderBy(FieldPath.documentId())
+      .limit(REPLAY_BATCH_SIZE);
+
+    if (cursorDocId) {
+      query = query.startAfter(cursorDocId);
     }
+
+    const deferredSnapshot = await query.get();
+    if (deferredSnapshot.empty) {
+      cursorDocId = null;
+      break;
+    }
+
+    pagesProcessed += 1;
+
+    for (const alertDoc of deferredSnapshot.docs) {
+      cursorDocId = alertDoc.id;
+      processed += 1;
+
+      const alertData = alertDoc.data() || {};
+      const deferredSince = toDateLike(alertData.lastNotificationSuppressedAt)
+        || toDateLike(alertData.updatedAt)
+        || toDateLike(alertData.createdAt);
+
+      if (deferredSince && deferredSince.getTime() < staleCutoff.getTime()) {
+        expired += 1;
+        await alertDoc.ref.set({
+          notificationDeferred: false,
+          lastNotificationStatus: 'expired_stale_deferred',
+          lastNotificationSuppressedReason: 'stale_deferred_age_limit',
+          lastNotificationSuppressedAt: now,
+          replayExpiredAt: now,
+          replayExpiredAgeHoursThreshold: REPLAY_MAX_DEFERRED_AGE_HOURS,
+          lastNotificationSource: 'deferred_replay',
+        }, { merge: true });
+        continue;
+      }
+
+      try {
+        const result = await processPriceAlertDispatch(alertDoc.id, alertData, 'deferred_replay');
+        if (result.status === 'sent') {
+          sent += 1;
+        } else if (result.status === 'deferred') {
+          stillDeferred += 1;
+        } else {
+          skipped += 1;
+        }
+      } catch (error) {
+        skipped += 1;
+        logger.error(`Deferred replay failed for alert ${alertDoc.id}`, error);
+      }
+    }
+
+    if (deferredSnapshot.size < REPLAY_BATCH_SIZE) {
+      cursorDocId = null;
+      break;
+    }
+  }
+
+  await stateRef.set({
+    cursorDocId: cursorDocId || null,
+    lastRunAt: now,
+    replayBatchSize: REPLAY_BATCH_SIZE,
+    replayMaxPagesPerRun: REPLAY_MAX_PAGES_PER_RUN,
+    replayMaxDeferredAgeHours: REPLAY_MAX_DEFERRED_AGE_HOURS,
+    lastRunStats: {
+      processed,
+      sent,
+      stillDeferred,
+      skipped,
+      expired,
+      pagesProcessed,
+    },
+  }, { merge: true });
+
+  if (processed === 0) {
+    logger.info('No deferred price alerts to replay', {
+      pagesProcessed,
+      cursorDocId: cursorDocId || null,
+    });
+    return;
   }
 
   logger.info('Deferred price alert replay cycle completed', {
@@ -539,6 +622,9 @@ export const replayDeferredPriceAlerts = onSchedule({
     sent,
     stillDeferred,
     skipped,
+    expired,
+    pagesProcessed,
+    nextCursorDocId: cursorDocId || null,
   });
 });
 
