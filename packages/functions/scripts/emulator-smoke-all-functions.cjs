@@ -2673,6 +2673,140 @@ async function runApiRouterContractChecks(fixtureContext) {
         }),
   });
 
+  const apiPriceAlertPolicyUpdate = await invokeHttp('api', {
+    method: 'PATCH',
+    pathSuffix: `/api/price-alerts/${encodeURIComponent(String(ownerPriceAlert?.id || 'missing-id'))}`,
+    headers: {
+      Authorization: `Bearer ${fixtureContext.user.idToken}`,
+    },
+    body: {
+      thresholdPercent: 7.5,
+      thresholdAmount: 3,
+      cooldownMinutes: 90,
+      alertCadence: 'high',
+      quietHours: {
+        startHour: 22,
+        endHour: 7,
+        timezone: 'America/New_York',
+      },
+    },
+  });
+  checks.push({
+    endpoint: 'contract:api-router:price-alert-policy-update-owner',
+    type: 'contract',
+    ...(apiPriceAlertPolicyUpdate.httpStatus === 200
+      ? { status: 'passed', message: 'API router price alert policy update allows owner updates' }
+      : {
+          status: 'failed',
+          message: `Expected HTTP 200, got ${apiPriceAlertPolicyUpdate.httpStatus ?? apiPriceAlertPolicyUpdate.message}`,
+          httpStatus: apiPriceAlertPolicyUpdate.httpStatus,
+        }),
+  });
+
+  const apiPriceAlertsAfterPolicyUpdateResponse = await fetch(
+    `http://${functionsHost}/${projectId}/${region}/api/api/price-alerts`,
+    {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${fixtureContext.user.idToken}`,
+      },
+    }
+  );
+  let apiPriceAlertsAfterPolicyUpdateJson = null;
+  try {
+    apiPriceAlertsAfterPolicyUpdateJson = await apiPriceAlertsAfterPolicyUpdateResponse.json();
+  } catch (_) {
+    apiPriceAlertsAfterPolicyUpdateJson = null;
+  }
+  const policyUpdatedAlert = (Array.isArray(apiPriceAlertsAfterPolicyUpdateJson) ? apiPriceAlertsAfterPolicyUpdateJson : [])
+    .find((entry) => entry?.id === ownerPriceAlert?.id) || {};
+  const updatedQuietHours = policyUpdatedAlert.quietHours || {};
+  checks.push({
+    endpoint: 'contract:api-router:price-alert-policy-update-shape',
+    type: 'contract',
+    ...(apiPriceAlertsAfterPolicyUpdateResponse.status === 200
+      && Number(policyUpdatedAlert.thresholdPercent) === 7.5
+      && Number(policyUpdatedAlert.thresholdAmount) === 3
+      && Number(policyUpdatedAlert.cooldownMinutes) === 90
+      && String(policyUpdatedAlert.alertCadence).toLowerCase() === 'high'
+      && Number(updatedQuietHours.startHour) === 22
+      && Number(updatedQuietHours.endHour) === 7
+      && typeof updatedQuietHours.timezone === 'string'
+      ? { status: 'passed', message: 'API router price alert policy update returns expected normalized fields' }
+      : {
+          status: 'failed',
+          message: `Expected normalized policy fields from listing endpoint, got HTTP ${apiPriceAlertsAfterPolicyUpdateResponse.status}`,
+          httpStatus: apiPriceAlertsAfterPolicyUpdateResponse.status,
+        }),
+  });
+
+  const apiPriceAlertPolicyUpdateInvalid = await invokeHttp('api', {
+    method: 'PATCH',
+    pathSuffix: `/api/price-alerts/${encodeURIComponent(String(ownerPriceAlert?.id || 'missing-id'))}`,
+    headers: {
+      Authorization: `Bearer ${fixtureContext.user.idToken}`,
+    },
+    body: {
+      cooldownMinutes: 1,
+    },
+  });
+  checks.push({
+    endpoint: 'contract:api-router:price-alert-policy-update-invalid-cooldown',
+    type: 'contract',
+    ...(apiPriceAlertPolicyUpdateInvalid.httpStatus === 400
+      ? { status: 'passed', message: 'API router price alert policy update validates cooldown bounds' }
+      : {
+          status: 'failed',
+          message: `Expected HTTP 400, got ${apiPriceAlertPolicyUpdateInvalid.httpStatus ?? apiPriceAlertPolicyUpdateInvalid.message}`,
+          httpStatus: apiPriceAlertPolicyUpdateInvalid.httpStatus,
+        }),
+  });
+
+  const apiPriceAlertPolicyUpdateForeign = await invokeHttp('api', {
+    method: 'PATCH',
+    pathSuffix: `/api/price-alerts/${encodeURIComponent(String(foreignPriceAlert?.id || 'missing-id'))}`,
+    headers: {
+      Authorization: `Bearer ${fixtureContext.user.idToken}`,
+    },
+    body: {
+      thresholdPercent: 5,
+    },
+  });
+  checks.push({
+    endpoint: 'contract:api-router:price-alert-policy-update-foreign-denied',
+    type: 'contract',
+    ...(apiPriceAlertPolicyUpdateForeign.httpStatus === 403
+      ? { status: 'passed', message: 'API router price alert policy update denies non-owner updates' }
+      : {
+          status: 'failed',
+          message: `Expected HTTP 403, got ${apiPriceAlertPolicyUpdateForeign.httpStatus ?? apiPriceAlertPolicyUpdateForeign.message}`,
+          httpStatus: apiPriceAlertPolicyUpdateForeign.httpStatus,
+        }),
+  });
+
+  const apiPriceAlertPolicyUpdateMissing = await invokeHttp('api', {
+    method: 'PATCH',
+    pathSuffix: '/api/price-alerts/non-existent-alert-id',
+    headers: {
+      Authorization: `Bearer ${fixtureContext.user.idToken}`,
+    },
+    body: {
+      thresholdPercent: 5,
+    },
+  });
+  checks.push({
+    endpoint: 'contract:api-router:price-alert-policy-update-missing',
+    type: 'contract',
+    ...(apiPriceAlertPolicyUpdateMissing.httpStatus === 404
+      ? { status: 'passed', message: 'API router price alert policy update returns not found for missing IDs' }
+      : {
+          status: 'failed',
+          message: `Expected HTTP 404, got ${apiPriceAlertPolicyUpdateMissing.httpStatus ?? apiPriceAlertPolicyUpdateMissing.message}`,
+          httpStatus: apiPriceAlertPolicyUpdateMissing.httpStatus,
+        }),
+  });
+
   const apiPriceAlertDeleteOwner = await invokeHttp('api', {
     method: 'DELETE',
     pathSuffix: `/api/price-alerts/${encodeURIComponent(String(ownerPriceAlert?.id || 'missing-id'))}`,
@@ -3185,6 +3319,11 @@ async function runApiRouterContractChecks(fixtureContext) {
       endpoint: 'contract:api-router:price-alert-delete-options-preflight',
       pathSuffix: '/api/price-alerts/non-existent-alert-id',
       requestMethod: 'DELETE',
+    },
+    {
+      endpoint: 'contract:api-router:price-alert-update-options-preflight',
+      pathSuffix: '/api/price-alerts/non-existent-alert-id',
+      requestMethod: 'PATCH',
     },
     {
       endpoint: 'contract:api-router:price-drops-options-preflight',

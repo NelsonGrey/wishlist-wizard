@@ -40,6 +40,26 @@ Response shape:
 - `confidencePolicy`
 - `metadata` (checked timestamp, counts)
 
+### GET `/api/price-alerts`
+Each alert should expose policy fields usable by UI:
+- `thresholdPercent`
+- `thresholdAmount`
+- `cooldownMinutes`
+- `alertCadence` (`high|normal|low`)
+- `quietHours` (`startHour`, `endHour`, `timezone`) or `null`
+
+### PATCH `/api/price-alerts/:alertId`
+Owner-only policy update endpoint with validation.
+
+Accepted fields:
+- `targetPrice` (positive number)
+- `thresholdPercent` (0..100)
+- `thresholdAmount` (>=0)
+- `cooldownMinutes` (integer 5..1440)
+- `alertCadence` (`high|normal|low`)
+- `quietHours` object or `null`
+- `active` (boolean)
+
 ## Refresh Cadence Policy
 Default frequency is policy-based, not one-size-fits-all:
 - High intent: every 1-3 hours

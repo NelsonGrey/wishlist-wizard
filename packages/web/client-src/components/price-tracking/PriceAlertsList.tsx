@@ -25,13 +25,22 @@ import { BellRing, Trash2, AlertCircle } from "lucide-react";
 
 // Type for price alerts
 type PriceAlert = {
-  id: number;
+  id: string;
   itemId: number;
   targetPrice: string;
   currentPrice: string;
   createdAt: Date;
   status: 'active' | 'triggered' | 'paused';
   notified: boolean;
+  thresholdPercent?: number | null;
+  thresholdAmount?: number | null;
+  cooldownMinutes?: number | null;
+  alertCadence?: 'high' | 'normal' | 'low' | null;
+  quietHours?: {
+    startHour: number;
+    endHour: number;
+    timezone: string;
+  } | null;
   item: {
     title: string;
     price: string;
@@ -61,7 +70,7 @@ export default function PriceAlertsList({ limit }: PriceAlertsListProps) {
 
   // Mutation for deleting price alert
   const deletePriceAlertMutation = useMutation({
-    mutationFn: (alertId: number) => {
+    mutationFn: (alertId: string) => {
       return apiRequest(`/api/price-alerts/${alertId}`, {
         method: "DELETE",
       });
@@ -84,7 +93,7 @@ export default function PriceAlertsList({ limit }: PriceAlertsListProps) {
   });
 
   // Handle deleting a price alert
-  const handleDeleteAlert = (alertId: number) => {
+  const handleDeleteAlert = (alertId: string) => {
     deletePriceAlertMutation.mutate(alertId);
   };
 
@@ -230,13 +239,23 @@ export default function PriceAlertsList({ limit }: PriceAlertsListProps) {
                       <TableCell>${current.toFixed(2)}</TableCell>
                       <TableCell>${target.toFixed(2)}</TableCell>
                       <TableCell>
-                        {isAtOrBelowTarget ? (
-                          <span className="text-green-700 text-sm font-medium">Reached</span>
-                        ) : (
-                          <span className="text-sm">
-                            ${Math.max(0, diff).toFixed(2)} ({Math.max(0, percent).toFixed(1)}%)
-                          </span>
-                        )}
+                        <div className="space-y-1">
+                          {isAtOrBelowTarget ? (
+                            <span className="text-green-700 text-sm font-medium">Reached</span>
+                          ) : (
+                            <span className="text-sm">
+                              ${Math.max(0, diff).toFixed(2)} ({Math.max(0, percent).toFixed(1)}%)
+                            </span>
+                          )}
+                          {(alert.thresholdPercent || alert.thresholdAmount || alert.cooldownMinutes || alert.alertCadence) ? (
+                            <div className="text-xs text-muted-foreground">
+                              {alert.thresholdPercent ? `${alert.thresholdPercent}% ` : ''}
+                              {alert.thresholdAmount ? `/$${Number(alert.thresholdAmount).toFixed(2)} ` : ''}
+                              {alert.cooldownMinutes ? `· ${alert.cooldownMinutes}m cooldown ` : ''}
+                              {alert.alertCadence ? `· ${alert.alertCadence}` : ''}
+                            </div>
+                          ) : null}
+                        </div>
                       </TableCell>
                       <TableCell>
                         {alert.notified ? (

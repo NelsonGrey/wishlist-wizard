@@ -132,6 +132,56 @@ function normalizeOffer(offerDoc: any) {
   };
 }
 
+function parseIntegerLike(value: any): number | null {
+  if (typeof value === 'number' && Number.isInteger(value)) return value;
+  if (typeof value === 'string' && value.trim().length > 0) {
+    const parsed = Number.parseInt(value.trim(), 10);
+    return Number.isInteger(parsed) ? parsed : null;
+  }
+  return null;
+}
+
+function normalizeAlertPolicy(alert: any) {
+  const thresholdPercent = toNumberLike(alert?.thresholdPercent);
+  const thresholdAmount = toNumberLike(alert?.thresholdAmount);
+  const cooldownMinutes = parseIntegerLike(alert?.cooldownMinutes);
+  const alertCadence = normalizeTextLike(alert?.alertCadence)?.toLowerCase();
+  const quietHoursRaw = alert?.quietHours && typeof alert.quietHours === 'object' ? alert.quietHours : null;
+
+  const quietStart = parseIntegerLike(quietHoursRaw?.startHour);
+  const quietEnd = parseIntegerLike(quietHoursRaw?.endHour);
+  const quietTimezone = normalizeTextLike(quietHoursRaw?.timezone);
+
+  return {
+    thresholdPercent: thresholdPercent ?? null,
+    thresholdAmount: thresholdAmount ?? null,
+    cooldownMinutes: cooldownMinutes ?? 60,
+    alertCadence: ['high', 'normal', 'low'].includes(String(alertCadence)) ? alertCadence : 'normal',
+    quietHours: quietStart !== null && quietEnd !== null && quietTimezone
+      ? { startHour: quietStart, endHour: quietEnd, timezone: quietTimezone }
+      : null,
+  };
+}
+
+function validateQuietHours(quietHours: any): { valid: boolean; reason?: string } {
+  if (!quietHours || typeof quietHours !== 'object') {
+    return { valid: false, reason: 'quietHours must be an object with startHour, endHour, and timezone' };
+  }
+
+  const startHour = parseIntegerLike(quietHours.startHour);
+  const endHour = parseIntegerLike(quietHours.endHour);
+  const timezone = normalizeTextLike(quietHours.timezone);
+
+  if (startHour === null || endHour === null || !timezone) {
+    return { valid: false, reason: 'quietHours requires integer startHour/endHour and timezone' };
+  }
+  if (startHour < 0 || startHour > 23 || endHour < 0 || endHour > 23) {
+    return { valid: false, reason: 'quietHours startHour/endHour must be in range 0..23' };
+  }
+
+  return { valid: true };
+}
+
 // Main API router function
 export const api = onRequest(async (req, res) => {
   // Enable CORS
@@ -352,7 +402,20 @@ export const api = onRequest(async (req, res) => {
         .get();
 
       const alerts = snapshot.docs
-        .map((doc) => ({ id: doc.id, ...doc.data() }))
+        .map((doc) => {
+          const data: any = { id: doc.id, ...doc.data() };
+          const normalizedPolicy = normalizeAlertPolicy(data);
+          return {
+            ...data,
+            targetPrice: toNumberLike(data.targetPrice),
+            currentPrice: toNumberLike(data.currentPrice),
+            thresholdPercent: normalizedPolicy.thresholdPercent,
+            thresholdAmount: normalizedPolicy.thresholdAmount,
+            cooldownMinutes: normalizedPolicy.cooldownMinutes,
+            alertCadence: normalizedPolicy.alertCadence,
+            quietHours: normalizedPolicy.quietHours,
+          };
+        })
         .sort((left: any, right: any) => {
           const leftTime = getDateLike(left.createdAt)?.getTime() || 0;
           const rightTime = getDateLike(right.createdAt)?.getTime() || 0;
@@ -360,6 +423,117 @@ export const api = onRequest(async (req, res) => {
         })
         .slice(0, 100);
       sendJson(res, alerts);
+    }
+    else if (method === 'PATCH' && path.match(/^\/api\/price-alerts\/[^/]+$/)) {
+      const alertId = path.split('/')[3];
+      const ref = db.collection('priceAlerts').doc(alertId);
+      const doc = await ref.get();
+
+      if (!doc.exists) {
+        sendError(res, 404, 'Price alert not found');
+        return;
+      }
+
+      if (doc.data()?.userId !== userId) {
+        sendError(res, 403, 'Access denied');
+        return;
+      }
+
+      const body = parseBody(req);
+      const updateData: Record<string, any> = {
+        updatedAt: new Date(),
+      };
+      let hasChanges = false;
+
+      if (body.targetPrice !== undefined) {
+        const parsedTarget = toNumberLike(body.targetPrice);
+        if (parsedTarget === null || parsedTarget <= 0) {
+          sendError(res, 400, 'targetPrice must be a positive number');
+          return;
+        }
+        updateData.targetPrice = Number(parsedTarget.toFixed(2));
+        hasChanges = true;
+      }
+
+      if (body.thresholdPercent !== undefined) {
+        const parsed = toNumberLike(body.thresholdPercent);
+        if (parsed === null || parsed < 0 || parsed > 100) {
+          sendError(res, 400, 'thresholdPercent must be between 0 and 100');
+          return;
+        }
+        updateData.thresholdPercent = Number(parsed.toFixed(2));
+        hasChanges = true;
+      }
+
+      if (body.thresholdAmount !== undefined) {
+        const parsed = toNumberLike(body.thresholdAmount);
+        if (parsed === null || parsed < 0) {
+          sendError(res, 400, 'thresholdAmount must be a non-negative number');
+          return;
+        }
+        updateData.thresholdAmount = Number(parsed.toFixed(2));
+        hasChanges = true;
+      }
+
+      if (body.cooldownMinutes !== undefined) {
+        const parsed = parseIntegerLike(body.cooldownMinutes);
+        if (parsed === null || parsed < 5 || parsed > 1440) {
+          sendError(res, 400, 'cooldownMinutes must be an integer between 5 and 1440');
+          return;
+        }
+        updateData.cooldownMinutes = parsed;
+        hasChanges = true;
+      }
+
+      if (body.alertCadence !== undefined) {
+        const cadence = normalizeTextLike(body.alertCadence)?.toLowerCase();
+        if (!cadence || !['high', 'normal', 'low'].includes(cadence)) {
+          sendError(res, 400, 'alertCadence must be one of: high, normal, low');
+          return;
+        }
+        updateData.alertCadence = cadence;
+        hasChanges = true;
+      }
+
+      if (body.active !== undefined) {
+        updateData.active = toBooleanLike(body.active, true);
+        hasChanges = true;
+      }
+
+      if (body.quietHours !== undefined) {
+        if (body.quietHours === null) {
+          updateData.quietHours = null;
+          hasChanges = true;
+        } else {
+          const validation = validateQuietHours(body.quietHours);
+          if (!validation.valid) {
+            sendError(res, 400, validation.reason || 'Invalid quietHours payload');
+            return;
+          }
+
+          updateData.quietHours = {
+            startHour: parseIntegerLike(body.quietHours.startHour),
+            endHour: parseIntegerLike(body.quietHours.endHour),
+            timezone: normalizeTextLike(body.quietHours.timezone),
+          };
+          hasChanges = true;
+        }
+      }
+
+      if (!hasChanges) {
+        sendError(res, 400, 'No valid policy fields provided');
+        return;
+      }
+
+      await ref.update(updateData);
+      const updated = await ref.get();
+      const updatedData = updated.data() || {};
+      sendJson(res, {
+        success: true,
+        id: updated.id,
+        ...updatedData,
+        ...normalizeAlertPolicy(updatedData),
+      });
     }
     else if (method === 'DELETE' && path.match(/^\/api\/price-alerts\/[^/]+$/)) {
       const alertId = path.split('/')[3];
