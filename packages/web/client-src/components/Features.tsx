@@ -83,7 +83,7 @@ export default function Features() {
             </CardContent>
             <CardFooter>
               <Button asChild variant="outline" className="w-full">
-                <Link href="/price-tracking">Start Price Tracking</Link>
+                <Link href="/price-tracking-demo">Start Price Tracking</Link>
               </Button>
             </CardFooter>
           </Card>
@@ -105,7 +105,7 @@ export default function Features() {
             </CardContent>
             <CardFooter>
               <Button asChild variant="outline" className="w-full">
-                <Link href="/calendar">Open Calendar</Link>
+                <Link href="/calendar-integration-demo">Open Calendar Demo</Link>
               </Button>
             </CardFooter>
           </Card>
@@ -149,7 +149,7 @@ export default function Features() {
             </CardContent>
             <CardFooter>
               <Button asChild variant="outline" className="w-full">
-                <Link href="/recommendations">Get Recommendations</Link>
+                <Link href="/ai-gift-recommendations-demo">Get Recommendations</Link>
               </Button>
             </CardFooter>
           </Card>
