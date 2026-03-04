@@ -6,7 +6,6 @@ const routes = [
   '/price-tracking-demo',
   '/mobile-app-demo',
   '/social-sharing-demo',
-  '/ar-visualizer-demo',
   '/app/price-tracking',
   '/price-tracking',
   '/dashboard',

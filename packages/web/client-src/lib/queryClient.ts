@@ -57,8 +57,7 @@ function shouldUseFirebaseFunctions(url: string): boolean {
     '/api/affiliate',
     '/api/items',
     '/api/mobile',
-    '/api/devices',
-    '/api/ar'
+    '/api/devices'
   ];
   
   return firebaseFunctionEndpoints.some(endpoint => url.startsWith(endpoint));
@@ -189,7 +188,6 @@ function getFirebaseFunctionRoute(url: string, method: string, body?: unknown): 
     { pattern: /^\/api\/analytics\/track$/, resolve: () => ({ functionName: 'trackAnalyticsEvent', data }) },
     { pattern: /^\/api\/analytics\/events$/, resolve: () => ({ functionName: 'getAnalyticsEvents', data }) },
     { pattern: /^\/api\/analytics\/summary$/, resolve: () => ({ functionName: 'getAnalyticsSummary', data }) },
-    { pattern: /^\/api\/ar\/model$/, resolve: () => ({ functionName: 'getARModel', data }) },
     { pattern: /^\/api\/fcm\/token$/, resolve: () => ({ functionName: normalizedMethod === 'DELETE' ? 'removeFCMToken' : 'saveFCMToken', data }) },
     { pattern: /^\/api\/fcm\/subscribe-topic$/, resolve: () => ({ functionName: 'subscribeToTopic', data }) },
     { pattern: /^\/api\/fcm\/unsubscribe-topic$/, resolve: () => ({ functionName: 'unsubscribeFromTopic', data }) },

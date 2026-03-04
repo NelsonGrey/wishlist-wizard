@@ -333,24 +333,6 @@ test.describe('Tier 2: Advanced Features', () => {
     }
   });
 
-  test('T2.17: AR Model - View 3D Product', async () => {
-    // Navigate to a product with AR support
-    await page.goto('/');
-
-    const arLink = page.locator('a[href*="ar"], text="AR"').first();
-    if (await arLink.isVisible()) {
-      await arLink.click();
-
-      // Verify 3D viewer
-      const viewer = page.locator('[model-viewer], .three-viewer, canvas').first();
-      if (await viewer.isVisible({ timeout: 5000 })) {
-        await expect(viewer).toBeVisible();
-      }
-    } else {
-      test.skip();
-    }
-  });
-
   test('T2.18: Device Management - List Devices', async () => {
     // Navigate to settings
     await page.goto('/settings/devices');

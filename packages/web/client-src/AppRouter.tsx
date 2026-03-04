@@ -101,7 +101,6 @@ function AppRouter() {
                     <Route path="/privacy-policy" component={PrivacyPolicy} />
                     <Route path="/cookie-policy" component={CookiePolicy} />
                     <Route path="/mobile-app-demo" component={() => <FeatureDemo feature="mobile-app" />} />
-                    <Route path="/ar-visualization-demo" component={() => <FeatureDemo feature="ar-visualization" />} />
                     <Route path="/social-integration-demo" component={() => <FeatureDemo feature="social-integration" />} />
                     <Route path="/price-tracking-demo" component={() => <Redirect to="/app/price-tracking" />} />
                     <Route path="/calendar-integration-demo" component={() => <Redirect to="/calendar" />} />

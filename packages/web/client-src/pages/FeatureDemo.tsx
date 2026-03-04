@@ -2,7 +2,6 @@ import { Link } from "wouter";
 
 type FeatureKey =
   | "mobile-app"
-  | "ar-visualization"
   | "social-integration"
   | "price-tracking"
   | "calendar-integration"
@@ -37,22 +36,6 @@ const featureConfigs: Record<FeatureKey, FeatureConfig> = {
     demoCtaLabel: "Explore Mobile Demo",
     appCtaLabel: "Open App Dashboard",
     appHref: "/dashboard"
-  },
-  "ar-visualization": {
-    title: "AR Visualization",
-    subtitle: "Preview items in your space",
-    description:
-      "See how products look before you buy with immersive visualization that helps avoid sizing and style surprises.",
-    highlights: [
-      "Preview furniture and decor placement",
-      "Improve confidence before purchase",
-      "Reduce returns from fit mismatches"
-    ],
-    screenshotSrc: "/feature-screenshots/feature-demo.png",
-    screenshotAlt: "AR visualization feature screenshot",
-    demoCtaLabel: "See AR Demo",
-    appCtaLabel: "Open Recommendations",
-    appHref: "/recommendations"
   },
   "social-integration": {
     title: "Social Integration",

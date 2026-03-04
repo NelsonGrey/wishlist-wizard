@@ -310,7 +310,7 @@ trackEvent(
                     <li>Item additions to wishlists</li>
                     <li>Price alert creation</li>
                     <li>User registration and login</li>
-                    <li>Feature usage (AR visualization, mobile app interactions)</li>
+                    <li>Feature usage (mobile app interactions)</li>
                     <li>Social sharing actions</li>
                   </ul>
                 </div>

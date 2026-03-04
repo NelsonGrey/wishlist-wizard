@@ -30,7 +30,7 @@ export function GeneralHelp() {
                 <strong>Install the browser extension:</strong> For seamless adding of items from any website
               </li>
               <li>
-                <strong>Explore features:</strong> Try out gift coordination, price tracking, AR visualization, and more
+                <strong>Explore features:</strong> Try out gift coordination, price tracking, and more
               </li>
             </ol>
           </AccordionContent>
@@ -173,9 +173,6 @@ export function GeneralHelp() {
             <ul className="text-sm list-disc pl-5 space-y-2">
               <li>
                 <strong>Barcode scanning:</strong> Add items by scanning product barcodes in stores
-              </li>
-              <li>
-                <strong>AR visualization:</strong> See how items will look in your space
               </li>
               <li>
                 <strong>In-store alerts:</strong> Get notified when you&apos;re near a store with wishlisted items
