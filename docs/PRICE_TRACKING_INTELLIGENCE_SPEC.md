@@ -81,6 +81,19 @@ Deferred alerts are replayed by scheduled backend processing (`replayDeferredPri
 - sends once outside quiet-hours window
 - updates `lastNotificationSource` (`triggered_update` or `deferred_replay`) for traceability
 
+### Replay Throughput Controls
+- Batched scan size is configurable (`PRICE_ALERT_REPLAY_BATCH_SIZE`, default `75`).
+- Each run processes a bounded number of pages (`PRICE_ALERT_REPLAY_MAX_PAGES`, default `4`).
+- Continuation cursor (`cursorDocId`) is persisted in `systemJobs/priceAlertReplay` so subsequent runs continue where the previous run stopped.
+
+### Deferred Age Expiry
+- Deferred alerts older than the configured replay age threshold are expired instead of sent.
+- Threshold is configurable via `PRICE_ALERT_REPLAY_MAX_AGE_HOURS` (default `72`).
+- Expired alerts are marked with:
+	- `lastNotificationStatus: "expired_stale_deferred"`
+	- `lastNotificationSuppressedReason: "stale_deferred_age_limit"`
+	- `replayExpiredAt`
+
 ## Refresh Cadence Policy
 Default frequency is policy-based, not one-size-fits-all:
 - High intent: every 1-3 hours
