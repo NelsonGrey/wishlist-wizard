@@ -3,8 +3,8 @@
 ## 🎯 Accomplishments This Session
 
 ### Phase 1: Release Readiness Assessment ✅
-- **200 Firebase function exports contract-smoked** across callable, HTTP, and event-trigger surfaces
-- **Strict:** 193/200 passing, 7 warnings, 0 failures; **Env-aware:** 200/200 passing, 0 warnings, 0 failures
+- **256 Firebase backend contracts smoke-validated** across callable, HTTP, event-trigger, and API-router contract surfaces
+- **Strict:** 249/256 passing, 7 warnings, 0 failures; **Env-aware:** 256/256 passing, 0 warnings, 0 failures
 - Created tiered feature assessment: 33/33 Tier 1 (basic) ✓, 37/49 Tier 2 (advanced) ✓
 
 ### Phase 2: E2E Testing Infrastructure ✅
@@ -105,7 +105,7 @@ packages/web/e2e/
 
 | Component | Status | Evidence |
 |-----------|--------|----------|
-| **Firebase Backend** | ✅ Ready | Strict 193/200 pass (7 expected warns), Env-aware 200/200 pass, 0 failures |
+| **Firebase Backend** | ✅ Ready | Strict 249/256 pass (7 expected warns), Env-aware 256/256 pass, 0 failures |
 | **Tier 1 Features** | ✅ Ready | 33/33 basic features passing |
 | **Tier 2 Features** | ✅ Ready | 37/49 advanced features passing |
 | **E2E Testing** | ✅ Ready | 45+ tests configured, auto-runs |
@@ -132,7 +132,7 @@ Latest backend contract-smoke strict vs env-aware comparison is documented in th
 
 ### Release Readiness System
 1. **Tiered features** - Distinguishes must-have vs. nice-to-have
-2. **Endpoint testing** - 200 function exports validated via strict/env-aware contract smoke modes
+2. **Endpoint testing** - 256 backend contracts validated via strict/env-aware smoke modes
 3. **E2E automation** - 45+ tests auto-run before launch
 4. **Release gates** - Automatic validation blocks risky merges
 5. **Executive dashboard** - One-page launch checklist
@@ -243,9 +243,9 @@ Automatic builds on every commit ensure:
 ## 📊 Quality Metrics
 
 ### Test Coverage
-- **Backend function contracts (strict):** 245 covered (238 passing, 7 warned, 0 failed)
+- **Backend function contracts (strict):** 256 covered (249 passing, 7 warned, 0 failed)
 - **E2E scenarios:** 45+ test cases
-- **Backend function contracts (env-aware):** 245 covered (245 passing, 0 warned, 0 failed)
+- **Backend function contracts (env-aware):** 256 covered (256 passing, 0 warned, 0 failed)
 - **Release gates:** 10 automated checks
 
 ### Browser Support

@@ -3005,6 +3005,61 @@ async function runApiRouterContractChecks(fixtureContext) {
       pathSuffix: `/api/extension/wishlists/${encodeURIComponent(String(fixtureContext.ids.wishlistId || 'missing-id'))}/share`,
       requestMethod: 'POST',
     },
+    {
+      endpoint: 'contract:api-router:beneficiaries-options-preflight',
+      pathSuffix: '/api/beneficiaries',
+      requestMethod: 'GET',
+    },
+    {
+      endpoint: 'contract:api-router:recommendations-options-preflight',
+      pathSuffix: '/api/recommendations',
+      requestMethod: 'GET',
+    },
+    {
+      endpoint: 'contract:api-router:recommendations-beneficiary-options-preflight',
+      pathSuffix: '/api/recommendations/beneficiary/contract-beneficiary',
+      requestMethod: 'GET',
+    },
+    {
+      endpoint: 'contract:api-router:recommendation-status-options-preflight',
+      pathSuffix: `/api/recommendations/${encodeURIComponent(String(recommendationId || 'missing-id'))}/status`,
+      requestMethod: 'PATCH',
+    },
+    {
+      endpoint: 'contract:api-router:privacy-defaults-options-preflight',
+      pathSuffix: '/api/privacy/defaults',
+      requestMethod: 'GET',
+    },
+    {
+      endpoint: 'contract:api-router:privacy-settings-options-preflight',
+      pathSuffix: '/api/privacy/settings',
+      requestMethod: 'POST',
+    },
+    {
+      endpoint: 'contract:api-router:privacy-check-access-options-preflight',
+      pathSuffix: '/api/privacy/check-access',
+      requestMethod: 'POST',
+    },
+    {
+      endpoint: 'contract:api-router:price-alerts-options-preflight',
+      pathSuffix: '/api/price-alerts',
+      requestMethod: 'GET',
+    },
+    {
+      endpoint: 'contract:api-router:price-alert-delete-options-preflight',
+      pathSuffix: '/api/price-alerts/non-existent-alert-id',
+      requestMethod: 'DELETE',
+    },
+    {
+      endpoint: 'contract:api-router:price-drops-options-preflight',
+      pathSuffix: '/api/price-drops',
+      requestMethod: 'GET',
+    },
+    {
+      endpoint: 'contract:api-router:wishlist-items-list-options-preflight',
+      pathSuffix: '/api/wishlist-items',
+      requestMethod: 'GET',
+    },
   ];
 
   for (const target of apiPreflightTargets) {
