@@ -118,7 +118,7 @@ function resolveFirebaseProjectId(): string {
 function buildFirebaseApiRouterUrl(url: string): string {
   // In production, use relative paths that go through Firebase Hosting rewrites.
   // The hosting config rewrites /api/** to the Cloud Function named 'api'.
-  // For local dev, keep direct emulator URL since hosting emulator isn't always running.
+  // In local dev, prefer configured API base URL when present; otherwise use emulator URL.
   
   const normalizedPath = url.startsWith('/') ? url : `/${url}`;
   const apiPath = normalizedPath.startsWith('/api/')
@@ -127,6 +127,11 @@ function buildFirebaseApiRouterUrl(url: string): string {
 
   if (import.meta.env.PROD) {
     return apiPath; // Relative URL, Firebase Hosting handles the rewrite
+  }
+
+  if (configuredApiBaseUrl) {
+    const baseUrl = configuredApiBaseUrl.replace(/\/+$/, '');
+    return `${baseUrl}${apiPath}`;
   }
 
   // Local development: direct emulator URL

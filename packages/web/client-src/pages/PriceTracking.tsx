@@ -252,9 +252,10 @@ export default function PriceTracking() {
     },
   });
 
-  const { data: wishlistItems, isLoading: isLoadingItems } = useQuery<WishlistItem[]>({
+  const { data: wishlistItems, isLoading: isLoadingItems, error: wishlistItemsError } = useQuery<WishlistItem[]>({
     queryKey: ["/api/wishlist-items"],
     staleTime: 10 * 60 * 1000,
+    queryFn: async () => apiRequest("/api/wishlist-items") as Promise<WishlistItem[]>,
   });
 
   const sortedWishlistItems = useMemo(() => {
@@ -282,7 +283,7 @@ export default function PriceTracking() {
     });
   }, [initialItemIdFromQuery, sortedWishlistItems]);
 
-  const { data: intelligence, isLoading: isLoadingIntelligence } = useQuery<PriceIntelligenceResponse>({
+  const { data: intelligence, isLoading: isLoadingIntelligence, error: intelligenceError } = useQuery<PriceIntelligenceResponse>({
     queryKey: ["/api/items", selectedItemId, "price-intelligence"],
     enabled: Boolean(selectedItemId),
     staleTime: 5 * 60 * 1000,
@@ -492,6 +493,12 @@ export default function PriceTracking() {
                   <p className="text-sm text-muted-foreground">No wishlist items found yet. Add items to start intelligence comparisons.</p>
                 )}
 
+                {wishlistItemsError && (
+                  <p className="text-sm text-red-700">
+                    Unable to load wishlist items for intelligence. Please refresh and try again.
+                  </p>
+                )}
+
                 {selectedItemId && isLoadingIntelligence && (
                   <div className="space-y-3">
                     <Skeleton className="h-28 w-full" />
@@ -615,6 +622,12 @@ export default function PriceTracking() {
                       </CardContent>
                     </Card>
                   </div>
+                )}
+
+                {selectedItemId && !isLoadingIntelligence && intelligenceError && (
+                  <p className="text-sm text-red-700">
+                    Unable to load price intelligence for this item right now. Please try again shortly.
+                  </p>
                 )}
               </CardContent>
             </Card>
