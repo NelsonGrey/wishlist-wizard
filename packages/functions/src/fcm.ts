@@ -1,5 +1,6 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { onDocumentCreated, onDocumentUpdated } from 'firebase-functions/v2/firestore';
+import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { getMessaging } from 'firebase-admin/messaging';
 import { getFirestore } from 'firebase-admin/firestore';
 import { logger } from 'firebase-functions';
@@ -84,6 +85,14 @@ const isInAlertQuietHours = (date: Date, quietHours: AlertQuietHours): boolean =
     return current >= start && current < end;
   }
   return current >= start || current < end;
+};
+
+const resolveCooldownMinutes = (value: unknown): number => {
+  const parsed = Number.parseInt(String(value ?? ''), 10);
+  if (!Number.isInteger(parsed) || parsed < 5 || parsed > 1440) {
+    return 60;
+  }
+  return parsed;
 };
 
 /**
@@ -477,107 +486,173 @@ export const notifyPriceAlert = onDocumentUpdated('priceAlerts/{alertId}', async
   // Check if alert was just triggered
   if (!beforeData.triggered && afterData.triggered) {
     try {
-      const db = getFirestore();
-      const itemId = toStringId(afterData.itemId);
-      const userId = toStringId(afterData.userId);
-
-      if (!itemId || !userId) {
-        logger.warn(`Skipping price alert notification for ${event.params.alertId}: missing itemId or userId`);
-        return;
-      }
-      
-      // Get item details
-      const itemDoc = await db.collection('wishlistItems').doc(itemId).get();
-      if (!itemDoc.exists) return;
-      
-      const itemData = itemDoc.data()!;
-      const wishlistId = toStringId(itemData.wishlistId);
-      if (!wishlistId) {
-        logger.warn(`Skipping price alert notification for ${event.params.alertId}: missing wishlistId on item ${itemId}`);
-        return;
-      }
-      const currentPrice = itemData.price === undefined || itemData.price === null ? '' : String(itemData.price);
-      const targetPrice = toStringId(afterData.targetPrice) || '';
-      const productUrl = toStringId(itemData.productUrl) || '';
-
-      const alertRef = db.collection('priceAlerts').doc(event.params.alertId);
-      const now = new Date();
-      const cooldownMinutes = Number.parseInt(String(afterData.cooldownMinutes ?? '60'), 10);
-      const normalizedCooldownMinutes = Number.isInteger(cooldownMinutes) && cooldownMinutes >= 5 ? cooldownMinutes : 60;
-      const lastNotifiedAt = toDateLike(afterData.lastNotifiedAt);
-
-      if (lastNotifiedAt) {
-        const elapsedMs = now.getTime() - lastNotifiedAt.getTime();
-        const cooldownMs = normalizedCooldownMinutes * 60 * 1000;
-        if (elapsedMs >= 0 && elapsedMs < cooldownMs) {
-          await alertRef.set({
-            lastNotificationStatus: 'skipped_cooldown',
-            lastNotificationSuppressedAt: now,
-            lastNotificationSuppressedReason: 'cooldown',
-            cooldownMinutes: normalizedCooldownMinutes,
-          }, { merge: true });
-          logger.info(`Price alert notification suppressed by cooldown for alert ${event.params.alertId}`);
-          return;
-        }
-      }
-
-      const alertQuietHours = toAlertQuietHours(afterData.quietHours);
-      if (alertQuietHours && isInAlertQuietHours(now, alertQuietHours)) {
-        await alertRef.set({
-          lastNotificationStatus: 'deferred_quiet_hours',
-          lastNotificationSuppressedAt: now,
-          lastNotificationSuppressedReason: 'quiet_hours',
-          notificationDeferred: true,
-          notificationDeferredQuietHours: alertQuietHours,
-        }, { merge: true });
-        logger.info(`Price alert notification deferred by quiet hours for alert ${event.params.alertId}`);
-        return;
-      }
-
-      const deliveryResult = await sendNotificationToUser(userId, {
-        title: 'Price Alert! 🏷️',
-        body: `"${itemData.title}" is now ${itemData.price} (was ${afterData.originalPrice || 'higher'})`,
-        data: {
-          type: 'price_alert',
-          itemId,
-          wishlistId,
-          currentPrice,
-          targetPrice,
-          productUrl
-        }
-      });
-
-      if (deliveryResult.status === 'sent') {
-        await alertRef.set({
-          lastNotifiedAt: now,
-          lastNotificationStatus: 'sent',
-          lastNotificationSuppressedAt: null,
-          lastNotificationSuppressedReason: null,
-          notificationDeferred: false,
-        }, { merge: true });
-      } else if (deliveryResult.status === 'skipped') {
-        await alertRef.set({
-          lastNotificationStatus: 'skipped',
-          lastNotificationSuppressedAt: now,
-          lastNotificationSuppressedReason: deliveryResult.reason || 'skipped',
-        }, { merge: true });
-      } else {
-        await alertRef.set({
-          lastNotificationStatus: 'failed',
-          lastNotificationSuppressedAt: now,
-          lastNotificationSuppressedReason: deliveryResult.errorCode || deliveryResult.reason || 'failed',
-        }, { merge: true });
-      }
-
-      logger.info(`Price alert notification processed for alert ${event.params.alertId}`, {
-        deliveryStatus: deliveryResult.status,
-        reason: deliveryResult.reason || null,
-      });
+      await processPriceAlertDispatch(event.params.alertId, afterData, 'triggered_update');
     } catch (error) {
       logger.error('Error sending price alert notification:', error);
     }
   }
 });
+
+export const replayDeferredPriceAlerts = onSchedule({
+  schedule: 'every 15 minutes',
+  timeZone: 'Etc/UTC',
+  memory: '256MiB',
+  timeoutSeconds: 540,
+}, async () => {
+  const db = getFirestore();
+  const deferredSnapshot = await db
+    .collection('priceAlerts')
+    .where('triggered', '==', true)
+    .where('notificationDeferred', '==', true)
+    .limit(200)
+    .get();
+
+  if (deferredSnapshot.empty) {
+    logger.info('No deferred price alerts to replay');
+    return;
+  }
+
+  let processed = 0;
+  let sent = 0;
+  let stillDeferred = 0;
+  let skipped = 0;
+
+  for (const alertDoc of deferredSnapshot.docs) {
+    processed += 1;
+    try {
+      const result = await processPriceAlertDispatch(alertDoc.id, alertDoc.data(), 'deferred_replay');
+      if (result.status === 'sent') {
+        sent += 1;
+      } else if (result.status === 'deferred') {
+        stillDeferred += 1;
+      } else {
+        skipped += 1;
+      }
+    } catch (error) {
+      skipped += 1;
+      logger.error(`Deferred replay failed for alert ${alertDoc.id}`, error);
+    }
+  }
+
+  logger.info('Deferred price alert replay cycle completed', {
+    processed,
+    sent,
+    stillDeferred,
+    skipped,
+  });
+});
+
+async function processPriceAlertDispatch(
+  alertId: string,
+  alertData: any,
+  source: 'triggered_update' | 'deferred_replay'
+): Promise<{ status: 'sent' | 'deferred' | 'skipped' | 'failed'; reason?: string }> {
+  const db = getFirestore();
+  const alertRef = db.collection('priceAlerts').doc(alertId);
+  const itemId = toStringId(alertData.itemId);
+  const userId = toStringId(alertData.userId);
+
+  if (!itemId || !userId) {
+    logger.warn(`Skipping price alert notification for ${alertId}: missing itemId or userId`);
+    return { status: 'skipped', reason: 'missing-item-or-user' };
+  }
+
+  const itemDoc = await db.collection('wishlistItems').doc(itemId).get();
+  if (!itemDoc.exists) {
+    logger.warn(`Skipping price alert notification for ${alertId}: missing item ${itemId}`);
+    return { status: 'skipped', reason: 'item-not-found' };
+  }
+
+  const itemData = itemDoc.data()!;
+  const wishlistId = toStringId(itemData.wishlistId);
+  if (!wishlistId) {
+    logger.warn(`Skipping price alert notification for ${alertId}: missing wishlistId on item ${itemId}`);
+    return { status: 'skipped', reason: 'missing-wishlist-id' };
+  }
+
+  const now = new Date();
+  const cooldownMinutes = resolveCooldownMinutes(alertData.cooldownMinutes);
+  const lastNotifiedAt = toDateLike(alertData.lastNotifiedAt);
+  if (lastNotifiedAt) {
+    const elapsedMs = now.getTime() - lastNotifiedAt.getTime();
+    const cooldownMs = cooldownMinutes * 60 * 1000;
+    if (elapsedMs >= 0 && elapsedMs < cooldownMs) {
+      await alertRef.set({
+        lastNotificationStatus: 'skipped_cooldown',
+        lastNotificationSuppressedAt: now,
+        lastNotificationSuppressedReason: 'cooldown',
+        cooldownMinutes,
+        notificationDeferred: source === 'deferred_replay' ? true : alertData.notificationDeferred === true,
+      }, { merge: true });
+      return { status: 'skipped', reason: 'cooldown' };
+    }
+  }
+
+  const alertQuietHours = toAlertQuietHours(alertData.quietHours);
+  if (alertQuietHours && isInAlertQuietHours(now, alertQuietHours)) {
+    await alertRef.set({
+      lastNotificationStatus: 'deferred_quiet_hours',
+      lastNotificationSuppressedAt: now,
+      lastNotificationSuppressedReason: 'quiet_hours',
+      notificationDeferred: true,
+      notificationDeferredQuietHours: alertQuietHours,
+      lastNotificationSource: source,
+    }, { merge: true });
+    return { status: 'deferred', reason: 'quiet-hours' };
+  }
+
+  const currentPrice = itemData.price === undefined || itemData.price === null ? '' : String(itemData.price);
+  const targetPrice = toStringId(alertData.targetPrice) || '';
+  const productUrl = toStringId(itemData.productUrl) || '';
+
+  const deliveryResult = await sendNotificationToUser(userId, {
+    title: 'Price Alert! 🏷️',
+    body: `"${itemData.title}" is now ${itemData.price} (was ${alertData.originalPrice || 'higher'})`,
+    data: {
+      type: 'price_alert',
+      itemId,
+      wishlistId,
+      currentPrice,
+      targetPrice,
+      productUrl,
+    },
+  });
+
+  if (deliveryResult.status === 'sent') {
+    await alertRef.set({
+      lastNotifiedAt: now,
+      lastNotificationStatus: 'sent',
+      lastNotificationSuppressedAt: null,
+      lastNotificationSuppressedReason: null,
+      notificationDeferred: false,
+      lastNotificationSource: source,
+    }, { merge: true });
+    logger.info(`Price alert notification processed for alert ${alertId}`, {
+      deliveryStatus: deliveryResult.status,
+      reason: deliveryResult.reason || null,
+      source,
+    });
+    return { status: 'sent' };
+  }
+
+  if (deliveryResult.status === 'skipped') {
+    await alertRef.set({
+      lastNotificationStatus: 'skipped',
+      lastNotificationSuppressedAt: now,
+      lastNotificationSuppressedReason: deliveryResult.reason || 'skipped',
+      lastNotificationSource: source,
+    }, { merge: true });
+    return { status: 'skipped', reason: deliveryResult.reason || 'skipped' };
+  }
+
+  await alertRef.set({
+    lastNotificationStatus: 'failed',
+    lastNotificationSuppressedAt: now,
+    lastNotificationSuppressedReason: deliveryResult.errorCode || deliveryResult.reason || 'failed',
+    lastNotificationSource: source,
+  }, { merge: true });
+  return { status: 'failed', reason: deliveryResult.errorCode || deliveryResult.reason || 'failed' };
+}
 
 /**
  * Send test notification

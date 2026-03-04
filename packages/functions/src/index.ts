@@ -97,7 +97,8 @@ export {
   notifyItemAdded,
   notifyItemReserved,
   notifyItemPurchased,
-  notifyPriceAlert
+  notifyPriceAlert,
+  replayDeferredPriceAlerts
 } from './fcm';
 
 export {
