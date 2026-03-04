@@ -87,11 +87,11 @@ interface PaymentIntentResponse {
 
 export function getContributionLimit(targetPrice: number, currentTotal: number): number {
   const remainingAmount = Math.max(0, targetPrice - currentTotal);
-  const effectiveCap = remainingAmount > 0 ? remainingAmount : MAX_CONTRIBUTION_AMOUNT;
-  return Math.max(
-    MIN_CONTRIBUTION_AMOUNT,
-    Math.min(MAX_CONTRIBUTION_AMOUNT, Number(effectiveCap.toFixed(2)))
-  );
+  if (remainingAmount === 0) {
+    return 0;
+  }
+
+  return Math.min(MAX_CONTRIBUTION_AMOUNT, Number(remainingAmount.toFixed(2)));
 }
 
 function ContributionForm({
@@ -205,10 +205,20 @@ function ContributionForm({
   const targetPrice = parseFloat(item.price.replace(/[$,]/g, '')) || 0;
   const remainingAmount = Math.max(0, targetPrice - currentTotal);
   const maxAllowedContribution = getContributionLimit(targetPrice, currentTotal);
+  const canContribute = maxAllowedContribution >= MIN_CONTRIBUTION_AMOUNT;
   const contributionAmount = form.watch("contributionAmount") || 0;
   const newTotal = currentTotal + contributionAmount;
   const progressPercentage = Math.min(100, (newTotal / targetPrice) * 100);
 
+
+    if (!canContribute) {
+      toast({
+        title: "Contribution unavailable",
+        description: "This group gift is fully funded or below the minimum contribution threshold.",
+        variant: "destructive",
+      });
+      return;
+    }
   // Update progress bar width when currentTotal or targetPrice changes
   useEffect(() => {
     if (progressBarRef.current) {
@@ -363,7 +373,9 @@ function ContributionForm({
                     </div>
                   </FormControl>
                   <p className="text-xs text-muted-foreground" data-testid="contribution-amount-hint">
-                    Allowed range: ${MIN_CONTRIBUTION_AMOUNT.toFixed(2)} - ${maxAllowedContribution.toFixed(2)}
+                    {canContribute
+                      ? `Allowed range: $${MIN_CONTRIBUTION_AMOUNT.toFixed(2)} - $${maxAllowedContribution.toFixed(2)}`
+                      : 'Additional contributions are disabled for this gift.'}
                   </p>
                   <FormMessage />
                 </FormItem>
@@ -474,6 +486,7 @@ function ContributionForm({
                 disabled={
                   isProcessing ||
                   !stripe ||
+                  !canContribute ||
                   contributionAmount < MIN_CONTRIBUTION_AMOUNT ||
                   contributionAmount > maxAllowedContribution
                 }
