@@ -3,7 +3,7 @@
 
 import { onRequest, Request } from 'firebase-functions/v2/https';
 import { Response } from 'express';
-import { getAuth } from 'firebase-admin/auth';
+import { DecodedIdToken, getAuth } from 'firebase-admin/auth';
 import { getFirestore } from 'firebase-admin/firestore';
 import { logger } from 'firebase-functions/v2';
 import { ensureFirebaseAdmin } from '../firebase-admin.js';
@@ -13,8 +13,13 @@ ensureFirebaseAdmin();
 const auth = getAuth();
 const db = getFirestore();
 
+type AuthenticatedApiUser = {
+  uid: string;
+  token: DecodedIdToken;
+};
+
 // Middleware to verify Firebase ID token from Authorization header
-async function verifyFirebaseToken(req: Request): Promise<string | null> {
+async function verifyFirebaseToken(req: Request): Promise<AuthenticatedApiUser | null> {
   const token = getBearerTokenFromHeaders(req.headers);
   if (!token) {
     return null;
@@ -22,11 +27,24 @@ async function verifyFirebaseToken(req: Request): Promise<string | null> {
 
   try {
     const decodedToken = await auth.verifyIdToken(token);
-    return decodedToken.uid;
+    return {
+      uid: decodedToken.uid,
+      token: decodedToken,
+    };
   } catch (error) {
     logger.error('Token verification failed:', error);
     return null;
   }
+}
+
+async function isAdminApiUser(user: AuthenticatedApiUser): Promise<boolean> {
+  if (user.token.admin === true || user.token.role === 'admin') {
+    return true;
+  }
+
+  const userDoc = await db.collection('users').doc(user.uid).get();
+  const userData = userDoc.exists ? userDoc.data() : null;
+  return Boolean(userData?.isAdmin || userData?.role === 'admin');
 }
 
 // Helper to send JSON response
@@ -199,11 +217,12 @@ export const api = onRequest(async (req, res) => {
 
   try {
     // Verify authentication for all endpoints
-    const userId = await verifyFirebaseToken(req);
-    if (!userId) {
+    const authenticatedUser = await verifyFirebaseToken(req);
+    if (!authenticatedUser) {
       sendError(res, 401, 'Unauthorized');
       return;
     }
+    const userId = authenticatedUser.uid;
 
     // Route requests based on method and path
     if (method === 'GET' && path === '/api/beneficiaries') {
@@ -425,6 +444,12 @@ export const api = onRequest(async (req, res) => {
       sendJson(res, alerts);
     }
     else if (method === 'GET' && path === '/api/price-alerts/replay-status') {
+      const isAdmin = await isAdminApiUser(authenticatedUser);
+      if (!isAdmin) {
+        sendError(res, 403, 'Admin role required');
+        return;
+      }
+
       const replayStateDoc = await db.collection('systemJobs').doc('priceAlertReplay').get();
       const replayState = replayStateDoc.exists ? replayStateDoc.data() || {} : {};
 
