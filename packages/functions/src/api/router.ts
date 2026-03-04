@@ -347,7 +347,36 @@ export const api = onRequest(async (req, res) => {
       const ref = db.collection('privacySettings').doc(`${entityType}:${entityId}`);
       const doc = await ref.get();
       if (!doc.exists) {
-        sendError(res, 404, 'Privacy settings not found');
+        const defaultsDoc = await db.collection('privacyDefaults').doc(userId).get();
+        const defaults = defaultsDoc.exists
+          ? defaultsDoc.data() || {}
+          : {
+              defaultWishlistVisibility: 'private',
+              defaultItemVisibility: 'private',
+              allowComments: true,
+              allowReservations: true,
+              requireApproval: false,
+            };
+
+        const fallbackVisibility = entityType === 'wishlist'
+          ? String(defaults.defaultWishlistVisibility || 'private')
+          : String(defaults.defaultItemVisibility || 'private');
+
+        sendJson(res, {
+          id: `${entityType}:${entityId}`,
+          userId,
+          entityType,
+          entityId,
+          visibilityLevel: fallbackVisibility,
+          customAccessList: [],
+          expirationDate: null,
+          allowComments: typeof defaults.allowComments === 'boolean' ? defaults.allowComments : true,
+          allowReservations: typeof defaults.allowReservations === 'boolean' ? defaults.allowReservations : true,
+          requireApproval: typeof defaults.requireApproval === 'boolean' ? defaults.requireApproval : false,
+          createdAt: null,
+          updatedAt: null,
+          isDefaultFallback: true,
+        });
         return;
       }
       const data = doc.data() || {};
@@ -398,6 +427,57 @@ export const api = onRequest(async (req, res) => {
       }
       await ref.set({ userId, entityType, entityId, customAccessList: userIds, updatedAt: new Date() }, { merge: true });
       sendJson(res, { success: true, customAccessList: userIds });
+    }
+    else if (method === 'POST' && path.match(/^\/api\/privacy\/settings\/(wishlist|item)\/[^/]+\/access-list\/add$/)) {
+      const entityType = path.split('/')[4];
+      const entityId = path.split('/')[5];
+      const body = parseBody(req);
+      const userIdToAdd = String(body.userId || '').trim();
+
+      if (!userIdToAdd) {
+        sendError(res, 400, 'userId is required');
+        return;
+      }
+
+      const ref = db.collection('privacySettings').doc(`${entityType}:${entityId}`);
+      const existing = await ref.get();
+      if (existing.exists && existing.data()?.userId !== userId) {
+        sendError(res, 403, 'Access denied');
+        return;
+      }
+
+      const currentList = Array.isArray(existing.data()?.customAccessList)
+        ? existing.data()!.customAccessList.map(String)
+        : [];
+      const nextList = Array.from(new Set([...currentList, userIdToAdd]));
+
+      await ref.set({ userId, entityType, entityId, customAccessList: nextList, updatedAt: new Date() }, { merge: true });
+      sendJson(res, { success: true, customAccessList: nextList });
+    }
+    else if (method === 'DELETE' && path.match(/^\/api\/privacy\/settings\/(wishlist|item)\/[^/]+\/access-list\/[^/]+$/)) {
+      const entityType = path.split('/')[4];
+      const entityId = path.split('/')[5];
+      const userIdToRemove = String(path.split('/')[7] || '').trim();
+
+      if (!userIdToRemove) {
+        sendError(res, 400, 'userId is required');
+        return;
+      }
+
+      const ref = db.collection('privacySettings').doc(`${entityType}:${entityId}`);
+      const existing = await ref.get();
+      if (existing.exists && existing.data()?.userId !== userId) {
+        sendError(res, 403, 'Access denied');
+        return;
+      }
+
+      const currentList = Array.isArray(existing.data()?.customAccessList)
+        ? existing.data()!.customAccessList.map(String)
+        : [];
+      const nextList = currentList.filter((id: string) => id !== userIdToRemove);
+
+      await ref.set({ userId, entityType, entityId, customAccessList: nextList, updatedAt: new Date() }, { merge: true });
+      sendJson(res, { success: true, customAccessList: nextList });
     }
     else if (method === 'DELETE' && path.match(/^\/api\/privacy\/settings\/(wishlist|item)\/[^/]+$/)) {
       const entityType = path.split('/')[4];
