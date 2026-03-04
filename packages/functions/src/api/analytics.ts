@@ -11,6 +11,7 @@ const MAX_EVENTS_LIMIT = 200;
 const DEFAULT_EVENTS_LIMIT = 50;
 const DEFAULT_SUMMARY_WINDOW_DAYS = 30;
 const MAX_SUMMARY_WINDOW_DAYS = 365;
+const MAX_SCAN_EVENTS = 2000;
 
 const normalizeLimit = (value: unknown, fallback: number): number => {
   const parsed = Number(value);
@@ -26,6 +27,18 @@ const normalizeWindowDays = (value: unknown): number => {
     return DEFAULT_SUMMARY_WINDOW_DAYS;
   }
   return Math.min(Math.floor(parsed), MAX_SUMMARY_WINDOW_DAYS);
+};
+
+const normalizeBoolean = (value: unknown): boolean => {
+  if (typeof value === "boolean") return value;
+  if (typeof value === "string") {
+    const normalized = value.trim().toLowerCase();
+    return normalized === "true" || normalized === "1";
+  }
+  if (typeof value === "number") {
+    return value === 1;
+  }
+  return false;
 };
 
 const toDate = (value: unknown): Date | null => {
@@ -44,6 +57,15 @@ const toDate = (value: unknown): Date | null => {
 
   const parsed = new Date(String(value));
   return Number.isNaN(parsed.getTime()) ? null : parsed;
+};
+
+type AnalyticsEventRecord = {
+  id: string;
+  category?: unknown;
+  action?: unknown;
+  createdAt?: unknown;
+  value?: unknown;
+  [key: string]: unknown;
 };
 
 export const trackAnalyticsEvent = onCall(async (request: CallableRequest) => {
@@ -75,28 +97,41 @@ export const trackAnalyticsEvent = onCall(async (request: CallableRequest) => {
 export const getAnalyticsEvents = onCall(async (request: CallableRequest) => {
   const requesterId = requireAuthenticatedUser(request);
   const { limit = DEFAULT_EVENTS_LIMIT, category, action, includeGlobal = false } = request.data || {};
+  const includeGlobalNormalized = normalizeBoolean(includeGlobal);
 
   try {
-    let query: Query<DocumentData> = db.collection("analyticsEvents").orderBy("createdAt", "desc");
+    let query: Query<DocumentData> = db.collection("analyticsEvents");
 
-    if (includeGlobal) {
+    if (includeGlobalNormalized) {
       await requireAdminUser(request, "Admin role required for global analytics access");
+      query = query.limit(MAX_SCAN_EVENTS);
     } else {
       query = query.where("userId", "==", requesterId);
+      query = query.limit(MAX_SCAN_EVENTS);
     }
 
-    if (typeof category === "string" && category.trim()) {
-      query = query.where("category", "==", category.trim());
-    }
-
-    if (typeof action === "string" && action.trim()) {
-      query = query.where("action", "==", action.trim());
-    }
-
-    query = query.limit(normalizeLimit(limit, DEFAULT_EVENTS_LIMIT));
+    const categoryFilter = typeof category === "string" ? category.trim() : "";
+    const actionFilter = typeof action === "string" ? action.trim() : "";
+    const outputLimit = normalizeLimit(limit, DEFAULT_EVENTS_LIMIT);
 
     const snapshot = await query.get();
-    const events = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+    const rawEvents: AnalyticsEventRecord[] = snapshot.docs.map((doc): AnalyticsEventRecord => ({
+      id: doc.id,
+      ...(doc.data() as Record<string, unknown>),
+    }));
+
+    const events = rawEvents
+      .filter((event) => {
+        if (categoryFilter && String(event.category || "") !== categoryFilter) return false;
+        if (actionFilter && String(event.action || "") !== actionFilter) return false;
+        return true;
+      })
+      .sort((left, right) => {
+        const leftDate = toDate(left.createdAt)?.getTime() || 0;
+        const rightDate = toDate(right.createdAt)?.getTime() || 0;
+        return rightDate - leftDate;
+      })
+      .slice(0, outputLimit);
 
     return { events };
   } catch (error) {
@@ -111,24 +146,30 @@ export const getAnalyticsEvents = onCall(async (request: CallableRequest) => {
 export const getAnalyticsSummary = onCall(async (request: CallableRequest) => {
   const requesterId = requireAuthenticatedUser(request);
   const { windowDays = DEFAULT_SUMMARY_WINDOW_DAYS, includeGlobal = false } = request.data || {};
+  const includeGlobalNormalized = normalizeBoolean(includeGlobal);
 
   try {
     let query: Query<DocumentData> = db.collection("analyticsEvents");
 
-    if (includeGlobal) {
+    if (includeGlobalNormalized) {
       await requireAdminUser(request, "Admin role required for global analytics access");
+      query = query.limit(MAX_SCAN_EVENTS);
     } else {
       query = query.where("userId", "==", requesterId);
+      query = query.limit(MAX_SCAN_EVENTS);
     }
 
     const summaryWindowDays = normalizeWindowDays(windowDays);
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - summaryWindowDays);
 
-    query = query.where("createdAt", ">=", startDate);
-
     const snapshot = await query.get();
-    const events = snapshot.docs.map((doc) => doc.data());
+    const events = snapshot.docs
+      .map((doc) => doc.data())
+      .filter((event) => {
+        const createdAt = toDate(event.createdAt);
+        return Boolean(createdAt && createdAt >= startDate);
+      });
 
     const totalEvents = events.length;
     const byCategory: Record<string, number> = {};
