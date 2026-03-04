@@ -53,6 +53,8 @@ const getInitialItemSearch = (): string => {
 const getNormalizedItemId = (id: number | string): string => String(id).replace(/[^a-zA-Z0-9_-]/g, '-');
 
 export default function WishlistDetail() {
+  const [appSingularMatch, appSingularParams] = useRoute('/app/wishlist/:id');
+  const [appPluralMatch, appPluralParams] = useRoute('/app/wishlists/:id');
   const [legacyMatch, legacyParams] = useRoute('/wishlist/:id');
   const [pluralMatch, pluralParams] = useRoute('/wishlists/:id');
   const [, setLocation] = useLocation();
@@ -126,7 +128,12 @@ export default function WishlistDetail() {
     return true;
   };
 
-  const wishlistId = (legacyMatch ? legacyParams?.id : pluralParams?.id) || "";
+  const wishlistId =
+    (appSingularMatch ? appSingularParams?.id : undefined) ||
+    (appPluralMatch ? appPluralParams?.id : undefined) ||
+    (legacyMatch ? legacyParams?.id : undefined) ||
+    (pluralMatch ? pluralParams?.id : undefined) ||
+    "";
 
   // Fetch wishlist details
   const { data: wishlist, isLoading: isLoadingWishlist } = useQuery<Wishlist>({
