@@ -114,6 +114,30 @@ function normalizeTextLike(value: any): string | null {
   return normalized.length > 0 ? normalized : null;
 }
 
+function normalizeRetailerKey(value: any): string | null {
+  const text = normalizeTextLike(value);
+  if (!text) return null;
+
+  let normalized = text.toLowerCase();
+  normalized = normalized.replace(/^https?:\/\//, '');
+  normalized = normalized.replace(/^www\./, '');
+  normalized = normalized.split('/')[0];
+  normalized = normalized.split('?')[0];
+  normalized = normalized.split('#')[0];
+
+  if (normalized.endsWith('.com')) normalized = normalized.slice(0, -4);
+  if (normalized.endsWith('.co.uk')) normalized = normalized.slice(0, -6);
+  if (normalized.endsWith('.net')) normalized = normalized.slice(0, -4);
+  if (normalized.endsWith('.org')) normalized = normalized.slice(0, -4);
+
+  normalized = normalized.replace(/[^a-z0-9]+/g, ' ').trim().replace(/\s+/g, ' ');
+  if (!normalized) return null;
+
+  const compact = normalized.replace(/\s+/g, '');
+  if (compact === 'appleinc') return 'apple';
+  return compact;
+}
+
 function computeLandedPrice(offer: any): number | null {
   const total = toNumberLike(offer?.totalPrice);
   if (total !== null) return total;
@@ -676,11 +700,13 @@ export const api = onRequest(async (req, res) => {
         || toBooleanLike(item.productIdentity?.isRetailerSpecific, false)
         || toBooleanLike(item.offerTracking?.retailerSpecificOnly, false);
       const sourceStore = normalizeTextLike(item.store || item.productIdentity?.sourceRetailer);
+      const sourceStoreKey = normalizeRetailerKey(sourceStore);
 
       const scopedIdenticalOffers = allOffers.filter((offer: any) => {
         if (offer.isAlternative) return false;
-        if (isRetailerSpecific && sourceStore) {
-          return normalizeTextLike(offer.store)?.toLowerCase() === sourceStore.toLowerCase();
+        if (isRetailerSpecific && sourceStoreKey) {
+          const offerStoreKey = normalizeRetailerKey(offer.store);
+          return offerStoreKey === sourceStoreKey;
         }
         return true;
       });
