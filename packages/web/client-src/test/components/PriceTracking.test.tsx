@@ -26,15 +26,62 @@ describe('PriceTracking Page', () => {
     vi.clearAllMocks();
   });
 
-  it('shows loading placeholders for price drop and volatility sections', async () => {
+  const setupUseQueryMock = ({
+    priceDrops,
+    isLoadingDrops = false,
+    alerts = [],
+    volatility,
+    isLoadingVolatility = false,
+    wishlistItems = [],
+    intelligence,
+    isLoadingIntelligence = false,
+  }: {
+    priceDrops?: unknown;
+    isLoadingDrops?: boolean;
+    alerts?: unknown;
+    volatility?: unknown;
+    isLoadingVolatility?: boolean;
+    wishlistItems?: unknown;
+    intelligence?: unknown;
+    isLoadingIntelligence?: boolean;
+  }) => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (useQuery as any)
-      .mockReturnValueOnce({ data: undefined, isLoading: true })
-      .mockReturnValueOnce({
-        data: [{ id: 1, itemId: 11, item: { title: 'Tracked Item' } }],
-        isLoading: false,
-      })
-      .mockReturnValueOnce({ data: undefined, isLoading: true });
+    (useQuery as any).mockImplementation((query: any) => {
+      const key = query?.queryKey;
+      const first = Array.isArray(key) ? String(key[0]) : '';
+
+      if (first === '/api/price-drops') {
+        return { data: priceDrops, isLoading: isLoadingDrops, isError: false };
+      }
+
+      if (first === '/api/price-alerts') {
+        return { data: alerts, isLoading: false, isError: false };
+      }
+
+      if (first === '/api/price-volatility') {
+        return { data: volatility, isLoading: isLoadingVolatility, isError: false };
+      }
+
+      if (first === '/api/wishlist-items') {
+        return { data: wishlistItems, isLoading: false, isError: false };
+      }
+
+      if (first === '/api/items') {
+        return { data: intelligence, isLoading: isLoadingIntelligence, isError: false };
+      }
+
+      return { data: undefined, isLoading: false, isError: false };
+    });
+  };
+
+  it('shows loading placeholders for price drop and volatility sections', async () => {
+    setupUseQueryMock({
+      priceDrops: undefined,
+      isLoadingDrops: true,
+      alerts: [{ id: 1, itemId: 11, item: { title: 'Tracked Item' } }],
+      volatility: undefined,
+      isLoadingVolatility: true,
+    });
 
     render(<PriceTracking />, { pathname: '/app/price-tracking' });
     const user = userEvent.setup();
@@ -44,11 +91,11 @@ describe('PriceTracking Page', () => {
   });
 
   it('shows empty states when no drops or volatility data exist', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (useQuery as any)
-      .mockReturnValueOnce({ data: [], isLoading: false })
-      .mockReturnValueOnce({ data: [], isLoading: false })
-      .mockReturnValueOnce({ data: [], isLoading: false });
+    setupUseQueryMock({
+      priceDrops: [],
+      alerts: [],
+      volatility: [],
+    });
 
     render(<PriceTracking />, { pathname: '/app/price-tracking' });
     const user = userEvent.setup();
@@ -59,38 +106,29 @@ describe('PriceTracking Page', () => {
   });
 
   it('renders drop and volatility cards when data is available', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (useQuery as any)
-      .mockReturnValueOnce({
-        data: [
-          {
-            id: 1,
-            title: 'Noise Canceling Headphones',
-            previousPrice: '$299.00',
-            currentPrice: '$199.00',
-            percentDrop: 33,
-          },
-        ],
-        isLoading: false,
-      })
-      .mockReturnValueOnce({
-        data: [{ id: 1, itemId: 11, item: { title: 'Tracked Item' } }],
-        isLoading: false,
-      })
-      .mockReturnValueOnce({
-        data: [
-          {
-            itemId: 11,
-            title: 'Volatile Coffee Machine',
-            volatilityPercent: 14.2,
-            avgAbsoluteChangePercent: 5.6,
-            changeCount: 4,
-            historyPoints: 12,
-            currentPrice: 199.99,
-          },
-        ],
-        isLoading: false,
-      });
+    setupUseQueryMock({
+      priceDrops: [
+        {
+          id: 1,
+          title: 'Noise Canceling Headphones',
+          previousPrice: '$299.00',
+          currentPrice: '$199.00',
+          percentDrop: 33,
+        },
+      ],
+      alerts: [{ id: 1, itemId: 11, item: { title: 'Tracked Item' } }],
+      volatility: [
+        {
+          itemId: 11,
+          title: 'Volatile Coffee Machine',
+          volatilityPercent: 14.2,
+          avgAbsoluteChangePercent: 5.6,
+          changeCount: 4,
+          historyPoints: 12,
+          currentPrice: 199.99,
+        },
+      ],
+    });
 
     render(<PriceTracking />, { pathname: '/app/price-tracking' });
     const user = userEvent.setup();
