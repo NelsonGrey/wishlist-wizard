@@ -1,11 +1,14 @@
 import { useQuery } from "@tanstack/react-query";
 import { Helmet } from "react-helmet";
 import { apiRequest } from "@/lib/queryClient";
+import { useEffect, useMemo, useState } from "react";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import PriceAlertsList from "@/components/price-tracking/PriceAlertsList";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { LineChartIcon, TrendingDown, AlertTriangle } from "lucide-react";
 
 // Type for price drop items
@@ -46,6 +49,83 @@ type VolatilityItem = {
   changeCount: number;
   volatilityPercent: number;
   avgAbsoluteChangePercent: number;
+};
+
+type WishlistItem = {
+  id: string;
+  title: string;
+  price?: string | number | null;
+  store?: string | null;
+  imageUrl?: string | null;
+  isRetailerSpecific?: boolean;
+};
+
+type IntelligenceOffer = {
+  id: string;
+  store?: string | null;
+  price?: number | null;
+  landedPrice?: number | null;
+  shippingCost?: number | null;
+  fees?: number | null;
+  discountAmount?: number | null;
+  inStock?: boolean;
+  availability?: string | null;
+  productUrl?: string | null;
+  matchType?: string | null;
+  confidenceScore?: number | null;
+};
+
+type IntelligenceAlternative = {
+  id: string;
+  title?: string | null;
+  store?: string | null;
+  landedPrice?: number | null;
+  similarityScore?: number | null;
+  qualityBand?: string | null;
+  rationale?: string | null;
+  inStock?: boolean;
+};
+
+type PriceIntelligenceResponse = {
+  itemId: string;
+  title?: string | null;
+  basePrice?: number | null;
+  isRetailerSpecific?: boolean;
+  sourceRetailer?: string | null;
+  sections: {
+    bestIdenticalOffer?: IntelligenceOffer | null;
+    identicalOffers?: IntelligenceOffer[];
+    alternatives?: IntelligenceAlternative[];
+  };
+  confidencePolicy?: {
+    bestDealEligibleMatchTypes?: string[];
+    probableShownSeparately?: boolean;
+  };
+  metadata?: {
+    checkedAt?: string;
+    offersConsidered?: number;
+    alternativesConsidered?: number;
+  };
+};
+
+type PriceTrackingTab = "alerts" | "drops" | "intelligence";
+
+const isPriceTrackingTab = (value: string): value is PriceTrackingTab => {
+  return value === "alerts" || value === "drops" || value === "intelligence";
+};
+
+const formatMoney = (value: unknown): string => {
+  const amount = toNumber(value);
+  if (amount <= 0) {
+    return "—";
+  }
+  return `$${amount.toFixed(2)}`;
+};
+
+const formatMatchType = (value?: string | null): string => {
+  const normalized = String(value || "").trim().toLowerCase();
+  if (!normalized) return "unknown";
+  return normalized.charAt(0).toUpperCase() + normalized.slice(1);
 };
 
 const toNumber = (value: unknown): number => {
@@ -92,6 +172,26 @@ const computeVolatility = (prices: number[]) => {
 };
 
 export default function PriceTracking() {
+  const initialTab = useMemo<PriceTrackingTab>(() => {
+    if (typeof window === "undefined") {
+      return "alerts";
+    }
+
+    const value = String(new URLSearchParams(window.location.search).get("tab") || "").trim().toLowerCase();
+    return isPriceTrackingTab(value) ? value : "alerts";
+  }, []);
+
+  const initialItemIdFromQuery = useMemo<string>(() => {
+    if (typeof window === "undefined") {
+      return "";
+    }
+
+    return String(new URLSearchParams(window.location.search).get("itemId") || "").trim();
+  }, []);
+
+  const [activeTab, setActiveTab] = useState<PriceTrackingTab>(initialTab);
+  const [selectedItemId, setSelectedItemId] = useState<string>("");
+
   // Fetch price drops
   const { data: priceDrops, isLoading: isLoadingDrops } = useQuery<PriceDropItem[]>({
     queryKey: ['/api/price-drops'],
@@ -152,6 +252,50 @@ export default function PriceTracking() {
     },
   });
 
+  const { data: wishlistItems, isLoading: isLoadingItems } = useQuery<WishlistItem[]>({
+    queryKey: ["/api/wishlist-items"],
+    staleTime: 10 * 60 * 1000,
+  });
+
+  const sortedWishlistItems = useMemo(() => {
+    return [...(wishlistItems || [])].sort((left, right) => String(left.title || "").localeCompare(String(right.title || "")));
+  }, [wishlistItems]);
+
+  useEffect(() => {
+    if (sortedWishlistItems.length === 0) {
+      return;
+    }
+
+    setSelectedItemId((current) => {
+      if (current) {
+        return current;
+      }
+
+      if (initialItemIdFromQuery) {
+        const exists = sortedWishlistItems.some((item) => String(item.id) === initialItemIdFromQuery);
+        if (exists) {
+          return initialItemIdFromQuery;
+        }
+      }
+
+      return String(sortedWishlistItems[0].id);
+    });
+  }, [initialItemIdFromQuery, sortedWishlistItems]);
+
+  const { data: intelligence, isLoading: isLoadingIntelligence } = useQuery<PriceIntelligenceResponse>({
+    queryKey: ["/api/items", selectedItemId, "price-intelligence"],
+    enabled: Boolean(selectedItemId),
+    staleTime: 5 * 60 * 1000,
+    queryFn: async () => {
+      return apiRequest(`/api/items/${selectedItemId}/price-intelligence`) as Promise<PriceIntelligenceResponse>;
+    },
+  });
+
+  const bestIdenticalOffer = intelligence?.sections?.bestIdenticalOffer;
+  const identicalOffers = intelligence?.sections?.identicalOffers || [];
+  const probableOffers = identicalOffers.filter((offer) => String(offer.matchType || "").toLowerCase() === "probable");
+  const alternatives = intelligence?.sections?.alternatives || [];
+
   return (
     <>
       <Helmet>
@@ -167,10 +311,11 @@ export default function PriceTracking() {
           </p>
         </div>
 
-        <Tabs defaultValue="alerts" className="w-full">
+        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(isPriceTrackingTab(value) ? value : "alerts")} className="w-full">
           <TabsList className="mb-6 bg-gray-100">
             <TabsTrigger value="alerts" className="data-[state=active]:bg-emerald-700 data-[state=active]:text-white">Your Alerts</TabsTrigger>
             <TabsTrigger value="drops" className="data-[state=active]:bg-emerald-700 data-[state=active]:text-white">Price Drops</TabsTrigger>
+            <TabsTrigger value="intelligence" className="data-[state=active]:bg-emerald-700 data-[state=active]:text-white">Intelligence</TabsTrigger>
           </TabsList>
 
           <TabsContent value="alerts" className="space-y-6">
@@ -313,6 +458,162 @@ export default function PriceTracking() {
                     <p className="text-sm text-muted-foreground text-center max-w-md">
                       Keep tracking items to build more history. Volatility insights appear after multiple recorded price points.
                     </p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="intelligence" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Price Intelligence</CardTitle>
+                <CardDescription>
+                  Compare identical offers, enforce retailer exclusives, and surface close alternatives.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {isLoadingItems ? (
+                  <Skeleton className="h-10 w-full" />
+                ) : sortedWishlistItems.length > 0 ? (
+                  <Select value={selectedItemId} onValueChange={setSelectedItemId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a wishlist item" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {sortedWishlistItems.map((item) => (
+                        <SelectItem key={item.id} value={String(item.id)}>
+                          {item.title}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <p className="text-sm text-muted-foreground">No wishlist items found yet. Add items to start intelligence comparisons.</p>
+                )}
+
+                {selectedItemId && isLoadingIntelligence && (
+                  <div className="space-y-3">
+                    <Skeleton className="h-28 w-full" />
+                    <Skeleton className="h-28 w-full" />
+                  </div>
+                )}
+
+                {selectedItemId && !isLoadingIntelligence && intelligence && (
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="text-base">Best Identical Deal</CardTitle>
+                          <CardDescription>
+                            High-confidence identical match (exact/strong) using landed price.
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-2">
+                          {bestIdenticalOffer ? (
+                            <>
+                              <div className="flex items-center justify-between">
+                                <span className="text-sm text-muted-foreground">Store</span>
+                                <span className="font-medium">{bestIdenticalOffer.store || "Unknown"}</span>
+                              </div>
+                              <div className="flex items-center justify-between">
+                                <span className="text-sm text-muted-foreground">Landed Price</span>
+                                <span className="font-semibold text-emerald-700">{formatMoney(bestIdenticalOffer.landedPrice)}</span>
+                              </div>
+                              <div className="flex items-center justify-between">
+                                <span className="text-sm text-muted-foreground">Match</span>
+                                <Badge variant="secondary">{formatMatchType(bestIdenticalOffer.matchType)}</Badge>
+                              </div>
+                            </>
+                          ) : (
+                            <p className="text-sm text-muted-foreground">No high-confidence identical offers available yet.</p>
+                          )}
+                        </CardContent>
+                      </Card>
+
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="text-base">Retailer Scope</CardTitle>
+                          <CardDescription>
+                            Exclusive items are scoped to the source retailer when comparing identical offers.
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm text-muted-foreground">Retailer-specific</span>
+                            <Badge variant={intelligence.isRetailerSpecific ? "default" : "secondary"}>
+                              {intelligence.isRetailerSpecific ? "Yes" : "No"}
+                            </Badge>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm text-muted-foreground">Source retailer</span>
+                            <span className="font-medium">{intelligence.sourceRetailer || "Any retailer"}</span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm text-muted-foreground">Offers considered</span>
+                            <span>{intelligence.metadata?.offersConsidered ?? 0}</span>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </div>
+
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="text-base">Probable Matches</CardTitle>
+                        <CardDescription>
+                          Lower-confidence identical candidates shown separately from best-deal picks.
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        {probableOffers.length > 0 ? (
+                          <div className="space-y-2">
+                            {probableOffers.slice(0, 6).map((offer) => (
+                              <div key={offer.id} className="flex items-center justify-between border rounded-md px-3 py-2">
+                                <div>
+                                  <div className="font-medium text-sm">{offer.store || "Unknown store"}</div>
+                                  <div className="text-xs text-muted-foreground">{formatMatchType(offer.matchType)}</div>
+                                </div>
+                                <div className="font-medium">{formatMoney(offer.landedPrice)}</div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-sm text-muted-foreground">No probable identical matches found.</p>
+                        )}
+                      </CardContent>
+                    </Card>
+
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="text-base">Alternatives</CardTitle>
+                        <CardDescription>
+                          Similar items ranked by similarity score and landed price.
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        {alternatives.length > 0 ? (
+                          <div className="space-y-2">
+                            {alternatives.slice(0, 8).map((alt) => (
+                              <div key={alt.id} className="flex items-start justify-between border rounded-md px-3 py-2 gap-3">
+                                <div className="min-w-0">
+                                  <div className="font-medium text-sm line-clamp-1">{alt.title || "Alternative item"}</div>
+                                  <div className="text-xs text-muted-foreground line-clamp-1">
+                                    {alt.store || "Unknown store"} • {alt.qualityBand || "comparable"}
+                                  </div>
+                                  <div className="text-xs text-muted-foreground line-clamp-1">{alt.rationale || "Similar specs and value profile"}</div>
+                                </div>
+                                <div className="text-right shrink-0">
+                                  <div className="font-medium">{formatMoney(alt.landedPrice)}</div>
+                                  <div className="text-xs text-muted-foreground">Similarity {(toNumber(alt.similarityScore) * 100).toFixed(0)}%</div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-sm text-muted-foreground">No alternatives found yet for this item.</p>
+                        )}
+                      </CardContent>
+                    </Card>
                   </div>
                 )}
               </CardContent>

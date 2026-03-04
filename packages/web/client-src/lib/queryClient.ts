@@ -39,6 +39,10 @@ async function getAuthToken(): Promise<string | null> {
  * Determine if we should use Firebase Functions instead of Express API
  */
 function shouldUseFirebaseFunctions(url: string): boolean {
+  if (/^\/api\/items\/[^/]+\/price-intelligence$/.test(url)) {
+    return false;
+  }
+
   // List of API endpoints that are backed by callable Firebase Functions
   const firebaseFunctionEndpoints = [
     '/api/auth/me',
@@ -64,6 +68,10 @@ function shouldUseFirebaseFunctions(url: string): boolean {
  * Endpoints served by the HTTP `api` Firebase function router (non-callable).
  */
 function shouldUseFirebaseApiRouter(url: string): boolean {
+  if (/^\/api\/items\/[^/]+\/price-intelligence$/.test(url)) {
+    return true;
+  }
+
   const routerEndpoints = [
     '/api/privacy',
     '/api/recommendations',

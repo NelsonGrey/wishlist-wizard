@@ -267,15 +267,26 @@ export default function PriceAlertsList({ limit }: PriceAlertsListProps) {
                         )}
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          aria-label={`Delete price alert for ${alert.item.title}`}
-                          onClick={() => handleDeleteAlert(alert.id)}
-                          disabled={deletePriceAlertMutation.isPending}
-                        >
-                          <Trash2 className="h-4 w-4" aria-hidden="true" />
-                        </Button>
+                        <div className="flex items-center justify-end gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              window.location.href = `/app/price-tracking?tab=intelligence&itemId=${encodeURIComponent(String(alert.itemId))}`;
+                            }}
+                          >
+                            View Intelligence
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            aria-label={`Delete price alert for ${alert.item.title}`}
+                            onClick={() => handleDeleteAlert(alert.id)}
+                            disabled={deletePriceAlertMutation.isPending}
+                          >
+                            <Trash2 className="h-4 w-4" aria-hidden="true" />
+                          </Button>
+                        </div>
                       </TableCell>
                     </>
                   );
