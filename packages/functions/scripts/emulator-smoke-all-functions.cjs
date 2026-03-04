@@ -4375,7 +4375,7 @@ function classifyFunction(modulePath, name) {
   const source = fs.readFileSync(sourcePath, 'utf8');
   const onCallPattern = new RegExp(`export\\s+const\\s+${name}\\s*=\\s*onCall\\b`);
   const onRequestPattern = new RegExp(`export\\s+const\\s+${name}\\s*=\\s*onRequest\\b`);
-  const eventTriggerPattern = new RegExp(`export\\s+const\\s+${name}\\s*=\\s*on(DocumentCreated|DocumentUpdated|DocumentDeleted|DocumentWritten)\\b`);
+  const eventTriggerPattern = new RegExp(`export\\s+const\\s+${name}\\s*=\\s*on(DocumentCreated|DocumentUpdated|DocumentDeleted|DocumentWritten|Schedule)\\b`);
 
   if (onCallPattern.test(source)) return 'onCall';
   if (onRequestPattern.test(source)) return 'onRequest';

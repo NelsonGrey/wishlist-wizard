@@ -73,6 +73,14 @@ Alert docs record processing metadata:
 - `lastNotificationSuppressedReason`
 - `notificationDeferred`
 
+## Deferred Replay
+
+Deferred alerts are replayed by scheduled backend processing (`replayDeferredPriceAlerts`) every 15 minutes:
+- scans alerts where `triggered=true` and `notificationDeferred=true`
+- re-checks cooldown and quiet-hours gates
+- sends once outside quiet-hours window
+- updates `lastNotificationSource` (`triggered_update` or `deferred_replay`) for traceability
+
 ## Refresh Cadence Policy
 Default frequency is policy-based, not one-size-fits-all:
 - High intent: every 1-3 hours
