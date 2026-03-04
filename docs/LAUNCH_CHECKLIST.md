@@ -11,8 +11,8 @@
 | Metric | Result | Impact |
 |--------|--------|--------|
 | **Basic Features** | 33/33 ✅ | All core user flows work |
-| **Code Failures** | 0/269 ✅ | Zero hard failures in full function-contract smoke |
-| **Contract Smoke** | 261/269 ✅ | Strict mode pass count; env-aware mode is 269/269 |
+| **Code Failures** | 0/273 ✅ | Zero hard failures in full function-contract smoke |
+| **Contract Smoke** | 265/273 ✅ | Strict mode pass count; env-aware mode is 273/273 |
 | **Advanced Ready** | 37/49 ✅ | Most earn features working |
 | **User Flow Tests** | 31/31 ✅ | Real sequences validated |
 
@@ -88,7 +88,7 @@
 | Missing Stripe | 🟡 Low | Feature gracefully hidden in v1.0 |
 | Calendar OAuth | 🟢 None | Reading works; full OAuth in v1.1 |
 | FCM topics | 🟢 None | Firebase production fully supports |
-| Code stability | 🟢 None | Strict 261/269 pass (8 expected warns), env-aware 269/269 pass |
+| Code stability | 🟢 None | Strict 265/273 pass (8 expected warns), env-aware 273/273 pass |
 
 ---
 
@@ -110,8 +110,8 @@ For strict vs env-aware interpretation of function-smoke results, see [README.md
 Expected output:
 ```json
 {
-  "total": 269,
-  "passed": 261,
+  "total": 273,
+  "passed": 265,
   "warned": 8,
   "failed": 0
 }

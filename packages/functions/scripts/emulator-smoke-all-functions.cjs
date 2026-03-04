@@ -2713,6 +2713,94 @@ async function runApiRouterContractChecks(fixtureContext) {
         }),
   });
 
+  await callCallableExpectSuccess('createDocument', fixtureContext.user.idToken, {
+    collection: 'systemJobs',
+    documentId: 'priceAlertReplay',
+    data: {
+      cursorDocId: 'cursor-test-alert-id',
+      lastRunAt: new Date().toISOString(),
+      replayBatchSize: 75,
+      replayMaxPagesPerRun: 4,
+      replayMaxDeferredAgeHours: 72,
+      lastRunStats: {
+        processed: 11,
+        sent: 5,
+        stillDeferred: 2,
+        skipped: 3,
+        expired: 1,
+        pagesProcessed: 2,
+      },
+    },
+  });
+
+  const apiReplayStatusResponse = await fetch(
+    `http://${functionsHost}/${projectId}/${region}/api/api/price-alerts/replay-status`,
+    {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${fixtureContext.user.idToken}`,
+      },
+    }
+  );
+  let apiReplayStatusJson = null;
+  try {
+    apiReplayStatusJson = await apiReplayStatusResponse.json();
+  } catch (_) {
+    apiReplayStatusJson = null;
+  }
+
+  checks.push({
+    endpoint: 'contract:api-router:price-alert-replay-status-reachable',
+    type: 'contract',
+    ...(apiReplayStatusResponse.status === 200
+      ? { status: 'passed', message: 'API router replay-status route is reachable with authenticated Bearer token' }
+      : {
+          status: 'failed',
+          message: `Expected HTTP 200, got ${apiReplayStatusResponse.status}`,
+          httpStatus: apiReplayStatusResponse.status,
+        }),
+  });
+
+  checks.push({
+    endpoint: 'contract:api-router:price-alert-replay-status-shape',
+    type: 'contract',
+    ...(apiReplayStatusResponse.status === 200
+      && apiReplayStatusJson
+      && (typeof apiReplayStatusJson.replayBatchSize === 'number' || apiReplayStatusJson.replayBatchSize === null)
+      && (typeof apiReplayStatusJson.replayMaxPagesPerRun === 'number' || apiReplayStatusJson.replayMaxPagesPerRun === null)
+      && (typeof apiReplayStatusJson.replayMaxDeferredAgeHours === 'number' || apiReplayStatusJson.replayMaxDeferredAgeHours === null)
+      && apiReplayStatusJson.lastRunStats
+      && typeof apiReplayStatusJson.lastRunStats.processed === 'number'
+      && typeof apiReplayStatusJson.lastRunStats.expired === 'number'
+      ? { status: 'passed', message: 'API router replay-status returns expected scheduler state payload shape' }
+      : {
+          status: 'failed',
+          message: `Expected replay status payload shape, got HTTP ${apiReplayStatusResponse.status}`,
+          httpStatus: apiReplayStatusResponse.status,
+        }),
+  });
+
+  const apiReplayStatusWrongMethod = await invokeHttp('api', {
+    method: 'POST',
+    pathSuffix: '/api/price-alerts/replay-status',
+    headers: {
+      Authorization: `Bearer ${fixtureContext.user.idToken}`,
+    },
+    body: {},
+  });
+  checks.push({
+    endpoint: 'contract:api-router:price-alert-replay-status-method-not-allowed',
+    type: 'contract',
+    ...([404, 405].includes(apiReplayStatusWrongMethod.httpStatus || 0)
+      ? { status: 'passed', message: 'API router replay-status route rejects unsupported HTTP methods' }
+      : {
+          status: 'failed',
+          message: `Expected HTTP 404/405, got ${apiReplayStatusWrongMethod.httpStatus ?? apiReplayStatusWrongMethod.message}`,
+          httpStatus: apiReplayStatusWrongMethod.httpStatus,
+        }),
+  });
+
   const apiPriceAlertPolicyUpdate = await invokeHttp('api', {
     method: 'PATCH',
     pathSuffix: `/api/price-alerts/${encodeURIComponent(String(ownerPriceAlert?.id || 'missing-id'))}`,
@@ -3353,6 +3441,11 @@ async function runApiRouterContractChecks(fixtureContext) {
     {
       endpoint: 'contract:api-router:price-alerts-options-preflight',
       pathSuffix: '/api/price-alerts',
+      requestMethod: 'GET',
+    },
+    {
+      endpoint: 'contract:api-router:price-alert-replay-status-options-preflight',
+      pathSuffix: '/api/price-alerts/replay-status',
       requestMethod: 'GET',
     },
     {
