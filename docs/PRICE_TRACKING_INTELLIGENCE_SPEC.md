@@ -1,0 +1,61 @@
+# Price Tracking Intelligence Spec
+
+## Goal
+Price Tracking acts as a decision engine, not only a price log:
+- Find the best deal for the **identical item** when possible.
+- Respect retailer exclusivity when an item is retailer-specific.
+- Present intelligent **alternatives** with clear rationale.
+
+## Definitions
+- **Identical**: same product identity (brand + model + global/merchant identifiers such as MPN/UPC/EAN), including variant match (size/color/pack/region where applicable).
+- **Retailer-specific**: item is private-label, exclusive SKU, or otherwise constrained to source retailer matching.
+- **Alternative**: not identical, but near-fit based on spec/profile similarity and quality band.
+
+## Confidence Model
+- `exact`: identifier-level match (global IDs or canonical merchant SKU mapping).
+- `strong`: high-confidence fingerprint match (brand + model + key specs/variant).
+- `probable`: title/spec similarity without full identity proof.
+
+Best-deal highlighting should only use `exact` and `strong`.
+
+## Landed Price Policy
+Comparison must use landed price:
+- `landedPrice = basePrice + shipping + fees - discounts`
+
+When available, include flags in ranking/filters:
+- `membershipRequired`
+- `sellerTrust`
+- `counterfeitRisk`
+- `returnWindowDays`
+- `warrantyIncluded`
+- `inStock`
+
+## API Contract
+### GET `/api/items/:itemId/price-intelligence`
+Response shape:
+- `itemId`, `title`, `basePrice`, `isRetailerSpecific`, `sourceRetailer`
+- `sections.bestIdenticalOffer`
+- `sections.identicalOffers[]`
+- `sections.alternatives[]`
+- `confidencePolicy`
+- `metadata` (checked timestamp, counts)
+
+## Refresh Cadence Policy
+Default frequency is policy-based, not one-size-fits-all:
+- High intent: every 1-3 hours
+- Normal: every 6-12 hours
+- Low priority: daily
+
+Also refresh on-demand when item detail opens and cached result is stale.
+
+## User Controls
+- Target price
+- Alert threshold by percent and/or absolute amount
+- Quiet hours and cooldown
+- Retailer-specific lock toggle (when item permits)
+
+## Guardrails
+- Clearly label confidence on each offer.
+- Do not mix alternatives into identical offers list.
+- Preserve explainability: include a short `rationale` for alternatives.
+- If identity is uncertain, degrade to `probable` and avoid best-deal badge.
