@@ -1,15 +1,33 @@
 # Price Tracking — Production Checklist
 
-This checklist contains concrete steps to move the `PriceTracking` feature from its current state into production-ready status.
+This checklist defines the production contract for the Price Tracking "killer app" behavior.
 
-1. Protect `/app/price-tracking` behind authentication and ensure it renders in the `AppLayout`. (IMPLEMENTED)
-2. Wire server-side price history endpoints (authenticated): `/api/items/:id/price-history`.
-3. Add server-side validation, rate-limiting, and caching for price history ingestion.
-4. Add backend job to fetch and persist historical prices (cron or event-driven collector).
-5. Add API contract tests and Playwright E2E tests for the full flow (create alert → record price → display history).
-6. Add telemetry and SLOs for price ingestion and API latency.
-7. Accessibility and performance testing for charts and responsive layouts.
+## Core Experience Contract
+
+1. Capture item identity at creation time (brand/model/MPN/UPC/EAN + variant fields like color/size/pack). (IN PROGRESS)
+2. Return sectioned intelligence from backend for each tracked item:
+	- `bestIdenticalOffer`
+	- `identicalOffers`
+	- `alternatives`
+3. Support retailer-specific items (`isRetailerSpecific`) so matching scope can be limited to source retailer when needed.
+4. Rank offers using landed price (`price + shipping + fees - discount`) rather than sticker price alone.
+5. Keep confidence semantics explicit: `exact`, `strong`, `probable`; reserve best-deal badge for `exact`/`strong`.
+
+## Refresh & Alert Cadence Policy
+
+6. Do not assume blanket "frequent" updates; use policy-based cadence:
+	- High intent: every 1-3 hours
+	- Normal: every 6-12 hours
+	- Low priority: every 24 hours
+7. Trigger on-demand refresh when user opens item detail and data is stale.
+8. Support configurable alert thresholds (percentage and absolute amount) and notification cooldowns.
+
+## Reliability + Validation
+
+9. Add and maintain API contract smoke tests for `/api/items/:itemId/price-intelligence` shape, auth, and method guards.
+10. Add telemetry/SLOs for offer freshness, match confidence distribution, and alert delivery success.
+11. Accessibility and performance testing for price intelligence cards/charts on `/app/price-tracking`.
 
 Notes:
-- The `PriceHistory` component already guards against invalid dates and handles empty/error states.
-- Production app route is `/app/price-tracking`.
+- Existing price-history endpoint remains: `/api/items/:id/price-history`.
+- Production app route remains: `/app/price-tracking`.

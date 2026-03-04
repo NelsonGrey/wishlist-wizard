@@ -69,6 +69,69 @@ function getDateLike(value: any): Date | null {
   return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 
+function toNumberLike(value: any): number | null {
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  if (typeof value === 'string') {
+    const normalized = value.replace(/[^0-9.\-]/g, '').trim();
+    if (!normalized) return null;
+    const parsed = Number.parseFloat(normalized);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+  return null;
+}
+
+function toBooleanLike(value: any, defaultValue = false): boolean {
+  if (typeof value === 'boolean') return value;
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase();
+    if (normalized === 'true') return true;
+    if (normalized === 'false') return false;
+  }
+  return defaultValue;
+}
+
+function normalizeTextLike(value: any): string | null {
+  if (typeof value !== 'string') return null;
+  const normalized = value.trim();
+  return normalized.length > 0 ? normalized : null;
+}
+
+function computeLandedPrice(offer: any): number | null {
+  const total = toNumberLike(offer?.totalPrice);
+  if (total !== null) return total;
+
+  const base = toNumberLike(offer?.price) ?? toNumberLike(offer?.currentPrice);
+  if (base === null) return null;
+
+  const shipping = toNumberLike(offer?.shippingCost) ?? 0;
+  const fees = toNumberLike(offer?.fees) ?? 0;
+  const discount = toNumberLike(offer?.discountAmount) ?? 0;
+  const landed = base + shipping + fees - discount;
+  return Number.isFinite(landed) ? Number(landed.toFixed(2)) : null;
+}
+
+function normalizeOffer(offerDoc: any) {
+  const source = offerDoc || {};
+  const matchType = normalizeTextLike(source.matchType)?.toLowerCase() || 'probable';
+  const confidence = toNumberLike(source.matchConfidence);
+  const landedPrice = computeLandedPrice(source);
+
+  return {
+    ...source,
+    matchType,
+    matchConfidence: confidence,
+    landedPrice,
+    isAlternative: toBooleanLike(source.isAlternative, false),
+    membershipRequired: toBooleanLike(source.membershipRequired, false),
+    sellerRating: toNumberLike(source.sellerRating),
+    inStock: toBooleanLike(source.inStock, true),
+    warrantyIncluded: toBooleanLike(source.warrantyIncluded, false),
+    returnWindowDays: toNumberLike(source.returnWindowDays),
+    counterfeitRisk: normalizeTextLike(source.counterfeitRisk) || 'unknown',
+    sellerTrust: normalizeTextLike(source.sellerTrust) || 'unknown',
+  };
+}
+
 // Main API router function
 export const api = onRequest(async (req, res) => {
   // Enable CORS
@@ -336,11 +399,128 @@ export const api = onRequest(async (req, res) => {
           price: entry.newPrice,
           currentPrice: entry.newPrice,
           previousPrice: entry.oldPrice,
+          landedPrice: computeLandedPrice(entry),
           dropPercentage: Math.abs(Number(entry.changePercent) || 0),
           percentDrop: Math.abs(Number(entry.changePercent) || 0),
           store: entry.store || null,
+          inStock: toBooleanLike(entry.inStock, true),
+          availability: normalizeTextLike(entry.availability) || null,
         }));
       sendJson(res, drops);
+    }
+    else if (method === 'GET' && path.match(/^\/api\/items\/[^/]+\/price-intelligence$/)) {
+      const itemId = path.split('/')[3];
+      const itemDoc = await db.collection('wishlistItems').doc(itemId).get();
+
+      if (!itemDoc.exists) {
+        sendError(res, 404, 'Item not found');
+        return;
+      }
+
+      const item = itemDoc.data() || {};
+      const wishlistId = String(item.wishlistId || '').trim();
+      if (!wishlistId) {
+        sendError(res, 404, 'Wishlist not found');
+        return;
+      }
+
+      const wishlistDoc = await db.collection('wishlists').doc(wishlistId).get();
+      if (!wishlistDoc.exists) {
+        sendError(res, 404, 'Wishlist not found');
+        return;
+      }
+
+      const wishlistData = wishlistDoc.data() || {};
+      const isOwner = wishlistData.userId === userId;
+      const collaboratorIds = Array.isArray(wishlistData.collaborators) ? wishlistData.collaborators.map(String) : [];
+      const canView = isOwner || collaboratorIds.includes(String(userId)) || Boolean(wishlistData.isPublic);
+
+      if (!canView) {
+        sendError(res, 403, 'Access denied');
+        return;
+      }
+
+      const offersSnapshot = await db.collection('priceOffers').where('itemId', '==', itemId).limit(150).get();
+      const alternativesSnapshot = await db.collection('itemAlternatives').where('itemId', '==', itemId).limit(100).get();
+
+      const allOffers = offersSnapshot.docs
+        .map((doc) => ({ id: doc.id, ...normalizeOffer(doc.data()) }))
+        .sort((left: any, right: any) => {
+          const leftPrice = left.landedPrice ?? Number.POSITIVE_INFINITY;
+          const rightPrice = right.landedPrice ?? Number.POSITIVE_INFINITY;
+          return leftPrice - rightPrice;
+        });
+
+      const isRetailerSpecific = toBooleanLike(item.isRetailerSpecific, false)
+        || toBooleanLike(item.productIdentity?.isRetailerSpecific, false)
+        || toBooleanLike(item.offerTracking?.retailerSpecificOnly, false);
+      const sourceStore = normalizeTextLike(item.store || item.productIdentity?.sourceRetailer);
+
+      const scopedIdenticalOffers = allOffers.filter((offer: any) => {
+        if (offer.isAlternative) return false;
+        if (isRetailerSpecific && sourceStore) {
+          return normalizeTextLike(offer.store)?.toLowerCase() === sourceStore.toLowerCase();
+        }
+        return true;
+      });
+
+      const identicalOffers = scopedIdenticalOffers.filter((offer: any) =>
+        offer.matchType === 'exact' || offer.matchType === 'strong' || offer.matchType === 'probable'
+      );
+      const highConfidenceIdentical = identicalOffers.filter((offer: any) =>
+        offer.matchType === 'exact' || offer.matchType === 'strong'
+      );
+
+      const alternativesFromOffers = allOffers.filter((offer: any) => offer.isAlternative);
+      const alternativesFromCollection = alternativesSnapshot.docs.map((doc) => {
+        const data = doc.data() || {};
+        return {
+          id: doc.id,
+          ...data,
+          rationale: normalizeTextLike(data.rationale) || 'Similar specs and value profile',
+          qualityBand: normalizeTextLike(data.qualityBand) || 'comparable',
+          similarityScore: toNumberLike(data.similarityScore),
+          landedPrice: computeLandedPrice(data),
+          store: normalizeTextLike(data.store),
+          inStock: toBooleanLike(data.inStock, true),
+        };
+      });
+
+      const alternatives = [...alternativesFromOffers, ...alternativesFromCollection]
+        .sort((left: any, right: any) => {
+          const rightSimilarity = toNumberLike(right.similarityScore) ?? 0;
+          const leftSimilarity = toNumberLike(left.similarityScore) ?? 0;
+          if (rightSimilarity !== leftSimilarity) return rightSimilarity - leftSimilarity;
+          const leftPrice = left.landedPrice ?? Number.POSITIVE_INFINITY;
+          const rightPrice = right.landedPrice ?? Number.POSITIVE_INFINITY;
+          return leftPrice - rightPrice;
+        })
+        .slice(0, 20);
+
+      const basePrice = toNumberLike(item.numericPrice) ?? toNumberLike(item.price) ?? null;
+      const bestIdentical = highConfidenceIdentical[0] || identicalOffers[0] || null;
+
+      sendJson(res, {
+        itemId,
+        title: item.title || null,
+        basePrice,
+        isRetailerSpecific,
+        sourceRetailer: sourceStore,
+        sections: {
+          bestIdenticalOffer: bestIdentical,
+          identicalOffers: identicalOffers.slice(0, 30),
+          alternatives,
+        },
+        confidencePolicy: {
+          bestDealEligibleMatchTypes: ['exact', 'strong'],
+          probableShownSeparately: true,
+        },
+        metadata: {
+          checkedAt: new Date().toISOString(),
+          offersConsidered: allOffers.length,
+          alternativesConsidered: alternatives.length,
+        },
+      });
     }
     else if (method === 'GET' && path === '/api/wishlist-items') {
       const wishlistsSnapshot = await db.collection('wishlists').where('userId', '==', userId).limit(100).get();
@@ -415,7 +595,30 @@ export const api = onRequest(async (req, res) => {
     }
     else if (method === 'POST' && path === '/api/extension/items') {
       // POST /api/extension/items - Add item to wishlist
-      const { wishlistId, title, productUrl, imageUrl, price, store, addedAt } = req.body;
+      const {
+        wishlistId,
+        title,
+        productUrl,
+        imageUrl,
+        price,
+        store,
+        addedAt,
+        brand,
+        model,
+        manufacturer,
+        sku,
+        mpn,
+        upc,
+        ean,
+        color,
+        size,
+        packSize,
+        variant,
+        description,
+        isRetailerSpecific,
+        retailerSpecificReason,
+        desiredCondition,
+      } = req.body;
       
       if (!wishlistId || !title) {
         sendError(res, 400, 'Wishlist ID and title are required');
@@ -444,7 +647,32 @@ export const api = onRequest(async (req, res) => {
         productUrl: productUrl || null,
         imageUrl: imageUrl || null,
         price: price || null,
+        numericPrice: toNumberLike(price),
         store: store || null,
+        description: description || null,
+        isRetailerSpecific: toBooleanLike(isRetailerSpecific, false),
+        retailerSpecificReason: retailerSpecificReason || null,
+        productIdentity: {
+          brand: normalizeTextLike(brand),
+          model: normalizeTextLike(model),
+          manufacturer: normalizeTextLike(manufacturer),
+          sku: normalizeTextLike(sku),
+          mpn: normalizeTextLike(mpn),
+          upc: normalizeTextLike(upc),
+          ean: normalizeTextLike(ean),
+          color: normalizeTextLike(color),
+          size: normalizeTextLike(size),
+          packSize: normalizeTextLike(packSize),
+          variant: normalizeTextLike(variant),
+          sourceRetailer: normalizeTextLike(store),
+          isRetailerSpecific: toBooleanLike(isRetailerSpecific, false),
+        },
+        offerTracking: {
+          preferredCheckCadence: 'normal',
+          desiredCondition: normalizeTextLike(desiredCondition) || 'new',
+          retailerSpecificOnly: toBooleanLike(isRetailerSpecific, false),
+          matchTypesEligibleForBestDeal: ['exact', 'strong'],
+        },
         note: req.body?.note || '',
         purchased: false,
         reserved: false,

@@ -151,6 +151,34 @@ interface WishlistItem {
 
   // Pricing Information
   price?: string | number | null;       // Stored as string or number
+  numericPrice?: number | null;         // Normalized numeric price for comparisons
+
+  // Product Identity (for exact/strong/probable matching)
+  productIdentity?: {
+    brand?: string | null;
+    model?: string | null;
+    manufacturer?: string | null;
+    sku?: string | null;
+    mpn?: string | null;
+    upc?: string | null;
+    ean?: string | null;
+    color?: string | null;
+    size?: string | null;
+    packSize?: string | null;
+    variant?: string | null;
+    sourceRetailer?: string | null;
+    isRetailerSpecific?: boolean;
+  };
+
+  // Offer Intelligence Controls
+  isRetailerSpecific?: boolean;
+  retailerSpecificReason?: string | null;
+  offerTracking?: {
+    preferredCheckCadence?: "high" | "normal" | "low";
+    desiredCondition?: "new" | "refurbished" | "used";
+    retailerSpecificOnly?: boolean;
+    matchTypesEligibleForBestDeal?: Array<"exact" | "strong">;
+  };
 
   // Priority & Notes
   priority?: number;                    // Default: 1
@@ -211,6 +239,12 @@ interface PriceHistory {
   
   retailer: string;
   productUrl: string;
+  shippingCost?: number;
+  fees?: number;
+  discountAmount?: number;
+  totalPrice?: number;                  // Landed price: price + shipping + fees - discounts
+  inStock?: boolean;
+  availability?: string;
   
   // Tracking metadata
   source: "manual" | "automated" | "api" | "scraper";
@@ -230,7 +264,89 @@ interface PriceHistory {
 
 ---
 
-### 5. Notifications Collection
+### 5. PriceOffers Collection
+
+**Path**: `/priceOffers/{offerId}`
+
+**Purpose**: Stores current offer snapshots for an item across retailers/manufacturers.
+
+**Document Structure**:
+```typescript
+interface PriceOffer {
+  id: string;
+  itemId: string;
+  title?: string;
+  store?: string;
+
+  // Matching confidence
+  matchType: "exact" | "strong" | "probable";
+  matchConfidence?: number;             // 0..1
+  isAlternative?: boolean;
+
+  // Pricing breakdown
+  price?: number;
+  shippingCost?: number;
+  fees?: number;
+  discountAmount?: number;
+  totalPrice?: number;                  // Landed price
+
+  // Quality/trust factors
+  inStock?: boolean;
+  membershipRequired?: boolean;
+  sellerRating?: number;
+  sellerTrust?: "high" | "medium" | "low" | "unknown";
+  counterfeitRisk?: "low" | "medium" | "high" | "unknown";
+  warrantyIncluded?: boolean;
+  returnWindowDays?: number;
+
+  createdAt: Timestamp;
+  updatedAt?: Timestamp;
+}
+```
+
+**Indexes**:
+- `itemId` + `matchType`
+- `itemId` + `isAlternative`
+- `itemId` + `totalPrice`
+
+---
+
+### 6. ItemAlternatives Collection
+
+**Path**: `/itemAlternatives/{alternativeId}`
+
+**Purpose**: Stores curated or model-generated alternatives with rationale and quality band.
+
+**Document Structure**:
+```typescript
+interface ItemAlternative {
+  id: string;
+  itemId: string;
+  title: string;
+  store?: string;
+  similarityScore?: number;             // 0..1
+  qualityBand?: "budget" | "comparable" | "premium";
+  rationale?: string;
+
+  // Optional pricing
+  price?: number;
+  shippingCost?: number;
+  fees?: number;
+  discountAmount?: number;
+  totalPrice?: number;
+
+  inStock?: boolean;
+  createdAt: Timestamp;
+}
+```
+
+**Indexes**:
+- `itemId` + `similarityScore` (descending)
+- `itemId` + `createdAt` (descending)
+
+---
+
+### 7. Notifications Collection
 
 **Path**: `/notifications/{notificationId}`
 

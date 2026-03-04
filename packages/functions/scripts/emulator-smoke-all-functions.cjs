@@ -2607,6 +2607,53 @@ async function runApiRouterContractChecks(fixtureContext) {
     },
   });
 
+  await callCallableExpectSuccess('createDocument', fixtureContext.user.idToken, {
+    collection: 'priceOffers',
+    data: {
+      itemId: fixtureContext.ids.itemId,
+      matchType: 'exact',
+      matchConfidence: 0.98,
+      store: 'Exact Match Store',
+      price: 39.99,
+      shippingCost: 0,
+      fees: 0,
+      discountAmount: 0,
+      inStock: true,
+      createdAt: new Date().toISOString(),
+    },
+  });
+
+  await callCallableExpectSuccess('createDocument', fixtureContext.user.idToken, {
+    collection: 'priceOffers',
+    data: {
+      itemId: fixtureContext.ids.itemId,
+      isAlternative: true,
+      similarityScore: 0.87,
+      title: 'Alternative Item A',
+      store: 'Alternative Store',
+      price: 31.5,
+      shippingCost: 2.5,
+      inStock: true,
+      createdAt: new Date().toISOString(),
+    },
+  });
+
+  await callCallableExpectSuccess('createDocument', fixtureContext.user.idToken, {
+    collection: 'itemAlternatives',
+    data: {
+      itemId: fixtureContext.ids.itemId,
+      title: 'Alternative Item B',
+      similarityScore: 0.82,
+      rationale: 'Similar features with lower price',
+      qualityBand: 'comparable',
+      store: 'Fallback Store',
+      price: 34.75,
+      shippingCost: 0,
+      inStock: true,
+      createdAt: new Date().toISOString(),
+    },
+  });
+
   const apiPriceAlerts = await invokeHttp('api', {
     method: 'GET',
     pathSuffix: '/api/price-alerts',
@@ -2752,6 +2799,95 @@ async function runApiRouterContractChecks(fixtureContext) {
           status: 'failed',
           message: `Expected HTTP 404/405, got ${apiPriceDropsWrongMethod.httpStatus ?? apiPriceDropsWrongMethod.message}`,
           httpStatus: apiPriceDropsWrongMethod.httpStatus,
+        }),
+  });
+
+  const apiPriceIntelligenceResponse = await fetch(
+    `http://${functionsHost}/${projectId}/${region}/api/api/items/${encodeURIComponent(String(fixtureContext.ids.itemId))}/price-intelligence`,
+    {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${fixtureContext.user.idToken}`,
+      },
+    }
+  );
+  let apiPriceIntelligenceJson = null;
+  try {
+    apiPriceIntelligenceJson = await apiPriceIntelligenceResponse.json();
+  } catch (_) {
+    apiPriceIntelligenceJson = null;
+  }
+
+  checks.push({
+    endpoint: 'contract:api-router:price-intelligence-shape',
+    type: 'contract',
+    ...(apiPriceIntelligenceResponse.status === 200
+      && apiPriceIntelligenceJson
+      && typeof apiPriceIntelligenceJson.itemId === 'string'
+      && apiPriceIntelligenceJson.sections
+      && Array.isArray(apiPriceIntelligenceJson.sections.identicalOffers)
+      && Array.isArray(apiPriceIntelligenceJson.sections.alternatives)
+      ? { status: 'passed', message: 'API router price-intelligence returns expected sectioned payload shape' }
+      : {
+          status: 'failed',
+          message: `Expected HTTP 200 with sectioned payload shape, got ${apiPriceIntelligenceResponse.status}`,
+          httpStatus: apiPriceIntelligenceResponse.status,
+        }),
+  });
+
+  checks.push({
+    endpoint: 'contract:api-router:price-intelligence-best-identical',
+    type: 'contract',
+    ...(apiPriceIntelligenceResponse.status === 200
+      && apiPriceIntelligenceJson
+      && apiPriceIntelligenceJson.sections
+      && apiPriceIntelligenceJson.sections.bestIdenticalOffer
+      && ['exact', 'strong', 'probable'].includes(String(apiPriceIntelligenceJson.sections.bestIdenticalOffer.matchType || ''))
+      ? { status: 'passed', message: 'API router price-intelligence includes a best identical offer candidate' }
+      : {
+          status: 'failed',
+          message: `Expected best identical offer in response, got HTTP ${apiPriceIntelligenceResponse.status}`,
+          httpStatus: apiPriceIntelligenceResponse.status,
+        }),
+  });
+
+  const apiPriceIntelligenceMissing = await invokeHttp('api', {
+    method: 'GET',
+    pathSuffix: '/api/items/non-existent-item/price-intelligence',
+    headers: {
+      Authorization: `Bearer ${fixtureContext.user.idToken}`,
+    },
+  });
+  checks.push({
+    endpoint: 'contract:api-router:price-intelligence-missing-item',
+    type: 'contract',
+    ...(apiPriceIntelligenceMissing.httpStatus === 404
+      ? { status: 'passed', message: 'API router price-intelligence returns not found for missing items' }
+      : {
+          status: 'failed',
+          message: `Expected HTTP 404, got ${apiPriceIntelligenceMissing.httpStatus ?? apiPriceIntelligenceMissing.message}`,
+          httpStatus: apiPriceIntelligenceMissing.httpStatus,
+        }),
+  });
+
+  const apiPriceIntelligenceWrongMethod = await invokeHttp('api', {
+    method: 'POST',
+    pathSuffix: `/api/items/${encodeURIComponent(String(fixtureContext.ids.itemId))}/price-intelligence`,
+    headers: {
+      Authorization: `Bearer ${fixtureContext.user.idToken}`,
+    },
+    body: {},
+  });
+  checks.push({
+    endpoint: 'contract:api-router:price-intelligence-method-not-allowed',
+    type: 'contract',
+    ...([404, 405].includes(apiPriceIntelligenceWrongMethod.httpStatus || 0)
+      ? { status: 'passed', message: 'API router price-intelligence route rejects unsupported HTTP methods' }
+      : {
+          status: 'failed',
+          message: `Expected HTTP 404/405, got ${apiPriceIntelligenceWrongMethod.httpStatus ?? apiPriceIntelligenceWrongMethod.message}`,
+          httpStatus: apiPriceIntelligenceWrongMethod.httpStatus,
         }),
   });
 
@@ -3058,6 +3194,11 @@ async function runApiRouterContractChecks(fixtureContext) {
     {
       endpoint: 'contract:api-router:wishlist-items-list-options-preflight',
       pathSuffix: '/api/wishlist-items',
+      requestMethod: 'GET',
+    },
+    {
+      endpoint: 'contract:api-router:price-intelligence-options-preflight',
+      pathSuffix: `/api/items/${encodeURIComponent(String(fixtureContext.ids.itemId || 'missing-id'))}/price-intelligence`,
       requestMethod: 'GET',
     },
   ];
