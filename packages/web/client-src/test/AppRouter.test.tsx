@@ -119,7 +119,7 @@ describe('AppRouter Smoke Tests', () => {
       render(<AppRouter />);
 
       await waitFor(() => {
-        expect(sessionStorage.getItem('redirectAfterAuth')).toBe('/dashboard');
+        expect(sessionStorage.getItem('redirectAfterAuth')).toBe('/app/dashboard');
       });
     });
   });
