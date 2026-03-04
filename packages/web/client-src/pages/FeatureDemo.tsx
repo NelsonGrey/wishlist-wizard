@@ -35,7 +35,7 @@ const featureConfigs: Record<FeatureKey, FeatureConfig> = {
     screenshotAlt: "Mobile app feature screenshot",
     demoCtaLabel: "Explore Mobile Demo",
     appCtaLabel: "Open App Dashboard",
-    appHref: "/dashboard"
+    appHref: "/app/dashboard"
   },
   "social-integration": {
     title: "Social Integration",
@@ -51,7 +51,7 @@ const featureConfigs: Record<FeatureKey, FeatureConfig> = {
     screenshotAlt: "Social integration feature screenshot",
     demoCtaLabel: "View Social Demo",
     appCtaLabel: "Open Dashboard",
-    appHref: "/dashboard"
+    appHref: "/app/dashboard"
   },
   "price-tracking": {
     title: "Price Tracking",
@@ -83,7 +83,7 @@ const featureConfigs: Record<FeatureKey, FeatureConfig> = {
     screenshotAlt: "Calendar integration feature screenshot",
     demoCtaLabel: "View Calendar Demo",
     appCtaLabel: "Open Calendar",
-    appHref: "/calendar"
+    appHref: "/app/calendar"
   },
   "advanced-user-profiles": {
     title: "Advanced User Profiles",
@@ -99,7 +99,7 @@ const featureConfigs: Record<FeatureKey, FeatureConfig> = {
     screenshotAlt: "Advanced user profiles feature screenshot",
     demoCtaLabel: "View Profile Demo",
     appCtaLabel: "Open User Profile",
-    appHref: "/user-profile"
+    appHref: "/app/user-profile"
   },
   "ai-gift-recommendations": {
     title: "AI Gift Recommendations",
@@ -115,7 +115,7 @@ const featureConfigs: Record<FeatureKey, FeatureConfig> = {
     screenshotAlt: "AI gift recommendations feature screenshot",
     demoCtaLabel: "View AI Demo",
     appCtaLabel: "Open Recommendations",
-    appHref: "/recommendations"
+    appHref: "/app/recommendations"
   }
 };
 

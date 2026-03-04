@@ -467,7 +467,7 @@ const Calendar: React.FC = () => {
                     size="sm"
                     onClick={(clickEvent) => {
                       clickEvent.stopPropagation();
-                      setLocation(`/wishlists/${event.wishlistId}`);
+                      setLocation(`/app/wishlist/${event.wishlistId}`);
                     }}
                   >
                     Open Wishlist
@@ -557,7 +557,7 @@ const Calendar: React.FC = () => {
                     size="sm"
                     onClick={(clickEvent) => {
                       clickEvent.stopPropagation();
-                      setLocation(`/wishlists/${event.wishlistId}`);
+                      setLocation(`/app/wishlist/${event.wishlistId}`);
                     }}
                   >
                     Open Wishlist

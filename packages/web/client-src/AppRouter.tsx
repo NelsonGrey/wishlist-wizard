@@ -118,7 +118,7 @@ function AppRouter() {
 
                   {/* App Pages - Authenticated Portal */}
                   <Route
-                    path="/dashboard"
+                    path="/app/dashboard"
                     component={() => (
                       <ProtectedRoute requireAuth>
                         <Dashboard />
@@ -126,7 +126,7 @@ function AppRouter() {
                     )}
                   />
                   <Route
-                    path="/wishlists"
+                    path="/app/wishlists"
                     component={() => (
                       <ProtectedRoute requireAuth>
                         <Dashboard />
@@ -134,7 +134,7 @@ function AppRouter() {
                     )}
                   />
                   <Route
-                    path="/dashboard-firebase"
+                    path="/app/dashboard-firebase"
                     component={() => (
                       <ProtectedRoute requireAuth>
                         <DashboardFirebase />
@@ -142,13 +142,84 @@ function AppRouter() {
                     )}
                   />
                   <Route
-                    path="/user-profile"
+                    path="/app/user-profile"
                     component={() => (
                       <ProtectedRoute requireAuth>
                         <UserProfile />
                       </ProtectedRoute>
                     )}
                   />
+                  <Route
+                    path="/app/wishlist/:id"
+                    component={() => (
+                      <ProtectedRoute requireAuth>
+                        <WishlistDetail />
+                      </ProtectedRoute>
+                    )}
+                  />
+                  <Route
+                    path="/app/wishlists/:id"
+                    component={() => (
+                      <ProtectedRoute requireAuth>
+                        <WishlistDetail />
+                      </ProtectedRoute>
+                    )}
+                  />
+                  <Route
+                    path="/app/recommendations"
+                    component={() => (
+                      <ProtectedRoute requireAuth>
+                        <Recommendations />
+                      </ProtectedRoute>
+                    )}
+                  />
+                  <Route
+                    path="/app/price-tracking"
+                    component={() => (
+                      <ProtectedRoute requireAuth>
+                        <PriceTracking />
+                      </ProtectedRoute>
+                    )}
+                  />
+                  <Route
+                    path="/app/calendar"
+                    component={() => (
+                      <ProtectedRoute requireAuth>
+                        <Calendar />
+                      </ProtectedRoute>
+                    )}
+                  />
+                  <Route
+                    path="/app/notifications"
+                    component={() => (
+                      <ProtectedRoute requireAuth>
+                        <Notifications />
+                      </ProtectedRoute>
+                    )}
+                  />
+                  <Route
+                    path="/app/privacy-settings"
+                    component={() => (
+                      <ProtectedRoute requireAuth>
+                        <PrivacySettings />
+                      </ProtectedRoute>
+                    )}
+                  />
+                  <Route path="/shared/:shareId" component={SharedWishlist} />
+                  <Route
+                    path="/app/analytics"
+                    component={() => (
+                      <ProtectedRoute requireAuth>
+                        <Analytics />
+                      </ProtectedRoute>
+                    )}
+                  />
+
+                  {/* Legacy Authenticated Routes -> canonical /app namespace */}
+                  <Route path="/dashboard" component={() => <Redirect to="/app/dashboard" />} />
+                  <Route path="/wishlists" component={() => <Redirect to="/app/wishlists" />} />
+                  <Route path="/dashboard-firebase" component={() => <Redirect to="/app/dashboard-firebase" />} />
+                  <Route path="/user-profile" component={() => <Redirect to="/app/user-profile" />} />
                   <Route
                     path="/wishlist/:id"
                     component={() => (
@@ -165,55 +236,11 @@ function AppRouter() {
                       </ProtectedRoute>
                     )}
                   />
-                  <Route
-                    path="/recommendations"
-                    component={() => (
-                      <ProtectedRoute requireAuth>
-                        <Recommendations />
-                      </ProtectedRoute>
-                    )}
-                  />
-                  <Route
-                    path="/app/price-tracking"
-                    component={() => (
-                      <ProtectedRoute requireAuth>
-                        <PriceTracking />
-                      </ProtectedRoute>
-                    )}
-                  />
-                  <Route
-                    path="/calendar"
-                    component={() => (
-                      <ProtectedRoute requireAuth>
-                        <Calendar />
-                      </ProtectedRoute>
-                    )}
-                  />
-                  <Route
-                    path="/notifications"
-                    component={() => (
-                      <ProtectedRoute requireAuth>
-                        <Notifications />
-                      </ProtectedRoute>
-                    )}
-                  />
-                  <Route
-                    path="/privacy-settings"
-                    component={() => (
-                      <ProtectedRoute requireAuth>
-                        <PrivacySettings />
-                      </ProtectedRoute>
-                    )}
-                  />
-                  <Route path="/shared/:shareId" component={SharedWishlist} />
-                  <Route
-                    path="/analytics"
-                    component={() => (
-                      <ProtectedRoute requireAuth>
-                        <Analytics />
-                      </ProtectedRoute>
-                    )}
-                  />
+                  <Route path="/recommendations" component={() => <Redirect to="/app/recommendations" />} />
+                  <Route path="/calendar" component={() => <Redirect to="/app/calendar" />} />
+                  <Route path="/notifications" component={() => <Redirect to="/app/notifications" />} />
+                  <Route path="/privacy-settings" component={() => <Redirect to="/app/privacy-settings" />} />
+                  <Route path="/analytics" component={() => <Redirect to="/app/analytics" />} />
 
                   {/* 404 */}
                   <Route component={NotFound} />

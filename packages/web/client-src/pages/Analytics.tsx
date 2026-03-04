@@ -216,7 +216,7 @@ export default function Analytics() {
                 category="analytics"
                 action="navigation"
                 label="dashboard_from_overview"
-                href="/dashboard"
+                href="/app/dashboard"
                 className="text-emerald-700 hover:text-emerald-800 hover:underline"
               >
                 Go to Dashboard

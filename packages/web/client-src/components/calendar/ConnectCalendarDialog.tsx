@@ -83,7 +83,7 @@ export function ConnectCalendarDialog({ onConnect }: ConnectCalendarDialogProps)
         description: 'Authorization was not completed.',
         variant: 'destructive',
       });
-      window.history.replaceState({}, document.title, '/calendar');
+      window.history.replaceState({}, document.title, '/app/calendar');
       return;
     }
 
@@ -97,7 +97,7 @@ export function ConnectCalendarDialog({ onConnect }: ConnectCalendarDialogProps)
       redirectUri,
     });
 
-    window.history.replaceState({}, document.title, '/calendar');
+    window.history.replaceState({}, document.title, '/app/calendar');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [redirectUri]);
   

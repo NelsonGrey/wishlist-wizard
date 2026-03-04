@@ -46,7 +46,7 @@ export default function Login() {
       await signIn(data.email.trim(), data.password);
 
       const storedRedirect = sessionStorage.getItem('redirectAfterAuth');
-      const redirectTo = storedRedirect || '/dashboard';
+      const redirectTo = storedRedirect || '/app/dashboard';
       sessionStorage.removeItem('redirectAfterAuth');
       
       toast({

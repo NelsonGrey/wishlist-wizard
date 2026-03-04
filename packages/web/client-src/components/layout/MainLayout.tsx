@@ -70,10 +70,10 @@ export default function MainLayout({ children }: MainLayoutProps) {
   
   // Define navigation items
   const navItems = [
-    { name: 'Home', href: '/dashboard', icon: <Home className="h-5 w-5" /> },
-    { name: 'Recommendations', href: '/recommendations', icon: <Sparkles className="h-5 w-5" /> },
+    { name: 'Home', href: '/app/dashboard', icon: <Home className="h-5 w-5" /> },
+    { name: 'Recommendations', href: '/app/recommendations', icon: <Sparkles className="h-5 w-5" /> },
     { name: 'Price Tracking', href: '/price-tracking', icon: <LineChart className="h-5 w-5" /> },
-    { name: 'Calendar', href: '/calendar', icon: <Calendar className="h-5 w-5" /> },
+    { name: 'Calendar', href: '/app/calendar', icon: <Calendar className="h-5 w-5" /> },
   ];
 
   return (
@@ -110,7 +110,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
             {currentUser ? (
               <>
                 {/* Notifications */}
-                <Link href="/notifications" className="relative p-2 rounded-full hover:bg-gray-100 transition-colors">
+                <Link href="/app/notifications" className="relative p-2 rounded-full hover:bg-gray-100 transition-colors">
                   <Bell className="h-5 w-5 text-gray-700" />
                   {unreadCount > 0 && (
                     <span className="absolute -top-0.5 -right-0.5 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
@@ -139,13 +139,13 @@ export default function MainLayout({ children }: MainLayoutProps) {
                     </div>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem asChild>
-                      <Link href="/user-profile" className="flex w-full cursor-pointer items-center">
+                      <Link href="/app/user-profile" className="flex w-full cursor-pointer items-center">
                         <User className="h-4 w-4 mr-2 opacity-70" />
                         Profile
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
-                      <Link href="/privacy-settings" className="flex w-full cursor-pointer items-center">
+                      <Link href="/app/privacy-settings" className="flex w-full cursor-pointer items-center">
                         <Settings className="h-4 w-4 mr-2 opacity-70" />
                         Settings
                       </Link>
