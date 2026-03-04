@@ -102,12 +102,12 @@ function AppRouter() {
                     <Route path="/cookie-policy" component={CookiePolicy} />
                     <Route path="/mobile-app-demo" component={() => <FeatureDemo feature="mobile-app" />} />
                     <Route path="/social-integration-demo" component={() => <FeatureDemo feature="social-integration" />} />
-                    <Route path="/price-tracking-demo" component={() => <Redirect to="/app/price-tracking" />} />
-                    <Route path="/calendar-integration-demo" component={() => <Redirect to="/calendar" />} />
+                    <Route path="/price-tracking-demo" component={() => <FeatureDemo feature="price-tracking" />} />
+                    <Route path="/calendar-integration-demo" component={() => <FeatureDemo feature="calendar-integration" />} />
                     <Route path="/advanced-user-profiles-demo" component={() => <FeatureDemo feature="advanced-user-profiles" />} />
-                    <Route path="/ai-gift-recommendations-demo" component={() => <Redirect to="/recommendations" />} />
+                    <Route path="/ai-gift-recommendations-demo" component={() => <FeatureDemo feature="ai-gift-recommendations" />} />
                     {/* Redirect legacy marketing route to product feature */}
-                    <Route path="/price-tracking" component={() => <Redirect to="/app/price-tracking" />} />
+                    <Route path="/price-tracking" component={() => <Redirect to="/price-tracking-demo" />} />
 
                   {/* Auth Pages */}
                   <Route path="/login" component={Login} />
