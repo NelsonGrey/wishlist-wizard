@@ -783,6 +783,49 @@ export const api = onRequest(async (req, res) => {
       const sourceStore = normalizeTextLike(item.store || item.productIdentity?.sourceRetailer);
       const sourceStoreKey = normalizeRetailerKey(sourceStore);
 
+      // If external offer ingestion has not populated priceOffers yet,
+      // synthesize a baseline exact offer from the source wishlist item.
+      const sourcePrice = toNumberLike(item.numericPrice) ?? toNumberLike(item.price);
+      const sourceLandedPrice = Number.isFinite(sourcePrice as number) ? Number((sourcePrice as number).toFixed(2)) : null;
+      const hasSourceOffer = allOffers.some((offer: any) => {
+        const sameStore = normalizeRetailerKey(offer.store) === sourceStoreKey;
+        const offerPrice = toNumberLike(offer.landedPrice) ?? toNumberLike(offer.price);
+        const samePrice = offerPrice !== null
+          && sourceLandedPrice !== null
+          && Math.abs(offerPrice - sourceLandedPrice) < 0.01;
+        return Boolean(sameStore && samePrice);
+      });
+
+      if (sourceStore && sourceLandedPrice !== null && !hasSourceOffer) {
+        allOffers.push(normalizeOffer({
+          id: `source-${itemId}`,
+          itemId,
+          title: item.title || null,
+          store: sourceStore,
+          productUrl: normalizeTextLike(item.productUrl || item.url || item.link),
+          price: sourceLandedPrice,
+          totalPrice: sourceLandedPrice,
+          shippingCost: 0,
+          fees: 0,
+          discountAmount: 0,
+          matchType: 'exact',
+          matchConfidence: 1,
+          inStock: true,
+          isAlternative: false,
+          sellerTrust: 'high',
+          counterfeitRisk: 'low',
+          warrantyIncluded: true,
+          returnWindowDays: 30,
+          source: 'wishlist-item-baseline',
+        }));
+      }
+
+      allOffers.sort((left: any, right: any) => {
+        const leftPrice = left.landedPrice ?? Number.POSITIVE_INFINITY;
+        const rightPrice = right.landedPrice ?? Number.POSITIVE_INFINITY;
+        return leftPrice - rightPrice;
+      });
+
       const scopedIdenticalOffers = allOffers.filter((offer: any) => {
         if (offer.isAlternative) return false;
         if (isRetailerSpecific && sourceStoreKey) {
