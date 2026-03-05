@@ -105,6 +105,11 @@ type PriceIntelligenceResponse = {
     checkedAt?: string;
     offersConsidered?: number;
     alternativesConsidered?: number;
+    retailerScopeMode?: "source-only" | "all-retailers";
+    scopedRetailerCount?: number;
+    hasExternalMarketOffers?: boolean;
+    hasSyntheticSourceBaseline?: boolean;
+    marketCoverage?: "multi-retailer" | "single-retailer" | "baseline-only" | "no-offers";
   };
 };
 
@@ -296,6 +301,8 @@ export default function PriceTracking() {
   const identicalOffers = intelligence?.sections?.identicalOffers || [];
   const probableOffers = identicalOffers.filter((offer) => String(offer.matchType || "").toLowerCase() === "probable");
   const alternatives = intelligence?.sections?.alternatives || [];
+  const marketCoverage = intelligence?.metadata?.marketCoverage;
+  const retailerScopeMode = intelligence?.metadata?.retailerScopeMode;
 
   return (
     <>
@@ -506,6 +513,18 @@ export default function PriceTracking() {
                   </div>
                 )}
 
+                {selectedItemId && !isLoadingIntelligence && intelligence && marketCoverage === "baseline-only" && (
+                  <p className="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-md px-3 py-2">
+                    Showing baseline price from the source retailer only. Competitive cross-retailer offers are not yet available for this item.
+                  </p>
+                )}
+
+                {selectedItemId && !isLoadingIntelligence && intelligence && marketCoverage === "no-offers" && (
+                  <p className="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-md px-3 py-2">
+                    No offer data is available yet for this item. Intelligence will expand as market offers are collected.
+                  </p>
+                )}
+
                 {selectedItemId && !isLoadingIntelligence && intelligence && (
                   <div className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -551,6 +570,10 @@ export default function PriceTracking() {
                             <Badge variant={intelligence.isRetailerSpecific ? "default" : "secondary"}>
                               {intelligence.isRetailerSpecific ? "Yes" : "No"}
                             </Badge>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm text-muted-foreground">Scope mode</span>
+                            <span className="font-medium">{retailerScopeMode === "source-only" ? "Source retailer only" : "All retailers"}</span>
                           </div>
                           <div className="flex items-center justify-between">
                             <span className="text-sm text-muted-foreground">Source retailer</span>

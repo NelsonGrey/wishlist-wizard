@@ -870,6 +870,15 @@ export const api = onRequest(async (req, res) => {
 
       const basePrice = toNumberLike(item.numericPrice) ?? toNumberLike(item.price) ?? null;
       const bestIdentical = highConfidenceIdentical[0] || identicalOffers[0] || null;
+      const scopedStoreKeys = new Set(
+        scopedIdenticalOffers
+          .map((offer: any) => normalizeRetailerKey(offer.store))
+          .filter((value: string | null): value is string => Boolean(value))
+      );
+      const hasSyntheticSourceBaseline = allOffers.some((offer: any) =>
+        normalizeTextLike(offer.source) === 'wishlist-item-baseline'
+      );
+      const hasExternalMarketOffers = offersSnapshot.size > 0;
 
       sendJson(res, {
         itemId,
@@ -890,6 +899,13 @@ export const api = onRequest(async (req, res) => {
           checkedAt: new Date().toISOString(),
           offersConsidered: allOffers.length,
           alternativesConsidered: alternatives.length,
+          retailerScopeMode: isRetailerSpecific ? 'source-only' : 'all-retailers',
+          scopedRetailerCount: scopedStoreKeys.size,
+          hasExternalMarketOffers,
+          hasSyntheticSourceBaseline,
+          marketCoverage: hasExternalMarketOffers
+            ? (scopedStoreKeys.size > 1 ? 'multi-retailer' : 'single-retailer')
+            : (hasSyntheticSourceBaseline ? 'baseline-only' : 'no-offers'),
         },
       });
     }
