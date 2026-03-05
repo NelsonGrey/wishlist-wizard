@@ -60,7 +60,7 @@ export const getUserWishlists = onCall(publicCallableOptions, async (request: Ca
  * Get Wishlist by ID
  * Replaces: GET /api/wishlists/:id
  */
-export const getWishlistById = onCall(async (request: CallableRequest) => {
+export const getWishlistById = onCall(publicCallableOptions, async (request: CallableRequest) => {
   if (!request.auth) {
     throw new HttpsError('unauthenticated', 'User must be authenticated');
   }
@@ -101,7 +101,7 @@ export const getWishlistById = onCall(async (request: CallableRequest) => {
  * Get Shared Wishlist by Share ID
  * Replaces: GET /api/shared/:shareId
  */
-export const getSharedWishlist = onCall(async (request: CallableRequest) => {
+export const getSharedWishlist = onCall(publicCallableOptions, async (request: CallableRequest) => {
   const { shareId } = request.data;
   if (!shareId) {
     throw new HttpsError('invalid-argument', 'Share ID is required');
@@ -216,7 +216,7 @@ export const createWishlist = onCall(publicCallableOptions, async (request: Call
  * Update Wishlist
  * Replaces: PATCH /api/wishlists/:id
  */
-export const updateWishlist = onCall(async (request: CallableRequest) => {
+export const updateWishlist = onCall(publicCallableOptions, async (request: CallableRequest) => {
   if (!request.auth) {
     throw new HttpsError('unauthenticated', 'User must be authenticated');
   }
@@ -290,7 +290,7 @@ export const updateWishlist = onCall(async (request: CallableRequest) => {
  * Delete Wishlist
  * Replaces: DELETE /api/wishlists/:id
  */
-export const deleteWishlist = onCall(async (request: CallableRequest) => {
+export const deleteWishlist = onCall(publicCallableOptions, async (request: CallableRequest) => {
   if (!request.auth) {
     throw new HttpsError('unauthenticated', 'User must be authenticated');
   }
@@ -340,7 +340,7 @@ export const deleteWishlist = onCall(async (request: CallableRequest) => {
  * Get Wishlist Items
  * Replaces: GET /api/wishlists/:id/items
  */
-export const getWishlistItems = onCall(async (request: CallableRequest) => {
+export const getWishlistItems = onCall(publicCallableOptions, async (request: CallableRequest) => {
   if (!request.auth) {
     throw new HttpsError('unauthenticated', 'User must be authenticated');
   }
@@ -390,7 +390,7 @@ export const getWishlistItems = onCall(async (request: CallableRequest) => {
  * Add Item to Wishlist
  * Replaces: POST /api/items
  */
-export const addWishlistItem = onCall(async (request: CallableRequest) => {
+export const addWishlistItem = onCall(publicCallableOptions, async (request: CallableRequest) => {
   if (!request.auth) {
     throw new HttpsError('unauthenticated', 'User must be authenticated');
   }
@@ -477,7 +477,7 @@ export const addWishlistItem = onCall(async (request: CallableRequest) => {
  * Reserve Wishlist Item
  * Replaces: POST /api/items/:id/reserve
  */
-export const reserveWishlistItem = onCall(async (request: CallableRequest) => {
+export const reserveWishlistItem = onCall(publicCallableOptions, async (request: CallableRequest) => {
   if (!request.auth) {
     throw new HttpsError('unauthenticated', 'User must be authenticated');
   }
@@ -542,7 +542,7 @@ export const reserveWishlistItem = onCall(async (request: CallableRequest) => {
  * Purchase Wishlist Item
  * Replaces: POST /api/items/:id/purchase
  */
-export const purchaseWishlistItem = onCall(async (request: CallableRequest) => {
+export const purchaseWishlistItem = onCall(publicCallableOptions, async (request: CallableRequest) => {
   if (!request.auth) {
     throw new HttpsError('unauthenticated', 'User must be authenticated');
   }
@@ -610,7 +610,7 @@ export const purchaseWishlistItem = onCall(async (request: CallableRequest) => {
  * Update Wishlist Item
  * Replaces: PATCH /api/items/:id
  */
-export const updateWishlistItem = onCall(async (request: CallableRequest) => {
+export const updateWishlistItem = onCall(publicCallableOptions, async (request: CallableRequest) => {
   if (!request.auth) {
     throw new HttpsError('unauthenticated', 'User must be authenticated');
   }
@@ -653,7 +653,7 @@ export const updateWishlistItem = onCall(async (request: CallableRequest) => {
  * Delete Wishlist Item
  * Replaces: DELETE /api/items/:id
  */
-export const deleteWishlistItem = onCall(async (request: CallableRequest) => {
+export const deleteWishlistItem = onCall(publicCallableOptions, async (request: CallableRequest) => {
   if (!request.auth) {
     throw new HttpsError('unauthenticated', 'User must be authenticated');
   }
