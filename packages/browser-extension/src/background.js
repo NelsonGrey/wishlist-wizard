@@ -473,8 +473,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     
     console.log(`Message received ${senderInfo}`);
 
-    // Ignore analytics messages here; handled by the tracking listener below
+    // Avoid message port warnings by always acknowledging analytics messages.
+    // Detailed handling remains in the dedicated tracking listener below.
     if (message && message.type === 'TRACK_EVENT') {
+      sendResponse({ success: true, queued: true });
       return false;
     }
     
