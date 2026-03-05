@@ -152,6 +152,29 @@ function computeLandedPrice(offer: any): number | null {
   return Number.isFinite(landed) ? Number(landed.toFixed(2)) : null;
 }
 
+function toEpochMs(value: any): number {
+  if (!value) return 0;
+  if (value instanceof Date) {
+    const ms = value.getTime();
+    return Number.isFinite(ms) ? ms : 0;
+  }
+  if (typeof value?.toDate === 'function') {
+    const date = value.toDate();
+    if (date instanceof Date) {
+      const ms = date.getTime();
+      return Number.isFinite(ms) ? ms : 0;
+    }
+  }
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value : 0;
+  }
+  if (typeof value === 'string') {
+    const ms = new Date(value).getTime();
+    return Number.isFinite(ms) ? ms : 0;
+  }
+  return 0;
+}
+
 function normalizeOffer(offerDoc: any) {
   const source = offerDoc || {};
   const matchType = normalizeTextLike(source.matchType)?.toLowerCase() || 'probable';
@@ -783,6 +806,67 @@ export const api = onRequest(async (req, res) => {
       const sourceStore = normalizeTextLike(item.store || item.productIdentity?.sourceRetailer);
       const sourceStoreKey = normalizeRetailerKey(sourceStore);
 
+      // Derive market offers from price history when explicit offers are sparse.
+      // This helps cross-retailer comparisons without requiring a dedicated offers pipeline.
+      const derivedHistoryOffers: any[] = [];
+      const itemTitle = normalizeTextLike(item.title);
+      if (itemTitle && !isRetailerSpecific) {
+        const historySnapshot = await db
+          .collection('priceHistory')
+          .where('productTitle', '==', itemTitle)
+          .limit(200)
+          .get();
+
+        const latestByStore = new Map<string, { store: string; price: number; timestampMs: number }>();
+        historySnapshot.docs.forEach((doc) => {
+          const entry = doc.data() || {};
+          const store = normalizeTextLike(entry.store);
+          const price = toNumberLike(entry.newPrice) ?? toNumberLike(entry.currentPrice) ?? toNumberLike(entry.price);
+          if (!store || price === null || price <= 0) return;
+
+          const storeKey = normalizeRetailerKey(store) || store.toLowerCase();
+          const timestampMs = toEpochMs(entry.timestamp || entry.createdAt || entry.updatedAt);
+          const previous = latestByStore.get(storeKey);
+          if (!previous || timestampMs >= previous.timestampMs) {
+            latestByStore.set(storeKey, { store, price, timestampMs });
+          }
+        });
+
+        latestByStore.forEach((entry, storeKey) => {
+          derivedHistoryOffers.push(normalizeOffer({
+            id: `history-${itemId}-${storeKey}`,
+            itemId,
+            title: itemTitle,
+            store: entry.store,
+            price: entry.price,
+            totalPrice: entry.price,
+            shippingCost: 0,
+            fees: 0,
+            discountAmount: 0,
+            matchType: 'probable',
+            matchConfidence: 0.62,
+            isAlternative: false,
+            inStock: true,
+            source: 'price-history-market',
+          }));
+        });
+      }
+
+      for (const derivedOffer of derivedHistoryOffers) {
+        const derivedStoreKey = normalizeRetailerKey(derivedOffer.store);
+        const derivedPrice = toNumberLike(derivedOffer.landedPrice) ?? toNumberLike(derivedOffer.price);
+        const duplicate = allOffers.some((offer: any) => {
+          const offerStoreKey = normalizeRetailerKey(offer.store);
+          const offerPrice = toNumberLike(offer.landedPrice) ?? toNumberLike(offer.price);
+          const sameStore = derivedStoreKey && offerStoreKey && offerStoreKey === derivedStoreKey;
+          const samePrice = derivedPrice !== null && offerPrice !== null && Math.abs(offerPrice - derivedPrice) < 0.01;
+          return Boolean(sameStore && samePrice);
+        });
+        if (!duplicate) {
+          allOffers.push(derivedOffer);
+        }
+      }
+
       // If external offer ingestion has not populated priceOffers yet,
       // synthesize a baseline exact offer from the source wishlist item.
       const sourcePrice = toNumberLike(item.numericPrice) ?? toNumberLike(item.price);
@@ -878,7 +962,7 @@ export const api = onRequest(async (req, res) => {
       const hasSyntheticSourceBaseline = allOffers.some((offer: any) =>
         normalizeTextLike(offer.source) === 'wishlist-item-baseline'
       );
-      const hasExternalMarketOffers = offersSnapshot.size > 0;
+      const hasExternalMarketOffers = offersSnapshot.size > 0 || derivedHistoryOffers.length > 0;
 
       sendJson(res, {
         itemId,
