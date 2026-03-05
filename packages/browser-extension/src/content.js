@@ -15,7 +15,7 @@ console.log('🎯 WISHLIST WIZARD: Timestamp:', new Date().toISOString());
 // Function to track content script events
 function trackContentEvent(action, category = 'content', label = null, value = null) {
   try {
-    chrome.runtime.sendMessage({
+    const maybePromise = chrome.runtime.sendMessage({
       type: 'TRACK_EVENT',
       payload: {
         action,
@@ -24,6 +24,11 @@ function trackContentEvent(action, category = 'content', label = null, value = n
         value
       }
     });
+    if (maybePromise && typeof maybePromise.catch === 'function') {
+      maybePromise.catch(() => {
+        // Non-fatal telemetry failure; ignore to avoid noisy console warnings.
+      });
+    }
     console.log(`Content script tracked: ${category} - ${action}`);
   } catch (error) {
     console.warn('Failed to track content script event:', error);
