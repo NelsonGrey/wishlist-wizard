@@ -756,7 +756,8 @@ export const api = onRequest(async (req, res) => {
       }
 
       const wishlistData = wishlistDoc.data() || {};
-      const isOwner = wishlistData.userId === userId;
+      const wishlistOwnerId = String(wishlistData.userId || wishlistData.ownerId || '').trim();
+      const isOwner = wishlistOwnerId === userId;
       const collaboratorIds = Array.isArray(wishlistData.collaborators) ? wishlistData.collaborators.map(String) : [];
       const canView = isOwner || collaboratorIds.includes(String(userId)) || Boolean(wishlistData.isPublic);
 
@@ -850,8 +851,17 @@ export const api = onRequest(async (req, res) => {
       });
     }
     else if (method === 'GET' && path === '/api/wishlist-items') {
-      const wishlistsSnapshot = await db.collection('wishlists').where('userId', '==', userId).limit(100).get();
-      const wishlistIds = wishlistsSnapshot.docs.map((doc) => doc.id);
+      const [ownedSnapshot, legacyOwnedSnapshot, collaboratorSnapshot] = await Promise.all([
+        db.collection('wishlists').where('userId', '==', userId).limit(200).get(),
+        db.collection('wishlists').where('ownerId', '==', userId).limit(200).get(),
+        db.collection('wishlists').where('collaborators', 'array-contains', userId).limit(200).get(),
+      ]);
+
+      const wishlistIds = Array.from(new Set([
+        ...ownedSnapshot.docs.map((doc) => doc.id),
+        ...legacyOwnedSnapshot.docs.map((doc) => doc.id),
+        ...collaboratorSnapshot.docs.map((doc) => doc.id),
+      ]));
 
       if (wishlistIds.length === 0) {
         sendJson(res, []);
