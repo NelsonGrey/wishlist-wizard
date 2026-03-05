@@ -9,6 +9,7 @@ import { RecommendationsHelp } from "@/components/help/RecommendationsHelp";
 import { getApiErrorMessage } from "@/lib/api-errors";
 import { Wishlist } from "@wishlist-wizard/shared";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useLocation } from "wouter";
 
 type Beneficiary = {
   id: number | string;
@@ -16,6 +17,7 @@ type Beneficiary = {
 };
 
 export default function Recommendations() {
+  const [, setLocation] = useLocation();
   const [selectedBeneficiaryId, setSelectedBeneficiaryId] = React.useState<string>("all");
 
   // Fetch the user's wishlists
@@ -64,17 +66,30 @@ export default function Recommendations() {
       </Helmet>
 
       <div className="container mx-auto px-4 py-8 max-w-6xl">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
-          <div className="flex items-center gap-3">
-            <div>
-              <h1 className="text-4xl font-bold bg-gradient-to-r from-emerald-800 to-green-800 bg-clip-text text-transparent">
-                Smart Recommendations
-              </h1>
-              <p className="text-gray-600 mt-2">
-                Discover products tailored to your tastes and preferences
-              </p>
+        <div className="mb-8 flex flex-col gap-4">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex items-center gap-3">
+              <div>
+                <h1 className="text-4xl font-bold bg-gradient-to-r from-emerald-800 to-green-800 bg-clip-text text-transparent">
+                  Smart Recommendations
+                </h1>
+                <p className="text-gray-600 mt-2">
+                  Discover products tailored to your tastes and preferences
+                </p>
+              </div>
+              <RecommendationsHelp />
             </div>
-            <RecommendationsHelp />
+            <div className="flex flex-wrap gap-2">
+              <Button variant="outline" onClick={() => setLocation('/app/dashboard')}>
+                Open Wishlists
+              </Button>
+              <Button variant="outline" onClick={() => setLocation('/app/price-tracking')}>
+                Open Price Tracking
+              </Button>
+              <Button onClick={() => setLocation('/app/analytics')}>
+                Open Analytics
+              </Button>
+            </div>
           </div>
 
           <div className="mt-4 md:mt-0 w-full md:w-80 space-y-4">

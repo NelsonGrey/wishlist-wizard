@@ -1,6 +1,7 @@
 import React, { useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import Footer from "@/components/Footer";
+import { GlobalAdSlot } from "@/components/ads";
 
 interface PublicLayoutProps {
   children: React.ReactNode;
@@ -57,6 +58,8 @@ export default function PublicLayout({ children }: PublicLayoutProps) {
           </div>
         </div>
       </header>
+
+      <GlobalAdSlot />
 
       {/* Main content */}
       <main className="flex-1">

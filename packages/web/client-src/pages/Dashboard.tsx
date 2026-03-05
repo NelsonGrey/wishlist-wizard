@@ -9,7 +9,6 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { getApiErrorMessage } from "@/lib/api-errors";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
-import { SidebarAd } from "@/components/ads";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Wishlist as DbWishlist } from "@wishlist-wizard/shared";
 
@@ -224,17 +223,35 @@ export default function Dashboard() {
     <>
       <main className="flex-1">
         <div data-testid="dashboard-page" className="container mx-auto px-4 py-8 max-w-6xl">
-          <div className="flex justify-between items-center mb-8">
+          <div className="mb-8 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <h1 data-testid="dashboard-title" className="text-4xl font-bold bg-gradient-to-r from-emerald-800 to-green-800 bg-clip-text text-transparent">My Wishlists</h1>
-            <Button 
-              data-testid="dashboard-create-wishlist"
-              onClick={() => setIsCreateDialogOpen(true)}
-              disabled={createWishlistMutation.isPending}
-              className="flex items-center space-x-2 bg-gradient-to-r from-emerald-700 to-green-700 text-white hover:from-emerald-800 hover:to-green-800"
-            >
-              <Plus className="h-5 w-5" />
-              <span>Create New List</span>
-            </Button>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                data-testid="dashboard-create-wishlist"
+                onClick={() => setIsCreateDialogOpen(true)}
+                disabled={createWishlistMutation.isPending}
+                className="flex items-center space-x-2 bg-gradient-to-r from-emerald-700 to-green-700 text-white hover:from-emerald-800 hover:to-green-800"
+              >
+                <Plus className="h-5 w-5" />
+                <span>Create New List</span>
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => selectedWishlist && setLocation(`/app/wishlist/${selectedWishlist.id}`)}
+                disabled={!selectedWishlist}
+              >
+                Open Active Wishlist
+              </Button>
+              <Button
+                variant="outline"
+                className="flex items-center gap-2"
+                onClick={handleShareSelectedWishlist}
+                disabled={!selectedWishlist?.shareId}
+              >
+                <Share2 className="h-4 w-4" />
+                Copy Share Link
+              </Button>
+            </div>
           </div>
 
           {selectedWishlist && (
@@ -382,7 +399,7 @@ export default function Dashboard() {
               )}
             </div>
             
-            {/* Sidebar with ad */}
+            {/* Sidebar with contextual tips */}
             <div className="w-full lg:w-64 mt-8 lg:mt-0">
               <div className="bg-white p-4 rounded-lg shadow-sm border mb-6">
                 <h3 className="font-medium text-lg mb-4">Tips</h3>
@@ -393,9 +410,6 @@ export default function Dashboard() {
                   <li>• Collaborate on gift ideas together</li>
                 </ul>
               </div>
-              
-              {/* Ad placement */}
-              <SidebarAd />
             </div>
           </div>
         </div>

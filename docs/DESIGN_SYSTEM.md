@@ -266,6 +266,19 @@ focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2
 
 ## Usage Guidelines
 
+## Product UX Principles
+
+### 1) Consistent Monetization Placement
+- Reserve exactly one global ad area directly below the header on every page/layout.
+- Treat ads as part of the chrome, not page content, so users always know where ads appear.
+- Avoid adding additional ad units to core task surfaces unless explicitly required by experiment.
+
+### 2) Least-Click Workflow
+- Surface primary actions in the first viewport (top toolbar whenever possible).
+- Ensure common user goals are reachable in 1 click from each key page.
+- Use contextual defaults (for example, an active/selected entity) to reduce navigation steps.
+- Prefer clear primary actions over deep nested menus.
+
 ### Do's ✅
 - Use emerald gradients for primary CTAs and headings
 - Apply hover effects to interactive elements

@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Helmet } from "react-helmet";
 import { apiRequest } from "@/lib/queryClient";
 import { useEffect, useMemo, useState } from "react";
+import { useLocation } from "wouter";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import PriceAlertsList from "@/components/price-tracking/PriceAlertsList";
@@ -180,6 +181,7 @@ const computeVolatility = (prices: number[]) => {
 };
 
 export default function PriceTracking() {
+  const [, setLocation] = useLocation();
   const initialTab = useMemo<PriceTrackingTab>(() => {
     if (typeof window === "undefined") {
       return "alerts";
@@ -327,11 +329,22 @@ export default function PriceTracking() {
       </Helmet>
 
       <div className="container mx-auto px-4 py-8 max-w-6xl">
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-emerald-800 to-green-800 bg-clip-text text-transparent">Price Tracking</h1>
-          <p className="text-gray-600 mt-2">
-            Monitor prices and set alerts for wishlist items
-          </p>
+        <div className="mb-8 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-emerald-800 to-green-800 bg-clip-text text-transparent">Price Tracking</h1>
+            <p className="text-gray-600 mt-2">
+              Monitor prices and set alerts for wishlist items
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" onClick={() => setActiveTab("intelligence")}>
+              Open Intelligence
+            </Button>
+            <Button variant="outline" onClick={() => setLocation("/app/dashboard")}>
+              Open Wishlists
+            </Button>
+            <Button onClick={() => setLocation("/app/analytics")}>Open Analytics</Button>
+          </div>
         </div>
 
         <Tabs value={activeTab} onValueChange={(value) => setActiveTab(isPriceTrackingTab(value) ? value : "alerts")} className="w-full">
