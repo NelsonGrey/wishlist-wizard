@@ -591,6 +591,12 @@ const Calendar: React.FC = () => {
           }}>
             Add Event
           </Button>
+          <Button variant="outline" onClick={() => openCreateEventDialog('birthday')}>
+            Add Birthday
+          </Button>
+          <Button variant="outline" onClick={() => setLocation('/app/dashboard')}>
+            Open Wishlists
+          </Button>
           <Button variant="outline" onClick={() => setActiveTab('connections')}>
             Settings
           </Button>

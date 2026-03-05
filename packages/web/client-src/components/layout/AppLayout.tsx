@@ -34,6 +34,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import Footer from "@/components/Footer";
+import { GlobalAdSlot } from "@/components/ads";
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -250,6 +251,8 @@ export default function AppLayout({ children }: AppLayoutProps) {
           </div>
         </div>
       </header>
+
+      <GlobalAdSlot />
 
       {/* Main content */}
       <main className="flex-1 bg-gray-50">

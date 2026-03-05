@@ -1,5 +1,6 @@
 import React, { useEffect } from "react";
 import { Link, useLocation } from "wouter";
+import { GlobalAdSlot } from "@/components/ads";
 
 interface AuthLayoutProps {
   children: React.ReactNode;
@@ -33,6 +34,8 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
           </div>
         </div>
       </header>
+
+      <GlobalAdSlot />
 
       {/* Main content - centered, compact */}
       <main className="flex-1 flex items-center justify-center py-12 px-4">
