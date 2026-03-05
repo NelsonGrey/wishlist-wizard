@@ -317,7 +317,14 @@ export default function PriceTracking() {
 
   const refreshMarketOffers = async () => {
     if (!selectedItemId) return;
-    await apiRequest(`/api/items/${selectedItemId}/price-intelligence?refresh=true`) as Promise<PriceIntelligenceResponse>;
+    await apiRequest(`/api/price-intelligence/refresh`, {
+      method: "POST",
+      body: {
+        itemId: selectedItemId,
+        forceRefresh: true,
+      },
+      useFirebaseFunctions: true,
+    });
     await refetchIntelligence();
   };
 

@@ -56,6 +56,7 @@ function shouldUseFirebaseFunctions(url: string): boolean {
     '/api/contacts',
     '/api/affiliate',
     '/api/items',
+    '/api/price-intelligence',
     '/api/mobile',
     '/api/devices'
   ];
@@ -214,6 +215,7 @@ function getFirebaseFunctionRoute(url: string, method: string, body?: unknown): 
     },
     { pattern: /^\/api\/wishlists\/([^/]+)\/items$/, resolve: (match) => ({ functionName: 'getWishlistItems', data: { ...data, wishlistId: match[1] } }) },
     { pattern: /^\/api\/items$/, resolve: () => ({ functionName: 'addWishlistItem', data }) },
+    { pattern: /^\/api\/price-intelligence\/refresh$/, resolve: () => ({ functionName: 'refreshPriceIntelligenceOffers', data }) },
     { pattern: /^\/api\/items\/([^/]+)\/reserve$/, resolve: (match) => ({ functionName: 'reserveWishlistItem', data: { ...data, itemId: match[1] } }) },
     { pattern: /^\/api\/items\/([^/]+)\/purchase$/, resolve: (match) => ({ functionName: 'purchaseWishlistItem', data: { ...data, itemId: match[1] } }) },
     { pattern: /^\/api\/items\/([^/]+)$/, resolve: (match) => ({ functionName: normalizedMethod === 'DELETE' ? 'deleteWishlistItem' : 'updateWishlistItem', data: { ...data, itemId: match[1] } }) },

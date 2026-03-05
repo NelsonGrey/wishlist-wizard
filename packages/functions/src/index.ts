@@ -167,6 +167,11 @@ export {
 } from './api/analytics';
 
 export {
+  refreshPriceIntelligenceOffers,
+  scheduledRefreshPriceIntelligenceOffers,
+} from './api/priceIntelligenceRefresh';
+
+export {
   createCheckoutSession
 } from './api/stripe';
 
