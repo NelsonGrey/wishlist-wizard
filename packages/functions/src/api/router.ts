@@ -12,6 +12,8 @@ import { getBearerTokenFromHeaders } from '../utils/http-normalization.js';
 ensureFirebaseAdmin();
 const auth = getAuth();
 const db = getFirestore();
+const SERPAPI_API_KEY = String(process.env.SERPAPI_API_KEY || process.env.SERPAPI_KEY || '').trim();
+const INTELLIGENCE_REFRESH_MINUTES = 360;
 
 type AuthenticatedApiUser = {
   uid: string;
@@ -204,6 +206,173 @@ function parseIntegerLike(value: any): number | null {
     return Number.isInteger(parsed) ? parsed : null;
   }
   return null;
+}
+
+function buildMarketSearchQuery(item: any): string {
+  const title = normalizeTextLike(item?.title) || '';
+  const brand = normalizeTextLike(item?.brand || item?.productIdentity?.brand) || '';
+  const model = normalizeTextLike(item?.model || item?.productIdentity?.model) || '';
+  const sku = normalizeTextLike(item?.sku || item?.productIdentity?.sku) || '';
+
+  const parts = [title, brand, model, sku].map((value) => value.trim()).filter(Boolean);
+  return parts.join(' ').trim();
+}
+
+function isFreshTimestamp(value: any, freshnessMinutes: number): boolean {
+  const epochMs = toEpochMs(value);
+  if (!epochMs) return false;
+  const ageMs = Date.now() - epochMs;
+  return ageMs >= 0 && ageMs < freshnessMinutes * 60 * 1000;
+}
+
+async function fetchSerpApiMarketOffers(item: any, itemId: string): Promise<any[]> {
+  if (!SERPAPI_API_KEY) {
+    return [];
+  }
+
+  const query = buildMarketSearchQuery(item);
+  if (!query) {
+    return [];
+  }
+
+  try {
+    const endpoint = new URL('https://serpapi.com/search.json');
+    endpoint.searchParams.set('engine', 'google_shopping');
+    endpoint.searchParams.set('q', query);
+    endpoint.searchParams.set('hl', 'en');
+    endpoint.searchParams.set('gl', 'us');
+    endpoint.searchParams.set('num', '15');
+    endpoint.searchParams.set('api_key', SERPAPI_API_KEY);
+
+    const response = await fetch(endpoint.toString(), {
+      method: 'GET',
+      headers: { 'Accept': 'application/json' },
+    });
+
+    if (!response.ok) {
+      logger.warn('SerpAPI request failed', { itemId, status: response.status });
+      return [];
+    }
+
+    const payload = await response.json() as any;
+    const shoppingResults = Array.isArray(payload?.shopping_results)
+      ? payload.shopping_results
+      : [];
+
+    const normalizedTitle = (normalizeTextLike(item?.title) || '').toLowerCase();
+    return shoppingResults
+      .map((entry: any, index: number) => {
+        const offerTitle = normalizeTextLike(entry?.title);
+        const store = normalizeTextLike(entry?.source || entry?.seller || entry?.store);
+        const link = normalizeTextLike(entry?.link || entry?.product_link);
+        const extractedPrice = toNumberLike(entry?.extracted_price) ?? toNumberLike(entry?.price);
+        const shipping = toNumberLike(entry?.shipping);
+        const offerText = (offerTitle || '').toLowerCase();
+        const strongTitleMatch = normalizedTitle && offerText
+          ? (offerText.includes(normalizedTitle) || normalizedTitle.includes(offerText))
+          : false;
+
+        if (!store || extractedPrice === null || extractedPrice <= 0) {
+          return null;
+        }
+
+        return {
+          id: `serpapi-${itemId}-${index}`,
+          title: offerTitle || item?.title || null,
+          store,
+          productUrl: link,
+          price: extractedPrice,
+          totalPrice: shipping !== null ? extractedPrice + shipping : extractedPrice,
+          shippingCost: shipping ?? 0,
+          fees: 0,
+          discountAmount: 0,
+          matchType: strongTitleMatch ? 'strong' : 'probable',
+          matchConfidence: strongTitleMatch ? 0.9 : 0.7,
+          isAlternative: false,
+          inStock: true,
+          availability: normalizeTextLike(entry?.delivery || entry?.extensions?.[0]) || null,
+          source: 'serpapi-google-shopping',
+          scrapedAt: new Date().toISOString(),
+        };
+      })
+      .filter((offer: any) => Boolean(offer))
+      .slice(0, 15);
+  } catch (error) {
+    logger.error('SerpAPI market offer refresh failed', { itemId, error });
+    return [];
+  }
+}
+
+async function maybeRefreshMarketOffers(itemId: string, item: any, existingOffers: any[]): Promise<{ refreshed: boolean; offers: any[] }> {
+  if (!SERPAPI_API_KEY) {
+    return { refreshed: false, offers: existingOffers };
+  }
+
+  const hasFreshWebOffer = existingOffers.some((offer: any) =>
+    normalizeTextLike(offer?.source) === 'serpapi-google-shopping'
+    && isFreshTimestamp(offer?.scrapedAt || offer?.updatedAt || offer?.createdAt, INTELLIGENCE_REFRESH_MINUTES)
+  );
+
+  const title = normalizeTextLike(item?.title);
+  const shouldRefresh = Boolean(title) && !hasFreshWebOffer;
+  if (!shouldRefresh) {
+    return { refreshed: false, offers: existingOffers };
+  }
+
+  const marketOffers = await fetchSerpApiMarketOffers(item, itemId);
+  if (marketOffers.length === 0) {
+    return { refreshed: false, offers: existingOffers };
+  }
+
+  const dedupe = new Set<string>();
+  const combined = [...existingOffers];
+  combined.forEach((offer: any) => {
+    const storeKey = normalizeRetailerKey(offer?.store) || String(offer?.store || '').toLowerCase();
+    const price = toNumberLike(offer?.landedPrice) ?? toNumberLike(offer?.price) ?? -1;
+    dedupe.add(`${storeKey}|${price}`);
+  });
+
+  let written = 0;
+  for (const offer of marketOffers) {
+    const storeKey = normalizeRetailerKey(offer.store) || String(offer.store || '').toLowerCase();
+    const price = toNumberLike(offer.totalPrice) ?? toNumberLike(offer.price) ?? -1;
+    const signature = `${storeKey}|${price}`;
+    if (dedupe.has(signature)) {
+      continue;
+    }
+
+    dedupe.add(signature);
+    const writeDoc = {
+      itemId,
+      title: offer.title,
+      store: offer.store,
+      productUrl: offer.productUrl,
+      matchType: offer.matchType,
+      matchConfidence: offer.matchConfidence,
+      isAlternative: false,
+      price: offer.price,
+      shippingCost: offer.shippingCost,
+      fees: offer.fees,
+      discountAmount: offer.discountAmount,
+      totalPrice: offer.totalPrice,
+      inStock: offer.inStock,
+      availability: offer.availability,
+      source: offer.source,
+      scrapedAt: offer.scrapedAt,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    await db.collection('priceOffers').add(writeDoc);
+    combined.push(normalizeOffer(writeDoc));
+    written += 1;
+  }
+
+  if (written > 0) {
+    logger.info('Price intelligence market offers refreshed', { itemId, written });
+  }
+
+  return { refreshed: written > 0, offers: combined };
 }
 
 function normalizeAlertPolicy(alert: any) {
@@ -800,6 +969,8 @@ export const api = onRequest(async (req, res) => {
           return leftPrice - rightPrice;
         });
 
+      const refreshedMarket = await maybeRefreshMarketOffers(itemId, item, allOffers);
+
       const isRetailerSpecific = toBooleanLike(item.isRetailerSpecific, false)
         || toBooleanLike(item.productIdentity?.isRetailerSpecific, false)
         || toBooleanLike(item.offerTracking?.retailerSpecificOnly, false);
@@ -855,7 +1026,7 @@ export const api = onRequest(async (req, res) => {
       for (const derivedOffer of derivedHistoryOffers) {
         const derivedStoreKey = normalizeRetailerKey(derivedOffer.store);
         const derivedPrice = toNumberLike(derivedOffer.landedPrice) ?? toNumberLike(derivedOffer.price);
-        const duplicate = allOffers.some((offer: any) => {
+        const duplicate = refreshedMarket.offers.some((offer: any) => {
           const offerStoreKey = normalizeRetailerKey(offer.store);
           const offerPrice = toNumberLike(offer.landedPrice) ?? toNumberLike(offer.price);
           const sameStore = derivedStoreKey && offerStoreKey && offerStoreKey === derivedStoreKey;
@@ -863,7 +1034,7 @@ export const api = onRequest(async (req, res) => {
           return Boolean(sameStore && samePrice);
         });
         if (!duplicate) {
-          allOffers.push(derivedOffer);
+          refreshedMarket.offers.push(derivedOffer);
         }
       }
 
@@ -871,7 +1042,7 @@ export const api = onRequest(async (req, res) => {
       // synthesize a baseline exact offer from the source wishlist item.
       const sourcePrice = toNumberLike(item.numericPrice) ?? toNumberLike(item.price);
       const sourceLandedPrice = Number.isFinite(sourcePrice as number) ? Number((sourcePrice as number).toFixed(2)) : null;
-      const hasSourceOffer = allOffers.some((offer: any) => {
+      const hasSourceOffer = refreshedMarket.offers.some((offer: any) => {
         const sameStore = normalizeRetailerKey(offer.store) === sourceStoreKey;
         const offerPrice = toNumberLike(offer.landedPrice) ?? toNumberLike(offer.price);
         const samePrice = offerPrice !== null
@@ -881,7 +1052,7 @@ export const api = onRequest(async (req, res) => {
       });
 
       if (sourceStore && sourceLandedPrice !== null && !hasSourceOffer) {
-        allOffers.push(normalizeOffer({
+        refreshedMarket.offers.push(normalizeOffer({
           id: `source-${itemId}`,
           itemId,
           title: item.title || null,
@@ -904,13 +1075,13 @@ export const api = onRequest(async (req, res) => {
         }));
       }
 
-      allOffers.sort((left: any, right: any) => {
+      refreshedMarket.offers.sort((left: any, right: any) => {
         const leftPrice = left.landedPrice ?? Number.POSITIVE_INFINITY;
         const rightPrice = right.landedPrice ?? Number.POSITIVE_INFINITY;
         return leftPrice - rightPrice;
       });
 
-      const scopedIdenticalOffers = allOffers.filter((offer: any) => {
+      const scopedIdenticalOffers = refreshedMarket.offers.filter((offer: any) => {
         if (offer.isAlternative) return false;
         if (isRetailerSpecific && sourceStoreKey) {
           const offerStoreKey = normalizeRetailerKey(offer.store);
@@ -926,7 +1097,7 @@ export const api = onRequest(async (req, res) => {
         offer.matchType === 'exact' || offer.matchType === 'strong'
       );
 
-      const alternativesFromOffers = allOffers.filter((offer: any) => offer.isAlternative);
+      const alternativesFromOffers = refreshedMarket.offers.filter((offer: any) => offer.isAlternative);
       const alternativesFromCollection = alternativesSnapshot.docs.map((doc) => {
         const data = doc.data() || {};
         return {
@@ -959,10 +1130,10 @@ export const api = onRequest(async (req, res) => {
           .map((offer: any) => normalizeRetailerKey(offer.store))
           .filter((value: string | null): value is string => Boolean(value))
       );
-      const hasSyntheticSourceBaseline = allOffers.some((offer: any) =>
+      const hasSyntheticSourceBaseline = refreshedMarket.offers.some((offer: any) =>
         normalizeTextLike(offer.source) === 'wishlist-item-baseline'
       );
-      const hasExternalMarketOffers = offersSnapshot.size > 0 || derivedHistoryOffers.length > 0;
+      const hasExternalMarketOffers = offersSnapshot.size > 0 || derivedHistoryOffers.length > 0 || refreshedMarket.refreshed;
 
       sendJson(res, {
         itemId,
@@ -981,7 +1152,7 @@ export const api = onRequest(async (req, res) => {
         },
         metadata: {
           checkedAt: new Date().toISOString(),
-          offersConsidered: allOffers.length,
+          offersConsidered: refreshedMarket.offers.length,
           alternativesConsidered: alternatives.length,
           retailerScopeMode: isRetailerSpecific ? 'source-only' : 'all-retailers',
           scopedRetailerCount: scopedStoreKeys.size,
@@ -990,6 +1161,7 @@ export const api = onRequest(async (req, res) => {
           marketCoverage: hasExternalMarketOffers
             ? (scopedStoreKeys.size > 1 ? 'multi-retailer' : 'single-retailer')
             : (hasSyntheticSourceBaseline ? 'baseline-only' : 'no-offers'),
+          webMarketRefreshTriggered: refreshedMarket.refreshed,
         },
       });
     }
