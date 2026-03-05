@@ -201,6 +201,7 @@ export default function PriceTracking() {
 
   const [activeTab, setActiveTab] = useState<PriceTrackingTab>(initialTab);
   const [selectedItemId, setSelectedItemId] = useState<string>("");
+  const [refreshFeedback, setRefreshFeedback] = useState<string>("");
 
   // Fetch price drops
   const { data: priceDrops, isLoading: isLoadingDrops } = useQuery<PriceDropItem[]>({
@@ -317,14 +318,23 @@ export default function PriceTracking() {
 
   const refreshMarketOffers = async () => {
     if (!selectedItemId) return;
-    await apiRequest(`/api/price-intelligence/refresh`, {
+    const result = await apiRequest(`/api/price-intelligence/refresh`, {
       method: "POST",
       body: {
         itemId: selectedItemId,
         forceRefresh: true,
       },
       useFirebaseFunctions: true,
-    });
+    }) as { providerEnabled?: boolean; offersCreated?: number; refreshed?: boolean };
+
+    if (!result?.providerEnabled) {
+      setRefreshFeedback("Live web market search is not configured in this environment (missing SERPAPI_API_KEY).");
+    } else if ((result?.offersCreated ?? 0) > 0) {
+      setRefreshFeedback(`Found ${result.offersCreated} new market offer${result.offersCreated === 1 ? "" : "s"}.`);
+    } else {
+      setRefreshFeedback("Refresh completed, but no new external identical offers were found for this item.");
+    }
+
     await refetchIntelligence();
   };
 
@@ -549,6 +559,12 @@ export default function PriceTracking() {
                 {wishlistItemsError && (
                   <p className="text-sm text-red-700">
                     Unable to load wishlist items for intelligence. Please refresh and try again.
+                  </p>
+                )}
+
+                {refreshFeedback && (
+                  <p className="text-sm text-slate-700 bg-slate-50 border border-slate-200 rounded-md px-3 py-2">
+                    {refreshFeedback}
                   </p>
                 )}
 
