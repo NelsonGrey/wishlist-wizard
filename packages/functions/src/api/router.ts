@@ -6,14 +6,21 @@ import { Response } from 'express';
 import { DecodedIdToken, getAuth } from 'firebase-admin/auth';
 import { getFirestore } from 'firebase-admin/firestore';
 import { logger } from 'firebase-functions/v2';
+import { defineSecret } from 'firebase-functions/params';
 import { ensureFirebaseAdmin } from '../firebase-admin.js';
 import { getBearerTokenFromHeaders } from '../utils/http-normalization.js';
 
 ensureFirebaseAdmin();
 const auth = getAuth();
 const db = getFirestore();
-const SERPAPI_API_KEY = String(process.env.SERPAPI_API_KEY || process.env.SERPAPI_KEY || '').trim();
+const serpApiSecret = defineSecret('SERPAPI_API_KEY');
 const INTELLIGENCE_REFRESH_MINUTES = 360;
+
+function getSerpApiKey(): string {
+  const secretValue = String(serpApiSecret.value() || '').trim();
+  if (secretValue) return secretValue;
+  return String(process.env.SERPAPI_API_KEY || process.env.SERPAPI_KEY || '').trim();
+}
 
 type AuthenticatedApiUser = {
   uid: string;
@@ -226,7 +233,8 @@ function isFreshTimestamp(value: any, freshnessMinutes: number): boolean {
 }
 
 async function fetchSerpApiMarketOffers(item: any, itemId: string): Promise<any[]> {
-  if (!SERPAPI_API_KEY) {
+  const serpApiKey = getSerpApiKey();
+  if (!serpApiKey) {
     return [];
   }
 
@@ -242,7 +250,7 @@ async function fetchSerpApiMarketOffers(item: any, itemId: string): Promise<any[
     endpoint.searchParams.set('hl', 'en');
     endpoint.searchParams.set('gl', 'us');
     endpoint.searchParams.set('num', '15');
-    endpoint.searchParams.set('api_key', SERPAPI_API_KEY);
+    endpoint.searchParams.set('api_key', serpApiKey);
 
     const response = await fetch(endpoint.toString(), {
       method: 'GET',
@@ -309,7 +317,7 @@ async function maybeRefreshMarketOffers(
   existingOffers: any[],
   forceRefresh = false
 ): Promise<{ refreshed: boolean; offers: any[] }> {
-  if (!SERPAPI_API_KEY) {
+  if (!getSerpApiKey()) {
     return { refreshed: false, offers: existingOffers };
   }
 
@@ -422,7 +430,7 @@ function validateQuietHours(quietHours: any): { valid: boolean; reason?: string 
 }
 
 // Main API router function
-export const api = onRequest(async (req, res) => {
+export const api = onRequest({ secrets: [serpApiSecret] }, async (req, res) => {
   // Enable CORS
   res.set('Access-Control-Allow-Origin', '*');
   res.set('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');

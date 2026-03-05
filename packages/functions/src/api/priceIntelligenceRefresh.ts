@@ -2,15 +2,22 @@ import { onCall, CallableRequest, HttpsError } from 'firebase-functions/v2/https
 import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { getFirestore } from 'firebase-admin/firestore';
 import { logger } from 'firebase-functions/v2';
+import { defineSecret } from 'firebase-functions/params';
 import { ensureFirebaseAdmin } from '../firebase-admin.js';
 import { requireAuthenticatedUser } from '../utils/auth-guards.js';
 
 ensureFirebaseAdmin();
 const db = getFirestore();
 
-const SERPAPI_API_KEY = String(process.env.SERPAPI_API_KEY || process.env.SERPAPI_KEY || '').trim();
+const serpApiSecret = defineSecret('SERPAPI_API_KEY');
 const INTELLIGENCE_REFRESH_MINUTES = 360;
 const SCHEDULED_BATCH_LIMIT = 25;
+
+function getSerpApiKey(): string {
+  const secretValue = String(serpApiSecret.value() || '').trim();
+  if (secretValue) return secretValue;
+  return String(process.env.SERPAPI_API_KEY || process.env.SERPAPI_KEY || '').trim();
+}
 
 type MarketOffer = {
   title: string | null;
@@ -83,7 +90,8 @@ function buildSearchQuery(item: Record<string, unknown>): string {
 }
 
 async function fetchSerpApiOffers(itemId: string, item: Record<string, unknown>): Promise<MarketOffer[]> {
-  if (!SERPAPI_API_KEY) return [];
+  const serpApiKey = getSerpApiKey();
+  if (!serpApiKey) return [];
 
   const query = buildSearchQuery(item);
   if (!query) return [];
@@ -95,7 +103,7 @@ async function fetchSerpApiOffers(itemId: string, item: Record<string, unknown>)
     url.searchParams.set('hl', 'en');
     url.searchParams.set('gl', 'us');
     url.searchParams.set('num', '15');
-    url.searchParams.set('api_key', SERPAPI_API_KEY);
+    url.searchParams.set('api_key', serpApiKey);
 
     const response = await fetch(url.toString(), {
       method: 'GET',
@@ -244,7 +252,7 @@ async function requireWishlistVisibilityForUser(itemId: string, uid: string): Pr
   return item;
 }
 
-export const refreshPriceIntelligenceOffers = onCall(async (request: CallableRequest) => {
+export const refreshPriceIntelligenceOffers = onCall({ secrets: [serpApiSecret] }, async (request: CallableRequest) => {
   const uid = requireAuthenticatedUser(request);
   const itemId = normalizeText((request.data || {}).itemId);
   const forceRefresh = Boolean((request.data || {}).forceRefresh ?? true);
@@ -261,7 +269,7 @@ export const refreshPriceIntelligenceOffers = onCall(async (request: CallableReq
     itemId,
     refreshed: result.refreshed,
     offersCreated: result.created,
-    providerEnabled: Boolean(SERPAPI_API_KEY),
+    providerEnabled: Boolean(getSerpApiKey()),
   };
 });
 
@@ -270,8 +278,9 @@ export const scheduledRefreshPriceIntelligenceOffers = onSchedule({
   region: 'us-central1',
   timeoutSeconds: 540,
   memory: '512MiB',
+  secrets: [serpApiSecret],
 }, async () => {
-  if (!SERPAPI_API_KEY) {
+  if (!getSerpApiKey()) {
     logger.warn('Skipping scheduled intelligence refresh because SERPAPI key is missing');
     return;
   }
