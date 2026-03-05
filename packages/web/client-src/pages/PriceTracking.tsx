@@ -8,6 +8,7 @@ import PriceAlertsList from "@/components/price-tracking/PriceAlertsList";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { LineChartIcon, TrendingDown, AlertTriangle } from "lucide-react";
 
@@ -110,6 +111,8 @@ type PriceIntelligenceResponse = {
     hasExternalMarketOffers?: boolean;
     hasSyntheticSourceBaseline?: boolean;
     marketCoverage?: "multi-retailer" | "single-retailer" | "baseline-only" | "no-offers";
+    webMarketRefreshTriggered?: boolean;
+    forceRefreshRequested?: boolean;
   };
 };
 
@@ -288,7 +291,13 @@ export default function PriceTracking() {
     });
   }, [initialItemIdFromQuery, sortedWishlistItems]);
 
-  const { data: intelligence, isLoading: isLoadingIntelligence, error: intelligenceError } = useQuery<PriceIntelligenceResponse>({
+  const {
+    data: intelligence,
+    isLoading: isLoadingIntelligence,
+    isFetching: isFetchingIntelligence,
+    error: intelligenceError,
+    refetch: refetchIntelligence,
+  } = useQuery<PriceIntelligenceResponse>({
     queryKey: ["/api/items", selectedItemId, "price-intelligence"],
     enabled: Boolean(selectedItemId),
     staleTime: 5 * 60 * 1000,
@@ -303,6 +312,12 @@ export default function PriceTracking() {
   const alternatives = intelligence?.sections?.alternatives || [];
   const marketCoverage = intelligence?.metadata?.marketCoverage;
   const retailerScopeMode = intelligence?.metadata?.retailerScopeMode;
+
+  const refreshMarketOffers = async () => {
+    if (!selectedItemId) return;
+    await apiRequest(`/api/items/${selectedItemId}/price-intelligence?refresh=true`) as Promise<PriceIntelligenceResponse>;
+    await refetchIntelligence();
+  };
 
   return (
     <>
@@ -484,18 +499,29 @@ export default function PriceTracking() {
                 {isLoadingItems ? (
                   <Skeleton className="h-10 w-full" />
                 ) : sortedWishlistItems.length > 0 ? (
-                  <Select value={selectedItemId} onValueChange={setSelectedItemId}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a wishlist item" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {sortedWishlistItems.map((item) => (
-                        <SelectItem key={item.id} value={String(item.id)}>
-                          {item.title}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <div className="space-y-3">
+                    <Select value={selectedItemId} onValueChange={setSelectedItemId}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a wishlist item" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {sortedWishlistItems.map((item) => (
+                          <SelectItem key={item.id} value={String(item.id)}>
+                            {item.title}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={refreshMarketOffers}
+                      disabled={!selectedItemId || isFetchingIntelligence}
+                    >
+                      {isFetchingIntelligence ? "Refreshing offers..." : "Refresh Market Offers"}
+                    </Button>
+                  </div>
                 ) : (
                   <p className="text-sm text-muted-foreground">No wishlist items found yet. Add items to start intelligence comparisons.</p>
                 )}

@@ -303,7 +303,12 @@ async function fetchSerpApiMarketOffers(item: any, itemId: string): Promise<any[
   }
 }
 
-async function maybeRefreshMarketOffers(itemId: string, item: any, existingOffers: any[]): Promise<{ refreshed: boolean; offers: any[] }> {
+async function maybeRefreshMarketOffers(
+  itemId: string,
+  item: any,
+  existingOffers: any[],
+  forceRefresh = false
+): Promise<{ refreshed: boolean; offers: any[] }> {
   if (!SERPAPI_API_KEY) {
     return { refreshed: false, offers: existingOffers };
   }
@@ -314,7 +319,7 @@ async function maybeRefreshMarketOffers(itemId: string, item: any, existingOffer
   );
 
   const title = normalizeTextLike(item?.title);
-  const shouldRefresh = Boolean(title) && !hasFreshWebOffer;
+  const shouldRefresh = Boolean(title) && (forceRefresh || !hasFreshWebOffer);
   if (!shouldRefresh) {
     return { refreshed: false, offers: existingOffers };
   }
@@ -927,6 +932,8 @@ export const api = onRequest(async (req, res) => {
     }
     else if (method === 'GET' && path.match(/^\/api\/items\/[^/]+\/price-intelligence$/)) {
       const itemId = path.split('/')[3];
+      const forceRefreshRaw = req.query?.refresh ?? req.query?.forceRefresh;
+      const forceRefresh = toBooleanLike(forceRefreshRaw, false);
       const itemDoc = await db.collection('wishlistItems').doc(itemId).get();
 
       if (!itemDoc.exists) {
@@ -969,7 +976,7 @@ export const api = onRequest(async (req, res) => {
           return leftPrice - rightPrice;
         });
 
-      const refreshedMarket = await maybeRefreshMarketOffers(itemId, item, allOffers);
+      const refreshedMarket = await maybeRefreshMarketOffers(itemId, item, allOffers, forceRefresh);
 
       const isRetailerSpecific = toBooleanLike(item.isRetailerSpecific, false)
         || toBooleanLike(item.productIdentity?.isRetailerSpecific, false)
@@ -1162,6 +1169,7 @@ export const api = onRequest(async (req, res) => {
             ? (scopedStoreKeys.size > 1 ? 'multi-retailer' : 'single-retailer')
             : (hasSyntheticSourceBaseline ? 'baseline-only' : 'no-offers'),
           webMarketRefreshTriggered: refreshedMarket.refreshed,
+          forceRefreshRequested: forceRefresh,
         },
       });
     }
