@@ -64,6 +64,7 @@ type WishlistItem = {
 
 type IntelligenceOffer = {
   id: string;
+  title?: string | null;
   store?: string | null;
   price?: number | null;
   landedPrice?: number | null;
@@ -74,6 +75,12 @@ type IntelligenceOffer = {
   availability?: string | null;
   productUrl?: string | null;
   matchType?: string | null;
+  matchConfidence?: number | null;
+  source?: string | null;
+  sellerRating?: number | null;
+  reviewCount?: number | null;
+  thumbnailUrl?: string | null;
+  condition?: string | null;
   confidenceScore?: number | null;
 };
 
@@ -135,6 +142,34 @@ const formatMatchType = (value?: string | null): string => {
   const normalized = String(value || "").trim().toLowerCase();
   if (!normalized) return "unknown";
   return normalized.charAt(0).toUpperCase() + normalized.slice(1);
+};
+
+const compactOfferEvidence = (offer: IntelligenceOffer): string[] => {
+  const evidence: string[] = [];
+  const rating = toNumber(offer.sellerRating);
+  const reviews = Math.trunc(toNumber(offer.reviewCount));
+
+  if (rating > 0) {
+    evidence.push(reviews > 0 ? `${rating.toFixed(1)} stars (${reviews.toLocaleString()})` : `${rating.toFixed(1)} stars`);
+  } else if (reviews > 0) {
+    evidence.push(`${reviews.toLocaleString()} reviews`);
+  }
+
+  if (toNumber(offer.shippingCost) > 0) {
+    evidence.push(`Ship ${formatMoney(offer.shippingCost)}`);
+  } else if (offer.shippingCost === 0) {
+    evidence.push("Free shipping");
+  }
+
+  if (offer.condition) {
+    evidence.push(offer.condition);
+  }
+
+  if (offer.availability) {
+    evidence.push(offer.availability);
+  }
+
+  return evidence.slice(0, 3);
 };
 
 const toNumber = (value: unknown): number => {
@@ -325,12 +360,14 @@ export default function PriceTracking() {
         forceRefresh: true,
       },
       useFirebaseFunctions: true,
-    }) as { providerEnabled?: boolean; offersCreated?: number; refreshed?: boolean };
+    }) as { providerEnabled?: boolean; offersCreated?: number; offersUpdated?: number; refreshed?: boolean };
 
     if (!result?.providerEnabled) {
       setRefreshFeedback("Live web market search is not configured in this environment (missing SERPAPI_API_KEY).");
     } else if ((result?.offersCreated ?? 0) > 0) {
       setRefreshFeedback(`Found ${result.offersCreated} new market offer${result.offersCreated === 1 ? "" : "s"}.`);
+    } else if ((result?.offersUpdated ?? 0) > 0) {
+      setRefreshFeedback(`Updated evidence on ${result.offersUpdated} existing offer${result.offersUpdated === 1 ? "" : "s"}.`);
     } else {
       setRefreshFeedback("Refresh completed, but no new external identical offers were found for this item.");
     }
@@ -551,6 +588,9 @@ export default function PriceTracking() {
                     >
                       {isFetchingIntelligence ? "Refreshing offers..." : "Refresh Market Offers"}
                     </Button>
+                    <p className="text-xs text-muted-foreground">
+                      Market offers are refreshed only when you click this button.
+                    </p>
                   </div>
                 ) : (
                   <p className="text-sm text-muted-foreground">No wishlist items found yet. Add items to start intelligence comparisons.</p>
@@ -600,6 +640,28 @@ export default function PriceTracking() {
                         <CardContent className="space-y-2">
                           {bestIdenticalOffer ? (
                             <>
+                              <div className="flex items-start gap-3">
+                                {bestIdenticalOffer.thumbnailUrl && (
+                                  <img
+                                    src={bestIdenticalOffer.thumbnailUrl}
+                                    alt={bestIdenticalOffer.title || "Best offer"}
+                                    className="w-12 h-12 rounded border object-cover shrink-0"
+                                    loading="lazy"
+                                  />
+                                )}
+                                <div className="min-w-0 space-y-1">
+                                  {bestIdenticalOffer.title && (
+                                    <div className="text-sm text-muted-foreground line-clamp-2">
+                                      {bestIdenticalOffer.title}
+                                    </div>
+                                  )}
+                                  {compactOfferEvidence(bestIdenticalOffer).length > 0 && (
+                                    <div className="text-xs text-muted-foreground line-clamp-1">
+                                      {compactOfferEvidence(bestIdenticalOffer).join(" • ")}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
                               <div className="flex items-center justify-between">
                                 <span className="text-sm text-muted-foreground">Store</span>
                                 <span className="font-medium">{bestIdenticalOffer.store || "Unknown"}</span>
@@ -612,6 +674,16 @@ export default function PriceTracking() {
                                 <span className="text-sm text-muted-foreground">Match</span>
                                 <Badge variant="secondary">{formatMatchType(bestIdenticalOffer.matchType)}</Badge>
                               </div>
+                              {bestIdenticalOffer.productUrl && (
+                                <a
+                                  href={bestIdenticalOffer.productUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-sm text-emerald-700 hover:text-emerald-800 underline"
+                                >
+                                  Open retailer product page
+                                </a>
+                              )}
                             </>
                           ) : (
                             <p className="text-sm text-muted-foreground">No high-confidence identical offers available yet.</p>
@@ -660,12 +732,44 @@ export default function PriceTracking() {
                         {probableOffers.length > 0 ? (
                           <div className="space-y-2">
                             {probableOffers.slice(0, 6).map((offer) => (
-                              <div key={offer.id} className="flex items-center justify-between border rounded-md px-3 py-2">
-                                <div>
-                                  <div className="font-medium text-sm">{offer.store || "Unknown store"}</div>
-                                  <div className="text-xs text-muted-foreground">{formatMatchType(offer.matchType)}</div>
+                              <div key={offer.id} className="flex items-center justify-between border rounded-md px-3 py-2 gap-3">
+                                <div className="min-w-0">
+                                  <div className="flex items-center gap-2 min-w-0">
+                                    {offer.thumbnailUrl && (
+                                      <img
+                                        src={offer.thumbnailUrl}
+                                        alt={offer.title || offer.store || "Offer"}
+                                        className="w-8 h-8 rounded border object-cover shrink-0"
+                                        loading="lazy"
+                                      />
+                                    )}
+                                    <div className="font-medium text-sm line-clamp-1">{offer.store || "Unknown store"}</div>
+                                  </div>
+                                  {offer.title && (
+                                    <div className="text-xs text-muted-foreground line-clamp-1">{offer.title}</div>
+                                  )}
+                                  <div className="text-xs text-muted-foreground">
+                                    {formatMatchType(offer.matchType)}
+                                    {toNumber(offer.matchConfidence) > 0 ? ` • ${(toNumber(offer.matchConfidence) * 100).toFixed(0)}%` : ""}
+                                    {offer.source ? ` • ${offer.source}` : ""}
+                                  </div>
+                                  {compactOfferEvidence(offer).length > 0 && (
+                                    <div className="text-xs text-muted-foreground line-clamp-1">
+                                      {compactOfferEvidence(offer).join(" • ")}
+                                    </div>
+                                  )}
+                                  {offer.productUrl && (
+                                    <a
+                                      href={offer.productUrl}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-xs text-emerald-700 hover:text-emerald-800 underline"
+                                    >
+                                      Open retailer page
+                                    </a>
+                                  )}
                                 </div>
-                                <div className="font-medium">{formatMoney(offer.landedPrice)}</div>
+                                <div className="font-medium shrink-0">{formatMoney(offer.landedPrice)}</div>
                               </div>
                             ))}
                           </div>
