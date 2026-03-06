@@ -23,9 +23,13 @@ type MarketOffer = {
   title: string | null;
   store: string;
   productUrl: string | null;
+  thumbnailUrl: string | null;
   price: number;
   totalPrice: number;
   shippingCost: number;
+  sellerRating: number | null;
+  reviewCount: number | null;
+  condition: string | null;
   matchType: 'strong' | 'probable';
   matchConfidence: number;
   source: 'serpapi-google-shopping';
@@ -125,8 +129,13 @@ async function fetchSerpApiOffers(itemId: string, item: Record<string, unknown>)
         const title = normalizeText(entry.title) || normalizeText(item.title);
         const store = normalizeText(entry.source) || normalizeText(entry.seller) || normalizeText(entry.store);
         const productUrl = normalizeText(entry.link) || normalizeText(entry.product_link);
+        const thumbnailUrl = normalizeText(entry.thumbnail) || normalizeText(entry.thumbnail_url);
         const extractedPrice = toNumber(entry.extracted_price) ?? toNumber(entry.price);
         const shippingCost = toNumber(entry.shipping) ?? 0;
+        const sellerRating = toNumber(entry.rating) ?? toNumber(entry.seller_rating);
+        const reviewCount = toNumber(entry.reviews) ?? toNumber(entry.review_count);
+        const condition = normalizeText(entry.condition) || normalizeText(entry.product_condition);
+        const deliveryText = normalizeText(entry.delivery) || normalizeText((entry.extensions as unknown[] | undefined)?.[0]);
         const titleText = (title || '').toLowerCase();
         const strongTitleMatch = normalizedTitle && titleText
           ? (titleText.includes(normalizedTitle) || normalizedTitle.includes(titleText))
@@ -140,13 +149,17 @@ async function fetchSerpApiOffers(itemId: string, item: Record<string, unknown>)
           title,
           store,
           productUrl,
+          thumbnailUrl,
           price: extractedPrice,
           totalPrice: extractedPrice + shippingCost,
           shippingCost,
+          sellerRating,
+          reviewCount,
+          condition,
           matchType: strongTitleMatch ? 'strong' : 'probable',
           matchConfidence: strongTitleMatch ? 0.9 : 0.7,
           source: 'serpapi-google-shopping' as const,
-          availability: normalizeText(entry.delivery),
+          availability: deliveryText,
           scrapedAt: new Date().toISOString(),
         };
       })
@@ -165,7 +178,7 @@ function hasFreshWebOffers(existingOffers: Array<Record<string, unknown>>): bool
   });
 }
 
-async function refreshOffersForItem(itemId: string, item: Record<string, unknown>, forceRefresh: boolean): Promise<{ refreshed: boolean; created: number }> {
+async function refreshOffersForItem(itemId: string, item: Record<string, unknown>, forceRefresh: boolean): Promise<{ refreshed: boolean; created: number; updated: number }> {
   const existingSnapshot = await db.collection('priceOffers').where('itemId', '==', itemId).limit(200).get();
   const existingOffers: Array<Record<string, unknown>> = existingSnapshot.docs.map((doc) => ({
     id: doc.id,
@@ -173,26 +186,57 @@ async function refreshOffersForItem(itemId: string, item: Record<string, unknown
   }));
 
   if (!forceRefresh && hasFreshWebOffers(existingOffers)) {
-    return { refreshed: false, created: 0 };
+    return { refreshed: false, created: 0, updated: 0 };
   }
 
   const fetchedOffers = await fetchSerpApiOffers(itemId, item);
   if (fetchedOffers.length === 0) {
-    return { refreshed: false, created: 0 };
+    return { refreshed: false, created: 0, updated: 0 };
   }
 
   const seen = new Set<string>();
+  const signatureToExisting = new Map<string, Record<string, unknown>>();
   existingOffers.forEach((offer) => {
     const key = normalizeRetailerKey(offer.store) || String(offer.store || '').toLowerCase();
     const price = toNumber(offer.totalPrice) ?? toNumber(offer.price) ?? -1;
-    seen.add(`${key}|${price}`);
+    const signature = `${key}|${price}`;
+    seen.add(signature);
+    signatureToExisting.set(signature, offer);
   });
 
   let created = 0;
+  let updated = 0;
   for (const offer of fetchedOffers) {
     const key = normalizeRetailerKey(offer.store) || offer.store.toLowerCase();
     const signature = `${key}|${offer.totalPrice}`;
     if (seen.has(signature)) {
+      const existing = signatureToExisting.get(signature);
+      const existingId = normalizeText(existing?.id);
+      const shouldEnrich = Boolean(
+        existingId && (
+          !normalizeText(existing?.productUrl) ||
+          !normalizeText(existing?.thumbnailUrl) ||
+          !normalizeText(existing?.availability) ||
+          !normalizeText(existing?.condition) ||
+          toNumber(existing?.sellerRating) === null ||
+          toNumber(existing?.reviewCount) === null
+        )
+      );
+
+      if (existingId && shouldEnrich) {
+        await db.collection('priceOffers').doc(existingId).set({
+          title: offer.title,
+          productUrl: offer.productUrl,
+          thumbnailUrl: offer.thumbnailUrl,
+          availability: offer.availability,
+          condition: offer.condition,
+          sellerRating: offer.sellerRating,
+          reviewCount: offer.reviewCount,
+          scrapedAt: offer.scrapedAt,
+          updatedAt: new Date().toISOString(),
+        }, { merge: true });
+        updated += 1;
+      }
       continue;
     }
 
@@ -212,6 +256,10 @@ async function refreshOffersForItem(itemId: string, item: Record<string, unknown
       totalPrice: offer.totalPrice,
       inStock: true,
       availability: offer.availability,
+      condition: offer.condition,
+      thumbnailUrl: offer.thumbnailUrl,
+      sellerRating: offer.sellerRating,
+      reviewCount: offer.reviewCount,
       source: offer.source,
       scrapedAt: offer.scrapedAt,
       createdAt: new Date().toISOString(),
@@ -220,7 +268,7 @@ async function refreshOffersForItem(itemId: string, item: Record<string, unknown
     created += 1;
   }
 
-  return { refreshed: created > 0, created };
+  return { refreshed: created > 0 || updated > 0, created, updated };
 }
 
 async function requireWishlistVisibilityForUser(itemId: string, uid: string): Promise<Record<string, unknown>> {
@@ -269,6 +317,7 @@ export const refreshPriceIntelligenceOffers = onCall({ secrets: [serpApiSecret] 
     itemId,
     refreshed: result.refreshed,
     offersCreated: result.created,
+    offersUpdated: result.updated,
     providerEnabled: Boolean(getSerpApiKey()),
   };
 });

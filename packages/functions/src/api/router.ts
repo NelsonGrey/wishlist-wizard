@@ -14,7 +14,6 @@ ensureFirebaseAdmin();
 const auth = getAuth();
 const db = getFirestore();
 const serpApiSecret = defineSecret('SERPAPI_API_KEY');
-const INTELLIGENCE_REFRESH_MINUTES = 360;
 
 function getSerpApiKey(): string {
   const secretValue = String(serpApiSecret.value() || '').trim();
@@ -198,6 +197,9 @@ function normalizeOffer(offerDoc: any) {
     isAlternative: toBooleanLike(source.isAlternative, false),
     membershipRequired: toBooleanLike(source.membershipRequired, false),
     sellerRating: toNumberLike(source.sellerRating),
+    reviewCount: toNumberLike(source.reviewCount),
+    thumbnailUrl: normalizeTextLike(source.thumbnailUrl),
+    condition: normalizeTextLike(source.condition),
     inStock: toBooleanLike(source.inStock, true),
     warrantyIncluded: toBooleanLike(source.warrantyIncluded, false),
     returnWindowDays: toNumberLike(source.returnWindowDays),
@@ -223,13 +225,6 @@ function buildMarketSearchQuery(item: any): string {
 
   const parts = [title, brand, model, sku].map((value) => value.trim()).filter(Boolean);
   return parts.join(' ').trim();
-}
-
-function isFreshTimestamp(value: any, freshnessMinutes: number): boolean {
-  const epochMs = toEpochMs(value);
-  if (!epochMs) return false;
-  const ageMs = Date.now() - epochMs;
-  return ageMs >= 0 && ageMs < freshnessMinutes * 60 * 1000;
 }
 
 async function fetchSerpApiMarketOffers(item: any, itemId: string): Promise<any[]> {
@@ -275,6 +270,11 @@ async function fetchSerpApiMarketOffers(item: any, itemId: string): Promise<any[
         const link = normalizeTextLike(entry?.link || entry?.product_link);
         const extractedPrice = toNumberLike(entry?.extracted_price) ?? toNumberLike(entry?.price);
         const shipping = toNumberLike(entry?.shipping);
+        const sellerRating = toNumberLike(entry?.rating ?? entry?.seller_rating);
+        const reviewCount = toNumberLike(entry?.reviews ?? entry?.review_count);
+        const thumbnailUrl = normalizeTextLike(entry?.thumbnail || entry?.thumbnail_url);
+        const condition = normalizeTextLike(entry?.condition || entry?.product_condition);
+        const deliveryText = normalizeTextLike(entry?.delivery || entry?.extensions?.[0]);
         const offerText = (offerTitle || '').toLowerCase();
         const strongTitleMatch = normalizedTitle && offerText
           ? (offerText.includes(normalizedTitle) || normalizedTitle.includes(offerText))
@@ -298,7 +298,11 @@ async function fetchSerpApiMarketOffers(item: any, itemId: string): Promise<any[
           matchConfidence: strongTitleMatch ? 0.9 : 0.7,
           isAlternative: false,
           inStock: true,
-          availability: normalizeTextLike(entry?.delivery || entry?.extensions?.[0]) || null,
+          availability: deliveryText || null,
+          condition: condition || null,
+          thumbnailUrl: thumbnailUrl || null,
+          sellerRating,
+          reviewCount,
           source: 'serpapi-google-shopping',
           scrapedAt: new Date().toISOString(),
         };
@@ -321,13 +325,10 @@ async function maybeRefreshMarketOffers(
     return { refreshed: false, offers: existingOffers };
   }
 
-  const hasFreshWebOffer = existingOffers.some((offer: any) =>
-    normalizeTextLike(offer?.source) === 'serpapi-google-shopping'
-    && isFreshTimestamp(offer?.scrapedAt || offer?.updatedAt || offer?.createdAt, INTELLIGENCE_REFRESH_MINUTES)
-  );
-
   const title = normalizeTextLike(item?.title);
-  const shouldRefresh = Boolean(title) && (forceRefresh || !hasFreshWebOffer);
+  // Only refresh web market offers when explicitly requested.
+  // This avoids background provider calls while users browse intelligence results.
+  const shouldRefresh = Boolean(title) && forceRefresh;
   if (!shouldRefresh) {
     return { refreshed: false, offers: existingOffers };
   }
@@ -338,11 +339,14 @@ async function maybeRefreshMarketOffers(
   }
 
   const dedupe = new Set<string>();
+  const signatureToExisting = new Map<string, any>();
   const combined = [...existingOffers];
   combined.forEach((offer: any) => {
     const storeKey = normalizeRetailerKey(offer?.store) || String(offer?.store || '').toLowerCase();
     const price = toNumberLike(offer?.landedPrice) ?? toNumberLike(offer?.price) ?? -1;
-    dedupe.add(`${storeKey}|${price}`);
+    const signature = `${storeKey}|${price}`;
+    dedupe.add(signature);
+    signatureToExisting.set(signature, offer);
   });
 
   let written = 0;
@@ -351,6 +355,32 @@ async function maybeRefreshMarketOffers(
     const price = toNumberLike(offer.totalPrice) ?? toNumberLike(offer.price) ?? -1;
     const signature = `${storeKey}|${price}`;
     if (dedupe.has(signature)) {
+      const existing = signatureToExisting.get(signature);
+      const existingId = normalizeTextLike(existing?.id);
+      const shouldEnrich = Boolean(
+        existingId && (
+          !normalizeTextLike(existing?.productUrl) ||
+          !normalizeTextLike(existing?.thumbnailUrl) ||
+          !normalizeTextLike(existing?.availability) ||
+          !normalizeTextLike(existing?.condition) ||
+          toNumberLike(existing?.sellerRating) === null ||
+          toNumberLike(existing?.reviewCount) === null
+        )
+      );
+
+      if (existingId && shouldEnrich) {
+        await db.collection('priceOffers').doc(existingId).set({
+          title: offer.title,
+          productUrl: offer.productUrl,
+          thumbnailUrl: offer.thumbnailUrl,
+          availability: offer.availability,
+          condition: offer.condition,
+          sellerRating: offer.sellerRating,
+          reviewCount: offer.reviewCount,
+          scrapedAt: offer.scrapedAt,
+          updatedAt: new Date().toISOString(),
+        }, { merge: true });
+      }
       continue;
     }
 
@@ -370,6 +400,10 @@ async function maybeRefreshMarketOffers(
       totalPrice: offer.totalPrice,
       inStock: offer.inStock,
       availability: offer.availability,
+      condition: offer.condition,
+      thumbnailUrl: offer.thumbnailUrl,
+      sellerRating: offer.sellerRating,
+      reviewCount: offer.reviewCount,
       source: offer.source,
       scrapedAt: offer.scrapedAt,
       createdAt: new Date().toISOString(),
