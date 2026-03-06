@@ -124,7 +124,7 @@ export default function Features() {
             </CardContent>
             <CardFooter>
               <Button asChild variant="outline" className="w-full">
-                <Link href="/register">Start Organizing</Link>
+                <Link href="/wishlist-management-demo">Start Organizing</Link>
               </Button>
             </CardFooter>
           </Card>
@@ -145,7 +145,7 @@ export default function Features() {
             </CardContent>
             <CardFooter>
               <Button asChild variant="outline" className="w-full">
-                <Link href="/register">View Insights</Link>
+                <Link href="/basic-activity-insights-demo">View Insights</Link>
               </Button>
             </CardFooter>
           </Card>
