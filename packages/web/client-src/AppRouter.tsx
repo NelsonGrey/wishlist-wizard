@@ -104,6 +104,8 @@ function AppRouter() {
                     <Route path="/browser-extension-demo" component={() => <FeatureDemo feature="browser-extension" />} />
                     <Route path="/social-integration-demo" component={() => <FeatureDemo feature="social-integration" />} />
                     <Route path="/calendar-integration-demo" component={() => <FeatureDemo feature="calendar-integration" />} />
+                    <Route path="/wishlist-management-demo" component={() => <FeatureDemo feature="wishlist-management" />} />
+                    <Route path="/basic-activity-insights-demo" component={() => <FeatureDemo feature="basic-activity-insights" />} />
                     <Route path="/advanced-user-profiles-demo" component={() => <FeatureDemo feature="advanced-user-profiles" />} />
                     {/* Redirect legacy marketing route to homepage */}
                     <Route path="/price-tracking" component={() => <Redirect to="/" />} />

@@ -5,6 +5,8 @@ type FeatureKey =
   | "browser-extension"
   | "social-integration"
   | "calendar-integration"
+  | "wishlist-management"
+  | "basic-activity-insights"
   | "advanced-user-profiles";
 
 type FeatureConfig = {
@@ -83,6 +85,38 @@ const featureConfigs: Record<FeatureKey, FeatureConfig> = {
     demoCtaLabel: "View Calendar Demo",
     appCtaLabel: "Open Calendar",
     appHref: "/app/calendar"
+  },
+  "wishlist-management": {
+    title: "Wishlist Management",
+    subtitle: "Organize every plan in one place",
+    description:
+      "Create, structure, and maintain wishlists across events and recipients so gift planning stays fast and clear.",
+    highlights: [
+      "Create multiple lists by recipient or occasion",
+      "Prioritize and organize items with less effort",
+      "Keep list details easy to update and share"
+    ],
+    screenshotSrc: "/feature-screenshots/feature-demo.png",
+    screenshotAlt: "Wishlist management feature screenshot",
+    demoCtaLabel: "View Wishlist Demo",
+    appCtaLabel: "Open Dashboard",
+    appHref: "/app/dashboard"
+  },
+  "basic-activity-insights": {
+    title: "Basic Activity Insights",
+    subtitle: "Simple visibility into list engagement",
+    description:
+      "Track key engagement trends so you can improve list quality and timing without complex analytics overhead.",
+    highlights: [
+      "Monitor list views and interaction patterns",
+      "Spot which lists are getting the most attention",
+      "Use simple signals to plan updates and sharing"
+    ],
+    screenshotSrc: "/feature-screenshots/feature-demo.png",
+    screenshotAlt: "Basic activity insights feature screenshot",
+    demoCtaLabel: "View Insights Demo",
+    appCtaLabel: "Open Analytics",
+    appHref: "/app/analytics"
   },
   "advanced-user-profiles": {
     title: "Advanced User Profiles",
