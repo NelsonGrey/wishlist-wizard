@@ -164,7 +164,11 @@ export {
 export {
   trackAnalyticsEvent,
   getAnalyticsEvents,
-  getAnalyticsSummary
+  getAnalyticsSummary,
+  getAdRevenueSummary,
+  createAdKpiSnapshot,
+  scheduledAdKpiSnapshot,
+  getAdKpiSnapshots
 } from './api/analytics';
 
 export {
