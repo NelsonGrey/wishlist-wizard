@@ -5,10 +5,8 @@ import {
   Bell,
   Calendar,
   ChevronDown,
-  LineChart,
   LogOut,
   Settings,
-  Sparkles,
   User,
   Menu,
   LayoutDashboard,
@@ -75,19 +73,16 @@ export default function AppLayout({ children }: AppLayoutProps) {
 
   const primaryNavItems = [
     { name: 'Dashboard', href: '/app/dashboard', icon: <LayoutDashboard className="h-5 w-5" />, activePaths: ['/app/dashboard', '/app/wishlists', '/app/wishlist', '/dashboard', '/wishlists', '/wishlist'] },
-    { name: 'Recommendations', href: '/app/recommendations', icon: <Sparkles className="h-5 w-5" />, activePaths: ['/app/recommendations', '/recommendations'] },
-    { name: 'Price Tracking', href: '/app/price-tracking', icon: <LineChart className="h-5 w-5" />, activePaths: ['/app/price-tracking'] },
     { name: 'Calendar', href: '/app/calendar', icon: <Calendar className="h-5 w-5" />, activePaths: ['/app/calendar', '/calendar'] },
     { name: 'Analytics', href: '/app/analytics', icon: <BarChart3 className="h-5 w-5" />, activePaths: ['/app/analytics', '/analytics'] },
   ];
 
   const featureNavItems = [
     { name: 'Mobile App', href: '/app/dashboard', icon: <Smartphone className="h-4 w-4" />, description: 'Synced wishlists across devices' },
-    { name: 'Social Integration', href: '/app/dashboard', icon: <Users className="h-4 w-4" />, description: 'Collaborate on shared gifts' },
-    { name: 'Price Tracking', href: '/app/price-tracking', icon: <LineChart className="h-4 w-4" />, description: 'Track and alert on price drops' },
+    { name: 'Social Network & Discovery', href: '/app/dashboard', icon: <Users className="h-4 w-4" />, description: 'Discover and collaborate with trusted contacts' },
     { name: 'Calendar Integration', href: '/app/calendar', icon: <Calendar className="h-4 w-4" />, description: 'Event reminders and planning' },
+    { name: 'Browser Extension', href: '/extension', icon: <Puzzle className="h-4 w-4" />, description: 'Capture products from any website' },
     { name: 'Advanced User Profiles', href: '/app/user-profile', icon: <User className="h-4 w-4" />, description: 'Personalized gifting preferences' },
-    { name: 'AI Gift Recommendations', href: '/app/recommendations', icon: <Sparkles className="h-4 w-4" />, description: 'Smarter personalized suggestions' },
   ];
 
   return (

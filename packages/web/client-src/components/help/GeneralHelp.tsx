@@ -21,7 +21,7 @@ export function GeneralHelp() {
                 <strong>Create an account:</strong> Sign up with your email address and create a password
               </li>
               <li>
-                <strong>Set up your profile:</strong> Add preferences to get personalized recommendations
+                <strong>Set up your profile:</strong> Add preferences so your wishlist planning stays personalized
               </li>
               <li>
                 <strong>Create your first wishlist:</strong> Go to &quot;My Wishlists&quot; and click &quot;Create New Wishlist&quot;
@@ -30,7 +30,7 @@ export function GeneralHelp() {
                 <strong>Install the browser extension:</strong> For seamless adding of items from any website
               </li>
               <li>
-                <strong>Explore features:</strong> Try out gift coordination, price tracking, and more
+                <strong>Explore features:</strong> Try out social sharing, calendar planning, and collaboration
               </li>
             </ol>
           </AccordionContent>
@@ -90,9 +90,6 @@ export function GeneralHelp() {
                 <strong>Comments:</strong> Leave notes on items for collaborators to see
               </li>
               <li>
-                <strong>Group gifting:</strong> Coordinate with others for shared gifts
-              </li>
-              <li>
                 <strong>Social sharing:</strong> Post wishlists to social media platforms
               </li>
             </ul>
@@ -109,10 +106,8 @@ export function GeneralHelp() {
               <li>
                 <strong>Types of notifications:</strong>
                 <ul className="list-disc pl-5 mt-1">
-                  <li>Price drops on tracked items</li>
                   <li>Upcoming events (birthdays, anniversaries, etc.)</li>
                   <li>Collaborative wishlist activity</li>
-                  <li>Group gift contributions and updates</li>
                   <li>Comments and messages from friends</li>
                   <li>Reserved or purchased items</li>
                 </ul>

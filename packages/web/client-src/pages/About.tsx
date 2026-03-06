@@ -90,10 +90,10 @@ export default function About() {
             <ul className="list-disc list-inside text-gray-700 space-y-2">
               <li><strong>Browser Extension:</strong> Save items from any website with a single click</li>
               <li><strong>Web Dashboard:</strong> Manage all your wishlists in one beautiful interface</li>
-              <li><strong>Price Tracking:</strong> Get notified when prices drop on items you want</li>
+              <li><strong>Calendar Integration:</strong> Stay on top of birthdays and key gifting milestones</li>
               <li><strong>Social Sharing:</strong> Share wishlists with friends and family</li>
-              <li><strong>AI Recommendations:</strong> Discover new items you'll love</li>
-              <li><strong>Group Gifting:</strong> Coordinate group gifts and avoid duplicates</li>
+              <li><strong>Social Network Discovery:</strong> Find trusted people and coordinate gift planning</li>
+              <li><strong>Basic Activity Insights:</strong> Understand how your lists are viewed and used</li>
             </ul>
           </section>
 

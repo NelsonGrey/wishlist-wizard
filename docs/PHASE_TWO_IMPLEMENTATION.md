@@ -1,6 +1,12 @@
 # PHASE TWO IMPLEMENTATION
 
-## Deferred Feature: AR Visualization
+## Deferred Features Included In Phase Two
+
+- AR Visualization
+- Price Tracking (basic and advanced)
+- Affiliate Integration and monetization surfaces
+
+## Deferred Feature Detail: AR Visualization
 
 Status: Deferred from current launch scope.
 

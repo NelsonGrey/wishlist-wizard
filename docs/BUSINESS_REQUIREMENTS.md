@@ -647,9 +647,10 @@
 - ✅ D30 retention >30%
 - ✅ NPS >45
 - ✅ 60%+ of wishlists shared (indicates value)
-- ✅ Affiliate click-through rate >3%
+- ✅ 35%+ of active users connect at least one calendar source
+- ✅ 40%+ of active users engage with social discovery or shared-list collaboration
 
-**NO-GO Decision**: If retention <20% or CTR <1% → pivot to B2B, influencer-focused, or shutdown
+**NO-GO Decision**: If retention <20% or share/collaboration engagement <20% → pivot to narrower audience segments before scaling monetization features
 
 ---
 
@@ -703,23 +704,22 @@
 
 ## 🔄 Roadmap Overview
 
-### Phase 1: MVP Foundation (Launched)
+### Phase 1: MVP Foundation (Core Platform)
 - ✅ Web app (React)
 - ✅ Mobile app (React Native)
 - ✅ Browser extension
 - ✅ Core CRUD (wishlists, items, sharing)
-- ✅ Price tracking (basic)
-- ✅ Affiliate integration (Amazon, Etsy, Walmart)
+- 🟡 Calendar integration (birthdays, events)
+- 🟡 Social network and discovery (public profiles, influencer discovery)
 
 ### Phase 2: Intelligence & Creator Economy (Year 1-2)
 - 🟡 AI recommendations (gift ideas based on recipient)
 - 🟡 Creator dashboard (analytics, earnings)
 - 🟡 Group gifting (coordination, payments)
-- 🟡 Calendar integration (birthdays, events)
-- 🟡 Advanced price tracking (multi-retailer, price alerts)
+- 🟡 Price tracking (basic + advanced multi-retailer alerts)
+- 🟡 Affiliate integration (Amazon, Etsy, Walmart)
 
 ### Phase 3: Ecosystem & Monetization (Year 2-3)
-- ⏸️ Social gifting network (public profiles, influencer discovery)
 - ⏸️ Brand partnerships (exclusive wishlists, collaborations)
 - ⏸️ White-label solutions
 - ⏸️ AR visualization

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { BarChart3, Gift, Plus, Share2 } from "lucide-react";
+import { CalendarClock, Gift, Plus, Share2, Users } from "lucide-react";
 import { useLocation } from "wouter";
 import WishlistCard from "@/components/WishlistCard";
 import CreateWishlistDialog from "@/components/CreateWishlistDialog";
@@ -332,18 +332,40 @@ export default function Dashboard() {
             <Card className="border-emerald-100">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-xl">
-                  <BarChart3 className="h-5 w-5 text-emerald-700" />
-                  Performance Insights
+                  <Users className="h-5 w-5 text-emerald-700" />
+                  Social Network & Discovery
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 <p className="text-sm text-gray-600">
-                  Track click-to-purchase performance and commission trends for your curated lists.
+                  Share with trusted people, discover their public lists, and coordinate gifting without confusion.
                 </p>
                 <div className="flex flex-wrap gap-2">
-                  <Button onClick={() => setLocation('/app/analytics')}>Open Analytics</Button>
-                  <Button variant="outline" onClick={() => setLocation('/app/recommendations')}>
-                    Build Next List Theme
+                  <Button onClick={() => selectedWishlist && setLocation(`/app/wishlist/${selectedWishlist.id}`)} disabled={!selectedWishlist}>
+                    Open Shared Planning
+                  </Button>
+                  <Button variant="outline" onClick={handleShareSelectedWishlist} disabled={!selectedWishlist?.shareId}>
+                    Copy Share Link
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-emerald-100">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-xl">
+                  <CalendarClock className="h-5 w-5 text-emerald-700" />
+                  Calendar Planning
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <p className="text-sm text-gray-600">
+                  Keep birthdays and milestones visible so gifting decisions happen with less last-minute stress.
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  <Button onClick={() => setLocation('/app/calendar')}>Open Calendar</Button>
+                  <Button variant="outline" onClick={() => setLocation('/app/calendar')}>
+                    Manage Connections
                   </Button>
                 </div>
               </CardContent>

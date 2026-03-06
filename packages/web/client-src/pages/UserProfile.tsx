@@ -152,7 +152,7 @@ const SHOE_SIZES = ["US 5", "US 6", "US 7", "US 8", "US 9", "US 10", "US 11", "U
 const ACHIEVEMENTS = [
   { id: 1, name: "Wishlist Wizard", description: "Created 10+ wishlists", earned: true, icon: "🌟" },
   { id: 2, name: "Gifting Guru", description: "Purchased 25+ gifts", earned: true, icon: "🎁" },
-  { id: 3, name: "Savings Expert", description: "Saved over $250 with price tracking", earned: true, icon: "💰" },
+  { id: 3, name: "Savings Expert", description: "Saved over $250 with smart wishlist planning", earned: true, icon: "💰" },
   { id: 4, name: "Social Butterfly", description: "Connected with 20+ friends", earned: false, icon: "🦋" },
   { id: 5, name: "Review Enthusiast", description: "Wrote 15+ product reviews", earned: false, icon: "✍️" }
 ];

@@ -83,8 +83,8 @@ export default function Recommendations() {
               <Button variant="outline" onClick={() => setLocation('/app/dashboard')}>
                 Open Wishlists
               </Button>
-              <Button variant="outline" onClick={() => setLocation('/app/price-tracking')}>
-                Open Price Tracking
+              <Button variant="outline" onClick={() => setLocation('/app/calendar')}>
+                Open Calendar
               </Button>
               <Button onClick={() => setLocation('/app/analytics')}>
                 Open Analytics

@@ -2,11 +2,10 @@ import { Link } from "wouter";
 
 type FeatureKey =
   | "mobile-app"
+  | "browser-extension"
   | "social-integration"
-  | "price-tracking"
   | "calendar-integration"
-  | "advanced-user-profiles"
-  | "ai-gift-recommendations";
+  | "advanced-user-profiles";
 
 type FeatureConfig = {
   title: string;
@@ -37,6 +36,22 @@ const featureConfigs: Record<FeatureKey, FeatureConfig> = {
     appCtaLabel: "Open App Dashboard",
     appHref: "/app/dashboard"
   },
+  "browser-extension": {
+    title: "Browser Extension",
+    subtitle: "Capture items while you browse",
+    description:
+      "Save products from online stores in one click and route them directly into the right wishlist.",
+    highlights: [
+      "Capture products from supported shopping pages",
+      "Keep item details organized while browsing",
+      "Reduce manual copy-and-paste when building lists"
+    ],
+    screenshotSrc: "/feature-screenshots/feature-demo.png",
+    screenshotAlt: "Browser extension feature screenshot",
+    demoCtaLabel: "View Extension Setup",
+    appCtaLabel: "Open Extension Guide",
+    appHref: "/extension"
+  },
   "social-integration": {
     title: "Social Integration",
     subtitle: "Coordinate gifts together",
@@ -52,22 +67,6 @@ const featureConfigs: Record<FeatureKey, FeatureConfig> = {
     demoCtaLabel: "View Social Demo",
     appCtaLabel: "Open Dashboard",
     appHref: "/app/dashboard"
-  },
-  "price-tracking": {
-    title: "Price Tracking",
-    subtitle: "Catch every deal",
-    description:
-      "Track price changes automatically and get notified when items hit your target price so you can buy at the right time.",
-    highlights: [
-      "Monitor item prices automatically",
-      "Get alerts on meaningful drops",
-      "Track savings over time"
-    ],
-    screenshotSrc: "/feature-screenshots/feature-demo.png",
-    screenshotAlt: "Price tracking feature screenshot",
-    demoCtaLabel: "View Price Tracking Demo",
-    appCtaLabel: "Open Price Tracking",
-    appHref: "/app/price-tracking"
   },
   "calendar-integration": {
     title: "Calendar Integration",
@@ -100,22 +99,6 @@ const featureConfigs: Record<FeatureKey, FeatureConfig> = {
     demoCtaLabel: "View Profile Demo",
     appCtaLabel: "Open User Profile",
     appHref: "/app/user-profile"
-  },
-  "ai-gift-recommendations": {
-    title: "AI Gift Recommendations",
-    subtitle: "Smarter suggestions, faster decisions",
-    description:
-      "Use AI-powered ideas tailored to preferences and behavior so you can find thoughtful gifts quickly.",
-    highlights: [
-      "Get personalized gift suggestions",
-      "Discover new items with better relevance",
-      "Spend less time searching"
-    ],
-    screenshotSrc: "/feature-screenshots/feature-demo.png",
-    screenshotAlt: "AI gift recommendations feature screenshot",
-    demoCtaLabel: "View AI Demo",
-    appCtaLabel: "Open Recommendations",
-    appHref: "/app/recommendations"
   }
 };
 

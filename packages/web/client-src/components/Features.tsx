@@ -1,11 +1,11 @@
 import { Link } from "wouter";
 import { 
-  Share2, 
+  Compass,
+  LayoutGrid,
   CalendarClock, 
-  BadgeDollarSign,
+  Puzzle,
   Smartphone,
-  Award,
-  User
+  BarChart3
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -17,7 +17,7 @@ export default function Features() {
         <div className="text-center mb-16">
           <h2 className="text-3xl md:text-4xl font-bold mb-4 bg-gradient-to-r from-emerald-800 to-green-700 bg-clip-text text-transparent">Product Features</h2>
           <p className="text-lg text-slate-600 max-w-2xl mx-auto">
-            Wishlist Wizard combines planning, sharing, and tracking capabilities that make gift-giving easier.
+            Wishlist Wizard combines planning, sharing, and calendar-powered coordination to make gifting easier.
           </p>
         </div>
         
@@ -44,46 +44,44 @@ export default function Features() {
             </CardFooter>
           </Card>
           
-          {/* Social Sharing Feature */}
+          {/* Social Network Discovery Feature */}
           <Card className="border-2 hover:border-emerald-200 hover:shadow-lg transition-all">
             <CardHeader className="pb-2">
               <div className="p-2 w-12 h-12 bg-emerald-100 rounded-lg mb-2 flex items-center justify-center">
-                <Share2 className="text-emerald-800" size={24} />
+                <Compass className="text-emerald-800" size={24} />
               </div>
-              <CardTitle>Social Integration</CardTitle>
-              <CardDescription>Connect with friends and family</CardDescription>
+              <CardTitle>Social Network & Discovery</CardTitle>
+              <CardDescription>Find and share trusted wishlists</CardDescription>
             </CardHeader>
             <CardContent>
               <p className="text-slate-600">
-                Share wishlists across social media platforms, find friends&apos; wishlists, and collaborate 
-                on group gifts seamlessly.
+                Discover people you trust, share curated wishlists, and coordinate gifting without duplicate purchases.
               </p>
             </CardContent>
             <CardFooter>
               <Button asChild variant="outline" className="w-full">
-                <Link href="/social-integration-demo">Start Collaborating</Link>
+                <Link href="/social-integration-demo">Open Network Demo</Link>
               </Button>
             </CardFooter>
           </Card>
           
-          {/* Price Tracking Feature */}
+          {/* Browser Extension Feature */}
           <Card className="border-2 hover:border-emerald-200 hover:shadow-lg transition-all">
             <CardHeader className="pb-2">
               <div className="p-2 w-12 h-12 bg-emerald-100 rounded-lg mb-2 flex items-center justify-center">
-                <BadgeDollarSign className="text-emerald-800" size={24} />
+                <Puzzle className="text-emerald-800" size={24} />
               </div>
-              <CardTitle>Price Tracking</CardTitle>
-              <CardDescription>Never miss a deal</CardDescription>
+              <CardTitle>Browser Extension</CardTitle>
+              <CardDescription>Save items in one click</CardDescription>
             </CardHeader>
             <CardContent>
               <p className="text-slate-600">
-                Automatically track prices of items in your wishlists and get alerts when they drop
-                or when similar items go on sale.
+                Capture products from shopping sites instantly and send them directly to your wishlists while you browse.
               </p>
             </CardContent>
             <CardFooter>
               <Button asChild variant="outline" className="w-full">
-                <Link href="/price-tracking-demo">Start Price Tracking</Link>
+                <Link href="/browser-extension-demo">View Extension</Link>
               </Button>
             </CardFooter>
           </Card>
@@ -110,46 +108,44 @@ export default function Features() {
             </CardFooter>
           </Card>
           
-          {/* Advanced User Profiles Feature */}
+          {/* Wishlist Management Feature */}
           <Card className="border-2 hover:border-emerald-200 hover:shadow-lg transition-all">
             <CardHeader className="pb-2">
               <div className="p-2 w-12 h-12 bg-emerald-100 rounded-lg mb-2 flex items-center justify-center">
-                <User className="text-emerald-800" size={24} />
+                <LayoutGrid className="text-emerald-800" size={24} />
               </div>
-              <CardTitle>Advanced User Profiles</CardTitle>
-              <CardDescription>Personalized preferences</CardDescription>
+              <CardTitle>Wishlist Management</CardTitle>
+              <CardDescription>Organize every event in one place</CardDescription>
             </CardHeader>
             <CardContent>
               <p className="text-slate-600">
-                Create personalized profiles with detailed gift preferences, statistics, and
-                recommendation settings to get better gift suggestions.
+                Create multiple lists, prioritize items, and keep gifting plans structured across events and recipients.
               </p>
             </CardContent>
             <CardFooter>
               <Button asChild variant="outline" className="w-full">
-                <Link href="/advanced-user-profiles-demo">Create Your Profile</Link>
+                <Link href="/register">Start Organizing</Link>
               </Button>
             </CardFooter>
           </Card>
           
-          {/* AI Recommendations Feature */}
+          {/* Basic Analytics Feature */}
           <Card className="border-2 hover:border-emerald-200 hover:shadow-lg transition-all">
             <CardHeader className="pb-2">
               <div className="p-2 w-12 h-12 bg-emerald-100 rounded-lg mb-2 flex items-center justify-center">
-                <Award className="text-emerald-800" size={24} />
+                <BarChart3 className="text-emerald-800" size={24} />
               </div>
-              <CardTitle>AI Gift Recommendations</CardTitle>
-              <CardDescription>Personalized suggestions</CardDescription>
+              <CardTitle>Basic Activity Insights</CardTitle>
+              <CardDescription>Understand list engagement</CardDescription>
             </CardHeader>
             <CardContent>
               <p className="text-slate-600">
-                Get intelligent gift suggestions based on preferences, past purchases, and similar users.
-                Our AI helps you find the perfect gift every time.
+                See simple engagement signals so you can improve your lists and keep gifting plans on track.
               </p>
             </CardContent>
             <CardFooter>
               <Button asChild variant="outline" className="w-full">
-                <Link href="/ai-gift-recommendations-demo">Get Recommendations</Link>
+                <Link href="/register">View Insights</Link>
               </Button>
             </CardFooter>
           </Card>
