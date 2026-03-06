@@ -37,21 +37,30 @@ describe('CalendarSettings external source redesign', () => {
         };
       }
 
-      if (queryKey?.[0] === '/api/contacts') {
-        return {
-          data: {},
-          isLoading: false,
-        };
-      }
-
-      if (queryKey?.[0] === '/api/contacts/external-status') {
+      if (queryKey?.[0] === '/api/contacts/external-preview') {
         return {
           data: {
-            contacts: [{ id: 'contact-1' }, { id: 'contact-2' }],
+            contacts: [
+              {
+                id: 'contact-1',
+                name: 'Ada Lovelace',
+                primarySource: 'google',
+                sources: [{ provider: 'google', sourceContactId: 'g-1' }],
+              },
+              {
+                id: 'contact-2',
+                name: 'Grace Hopper',
+                primarySource: 'outlook',
+                sources: [{ provider: 'outlook', sourceContactId: 'o-1' }],
+              },
+            ],
             providerStatuses: [
               { provider: 'google', connected: true, supported: true },
               { provider: 'outlook', connected: false, supported: true },
             ],
+            metadata: {
+              storageMode: 'ephemeral',
+            },
           },
           isLoading: false,
           refetch: vi.fn(),
@@ -69,9 +78,10 @@ describe('CalendarSettings external source redesign', () => {
     render(<CalendarSettings />, { pathname: '/app/user-profile' });
 
     expect(await screen.findByText('Recipient Source Access')).toBeInTheDocument();
-    expect(screen.getByText('Google')).toBeInTheDocument();
-    expect(screen.getByText('Outlook')).toBeInTheDocument();
+    expect(screen.getAllByText('Google').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Outlook').length).toBeGreaterThan(0);
     expect(screen.getByText('No calendars connected')).toBeInTheDocument();
-    expect(screen.getByText('2 contacts')).toBeInTheDocument();
+    expect(screen.getByText('2 matches')).toBeInTheDocument();
+    expect(screen.getByText('External Contact Preview')).toBeInTheDocument();
   });
 });

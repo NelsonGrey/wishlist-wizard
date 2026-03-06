@@ -1,0 +1,27 @@
+{
+  "timestamp": "2026-03-06T22:17:02.560Z",
+  "strictAll": false,
+  "source": {
+    "requirementsPath": "docs/REQUIREMENTS.md",
+    "matrixPath": "docs/requirements-verification.json"
+  },
+  "summary": {
+    "completedRequirements": 30,
+    "matrixEntries": 30,
+    "unmappedCompleted": 0,
+    "enforcedUnverified": 0,
+    "enforcedMissingFromCompleted": 0,
+    "malformedEnforced": 0,
+    "designUnlinkedEnforced": 0,
+    "duplicateKeys": 0,
+    "blockingFailures": 0
+  },
+  "details": {
+    "unmappedCompleted": [],
+    "enforcedUnverified": [],
+    "enforcedMissingFromCompleted": [],
+    "malformedEnforced": [],
+    "designUnlinkedEnforced": [],
+    "duplicateKeys": []
+  }
+}

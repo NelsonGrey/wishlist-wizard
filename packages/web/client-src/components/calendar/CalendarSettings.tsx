@@ -1,5 +1,6 @@
 import React from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Link } from 'wouter';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
@@ -7,9 +8,8 @@ import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { ConnectCalendarDialog, CalendarProvider } from './ConnectCalendarDialog';
-import { LuCalendarClock, LuCloudSun, LuTrash2, LuUserPlus, LuEyeOff, LuUpload } from 'react-icons/lu';
+import { LuCalendarClock, LuCloudSun, LuTrash2 } from 'react-icons/lu';
 import { SiGoogle, SiApple } from 'react-icons/si';
 import { FaMicrosoft } from 'react-icons/fa';
 import { format } from 'date-fns';
@@ -34,14 +34,6 @@ interface CalendarSettings {
   defaultReminders: number[];
 }
 
-interface ImportedContact {
-  id: string;
-  name: string;
-  email?: string;
-  phone?: string;
-  sourceProvider?: 'google' | 'outlook' | 'apple' | string;
-}
-
 interface ExternalProviderStatus {
   provider: 'google' | 'outlook' | 'apple' | 'facebook';
   connected: boolean;
@@ -50,8 +42,24 @@ interface ExternalProviderStatus {
 }
 
 interface ExternalContactsResponse {
-  contacts?: Array<{ id: string }>;
+  contacts?: Array<{
+    id: string;
+    name: string;
+    email?: string;
+    phone?: string;
+    primarySource: 'google' | 'outlook' | 'apple' | 'facebook';
+    sources: Array<{ provider: 'google' | 'outlook' | 'apple' | 'facebook'; sourceContactId: string }>;
+    quality?: {
+      score: number;
+      level: 'high' | 'medium' | 'low';
+      factors: string[];
+    };
+  }>;
   providerStatuses?: ExternalProviderStatus[];
+  metadata?: {
+    storageMode?: 'ephemeral';
+    returnedContacts?: number;
+  };
 }
 
 export function CalendarSettings() {
@@ -68,25 +76,20 @@ export function CalendarSettings() {
     queryFn: () => apiRequest('/api/calendar/connections') as Promise<ConnectedCalendar[]>
   });
 
-  const {
-    data: contacts = [],
-    isLoading: isLoadingContacts,
-  } = useQuery<ImportedContact[]>({
-    queryKey: ['/api/contacts'],
-    queryFn: () => apiRequest('/api/contacts') as Promise<ImportedContact[]>
-  });
+  const [sourceQuery, setSourceQuery] = React.useState('');
 
   const {
     data: externalContactsResponse,
-    isLoading: isLoadingExternalStatus,
-    refetch: refetchExternalStatus,
+    isLoading: isLoadingSourceData,
+    refetch: refetchSourceData,
   } = useQuery<ExternalContactsResponse>({
-    queryKey: ['/api/contacts/external-status'],
+    queryKey: ['/api/contacts/external-preview', sourceQuery],
     queryFn: () => apiRequest('/api/contacts/external', {
       method: 'POST',
       body: {
         providers: ['google', 'outlook', 'apple', 'facebook'],
-        limit: 20,
+        limit: 30,
+        query: sourceQuery.trim() || undefined,
       },
     }) as Promise<ExternalContactsResponse>,
   });
@@ -94,16 +97,16 @@ export function CalendarSettings() {
   // Some test mocks and fallback handlers can return non-array payloads.
   // Normalize query results defensively to keep the settings UI resilient.
   const connectedCalendarsList = Array.isArray(connectedCalendars) ? connectedCalendars : [];
-  const contactsList = Array.isArray(contacts) ? contacts : [];
   const externalProviderStatuses = Array.isArray(externalContactsResponse?.providerStatuses)
     ? externalContactsResponse?.providerStatuses
+    : [];
+  const externalContactsPreview = Array.isArray(externalContactsResponse?.contacts)
+    ? externalContactsResponse.contacts
     : [];
   const previewExternalContactCount = Array.isArray(externalContactsResponse?.contacts)
     ? externalContactsResponse.contacts.length
     : 0;
-
-  const [appleVcard, setAppleVcard] = React.useState('');
-  const [appleConnectionId, setAppleConnectionId] = React.useState('');
+  const storageMode = externalContactsResponse?.metadata?.storageMode || 'ephemeral';
   
   // Disconnect calendar mutation
   const disconnectMutation = useMutation({
@@ -171,66 +174,6 @@ export function CalendarSettings() {
     }
   });
 
-  const importContactsMutation = useMutation({
-    mutationFn: ({ provider, payload }: { provider: 'google' | 'outlook' | 'apple', payload?: Record<string, unknown> }) => {
-      return apiRequest('/api/contacts/import', { method: 'POST', body: { provider, ...(payload || {}) } });
-    },
-    onSuccess: (result: unknown, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['/api/contacts'] });
-      const response = (result || {}) as { imported?: number; skipped?: number };
-      toast({
-        title: 'Contacts imported',
-        description: `${response.imported ?? 0} imported, ${response.skipped ?? 0} skipped from ${variables.provider}.`,
-      });
-      if (variables.provider === 'apple') {
-        setAppleVcard('');
-      }
-    },
-    onError: (error) => {
-      toast({
-        title: 'Import failed',
-        description: error instanceof Error ? error.message : 'Could not import contacts.',
-        variant: 'destructive',
-      });
-    },
-  });
-
-  const hideContactMutation = useMutation({
-    mutationFn: (contactId: string) => apiRequest(`/api/contacts/${contactId}/hide`, { method: 'POST' }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/contacts'] });
-      toast({
-        title: 'Contact hidden',
-        description: 'The contact is hidden in Wishlist Wizard only.',
-      });
-    },
-    onError: (error) => {
-      toast({
-        title: 'Hide failed',
-        description: error instanceof Error ? error.message : 'Unable to hide contact.',
-        variant: 'destructive',
-      });
-    },
-  });
-
-  const deleteContactMutation = useMutation({
-    mutationFn: (contactId: string) => apiRequest(`/api/contacts/${contactId}`, { method: 'DELETE' }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/contacts'] });
-      toast({
-        title: 'Contact removed',
-        description: 'The contact was deleted from Wishlist Wizard only.',
-      });
-    },
-    onError: (error) => {
-      toast({
-        title: 'Delete failed',
-        description: error instanceof Error ? error.message : 'Unable to delete contact.',
-        variant: 'destructive',
-      });
-    },
-  });
-  
   // Handle calendar connection
   const handleCalendarConnected = () => {
     // Refresh the calendars list after connecting
@@ -264,12 +207,6 @@ export function CalendarSettings() {
     });
   };
 
-  const connectedByProvider = {
-    google: connectedCalendarsList.find((calendar) => calendar.calendarType === 'google')?.id,
-    outlook: connectedCalendarsList.find((calendar) => calendar.calendarType === 'outlook')?.id,
-    apple: connectedCalendarsList.find((calendar) => calendar.calendarType === 'apple')?.id,
-  };
-
   const formatProviderName = (provider: string): string => {
     if (provider === 'google') return 'Google';
     if (provider === 'outlook') return 'Outlook';
@@ -290,6 +227,11 @@ export function CalendarSettings() {
       default:
         return <LuCalendarClock className="h-5 w-5 text-gray-500" />;
     }
+  };
+
+  const formatSourceSummary = (providers: Array<{ provider: 'google' | 'outlook' | 'apple' | 'facebook' }>) => {
+    const uniqueProviders = Array.from(new Set(providers.map((source) => formatProviderName(source.provider))));
+    return uniqueProviders.join(', ');
   };
   
   return (
@@ -400,7 +342,7 @@ export function CalendarSettings() {
           </p>
         </div>
 
-        {isLoadingExternalStatus ? (
+        {isLoadingSourceData ? (
           <div className="py-2 text-sm text-gray-500">Checking source access...</div>
         ) : externalProviderStatuses.length === 0 ? (
           <div className="py-2 text-sm text-gray-500">No source providers reported yet.</div>
@@ -421,16 +363,16 @@ export function CalendarSettings() {
         )}
 
         <div className="flex items-center justify-between rounded-md border p-3 text-sm">
-          <span>Live contact preview available to recipient forms</span>
-          <Badge variant="outline">{previewExternalContactCount} contacts</Badge>
+          <span>Live contact preview available to recipient forms ({storageMode})</span>
+          <Badge variant="outline">{previewExternalContactCount} matches</Badge>
         </div>
 
         <Button
           variant="outline"
-          onClick={() => refetchExternalStatus()}
-          disabled={isLoadingExternalStatus}
+          onClick={() => refetchSourceData()}
+          disabled={isLoadingSourceData}
         >
-          {isLoadingExternalStatus ? 'Refreshing source status...' : 'Refresh Source Status'}
+          {isLoadingSourceData ? 'Refreshing source data...' : 'Refresh Source Data'}
         </Button>
       </div>
 
@@ -438,89 +380,45 @@ export function CalendarSettings() {
 
       <div className="space-y-4">
         <div>
-          <h3 className="text-xl font-semibold">Contacts</h3>
+          <h3 className="text-xl font-semibold">External Contact Preview</h3>
           <p className="text-sm text-gray-500 mt-1">
-            Import from Google, Microsoft, or Apple. Hide and delete actions affect Wishlist Wizard only and never change source provider data.
+            Contacts are read directly from connected providers and are not stored from this page. They only become wishlist values when selected during wishlist creation.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <Button
-            variant="outline"
-            disabled={importContactsMutation.isPending || !connectedByProvider.google}
-            onClick={() => importContactsMutation.mutate({ provider: 'google', payload: { connectionId: connectedByProvider.google } })}
-          >
-            <LuUserPlus className="h-4 w-4 mr-2" />
-            Import Google
-          </Button>
-          <Button
-            variant="outline"
-            disabled={importContactsMutation.isPending || !connectedByProvider.outlook}
-            onClick={() => importContactsMutation.mutate({ provider: 'outlook', payload: { connectionId: connectedByProvider.outlook } })}
-          >
-            <LuUserPlus className="h-4 w-4 mr-2" />
-            Import Outlook
-          </Button>
-          <Button
-            variant="outline"
-            disabled={importContactsMutation.isPending || !appleVcard.trim()}
-            onClick={() => importContactsMutation.mutate({ provider: 'apple', payload: { connectionId: appleConnectionId || connectedByProvider.apple, vcard: appleVcard } })}
-          >
-            <LuUpload className="h-4 w-4 mr-2" />
-            Import Apple vCard
-          </Button>
-        </div>
-
-        <div className="space-y-2">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <Input
-            placeholder="Apple connection ID (optional)"
-            value={appleConnectionId}
-            onChange={(event) => setAppleConnectionId(event.target.value)}
+            placeholder="Search provider contacts by name, email, or phone"
+            value={sourceQuery}
+            onChange={(event) => setSourceQuery(event.target.value)}
           />
-          <Textarea
-            value={appleVcard}
-            onChange={(event) => setAppleVcard(event.target.value)}
-            placeholder="Paste Apple vCard content here (BEGIN:VCARD ... END:VCARD)"
-            rows={5}
-          />
+          <Button asChild variant="outline">
+            <Link href="/app/wishlists">Open Wishlist Creation</Link>
+          </Button>
         </div>
 
-        {isLoadingContacts ? (
-          <div className="py-4 text-sm text-gray-500">Loading imported contacts...</div>
-        ) : contactsList.length === 0 ? (
-          <div className="py-4 text-sm text-gray-500">No imported contacts yet.</div>
+        <div className="rounded-md border p-3 text-xs text-gray-600 bg-gray-50">
+          Conversion rule: source contacts remain external until you pick one while creating a wishlist recipient.
+        </div>
+
+        {isLoadingSourceData ? (
+          <div className="py-4 text-sm text-gray-500">Loading external contact preview...</div>
+        ) : externalContactsPreview.length === 0 ? (
+          <div className="py-4 text-sm text-gray-500">No external contacts found for current source connections.</div>
         ) : (
           <div className="space-y-2">
-            {contactsList.map((contact) => (
+            {externalContactsPreview.map((contact) => (
               <div key={contact.id} className="p-3 border rounded-md flex items-center justify-between gap-3">
                 <div>
                   <div className="font-medium">{contact.name}</div>
                   <div className="text-xs text-gray-500 flex flex-wrap gap-2">
                     {contact.email && <span>{contact.email}</span>}
                     {contact.phone && <span>{contact.phone}</span>}
-                    {contact.sourceProvider && <Badge variant="outline" className="capitalize">{contact.sourceProvider}</Badge>}
+                    <Badge variant="outline" className="capitalize">{formatSourceSummary(contact.sources)}</Badge>
+                    {contact.quality && <Badge variant="outline">{contact.quality.level} quality</Badge>}
                   </div>
                 </div>
-                <div className="flex gap-2">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    disabled={hideContactMutation.isPending}
-                    onClick={() => hideContactMutation.mutate(contact.id)}
-                  >
-                    <LuEyeOff className="h-4 w-4 mr-1" />
-                    Hide
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    disabled={deleteContactMutation.isPending}
-                    onClick={() => deleteContactMutation.mutate(contact.id)}
-                  >
-                    <LuTrash2 className="h-4 w-4 mr-1" />
-                    Delete
-                  </Button>
-                </div>
+                <Badge>{formatProviderName(contact.primarySource)}</Badge>
               </div>
             ))}
           </div>
