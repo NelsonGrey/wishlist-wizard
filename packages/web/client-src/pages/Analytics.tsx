@@ -22,6 +22,33 @@ type AnalyticsEvent = {
   createdAt?: string | Date;
 };
 
+type AdRevenueSummary = {
+  windowDays: number;
+  ecpmUsd: number;
+  rendered: number;
+  viewableImpressions: number;
+  clickSignals: number;
+  clickThroughRate: number;
+  viewabilityRate: number;
+  renderFailures: number;
+  configMissing: number;
+  estimatedRevenueUsd: number;
+};
+
+type AdKpiDailySnapshot = {
+  id: string;
+  date: string;
+  ecpmUsd: number;
+  metrics: {
+    rendered: number;
+    viewableImpressions: number;
+    clickSignals: number;
+    clickThroughRate: number;
+    viewabilityRate: number;
+    estimatedRevenueUsd: number;
+  };
+};
+
 const toLower = (value?: string | null) => String(value || "").toLowerCase();
 
 const toCurrency = (value: number) =>
@@ -33,6 +60,7 @@ const toCurrency = (value: number) =>
 
 export default function Analytics() {
   const [tabValue, setTabValue] = useState("overview");
+  const adEcpm = Number(import.meta.env.VITE_AD_ECPM_USD || 8);
 
   const summaryQuery = useQuery<{ summary: AnalyticsSummary }>({
     queryKey: ["/api/analytics/summary"],
@@ -47,10 +75,41 @@ export default function Analytics() {
     }) as Promise<{ events: AnalyticsEvent[] }>,
   });
 
+  const adRevenueQuery = useQuery<{ summary: AdRevenueSummary }>({
+    queryKey: ["/api/analytics/ad-revenue-summary", adEcpm],
+    queryFn: async () => {
+      try {
+        return await apiRequest("/api/analytics/ad-revenue-summary", {
+          method: "POST",
+          body: { includeGlobal: true, ecpmUsd: adEcpm },
+        }) as Promise<{ summary: AdRevenueSummary }>;
+      } catch {
+        return apiRequest("/api/analytics/ad-revenue-summary", {
+          method: "POST",
+          body: { ecpmUsd: adEcpm },
+        }) as Promise<{ summary: AdRevenueSummary }>;
+      }
+    },
+  });
+
+  const adTrendQuery = useQuery<{ snapshots: AdKpiDailySnapshot[] }>({
+    queryKey: ["/api/analytics/ad-kpi-snapshots"],
+    queryFn: async () => {
+      return apiRequest("/api/analytics/ad-kpi-snapshots", {
+        method: "POST",
+        body: { days: 14 },
+      }) as Promise<{ snapshots: AdKpiDailySnapshot[] }>;
+    },
+    retry: false,
+  });
+
   const summary = summaryQuery.data?.summary;
   const recentEvents = eventsQuery.data?.events || [];
-  const isLoading = summaryQuery.isLoading || eventsQuery.isLoading;
-  const isError = summaryQuery.isError || eventsQuery.isError;
+  const isLoading = summaryQuery.isLoading || eventsQuery.isLoading || adRevenueQuery.isLoading;
+  const isError = summaryQuery.isError || eventsQuery.isError || adRevenueQuery.isError;
+  const adSummary = adRevenueQuery.data?.summary;
+  const adTrendSnapshots = adTrendQuery.data?.snapshots || [];
+  const adTrendUnavailable = adTrendQuery.isError;
 
   const campaignClicks = recentEvents.filter((event) =>
     ["affiliate_click", "outbound_click", "wishlist_click"].some((keyword) =>
@@ -139,6 +198,91 @@ export default function Analytics() {
                   )}
                 </Card>
               </div>
+
+              <Card className="mb-6 border-emerald-200">
+                <CardHeader>
+                  <CardTitle>Ad-Only Monetization Snapshot</CardTitle>
+                  <CardDescription>
+                    Early revenue proxy from tracked ad impressions and interaction signals.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <Card className="p-4">
+                      <p className="text-sm text-muted-foreground">Viewable Impressions</p>
+                      <p className="text-2xl font-bold">{adSummary?.viewableImpressions ?? 0}</p>
+                    </Card>
+                    <Card className="p-4">
+                      <p className="text-sm text-muted-foreground">Rendered Slots</p>
+                      <p className="text-2xl font-bold">{adSummary?.rendered ?? 0}</p>
+                    </Card>
+                    <Card className="p-4">
+                      <p className="text-sm text-muted-foreground">Ad Click Signal</p>
+                      <p className="text-2xl font-bold">{adSummary?.clickSignals ?? 0}</p>
+                    </Card>
+                    <Card className="p-4">
+                      <p className="text-sm text-muted-foreground">Estimated Ad Revenue</p>
+                      <p className="text-2xl font-bold">{toCurrency(adSummary?.estimatedRevenueUsd ?? 0)}</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Using eCPM {toCurrency(adSummary?.ecpmUsd ?? (Number.isFinite(adEcpm) ? adEcpm : 0))}
+                      </p>
+                    </Card>
+                    <Card className="p-4 lg:col-span-4">
+                      <p className="text-sm text-muted-foreground">Ad Click-Through Signal</p>
+                      <p className="text-2xl font-bold">{(adSummary?.clickThroughRate ?? 0).toFixed(2)}%</p>
+                    </Card>
+                    <Card className="p-4 lg:col-span-4">
+                      <p className="text-sm text-muted-foreground">Ad Viewability Rate</p>
+                      <p className="text-2xl font-bold">{(adSummary?.viewabilityRate ?? 0).toFixed(2)}%</p>
+                    </Card>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="mb-6 border-emerald-100">
+                <CardHeader>
+                  <CardTitle>Daily Ad KPI Trend (14 days)</CardTitle>
+                  <CardDescription>
+                    Snapshot history from `adKpiDaily` for weekly gate reviews.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {adTrendUnavailable ? (
+                    <p className="text-sm text-muted-foreground">
+                      Daily KPI trends are available to admin users.
+                    </p>
+                  ) : adTrendSnapshots.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">
+                      No daily snapshots found yet. Run `/api/analytics/ad-kpi-snapshot` to seed data.
+                    </p>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b">
+                            <th className="py-2 text-left">Date</th>
+                            <th className="py-2 text-right">Impressions</th>
+                            <th className="py-2 text-right">CTR</th>
+                            <th className="py-2 text-right">Viewability</th>
+                            <th className="py-2 text-right">Revenue</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {adTrendSnapshots.map((snapshot) => (
+                            <tr key={snapshot.id} className="border-b last:border-0">
+                              <td className="py-2">{snapshot.date}</td>
+                              <td className="py-2 text-right">{snapshot.metrics?.viewableImpressions ?? 0}</td>
+                              <td className="py-2 text-right">{(snapshot.metrics?.clickThroughRate ?? 0).toFixed(2)}%</td>
+                              <td className="py-2 text-right">{(snapshot.metrics?.viewabilityRate ?? 0).toFixed(2)}%</td>
+                              <td className="py-2 text-right">{toCurrency(snapshot.metrics?.estimatedRevenueUsd ?? 0)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                 <Card className="p-4 border-emerald-100">

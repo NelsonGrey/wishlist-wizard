@@ -30,6 +30,16 @@ Release policy:
 - Validate ad revenue performance before broad price-tracking and affiliate expansion.
 - Roll out incrementally behind feature flags and controlled cohorts.
 
+Phase 1 ad KPI gate (must be reviewed weekly before expanding monetization scope):
+- Viewable impressions: >= 1,000 in trailing 7 days.
+- Viewability rate: >= 60% in trailing 7 days.
+- Estimated ad revenue: >= $5.00 in trailing 7 days.
+- Config health: `ad_slot_config_missing` and `ad_slot_render_failed` trending down week-over-week.
+
+Measurement source:
+- Use backend callable `getAdRevenueSummary` (`/api/analytics/ad-revenue-summary`) as the reporting source of truth.
+- Prefer global aggregation (`includeGlobal: true`) for admins; fallback to scoped user data where permissions require.
+
 ## Phase 3: Ecosystem and Platform Expansion
 
 - Brand partnerships

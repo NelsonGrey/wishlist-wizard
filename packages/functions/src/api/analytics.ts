@@ -1,4 +1,5 @@
 import { onCall, CallableRequest, HttpsError } from "firebase-functions/v2/https";
+import { onSchedule } from "firebase-functions/v2/scheduler";
 import { getFirestore, Query, DocumentData } from "firebase-admin/firestore";
 import { logger } from "firebase-functions/v2";
 import { ensureFirebaseAdmin } from "../firebase-admin.js";
@@ -12,6 +13,9 @@ const DEFAULT_EVENTS_LIMIT = 50;
 const DEFAULT_SUMMARY_WINDOW_DAYS = 30;
 const MAX_SUMMARY_WINDOW_DAYS = 365;
 const MAX_SCAN_EVENTS = 2000;
+const DEFAULT_AD_ECPM_USD = 8;
+const MAX_SNAPSHOT_SCAN_EVENTS = 10_000;
+const MAX_SNAPSHOT_BACKFILL_DAYS = 30;
 
 const normalizeLimit = (value: unknown, fallback: number): number => {
   const parsed = Number(value);
@@ -67,6 +71,119 @@ type AnalyticsEventRecord = {
   value?: unknown;
   [key: string]: unknown;
 };
+
+type AdRevenueMetrics = {
+  rendered: number;
+  viewableImpressions: number;
+  clickSignals: number;
+  clickThroughRate: number;
+  viewabilityRate: number;
+  renderFailures: number;
+  configMissing: number;
+  estimatedRevenueUsd: number;
+};
+
+function normalizeEcpm(value: unknown): number {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed < 0) {
+    return DEFAULT_AD_ECPM_USD;
+  }
+  return parsed;
+}
+
+function computeAdRevenueMetrics(events: Array<Record<string, unknown>>, ecpmUsd: number): AdRevenueMetrics {
+  let rendered = 0;
+  let viewableImpressions = 0;
+  let clickSignals = 0;
+  let renderFailures = 0;
+  let configMissing = 0;
+
+  events.forEach((event) => {
+    if (String(event.category || "").toLowerCase() !== "advertising") {
+      return;
+    }
+
+    const action = String(event.action || "").toLowerCase();
+    if (action.includes("ad_slot_rendered")) rendered += 1;
+    if (action.includes("ad_slot_viewable")) viewableImpressions += 1;
+    if (action.includes("ad_slot_container_click")) clickSignals += 1;
+    if (action.includes("ad_slot_render_failed")) renderFailures += 1;
+    if (action.includes("ad_slot_config_missing")) configMissing += 1;
+  });
+
+  const estimatedRevenueUsd = (viewableImpressions / 1000) * ecpmUsd;
+  const clickThroughRate = viewableImpressions > 0
+    ? (clickSignals / viewableImpressions) * 100
+    : 0;
+  const viewabilityRate = rendered > 0
+    ? (viewableImpressions / rendered) * 100
+    : 0;
+
+  return {
+    rendered,
+    viewableImpressions,
+    clickSignals,
+    clickThroughRate,
+    viewabilityRate,
+    renderFailures,
+    configMissing,
+    estimatedRevenueUsd,
+  };
+}
+
+function toDateKeyUtc(date: Date): string {
+  return date.toISOString().slice(0, 10);
+}
+
+function startOfUtcDay(date: Date): Date {
+  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate(), 0, 0, 0, 0));
+}
+
+function endOfUtcDay(date: Date): Date {
+  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate() + 1, 0, 0, 0, 0));
+}
+
+function parseDateKey(dateKey: string): Date | null {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateKey)) {
+    return null;
+  }
+
+  const parsed = new Date(`${dateKey}T00:00:00.000Z`);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+async function writeAdKpiSnapshotForDate(date: Date, ecpmUsd: number) {
+  const start = startOfUtcDay(date);
+  const end = endOfUtcDay(date);
+  const dateKey = toDateKeyUtc(start);
+
+  const snapshot = await db
+    .collection("analyticsEvents")
+    .where("createdAt", ">=", start)
+    .where("createdAt", "<", end)
+    .limit(MAX_SNAPSHOT_SCAN_EVENTS)
+    .get();
+
+  const events = snapshot.docs.map((doc) => doc.data() as Record<string, unknown>);
+  const metrics = computeAdRevenueMetrics(events, ecpmUsd);
+
+  await db.collection("adKpiDaily").doc(dateKey).set({
+    date: dateKey,
+    startAt: start,
+    endAt: end,
+    ecpmUsd,
+    metrics,
+    sourceEventCount: snapshot.size,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  }, { merge: true });
+
+  return {
+    date: dateKey,
+    sourceEventCount: snapshot.size,
+    ...metrics,
+  };
+}
 
 export const trackAnalyticsEvent = onCall(async (request: CallableRequest) => {
   const { action, category, label, value, metadata } = request.data;
@@ -222,5 +339,137 @@ export const getAnalyticsSummary = onCall(async (request: CallableRequest) => {
     }
     logger.error("Error getting analytics summary:", error);
     throw new HttpsError("internal", "Failed to get analytics summary");
+  }
+});
+
+export const getAdRevenueSummary = onCall(async (request: CallableRequest) => {
+  const requesterId = requireAuthenticatedUser(request);
+  const {
+    windowDays = DEFAULT_SUMMARY_WINDOW_DAYS,
+    includeGlobal = false,
+    ecpmUsd = DEFAULT_AD_ECPM_USD,
+  } = request.data || {};
+  const includeGlobalNormalized = normalizeBoolean(includeGlobal);
+
+  try {
+    let query: Query<DocumentData> = db.collection("analyticsEvents");
+
+    if (includeGlobalNormalized) {
+      await requireAdminUser(request, "Admin role required for global analytics access");
+      query = query.limit(MAX_SCAN_EVENTS);
+    } else {
+      query = query.where("userId", "==", requesterId);
+      query = query.limit(MAX_SCAN_EVENTS);
+    }
+
+    const summaryWindowDays = normalizeWindowDays(windowDays);
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - summaryWindowDays);
+
+    const normalizedEcpm = normalizeEcpm(ecpmUsd);
+
+    const snapshot = await query.get();
+    const events = snapshot.docs
+      .map((doc) => doc.data())
+      .filter((event) => {
+        const createdAt = toDate(event.createdAt);
+        if (!createdAt || createdAt < startDate) return false;
+        return String(event.category || "").toLowerCase() === "advertising";
+      });
+
+    const metrics = computeAdRevenueMetrics(events, normalizedEcpm);
+
+    return {
+      summary: {
+        windowDays: summaryWindowDays,
+        ecpmUsd: normalizedEcpm,
+        ...metrics,
+      },
+    };
+  } catch (error) {
+    if (error instanceof HttpsError) {
+      throw error;
+    }
+    logger.error("Error getting ad revenue summary:", error);
+    throw new HttpsError("internal", "Failed to get ad revenue summary");
+  }
+});
+
+export const createAdKpiSnapshot = onCall(async (request: CallableRequest) => {
+  requireAuthenticatedUser(request);
+  await requireAdminUser(request, "Admin role required to create ad KPI snapshots");
+
+  const { date, days = 1, ecpmUsd = DEFAULT_AD_ECPM_USD } = request.data || {};
+  const normalizedDays = Math.max(1, Math.min(Math.floor(Number(days) || 1), MAX_SNAPSHOT_BACKFILL_DAYS));
+  const normalizedEcpm = normalizeEcpm(ecpmUsd);
+
+  const results: Array<Record<string, unknown>> = [];
+
+  if (typeof date === "string" && date.trim()) {
+    const parsed = parseDateKey(date.trim());
+    if (!parsed) {
+      throw new HttpsError("invalid-argument", "Date must use YYYY-MM-DD format");
+    }
+
+    const snapshot = await writeAdKpiSnapshotForDate(parsed, normalizedEcpm);
+    results.push(snapshot);
+    return { snapshots: results, ecpmUsd: normalizedEcpm };
+  }
+
+  for (let offset = 1; offset <= normalizedDays; offset += 1) {
+    const target = new Date();
+    target.setUTCDate(target.getUTCDate() - offset);
+    const snapshot = await writeAdKpiSnapshotForDate(target, normalizedEcpm);
+    results.push(snapshot);
+  }
+
+  return {
+    snapshots: results,
+    ecpmUsd: normalizedEcpm,
+  };
+});
+
+export const scheduledAdKpiSnapshot = onSchedule({
+  schedule: "15 1 * * *",
+  timeZone: "Etc/UTC",
+}, async (event) => {
+  const configuredEcpm = normalizeEcpm(process.env.AD_ECPM_USD);
+  const target = new Date();
+  target.setUTCDate(target.getUTCDate() - 1);
+
+  const snapshot = await writeAdKpiSnapshotForDate(target, configuredEcpm);
+  logger.info("Daily ad KPI snapshot written", {
+    scheduleTime: event.scheduleTime,
+    ...snapshot,
+    ecpmUsd: configuredEcpm,
+  });
+});
+
+export const getAdKpiSnapshots = onCall(async (request: CallableRequest) => {
+  requireAuthenticatedUser(request);
+  await requireAdminUser(request, "Admin role required to read ad KPI snapshots");
+
+  const { days = 14 } = request.data || {};
+  const normalizedDays = Math.max(1, Math.min(Math.floor(Number(days) || 14), 90));
+
+  try {
+    const snapshot = await db
+      .collection("adKpiDaily")
+      .orderBy("date", "desc")
+      .limit(normalizedDays)
+      .get();
+
+    const rows = snapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...(doc.data() as Record<string, unknown>),
+    }));
+
+    return {
+      snapshots: rows.reverse(),
+      count: rows.length,
+    };
+  } catch (error) {
+    logger.error("Error fetching ad KPI snapshots:", error);
+    throw new HttpsError("internal", "Failed to fetch ad KPI snapshots");
   }
 });
