@@ -8,6 +8,7 @@ ensureFirebaseAdmin();
 const db = getFirestore();
 
 type ContactProvider = "google" | "outlook" | "apple";
+type ExternalContactProvider = ContactProvider | "facebook";
 
 function requireAuth(request: CallableRequest) {
   if (!request.auth) {
@@ -23,6 +24,145 @@ type NormalizedContact = {
   birthdate?: string;
   notes?: string;
 };
+
+type NormalizedContactWithProvider = NormalizedContact & {
+  provider: ContactProvider;
+};
+
+type ProviderStatus = {
+  provider: ExternalContactProvider;
+  connected: boolean;
+  supported: boolean;
+  message?: string;
+};
+
+type ExternalContactResult = {
+  id: string;
+  name: string;
+  email?: string;
+  phone?: string;
+  birthdate?: string;
+  notes?: string;
+  primarySource: ContactProvider;
+  sources: Array<{
+    provider: ContactProvider;
+    sourceContactId: string;
+  }>;
+  duplicateSourceCount: number;
+  quality: {
+    score: number;
+    level: "high" | "medium" | "low";
+    factors: string[];
+  };
+};
+
+function normalizeEmail(value: unknown): string {
+  return typeof value === "string" ? value.trim().toLowerCase() : "";
+}
+
+function normalizePhone(value: unknown): string {
+  if (typeof value !== "string") return "";
+  const digits = value.replace(/\D/g, "");
+  return digits;
+}
+
+function normalizeName(value: unknown): string {
+  return typeof value === "string"
+    ? value.trim().toLowerCase().replace(/\s+/g, " ")
+    : "";
+}
+
+function buildContactIdentityKey(contact: NormalizedContact): string {
+  const email = normalizeEmail(contact.email);
+  if (email) return `email:${email}`;
+
+  const phone = normalizePhone(contact.phone);
+  if (phone) return `phone:${phone}`;
+
+  const name = normalizeName(contact.name);
+  if (name) return `name:${name}`;
+
+  return `source:${contact.sourceContactId}`;
+}
+
+function evaluateContactQuality(contact: {
+  name?: string;
+  email?: string;
+  phone?: string;
+  birthdate?: string;
+  sourceCount: number;
+}): ExternalContactResult["quality"] {
+  const factors: string[] = [];
+  let score = 0;
+
+  if (normalizeName(contact.name)) {
+    score += 20;
+    factors.push("has_name");
+  }
+  if (normalizeEmail(contact.email)) {
+    score += 30;
+    factors.push("has_email");
+  }
+  if (normalizePhone(contact.phone)) {
+    score += 25;
+    factors.push("has_phone");
+  }
+  if (typeof contact.birthdate === "string" && contact.birthdate.trim()) {
+    score += 10;
+    factors.push("has_birthdate");
+  }
+  if (contact.sourceCount > 1) {
+    score += 15;
+    factors.push("verified_across_sources");
+  }
+
+  if (normalizeEmail(contact.email) && normalizePhone(contact.phone)) {
+    score += 10;
+    factors.push("multi_channel_reachability");
+  }
+
+  if (score > 100) score = 100;
+
+  const level = score >= 80
+    ? "high"
+    : score >= 55
+      ? "medium"
+      : "low";
+
+  return { score, level, factors };
+}
+
+async function resolveProviderConnection(
+  userId: string,
+  provider: ContactProvider,
+  connectionId?: unknown
+) {
+  let connectionQuery = db
+    .collection("userCalendars")
+    .where("userId", "==", userId)
+    .where("calendarType", "==", provider)
+    .where("isActive", "==", true)
+    .limit(1);
+
+  if (connectionId) {
+    const doc = await db.collection("userCalendars").doc(String(connectionId)).get();
+    if (!doc.exists) {
+      throw new HttpsError("not-found", "Calendar connection not found");
+    }
+    const data = doc.data() || {};
+    if (data.userId !== userId || data.calendarType !== provider) {
+      throw new HttpsError("permission-denied", "Invalid connection for provider");
+    }
+    connectionQuery = db.collection("userCalendars").where("__name__", "==", String(connectionId)).limit(1);
+  }
+
+  const snapshot = await connectionQuery.get();
+  if (snapshot.empty) {
+    return null;
+  }
+
+  return snapshot.docs[0];
+}
 
 async function fetchGoogleContacts(accessToken: string): Promise<NormalizedContact[]> {
   const url = new URL("https://people.googleapis.com/v1/people/me/connections");
@@ -285,6 +425,191 @@ export const importContacts = onCall(async (request: CallableRequest) => {
     if (error instanceof HttpsError) throw error;
     throw new HttpsError("internal", "Failed to import contacts");
   }
+});
+
+export const getExternalContacts = onCall(async (request: CallableRequest) => {
+  requireAuth(request);
+
+  const data = (request.data || {}) as {
+    providers?: unknown;
+    connectionIds?: Record<string, unknown>;
+    appleVcard?: unknown;
+    query?: unknown;
+    limit?: unknown;
+  };
+
+  const requestedProviders = Array.isArray(data.providers)
+    ? data.providers.map((value) => String(value).toLowerCase())
+    : ["google", "outlook", "apple", "facebook"];
+
+  const selectedProviders = Array.from(new Set(requestedProviders)).filter((provider): provider is ExternalContactProvider =>
+    ["google", "outlook", "apple", "facebook"].includes(provider)
+  );
+
+  const providerStatuses: ProviderStatus[] = [];
+  const collected: NormalizedContactWithProvider[] = [];
+  const connectionIds = data.connectionIds || {};
+
+  const limitRaw = Number(data.limit);
+  const maxResults = Number.isFinite(limitRaw) && limitRaw > 0
+    ? Math.min(Math.floor(limitRaw), 500)
+    : 200;
+
+  const queryFilter = typeof data.query === "string"
+    ? data.query.trim().toLowerCase()
+    : "";
+
+  for (const provider of selectedProviders) {
+    if (provider === "facebook") {
+      providerStatuses.push({
+        provider,
+        connected: false,
+        supported: false,
+        message: "Facebook contact OAuth is not configured yet. Provider capability is reserved for future integration.",
+      });
+      continue;
+    }
+
+    if (provider === "apple") {
+      const appleVcard = typeof data.appleVcard === "string" ? data.appleVcard.trim() : "";
+      if (!appleVcard) {
+        providerStatuses.push({
+          provider,
+          connected: false,
+          supported: true,
+          message: "Paste Apple vCard content to load Apple contacts without storing them.",
+        });
+        continue;
+      }
+
+      const parsedContacts = parseVcard(appleVcard).slice(0, maxResults);
+      parsedContacts.forEach((contact) => {
+        collected.push({
+          ...contact,
+          provider: "apple",
+        });
+      });
+
+      providerStatuses.push({
+        provider,
+        connected: true,
+        supported: true,
+      });
+      continue;
+    }
+
+    const connectionDoc = await resolveProviderConnection(
+      request.auth!.uid,
+      provider,
+      connectionIds[provider]
+    );
+
+    if (!connectionDoc) {
+      providerStatuses.push({
+        provider,
+        connected: false,
+        supported: true,
+        message: `No active ${provider} connection found. Connect this provider in Calendar Settings first.`,
+      });
+      continue;
+    }
+
+    const connection = connectionDoc.data();
+    const accessToken = await getValidCalendarAccessToken(connectionDoc.id, connection);
+    const sourceContacts = provider === "google"
+      ? await fetchGoogleContacts(accessToken)
+      : await fetchMicrosoftContacts(accessToken);
+
+    sourceContacts.slice(0, maxResults).forEach((contact) => {
+      collected.push({
+        ...contact,
+        provider,
+      });
+    });
+
+    providerStatuses.push({
+      provider,
+      connected: true,
+      supported: true,
+    });
+  }
+
+  const grouped = new Map<string, ExternalContactResult>();
+
+  for (const contact of collected) {
+    if (!contact.name?.trim()) continue;
+
+    if (queryFilter) {
+      const haystack = `${contact.name || ""} ${contact.email || ""} ${contact.phone || ""}`.toLowerCase();
+      if (!haystack.includes(queryFilter)) {
+        continue;
+      }
+    }
+
+    const key = buildContactIdentityKey(contact);
+    const existing = grouped.get(key);
+
+    if (!existing) {
+      grouped.set(key, {
+        id: key,
+        name: contact.name,
+        email: contact.email,
+        phone: contact.phone,
+        birthdate: contact.birthdate,
+        notes: contact.notes,
+        primarySource: contact.provider,
+        sources: [{ provider: contact.provider, sourceContactId: contact.sourceContactId }],
+        duplicateSourceCount: 1,
+        quality: evaluateContactQuality({
+          name: contact.name,
+          email: contact.email,
+          phone: contact.phone,
+          birthdate: contact.birthdate,
+          sourceCount: 1,
+        }),
+      });
+      continue;
+    }
+
+    const hasSource = existing.sources.some((source) =>
+      source.provider === contact.provider && source.sourceContactId === contact.sourceContactId
+    );
+
+    if (!hasSource) {
+      existing.sources.push({ provider: contact.provider, sourceContactId: contact.sourceContactId });
+    }
+
+    if (!existing.email && contact.email) existing.email = contact.email;
+    if (!existing.phone && contact.phone) existing.phone = contact.phone;
+    if (!existing.birthdate && contact.birthdate) existing.birthdate = contact.birthdate;
+    if (!existing.notes && contact.notes) existing.notes = contact.notes;
+
+    existing.duplicateSourceCount = existing.sources.length;
+    existing.quality = evaluateContactQuality({
+      name: existing.name,
+      email: existing.email,
+      phone: existing.phone,
+      birthdate: existing.birthdate,
+      sourceCount: existing.duplicateSourceCount,
+    });
+  }
+
+  const contacts = Array.from(grouped.values())
+    .sort((a, b) => {
+      if (b.quality.score !== a.quality.score) return b.quality.score - a.quality.score;
+      return a.name.localeCompare(b.name);
+    })
+    .slice(0, maxResults);
+
+  return {
+    contacts,
+    providerStatuses,
+    metadata: {
+      requestedProviders: selectedProviders,
+      returnedContacts: contacts.length,
+      storageMode: "ephemeral",
+    },
+  };
 });
 
 export const hideContact = onCall(async (request: CallableRequest) => {

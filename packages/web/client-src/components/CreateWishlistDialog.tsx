@@ -1,5 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
+import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
 import { z } from "zod";
 import {
   Dialog,
@@ -19,6 +21,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
@@ -27,10 +30,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { apiRequest } from "@/lib/queryClient";
 
 const formSchema = z.object({
   name: z.string().trim().min(1, "Wishlist name is required").max(50, "Name cannot exceed 50 characters"),
   recipientType: z.enum(["self", "person", "group"]).default("self"),
+  recipientInputMode: z.enum(["manual", "source"]).default("manual"),
+  externalContactId: z.string().trim().optional(),
   recipientName: z.string().trim().max(80, "Recipient name cannot exceed 80 characters").optional(),
   recipientMembers: z.string().trim().max(300, "Recipient members cannot exceed 300 characters").optional(),
   occasion: z.string().max(50, "Event cannot exceed 50 characters").optional(),
@@ -40,7 +46,19 @@ const formSchema = z.object({
   reminderDays: z.coerce.number().min(0).max(90).default(7),
   description: z.string().max(200, "Description cannot exceed 200 characters").optional(),
 }).superRefine((values, context) => {
-  if ((values.recipientType === "person" || values.recipientType === "group") && !values.recipientName?.trim()) {
+  if (values.recipientType === "person" && values.recipientInputMode === "source" && !values.externalContactId?.trim()) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["externalContactId"],
+      message: "Select a contact from source providers",
+    });
+  }
+
+  if (
+    (values.recipientType === "person" || values.recipientType === "group")
+    && values.recipientInputMode === "manual"
+    && !values.recipientName?.trim()
+  ) {
     context.addIssue({
       code: z.ZodIssueCode.custom,
       path: ["recipientName"],
@@ -50,6 +68,38 @@ const formSchema = z.object({
 });
 
 export type CreateWishlistFormValues = z.infer<typeof formSchema>;
+
+type ContactQualityLevel = "high" | "medium" | "low";
+
+type ExternalContact = {
+  id: string;
+  name: string;
+  email?: string;
+  phone?: string;
+  primarySource: "google" | "outlook" | "apple";
+  sources: Array<{
+    provider: "google" | "outlook" | "apple";
+    sourceContactId: string;
+  }>;
+  duplicateSourceCount: number;
+  quality: {
+    score: number;
+    level: ContactQualityLevel;
+    factors: string[];
+  };
+};
+
+type ExternalProviderStatus = {
+  provider: "google" | "outlook" | "apple" | "facebook";
+  connected: boolean;
+  supported: boolean;
+  message?: string;
+};
+
+type ExternalContactsResponse = {
+  contacts: ExternalContact[];
+  providerStatuses: ExternalProviderStatus[];
+};
 
 interface CreateWishlistDialogProps {
   open: boolean;
@@ -69,6 +119,8 @@ export default function CreateWishlistDialog({
     defaultValues: {
       name: "",
       recipientType: "self",
+      recipientInputMode: "manual",
+      externalContactId: "",
       recipientName: "",
       recipientMembers: "",
       occasion: "",
@@ -81,11 +133,56 @@ export default function CreateWishlistDialog({
   });
 
   const onSubmit = (data: CreateWishlistFormValues) => {
+    if (data.recipientType === "person" && data.recipientInputMode === "source") {
+      const match = externalContacts.find((contact) => contact.id === data.externalContactId);
+      onCreateWishlist({
+        ...data,
+        recipientName: match?.name || data.recipientName || "Recipient",
+      });
+      return;
+    }
+
     onCreateWishlist(data);
   };
 
   const isRecurring = form.watch("isRecurring");
   const recipientType = form.watch("recipientType");
+  const recipientInputMode = form.watch("recipientInputMode");
+  const selectedExternalContactId = form.watch("externalContactId");
+  const [appleVcard, setAppleVcard] = useState("");
+
+  const shouldLoadExternalContacts = open && recipientType === "person" && recipientInputMode === "source";
+  const { data: externalContactsResponse, isFetching: isLoadingExternalContacts, refetch: refetchExternalContacts } = useQuery<ExternalContactsResponse>({
+    queryKey: ["/api/contacts/external", appleVcard],
+    enabled: shouldLoadExternalContacts,
+    queryFn: () => apiRequest("/api/contacts/external", {
+      method: "POST",
+      body: {
+        providers: ["google", "outlook", "apple", "facebook"],
+        appleVcard,
+        limit: 200,
+      },
+    }) as Promise<ExternalContactsResponse>,
+    staleTime: 60_000,
+  });
+
+  const externalContacts = externalContactsResponse?.contacts || [];
+  const providerStatuses = externalContactsResponse?.providerStatuses || [];
+  const selectedExternalContact = externalContacts.find((contact) => contact.id === selectedExternalContactId);
+
+  const formatProviderName = (provider: string): string => {
+    if (provider === "google") return "Google";
+    if (provider === "outlook") return "Outlook";
+    if (provider === "apple") return "Apple";
+    if (provider === "facebook") return "Facebook";
+    return provider;
+  };
+
+  const formatQualityLabel = (level: ContactQualityLevel): string => {
+    if (level === "high") return "High";
+    if (level === "medium") return "Medium";
+    return "Low";
+  };
 
   // Reset form when dialog closes
   const handleDialogChange = (open: boolean) => {
@@ -95,6 +192,7 @@ export default function CreateWishlistDialog({
 
     if (!open) {
       form.reset();
+      setAppleVcard("");
       onClose();
     }
   };
@@ -147,7 +245,117 @@ export default function CreateWishlistDialog({
                 )}
               />
 
-              {recipientType !== "self" && (
+              {recipientType === "person" && (
+                <FormField
+                  control={form.control}
+                  name="recipientInputMode"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Recipient source</FormLabel>
+                      <Select
+                        onValueChange={(value) => {
+                          field.onChange(value);
+                          form.setValue("externalContactId", "");
+                        }}
+                        value={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Choose input mode" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="manual">Enter manually</SelectItem>
+                          <SelectItem value="source">Select from connected sources</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
+
+              {recipientType === "person" && recipientInputMode === "source" && (
+                <>
+                  <div className="rounded-md border p-3 space-y-2">
+                    <p className="text-xs text-muted-foreground">
+                      Contacts are read live from your connected providers and are not stored when using this picker.
+                    </p>
+                    <div className="space-y-1">
+                      <FormLabel>Apple vCard (optional)</FormLabel>
+                      <Textarea
+                        value={appleVcard}
+                        onChange={(event) => setAppleVcard(event.target.value)}
+                        placeholder="Paste Apple vCard content here to include Apple contacts in this session"
+                        rows={3}
+                      />
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => refetchExternalContacts()}
+                      disabled={isLoadingExternalContacts}
+                    >
+                      {isLoadingExternalContacts ? "Loading contacts..." : "Refresh source contacts"}
+                    </Button>
+                  </div>
+
+                  <div className="space-y-2">
+                    {providerStatuses.length > 0 && (
+                      <div className="rounded-md border p-2 text-xs space-y-1">
+                        {providerStatuses.map((status) => (
+                          <div key={status.provider}>
+                            <span className="font-medium">{formatProviderName(status.provider)}:</span>{" "}
+                            {status.connected ? "connected" : status.supported ? "not connected" : "capability available"}
+                            {status.message ? ` - ${status.message}` : ""}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    <FormField
+                      control={form.control}
+                      name="externalContactId"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Select contact</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select a contact from source providers" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {externalContacts.map((contact) => {
+                                const sources = contact.sources.map((source) => formatProviderName(source.provider)).join(", ");
+                                return (
+                                  <SelectItem key={contact.id} value={contact.id}>
+                                    {`${contact.name} • ${sources} • ${formatQualityLabel(contact.quality.level)} quality (${contact.quality.score})`}
+                                  </SelectItem>
+                                );
+                              })}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    {selectedExternalContact && (
+                      <div className="rounded-md border p-2 text-xs space-y-1">
+                        <div><span className="font-medium">Primary source:</span> {formatProviderName(selectedExternalContact.primarySource)}</div>
+                        <div><span className="font-medium">All sources:</span> {selectedExternalContact.sources.map((source) => formatProviderName(source.provider)).join(", ")}</div>
+                        <div><span className="font-medium">Quality:</span> {formatQualityLabel(selectedExternalContact.quality.level)} ({selectedExternalContact.quality.score})</div>
+                        {selectedExternalContact.email && <div><span className="font-medium">Email:</span> {selectedExternalContact.email}</div>}
+                        {selectedExternalContact.phone && <div><span className="font-medium">Phone:</span> {selectedExternalContact.phone}</div>}
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
+
+              {recipientType !== "self" && recipientInputMode === "manual" && (
                 <FormField
                   control={form.control}
                   name="recipientName"

@@ -134,6 +134,7 @@ export {
 
 export {
   getContacts,
+  getExternalContacts,
   importContacts,
   hideContact,
   deleteContact

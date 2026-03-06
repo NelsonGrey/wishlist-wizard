@@ -171,6 +171,7 @@ function getFirebaseFunctionRoute(url: string, method: string, body?: unknown): 
     { pattern: /^\/api\/calendar\/sync$/, resolve: () => ({ functionName: 'syncCalendar', data }) },
     { pattern: /^\/api\/calendar\/sync-settings$/, resolve: () => ({ functionName: 'getCalendarSyncSettings', data }) },
     { pattern: /^\/api\/contacts$/, resolve: () => ({ functionName: 'getContacts', data }) },
+    { pattern: /^\/api\/contacts\/external$/, resolve: () => ({ functionName: 'getExternalContacts', data }) },
     { pattern: /^\/api\/contacts\/import$/, resolve: () => ({ functionName: 'importContacts', data }) },
     { pattern: /^\/api\/contacts\/([^/]+)\/hide$/, resolve: (match) => ({ functionName: 'hideContact', data: { ...data, contactId: match[1] } }) },
     { pattern: /^\/api\/contacts\/([^/]+)$/, resolve: (match) => ({ functionName: 'deleteContact', data: { ...data, contactId: match[1] } }) },
