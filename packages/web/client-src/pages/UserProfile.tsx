@@ -43,6 +43,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { useMutation } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
+import { CalendarSettings } from '@/components/calendar/CalendarSettings';
 
 const createInitialProfile = (user?: {
   uid?: string;
@@ -1380,6 +1381,17 @@ const UserProfile = () => {
                       <p className="text-sm text-muted-foreground">Enabled via Authenticator App</p>
                     </div>
                     <Button variant="outline" size="sm">Manage</Button>
+                  </div>
+                </div>
+
+                {/* Contact Sources */}
+                <div className="space-y-3">
+                  <h3 className="text-base font-medium">Contact Sources</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Manage contact providers here. Recipient selection reads from these sources so setup stays in Profile & Settings.
+                  </p>
+                  <div className="rounded-lg border p-4">
+                    <CalendarSettings />
                   </div>
                 </div>
                 
