@@ -224,6 +224,8 @@ required_docs=(
 for doc in "${required_docs[@]}"; do
   if [ -f "$doc" ]; then
     pass "Documentation exists: $doc"
+  elif [ -f "docs/$doc" ]; then
+    pass "Documentation exists: docs/$doc"
   else
     warn "Missing documentation: $doc"
   fi
@@ -285,6 +287,21 @@ if [ -f "package.json" ] && grep -q '"workspaces"' package.json; then
   pass "Monorepo structure detected and configured"
 else
   info "Monorepo check skipped"
+fi
+
+################################################################################
+# CHECK 11: Design-Aware Requirements Validation
+################################################################################
+section_header "CHECK 11: Design-Aware Requirements Validation"
+
+if npm run requirements:verify >/dev/null 2>&1; then
+  if REQUIREMENTS_STRICT_ALL=false npm run requirements:verify; then
+    pass "Requirements matrix verification passes with persona/flow/design linkage"
+  else
+    fail "Requirements matrix verification failed (design linkage or verification drift)"
+  fi
+else
+  fail "requirements:verify script unavailable or failing to start"
 fi
 
 ################################################################################

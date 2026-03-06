@@ -1,7 +1,7 @@
 # Deliverable Component Completion Matrix
 
 **Version**: 1.0  
-**Last Updated**: February 20, 2026  
+**Last Updated**: March 6, 2026  
 **Purpose**: Single execution tracker for the 3 production deliverables.
 
 ---
@@ -28,6 +28,15 @@ A component is ✅ only when all are true:
 - Error states handled
 - Verified by targeted test(s) and/or analyzer/build
 - Documented in this matrix
+
+### Persona Execution Matrix (Phase 1)
+
+| Persona | Design Flow Reference | Execution Surfaces | Validation Signal | Source References |
+|---|---|---|---|---|
+| Social Gift-Giver | Flow 1, Flow 3, Flow 4 | Web auth + wishlist + sharing + purchase, mobile wishlist, extension quick add | Auth/router tests, wishlist tests, smoke users/functions | docs/PRODUCT_DESIGN.md#flow-1-create-first-wishlist-individual-user; docs/PRODUCT_DESIGN.md#flow-3-share-wishlist; docs/PRODUCT_DESIGN.md#flow-4-buy-from-wishlist |
+| Budget-Conscious Shopper | Flow 2 | Web item add + price tracking, mobile item CRUD + validation, extension coupon/comparison | Price tracking tests, mobile validation tests, smoke functions | docs/PRODUCT_DESIGN.md#flow-2-add-item-to-wishlist-product-discovery |
+| Occasion Coordinator | Flow 6 | Collaboration controls, notifications, commitments/export readiness | Notification tests, collaborator smoke flows, requirements verification | docs/PRODUCT_DESIGN.md#flow-6-group-gifting-coordination |
+| TikTok Creator | Flow 5 | Analytics funnel, ad/creator monetization visibility, extension analytics events | Analytics page tests, backend analytics summaries, smoke functions | docs/PRODUCT_DESIGN.md#flow-5-creator-dashboard |
 
 ---
 
@@ -101,6 +110,11 @@ A component is ✅ only when all are true:
 - [x] Auth happy-path + failure-path smoke checks pass
 - [ ] Notifications and wishlist CRUD core flows manually verified
 - [x] Build/check commands pass for web workspace
+- [ ] Persona outcome coverage reviewed against `docs/DESIGN_EXECUTION_MATRIX.md` (P0/P1 rows)
+- [ ] Design linkage validation passes (`npm run requirements:verify`) with 0 enforced design-link failures
+- [ ] Ad monetization KPI gate reviewed from `/api/analytics/ad-revenue-summary` (trailing 7 days)
+- [ ] Viewable impressions >= 1,000 and viewability rate >= 60%
+- [ ] Estimated ad revenue >= $5.00 and ad config/render errors are not increasing week-over-week
 
 ### Mobile Release Gate
 - [ ] All mobile rows required for release are ✅ in this matrix
@@ -109,6 +123,7 @@ A component is ✅ only when all are true:
 - [x] Notification tap routing verified for direct, query-param, and path payloads
 - [ ] Wishlist item add/edit/delete/purchase flows verified on device or emulator
 - [ ] Platform release prerequisites confirmed (iOS/Android as applicable)
+- [ ] Persona mapping includes Budget-Conscious Shopper and Occasion Coordinator flow evidence
 
 ### Browser Extension Release Gate
 - [ ] All extension rows required for release are ✅ in this matrix
@@ -118,6 +133,7 @@ A component is ✅ only when all are true:
 - [ ] Product extraction + quick-add validated on representative retailers
 - [ ] Auth/refresh and add-item actions verified end-to-end
 - [x] Store submission package/runbook matches current build output paths
+- [ ] Persona mapping includes Social Gift-Giver (Flow 2) and TikTok Creator (Flow 5) evidence
 
 ### Waiver Rule
 - Any non-✅ component shipped to production requires a written waiver in PR/release notes with:
