@@ -42,6 +42,18 @@ interface ImportedContact {
   sourceProvider?: 'google' | 'outlook' | 'apple' | string;
 }
 
+interface ExternalProviderStatus {
+  provider: 'google' | 'outlook' | 'apple' | 'facebook';
+  connected: boolean;
+  supported: boolean;
+  message?: string;
+}
+
+interface ExternalContactsResponse {
+  contacts?: Array<{ id: string }>;
+  providerStatuses?: ExternalProviderStatus[];
+}
+
 export function CalendarSettings() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -64,10 +76,31 @@ export function CalendarSettings() {
     queryFn: () => apiRequest('/api/contacts') as Promise<ImportedContact[]>
   });
 
+  const {
+    data: externalContactsResponse,
+    isLoading: isLoadingExternalStatus,
+    refetch: refetchExternalStatus,
+  } = useQuery<ExternalContactsResponse>({
+    queryKey: ['/api/contacts/external-status'],
+    queryFn: () => apiRequest('/api/contacts/external', {
+      method: 'POST',
+      body: {
+        providers: ['google', 'outlook', 'apple', 'facebook'],
+        limit: 20,
+      },
+    }) as Promise<ExternalContactsResponse>,
+  });
+
   // Some test mocks and fallback handlers can return non-array payloads.
   // Normalize query results defensively to keep the settings UI resilient.
   const connectedCalendarsList = Array.isArray(connectedCalendars) ? connectedCalendars : [];
   const contactsList = Array.isArray(contacts) ? contacts : [];
+  const externalProviderStatuses = Array.isArray(externalContactsResponse?.providerStatuses)
+    ? externalContactsResponse?.providerStatuses
+    : [];
+  const previewExternalContactCount = Array.isArray(externalContactsResponse?.contacts)
+    ? externalContactsResponse.contacts.length
+    : 0;
 
   const [appleVcard, setAppleVcard] = React.useState('');
   const [appleConnectionId, setAppleConnectionId] = React.useState('');
@@ -236,6 +269,14 @@ export function CalendarSettings() {
     outlook: connectedCalendarsList.find((calendar) => calendar.calendarType === 'outlook')?.id,
     apple: connectedCalendarsList.find((calendar) => calendar.calendarType === 'apple')?.id,
   };
+
+  const formatProviderName = (provider: string): string => {
+    if (provider === 'google') return 'Google';
+    if (provider === 'outlook') return 'Outlook';
+    if (provider === 'apple') return 'Apple';
+    if (provider === 'facebook') return 'Facebook';
+    return provider;
+  };
   
   // Get icon for calendar type
   const getCalendarIcon = (type: CalendarProvider) => {
@@ -348,6 +389,50 @@ export function CalendarSettings() {
           ))}
         </div>
       )}
+
+      <Separator />
+
+      <div className="space-y-4">
+        <div>
+          <h3 className="text-xl font-semibold">Recipient Source Access</h3>
+          <p className="text-sm text-gray-500 mt-1">
+            These source connections are used by wishlist recipient forms to pick contacts directly from external providers.
+          </p>
+        </div>
+
+        {isLoadingExternalStatus ? (
+          <div className="py-2 text-sm text-gray-500">Checking source access...</div>
+        ) : externalProviderStatuses.length === 0 ? (
+          <div className="py-2 text-sm text-gray-500">No source providers reported yet.</div>
+        ) : (
+          <div className="space-y-2">
+            {externalProviderStatuses.map((status) => (
+              <div key={status.provider} className="p-3 border rounded-md flex items-center justify-between gap-3">
+                <div className="space-y-1">
+                  <div className="font-medium">{formatProviderName(status.provider)}</div>
+                  {status.message && <div className="text-xs text-gray-500">{status.message}</div>}
+                </div>
+                <Badge variant={status.connected ? 'default' : 'outline'}>
+                  {status.connected ? 'Connected' : status.supported ? 'Not Connected' : 'Capability Available'}
+                </Badge>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div className="flex items-center justify-between rounded-md border p-3 text-sm">
+          <span>Live contact preview available to recipient forms</span>
+          <Badge variant="outline">{previewExternalContactCount} contacts</Badge>
+        </div>
+
+        <Button
+          variant="outline"
+          onClick={() => refetchExternalStatus()}
+          disabled={isLoadingExternalStatus}
+        >
+          {isLoadingExternalStatus ? 'Refreshing source status...' : 'Refresh Source Status'}
+        </Button>
+      </div>
 
       <Separator />
 
