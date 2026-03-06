@@ -13,7 +13,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
-import { SiApple } from 'react-icons/si';
+import { SiApple, SiGoogle } from 'react-icons/si';
 import { FaMicrosoft } from 'react-icons/fa';
 import { LuCalendarPlus } from 'react-icons/lu';
 
@@ -39,7 +39,7 @@ export function ConnectCalendarDialog({ onConnect }: ConnectCalendarDialogProps)
   const [appleSubscriptionUrl, setAppleSubscriptionUrl] = useState('');
   const [appleDisplayName, setAppleDisplayName] = useState('Apple Calendar');
 
-  const redirectUri = useMemo(() => `${window.location.origin}/calendar`, []);
+  const redirectUri = useMemo(() => `${window.location.origin}/app/calendar`, []);
 
   const connectMutation = useMutation({
     mutationFn: (payload: Record<string, unknown>) =>
@@ -102,13 +102,22 @@ export function ConnectCalendarDialog({ onConnect }: ConnectCalendarDialogProps)
   }, [redirectUri]);
   
   // Fetch auth URLs for each provider
+  const { data: googleAuthData, isLoading: isGoogleLoading } = useQuery<CalendarAuthData>({
+    queryKey: ['/api/calendar/auth/google'],
+    queryFn: () => apiRequest('/api/calendar/auth/google', {
+      method: 'POST',
+      body: { provider: 'google', redirectUri }
+    }) as Promise<CalendarAuthData>,
+    enabled: isOpen,
+  });
+
   const { data: outlookAuthData, isLoading: isOutlookLoading } = useQuery<CalendarAuthData>({
     queryKey: ['/api/calendar/auth/outlook'],
     queryFn: () => apiRequest('/api/calendar/auth/outlook', {
       method: 'POST',
       body: { provider: 'outlook', redirectUri }
     }) as Promise<CalendarAuthData>,
-    enabled: isOpen, // Only fetch when dialog is open
+    enabled: isOpen,
   });
   
   const { data: appleAuthData, isLoading: isAppleLoading } = useQuery<CalendarAuthData>({
@@ -117,7 +126,7 @@ export function ConnectCalendarDialog({ onConnect }: ConnectCalendarDialogProps)
       method: 'POST',
       body: { provider: 'apple', redirectUri }
     }) as Promise<CalendarAuthData>,
-    enabled: isOpen, // Only fetch when dialog is open
+    enabled: isOpen,
   });
   
   // Handle connecting to a calendar provider
@@ -128,6 +137,9 @@ export function ConnectCalendarDialog({ onConnect }: ConnectCalendarDialogProps)
     let authUrl = '';
     
     switch (provider) {
+      case 'google':
+        authUrl = googleAuthData?.authUrl || googleAuthData?.url || '';
+        break;
       case 'outlook':
         authUrl = outlookAuthData?.authUrl || outlookAuthData?.url || '';
         break;
@@ -154,7 +166,7 @@ export function ConnectCalendarDialog({ onConnect }: ConnectCalendarDialogProps)
       return;
     }
     
-    if (provider === 'outlook') {
+    if (provider === 'outlook' || provider === 'google') {
       const url = new URL(authUrl);
       url.searchParams.set('provider', provider);
       window.location.href = url.toString();
@@ -204,11 +216,30 @@ export function ConnectCalendarDialog({ onConnect }: ConnectCalendarDialogProps)
           </DialogDescription>
         </DialogHeader>
         
-        <Tabs defaultValue="outlook" className="mt-4">
-          <TabsList className="grid w-full grid-cols-2">
+        <Tabs defaultValue="google" className="mt-4">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="google">Google</TabsTrigger>
             <TabsTrigger value="outlook">Outlook</TabsTrigger>
             <TabsTrigger value="apple">Apple</TabsTrigger>
           </TabsList>
+
+          <TabsContent value="google" className="py-4">
+            <div className="flex flex-col items-center space-y-4">
+              <SiGoogle className="h-16 w-16 text-emerald-700" />
+              <h3 className="text-lg font-medium">Connect Google Calendar</h3>
+              <p className="text-sm text-gray-500 text-center">
+                Sync your events with Google Calendar. You&apos;ll be asked to grant
+                permission to access your calendars and contacts.
+              </p>
+              <Button
+                onClick={() => handleConnect('google')}
+                disabled={isGoogleLoading || isConnecting}
+                className="w-full"
+              >
+                {isConnecting && selectedProvider === 'google' ? 'Connecting...' : 'Connect Google Calendar'}
+              </Button>
+            </div>
+          </TabsContent>
           
           <TabsContent value="outlook" className="py-4">
             <div className="flex flex-col items-center space-y-4">
