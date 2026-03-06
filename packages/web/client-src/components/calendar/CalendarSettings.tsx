@@ -64,6 +64,11 @@ export function CalendarSettings() {
     queryFn: () => apiRequest('/api/contacts') as Promise<ImportedContact[]>
   });
 
+  // Some test mocks and fallback handlers can return non-array payloads.
+  // Normalize query results defensively to keep the settings UI resilient.
+  const connectedCalendarsList = Array.isArray(connectedCalendars) ? connectedCalendars : [];
+  const contactsList = Array.isArray(contacts) ? contacts : [];
+
   const [appleVcard, setAppleVcard] = React.useState('');
   const [appleConnectionId, setAppleConnectionId] = React.useState('');
   
@@ -227,9 +232,9 @@ export function CalendarSettings() {
   };
 
   const connectedByProvider = {
-    google: connectedCalendars.find((calendar) => calendar.calendarType === 'google')?.id,
-    outlook: connectedCalendars.find((calendar) => calendar.calendarType === 'outlook')?.id,
-    apple: connectedCalendars.find((calendar) => calendar.calendarType === 'apple')?.id,
+    google: connectedCalendarsList.find((calendar) => calendar.calendarType === 'google')?.id,
+    outlook: connectedCalendarsList.find((calendar) => calendar.calendarType === 'outlook')?.id,
+    apple: connectedCalendarsList.find((calendar) => calendar.calendarType === 'apple')?.id,
   };
   
   // Get icon for calendar type
@@ -257,7 +262,7 @@ export function CalendarSettings() {
       
       {isLoadingCalendars ? (
         <div className="py-8 text-center text-gray-500">Loading calendars...</div>
-      ) : connectedCalendars.length === 0 ? (
+      ) : connectedCalendarsList.length === 0 ? (
         <div className="py-8 text-center bg-gray-50 rounded-lg border border-dashed">
           <LuCalendarClock className="h-12 w-12 mx-auto text-gray-400" />
           <h3 className="mt-4 text-lg font-medium">No calendars connected</h3>
@@ -272,7 +277,7 @@ export function CalendarSettings() {
         </div>
       ) : (
         <div className="space-y-4">
-          {connectedCalendars.map((calendar: ConnectedCalendar) => (
+          {connectedCalendarsList.map((calendar: ConnectedCalendar) => (
             <div key={calendar.id} className="p-4 border rounded-lg bg-white shadow-sm">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -397,11 +402,11 @@ export function CalendarSettings() {
 
         {isLoadingContacts ? (
           <div className="py-4 text-sm text-gray-500">Loading imported contacts...</div>
-        ) : contacts.length === 0 ? (
+        ) : contactsList.length === 0 ? (
           <div className="py-4 text-sm text-gray-500">No imported contacts yet.</div>
         ) : (
           <div className="space-y-2">
-            {contacts.map((contact) => (
+            {contactsList.map((contact) => (
               <div key={contact.id} className="p-3 border rounded-md flex items-center justify-between gap-3">
                 <div>
                   <div className="font-medium">{contact.name}</div>
