@@ -15,15 +15,17 @@ import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import { SiApple, SiGoogle } from 'react-icons/si';
 import { FaMicrosoft } from 'react-icons/fa';
+import { FaFacebook } from 'react-icons/fa6';
 import { LuCalendarPlus } from 'react-icons/lu';
 
 // Calendar provider types that match the backend enum
-export type CalendarProvider = 'google' | 'outlook' | 'apple' | 'other';
+export type CalendarProvider = 'google' | 'outlook' | 'apple' | 'facebook' | 'other';
 
 interface CalendarAuthData {
   authUrl?: string;
   url?: string;
   provider: CalendarProvider;
+  supported?: boolean;
   message?: string;
 }
 
@@ -33,6 +35,7 @@ interface ConnectCalendarDialogProps {
 
 export function ConnectCalendarDialog({ onConnect }: ConnectCalendarDialogProps) {
   const { toast } = useToast();
+  const OAUTH_PROVIDER_STORAGE_KEY = 'ww.calendar.oauth.provider';
   const [isOpen, setIsOpen] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
   const [selectedProvider, setSelectedProvider] = useState<CalendarProvider | null>(null);
@@ -78,6 +81,7 @@ export function ConnectCalendarDialog({ onConnect }: ConnectCalendarDialogProps)
     }
 
     if (error) {
+      window.sessionStorage.removeItem(OAUTH_PROVIDER_STORAGE_KEY);
       toast({
         title: 'Calendar authorization cancelled',
         description: 'Authorization was not completed.',
@@ -87,7 +91,28 @@ export function ConnectCalendarDialog({ onConnect }: ConnectCalendarDialogProps)
       return;
     }
 
-    const provider: CalendarProvider = providerParam === 'outlook' ? 'outlook' : 'google';
+    const storedProvider = window.sessionStorage.getItem(OAUTH_PROVIDER_STORAGE_KEY);
+    const provider: CalendarProvider | null = providerParam === 'outlook'
+      ? 'outlook'
+      : providerParam === 'facebook'
+        ? 'facebook'
+        : providerParam === 'google'
+          ? 'google'
+          : storedProvider === 'outlook' || storedProvider === 'facebook' || storedProvider === 'google'
+            ? storedProvider
+            : null;
+
+    if (!provider) {
+      toast({
+        title: 'Calendar authorization failed',
+        description: 'Could not determine which provider returned from OAuth. Please try again.',
+        variant: 'destructive',
+      });
+      window.history.replaceState({}, document.title, '/app/calendar');
+      return;
+    }
+
+    window.sessionStorage.removeItem(OAUTH_PROVIDER_STORAGE_KEY);
     setIsConnecting(true);
     setSelectedProvider(provider);
     connectMutation.mutate({
@@ -128,6 +153,15 @@ export function ConnectCalendarDialog({ onConnect }: ConnectCalendarDialogProps)
     }) as Promise<CalendarAuthData>,
     enabled: isOpen,
   });
+
+  const { data: facebookAuthData, isLoading: isFacebookLoading } = useQuery<CalendarAuthData>({
+    queryKey: ['/api/calendar/auth/facebook'],
+    queryFn: () => apiRequest('/api/calendar/auth/facebook', {
+      method: 'POST',
+      body: { provider: 'facebook', redirectUri }
+    }) as Promise<CalendarAuthData>,
+    enabled: isOpen,
+  });
   
   // Handle connecting to a calendar provider
   const handleConnect = (provider: CalendarProvider) => {
@@ -135,16 +169,29 @@ export function ConnectCalendarDialog({ onConnect }: ConnectCalendarDialogProps)
     setSelectedProvider(provider);
     
     let authUrl = '';
+    let providerMessage = '';
+    let providerSupported = true;
     
     switch (provider) {
       case 'google':
         authUrl = googleAuthData?.authUrl || googleAuthData?.url || '';
+        providerMessage = googleAuthData?.message || '';
+        providerSupported = googleAuthData?.supported !== false;
         break;
       case 'outlook':
         authUrl = outlookAuthData?.authUrl || outlookAuthData?.url || '';
+        providerMessage = outlookAuthData?.message || '';
+        providerSupported = outlookAuthData?.supported !== false;
         break;
       case 'apple':
         authUrl = appleAuthData?.authUrl || appleAuthData?.url || '';
+        providerMessage = appleAuthData?.message || '';
+        providerSupported = appleAuthData?.supported !== false;
+        break;
+      case 'facebook':
+        authUrl = facebookAuthData?.authUrl || facebookAuthData?.url || '';
+        providerMessage = facebookAuthData?.message || '';
+        providerSupported = facebookAuthData?.supported !== false;
         break;
       default:
         toast({
@@ -155,18 +202,31 @@ export function ConnectCalendarDialog({ onConnect }: ConnectCalendarDialogProps)
         setIsConnecting(false);
         return;
     }
+
+    if (!providerSupported) {
+      toast({
+        title: 'Provider unavailable',
+        description: providerMessage || `${provider} is not configured in this environment.`,
+        variant: 'destructive',
+      });
+      setIsConnecting(false);
+      setSelectedProvider(null);
+      return;
+    }
     
     if (!authUrl) {
       toast({
         title: "Error",
-        description: "Could not get authentication URL",
+        description: providerMessage || "Could not get authentication URL",
         variant: "destructive",
       });
       setIsConnecting(false);
+      setSelectedProvider(null);
       return;
     }
     
-    if (provider === 'outlook' || provider === 'google') {
+    if (provider === 'outlook' || provider === 'google' || provider === 'facebook') {
+      window.sessionStorage.setItem(OAUTH_PROVIDER_STORAGE_KEY, provider);
       const url = new URL(authUrl);
       url.searchParams.set('provider', provider);
       window.location.href = url.toString();
@@ -217,10 +277,11 @@ export function ConnectCalendarDialog({ onConnect }: ConnectCalendarDialogProps)
         </DialogHeader>
         
         <Tabs defaultValue="google" className="mt-4">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="google">Google</TabsTrigger>
             <TabsTrigger value="outlook">Outlook</TabsTrigger>
             <TabsTrigger value="apple">Apple</TabsTrigger>
+            <TabsTrigger value="facebook">Facebook</TabsTrigger>
           </TabsList>
 
           <TabsContent value="google" className="py-4">
@@ -233,11 +294,14 @@ export function ConnectCalendarDialog({ onConnect }: ConnectCalendarDialogProps)
               </p>
               <Button
                 onClick={() => handleConnect('google')}
-                disabled={isGoogleLoading || isConnecting}
+                disabled={isGoogleLoading || isConnecting || googleAuthData?.supported === false}
                 className="w-full"
               >
                 {isConnecting && selectedProvider === 'google' ? 'Connecting...' : 'Connect Google Calendar'}
               </Button>
+              {googleAuthData?.supported === false && googleAuthData?.message && (
+                <p className="text-xs text-gray-500 text-center">{googleAuthData.message}</p>
+              )}
             </div>
           </TabsContent>
           
@@ -251,11 +315,14 @@ export function ConnectCalendarDialog({ onConnect }: ConnectCalendarDialogProps)
               </p>
               <Button 
                 onClick={() => handleConnect('outlook')} 
-                disabled={isOutlookLoading || isConnecting}
+                disabled={isOutlookLoading || isConnecting || outlookAuthData?.supported === false}
                 className="w-full"
               >
                 {isConnecting && selectedProvider === 'outlook' ? 'Connecting...' : 'Connect Outlook Calendar'}
               </Button>
+              {outlookAuthData?.supported === false && outlookAuthData?.message && (
+                <p className="text-xs text-gray-500 text-center">{outlookAuthData.message}</p>
+              )}
             </div>
           </TabsContent>
           
@@ -290,6 +357,26 @@ export function ConnectCalendarDialog({ onConnect }: ConnectCalendarDialogProps)
               >
                 {isConnecting && selectedProvider === 'apple' ? 'Connecting...' : 'Connect Apple Calendar'}
               </Button>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="facebook" className="py-4">
+            <div className="flex flex-col items-center space-y-4">
+              <FaFacebook className="h-16 w-16 text-sky-700" />
+              <h3 className="text-lg font-medium">Connect Facebook</h3>
+              <p className="text-sm text-gray-500 text-center">
+                Connect Facebook to access your friend list for recipient selection.
+              </p>
+              <Button
+                onClick={() => handleConnect('facebook')}
+                disabled={isFacebookLoading || isConnecting || facebookAuthData?.supported === false}
+                className="w-full"
+              >
+                {isConnecting && selectedProvider === 'facebook' ? 'Connecting...' : 'Connect Facebook'}
+              </Button>
+              {facebookAuthData?.supported === false && facebookAuthData?.message && (
+                <p className="text-xs text-gray-500 text-center">{facebookAuthData.message}</p>
+              )}
             </div>
           </TabsContent>
         </Tabs>

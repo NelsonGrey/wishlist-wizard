@@ -1,11 +1,13 @@
 import { getFirestore, Timestamp } from "firebase-admin/firestore";
 
-export type OAuthCalendarProvider = "google" | "outlook";
+export type OAuthCalendarProvider = "google" | "outlook" | "facebook";
 
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || "";
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET || "";
 const MICROSOFT_CLIENT_ID = process.env.MICROSOFT_CLIENT_ID || "";
 const MICROSOFT_CLIENT_SECRET = process.env.MICROSOFT_CLIENT_SECRET || "";
+const FACEBOOK_CLIENT_ID = process.env.FACEBOOK_CLIENT_ID || "";
+const FACEBOOK_CLIENT_SECRET = process.env.FACEBOOK_CLIENT_SECRET || "";
 
 const TOKEN_REFRESH_BUFFER_MS = 60_000;
 
@@ -46,6 +48,13 @@ function validateOAuthConfig(provider: OAuthCalendarProvider) {
   if (provider === "google") {
     if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) {
       throw new Error("Google calendar OAuth is not configured");
+    }
+    return;
+  }
+
+  if (provider === "facebook") {
+    if (!FACEBOOK_CLIENT_ID || !FACEBOOK_CLIENT_SECRET) {
+      throw new Error("Facebook OAuth is not configured");
     }
     return;
   }
@@ -96,10 +105,29 @@ async function refreshMicrosoftAccessToken(refreshToken: string) {
   return response.json() as Promise<{ access_token?: string; expires_in?: number; refresh_token?: string }>;
 }
 
+async function refreshFacebookAccessToken(accessToken: string) {
+  const url = new URL("https://graph.facebook.com/v23.0/oauth/access_token");
+  url.searchParams.set("grant_type", "fb_exchange_token");
+  url.searchParams.set("client_id", FACEBOOK_CLIENT_ID);
+  url.searchParams.set("client_secret", FACEBOOK_CLIENT_SECRET);
+  url.searchParams.set("fb_exchange_token", accessToken);
+
+  const response = await fetch(url, {
+    method: "GET",
+  });
+
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`Facebook token refresh failed: ${text}`);
+  }
+
+  return response.json() as Promise<{ access_token?: string; expires_in?: number; token_type?: string }>;
+}
+
 export async function getValidCalendarAccessToken(connectionId: string, connection: CalendarConnection): Promise<string> {
   const provider = connection.calendarType as OAuthCalendarProvider;
 
-  if (provider !== "google" && provider !== "outlook") {
+  if (provider !== "google" && provider !== "outlook" && provider !== "facebook") {
     throw new Error("Provider does not support OAuth token refresh");
   }
 
@@ -110,6 +138,28 @@ export async function getValidCalendarAccessToken(connectionId: string, connecti
   const expiresSoon = tokenExpiry ? tokenExpiry.getTime() <= Date.now() + TOKEN_REFRESH_BUFFER_MS : false;
   if (accessToken && !expiresSoon) {
     return accessToken;
+  }
+
+  if (provider === "facebook" && expiresSoon && accessToken) {
+    validateOAuthConfig(provider);
+
+    const refreshed = await refreshFacebookAccessToken(accessToken);
+    if (!refreshed.access_token) {
+      throw new Error("Facebook token refresh response did not include access_token");
+    }
+
+    const expiresIn = typeof refreshed.expires_in === "number" && refreshed.expires_in > 0
+      ? refreshed.expires_in
+      : 5_184_000;
+    const nextExpiry = new Date(Date.now() + expiresIn * 1000);
+
+    await getFirestore().collection("userCalendars").doc(connectionId).update({
+      accessToken: refreshed.access_token,
+      tokenExpiry: nextExpiry,
+      updatedAt: new Date(),
+    });
+
+    return refreshed.access_token;
   }
 
   if (!refreshToken) {
@@ -123,13 +173,17 @@ export async function getValidCalendarAccessToken(connectionId: string, connecti
 
   const refreshed = provider === "google"
     ? await refreshGoogleAccessToken(refreshToken)
-    : await refreshMicrosoftAccessToken(refreshToken);
+    : provider === "outlook"
+      ? await refreshMicrosoftAccessToken(refreshToken)
+      : await refreshFacebookAccessToken(refreshToken);
 
   if (!refreshed.access_token) {
     throw new Error("OAuth token refresh response did not include access_token");
   }
 
-  const nextRefreshToken = refreshed.refresh_token || refreshToken;
+  const nextRefreshToken = "refresh_token" in refreshed && typeof refreshed.refresh_token === "string"
+    ? refreshed.refresh_token
+    : refreshToken;
   const expiresIn = typeof refreshed.expires_in === "number" && refreshed.expires_in > 0
     ? refreshed.expires_in
     : 3600;

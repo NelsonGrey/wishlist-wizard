@@ -14,6 +14,9 @@ const GOOGLE_REDIRECT_URI = process.env.GOOGLE_REDIRECT_URI || "";
 const MICROSOFT_CLIENT_ID = process.env.MICROSOFT_CLIENT_ID || "";
 const MICROSOFT_CLIENT_SECRET = process.env.MICROSOFT_CLIENT_SECRET || "";
 const MICROSOFT_REDIRECT_URI = process.env.MICROSOFT_REDIRECT_URI || "";
+const FACEBOOK_CLIENT_ID = process.env.FACEBOOK_CLIENT_ID || "";
+const FACEBOOK_CLIENT_SECRET = process.env.FACEBOOK_CLIENT_SECRET || "";
+const FACEBOOK_REDIRECT_URI = process.env.FACEBOOK_REDIRECT_URI || "";
 
 const GOOGLE_SCOPES = [
   "https://www.googleapis.com/auth/calendar",
@@ -27,6 +30,13 @@ const MICROSOFT_SCOPES = [
   "Calendars.ReadWrite",
   "Contacts.Read",
 ].join(" ");
+
+const FACEBOOK_SCOPES = [
+  "public_profile",
+  "email",
+  "user_birthday",
+  "user_friends",
+].join(",");
 
 function requireAuth(request: CallableRequest) {
   if (!request.auth) {
@@ -46,7 +56,30 @@ function requireOAuthProviderConfig(provider: string) {
     if (!MICROSOFT_CLIENT_ID || !MICROSOFT_CLIENT_SECRET) {
       throw new HttpsError("failed-precondition", "Outlook calendar OAuth is not configured");
     }
+    return;
   }
+
+  if (provider === "facebook") {
+    if (!FACEBOOK_CLIENT_ID || !FACEBOOK_CLIENT_SECRET) {
+      throw new HttpsError("failed-precondition", "Facebook OAuth is not configured");
+    }
+  }
+}
+
+function hasOAuthProviderConfig(provider: string): boolean {
+  if (provider === "google") {
+    return Boolean(GOOGLE_CLIENT_ID && GOOGLE_CLIENT_SECRET);
+  }
+
+  if (provider === "outlook") {
+    return Boolean(MICROSOFT_CLIENT_ID && MICROSOFT_CLIENT_SECRET);
+  }
+
+  if (provider === "facebook") {
+    return Boolean(FACEBOOK_CLIENT_ID && FACEBOOK_CLIENT_SECRET);
+  }
+
+  return false;
 }
 
 function sanitizeCalendarConnection(connection: Record<string, unknown>, id: string) {
@@ -108,6 +141,16 @@ function buildMicrosoftAuthUrl(state: string, redirectUri: string) {
   return url.toString();
 }
 
+function buildFacebookAuthUrl(state: string, redirectUri: string) {
+  const url = new URL("https://www.facebook.com/v23.0/dialog/oauth");
+  url.searchParams.set("client_id", FACEBOOK_CLIENT_ID);
+  url.searchParams.set("redirect_uri", redirectUri);
+  url.searchParams.set("state", state);
+  url.searchParams.set("response_type", "code");
+  url.searchParams.set("scope", FACEBOOK_SCOPES);
+  return url.toString();
+}
+
 async function exchangeGoogleCode(code: string, redirectUri: string) {
   const response = await fetch("https://oauth2.googleapis.com/token", {
     method: "POST",
@@ -151,6 +194,26 @@ async function exchangeMicrosoftCode(code: string, redirectUri: string) {
   return response.json();
 }
 
+async function exchangeFacebookCode(code: string, redirectUri: string) {
+  const response = await fetch("https://graph.facebook.com/v23.0/oauth/access_token", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      client_id: FACEBOOK_CLIENT_ID,
+      client_secret: FACEBOOK_CLIENT_SECRET,
+      redirect_uri: redirectUri,
+      code,
+    }),
+  });
+
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`Facebook token exchange failed: ${text}`);
+  }
+
+  return response.json();
+}
+
 async function fetchGoogleCalendars(accessToken: string) {
   const response = await fetch("https://www.googleapis.com/calendar/v3/users/me/calendarList", {
     headers: { Authorization: `Bearer ${accessToken}` },
@@ -175,6 +238,22 @@ async function fetchMicrosoftCalendars(accessToken: string) {
   }
 
   return response.json();
+}
+
+async function fetchFacebookProfile(accessToken: string) {
+  const url = new URL("https://graph.facebook.com/v23.0/me");
+  url.searchParams.set("fields", "id,name");
+
+  const response = await fetch(url, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`Facebook profile request failed: ${text}`);
+  }
+
+  return response.json() as Promise<{ id?: string; name?: string }>;
 }
 
 export const getCalendarEvents = onCall(async (request: CallableRequest) => {
@@ -302,14 +381,28 @@ export const getCalendarAuthUrl = onCall(async (request: CallableRequest) => {
   }
 
   const state = randomUUID();
-  const finalRedirect = redirectUri || (provider === "google" ? GOOGLE_REDIRECT_URI : MICROSOFT_REDIRECT_URI);
+  const finalRedirect = redirectUri || (
+    provider === "google"
+      ? GOOGLE_REDIRECT_URI
+      : provider === "outlook"
+        ? MICROSOFT_REDIRECT_URI
+        : provider === "facebook"
+          ? FACEBOOK_REDIRECT_URI
+          : ""
+  );
 
-  if ((provider === "google" || provider === "outlook") && !finalRedirect) {
+  if ((provider === "google" || provider === "outlook" || provider === "facebook") && !finalRedirect) {
     throw new HttpsError("failed-precondition", "Redirect URI is required for OAuth providers");
   }
 
-  if (provider === "google" || provider === "outlook") {
-    requireOAuthProviderConfig(provider);
+  if (provider === "google" || provider === "outlook" || provider === "facebook") {
+    if (!hasOAuthProviderConfig(provider)) {
+      return {
+        provider,
+        supported: false,
+        message: `${provider} OAuth is not configured in this environment yet.`,
+      };
+    }
   }
 
   await db.collection("calendarAuthStates").doc(state).set({
@@ -327,6 +420,11 @@ export const getCalendarAuthUrl = onCall(async (request: CallableRequest) => {
 
   if (provider === "outlook") {
     const url = buildMicrosoftAuthUrl(state, finalRedirect);
+    return { url, authUrl: url, provider };
+  }
+
+  if (provider === "facebook") {
+    const url = buildFacebookAuthUrl(state, finalRedirect);
     return { url, authUrl: url, provider };
   }
 
@@ -351,11 +449,11 @@ export const connectCalendar = onCall(async (request: CallableRequest) => {
     throw new HttpsError("invalid-argument", "Provider is required");
   }
 
-  if ((provider === "google" || provider === "outlook") && !code) {
+  if ((provider === "google" || provider === "outlook" || provider === "facebook") && !code) {
     throw new HttpsError("invalid-argument", "Authorization code is required for this provider");
   }
 
-  if (provider === "google" || provider === "outlook") {
+  if (provider === "google" || provider === "outlook" || provider === "facebook") {
     requireOAuthProviderConfig(provider);
   }
 
@@ -405,7 +503,15 @@ export const connectCalendar = onCall(async (request: CallableRequest) => {
     return sanitizeCalendarConnection(connectionData, docRef.id);
   }
 
-  let redirect = redirectUri || (provider === "google" ? GOOGLE_REDIRECT_URI : MICROSOFT_REDIRECT_URI);
+  let redirect = redirectUri || (
+    provider === "google"
+      ? GOOGLE_REDIRECT_URI
+      : provider === "outlook"
+        ? MICROSOFT_REDIRECT_URI
+        : provider === "facebook"
+          ? FACEBOOK_REDIRECT_URI
+          : ""
+  );
 
   if (state) {
     const stateDoc = await db.collection("calendarAuthStates").doc(state).get();
@@ -441,6 +547,8 @@ export const connectCalendar = onCall(async (request: CallableRequest) => {
       tokenResponse = await exchangeGoogleCode(code, redirect);
     } else if (provider === "outlook") {
       tokenResponse = await exchangeMicrosoftCode(code, redirect);
+    } else if (provider === "facebook") {
+      tokenResponse = await exchangeFacebookCode(code, redirect);
     } else {
       throw new HttpsError("invalid-argument", "Unsupported provider");
     }
@@ -469,6 +577,12 @@ export const connectCalendar = onCall(async (request: CallableRequest) => {
         calendarId = primary.id;
         displayName = primary.name || displayName;
       }
+    }
+
+    if (provider === "facebook") {
+      const profile = await fetchFacebookProfile(accessToken);
+      calendarId = profile.id || "facebook";
+      displayName = profile.name || "Facebook";
     }
 
     const connectionData = {
@@ -633,7 +747,7 @@ async function createMicrosoftEvent(accessToken: string, calendarId: string, eve
 }
 
 async function syncConnectionEvents(connectionId: string, connection: any, userId: string) {
-  if (connection.calendarType === "apple") {
+  if (connection.calendarType === "apple" || connection.calendarType === "facebook") {
     await db.collection("userCalendars").doc(connectionId).update({
       lastSyncedAt: new Date(),
       updatedAt: new Date(),
@@ -785,6 +899,7 @@ export const getCalendarSyncSettings = onCall(async (request: CallableRequest) =
       google: { connected: providers.includes("google") },
       apple: { connected: providers.includes("apple") },
       outlook: { connected: providers.includes("outlook") },
+      facebook: { connected: providers.includes("facebook") },
     };
   } catch (error) {
     logger.error("Error fetching calendar sync settings:", error);
