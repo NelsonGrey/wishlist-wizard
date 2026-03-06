@@ -56,9 +56,10 @@ Project overview and planning:
 
 1. [BUSINESS_REQUIREMENTS.md](BUSINESS_REQUIREMENTS.md) - Feature requirements
 2. [PRODUCT_DESIGN.md](PRODUCT_DESIGN.md) - UI/UX design specifications
-3. [REQUIREMENTS.md](REQUIREMENTS.md) - Implementation status
-4. [DELIVERABLE_COMPONENT_MATRIX.md](DELIVERABLE_COMPONENT_MATRIX.md) - Component-level completion tracker for website/mobile/extension
-5. [RELEASE_SUMMARY.md](RELEASE_SUMMARY.md) - Latest incremental release notes and shipped scope
+3. [ROLLOUT_PLAN.md](ROLLOUT_PLAN.md) - Phase-by-phase promoted feature strategy
+4. [REQUIREMENTS.md](REQUIREMENTS.md) - Implementation status
+5. [DELIVERABLE_COMPONENT_MATRIX.md](DELIVERABLE_COMPONENT_MATRIX.md) - Component-level completion tracker for website/mobile/extension
+6. [RELEASE_SUMMARY.md](RELEASE_SUMMARY.md) - Latest incremental release notes and shipped scope
 
 ---
 
@@ -114,6 +115,7 @@ Project overview and planning:
 |----------|---------|----------|
 | [BUSINESS_REQUIREMENTS.md](BUSINESS_REQUIREMENTS.md) | Project vision and requirements | Product, PM |
 | [PRODUCT_DESIGN.md](PRODUCT_DESIGN.md) | UI/UX design, features, user flows | Designers, PM |
+| [ROLLOUT_PLAN.md](ROLLOUT_PLAN.md) | Authoritative phase rollout and promotion policy | Product, PM, Engineering Leads |
 | [REQUIREMENTS.md](REQUIREMENTS.md) | Feature status and implementation details | All |
 | [DELIVERABLE_COMPONENT_MATRIX.md](DELIVERABLE_COMPONENT_MATRIX.md) | Execution tracker for component completion by deliverable | Product, Engineering Leads, PM |
 | [RELEASE_SUMMARY.md](RELEASE_SUMMARY.md) | Incremental releases, shipped features, and delivery notes | Product, Engineering Leads, PM |

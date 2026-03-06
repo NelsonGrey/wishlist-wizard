@@ -194,7 +194,7 @@ export default function Analytics() {
                 </p>
                 <ul className="list-disc pl-5 space-y-2">
                   <li>Compare clicks against purchases to identify high-converting lists</li>
-                  <li>Validate which content themes drive affiliate revenue</li>
+                  <li>Validate which content themes drive better list engagement</li>
                   <li>Spot low-performing campaigns and adjust faster</li>
                   <li>Track conversion events tied to shared wishlist links</li>
                   <li>Use repeat trends to plan upcoming campaign content</li>
@@ -257,11 +257,11 @@ export default function Analytics() {
                     <AnalyticsLink
                       category="analytics"
                       action="link_click"
-                      label="price_tracking"
-                      href="/app/price-tracking"
+                      label="calendar"
+                      href="/app/calendar"
                       className="text-emerald-700 hover:text-emerald-800 hover:underline"
                     >
-                      Go to Price Tracking
+                      Go to Calendar
                     </AnalyticsLink>
                   </Card>
                 </div>
@@ -308,7 +308,7 @@ trackEvent(
                   <ul className="list-disc pl-5 space-y-2">
                     <li>Wishlist creation and sharing</li>
                     <li>Item additions to wishlists</li>
-                    <li>Price alert creation</li>
+                    <li>Calendar event creation</li>
                     <li>User registration and login</li>
                     <li>Feature usage (mobile app interactions)</li>
                     <li>Social sharing actions</li>

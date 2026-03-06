@@ -138,7 +138,7 @@ export default function Notifications() {
     }
 
     const type = String(notification.type || '').toLowerCase();
-    if (type.includes('price')) return 'View Price Tracking';
+    if (type.includes('price')) return 'View Details';
     if (type.includes('wishlist')) return 'Open Wishlist';
     if (type.includes('item')) return 'View Item';
     if (type.includes('collab')) return 'View Collaboration';

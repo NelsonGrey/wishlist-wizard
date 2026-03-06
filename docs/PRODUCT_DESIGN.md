@@ -771,14 +771,14 @@ Profile / Settings
 | Wishlist CRUD | Critical | Medium | P0 | ✅ Complete |
 | Item management (add/remove) | Critical | Medium | P0 | ✅ Complete |
 | Public sharing & links | Critical | Low | P0 | ✅ Complete |
-| Price tracking | High | Medium | P1 | ✅ Complete |
+| Price tracking | High | Medium | P2 | 🟡 Planned |
 | Browser extension | High | High | P1 | ✅ Complete |
 | Mobile app (iOS/Android) | Critical | High | P0 | ✅ Complete |
-| Affiliate monetization | High | High | P1 | ✅ Partial |
+| Affiliate monetization | High | High | P2 | 🟡 Planned |
 | Creator dashboard | Medium | High | P1 | ✅ Partial |
 | Group coordination (commitments) | Medium | Medium | P2 | 🟡 Partial |
-| Calendar integration | Medium | High | P2 | 🟡 Partial |
-| Social gifting (group contributions) | Medium | High | P2 | 🟡 Partial |
+| Calendar integration | Medium | High | P1 | 🟡 Partial |
+| Social network and discovery | Medium | High | P1 | 🟡 Partial |
 | AI recommendations | Low | Very High | P3 | 🟡 Partial |
 | AR visualization | Low | Very High | P4 | ⏸️ Future |
 | Custom level editor | N/A | N/A | N/A | N/A |
@@ -815,16 +815,16 @@ Profile / Settings
 
 ## 📊 Phased Roadmap
 
-### Phase 1: MVP (Shipped ✅)
+### Phase 1: MVP (Core Platform)
 - ✅ Web app + Mobile apps (iOS/Android)
 - ✅ Wishlist CRUD + sharing
 - ✅ Item management (add from link, search)
-- ✅ Price tracking for popular retailers
 - ✅ Browser extension (product adding)
 - ✅ Basic analytics (view counts)
-- ✅ Affiliate integration (Amazon, Etsy, Walmart)
+- 🟡 Calendar integrations (Google, Outlook, Apple)
+- 🟡 Social network and discovery (public profiles, discovery)
 
-**Target Metrics**: 1M wishlists, 200K MAU, $5M affiliate revenue
+**Target Metrics**: 1M wishlists, 200K MAU, 60%+ share rate, 35%+ calendar activation
 
 ---
 
@@ -834,14 +834,14 @@ Profile / Settings
 - 🟡 Creator tools (bulk edit, CSV import, templates)
 - 🟡 AI recommendations (gift ideas based on recipient)
 - 🟡 Group gifting payments (PayPal/Stripe integration)
-- 🟡 Calendar integrations (Google, Outlook, Apple)
+- 🟡 Price tracking (basic + advanced multi-retailer alerts)
+- 🟡 Affiliate integration (Amazon, Etsy, Walmart)
 
-**Target Metrics**: 10K creators, 10M wishlists, $150M affiliate revenue
+**Target Metrics**: 10K creators, 10M wishlists, validated ad revenue baseline, controlled rollout of paid price tracking
 
 ---
 
 ### Phase 3: Ecosystem & Platforms (Year 2-3, Q4 2026+)
-- ⏸️ Social gifting networks (public profiles, discovery)
 - ⏸️ Brand partnerships (exclusive wishlists, collaborations)
 - ⏸️ White-label solutions (retailers embed WV wishlists)
 - ⏸️ AR visualization (preview items in space)

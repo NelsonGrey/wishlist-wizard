@@ -11,12 +11,11 @@ Wishlist Wizard is a comprehensive wishlist management platform that empowers us
 - **Social Sharing**: Share wishlists with friends and family via direct links or social media.
 
 ### Advanced Features
-- **Price Tracking**: Track price changes across multiple retailers and receive alerts for price drops.
 - **Collaborative Wishlists**: Co-create and edit wishlists with friends and family for group gifting.
 - **Calendar Integration**: Sync birthdays, holidays, and other occasions with Google Calendar, Outlook, or Apple Calendar.
+- **Social Network & Discovery**: Find trusted profiles and coordinate shared planning.
 - **Cross-Platform Access**: Use WishKeeper on web, mobile, and through a browser extension.
-- **Notification System**: Receive alerts for price changes, approaching events, or collaborative activities.
-- **AR Visualization**: Preview how items would look in your space with AR technology.
+- **Notification System**: Receive alerts for approaching events or collaborative activities.
 
 ### Browser Extension
 - **One-Click Adding**: Add items to your wishlists while browsing online stores.
@@ -26,8 +25,7 @@ Wishlist Wizard is a comprehensive wishlist management platform that empowers us
 ### E-Commerce Integration
 - **Multi-Platform Support**: Integration with Amazon, eBay, Etsy, Walmart, Target, and Best Buy.
 - **Product Data Extraction**: Extract detailed product information from URLs.
-- **Price Tracking**: Monitor price changes across multiple retailers.
-- **Affiliate Link Generation**: Generate affiliate links for supported platforms.
+- **Roadmap Note**: Price tracking and affiliate monetization are planned for a later rollout phase.
 
 ## 🚀 Getting Started
 
@@ -153,12 +151,6 @@ flutter build apk --release
 
 ## 💫 Advanced Usage
 
-### Price Tracking Setup
-1. Add an item to your wishlist with a link to an online store
-2. Enable "Track Price" on the item
-3. Set your target price (optional)
-4. Receive notifications when the price drops
-
 ### Calendar Integration
 1. Navigate to "Calendar" in the sidebar
 2. Click on the "Connections" tab
@@ -174,18 +166,11 @@ flutter build apk --release
 4. Select their permission level (view, edit, admin)
 5. They'll receive an invitation to collaborate
 
-### AR Visualization
-1. Select an item in your wishlist
-2. Click the "View in AR" button
-3. Follow the prompts to use your device camera
-4. The item will appear in your real-world environment
-5. Move your device to see the item from different angles
-
 ### E-Commerce Platform Integration
 1. Navigate to "Settings" > "E-Commerce"
 2. Select the platforms you want to enable
 3. The system will now fetch product data from these platforms
-4. Item price tracking will use these platforms for comparison
+4. Product metadata and links are normalized for consistent wishlist management
 
 ## 🛠️ Technical Details
 
@@ -199,7 +184,7 @@ flutter build apk --release
 ### System Requirements
 - **Browser Support**: Chrome, Firefox, Safari, Edge (latest versions)
 - **Mobile Support**: iOS 13+ and Android 8.0+ (Flutter app)
-- **Internet Connection**: Required for real-time price tracking and collaboration
+- **Internet Connection**: Required for collaboration and calendar syncing
 
 ### Environment Setup
 Required environment variables (add to `.env`):
@@ -245,7 +230,7 @@ VITE_FIREBASE_AUTO_INIT=false
    - ✅ **Cloud Messaging**: Push notifications
    - ✅ **Firebase Analytics**: User behavior tracking
    - ✅ **Firebase Storage**: Media and file uploads
-   - ✅ **Cloud Scheduler**: Automated price tracking
+   - ✅ **Cloud Scheduler**: Scheduled background workflows
 
 3. **Development with Firebase Emulators**:
 ```bash
@@ -254,7 +239,7 @@ npx firebase deploy --project wishlist-wizard
 ```
 
 4. **Firebase-Native Features**:
-   - **Price Tracking**: Implemented as Firebase Functions with Cloud Scheduler
+   - **Scheduled Processing**: Implemented as Firebase Functions with Cloud Scheduler
    - **Real-time Updates**: Firestore real-time subscriptions
    - **Push Notifications**: FCM for web and mobile
    - **Serverless Architecture**: Firebase Functions v2 for all API operations
@@ -349,11 +334,10 @@ See `AUTOMATED_DEPLOYMENT.md` for complete setup and configuration details.
 
 ## 🔮 Upcoming Features
 
-- Advanced gift recommendations powered by AI
-- Enhanced social sharing capabilities
-- Improved AR visualization
-- Extended mobile application functionality
-- Enhanced group gifting tools
+- Phase 2 intelligence rollout (price tracking, affiliate integrations, AI recommendations)
+- Creator economy tooling and advanced monetization dashboards
+- Phase 3 ecosystem expansion (AR, white-label, conversational AI)
+- Extended mobile and collaboration enhancements
 
 ---
 
