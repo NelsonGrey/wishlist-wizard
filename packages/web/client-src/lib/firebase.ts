@@ -54,6 +54,19 @@ function resolveEnvironmentSuffixFromHostname(): 'DEVELOPMENT' | 'STAGING' | 'PR
   return null;
 }
 
+function isHostedWebAppDomain(): boolean {
+  if (typeof window === 'undefined' || !window.location?.hostname) {
+    return false;
+  }
+
+  const hostname = window.location.hostname.toLowerCase();
+  return (
+    hostname.includes('wishlist-wizard-dev.web.app') ||
+    hostname.includes('wishlist-wizard-staging.web.app') ||
+    hostname === 'wishlist-wizard.web.app'
+  );
+}
+
 function resolveEnvironmentSuffix(): 'DEVELOPMENT' | 'STAGING' | 'PRODUCTION' {
   const hostnameEnv = resolveEnvironmentSuffixFromHostname();
   if (hostnameEnv) return hostnameEnv;
@@ -84,7 +97,8 @@ function pickEnvValue(
         : productionValue
   );
 
-  return selectedByEnvironment || fallbackValue || '';
+  const allowFallback = !isHostedWebAppDomain();
+  return selectedByEnvironment || (allowFallback ? (fallbackValue || '') : '');
 }
 
 // Prefer environment-suffixed vars (VITE_FIREBASE_*_DEVELOPMENT/STAGING/PRODUCTION),
