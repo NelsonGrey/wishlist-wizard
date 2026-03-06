@@ -45,14 +45,6 @@ const formSchema = z.object({
   reminderDays: z.coerce.number().min(0).max(90).default(7),
   description: z.string().max(200, "Description cannot exceed 200 characters").optional(),
 }).superRefine((values, context) => {
-  if (values.recipientType === "person" && values.recipientInputMode === "source" && !values.externalContactId?.trim()) {
-    context.addIssue({
-      code: z.ZodIssueCode.custom,
-      path: ["externalContactId"],
-      message: "Select a contact from source providers",
-    });
-  }
-
   if (
     (values.recipientType === "person" || values.recipientType === "group")
     && values.recipientInputMode === "manual"
@@ -134,9 +126,17 @@ export default function CreateWishlistDialog({
   const onSubmit = (data: CreateWishlistFormValues) => {
     if (data.recipientType === "person" && data.recipientInputMode === "source") {
       const match = externalContacts.find((contact) => contact.id === data.externalContactId);
+      if (!match) {
+        form.setError("externalContactId", {
+          type: "manual",
+          message: "Select a connected source contact or switch to manual entry",
+        });
+        return;
+      }
+
       onCreateWishlist({
         ...data,
-        recipientName: match?.name || data.recipientName || "Recipient",
+        recipientName: match.name || data.recipientName || "Recipient",
       });
       return;
     }
@@ -165,6 +165,8 @@ export default function CreateWishlistDialog({
 
   const externalContacts = externalContactsResponse?.contacts || [];
   const providerStatuses = externalContactsResponse?.providerStatuses || [];
+  const connectedSourceProviders = providerStatuses.filter((status) => status.connected && status.supported);
+  const hasConnectedSourceProvider = connectedSourceProviders.length > 0;
   const selectedExternalContact = externalContacts.find((contact) => contact.id === selectedExternalContactId);
 
   const formatProviderName = (provider: string): string => {
@@ -298,16 +300,22 @@ export default function CreateWishlistDialog({
                       </div>
                     )}
 
+                    {!isLoadingExternalContacts && !hasConnectedSourceProvider && (
+                      <div className="rounded-md border p-2 text-xs text-amber-700 bg-amber-50 border-amber-200">
+                        No connected contact sources are available. Connect Outlook/Apple in Profile Settings, then return here.
+                      </div>
+                    )}
+
                     <FormField
                       control={form.control}
                       name="externalContactId"
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Select contact</FormLabel>
-                          <Select onValueChange={field.onChange} value={field.value}>
+                          <Select onValueChange={field.onChange} value={field.value} disabled={!hasConnectedSourceProvider || externalContacts.length === 0}>
                             <FormControl>
                               <SelectTrigger>
-                                <SelectValue placeholder="Select a contact from source providers" />
+                                <SelectValue placeholder={isLoadingExternalContacts ? "Loading contacts..." : "Select a contact from source providers"} />
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
