@@ -6,7 +6,7 @@ Source of truth for delivery sequencing from product design intent:
 3. `docs/REQUIREMENTS.md` (implementation status)
 4. `docs/requirements-verification.json` (CI enforcement)
 
-Last updated: 2026-02-27
+Last updated: 2026-03-06
 
 ---
 
@@ -27,6 +27,15 @@ Last updated: 2026-02-27
 | P1 | TikTok Creator | Flow 5: Creator Dashboard | Trustworthy clicks → conversions → commission visibility | Partial | Add event-to-dashboard reconciliation test and payout readiness checks | analytics integration test + dashboard aggregation test |
 | P1 | TikTok Creator | Feature 5 Payout | Creator payout eligibility and hold period logic | Not complete | Implement payout eligibility service + audit trail endpoints | unit tests on payout calculation + integration test |
 | P2 | Occasion Coordinator | Flow 6 Budget Guardrails | Budget range policy during commitments | Partial | Enforce min/max budget at API layer and UI hinting | API validation test + E2E commitment boundary test |
+
+## Persona Execution Matrix (Cross-Deliverable)
+
+| Persona | Design Ref | Website Execution | Mobile Execution | Extension Execution | Required Verification |
+|---|---|---|---|---|---|
+| Social Gift-Giver | `docs/PRODUCT_DESIGN.md#flow-1-create-first-wishlist-individual-user`, `docs/PRODUCT_DESIGN.md#flow-3-share-wishlist`, `docs/PRODUCT_DESIGN.md#flow-4-buy-from-wishlist` | Auth + wishlist CRUD + sharing + purchase markers | Auth-gated wishlists + item actions | Quick add + auth refresh + extraction reliability | `npm run test:e2e:tier1`, `npm run test:users:smoke`, `npm run test:functions:smoke:all` |
+| Budget-Conscious Shopper | `docs/PRODUCT_DESIGN.md#flow-2-add-item-to-wishlist-product-discovery` | Item add/edit + price tracking + alerts | Item validation and list integrity | Coupon finder + price comparison | Web price-tracking tests + mobile dialog validation tests + smoke functions |
+| Occasion Coordinator | `docs/PRODUCT_DESIGN.md#flow-6-group-gifting-coordination` | Collaboration controls + notification visibility + commitment states | Notification/deeplink reliability and list consistency | Shared-link access support path | Notification tests + collaborator smoke flows + commitments/export checks |
+| TikTok Creator | `docs/PRODUCT_DESIGN.md#flow-5-creator-dashboard` | Analytics + monetization funnel reporting | Creator-facing metrics surface parity as mobile expands | Analytics event capture from extension actions | Analytics integration tests + ad KPI summary checks |
 
 ---
 
