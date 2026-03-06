@@ -12,6 +12,42 @@ ensureFirebaseAdmin();
 const db = getFirestore();
 const publicCallableOptions = { invoker: 'public' as const };
 
+type WishlistRecipient = {
+  type: 'self' | 'person' | 'group';
+  name: string;
+  members?: string[];
+};
+
+function normalizeRecipientInput(rawData: Record<string, any>): { recipient: WishlistRecipient; recipientName: string } {
+  const rawRecipient = (rawData.recipient && typeof rawData.recipient === 'object') ? rawData.recipient : {};
+  const rawType = String(rawRecipient.type ?? rawData.recipientType ?? 'self').trim().toLowerCase();
+  const type: WishlistRecipient['type'] = rawType === 'group' || rawType === 'person' ? rawType : 'self';
+
+  const fallbackName = type === 'self' ? 'Myself' : '';
+  const rawName = String(rawRecipient.name ?? rawData.recipientName ?? fallbackName).trim();
+
+  if ((type === 'person' || type === 'group') && !rawName) {
+    throw new HttpsError('invalid-argument', 'Recipient name is required for person and group recipients');
+  }
+
+  const memberSource = Array.isArray(rawRecipient.members)
+    ? rawRecipient.members
+    : (Array.isArray(rawData.recipientMembers) ? rawData.recipientMembers : []);
+
+  const members = memberSource
+    .map((value: unknown) => String(value || '').trim())
+    .filter(Boolean)
+    .slice(0, 12);
+
+  const recipient: WishlistRecipient = {
+    type,
+    name: rawName || fallbackName,
+    ...(type === 'group' && members.length > 0 ? { members } : {}),
+  };
+
+  return { recipient, recipientName: recipient.name };
+}
+
 // Removed unused interfaces - using Firestore document structure and shared types directly
 
 /**
@@ -163,6 +199,10 @@ export const createWishlist = onCall(publicCallableOptions, async (request: Call
     occasionDate,
     recurrence,
     reminderDays,
+    recipient,
+    recipientType,
+    recipientName,
+    recipientMembers,
   } = request.data;
 
   if (!name || name.trim().length === 0) {
@@ -179,6 +219,13 @@ export const createWishlist = onCall(publicCallableOptions, async (request: Call
         ? null
         : Number(reminderDays);
 
+    const normalizedRecipient = normalizeRecipientInput({
+      recipient,
+      recipientType,
+      recipientName,
+      recipientMembers,
+    });
+
     const wishlistData = {
       userId: request.auth.uid,
       name: name.trim(),
@@ -190,6 +237,8 @@ export const createWishlist = onCall(publicCallableOptions, async (request: Call
       occasionDate: occasionDate ? new Date(occasionDate) : null,
       recurrence: validRecurrence,
       reminderDays: Number.isFinite(parsedReminderDays) ? parsedReminderDays : null,
+      recipient: normalizedRecipient.recipient,
+      recipientName: normalizedRecipient.recipientName,
       shareId: generateId(),
       createdAt: new Date(),
       updatedAt: new Date()
@@ -238,7 +287,21 @@ export const updateWishlist = onCall(publicCallableOptions, async (request: Call
       throw new HttpsError('permission-denied', 'You can only update your own wishlists');
     }
 
-    const validFields = ['name', 'description', 'isPublic', 'isCollaborative', 'beneficiaryId', 'occasion', 'occasionDate', 'recurrence', 'reminderDays'];
+    const validFields = [
+      'name',
+      'description',
+      'isPublic',
+      'isCollaborative',
+      'beneficiaryId',
+      'occasion',
+      'occasionDate',
+      'recurrence',
+      'reminderDays',
+      'recipient',
+      'recipientType',
+      'recipientName',
+      'recipientMembers',
+    ];
     const filteredUpdateData: any = {};
 
     for (const [key, value] of Object.entries(updateData)) {
@@ -272,6 +335,19 @@ export const updateWishlist = onCall(publicCallableOptions, async (request: Call
     if ('occasionDate' in filteredUpdateData) {
       const occasionDateValue = filteredUpdateData.occasionDate;
       filteredUpdateData.occasionDate = occasionDateValue ? new Date(String(occasionDateValue)) : null;
+    }
+
+    if (
+      'recipient' in filteredUpdateData
+      || 'recipientType' in filteredUpdateData
+      || 'recipientName' in filteredUpdateData
+      || 'recipientMembers' in filteredUpdateData
+    ) {
+      const normalizedRecipient = normalizeRecipientInput(filteredUpdateData);
+      filteredUpdateData.recipient = normalizedRecipient.recipient;
+      filteredUpdateData.recipientName = normalizedRecipient.recipientName;
+      delete filteredUpdateData.recipientType;
+      delete filteredUpdateData.recipientMembers;
     }
 
     filteredUpdateData.updatedAt = new Date();

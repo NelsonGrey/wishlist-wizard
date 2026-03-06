@@ -19,6 +19,12 @@ type Wishlist = Omit<DbWishlist, 'id' | 'userId' | 'beneficiaryId'> & {
   id: string | number;
   userId: string | number;
   beneficiaryId?: string | number | null;
+  recipient?: {
+    type?: 'self' | 'person' | 'group';
+    name?: string;
+    members?: string[];
+  } | null;
+  recipientName?: string | null;
   itemCount: number;
 };
 
@@ -98,6 +104,11 @@ export default function Dashboard() {
         method: 'POST',
         body: {
           name: wishlistData.name,
+          recipientType: wishlistData.recipientType,
+          recipientName: wishlistData.recipientName?.trim() || null,
+          recipientMembers: wishlistData.recipientType === 'group'
+            ? (wishlistData.recipientMembers || '').split(',').map((value) => value.trim()).filter(Boolean)
+            : [],
           description: wishlistData.description?.trim() || '',
           occasion: wishlistData.occasion?.trim() || null,
           occasionDate: occasionDateIso,
@@ -131,6 +142,8 @@ export default function Dashboard() {
     userId: wishlist.userId,
     createdAt: wishlist.createdAt,
     beneficiaryId: wishlist.beneficiaryId ?? null,
+    recipient: wishlist.recipient ?? null,
+    recipientName: wishlist.recipientName ?? null,
     shareId: wishlist.shareId || '',
     isPublic: wishlist.isPublic,
     isCollaborative: wishlist.isCollaborative,
@@ -154,9 +167,23 @@ export default function Dashboard() {
 
     try {
       if (useFirebase) {
+        const recipientMembers = wishlistData.recipientType === 'group'
+          ? (wishlistData.recipientMembers || '').split(',').map((value) => value.trim()).filter(Boolean)
+          : [];
+
         await createFirebaseWishlist({
           name: wishlistData.name,
           description: wishlistData.description?.trim() || '',
+          recipient: {
+            type: wishlistData.recipientType,
+            name: wishlistData.recipientType === 'self'
+              ? 'Myself'
+              : (wishlistData.recipientName?.trim() || 'Recipient'),
+            ...(wishlistData.recipientType === 'group' ? { members: recipientMembers } : {}),
+          },
+          recipientName: wishlistData.recipientType === 'self'
+            ? 'Myself'
+            : (wishlistData.recipientName?.trim() || 'Recipient'),
           isPublic: false,
           isCollaborative: false,
           occasion: wishlistData.occasion?.trim() || undefined,

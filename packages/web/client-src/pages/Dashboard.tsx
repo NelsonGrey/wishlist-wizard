@@ -17,6 +17,12 @@ type Wishlist = Omit<DbWishlist, 'id' | 'userId' | 'beneficiaryId'> & {
   id: string | number;
   userId: string | number;
   beneficiaryId?: string | number | null;
+  recipient?: {
+    type?: 'self' | 'person' | 'group';
+    name?: string;
+    members?: string[];
+  } | null;
+  recipientName?: string | null;
   itemCount: number;
 };
 
@@ -64,6 +70,11 @@ export default function Dashboard() {
         method: 'POST',
         body: {
           name: normalizedName,
+          recipientType: wishlistData.recipientType,
+          recipientName: wishlistData.recipientName?.trim() || null,
+          recipientMembers: wishlistData.recipientType === 'group'
+            ? (wishlistData.recipientMembers || '').split(',').map((value) => value.trim()).filter(Boolean)
+            : [],
           description: wishlistData.description?.trim() || '',
           occasion: wishlistData.occasion?.trim() || null,
           occasionDate: occasionDateIso,

@@ -37,6 +37,12 @@ type Wishlist = Omit<DbWishlist, 'id' | 'userId' | 'beneficiaryId'> & {
   id: string | number;
   userId: string | number;
   beneficiaryId?: string | number | null;
+  recipient?: {
+    type?: 'self' | 'person' | 'group';
+    name?: string;
+    members?: string[];
+  } | null;
+  recipientName?: string | null;
   itemCount: number;
 };
 
@@ -69,6 +75,9 @@ export default function WishlistCard({ wishlist, onRefresh, onSelect, selected =
     ? occasionDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
     : null;
   const hasRecurringSchedule = Boolean(occasionDate && wishlist.recurrence && wishlist.recurrence !== 'none');
+  const recipientName = wishlist.recipient?.name || wishlist.recipientName || 'Myself';
+  const recipientType = wishlist.recipient?.type || 'self';
+  const recipientMembers = Array.isArray(wishlist.recipient?.members) ? wishlist.recipient?.members : [];
 
   const getNextOccurrenceDate = () => {
     if (!occasionDate || !wishlist.recurrence || wishlist.recurrence === 'none') return null;
@@ -266,6 +275,10 @@ export default function WishlistCard({ wishlist, onRefresh, onSelect, selected =
                 </div>
                 {(wishlist.occasion || hasRecurringSchedule) && (
                   <div className="mt-2 text-xs text-gray-600 space-y-1">
+                    <p>
+                      Recipient: {recipientName}
+                      {recipientType === 'group' && recipientMembers.length > 0 ? ` (${recipientMembers.length} members)` : ''}
+                    </p>
                     {wishlist.occasion && <p>Event: {wishlist.occasion}</p>}
                     {eventDateDisplay && <p>Event Date: {eventDateDisplay}</p>}
                     {nextOccurrenceDate && (
