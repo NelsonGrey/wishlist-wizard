@@ -1,8 +1,8 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
 import { z } from "zod";
+import { Link } from "wouter";
 import {
   Dialog,
   DialogContent,
@@ -21,7 +21,6 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
@@ -149,17 +148,15 @@ export default function CreateWishlistDialog({
   const recipientType = form.watch("recipientType");
   const recipientInputMode = form.watch("recipientInputMode");
   const selectedExternalContactId = form.watch("externalContactId");
-  const [appleVcard, setAppleVcard] = useState("");
 
   const shouldLoadExternalContacts = open && recipientType === "person" && recipientInputMode === "source";
-  const { data: externalContactsResponse, isFetching: isLoadingExternalContacts, refetch: refetchExternalContacts } = useQuery<ExternalContactsResponse>({
-    queryKey: ["/api/contacts/external", appleVcard],
+  const { data: externalContactsResponse, isFetching: isLoadingExternalContacts } = useQuery<ExternalContactsResponse>({
+    queryKey: ["/api/contacts/external"],
     enabled: shouldLoadExternalContacts,
     queryFn: () => apiRequest("/api/contacts/external", {
       method: "POST",
       body: {
         providers: ["google", "outlook", "apple", "facebook"],
-        appleVcard,
         limit: 200,
       },
     }) as Promise<ExternalContactsResponse>,
@@ -192,7 +189,6 @@ export default function CreateWishlistDialog({
 
     if (!open) {
       form.reset();
-      setAppleVcard("");
       onClose();
     }
   };
@@ -277,28 +273,16 @@ export default function CreateWishlistDialog({
 
               {recipientType === "person" && recipientInputMode === "source" && (
                 <>
-                  <div className="rounded-md border p-3 space-y-2">
+                  <div className="rounded-md border p-3 space-y-2 text-xs text-muted-foreground">
                     <p className="text-xs text-muted-foreground">
                       Contacts are read live from your connected providers and are not stored when using this picker.
                     </p>
-                    <div className="space-y-1">
-                      <FormLabel>Apple vCard (optional)</FormLabel>
-                      <Textarea
-                        value={appleVcard}
-                        onChange={(event) => setAppleVcard(event.target.value)}
-                        placeholder="Paste Apple vCard content here to include Apple contacts in this session"
-                        rows={3}
-                      />
-                    </div>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => refetchExternalContacts()}
-                      disabled={isLoadingExternalContacts}
-                    >
-                      {isLoadingExternalContacts ? "Loading contacts..." : "Refresh source contacts"}
-                    </Button>
+                    <p>
+                      Configure provider connections and Apple contact setup in Profile Settings.
+                    </p>
+                    <Link href="/app/user-profile" className="inline-flex text-emerald-800 underline underline-offset-2">
+                      Open Profile Settings
+                    </Link>
                   </div>
 
                   <div className="space-y-2">
