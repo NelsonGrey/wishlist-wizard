@@ -26,6 +26,13 @@ describe('ConnectCalendarDialog', () => {
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (useQuery as any).mockImplementation(({ queryKey }: { queryKey: string[] }) => {
+      if (queryKey?.[0] === '/api/calendar/auth/google') {
+        return {
+          data: { provider: 'google', authUrl: 'https://example.com/google-auth' },
+          isLoading: false,
+        };
+      }
+
       if (queryKey?.[0] === '/api/calendar/auth/outlook') {
         return {
           data: { provider: 'outlook', authUrl: 'https://example.com/outlook-auth' },
@@ -52,15 +59,15 @@ describe('ConnectCalendarDialog', () => {
     });
   });
 
-  it('shows only Outlook and Apple connection tabs', async () => {
+  it('shows Google, Outlook, and Apple connection tabs', async () => {
     render(<ConnectCalendarDialog />);
     const user = userEvent.setup();
 
     await user.click(screen.getByRole('button', { name: 'Connect Calendar' }));
 
+    expect(await screen.findByRole('tab', { name: 'Google' })).toBeInTheDocument();
     expect(await screen.findByRole('tab', { name: 'Outlook' })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: 'Apple' })).toBeInTheDocument();
-    expect(screen.queryByRole('tab', { name: 'Google' })).not.toBeInTheDocument();
-    expect(screen.queryByText('Connect Google Calendar')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Connect Google Calendar' })).toBeInTheDocument();
   });
 });
