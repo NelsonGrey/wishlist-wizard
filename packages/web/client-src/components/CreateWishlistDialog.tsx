@@ -30,12 +30,23 @@ import {
 
 const formSchema = z.object({
   name: z.string().trim().min(1, "Wishlist name is required").max(50, "Name cannot exceed 50 characters"),
+  recipientType: z.enum(["self", "person", "group"]).default("self"),
+  recipientName: z.string().trim().max(80, "Recipient name cannot exceed 80 characters").optional(),
+  recipientMembers: z.string().trim().max(300, "Recipient members cannot exceed 300 characters").optional(),
   occasion: z.string().max(50, "Event cannot exceed 50 characters").optional(),
   occasionDate: z.string().optional(),
   isRecurring: z.boolean().default(false),
   recurrence: z.enum(["yearly", "monthly"]),
   reminderDays: z.coerce.number().min(0).max(90).default(7),
   description: z.string().max(200, "Description cannot exceed 200 characters").optional(),
+}).superRefine((values, context) => {
+  if ((values.recipientType === "person" || values.recipientType === "group") && !values.recipientName?.trim()) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["recipientName"],
+      message: "Recipient name is required",
+    });
+  }
 });
 
 export type CreateWishlistFormValues = z.infer<typeof formSchema>;
@@ -57,6 +68,9 @@ export default function CreateWishlistDialog({
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: "",
+      recipientType: "self",
+      recipientName: "",
+      recipientMembers: "",
       occasion: "",
       occasionDate: "",
       isRecurring: false,
@@ -71,6 +85,7 @@ export default function CreateWishlistDialog({
   };
 
   const isRecurring = form.watch("isRecurring");
+  const recipientType = form.watch("recipientType");
 
   // Reset form when dialog closes
   const handleDialogChange = (open: boolean) => {
@@ -109,6 +124,69 @@ export default function CreateWishlistDialog({
               )}
             />
             <div className="grid grid-cols-1 gap-3 mt-3">
+              <FormField
+                control={form.control}
+                name="recipientType"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Recipient</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select recipient type" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="self">Myself</SelectItem>
+                        <SelectItem value="person">Specific person</SelectItem>
+                        <SelectItem value="group">Group / couple / household</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {recipientType !== "self" && (
+                <FormField
+                  control={form.control}
+                  name="recipientName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{recipientType === "group" ? "Group name" : "Recipient name"}</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder={recipientType === "group" ? "e.g., Mr. and Mrs. Thomas Kincaid" : "e.g., Emma Kincaid"}
+                          {...field}
+                          value={field.value ?? ""}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
+
+              {recipientType === "group" && (
+                <FormField
+                  control={form.control}
+                  name="recipientMembers"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Group members (optional)</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="e.g., Thomas Kincaid, Mary Kincaid"
+                          {...field}
+                          value={field.value ?? ""}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
+
               <FormField
                 control={form.control}
                 name="occasion"

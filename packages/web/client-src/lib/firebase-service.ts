@@ -47,6 +47,12 @@ export interface Wishlist {
   userId: string;
   name: string;
   description?: string;
+  recipient?: {
+    type: 'self' | 'person' | 'group';
+    name: string;
+    members?: string[];
+  };
+  recipientName?: string;
   isPublic: boolean;
   isCollaborative: boolean;
   shareId?: string;
