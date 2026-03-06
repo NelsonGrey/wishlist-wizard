@@ -28,21 +28,28 @@ describe('ConnectCalendarDialog', () => {
     (useQuery as any).mockImplementation(({ queryKey }: { queryKey: string[] }) => {
       if (queryKey?.[0] === '/api/calendar/auth/google') {
         return {
-          data: { provider: 'google', authUrl: 'https://example.com/google-auth' },
+          data: { provider: 'google', authUrl: 'https://example.com/google-auth', supported: true },
           isLoading: false,
         };
       }
 
       if (queryKey?.[0] === '/api/calendar/auth/outlook') {
         return {
-          data: { provider: 'outlook', authUrl: 'https://example.com/outlook-auth' },
+          data: { provider: 'outlook', authUrl: 'https://example.com/outlook-auth', supported: true },
           isLoading: false,
         };
       }
 
       if (queryKey?.[0] === '/api/calendar/auth/apple') {
         return {
-          data: { provider: 'apple', message: 'Apple calendar subscriptions are read-only.' },
+          data: { provider: 'apple', message: 'Apple calendar subscriptions are read-only.', supported: true },
+          isLoading: false,
+        };
+      }
+
+      if (queryKey?.[0] === '/api/calendar/auth/facebook') {
+        return {
+          data: { provider: 'facebook', authUrl: 'https://example.com/facebook-auth', supported: true },
           isLoading: false,
         };
       }
@@ -59,7 +66,7 @@ describe('ConnectCalendarDialog', () => {
     });
   });
 
-  it('shows Google, Outlook, and Apple connection tabs', async () => {
+  it('shows Google, Outlook, Apple, and Facebook connection tabs', async () => {
     render(<ConnectCalendarDialog />);
     const user = userEvent.setup();
 
@@ -68,6 +75,7 @@ describe('ConnectCalendarDialog', () => {
     expect(await screen.findByRole('tab', { name: 'Google' })).toBeInTheDocument();
     expect(await screen.findByRole('tab', { name: 'Outlook' })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: 'Apple' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Facebook' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Connect Google Calendar' })).toBeInTheDocument();
   });
 });

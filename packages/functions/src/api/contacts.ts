@@ -7,8 +7,8 @@ import { getValidCalendarAccessToken } from "../utils/calendar-tokens.js";
 ensureFirebaseAdmin();
 const db = getFirestore();
 
-type ContactProvider = "google" | "outlook" | "apple";
-type ExternalContactProvider = ContactProvider | "facebook";
+type ContactProvider = "google" | "outlook" | "apple" | "facebook";
+type ExternalContactProvider = ContactProvider;
 
 function requireAuth(request: CallableRequest) {
   if (!request.auth) {
@@ -247,6 +247,68 @@ async function fetchMicrosoftContacts(accessToken: string): Promise<NormalizedCo
     .filter((contact): contact is NormalizedContact => Boolean(contact));
 }
 
+function toIsoBirthdate(value: string | undefined): string | undefined {
+  if (!value) return undefined;
+
+  const normalized = value.trim();
+  if (!normalized) return undefined;
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(normalized)) {
+    return normalized;
+  }
+
+  const monthDayYear = normalized.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (monthDayYear) {
+    const month = monthDayYear[1].padStart(2, "0");
+    const day = monthDayYear[2].padStart(2, "0");
+    return `${monthDayYear[3]}-${month}-${day}`;
+  }
+
+  const monthDayOnly = normalized.match(/^(\d{1,2})\/(\d{1,2})$/);
+  if (monthDayOnly) {
+    const month = monthDayOnly[1].padStart(2, "0");
+    const day = monthDayOnly[2].padStart(2, "0");
+    return `0000-${month}-${day}`;
+  }
+
+  return undefined;
+}
+
+async function fetchFacebookContacts(accessToken: string): Promise<NormalizedContact[]> {
+  const url = new URL("https://graph.facebook.com/v23.0/me/friends");
+  url.searchParams.set("limit", "500");
+  url.searchParams.set("fields", "id,name,birthday");
+
+  const response = await fetch(url, {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`Facebook contacts request failed: ${text}`);
+  }
+
+  const payload = await response.json() as { data?: any[] };
+  const contacts = payload.data || [];
+
+  return contacts
+    .map((contact: any) => {
+      const id = typeof contact.id === "string" ? contact.id : "";
+      const name = typeof contact.name === "string" ? contact.name : "";
+      if (!id || !name) return null;
+
+      return {
+        sourceContactId: id,
+        name,
+        birthdate: toIsoBirthdate(typeof contact.birthday === "string" ? contact.birthday : undefined),
+        notes: "Imported from Facebook friends",
+      } as NormalizedContact;
+    })
+    .filter((contact): contact is NormalizedContact => Boolean(contact));
+}
+
 function parseVcard(vcardContent: string): NormalizedContact[] {
   const cards = vcardContent
     .split(/END:VCARD/gi)
@@ -316,7 +378,7 @@ export const importContacts = onCall(async (request: CallableRequest) => {
 
   const normalizedProvider = String(provider).toLowerCase() as ContactProvider;
 
-  if (!["google", "outlook", "apple"].includes(normalizedProvider)) {
+  if (!["google", "outlook", "apple", "facebook"].includes(normalizedProvider)) {
     throw new HttpsError("invalid-argument", "Unsupported provider");
   }
 
@@ -357,9 +419,13 @@ export const importContacts = onCall(async (request: CallableRequest) => {
       const connection = connectionDoc.data();
       const accessToken = await getValidCalendarAccessToken(connectionDoc.id, connection);
 
-      contactsToImport = normalizedProvider === "google"
-        ? await fetchGoogleContacts(accessToken)
-        : await fetchMicrosoftContacts(accessToken);
+      if (normalizedProvider === "google") {
+        contactsToImport = await fetchGoogleContacts(accessToken);
+      } else if (normalizedProvider === "outlook") {
+        contactsToImport = await fetchMicrosoftContacts(accessToken);
+      } else {
+        contactsToImport = await fetchFacebookContacts(accessToken);
+      }
     }
 
     if (contactsToImport.length === 0) {
@@ -460,16 +526,6 @@ export const getExternalContacts = onCall(async (request: CallableRequest) => {
     : "";
 
   for (const provider of selectedProviders) {
-    if (provider === "facebook") {
-      providerStatuses.push({
-        provider,
-        connected: false,
-        supported: false,
-        message: "Facebook contact OAuth is not configured yet. Provider capability is reserved for future integration.",
-      });
-      continue;
-    }
-
     if (provider === "apple") {
       const appleVcard = typeof data.appleVcard === "string" ? data.appleVcard.trim() : "";
       if (!appleVcard) {
@@ -518,7 +574,9 @@ export const getExternalContacts = onCall(async (request: CallableRequest) => {
     const accessToken = await getValidCalendarAccessToken(connectionDoc.id, connection);
     const sourceContacts = provider === "google"
       ? await fetchGoogleContacts(accessToken)
-      : await fetchMicrosoftContacts(accessToken);
+      : provider === "outlook"
+        ? await fetchMicrosoftContacts(accessToken)
+        : await fetchFacebookContacts(accessToken);
 
     sourceContacts.slice(0, maxResults).forEach((contact) => {
       collected.push({
