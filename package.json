@@ -46,7 +46,8 @@
     "test:e2e:debug": "playwright test --debug packages/web/e2e/",
     "test:e2e:report": "playwright show-report",
     "requirements:verify": "node scripts/validate-requirements-status.mjs",
-    "requirements:traceability": "node scripts/validate-requirements-traceability.mjs"
+    "requirements:traceability": "node scripts/validate-requirements-traceability.mjs",
+    "metrics:baseline": "node scripts/monitor-baseline-metrics.mjs"
   },
   "devDependencies": {
     "@playwright/test": "^1.58.2",

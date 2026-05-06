@@ -6,6 +6,9 @@ import { getFirestore } from 'firebase-admin/firestore';
 import { logger } from 'firebase-functions/v2';
 import { ensureFirebaseAdmin } from '../firebase-admin.js';
 import { requireAuthenticatedUser, requireAdminUser } from '../utils/auth-guards.js';
+import { requireAppCheck } from '../utils/app-check.js';
+import { CustomTrace } from '../utils/performance-monitoring.js';
+import { logErrorWithContext } from '../utils/error-reporting.js';
 
 ensureFirebaseAdmin();
 const db = getFirestore();
@@ -21,36 +24,47 @@ export const getUserNotifications = onCall(async (request: CallableRequest) => {
 
   const { limit = 20 } = request.data;
 
-  try {
-    // Get notifications for the user
-    const notificationsSnapshot = await db
-      .collection('notifications')
-      .where('userId', '==', userId)
-      .orderBy('createdAt', 'desc')
-      .limit(limit)
-      .get();
+  const trace = new CustomTrace('get_user_notifications');
+  trace.putAttribute('user_id', userId);
+  trace.putAttribute('limit', String(limit));
 
-    const notifications = notificationsSnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }));
+  return trace.executeAsync(async () => {
+    try {
+      // Get notifications for the user
+      const notificationsSnapshot = await db
+        .collection('notifications')
+        .where('userId', '==', userId)
+        .orderBy('createdAt', 'desc')
+        .limit(limit)
+        .get();
 
-    // Get unread count
-    const unreadSnapshot = await db
-      .collection('notifications')
-      .where('userId', '==', userId)
-      .where('isRead', '==', false)
-      .count()
-      .get();
+      const notifications = notificationsSnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
 
+      // Get unread count
+      const unreadSnapshot = await db
+        .collection('notifications')
+        .where('userId', '==', userId)
+        .where('isRead', '==', false)
+        .count()
+        .get();
+
+    trace.incrementMetric('notifications_retrieved', notifications.length);
     return {
       notifications,
       unreadCount: unreadSnapshot.data().count
     };
-  } catch (error) {
-    logger.error('Error getting user notifications:', error);
-    throw new HttpsError('internal', 'Failed to get notifications');
-  }
+    } catch (error) {
+      logErrorWithContext(error, {
+        operation: 'get_user_notifications',
+        userId,
+        limit
+      });
+      throw new HttpsError('internal', 'Failed to get notifications');
+    }
+  });
 });
 
 /**
@@ -58,6 +72,9 @@ export const getUserNotifications = onCall(async (request: CallableRequest) => {
  * Replaces: PATCH /api/notifications/:id/read
  */
 export const markNotificationAsRead = onCall(async (request: CallableRequest) => {
+  // WP-03: Verify device integrity before mutation
+  await requireAppCheck(request);
+
   const userId = requireAuthenticatedUser(request);
 
   const { notificationId } = request.data;
@@ -65,34 +82,45 @@ export const markNotificationAsRead = onCall(async (request: CallableRequest) =>
     throw new HttpsError('invalid-argument', 'Notification ID is required');
   }
 
-  try {
-    const notificationDoc = await db.collection('notifications').doc(notificationId).get();
+  const trace = new CustomTrace('mark_notification_as_read');
+  trace.putAttribute('notification_id', notificationId);
+  trace.putAttribute('user_id', userId);
 
-    if (!notificationDoc.exists) {
-      throw new HttpsError('not-found', 'Notification not found');
-    }
+  return trace.executeAsync(async () => {
+    try {
+      const notificationDoc = await db.collection('notifications').doc(notificationId).get();
 
-    const notificationData = notificationDoc.data();
-    if (notificationData?.userId !== userId) {
-      throw new HttpsError('permission-denied', 'You can only update your own notifications');
-    }
+      if (!notificationDoc.exists) {
+        throw new HttpsError('not-found', 'Notification not found');
+      }
 
-    await db.collection('notifications').doc(notificationId).update({
-      isRead: true,
-      readAt: new Date()
-    });
+      const notificationData = notificationDoc.data();
+      if (notificationData?.userId !== userId) {
+        throw new HttpsError('permission-denied', 'You can only update your own notifications');
+      }
 
+      await db.collection('notifications').doc(notificationId).update({
+        isRead: true,
+        readAt: new Date()
+      });
+
+    trace.incrementMetric('notifications_marked_read', 1);
     return {
       id: notificationId,
       ...notificationData,
       isRead: true,
       readAt: new Date()
     };
-  } catch (error) {
-    logger.error('Error marking notification as read:', error);
-    if (error instanceof HttpsError) throw error;
-    throw new HttpsError('internal', 'Failed to mark notification as read');
-  }
+    } catch (error) {
+      logErrorWithContext(error, {
+        operation: 'mark_notification_as_read',
+        userId,
+        notificationId
+      });
+      if (error instanceof HttpsError) throw error;
+      throw new HttpsError('internal', 'Failed to mark notification as read');
+    }
+  });
 });
 
 /**
@@ -100,38 +128,50 @@ export const markNotificationAsRead = onCall(async (request: CallableRequest) =>
  * Replaces: POST /api/notifications/mark-all-read
  */
 export const markAllNotificationsAsRead = onCall(async (request: CallableRequest) => {
+  // WP-03: Verify device integrity before mutation
+  await requireAppCheck(request);
+
   const userId = requireAuthenticatedUser(request);
 
-  try {
-    // Get all unread notifications
-    const unreadNotificationsSnapshot = await db
-      .collection('notifications')
-      .where('userId', '==', userId)
-      .where('isRead', '==', false)
-      .get();
+  const trace = new CustomTrace('mark_all_notifications_as_read');
+  trace.putAttribute('user_id', userId);
 
-    if (unreadNotificationsSnapshot.empty) {
-      return { success: true, updatedCount: 0 };
-    }
+  return trace.executeAsync(async () => {
+    try {
+      // Get all unread notifications
+      const unreadNotificationsSnapshot = await db
+        .collection('notifications')
+        .where('userId', '==', userId)
+        .where('isRead', '==', false)
+        .get();
 
-    // Batch update all unread notifications
-    const batch = db.batch();
-    const readAt = new Date();
+      if (unreadNotificationsSnapshot.empty) {
+        return { success: true, updatedCount: 0 };
+      }
 
-    unreadNotificationsSnapshot.docs.forEach(doc => {
-      batch.update(doc.ref, {
-        isRead: true,
-        readAt
+      // Batch update all unread notifications
+      const batch = db.batch();
+      const readAt = new Date();
+
+      unreadNotificationsSnapshot.docs.forEach(doc => {
+        batch.update(doc.ref, {
+          isRead: true,
+          readAt
+        });
       });
-    });
 
-    await batch.commit();
+      await batch.commit();
 
+    trace.incrementMetric('all_notifications_marked_read', unreadNotificationsSnapshot.docs.length);
     return { success: true, updatedCount: unreadNotificationsSnapshot.docs.length };
-  } catch (error) {
-    logger.error('Error marking all notifications as read:', error);
-    throw new HttpsError('internal', 'Failed to mark all notifications as read');
-  }
+    } catch (error) {
+      logErrorWithContext(error, {
+        operation: 'mark_all_notifications_as_read',
+        userId
+      });
+      throw new HttpsError('internal', 'Failed to mark all notifications as read');
+    }
+  });
 });
 
 /**
@@ -139,6 +179,9 @@ export const markAllNotificationsAsRead = onCall(async (request: CallableRequest
  * Replaces: DELETE /api/notifications/:id
  */
 export const deleteNotification = onCall(async (request: CallableRequest) => {
+  // WP-03: Verify device integrity before mutation
+  await requireAppCheck(request);
+
   const userId = requireAuthenticatedUser(request);
 
   const { notificationId } = request.data;
@@ -146,26 +189,37 @@ export const deleteNotification = onCall(async (request: CallableRequest) => {
     throw new HttpsError('invalid-argument', 'Notification ID is required');
   }
 
-  try {
-    const notificationDoc = await db.collection('notifications').doc(notificationId).get();
+  const trace = new CustomTrace('delete_notification');
+  trace.putAttribute('notification_id', notificationId);
+  trace.putAttribute('user_id', userId);
 
-    if (!notificationDoc.exists) {
-      throw new HttpsError('not-found', 'Notification not found');
-    }
+  return trace.executeAsync(async () => {
+    try {
+      const notificationDoc = await db.collection('notifications').doc(notificationId).get();
 
-    const notificationData = notificationDoc.data();
-    if (notificationData?.userId !== userId) {
-      throw new HttpsError('permission-denied', 'You can only delete your own notifications');
-    }
+      if (!notificationDoc.exists) {
+        throw new HttpsError('not-found', 'Notification not found');
+      }
 
-    await db.collection('notifications').doc(notificationId).delete();
+      const notificationData = notificationDoc.data();
+      if (notificationData?.userId !== userId) {
+        throw new HttpsError('permission-denied', 'You can only delete your own notifications');
+      }
 
+      await db.collection('notifications').doc(notificationId).delete();
+
+    trace.incrementMetric('notifications_deleted', 1);
     return { success: true };
-  } catch (error) {
-    logger.error('Error deleting notification:', error);
-    if (error instanceof HttpsError) throw error;
-    throw new HttpsError('internal', 'Failed to delete notification');
-  }
+    } catch (error) {
+      logErrorWithContext(error, {
+        operation: 'delete_notification',
+        userId,
+        notificationId
+      });
+      if (error instanceof HttpsError) throw error;
+      throw new HttpsError('internal', 'Failed to delete notification');
+    }
+  });
 });
 
 /**
@@ -181,25 +235,36 @@ export const createSystemNotification = onCall(async (request: CallableRequest) 
     throw new HttpsError('invalid-argument', 'targetUserId, type, title, and content are required');
   }
 
-  try {
-    const notificationData = {
-      userId: targetUserId,
-      type,
-      title,
-      content,
-      data: data || {},
-      actionUrl: actionUrl || null,
-      isRead: false,
-      createdAt: new Date()
-    };
+  const trace = new CustomTrace('create_system_notification');
+  trace.putAttribute('target_user_id', targetUserId);
+  trace.putAttribute('notification_type', type);
 
-    const docRef = await db.collection('notifications').add(notificationData);
+  return trace.executeAsync(async () => {
+    try {
+      const notificationData = {
+        userId: targetUserId,
+        type,
+        title,
+        content,
+        data: data || {},
+        actionUrl: actionUrl || null,
+        isRead: false,
+        createdAt: new Date()
+      };
 
+      const docRef = await db.collection('notifications').add(notificationData);
+
+    trace.incrementMetric('system_notifications_created', 1);
     return { id: docRef.id, ...notificationData };
-  } catch (error) {
-    logger.error('Error creating system notification:', error);
-    throw new HttpsError('internal', 'Failed to create notification');
-  }
+    } catch (error) {
+      logErrorWithContext(error, {
+        operation: 'create_system_notification',
+        targetUserId,
+        notificationType: type
+      });
+      throw new HttpsError('internal', 'Failed to create notification');
+    }
+  });
 });
 
 /**
@@ -209,29 +274,38 @@ export const createSystemNotification = onCall(async (request: CallableRequest) 
 export const getNotificationSettings = onCall(async (request: CallableRequest) => {
   const userId = requireAuthenticatedUser(request);
 
-  try {
-    const userDoc = await db.collection('users').doc(userId).get();
+  const trace = new CustomTrace('get_notification_settings');
+  trace.putAttribute('user_id', userId);
 
-    if (!userDoc.exists) {
-      throw new HttpsError('not-found', 'User not found');
-    }
+  return trace.executeAsync(async () => {
+    try {
+      const userDoc = await db.collection('users').doc(userId).get();
 
-    const userData = userDoc.data();
-    const defaultSettings = {
-      email: true,
-      push: true,
-      priceAlerts: true,
-      wishlistUpdates: true,
-      collaborationUpdates: true,
-      marketingEmails: false
-    };
+      if (!userDoc.exists) {
+        throw new HttpsError('not-found', 'User not found');
+      }
 
+      const userData = userDoc.data();
+      const defaultSettings = {
+        email: true,
+        push: true,
+        priceAlerts: true,
+        wishlistUpdates: true,
+        collaborationUpdates: true,
+        marketingEmails: false
+      };
+
+    trace.incrementMetric('settings_retrieved', 1);
     return userData?.preferences?.notifications || defaultSettings;
-  } catch (error) {
-    logger.error('Error getting notification settings:', error);
-    if (error instanceof HttpsError) throw error;
-    throw new HttpsError('internal', 'Failed to get notification settings');
-  }
+    } catch (error) {
+      logErrorWithContext(error, {
+        operation: 'get_notification_settings',
+        userId
+      });
+      if (error instanceof HttpsError) throw error;
+      throw new HttpsError('internal', 'Failed to get notification settings');
+    }
+  });
 });
 
 /**
@@ -239,6 +313,9 @@ export const getNotificationSettings = onCall(async (request: CallableRequest) =
  * Update user's notification preferences
  */
 export const updateNotificationSettings = onCall(async (request: CallableRequest) => {
+  // WP-03: Verify device integrity before mutation
+  await requireAppCheck(request);
+
   const userId = requireAuthenticatedUser(request);
 
   const { settings } = request.data;
@@ -246,35 +323,44 @@ export const updateNotificationSettings = onCall(async (request: CallableRequest
     throw new HttpsError('invalid-argument', 'Valid settings object is required');
   }
 
-  try {
-    const allowedSettings = [
-      'email', 'push', 'priceAlerts', 'wishlistUpdates', 
-      'collaborationUpdates', 'marketingEmails'
-    ];
+  const trace = new CustomTrace('update_notification_settings');
+  trace.putAttribute('user_id', userId);
 
-    const filteredSettings: any = {};
-    for (const [key, value] of Object.entries(settings)) {
-      if (allowedSettings.includes(key) && typeof value === 'boolean') {
-        filteredSettings[key] = value;
+  return trace.executeAsync(async () => {
+    try {
+      const allowedSettings = [
+        'email', 'push', 'priceAlerts', 'wishlistUpdates', 
+        'collaborationUpdates', 'marketingEmails'
+      ];
+
+      const filteredSettings: any = {};
+      for (const [key, value] of Object.entries(settings)) {
+        if (allowedSettings.includes(key) && typeof value === 'boolean') {
+          filteredSettings[key] = value;
+        }
       }
-    }
 
-    if (Object.keys(filteredSettings).length === 0) {
-      throw new HttpsError('invalid-argument', 'No valid settings provided');
-    }
-
-    await db.collection('users').doc(userId).set({
-      preferences: {
-        notifications: filteredSettings
+      if (Object.keys(filteredSettings).length === 0) {
+        throw new HttpsError('invalid-argument', 'No valid settings provided');
       }
-    }, { merge: true });
 
+      await db.collection('users').doc(userId).set({
+        preferences: {
+          notifications: filteredSettings
+        }
+      }, { merge: true });
+
+    trace.incrementMetric('settings_updated', 1);
     return { success: true, settings: filteredSettings };
-  } catch (error) {
-    logger.error('Error updating notification settings:', error);
-    if (error instanceof HttpsError) throw error;
-    throw new HttpsError('internal', 'Failed to update notification settings');
-  }
+    } catch (error) {
+      logErrorWithContext(error, {
+        operation: 'update_notification_settings',
+        userId
+      });
+      if (error instanceof HttpsError) throw error;
+      throw new HttpsError('internal', 'Failed to update notification settings');
+    }
+  });
 });
 
 /**
@@ -284,32 +370,41 @@ export const updateNotificationSettings = onCall(async (request: CallableRequest
 export const cleanOldNotifications = onCall(async (request: CallableRequest) => {
   await requireAdminUser(request, 'Admin role required to clean notifications');
 
-  try {
-    // Delete notifications older than 90 days
-    const cutoffDate = new Date();
-    cutoffDate.setDate(cutoffDate.getDate() - 90);
+  const trace = new CustomTrace('clean_old_notifications');
+  trace.putAttribute('operation', 'admin_cleanup');
 
-    const oldNotificationsSnapshot = await db
-      .collection('notifications')
-      .where('createdAt', '<', cutoffDate)
-      .limit(500) // Process in batches to avoid timeout
-      .get();
+  return trace.executeAsync(async () => {
+    try {
+      // Delete notifications older than 90 days
+      const cutoffDate = new Date();
+      cutoffDate.setDate(cutoffDate.getDate() - 90);
 
-    if (oldNotificationsSnapshot.empty) {
-      return { deletedCount: 0 };
-    }
+      const oldNotificationsSnapshot = await db
+        .collection('notifications')
+        .where('createdAt', '<', cutoffDate)
+        .limit(500) // Process in batches to avoid timeout
+        .get();
 
-    const batch = db.batch();
-    oldNotificationsSnapshot.docs.forEach(doc => {
-      batch.delete(doc.ref);
-    });
+      if (oldNotificationsSnapshot.empty) {
+        return { deletedCount: 0 };
+      }
 
-    await batch.commit();
+      const batch = db.batch();
+      oldNotificationsSnapshot.docs.forEach(doc => {
+        batch.delete(doc.ref);
+      });
 
-    logger.info(`Deleted ${oldNotificationsSnapshot.docs.length} old notifications`);
+      await batch.commit();
+
+      logger.info(`Deleted ${oldNotificationsSnapshot.docs.length} old notifications`);
+    trace.incrementMetric('old_notifications_deleted', oldNotificationsSnapshot.docs.length);
     return { deletedCount: oldNotificationsSnapshot.docs.length };
-  } catch (error) {
-    logger.error('Error cleaning old notifications:', error);
-    throw new HttpsError('internal', 'Failed to clean old notifications');
-  }
+    } catch (error) {
+      logErrorWithContext(error, {
+        operation: 'clean_old_notifications',
+        operation_type: 'admin_cleanup'
+      });
+      throw new HttpsError('internal', 'Failed to clean old notifications');
+    }
+  });
 });

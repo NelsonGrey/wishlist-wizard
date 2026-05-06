@@ -8,6 +8,7 @@ import { Badge } from "../ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
 import { Bell, BellOff, Settings, TestTube, Clock, Mail, Smartphone } from "lucide-react";
 import { useFCM, useNotificationPreferences } from "../../hooks/useFCM";
+import { FeatureFlags, getRemoteConfig } from '@shared/firebase-utils';
 // import { toast } from "sonner"; // Using browser notifications for now
 
 /**
@@ -15,6 +16,7 @@ import { useFCM, useNotificationPreferences } from "../../hooks/useFCM";
  * Allows users to manage their push notification preferences
  */
 export function NotificationSettings() {
+  const priceAlertsEnabled = getRemoteConfig().isFeatureEnabled(FeatureFlags.PRICE_ALERTS_ENABLED);
   const { 
     isSupported, 
     isEnabled, 
@@ -265,18 +267,20 @@ export function NotificationSettings() {
                   />
                 </div>
 
-                <div className="flex items-center justify-between">
-                  <div className="space-y-1">
-                    <Label>Price Alerts</Label>
-                    <p className="text-sm text-muted-foreground">
-                      When an item&apos;s price drops to your target price
-                    </p>
+                {priceAlertsEnabled && (
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-1">
+                      <Label>Price Alerts</Label>
+                      <p className="text-sm text-muted-foreground">
+                        When an item&apos;s price drops to your target price
+                      </p>
+                    </div>
+                    <Switch 
+                      checked={preferences.types.priceAlerts}
+                      onCheckedChange={(checked) => handleTypeToggle('priceAlerts', checked)}
+                    />
                   </div>
-                  <Switch 
-                    checked={preferences.types.priceAlerts}
-                    onCheckedChange={(checked) => handleTypeToggle('priceAlerts', checked)}
-                  />
-                </div>
+                )}
 
                 <div className="flex items-center justify-between">
                   <div className="space-y-1">

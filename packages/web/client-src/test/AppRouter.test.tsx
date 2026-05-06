@@ -4,9 +4,22 @@ import userEvent from '@testing-library/user-event';
 import { render } from './utils';
 import AppRouter from '@/AppRouter';
 
+const analyticsTrackerMock = {
+  logFeatureFlagEnabled: vi.fn(),
+  logPageView: vi.fn(),
+  logUserLogin: vi.fn(),
+  logUserSignup: vi.fn(),
+  setUserProperties: vi.fn(),
+};
+
+const remoteConfigMock = {
+  isFeatureEnabled: vi.fn(() => true),
+  isFeatureEnabledForUser: vi.fn(() => true),
+};
+
 // Mock Firebase Auth
 vi.mock('@/lib/firebase', () => ({
-  initFirebase: vi.fn(async () => {}),
+  initFirebase: vi.fn(async () => ({ remoteConfig: remoteConfigMock })),
   onAuthStateChange: vi.fn((callback) => {
     // Simulate unauthenticated state by default
     callback(null);
@@ -24,11 +37,26 @@ vi.mock('@/lib/firebase', () => ({
 vi.mock('@/lib/analytics', () => ({
   initGA: vi.fn(),
   trackEvent: vi.fn(),
+  trackPageView: vi.fn(),
 }));
+
+vi.mock('@shared/firebase-utils', () => ({
+  FeatureFlags: {
+    ENABLE_ANALYTICS: 'enable_analytics',
+    ENABLE_PERFORMANCE_MONITORING: 'enable_performance_monitoring',
+    PRICE_ALERTS_ENABLED: 'price_alerts_enabled',
+    GROUP_GIFTING_ENABLED: 'group_gifting_enabled',
+  },
+  getAnalyticsTracker: vi.fn(() => analyticsTrackerMock),
+}));
+
+import { trackPageView } from '@/lib/analytics';
 
 describe('AppRouter Smoke Tests', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    remoteConfigMock.isFeatureEnabled.mockReturnValue(true);
+    remoteConfigMock.isFeatureEnabledForUser.mockReturnValue(true);
   });
 
   describe('Public Route Navigation', () => {
@@ -238,6 +266,24 @@ describe('AppRouter Smoke Tests', () => {
       // Assert
       const currentSearch = window.location.search;
       expect([currentSearch, ''].includes(currentSearch) || document.body).toBeTruthy();
+    });
+
+    it('tracks page views when the route changes after initial render', async () => {
+      window.history.pushState({}, 'Home', '/');
+      render(<AppRouter />);
+
+      await waitFor(() => {
+        expect(document.body).toBeTruthy();
+      });
+
+      window.history.pushState({}, 'About', '/about');
+      window.dispatchEvent(new PopStateEvent('popstate'));
+
+      await waitFor(() => {
+        expect(analyticsTrackerMock.logPageView).toHaveBeenCalledWith('/about', expect.any(String));
+      });
+
+      expect(trackPageView).toHaveBeenCalledWith('/about');
     });
   });
 

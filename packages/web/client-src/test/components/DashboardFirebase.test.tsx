@@ -4,10 +4,12 @@ import userEvent from '@testing-library/user-event';
 import { render } from '../utils';
 import DashboardFirebase from '@/pages/DashboardFirebase';
 import { useQuery } from '@tanstack/react-query';
+import { useNotifications } from '@/hooks/useFirebaseData';
 
 // Mock all external dependencies
 vi.mock('@/hooks/useFirebaseData', () => ({
   useWishlists: vi.fn(),
+  useNotifications: vi.fn(),
 }));
 
 vi.mock('@/hooks/use-toast', () => ({
@@ -72,6 +74,15 @@ describe('Dashboard CRUD Operations', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(useNotifications).mockReturnValue({
+      notifications: [],
+      unreadCount: 0,
+      loading: false,
+      error: null,
+      markAsRead: vi.fn(),
+      markAllAsRead: vi.fn(),
+      deleteNotification: vi.fn(),
+    } as any);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (useQuery as any).mockReturnValue({
       data: [],
@@ -248,6 +259,45 @@ describe('Dashboard CRUD Operations', () => {
       expect(screen.getByRole('button', { name: /switch to firebase sdk/i })).toBeInTheDocument();
       await user.click(screen.getByRole('button', { name: /switch to firebase sdk/i }));
       expect(screen.getByRole('button', { name: /switch to api server/i })).toBeInTheDocument();
+    });
+
+    it('shows live collaboration panel in Firebase mode', async () => {
+      const { useWishlists } = await import('@/hooks/useFirebaseData');
+      vi.mocked(useWishlists).mockReturnValue({
+        wishlists: mockWishlists,
+        loading: false,
+        error: null,
+        createWishlist: vi.fn(),
+        deleteWishlist: vi.fn(),
+        updateWishlist: vi.fn(),
+      } as any);
+      vi.mocked(useNotifications).mockReturnValue({
+        notifications: [
+          {
+            id: 101,
+            type: 'item_added',
+            title: 'Item Added',
+            content: 'Alex added a new item to the shared wishlist.',
+            createdAt: new Date().toISOString(),
+            isRead: false,
+          },
+        ],
+        unreadCount: 1,
+        loading: false,
+        error: null,
+        markAsRead: vi.fn(),
+        markAllAsRead: vi.fn(),
+        deleteNotification: vi.fn(),
+      } as any);
+
+      render(<DashboardFirebase />);
+      const user = userEvent.setup();
+
+      await user.click(screen.getByRole('button', { name: /switch to firebase sdk/i }));
+
+      expect(screen.getByTestId('dashboard-live-collab-card')).toBeInTheDocument();
+      expect(screen.getByText('Live Collaboration Activity')).toBeInTheDocument();
+      expect(screen.getByText('Item Added')).toBeInTheDocument();
     });
   });
 

@@ -18,6 +18,7 @@ on:
         type: choice
         options:
           - development
+          - demonstration
           - staging
           - production
         default: "development"
@@ -29,13 +30,30 @@ on:
   push:
     branches:
       - develop
+      - demonstration
       - staging
       - main
+    paths-ignore:
+      - 'docs/**'
+      - '**/*.md'
+      - 'artifacts/**'
+      - 'playwright-report/**'
+      - 'test-results/**'
   pull_request:
     branches:
       - develop
       - staging
       - main
+    paths-ignore:
+      - 'docs/**'
+      - '**/*.md'
+      - 'artifacts/**'
+      - 'playwright-report/**'
+      - 'test-results/**'
+
+concurrency:
+  group: master-pipeline-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 env:
   MANIFEST_PATH: ".cicd/projects/${{ github.event.repository.name }}.yml"
@@ -49,6 +67,7 @@ jobs:
       APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
       APP_STORE_CONNECT_KEY: ${{ secrets.APP_STORE_CONNECT_KEY }}
       FIREBASE_PROJECT_DEV: ${{ secrets.FIREBASE_PROJECT_DEVELOPMENT || 'wishlist-wizard-dev' }}
+      FIREBASE_PROJECT_DEMO: ${{ secrets.FIREBASE_PROJECT_DEMONSTRATION || 'wishlist-wizard-demo' }}
       FIREBASE_PROJECT_STAGING: ${{ secrets.FIREBASE_PROJECT_STAGING || 'wishlist-wizard-staging' }}
       FIREBASE_PROJECT_PROD: ${{ secrets.FIREBASE_PROJECT_PRODUCTION || 'wishlist-wizard-prod' }}
       MATCH_GIT_BRANCH: main
@@ -115,6 +134,9 @@ jobs:
           elif [ "${{ github.ref }}" = "refs/heads/staging" ]; then
             TRIGGER="build_and_deploy"
             ENVIRONMENT="staging"
+          elif [ "${{ github.ref }}" = "refs/heads/demonstration" ]; then
+            TRIGGER="build_and_deploy"
+            ENVIRONMENT="demonstration"
           elif [ "${{ github.ref }}" = "refs/heads/develop" ]; then
             TRIGGER="build_all"
             ENVIRONMENT="development"
@@ -275,6 +297,18 @@ jobs:
 
           echo "✅ Synthetic smoke gate passed"
 
+      - name: Monitor Baseline Metrics
+        if: always() && steps.synthetic_smoke.outcome == 'success'
+        run: npm run metrics:baseline
+
+      - name: Upload Baseline Metrics Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: baseline-metrics-report
+          path: artifacts/baseline-metrics-report.json
+          if-no-files-found: warn
+
   build-ios:
     name: Build iOS App
     needs: load-config
@@ -311,8 +345,12 @@ jobs:
     env:
       FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
       FIREBASE_PROJECT_DEV: ${{ secrets.FIREBASE_PROJECT_DEVELOPMENT || 'wishlist-wizard-dev' }}
+      FIREBASE_PROJECT_DEMO: ${{ secrets.FIREBASE_PROJECT_DEMONSTRATION || 'wishlist-wizard-demo' }}
       FIREBASE_PROJECT_STAGING: ${{ secrets.FIREBASE_PROJECT_STAGING || 'wishlist-wizard-staging' }}
       FIREBASE_PROJECT_PROD: ${{ secrets.FIREBASE_PROJECT_PRODUCTION || 'wishlist-wizard-prod' }}
+      NON_PROD_SITE_PASSWORD_DEVELOPMENT: ${{ secrets.NON_PROD_SITE_PASSWORD_DEVELOPMENT }}
+      NON_PROD_SITE_PASSWORD_DEMONSTRATION: ${{ secrets.NON_PROD_SITE_PASSWORD_DEMONSTRATION }}
+      NON_PROD_SITE_PASSWORD_STAGING: ${{ secrets.NON_PROD_SITE_PASSWORD_STAGING }}
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -348,6 +386,11 @@ jobs:
               PROJECT_ID="$FIREBASE_PROJECT_PROD"
               CONFIG_FILE="firebase.prod.json"
               ENV_SUFFIX="PRODUCTION"
+              ;;
+            demonstration)
+              PROJECT_ID="$FIREBASE_PROJECT_DEMO"
+              CONFIG_FILE="firebase.demo.json"
+              ENV_SUFFIX="DEMONSTRATION"
               ;;
             staging)
               PROJECT_ID="$FIREBASE_PROJECT_STAGING"
@@ -392,6 +435,11 @@ jobs:
           const suffix = process.env.ENV_SUFFIX;
           const environment = process.env.VITE_ENVIRONMENT_VALUE || 'development';
           const envFile = process.env.GITHUB_ENV;
+          const nonProdPasswords = {
+            development: process.env.NON_PROD_SITE_PASSWORD_DEVELOPMENT || '',
+            demonstration: process.env.NON_PROD_SITE_PASSWORD_DEMONSTRATION || '',
+            staging: process.env.NON_PROD_SITE_PASSWORD_STAGING || ''
+          };
 
           const mappings = {
             VITE_FIREBASE_API_KEY: cfg.apiKey || '',
@@ -410,6 +458,10 @@ jobs:
             lines.push(`${key}_${suffix}=${value}`);
           }
 
+          if (environment !== 'production') {
+            lines.push(`VITE_NON_PROD_SITE_PASSWORD=${nonProdPasswords[environment] || ''}`);
+          }
+
           fs.appendFileSync(envFile, `${lines.join('\n')}\n`);
           NODE
 
@@ -417,6 +469,7 @@ jobs:
         run: npm run build
 
       - name: Deploy Web Stack (no Data Connect)
+        if: needs.load-config.outputs.firebase_enabled != 'true' && (needs.load-config.outputs.trigger_context == 'build_and_deploy' || needs.load-config.outputs.trigger_context == 'deploy_only')
         run: |
           if [ -z "$FIREBASE_TOKEN" ]; then
             echo "❌ FIREBASE_TOKEN is not set"
@@ -452,6 +505,19 @@ jobs:
       firebase_project_staging: ${{ secrets.FIREBASE_PROJECT_STAGING }}
       firebase_project_prod: ${{ secrets.FIREBASE_PROJECT_PROD }}
 
+  validate-production:
+    name: Validate Production Deployment
+    needs: [load-config, build-web, deploy-firebase]
+    if: |
+      needs.load-config.outputs.target_environment == 'production' &&
+      (needs.load-config.outputs.trigger_context == 'build_and_deploy' ||
+       needs.load-config.outputs.trigger_context == 'deploy_only') &&
+      (needs.build-web.result == 'success' || needs.deploy-firebase.result == 'success')
+    uses: ./.github/workflows/production-validation.yml
+    with:
+      base_url: https://wishlist-wizard.web.app
+    secrets: inherit
+
   build-chrome-extension:
     name: Build Chrome Extension
     needs: load-config
@@ -469,7 +535,7 @@ jobs:
 
   pipeline-summary:
     name: Pipeline Summary
-    needs: [load-config, test, build-ios, build-web, deploy-firebase, build-chrome-extension]
+    needs: [load-config, test, build-ios, build-web, deploy-firebase, validate-production, build-chrome-extension]
     if: always()
     runs-on: self-hosted
     steps:
@@ -486,4 +552,5 @@ jobs:
           echo "- iOS: ${{ needs.build-ios.result }}" >> $GITHUB_STEP_SUMMARY
           echo "- Web: ${{ needs.build-web.result }}" >> $GITHUB_STEP_SUMMARY
           echo "- Firebase: ${{ needs.deploy-firebase.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Production Validation: ${{ needs.validate-production.result }}" >> $GITHUB_STEP_SUMMARY
           echo "- Chrome Extension: ${{ needs.build-chrome-extension.result }}" >> $GITHUB_STEP_SUMMARY

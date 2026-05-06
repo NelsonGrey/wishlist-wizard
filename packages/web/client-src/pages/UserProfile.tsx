@@ -44,6 +44,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useMutation } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { CalendarSettings } from '@/components/calendar/CalendarSettings';
+import { FeatureFlags, getRemoteConfig } from '@shared/firebase-utils';
 
 const createInitialProfile = (user?: {
   uid?: string;
@@ -162,6 +163,7 @@ const CONNECTIONS: Array<{ id: number; name: string; avatar: string; mutualFrien
 const UserProfile = () => {
   const { user } = useAuth();
   const isStripeReady = Boolean(String(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '').trim());
+  const priceAlertsEnabled = getRemoteConfig().isFeatureEnabled(FeatureFlags.PRICE_ALERTS_ENABLED);
   const [profile, setProfile] = useState(() => createInitialProfile(user || undefined));
   const [selectedTab, setSelectedTab] = useState("profile");
   const [editMode, setEditMode] = useState(false);
@@ -909,17 +911,19 @@ const UserProfile = () => {
                     
                     <Separator />
                     
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-0.5">
-                        <Label htmlFor="price-alerts">Price Drop Alerts</Label>
-                        <p className="text-sm text-muted-foreground">Get notified when item prices drop</p>
+                    {priceAlertsEnabled && (
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <Label htmlFor="price-alerts">Price Drop Alerts</Label>
+                          <p className="text-sm text-muted-foreground">Get notified when item prices drop</p>
+                        </div>
+                        <Switch 
+                          id="price-alerts" 
+                          checked={editedProfile.notifications.priceAlerts}
+                          onCheckedChange={() => toggleNotification('priceAlerts')}
+                        />
                       </div>
-                      <Switch 
-                        id="price-alerts" 
-                        checked={editedProfile.notifications.priceAlerts}
-                        onCheckedChange={() => toggleNotification('priceAlerts')}
-                      />
-                    </div>
+                    )}
                     
                     <div className="flex items-center justify-between">
                       <div className="space-y-0.5">

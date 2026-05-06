@@ -1,0 +1,60 @@
+name: Production Deployment Validation
+
+on:
+  workflow_call:
+    inputs:
+      base_url:
+        description: "Target production URL"
+        required: false
+        type: string
+        default: "https://wishlist-wizard.web.app"
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: "Target production URL"
+        required: false
+        type: string
+        default: "https://wishlist-wizard.web.app"
+
+concurrency:
+  group: production-validation-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  production-validation:
+    name: Validate Production Deployment
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      TARGET_URL: ${{ inputs.base_url || github.event.inputs.base_url || 'https://wishlist-wizard.web.app' }}
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps
+
+      - name: Validate production smoke suite
+        run: npm run test:e2e:prod
+        env:
+          TEST_URL: ${{ env.TARGET_URL }}
+          CI: true
+
+      - name: Upload Production Validation Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: production-validation-report
+          path: |
+            playwright-report/
+            test-results/
+          if-no-files-found: warn

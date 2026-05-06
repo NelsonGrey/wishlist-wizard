@@ -5,6 +5,8 @@ import { render } from '../utils';
 import PriceTracking from '@/pages/PriceTracking';
 import { useQuery } from '@tanstack/react-query';
 
+let isPriceAlertsEnabled = true;
+
 vi.mock('@tanstack/react-query', async () => {
   const actual = await vi.importActual('@tanstack/react-query');
   return {
@@ -21,9 +23,27 @@ vi.mock('@/lib/queryClient', () => ({
   apiRequest: vi.fn(),
 }));
 
+vi.mock('@shared/firebase-utils', async () => {
+  const actual = await vi.importActual<typeof import('@shared/firebase-utils')>('@shared/firebase-utils');
+  return {
+    ...actual,
+    FeatureFlags: {
+      ...actual.FeatureFlags,
+      PRICE_ALERTS_ENABLED: 'price_alerts_enabled',
+    },
+    getAnalyticsTracker: () => ({
+      logEvent: vi.fn(),
+    }),
+    getRemoteConfig: () => ({
+      isFeatureEnabled: () => isPriceAlertsEnabled,
+    }),
+  };
+});
+
 describe('PriceTracking Page', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    isPriceAlertsEnabled = true;
   });
 
   const setupUseQueryMock = ({
@@ -137,5 +157,23 @@ describe('PriceTracking Page', () => {
     expect(screen.getByText('Noise Canceling Headphones')).toBeInTheDocument();
     expect(screen.getByText('Volatile Coffee Machine')).toBeInTheDocument();
     expect(screen.getByText(/33% off/i)).toBeInTheDocument();
+  });
+
+  it('hides alerts interactions when remote config disables price alerts', async () => {
+    isPriceAlertsEnabled = false;
+
+    setupUseQueryMock({
+      priceDrops: [],
+      alerts: [],
+      volatility: [],
+    });
+
+    render(<PriceTracking />, { pathname: '/app/price-tracking' });
+
+    const alertsTab = screen.getByRole('tab', { name: /your alerts/i });
+    const dropsTab = screen.getByRole('tab', { name: /price drops/i });
+
+    expect(alertsTab).toBeDisabled();
+    expect(dropsTab).toHaveAttribute('aria-selected', 'true');
   });
 });

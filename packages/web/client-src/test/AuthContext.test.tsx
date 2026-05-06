@@ -3,10 +3,25 @@ import { screen, waitFor } from '@testing-library/react';
 import { render } from './utils';
 import { ReactNode } from 'react';
 
+const analyticsTrackerMock = {
+  setUserProperties: vi.fn(),
+  logFeatureFlagEnabled: vi.fn(),
+  logUserLogin: vi.fn(),
+  logUserSignup: vi.fn(),
+};
+
+const remoteConfigMock = {
+  isFeatureEnabled: vi.fn(() => true),
+  isFeatureEnabledForUser: vi.fn(() => true),
+};
+
 // Mock Firebase Auth before importing
 vi.mock('@/lib/firebase', () => ({
-  initFirebase: vi.fn(async () => {}),
-  onAuthStateChange: vi.fn(),
+  initFirebase: vi.fn(async () => ({ remoteConfig: remoteConfigMock })),
+  onAuthStateChange: vi.fn((callback) => {
+    callback(null);
+    return vi.fn();
+  }),
   signIn: vi.fn(),
   signUp: vi.fn(),
   signOut: vi.fn(),
@@ -15,7 +30,18 @@ vi.mock('@/lib/firebase', () => ({
   changePassword: vi.fn(),
 }));
 
+vi.mock('@shared/firebase-utils', () => ({
+  FeatureFlags: {
+    ENABLE_ANALYTICS: 'enable_analytics',
+    ENABLE_PERFORMANCE_MONITORING: 'enable_performance_monitoring',
+    PRICE_ALERTS_ENABLED: 'price_alerts_enabled',
+    GROUP_GIFTING_ENABLED: 'group_gifting_enabled',
+  },
+  getAnalyticsTracker: vi.fn(() => analyticsTrackerMock),
+}));
+
 // Import after mocking
+import { initFirebase } from '@/lib/firebase';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 
 // Test component that uses auth context
@@ -38,6 +64,8 @@ function TestWrapper({ children }: { children: ReactNode }) {
 describe('Authentication Context', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    remoteConfigMock.isFeatureEnabled.mockReturnValue(true);
+    remoteConfigMock.isFeatureEnabledForUser.mockReturnValue(true);
   });
 
   describe('Auth State Management', () => {
@@ -105,6 +133,28 @@ describe('Authentication Context', () => {
 
       // Assert
       expect(container.querySelector('div')).toBeTruthy();
+    });
+
+    it('initializes Firebase client services with analytics and remote config enabled', async () => {
+      render(
+        <AuthProvider>
+          <div>Content</div>
+        </AuthProvider>
+      );
+
+      await waitFor(() => {
+        expect(initFirebase).toHaveBeenCalledWith({
+          enableAnalytics: true,
+          enableAuth: true,
+          enableFirestore: true,
+          enableRemoteConfig: true,
+        });
+      });
+
+      expect(analyticsTrackerMock.setUserProperties).toHaveBeenCalledWith({
+        platform: 'web',
+      });
+      expect(remoteConfigMock.isFeatureEnabled).toHaveBeenCalled();
     });
   });
 });

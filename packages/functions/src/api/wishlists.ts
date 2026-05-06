@@ -3,10 +3,12 @@
 
 import { onCall, HttpsError, CallableRequest } from 'firebase-functions/v2/https';
 import { getFirestore } from 'firebase-admin/firestore';
-import { logger } from 'firebase-functions/v2';
 import { ensureFirebaseAdmin } from '../firebase-admin.js';
 import { generateId } from '../utils/helpers.js';
 import { convertAffiliateUrl } from '../utils/affiliate.js';
+import { requireAppCheck } from '../utils/app-check.js';
+import { CustomTrace } from '../utils/performance-monitoring.js';
+import { logErrorWithContext } from '../utils/error-reporting.js';
 
 ensureFirebaseAdmin();
 const db = getFirestore();
@@ -59,8 +61,12 @@ export const getUserWishlists = onCall(publicCallableOptions, async (request: Ca
     throw new HttpsError('unauthenticated', 'User must be authenticated');
   }
 
-  try {
-    const userId = request.auth.uid;
+  const userId = request.auth.uid;
+  const trace = new CustomTrace('get_user_wishlists');
+  trace.putAttribute('user_id', userId);
+
+  return trace.executeAsync(async () => {
+    try {
     const wishlistsSnapshot = await db
       .collection('wishlists')
       .where('userId', '==', userId)
@@ -85,11 +91,16 @@ export const getUserWishlists = onCall(publicCallableOptions, async (request: Ca
       });
     }
 
+    trace.incrementMetric('wishlists_retrieved', wishlists.length);
     return wishlists;
-  } catch (error) {
-    logger.error('Error getting user wishlists:', error);
-    throw new HttpsError('internal', 'Failed to get wishlists');
-  }
+    } catch (error) {
+      logErrorWithContext(error, {
+        operation: 'get_user_wishlists',
+        userId
+      });
+      throw new HttpsError('internal', 'Failed to get wishlists');
+    }
+  });
 });
 
 /**
@@ -106,7 +117,13 @@ export const getWishlistById = onCall(publicCallableOptions, async (request: Cal
     throw new HttpsError('invalid-argument', 'Wishlist ID is required');
   }
 
-  try {
+  const userId = request.auth.uid;
+  const trace = new CustomTrace('get_wishlist_by_id');
+  trace.putAttribute('wishlist_id', wishlistId);
+  trace.putAttribute('user_id', userId);
+
+  return trace.executeAsync(async () => {
+    try {
     const wishlistDoc = await db.collection('wishlists').doc(wishlistId).get();
     
     if (!wishlistDoc.exists) {
@@ -116,21 +133,28 @@ export const getWishlistById = onCall(publicCallableOptions, async (request: Cal
     const wishlistData = wishlistDoc.data();
     
     // Check if user has access to this wishlist
-    const userId = request.auth.uid;
     const isOwner = wishlistData?.userId === userId;
-    const isCollaborator = wishlistData?.isCollaborative && 
-      await isUserCollaborator(wishlistId, userId);
+    const collaboratorRole = wishlistData?.isCollaborative
+      ? await getCollaboratorRole(wishlistId, userId)
+      : null;
+    const isCollaborator = collaboratorRole !== null;
 
     if (!isOwner && !isCollaborator && !wishlistData?.isPublic) {
       throw new HttpsError('permission-denied', 'Access denied to this wishlist');
     }
 
+    trace.incrementMetric('wishlists_read', 1);
     return { id: wishlistDoc.id, ...wishlistData };
-  } catch (error) {
-    logger.error('Error getting wishlist by ID:', error);
-    if (error instanceof HttpsError) throw error;
-    throw new HttpsError('internal', 'Failed to get wishlist');
-  }
+    } catch (error) {
+      logErrorWithContext(error, {
+        operation: 'get_wishlist_by_id',
+        userId,
+        wishlistId
+      });
+      if (error instanceof HttpsError) throw error;
+      throw new HttpsError('internal', 'Failed to get wishlist');
+    }
+  });
 });
 
 /**
@@ -143,7 +167,13 @@ export const getSharedWishlist = onCall(publicCallableOptions, async (request: C
     throw new HttpsError('invalid-argument', 'Share ID is required');
   }
 
-  try {
+  const userId = request.auth?.uid;
+  const trace = new CustomTrace('get_shared_wishlist');
+  trace.putAttribute('share_id', shareId);
+  trace.putAttribute('user_id', userId || 'anonymous');
+
+  return trace.executeAsync(async () => {
+    try {
     const wishlistSnapshot = await db
       .collection('wishlists')
       .where('shareId', '==', shareId)
@@ -157,6 +187,17 @@ export const getSharedWishlist = onCall(publicCallableOptions, async (request: C
     const wishlistDoc = wishlistSnapshot.docs[0];
     const wishlistData = wishlistDoc.data();
 
+    const isOwner = userId ? wishlistData?.userId === userId : false;
+    const collaboratorRole = userId && wishlistData?.isCollaborative
+      ? await getCollaboratorRole(wishlistDoc.id, userId)
+      : null;
+    const isCollaborator = collaboratorRole !== null;
+
+    // Shared links must still respect privacy settings.
+    if (!wishlistData?.isPublic && !isOwner && !isCollaborator) {
+      throw new HttpsError('permission-denied', 'This shared wishlist is private');
+    }
+
     // Get items for this wishlist
     const itemsSnapshot = await db
       .collection('wishlistItems')
@@ -169,15 +210,21 @@ export const getSharedWishlist = onCall(publicCallableOptions, async (request: C
       ...doc.data()
     }));
 
+    trace.incrementMetric('shared_wishlists_accessed', 1);
     return {
       wishlist: { id: wishlistDoc.id, ...wishlistData },
       items
     };
-  } catch (error) {
-    logger.error('Error getting shared wishlist:', error);
-    if (error instanceof HttpsError) throw error;
-    throw new HttpsError('internal', 'Failed to get shared wishlist');
-  }
+    } catch (error) {
+      logErrorWithContext(error, {
+        operation: 'get_shared_wishlist',
+        userId: userId || 'anonymous',
+        shareId
+      });
+      if (error instanceof HttpsError) throw error;
+      throw new HttpsError('internal', 'Failed to get shared wishlist');
+    }
+  });
 });
 
 /**
@@ -185,6 +232,9 @@ export const getSharedWishlist = onCall(publicCallableOptions, async (request: C
  * Replaces: POST /api/wishlists
  */
 export const createWishlist = onCall(publicCallableOptions, async (request: CallableRequest) => {
+  // WP-01: Verify device integrity before mutation
+  await requireAppCheck(request);
+
   if (!request.auth) {
     throw new HttpsError('unauthenticated', 'User must be authenticated');
   }
@@ -209,56 +259,68 @@ export const createWishlist = onCall(publicCallableOptions, async (request: Call
     throw new HttpsError('invalid-argument', 'Wishlist name is required');
   }
 
-  try {
-    const validRecurrence = ['none', 'yearly', 'monthly'].includes(String(recurrence))
-      ? String(recurrence)
-      : 'none';
+  const userId = request.auth.uid;
+  const trace = new CustomTrace('create_wishlist');
+  trace.putAttribute('user_id', userId);
+  trace.putAttribute('wishlist_name', name.substring(0, 50));
 
-    const parsedReminderDays =
-      reminderDays === null || reminderDays === undefined || reminderDays === ''
-        ? null
-        : Number(reminderDays);
+  return trace.executeAsync(async () => {
+    try {
+      const validRecurrence = ['none', 'yearly', 'monthly'].includes(String(recurrence))
+        ? String(recurrence)
+        : 'none';
 
-    const normalizedRecipient = normalizeRecipientInput({
-      recipient,
-      recipientType,
-      recipientName,
-      recipientMembers,
-    });
+      const parsedReminderDays =
+        reminderDays === null || reminderDays === undefined || reminderDays === ''
+          ? null
+          : Number(reminderDays);
 
-    const wishlistData = {
-      userId: request.auth.uid,
-      name: name.trim(),
-      description: description || '',
-      isPublic: !!isPublic,
-      isCollaborative: !!isCollaborative,
-      beneficiaryId: beneficiaryId || null,
-      occasion: occasion || null,
-      occasionDate: occasionDate ? new Date(occasionDate) : null,
-      recurrence: validRecurrence,
-      reminderDays: Number.isFinite(parsedReminderDays) ? parsedReminderDays : null,
-      recipient: normalizedRecipient.recipient,
-      recipientName: normalizedRecipient.recipientName,
-      shareId: generateId(),
-      createdAt: new Date(),
-      updatedAt: new Date()
-    };
+      const normalizedRecipient = normalizeRecipientInput({
+        recipient,
+        recipientType,
+        recipientName,
+        recipientMembers,
+      });
 
-    const docRef = await db.collection('wishlists').add(wishlistData);
-    
-    // Create notification for wishlist creation
-    await createNotification(request.auth.uid, {
-      type: 'wishlist_created',
-      title: 'Wishlist Created',
-      content: `Your wishlist "${name}" has been created successfully`,
-      data: { wishlistId: docRef.id, wishlistName: name }
-    });
+      const wishlistData = {
+        userId,
+        name: name.trim(),
+        description: description || '',
+        isPublic: !!isPublic,
+        isCollaborative: !!isCollaborative,
+        beneficiaryId: beneficiaryId || null,
+        occasion: occasion || null,
+        occasionDate: occasionDate ? new Date(occasionDate) : null,
+        recurrence: validRecurrence,
+        reminderDays: Number.isFinite(parsedReminderDays) ? parsedReminderDays : null,
+        recipient: normalizedRecipient.recipient,
+        recipientName: normalizedRecipient.recipientName,
+        shareId: generateId(),
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
 
-    return { id: docRef.id, ...wishlistData };
-  } catch (error) {
-    logger.error('Error creating wishlist:', error);
-    throw new HttpsError('internal', 'Failed to create wishlist');
-  }
+      const docRef = await db.collection('wishlists').add(wishlistData);
+      
+      // Create notification for wishlist creation
+      await createNotification(userId, {
+        type: 'wishlist_created',
+        title: 'Wishlist Created',
+        content: `Your wishlist "${name}" has been created successfully`,
+        data: { wishlistId: docRef.id, wishlistName: name }
+      });
+
+      trace.incrementMetric('wishlists_created', 1);
+      return { id: docRef.id, ...wishlistData };
+    } catch (error) {
+      logErrorWithContext(error, {
+        operation: 'create_wishlist',
+        userId,
+        wishlistName: name
+      });
+      throw new HttpsError('internal', 'Failed to create wishlist');
+    }
+  });
 });
 
 /**
@@ -266,6 +328,9 @@ export const createWishlist = onCall(publicCallableOptions, async (request: Call
  * Replaces: PATCH /api/wishlists/:id
  */
 export const updateWishlist = onCall(publicCallableOptions, async (request: CallableRequest) => {
+  // WP-01: Verify device integrity before mutation
+  await requireAppCheck(request);
+
   if (!request.auth) {
     throw new HttpsError('unauthenticated', 'User must be authenticated');
   }
@@ -275,7 +340,13 @@ export const updateWishlist = onCall(publicCallableOptions, async (request: Call
     throw new HttpsError('invalid-argument', 'Wishlist ID is required');
   }
 
-  try {
+  const userId = request.auth.uid;
+  const trace = new CustomTrace('update_wishlist');
+  trace.putAttribute('wishlist_id', wishlistId);
+  trace.putAttribute('user_id', userId);
+
+  return trace.executeAsync(async () => {
+    try {
     const wishlistDoc = await db.collection('wishlists').doc(wishlistId).get();
     
     if (!wishlistDoc.exists) {
@@ -283,7 +354,7 @@ export const updateWishlist = onCall(publicCallableOptions, async (request: Call
     }
 
     const wishlistData = wishlistDoc.data();
-    if (wishlistData?.userId !== request.auth.uid) {
+    if (wishlistData?.userId !== userId) {
       throw new HttpsError('permission-denied', 'You can only update your own wishlists');
     }
 
@@ -354,12 +425,18 @@ export const updateWishlist = onCall(publicCallableOptions, async (request: Call
 
     await db.collection('wishlists').doc(wishlistId).update(filteredUpdateData);
 
+    trace.incrementMetric('wishlists_updated', 1);
     return { id: wishlistId, ...wishlistData, ...filteredUpdateData };
-  } catch (error) {
-    logger.error('Error updating wishlist:', error);
-    if (error instanceof HttpsError) throw error;
-    throw new HttpsError('internal', 'Failed to update wishlist');
-  }
+    } catch (error) {
+      logErrorWithContext(error, {
+        operation: 'update_wishlist',
+        userId,
+        wishlistId
+      });
+      if (error instanceof HttpsError) throw error;
+      throw new HttpsError('internal', 'Failed to update wishlist');
+    }
+  });
 });
 
 /**
@@ -367,6 +444,9 @@ export const updateWishlist = onCall(publicCallableOptions, async (request: Call
  * Replaces: DELETE /api/wishlists/:id
  */
 export const deleteWishlist = onCall(publicCallableOptions, async (request: CallableRequest) => {
+  // WP-01: Verify device integrity before mutation
+  await requireAppCheck(request);
+
   if (!request.auth) {
     throw new HttpsError('unauthenticated', 'User must be authenticated');
   }
@@ -376,7 +456,13 @@ export const deleteWishlist = onCall(publicCallableOptions, async (request: Call
     throw new HttpsError('invalid-argument', 'Wishlist ID is required');
   }
 
-  try {
+  const userId = request.auth.uid;
+  const trace = new CustomTrace('delete_wishlist');
+  trace.putAttribute('wishlist_id', wishlistId);
+  trace.putAttribute('user_id', userId);
+
+  return trace.executeAsync(async () => {
+    try {
     const wishlistDoc = await db.collection('wishlists').doc(wishlistId).get();
     
     if (!wishlistDoc.exists) {
@@ -384,7 +470,7 @@ export const deleteWishlist = onCall(publicCallableOptions, async (request: Call
     }
 
     const wishlistData = wishlistDoc.data();
-    if (wishlistData?.userId !== request.auth.uid) {
+    if (wishlistData?.userId !== userId) {
       throw new HttpsError('permission-denied', 'You can only delete your own wishlists');
     }
 
@@ -404,12 +490,18 @@ export const deleteWishlist = onCall(publicCallableOptions, async (request: Call
 
     await batch.commit();
 
+    trace.incrementMetric('wishlists_deleted', 1);
     return { success: true };
-  } catch (error) {
-    logger.error('Error deleting wishlist:', error);
-    if (error instanceof HttpsError) throw error;
-    throw new HttpsError('internal', 'Failed to delete wishlist');
-  }
+    } catch (error) {
+      logErrorWithContext(error, {
+        operation: 'delete_wishlist',
+        userId,
+        wishlistId
+      });
+      if (error instanceof HttpsError) throw error;
+      throw new HttpsError('internal', 'Failed to delete wishlist');
+    }
+  });
 });
 
 /**
@@ -426,7 +518,13 @@ export const getWishlistItems = onCall(publicCallableOptions, async (request: Ca
     throw new HttpsError('invalid-argument', 'Wishlist ID is required');
   }
 
-  try {
+  const userId = request.auth.uid;
+  const trace = new CustomTrace('get_wishlist_items');
+  trace.putAttribute('wishlist_id', wishlistId);
+  trace.putAttribute('user_id', userId);
+
+  return trace.executeAsync(async () => {
+    try {
     // Verify user has access to this wishlist
     const wishlistDoc = await db.collection('wishlists').doc(wishlistId).get();
     if (!wishlistDoc.exists) {
@@ -434,10 +532,11 @@ export const getWishlistItems = onCall(publicCallableOptions, async (request: Ca
     }
 
     const wishlistData = wishlistDoc.data();
-    const userId = request.auth.uid;
     const isOwner = wishlistData?.userId === userId;
-    const isCollaborator = wishlistData?.isCollaborative && 
-      await isUserCollaborator(wishlistId, userId);
+    const collaboratorRole = wishlistData?.isCollaborative
+      ? await getCollaboratorRole(wishlistId, userId)
+      : null;
+    const isCollaborator = collaboratorRole !== null;
 
     if (!isOwner && !isCollaborator && !wishlistData?.isPublic) {
       throw new HttpsError('permission-denied', 'Access denied to this wishlist');
@@ -454,12 +553,18 @@ export const getWishlistItems = onCall(publicCallableOptions, async (request: Ca
       ...doc.data()
     }));
 
+    trace.incrementMetric('items_retrieved', items.length);
     return items;
-  } catch (error) {
-    logger.error('Error getting wishlist items:', error);
-    if (error instanceof HttpsError) throw error;
-    throw new HttpsError('internal', 'Failed to get wishlist items');
-  }
+    } catch (error) {
+      logErrorWithContext(error, {
+        operation: 'get_wishlist_items',
+        userId,
+        wishlistId
+      });
+      if (error instanceof HttpsError) throw error;
+      throw new HttpsError('internal', 'Failed to get wishlist items');
+    }
+  });
 });
 
 /**
@@ -467,86 +572,102 @@ export const getWishlistItems = onCall(publicCallableOptions, async (request: Ca
  * Replaces: POST /api/items
  */
 export const addWishlistItem = onCall(publicCallableOptions, async (request: CallableRequest) => {
+  // WP-01: Verify device integrity before mutation
+  await requireAppCheck(request);
+
   if (!request.auth) {
     throw new HttpsError('unauthenticated', 'User must be authenticated');
   }
 
-  const { wishlistId, title, description, price, productUrl, imageUrl, store, priority, note } = request.data;
+  const userId = request.auth.uid;
+  const trace = new CustomTrace('add_wishlist_item');
+  trace.putAttribute('wishlist_id', request.data.wishlistId || 'unknown');
+  trace.putAttribute('user_id', userId);
 
-  if (!wishlistId || !title) {
-    throw new HttpsError('invalid-argument', 'Wishlist ID and title are required');
-  }
+  return trace.executeAsync(async () => {
+    const { wishlistId, title, description, price, productUrl, imageUrl, store, priority, note } = request.data;
 
-  try {
-    // Verify user has permission to add items to this wishlist
-    const wishlistDoc = await db.collection('wishlists').doc(wishlistId).get();
-    if (!wishlistDoc.exists) {
-      throw new HttpsError('not-found', 'Wishlist not found');
+    if (!wishlistId || !title) {
+      throw new HttpsError('invalid-argument', 'Wishlist ID and title are required');
     }
 
-    const wishlistData = wishlistDoc.data();
-    const userId = request.auth.uid;
-    const isOwner = wishlistData?.userId === userId;
-    const isCollaborator = wishlistData?.isCollaborative && 
-      await isUserCollaborator(wishlistId, userId);
+    try {
+      // Verify user has permission to add items to this wishlist
+      const wishlistDoc = await db.collection('wishlists').doc(wishlistId).get();
+      if (!wishlistDoc.exists) {
+        throw new HttpsError('not-found', 'Wishlist not found');
+      }
 
-    if (!isOwner && !isCollaborator) {
-      throw new HttpsError('permission-denied', 'You do not have permission to add items to this wishlist');
-    }
+      const wishlistData = wishlistDoc.data();
+      const isOwner = wishlistData?.userId === userId;
+      const collaboratorRole = wishlistData?.isCollaborative
+        ? await getCollaboratorRole(wishlistId, userId)
+        : null;
+      const canEditAsCollaborator = hasCollaboratorRole(collaboratorRole, ['owner', 'editor']);
 
-    const affiliateConversion = productUrl ? convertAffiliateUrl(productUrl) : null;
+      if (!isOwner && !canEditAsCollaborator) {
+        throw new HttpsError('permission-denied', 'You do not have permission to add items to this wishlist');
+      }
 
-    const itemData = {
-      wishlistId,
-      title: title.trim(),
-      description: description || '',
-      price: price || null,
-      productUrl: affiliateConversion?.wasConverted ? affiliateConversion.convertedUrl : productUrl || null,
-      imageUrl: imageUrl || null,
-      store: store || null,
-      priority: priority || 1,
-      note: note || null,
-      addedBy: userId,
-      reservedByUserId: null,
-      purchasedByUserId: null,
-      purchasedAt: null,
-      reservedBy: null,
-      purchasedBy: null,
-      ...(affiliateConversion?.wasConverted
-        ? {
-            metadata: {
-              affiliateConversion: {
-                originalUrl: affiliateConversion.originalUrl,
-                affiliateProgram: affiliateConversion.program?.name || null,
-                convertedAt: new Date().toISOString(),
-                commission: affiliateConversion.program?.defaultCommission || 0,
-                tagUsed: affiliateConversion.tagUsed || null,
-              },
-            },
-          }
-        : {}),
-      createdAt: new Date(),
-      updatedAt: new Date()
-    };
+      const affiliateConversion = productUrl ? convertAffiliateUrl(productUrl) : null;
 
-    const docRef = await db.collection('wishlistItems').add(itemData);
-
-    // Create notifications for collaborative wishlists
-    if (wishlistData?.isCollaborative && !isOwner) {
-      await notifyWishlistCollaborators(
+      const itemData = {
         wishlistId,
-        userId,
-        `New item "${title}" was added to the wishlist "${wishlistData.name}"`,
-        'item_added'
-      );
-    }
+        title: title.trim(),
+        description: description || '',
+        price: price || null,
+        productUrl: affiliateConversion?.wasConverted ? affiliateConversion.convertedUrl : productUrl || null,
+        imageUrl: imageUrl || null,
+        store: store || null,
+        priority: priority || 1,
+        note: note || null,
+        addedBy: userId,
+        reservedByUserId: null,
+        purchasedByUserId: null,
+        purchasedAt: null,
+        reservedBy: null,
+        purchasedBy: null,
+        ...(affiliateConversion?.wasConverted
+          ? {
+              metadata: {
+                affiliateConversion: {
+                  originalUrl: affiliateConversion.originalUrl,
+                  affiliateProgram: affiliateConversion.program?.name || null,
+                  convertedAt: new Date().toISOString(),
+                  commission: affiliateConversion.program?.defaultCommission || 0,
+                  tagUsed: affiliateConversion.tagUsed || null,
+                },
+              },
+            }
+          : {}),
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
 
-    return { id: docRef.id, ...itemData };
-  } catch (error) {
-    logger.error('Error adding wishlist item:', error);
-    if (error instanceof HttpsError) throw error;
-    throw new HttpsError('internal', 'Failed to add wishlist item');
-  }
+      const docRef = await db.collection('wishlistItems').add(itemData);
+
+      // Create notifications for collaborative wishlists
+      if (wishlistData?.isCollaborative && !isOwner) {
+        await notifyWishlistCollaborators(
+          wishlistId,
+          userId,
+          `New item "${title}" was added to the wishlist "${wishlistData.name}"`,
+          'item_added'
+        );
+      }
+
+      trace.incrementMetric('items_added', 1);
+      return { id: docRef.id, ...itemData };
+    } catch (error) {
+      logErrorWithContext(error, {
+        operation: 'add_wishlist_item',
+        userId,
+        wishlistId: request.data.wishlistId
+      });
+      if (error instanceof HttpsError) throw error;
+      throw new HttpsError('internal', 'Failed to add wishlist item');
+    }
+  });
 });
 
 /**
@@ -554,6 +675,9 @@ export const addWishlistItem = onCall(publicCallableOptions, async (request: Cal
  * Replaces: POST /api/items/:id/reserve
  */
 export const reserveWishlistItem = onCall(publicCallableOptions, async (request: CallableRequest) => {
+  // WP-01: Verify device integrity before mutation
+  await requireAppCheck(request);
+
   if (!request.auth) {
     throw new HttpsError('unauthenticated', 'User must be authenticated');
   }
@@ -563,7 +687,13 @@ export const reserveWishlistItem = onCall(publicCallableOptions, async (request:
     throw new HttpsError('invalid-argument', 'Item ID is required');
   }
 
-  try {
+  const userId = request.auth.uid;
+  const trace = new CustomTrace('reserve_wishlist_item');
+  trace.putAttribute('item_id', itemId);
+  trace.putAttribute('user_id', userId);
+
+  return trace.executeAsync(async () => {
+    try {
     const itemDoc = await db.collection('wishlistItems').doc(itemId).get();
     if (!itemDoc.exists) {
       throw new HttpsError('not-found', 'Item not found');
@@ -576,10 +706,12 @@ export const reserveWishlistItem = onCall(publicCallableOptions, async (request:
     }
 
     const wishlistData = wishlistDoc.data() || {};
-    const userId = request.auth.uid;
     const isOwner = wishlistData.userId === userId;
-    const isCollaborator = wishlistData.isCollaborative && await isUserCollaborator(wishlistDoc.id, userId);
-    const canReserve = isOwner || isCollaborator || !!wishlistData.isPublic;
+    const collaboratorRole = wishlistData.isCollaborative
+      ? await getCollaboratorRole(wishlistDoc.id, userId)
+      : null;
+    const canReserveAsCollaborator = hasCollaboratorRole(collaboratorRole, ['owner', 'editor', 'commenter']);
+    const canReserve = isOwner || canReserveAsCollaborator || !!wishlistData.isPublic;
 
     if (!canReserve) {
       throw new HttpsError('permission-denied', 'You do not have permission to reserve this item');
@@ -606,12 +738,18 @@ export const reserveWishlistItem = onCall(publicCallableOptions, async (request:
     };
 
     await db.collection('wishlistItems').doc(itemId).update(updates);
+    trace.incrementMetric('items_reserved', 1);
     return { success: true, id: itemId, ...itemData, ...updates };
-  } catch (error) {
-    logger.error('Error reserving wishlist item:', error);
-    if (error instanceof HttpsError) throw error;
-    throw new HttpsError('internal', 'Failed to reserve wishlist item');
-  }
+    } catch (error) {
+      logErrorWithContext(error, {
+        operation: 'reserve_wishlist_item',
+        userId,
+        itemId
+      });
+      if (error instanceof HttpsError) throw error;
+      throw new HttpsError('internal', 'Failed to reserve wishlist item');
+    }
+  });
 });
 
 /**
@@ -619,6 +757,9 @@ export const reserveWishlistItem = onCall(publicCallableOptions, async (request:
  * Replaces: POST /api/items/:id/purchase
  */
 export const purchaseWishlistItem = onCall(publicCallableOptions, async (request: CallableRequest) => {
+  // WP-01: Verify device integrity before mutation
+  await requireAppCheck(request);
+
   if (!request.auth) {
     throw new HttpsError('unauthenticated', 'User must be authenticated');
   }
@@ -628,7 +769,13 @@ export const purchaseWishlistItem = onCall(publicCallableOptions, async (request
     throw new HttpsError('invalid-argument', 'Item ID is required');
   }
 
-  try {
+  const userId = request.auth.uid;
+  const trace = new CustomTrace('purchase_wishlist_item');
+  trace.putAttribute('item_id', itemId);
+  trace.putAttribute('user_id', userId);
+
+  return trace.executeAsync(async () => {
+    try {
     const itemDoc = await db.collection('wishlistItems').doc(itemId).get();
     if (!itemDoc.exists) {
       throw new HttpsError('not-found', 'Item not found');
@@ -641,10 +788,12 @@ export const purchaseWishlistItem = onCall(publicCallableOptions, async (request
     }
 
     const wishlistData = wishlistDoc.data() || {};
-    const userId = request.auth.uid;
     const isOwner = wishlistData.userId === userId;
-    const isCollaborator = wishlistData.isCollaborative && await isUserCollaborator(wishlistDoc.id, userId);
-    const canPurchase = isOwner || isCollaborator || !!wishlistData.isPublic;
+    const collaboratorRole = wishlistData.isCollaborative
+      ? await getCollaboratorRole(wishlistDoc.id, userId)
+      : null;
+    const canPurchaseAsCollaborator = hasCollaboratorRole(collaboratorRole, ['owner', 'editor', 'commenter']);
+    const canPurchase = isOwner || canPurchaseAsCollaborator || !!wishlistData.isPublic;
 
     if (!canPurchase) {
       throw new HttpsError('permission-denied', 'You do not have permission to purchase this item');
@@ -674,12 +823,18 @@ export const purchaseWishlistItem = onCall(publicCallableOptions, async (request
     };
 
     await db.collection('wishlistItems').doc(itemId).update(updates);
+    trace.incrementMetric('items_purchased', 1);
     return { success: true, id: itemId, ...itemData, ...updates };
-  } catch (error) {
-    logger.error('Error purchasing wishlist item:', error);
-    if (error instanceof HttpsError) throw error;
-    throw new HttpsError('internal', 'Failed to purchase wishlist item');
-  }
+    } catch (error) {
+      logErrorWithContext(error, {
+        operation: 'purchase_wishlist_item',
+        userId,
+        itemId
+      });
+      if (error instanceof HttpsError) throw error;
+      throw new HttpsError('internal', 'Failed to purchase wishlist item');
+    }
+  });
 });
 
 /**
@@ -687,6 +842,9 @@ export const purchaseWishlistItem = onCall(publicCallableOptions, async (request
  * Replaces: PATCH /api/items/:id
  */
 export const updateWishlistItem = onCall(publicCallableOptions, async (request: CallableRequest) => {
+  // WP-01: Verify device integrity before mutation
+  await requireAppCheck(request);
+
   if (!request.auth) {
     throw new HttpsError('unauthenticated', 'User must be authenticated');
   }
@@ -696,33 +854,52 @@ export const updateWishlistItem = onCall(publicCallableOptions, async (request: 
     throw new HttpsError('invalid-argument', 'Item ID and updates are required');
   }
 
-  try {
-    const itemDoc = await db.collection('wishlistItems').doc(itemId).get();
-    if (!itemDoc.exists) {
-      throw new HttpsError('not-found', 'Item not found');
+  const userId = request.auth.uid;
+  const trace = new CustomTrace('update_wishlist_item');
+  trace.putAttribute('item_id', itemId);
+  trace.putAttribute('user_id', userId);
+
+  return trace.executeAsync(async () => {
+    try {
+      const itemDoc = await db.collection('wishlistItems').doc(itemId).get();
+      if (!itemDoc.exists) {
+        throw new HttpsError('not-found', 'Item not found');
+      }
+
+      const itemData = itemDoc.data();
+      const wishlistDoc = await db.collection('wishlists').doc(itemData?.wishlistId).get();
+      if (!wishlistDoc.exists) {
+        throw new HttpsError('not-found', 'Wishlist not found');
+      }
+
+      const wishlistData = wishlistDoc.data() || {};
+      const isOwner = wishlistData.userId === userId;
+      const collaboratorRole = wishlistData.isCollaborative
+        ? await getCollaboratorRole(String(itemData?.wishlistId || ''), userId)
+        : null;
+      const canEditAsCollaborator = hasCollaboratorRole(collaboratorRole, ['owner', 'editor']);
+
+      if (!isOwner && !canEditAsCollaborator) {
+        throw new HttpsError('permission-denied', 'You do not have permission to update items in this wishlist');
+      }
+
+      await db.collection('wishlistItems').doc(itemId).update({
+        ...updates,
+        updatedAt: new Date()
+      });
+
+      trace.incrementMetric('items_updated', 1);
+      return { id: itemId, ...itemData, ...updates };
+    } catch (error) {
+      logErrorWithContext(error, {
+        operation: 'update_wishlist_item',
+        userId,
+        itemId
+      });
+      if (error instanceof HttpsError) throw error;
+      throw new HttpsError('internal', 'Failed to update wishlist item');
     }
-
-    const itemData = itemDoc.data();
-    const wishlistDoc = await db.collection('wishlists').doc(itemData?.wishlistId).get();
-    if (!wishlistDoc.exists) {
-      throw new HttpsError('not-found', 'Wishlist not found');
-    }
-
-    if (wishlistDoc.data()?.userId !== request.auth.uid) {
-      throw new HttpsError('permission-denied', 'You can only update your own items');
-    }
-
-    await db.collection('wishlistItems').doc(itemId).update({
-      ...updates,
-      updatedAt: new Date()
-    });
-
-    return { id: itemId, ...itemData, ...updates };
-  } catch (error) {
-    logger.error('Error updating wishlist item:', error);
-    if (error instanceof HttpsError) throw error;
-    throw new HttpsError('internal', 'Failed to update wishlist item');
-  }
+  });
 });
 
 /**
@@ -730,6 +907,9 @@ export const updateWishlistItem = onCall(publicCallableOptions, async (request: 
  * Replaces: DELETE /api/items/:id
  */
 export const deleteWishlistItem = onCall(publicCallableOptions, async (request: CallableRequest) => {
+  // WP-01: Verify device integrity before mutation
+  await requireAppCheck(request);
+
   if (!request.auth) {
     throw new HttpsError('unauthenticated', 'User must be authenticated');
   }
@@ -739,34 +919,66 @@ export const deleteWishlistItem = onCall(publicCallableOptions, async (request: 
     throw new HttpsError('invalid-argument', 'Item ID is required');
   }
 
-  try {
-    const itemDoc = await db.collection('wishlistItems').doc(itemId).get();
-    if (!itemDoc.exists) {
-      throw new HttpsError('not-found', 'Item not found');
-    }
+  const userId = request.auth.uid;
+  const trace = new CustomTrace('delete_wishlist_item');
+  trace.putAttribute('item_id', itemId);
+  trace.putAttribute('user_id', userId);
 
-    const itemData = itemDoc.data();
-    const wishlistDoc = await db.collection('wishlists').doc(itemData?.wishlistId).get();
-    if (!wishlistDoc.exists) {
-      throw new HttpsError('not-found', 'Wishlist not found');
-    }
+  return trace.executeAsync(async () => {
+    try {
+      const itemDoc = await db.collection('wishlistItems').doc(itemId).get();
+      if (!itemDoc.exists) {
+        throw new HttpsError('not-found', 'Item not found');
+      }
 
-    if (wishlistDoc.data()?.userId !== request.auth.uid) {
-      throw new HttpsError('permission-denied', 'You can only delete your own items');
-    }
+      const itemData = itemDoc.data();
+      const wishlistDoc = await db.collection('wishlists').doc(itemData?.wishlistId).get();
+      if (!wishlistDoc.exists) {
+        throw new HttpsError('not-found', 'Wishlist not found');
+      }
 
-    await db.collection('wishlistItems').doc(itemId).delete();
-    return { success: true };
-  } catch (error) {
-    logger.error('Error deleting wishlist item:', error);
-    if (error instanceof HttpsError) throw error;
-    throw new HttpsError('internal', 'Failed to delete wishlist item');
-  }
+      const wishlistData = wishlistDoc.data() || {};
+      const isOwner = wishlistData.userId === userId;
+      const collaboratorRole = wishlistData.isCollaborative
+        ? await getCollaboratorRole(String(itemData?.wishlistId || ''), userId)
+        : null;
+      const canEditAsCollaborator = hasCollaboratorRole(collaboratorRole, ['owner', 'editor']);
+
+      if (!isOwner && !canEditAsCollaborator) {
+        throw new HttpsError('permission-denied', 'You do not have permission to delete items in this wishlist');
+      }
+
+      await db.collection('wishlistItems').doc(itemId).delete();
+      trace.incrementMetric('items_deleted', 1);
+      return { success: true };
+    } catch (error) {
+      logErrorWithContext(error, {
+        operation: 'delete_wishlist_item',
+        userId,
+        itemId
+      });
+      if (error instanceof HttpsError) throw error;
+      throw new HttpsError('internal', 'Failed to delete wishlist item');
+    }
+  });
 });
 
 // Helper Functions
 
-async function isUserCollaborator(wishlistId: string, userId: string): Promise<boolean> {
+type CollaboratorRole = 'owner' | 'editor' | 'commenter' | 'viewer';
+
+function normalizeCollaboratorRole(role: unknown): CollaboratorRole {
+  const normalized = String(role || '').trim().toLowerCase();
+  if (normalized === 'owner' || normalized === 'editor' || normalized === 'commenter' || normalized === 'viewer') {
+    return normalized;
+  }
+
+  // Backward compatibility: existing collaborator entries without explicit role
+  // default to editor privileges, matching previous collaborator behavior.
+  return 'editor';
+}
+
+async function getCollaboratorRole(wishlistId: string, userId: string): Promise<CollaboratorRole | null> {
   const collaboratorSnapshot = await db
     .collection('collaborators')
     .where('wishlistId', '==', wishlistId)
@@ -774,7 +986,16 @@ async function isUserCollaborator(wishlistId: string, userId: string): Promise<b
     .limit(1)
     .get();
 
-  return !collaboratorSnapshot.empty;
+  if (collaboratorSnapshot.empty) {
+    return null;
+  }
+
+  const collaboratorData = collaboratorSnapshot.docs[0].data();
+  return normalizeCollaboratorRole(collaboratorData?.role);
+}
+
+function hasCollaboratorRole(role: CollaboratorRole | null, allowedRoles: CollaboratorRole[]): boolean {
+  return role !== null && allowedRoles.includes(role);
 }
 
 async function createNotification(userId: string, notificationData: any) {

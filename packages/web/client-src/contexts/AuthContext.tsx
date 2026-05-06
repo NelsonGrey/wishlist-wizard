@@ -1,5 +1,9 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import type { User } from 'firebase/auth';
+import {
+  FeatureFlags,
+  getAnalyticsTracker,
+} from '@shared/firebase-utils';
 import { 
   initFirebase, 
   onAuthStateChange, 
@@ -43,15 +47,44 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   useEffect(() => {
     let unsubscribe: (() => void) | undefined;
+    const analyticsTracker = getAnalyticsTracker();
 
     const initAuth = async () => {
       try {
-        // Initialize Firebase with Auth and Firestore enabled for Firebase-first architecture
-        await initFirebase({ enableAuth: true, enableFirestore: true });
+        // Initialize Firebase with client observability services enabled.
+        const { remoteConfig } = await initFirebase({
+          enableAnalytics: true,
+          enableAuth: true,
+          enableFirestore: true,
+          enableRemoteConfig: true,
+        });
+
+        analyticsTracker.setUserProperties({
+          platform: 'web',
+        });
+
+        if (remoteConfig?.isFeatureEnabled(FeatureFlags.ENABLE_ANALYTICS)) {
+          analyticsTracker.logFeatureFlagEnabled(FeatureFlags.ENABLE_ANALYTICS);
+        }
+
+        if (remoteConfig?.isFeatureEnabled(FeatureFlags.ENABLE_PERFORMANCE_MONITORING)) {
+          analyticsTracker.logFeatureFlagEnabled(FeatureFlags.ENABLE_PERFORMANCE_MONITORING);
+        }
         
         // Set up auth state listener
         unsubscribe = onAuthStateChange((user) => {
           setUser(user);
+
+          analyticsTracker.setUserProperties({
+            platform: 'web',
+            feature_adoption: user && remoteConfig
+              ? [
+                  remoteConfig.isFeatureEnabledForUser(FeatureFlags.PRICE_ALERTS_ENABLED, user.uid) ? 'price_alerts' : null,
+                  remoteConfig.isFeatureEnabledForUser(FeatureFlags.GROUP_GIFTING_ENABLED, user.uid) ? 'group_gifting' : null,
+                ].filter(Boolean).join(',') || undefined
+              : undefined,
+          });
+
           setLoading(false);
         });
       } catch (error) {
@@ -72,6 +105,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const signIn = async (email: string, password: string): Promise<void> => {
     try {
       await firebaseSignIn(email, password);
+      getAnalyticsTracker().logUserLogin('email');
       // User state will be updated through onAuthStateChanged
     } catch (error) {
       console.error('[AuthContext] Sign in failed:', error);
@@ -82,6 +116,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const signUp = async (email: string, password: string, displayName?: string): Promise<void> => {
     try {
       await firebaseSignUp(email, password, displayName);
+      getAnalyticsTracker().logUserSignup({
+        has_display_name: Boolean(displayName),
+      });
       // User state will be updated through onAuthStateChanged
     } catch (error) {
       console.error('[AuthContext] Sign up failed:', error);
