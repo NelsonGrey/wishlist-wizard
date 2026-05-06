@@ -2,9 +2,25 @@ name: E2E Tests - Website Readiness
 
 on:
   push:
-    branches: [develop, main]
+    branches: [main]
+    paths:
+      - 'packages/web/**'
+      - 'packages/functions/**'
+      - 'packages/shared/**'
+      - 'playwright.config.ts'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/e2e-tests.yml'
   pull_request:
     branches: [develop, main]
+    paths:
+      - 'packages/web/**'
+      - 'packages/functions/**'
+      - 'packages/shared/**'
+      - 'playwright.config.ts'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/e2e-tests.yml'
   schedule:
     # Run tests daily at 2 AM ET on dev environment
     - cron: '0 7 * * *'
@@ -20,6 +36,10 @@ on:
           - development
           - staging
           - production
+
+concurrency:
+  group: e2e-tests-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   smoke-test:
@@ -107,7 +127,7 @@ jobs:
     name: Tier 1 Tests (Basic Features)
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'pull_request' && github.base_ref == 'main')
 
     steps:
       - uses: actions/checkout@v4
@@ -177,7 +197,7 @@ jobs:
     name: Production Smoke Test (Daily)
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    if: github.event.schedule == '0 7 * * *' || (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'production')
+    if: github.event.schedule == '0 7 * * *'
 
     steps:
       - uses: actions/checkout@v4

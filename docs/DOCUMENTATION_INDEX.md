@@ -1,7 +1,7 @@
 # Wishlist Wizard - Documentation Index
 
 **Version**: 1.0  
-**Last Updated**: February 27, 2026  
+**Last Updated**: May 6, 2026  
 **Owner**: Mark Nelson
 
 ---
@@ -49,6 +49,7 @@ Infrastructure and deployment:
 1. [INFRASTRUCTURE_GUIDE.md](INFRASTRUCTURE_GUIDE.md) - Cloud setup and deployment
 2. [DEPLOYMENT.md](DEPLOYMENT.md) - Deployment procedures
 3. [SECURITY_ARCHITECTURE.md](SECURITY_ARCHITECTURE.md) - Security measures and best practices
+4. [ENVIRONMENT_SECURITY_HARDENING.md](ENVIRONMENT_SECURITY_HARDENING.md) - Environment protection and deployment hardening controls
 
 ### For Project Management
 
@@ -60,6 +61,7 @@ Project overview and planning:
 4. [REQUIREMENTS.md](REQUIREMENTS.md) - Implementation status
 5. [DELIVERABLE_COMPONENT_MATRIX.md](DELIVERABLE_COMPONENT_MATRIX.md) - Component-level completion tracker for website/mobile/extension
 6. [RELEASE_SUMMARY.md](RELEASE_SUMMARY.md) - Latest incremental release notes and shipped scope
+7. [WP05_REALTIME_COLLABORATION_PLAN.md](WP05_REALTIME_COLLABORATION_PLAN.md) - WP-05 kickoff scope, acceptance criteria, and execution checklist
 
 ---
 
@@ -107,6 +109,7 @@ Project overview and planning:
 | [INFRASTRUCTURE_GUIDE.md](INFRASTRUCTURE_GUIDE.md) | Cloud setup, deployment strategy, monitoring | DevOps, SRE |
 | [DEPLOYMENT.md](DEPLOYMENT.md) | Deployment procedures and rollbacks | DevOps, Release Mgr |
 | [CICD_SETUP_GUIDE.md](CICD_SETUP_GUIDE.md) | CI/CD pipeline configuration | DevOps |
+| [ENVIRONMENT_SECURITY_HARDENING.md](ENVIRONMENT_SECURITY_HARDENING.md) | Environment hardening and non-production access controls | DevOps, Security |
 | [TROUBLESHOOTING_GUIDE.md](TROUBLESHOOTING_GUIDE.md) | Common issues and solutions | All Developers |
 
 ### Project & Product
@@ -119,6 +122,7 @@ Project overview and planning:
 | [REQUIREMENTS.md](REQUIREMENTS.md) | Feature status and implementation details | All |
 | [DELIVERABLE_COMPONENT_MATRIX.md](DELIVERABLE_COMPONENT_MATRIX.md) | Execution tracker for component completion by deliverable | Product, Engineering Leads, PM |
 | [RELEASE_SUMMARY.md](RELEASE_SUMMARY.md) | Incremental releases, shipped features, and delivery notes | Product, Engineering Leads, PM |
+| [WP05_REALTIME_COLLABORATION_PLAN.md](WP05_REALTIME_COLLABORATION_PLAN.md) | Real-time collaboration kickoff plan, risks, and acceptance checks | Product, Engineering Leads, PM |
 
 ### Platform-Specific
 

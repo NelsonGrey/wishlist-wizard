@@ -3,6 +3,7 @@ import { Helmet } from "react-helmet";
 import { apiRequest } from "@/lib/queryClient";
 import { useEffect, useMemo, useState } from "react";
 import { useLocation } from "wouter";
+import { FeatureFlags, getAnalyticsTracker, getRemoteConfig } from "@shared/firebase-utils";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import PriceAlertsList from "@/components/price-tracking/PriceAlertsList";
@@ -217,6 +218,7 @@ const computeVolatility = (prices: number[]) => {
 
 export default function PriceTracking() {
   const [, setLocation] = useLocation();
+  const remoteConfig = getRemoteConfig();
   const initialTab = useMemo<PriceTrackingTab>(() => {
     if (typeof window === "undefined") {
       return "alerts";
@@ -235,8 +237,22 @@ export default function PriceTracking() {
   }, []);
 
   const [activeTab, setActiveTab] = useState<PriceTrackingTab>(initialTab);
+  const [priceAlertsEnabled, setPriceAlertsEnabled] = useState<boolean>(true);
   const [selectedItemId, setSelectedItemId] = useState<string>("");
   const [refreshFeedback, setRefreshFeedback] = useState<string>("");
+
+  useEffect(() => {
+    const enabled = remoteConfig.isFeatureEnabled(FeatureFlags.PRICE_ALERTS_ENABLED);
+    setPriceAlertsEnabled(enabled);
+
+    if (!enabled && activeTab === "alerts") {
+      setActiveTab("drops");
+      getAnalyticsTracker().logEvent("feature_flag_blocked_view", {
+        feature_name: FeatureFlags.PRICE_ALERTS_ENABLED,
+        destination_tab: "drops",
+      });
+    }
+  }, [activeTab, remoteConfig]);
 
   // Fetch price drops
   const { data: priceDrops, isLoading: isLoadingDrops } = useQuery<PriceDropItem[]>({
@@ -401,15 +417,42 @@ export default function PriceTracking() {
           </div>
         </div>
 
-        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(isPriceTrackingTab(value) ? value : "alerts")} className="w-full">
+        <Tabs
+          value={activeTab}
+          onValueChange={(value) => {
+            if (!priceAlertsEnabled && value === "alerts") {
+              setActiveTab("drops");
+              return;
+            }
+            setActiveTab(isPriceTrackingTab(value) ? value : (priceAlertsEnabled ? "alerts" : "drops"));
+          }}
+          className="w-full"
+        >
           <TabsList className="mb-6 bg-gray-100">
-            <TabsTrigger value="alerts" className="data-[state=active]:bg-emerald-700 data-[state=active]:text-white">Your Alerts</TabsTrigger>
+            <TabsTrigger
+              value="alerts"
+              disabled={!priceAlertsEnabled}
+              className="data-[state=active]:bg-emerald-700 data-[state=active]:text-white"
+            >
+              Your Alerts
+            </TabsTrigger>
             <TabsTrigger value="drops" className="data-[state=active]:bg-emerald-700 data-[state=active]:text-white">Price Drops</TabsTrigger>
             <TabsTrigger value="intelligence" className="data-[state=active]:bg-emerald-700 data-[state=active]:text-white">Intelligence</TabsTrigger>
           </TabsList>
 
           <TabsContent value="alerts" className="space-y-6">
-            <PriceAlertsList />
+            {priceAlertsEnabled ? (
+              <PriceAlertsList />
+            ) : (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Price Alerts Are Temporarily Unavailable</CardTitle>
+                  <CardDescription>
+                    This feature is currently turned off via release controls. You can still view Price Drops and Intelligence.
+                  </CardDescription>
+                </CardHeader>
+              </Card>
+            )}
           </TabsContent>
 
           <TabsContent value="drops" className="space-y-6">

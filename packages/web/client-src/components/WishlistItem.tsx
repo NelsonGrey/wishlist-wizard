@@ -34,6 +34,7 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import ContributionDialog from "@/components/ContributionDialog";
 import PriceAlertDialog from "@/components/PriceAlertDialog";
+import { FeatureFlags, getRemoteConfig } from "@shared/firebase-utils";
 
 type WishlistItem = DbWishlistItem;
 
@@ -97,6 +98,7 @@ export default function WishlistItem({
   const isPurchased = Boolean(item.purchasedByUserId);
   const isReserved = Boolean(item.reservedByUserId);
   const isStripeReady = Boolean(String(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '').trim());
+  const priceAlertsEnabled = getRemoteConfig().isFeatureEnabled(FeatureFlags.PRICE_ALERTS_ENABLED);
   const normalizedItemId = String(item.id).replace(/[^a-zA-Z0-9_-]/g, '-');
   const itemDisplayTitle = String(item.title || 'item');
   const reservedByUserId = item.reservedByUserId == null ? null : String(item.reservedByUserId);
@@ -289,10 +291,12 @@ export default function WishlistItem({
                           Contribute
                         </DropdownMenuItem>
                       )}
-                      <DropdownMenuItem aria-label={`Set price alert for ${itemDisplayTitle}`} onSelect={handlePriceAlert} data-testid={`wishlist-item-alert-${normalizedItemId}`}>
-                        <Bell className="h-4 w-4 mr-2" aria-hidden="true" />
-                        Alert
-                      </DropdownMenuItem>
+                      {priceAlertsEnabled && (
+                        <DropdownMenuItem aria-label={`Set price alert for ${itemDisplayTitle}`} onSelect={handlePriceAlert} data-testid={`wishlist-item-alert-${normalizedItemId}`}>
+                          <Bell className="h-4 w-4 mr-2" aria-hidden="true" />
+                          Alert
+                        </DropdownMenuItem>
+                      )}
                       <DropdownMenuItem aria-label={`Copy product link for ${itemDisplayTitle}`} onSelect={handleCopyProductUrl} data-testid={`wishlist-item-copy-link-${normalizedItemId}`}>
                         {isLinkCopied ? <Check className="h-4 w-4 mr-2" aria-hidden="true" /> : <Copy className="h-4 w-4 mr-2" aria-hidden="true" />}
                         {isLinkCopied ? 'Copied!' : 'Copy Link'}
@@ -483,10 +487,12 @@ export default function WishlistItem({
                 Contribute
               </Button>
             )}
-            <Button className="w-full sm:w-auto" variant="outline" onClick={() => { setIsDetailsDialogOpen(false); handlePriceAlert(); }}>
-              <Bell className="h-4 w-4 mr-2" />
-              Alert
-            </Button>
+            {priceAlertsEnabled && (
+              <Button className="w-full sm:w-auto" variant="outline" onClick={() => { setIsDetailsDialogOpen(false); handlePriceAlert(); }}>
+                <Bell className="h-4 w-4 mr-2" />
+                Alert
+              </Button>
+            )}
             {onReserve && (
               <Button
                 className="w-full sm:w-auto"
@@ -548,12 +554,14 @@ export default function WishlistItem({
         />
       )}
 
-      <PriceAlertDialog
-        open={isPriceAlertDialogOpen}
-        onClose={() => setIsPriceAlertDialogOpen(false)}
-        item={item}
-        onAlertCreated={handleAlertCreated}
-      />
+      {priceAlertsEnabled && (
+        <PriceAlertDialog
+          open={isPriceAlertDialogOpen}
+          onClose={() => setIsPriceAlertDialogOpen(false)}
+          item={item}
+          onAlertCreated={handleAlertCreated}
+        />
+      )}
     </>
   );
 }

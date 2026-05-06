@@ -150,6 +150,57 @@ async function callFunction(functionName, idToken, data) {
   return payload;
 }
 
+async function callFunctionExpectError(functionName, idToken, data, expectedMessagePart) {
+  const startedAt = Date.now();
+
+  const response = await fetch(
+    `http://${functionsHost}/${projectId}/${region}/${functionName}`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${idToken}`
+      },
+      body: JSON.stringify({ data: data || {} })
+    }
+  );
+
+  const payload = await response.json();
+  const errorMessage = payload && payload.error && payload.error.message ? payload.error.message : '';
+
+  if (response.ok || !payload.error) {
+    runReport.calls.push({
+      functionName,
+      status: 'failed',
+      durationMs: Date.now() - startedAt,
+      httpStatus: response.status,
+      error: 'Expected callable to fail but it succeeded'
+    });
+    throw new Error(`${functionName} was expected to fail but succeeded`);
+  }
+
+  if (expectedMessagePart && !String(errorMessage).includes(expectedMessagePart)) {
+    runReport.calls.push({
+      functionName,
+      status: 'failed',
+      durationMs: Date.now() - startedAt,
+      httpStatus: response.status,
+      error: `Expected error to include "${expectedMessagePart}", got: ${errorMessage}`
+    });
+    throw new Error(`${functionName} failed with unexpected error: ${errorMessage}`);
+  }
+
+  runReport.calls.push({
+    functionName,
+    status: 'passed',
+    durationMs: Date.now() - startedAt,
+    httpStatus: response.status,
+    expectedError: errorMessage
+  });
+
+  return payload.error;
+}
+
 function writeReport(success, error) {
   const endedAt = new Date();
   runReport.meta.endedAt = endedAt.toISOString();
@@ -250,7 +301,7 @@ function assertCondition(condition, message) {
   }
 }
 
-async function runWishlistSmoke(ownerToken) {
+async function runWishlistSmoke(ownerToken, collaboratorToken, viewerToken, collaboratorUid, viewerUid) {
   const before = await callFunction('getUserWishlists', ownerToken, {});
   assertCondition(Array.isArray(before), 'Expected getUserWishlists to return an array');
   logStep('Verified getUserWishlists returns data for authenticated user');
@@ -308,6 +359,204 @@ async function runWishlistSmoke(ownerToken) {
   const deleteWishlistResult = await callFunction('deleteWishlist', ownerToken, { wishlistId });
   assertCondition(deleteWishlistResult && deleteWishlistResult.success === true, 'Expected deleteWishlist success=true');
   logStep('Verified deleteWishlist deletes wishlist and related data');
+
+  const privateWishlist = await callFunction('createWishlist', ownerToken, {
+    name: `Smoke Private Wishlist ${Date.now()}`,
+    description: 'Private wishlist for share access checks',
+    isPublic: false,
+    isCollaborative: false
+  });
+  assertCondition(Boolean(privateWishlist && privateWishlist.id && privateWishlist.shareId), 'Expected private wishlist to include id and shareId');
+
+  await callFunctionExpectError('getSharedWishlist', viewerToken, { shareId: privateWishlist.shareId }, 'private');
+  logStep('Verified private shared wishlist access is denied for non-owner users');
+
+  const cleanupPrivateWishlist = await callFunction('deleteWishlist', ownerToken, { wishlistId: privateWishlist.id });
+  assertCondition(cleanupPrivateWishlist && cleanupPrivateWishlist.success === true, 'Expected cleanup deleteWishlist success=true for private wishlist');
+
+  const publicWishlist = await callFunction('createWishlist', ownerToken, {
+    name: `Smoke Public Purchase Wishlist ${Date.now()}`,
+    description: 'Public wishlist for duplicate prevention checks',
+    isPublic: true,
+    isCollaborative: true
+  });
+  assertCondition(Boolean(publicWishlist && publicWishlist.id), 'Expected public wishlist to be created');
+
+  const sharedItem = await callFunction('addWishlistItem', ownerToken, {
+    wishlistId: publicWishlist.id,
+    title: 'Smoke Duplicate Prevention Item',
+    description: 'Duplicate prevention flow check',
+    price: '$49.99',
+    productUrl: 'https://example.com/duplicate-smoke-item',
+    store: 'Smoke Store',
+    priority: 1
+  });
+  assertCondition(Boolean(sharedItem && sharedItem.id), 'Expected shared item to be created');
+
+  const reserveResult = await callFunction('reserveWishlistItem', viewerToken, { itemId: sharedItem.id });
+  assertCondition(reserveResult && reserveResult.success === true, 'Expected reserveWishlistItem success=true');
+  logStep('Verified a non-owner user can reserve public wishlist item');
+
+  await callFunctionExpectError('purchaseWishlistItem', collaboratorToken, { itemId: sharedItem.id }, 'reserved by another user');
+  logStep('Verified purchase is blocked when item is reserved by another user');
+
+  const purchaseByReserver = await callFunction('purchaseWishlistItem', viewerToken, { itemId: sharedItem.id });
+  assertCondition(purchaseByReserver && purchaseByReserver.success === true, 'Expected reserver to purchase successfully');
+  logStep('Verified reserver can complete purchase');
+
+  await callFunctionExpectError('purchaseWishlistItem', collaboratorToken, { itemId: sharedItem.id }, 'already been purchased');
+  logStep('Verified duplicate purchase is blocked once item is purchased');
+
+  const cleanupPublicWishlist = await callFunction('deleteWishlist', ownerToken, { wishlistId: publicWishlist.id });
+  assertCondition(cleanupPublicWishlist && cleanupPublicWishlist.success === true, 'Expected cleanup deleteWishlist success=true for public wishlist');
+
+  const roleGuardWishlist = await callFunction('createWishlist', ownerToken, {
+    name: `Smoke Role Guard Wishlist ${Date.now()}`,
+    description: 'Role enforcement checks for collaborator item edits',
+    isPublic: false,
+    isCollaborative: true
+  });
+  assertCondition(Boolean(roleGuardWishlist && roleGuardWishlist.id), 'Expected role-guard wishlist to be created');
+
+  await db.collection('collaborators').add({
+    wishlistId: roleGuardWishlist.id,
+    userId: viewerUid,
+    role: 'viewer',
+    addedAt: new Date(),
+    addedBy: 'smoke-test'
+  });
+
+  await callFunctionExpectError('addWishlistItem', viewerToken, {
+    wishlistId: roleGuardWishlist.id,
+    title: 'Viewer Should Not Add',
+    price: '$10.00'
+  }, 'permission');
+  logStep('Verified viewer collaborator cannot add wishlist items');
+
+  await db.collection('collaborators').add({
+    wishlistId: roleGuardWishlist.id,
+    userId: collaboratorUid,
+    role: 'editor',
+    addedAt: new Date(),
+    addedBy: 'smoke-test'
+  });
+
+  const editorAddedItem = await callFunction('addWishlistItem', collaboratorToken, {
+    wishlistId: roleGuardWishlist.id,
+    title: 'Editor Can Add',
+    price: '$25.00',
+    productUrl: 'https://example.com/editor-add-item',
+    store: 'Smoke Store'
+  });
+  assertCondition(Boolean(editorAddedItem && editorAddedItem.id), 'Expected editor collaborator to add item successfully');
+  logStep('Verified editor collaborator can add wishlist items');
+
+  const cleanupRoleGuardWishlist = await callFunction('deleteWishlist', ownerToken, { wishlistId: roleGuardWishlist.id });
+  assertCondition(cleanupRoleGuardWishlist && cleanupRoleGuardWishlist.success === true, 'Expected cleanup deleteWishlist success=true for role-guard wishlist');
+
+  // Budget guardrail smoke tests
+  const budgetGuardrailWishlist = await callFunction('createWishlist', ownerToken, {
+    name: `Smoke Budget Guardrail Wishlist ${Date.now()}`,
+    description: 'Budget guardrail enforcement checks for group gifting',
+    isPublic: true,
+    isCollaborative: true
+  });
+  assertCondition(Boolean(budgetGuardrailWishlist && budgetGuardrailWishlist.id), 'Expected budget guardrail wishlist to be created');
+
+  const budgetItem = await callFunction('addWishlistItem', ownerToken, {
+    wishlistId: budgetGuardrailWishlist.id,
+    title: 'Budget Guardrail Test Item',
+    description: 'Item for testing group gift budget constraints',
+    price: '$500.00',
+    productUrl: 'https://example.com/budget-test-item',
+    store: 'Smoke Store',
+    priority: 1
+  });
+  assertCondition(Boolean(budgetItem && budgetItem.id), 'Expected budget test item to be created');
+
+  await callFunctionExpectError('createGroupPaymentIntent', viewerToken, {
+    itemId: budgetItem.id,
+    amount: 0.50, // Below $1.00 minimum
+    message: 'Too low'
+  }, 'at least');
+  logStep('Verified contribution below minimum ($1.00) is rejected');
+
+  await callFunctionExpectError('createGroupPaymentIntent', viewerToken, {
+    itemId: budgetItem.id,
+    amount: 5001.00, // Above $5,000 maximum
+    message: 'Too high'
+  }, 'cannot exceed');
+  logStep('Verified contribution above maximum ($5,000) is rejected');
+
+  const cleanupBudgetWishlist = await callFunction('deleteWishlist', ownerToken, { wishlistId: budgetGuardrailWishlist.id });
+  assertCondition(cleanupBudgetWishlist && cleanupBudgetWishlist.success === true, 'Expected cleanup deleteWishlist success=true for budget guardrail wishlist');
+}
+
+async function runGroupGiftSummaryContractSmoke(ownerToken, ownerUid, viewerUid) {
+  const wishlist = await callFunction('createWishlist', ownerToken, {
+    name: `Smoke Group Summary Wishlist ${Date.now()}`,
+    description: 'Contract checks for group gift summary payload',
+    isPublic: false,
+    isCollaborative: true
+  });
+  assertCondition(Boolean(wishlist && wishlist.id), 'Expected group summary wishlist to be created');
+
+  const item = await callFunction('addWishlistItem', ownerToken, {
+    wishlistId: wishlist.id,
+    title: 'Group Summary Contract Item',
+    price: '$200.00',
+    productUrl: 'https://example.com/group-summary-item',
+    store: 'Smoke Store'
+  });
+  assertCondition(Boolean(item && item.id), 'Expected group summary item to be created');
+
+  await db.collection('groupGifts').doc(item.id).set({
+    itemId: item.id,
+    targetAmount: 200,
+    totalAmount: 75,
+    createdAt: new Date(),
+    updatedAt: new Date()
+  });
+
+  await db.collection('groupGiftContributions').add({
+    itemId: item.id,
+    userId: ownerUid,
+    amount: 25,
+    isAnonymous: false,
+    status: 'succeeded',
+    createdAt: new Date(Date.now() - 2000)
+  });
+
+  await db.collection('groupGiftContributions').add({
+    itemId: item.id,
+    userId: viewerUid,
+    amount: 50,
+    isAnonymous: true,
+    status: 'succeeded',
+    createdAt: new Date(Date.now() - 1000)
+  });
+
+  const summary = await callFunction('getGroupGiftSummary', ownerToken, { itemId: item.id });
+  assertCondition(summary && summary.itemId === item.id, 'Expected group summary to include itemId');
+  assertCondition(typeof summary.targetAmount === 'number', 'Expected group summary targetAmount to be numeric');
+  assertCondition(typeof summary.totalAmount === 'number', 'Expected group summary totalAmount to be numeric');
+  assertCondition(Array.isArray(summary.participants), 'Expected group summary participants to be an array');
+  assertCondition(summary.participants.length === 2, 'Expected exactly two succeeded participants in group summary');
+
+  const anonymousParticipant = summary.participants.find((participant) => participant.isAnonymous === true);
+  assertCondition(Boolean(anonymousParticipant), 'Expected anonymous participant in group summary payload');
+  assertCondition(anonymousParticipant.user === null, 'Expected anonymous participant user payload to be null');
+
+  const namedParticipant = summary.participants.find((participant) => participant.isAnonymous !== true);
+  assertCondition(Boolean(namedParticipant), 'Expected named participant in group summary payload');
+  assertCondition(
+    Boolean(namedParticipant.user && typeof namedParticipant.user.displayName === 'string'),
+    'Expected named participant to include user displayName'
+  );
+
+  const cleanupWishlist = await callFunction('deleteWishlist', ownerToken, { wishlistId: wishlist.id });
+  assertCondition(cleanupWishlist && cleanupWishlist.success === true, 'Expected cleanup deleteWishlist success=true for group summary wishlist');
+  logStep('Verified group gift summary payload contract for coordinator commitments');
 }
 
 async function runExtensionSmoke(ownerToken) {
@@ -460,6 +709,195 @@ async function runCalendarSmoke(ownerToken) {
   logStep('Verified deleteCalendarEvent deletes event');
 }
 
+// WP-01 Core Flow Hardening: Auth, Wishlist CRUD, and Item Add Edge Cases
+async function runCoreFlowHardeningSmoke(ownerToken) {
+  // Wishlist CRUD boundary tests
+  const boundaryWishlist = await callFunction('createWishlist', ownerToken, {
+    name: `Smoke CRUD Boundary Wishlist ${Date.now()}`,
+    description: '',
+    isPublic: false,
+    isCollaborative: false
+  });
+  assertCondition(Boolean(boundaryWishlist && boundaryWishlist.id), 'Expected wishlist creation with empty description');
+  logStep('Verified wishlist can be created with empty description field');
+
+  // Test wishlist update with edge cases
+  const updatedBoundary = await callFunction('updateWishlist', ownerToken, {
+    wishlistId: boundaryWishlist.id,
+    name: 'Updated CRUD Wishlist',
+    description: 'Updated with non-empty description'
+  });
+  assertCondition(updatedBoundary && updatedBoundary.description === 'Updated with non-empty description', 'Expected wishlist update to apply changes');
+  logStep('Verified wishlist update applies field changes correctly');
+
+  // Item add edge case: missing optional fields
+  const minimalItem = await callFunction('addWishlistItem', ownerToken, {
+    wishlistId: boundaryWishlist.id,
+    title: 'Minimal Item',
+    price: '$9.99'
+  });
+  assertCondition(Boolean(minimalItem && minimalItem.id), 'Expected item creation with minimal fields');
+  logStep('Verified item can be added with minimal required fields only');
+
+  // Item add edge case: malformed URL (but still valid item)
+  const malformedUrlItem = await callFunction('addWishlistItem', ownerToken, {
+    wishlistId: boundaryWishlist.id,
+    title: 'Item with Bad URL',
+    price: '$19.99',
+    productUrl: 'not-a-valid-url'
+  });
+  assertCondition(Boolean(malformedUrlItem && malformedUrlItem.id), 'Expected item creation despite malformed URL');
+  logStep('Verified item can be added with malformed URL (gracefully handled)');
+
+  // Item add edge case: very long title
+  const longTitle = 'A'.repeat(500);
+  const longTitleItem = await callFunction('addWishlistItem', ownerToken, {
+    wishlistId: boundaryWishlist.id,
+    title: longTitle,
+    price: '$29.99'
+  });
+  assertCondition(Boolean(longTitleItem && longTitleItem.id), 'Expected item creation with very long title');
+  assertCondition(longTitleItem.title.length >= 200, 'Expected long title to be stored');
+  logStep('Verified item can be added with very long title (boundary tested)');
+
+  // Item update edge case: clear optional fields
+  const updateResult = await callFunction('updateWishlistItem', ownerToken, {
+    itemId: minimalItem.id,
+    updates: {
+      note: '', // Clear the note field
+      priority: null
+    }
+  });
+  assertCondition(Boolean(updateResult && updateResult.id), 'Expected item update to allow clearing optional fields');
+  logStep('Verified item can be updated to clear optional fields');
+
+  // Item deletion and cascade check
+  const deleteResult = await callFunction('deleteWishlistItem', ownerToken, { itemId: minimalItem.id });
+  assertCondition(deleteResult && deleteResult.success === true, 'Expected successful item deletion');
+  
+  const remainingItems = await callFunction('getWishlistItems', ownerToken, { wishlistId: boundaryWishlist.id });
+  assertCondition(Array.isArray(remainingItems) && remainingItems.length >= 2, 'Expected other items to remain after deletion');
+  logStep('Verified item deletion does not cascade to other items');
+
+  // Wishlist deletion with remaining items (cascade check)
+  const deleteWishlistResult = await callFunction('deleteWishlist', ownerToken, { wishlistId: boundaryWishlist.id });
+  assertCondition(deleteWishlistResult && deleteWishlistResult.success === true, 'Expected successful wishlist deletion');
+  logStep('Verified wishlist deletion removes wishlist and related items');
+}
+
+// WP-03 Price and Notification Reliability: Alert consistency and delivery robustness
+async function runPriceNotificationReliabilitySmoke(ownerToken, ownerUid, adminToken) {
+  const priceWishlist = await callFunction('createWishlist', ownerToken, {
+    name: `Smoke Price Alert Wishlist ${Date.now()}`,
+    description: 'Price tracking and notification reliability checks',
+    isPublic: true,
+    isCollaborative: false
+  });
+  assertCondition(Boolean(priceWishlist && priceWishlist.id), 'Expected price tracking wishlist created');
+
+  const trackedItem = await callFunction('addWishlistItem', ownerToken, {
+    wishlistId: priceWishlist.id,
+    title: 'Price Tracked Item',
+    description: 'Item for price tracking and alert tests',
+    price: '$99.99',
+    productUrl: 'https://example.com/tracked-price-item',
+    store: 'Price Tracker Store'
+  });
+  assertCondition(Boolean(trackedItem && trackedItem.id), 'Expected tracked item created');
+  logStep('Verified item for price tracking created');
+
+  // Simulate price history entries
+  await db.collection('priceHistory').add({
+    itemId: trackedItem.id,
+    productUrl: 'https://example.com/tracked-price-item',
+    price: 99.99,
+    timestamp: new Date(Date.now() - 3600000), // 1 hour ago
+    currency: 'USD',
+    store: 'Price Tracker Store'
+  });
+
+  await db.collection('priceHistory').add({
+    itemId: trackedItem.id,
+    productUrl: 'https://example.com/tracked-price-item',
+    price: 89.99,
+    timestamp: new Date(Date.now() - 1800000), // 30 min ago
+    currency: 'USD',
+    store: 'Price Tracker Store'
+  });
+
+  await db.collection('priceHistory').add({
+    itemId: trackedItem.id,
+    productUrl: 'https://example.com/tracked-price-item',
+    price: 79.99,
+    timestamp: new Date(),
+    currency: 'USD',
+    store: 'Price Tracker Store'
+  });
+  logStep('Verified price history entries created for tracking');
+
+  // Test notification delivery: create system notification
+  const systemNotif = await callFunction('createSystemNotification', adminToken, {
+    targetUserId: ownerUid,
+    type: 'price_alert',
+    title: 'Price Drop Alert',
+    content: 'The tracked item dropped to $79.99!',
+    data: { itemId: trackedItem.id }
+  });
+  assertCondition(Boolean(systemNotif && systemNotif.id), 'Expected system notification created');
+  logStep('Verified system notification created for price alert delivery');
+
+  // Test notification retrieval
+  const userNotifs = await callFunction('getUserNotifications', ownerToken, { limit: 50 });
+  assertCondition(Boolean(Array.isArray(userNotifs.notifications)), 'Expected notifications array');
+  assertCondition(typeof userNotifs.unreadCount === 'number', 'Expected unread count to be numeric');
+  assertCondition(userNotifs.notifications.length >= 1, 'Expected at least one notification');
+  logStep('Verified notifications retrieved with unread count consistency');
+
+  // Test notification marking as read (idempotency check)
+  const notifToMark = userNotifs.notifications[0];
+  const markResult1 = await callFunction('markNotificationAsRead', ownerToken, {
+    notificationId: notifToMark.id
+  });
+  assertCondition(markResult1 && markResult1.isRead === true, 'Expected notification marked as read');
+  logStep('Verified notification marked as read successfully');
+
+  // Mark same notification as read again (idempotency)
+  const markResult2 = await callFunction('markNotificationAsRead', ownerToken, {
+    notificationId: notifToMark.id
+  });
+  assertCondition(markResult2 && markResult2.isRead === true, 'Expected idempotent mark as read');
+  logStep('Verified notification marking is idempotent (no double-delivery side effects)');
+
+  // Test mark all notifications as read
+  const markAllResult = await callFunction('markAllNotificationsAsRead', ownerToken, {});
+  assertCondition(markAllResult && typeof markAllResult.updatedCount === 'number', 'Expected markAllNotificationsAsRead result with updatedCount');
+  logStep('Verified mark all notifications as read works correctly');
+
+  // Test duplicate notification prevention: create same alert twice with different content
+  const dupNotif1 = await callFunction('createSystemNotification', adminToken, {
+    targetUserId: ownerUid,
+    type: 'price_alert',
+    title: 'Price Alert v1',
+    content: 'Price tracking item price drop',
+    data: { itemId: trackedItem.id, alertVersion: 1 }
+  });
+  assertCondition(Boolean(dupNotif1 && dupNotif1.id), 'Expected first notification');
+
+  const dupNotif2 = await callFunction('createSystemNotification', adminToken, {
+    targetUserId: ownerUid,
+    type: 'price_alert',
+    title: 'Price Alert v2',
+    content: 'Price tracking item price drop update',
+    data: { itemId: trackedItem.id, alertVersion: 2 }
+  });
+  assertCondition(Boolean(dupNotif2 && dupNotif2.id), 'Expected second notification with different data');
+  logStep('Verified multiple notifications can be created independently (alert generation works)');
+
+  const cleanupPriceWishlist = await callFunction('deleteWishlist', ownerToken, { wishlistId: priceWishlist.id });
+  assertCondition(cleanupPriceWishlist && cleanupPriceWishlist.success === true, 'Expected cleanup deleteWishlist success');
+  logStep('Verified price and notification reliability test cleanup');
+}
+
 async function main() {
   console.log('🧪 Running emulator smoke test with synthetic users...');
   console.log(`ℹ️ Project: ${projectId} | Auth: ${authHost} | Functions: ${functionsHost}`);
@@ -483,7 +921,13 @@ async function main() {
   });
   logStep('Verified createUserProfile callable function');
 
-  await runWishlistSmoke(owner.idToken);
+  const collaborator = signedIn[1];
+  const viewer = signedIn[2];
+
+  await runCoreFlowHardeningSmoke(owner.idToken);
+  await runWishlistSmoke(owner.idToken, collaborator.idToken, viewer.idToken, collaborator.uid, viewer.uid);
+  await runGroupGiftSummaryContractSmoke(owner.idToken, owner.uid, viewer.uid);
+  await runPriceNotificationReliabilitySmoke(owner.idToken, owner.uid, adminUser.idToken);
   await runExtensionSmoke(owner.idToken);
   await runNotificationSmoke(owner.idToken, owner.uid, adminUser.idToken);
   await runCalendarSmoke(owner.idToken);

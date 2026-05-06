@@ -18,14 +18,69 @@
       "**/.*",
       "**/node_modules/**"
     ],
-    "rewrites": [
+    "redirects": [
       {
         "source": "/api/**",
-        "function": {
-          "functionId": "api",
-          "region": "us-central1"
-        }
+        "destination": "/"
       },
+      {
+        "source": "/app/**",
+        "destination": "/"
+      },
+      {
+        "source": "/login",
+        "destination": "/"
+      },
+      {
+        "source": "/register",
+        "destination": "/"
+      },
+      {
+        "source": "/forgot-password",
+        "destination": "/"
+      },
+      {
+        "source": "/reset-password",
+        "destination": "/"
+      },
+      {
+        "source": "/verify-email",
+        "destination": "/"
+      },
+      {
+        "source": "/dashboard",
+        "destination": "/"
+      },
+      {
+        "source": "/wishlists/**",
+        "destination": "/"
+      },
+      {
+        "source": "/user-profile",
+        "destination": "/"
+      },
+      {
+        "source": "/recommendations",
+        "destination": "/"
+      },
+      {
+        "source": "/calendar",
+        "destination": "/"
+      },
+      {
+        "source": "/notifications",
+        "destination": "/"
+      },
+      {
+        "source": "/privacy-settings",
+        "destination": "/"
+      },
+      {
+        "source": "/shared/**",
+        "destination": "/"
+      }
+    ],
+    "rewrites": [
       {
         "source": "**",
         "destination": "/index.html"

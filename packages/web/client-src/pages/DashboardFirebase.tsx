@@ -10,8 +10,8 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { SidebarAd } from "@/components/ads";
-import { Wishlist as DbWishlist } from "@wishlist-wizard/shared";
-import { useWishlists } from "@/hooks/useFirebaseData";
+import { Wishlist as DbWishlist, toCollaborationActivityEvent } from "@wishlist-wizard/shared";
+import { useNotifications, useWishlists } from "@/hooks/useFirebaseData";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 // Extended type for UI purposes that includes computed fields
@@ -66,6 +66,23 @@ const calculateNextOccurrence = (baseDate: Date, recurrence?: string | null): Da
   return next;
 };
 
+const formatRelativeTime = (value: unknown): string => {
+  const date = value instanceof Date ? value : new Date(value as string | number | Date);
+  if (Number.isNaN(date.getTime())) {
+    return 'Just now';
+  }
+
+  const minutes = Math.max(0, Math.floor((Date.now() - date.getTime()) / 60000));
+  if (minutes < 1) return 'Just now';
+  if (minutes < 60) return `${minutes}m ago`;
+
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+
+  const days = Math.floor(hours / 24);
+  return `${days}d ago`;
+};
+
 export default function Dashboard() {
   const [, setLocation] = useLocation();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
@@ -82,6 +99,10 @@ export default function Dashboard() {
     error: firebaseError,
     createWishlist: createFirebaseWishlist
   } = useWishlists();
+  const {
+    notifications: liveNotifications,
+    loading: notificationsLoading,
+  } = useNotifications(20);
 
   // Traditional API-based data fetching
   const { 
@@ -237,6 +258,10 @@ export default function Dashboard() {
   }, [wishlists, selectedWishlistId]);
 
   const selectedWishlist = wishlists?.find((wishlist) => wishlist.id === selectedWishlistId) ?? null;
+  const collaborationNotifications = (liveNotifications || [])
+    .map((notification) => toCollaborationActivityEvent(notification as Record<string, unknown>))
+    .filter((notification): notification is NonNullable<typeof notification> => notification !== null)
+    .slice(0, 5);
   const selectedCreatedAt = selectedWishlist
     ? new Date(selectedWishlist.createdAt).toLocaleDateString('en-US', {
         year: 'numeric',
@@ -495,6 +520,34 @@ export default function Dashboard() {
                   </div>
                 </div>
               </div>
+
+              {useFirebase && (
+                <Card className="mb-6" data-testid="dashboard-live-collab-card">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base flex items-center justify-between">
+                      <span>Live Collaboration Activity</span>
+                      <Badge variant="secondary" className="text-xs bg-orange-100 text-orange-800">Live</Badge>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {notificationsLoading ? (
+                      <p className="text-sm text-gray-500">Syncing activity...</p>
+                    ) : collaborationNotifications.length > 0 ? (
+                      <div className="space-y-3">
+                        {collaborationNotifications.map((notification) => (
+                          <div key={String(notification.id)} className="border-b last:border-b-0 pb-2 last:pb-0">
+                            <p className="text-sm font-medium text-gray-900 line-clamp-1">{notification.title || 'Collaboration update'}</p>
+                            <p className="text-xs text-gray-500 line-clamp-2">{notification.content || 'A wishlist activity update is available.'}</p>
+                            <p className="text-xs text-gray-400 mt-1">{formatRelativeTime(notification.createdAt)}</p>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-gray-500">No collaboration activity yet.</p>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
               
               {/* Ad placement */}
               <SidebarAd />

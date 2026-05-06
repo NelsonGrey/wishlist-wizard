@@ -5,6 +5,8 @@ import { render } from '../../utils';
 import WishlistItem from '@/components/WishlistItem';
 import { WishlistItem as WishlistItemType } from '@wishlist-wizard/shared';
 
+let isPriceAlertsEnabled = true;
+
 vi.mock('@/components/ContributionDialog', () => ({
   default: () => null,
 }));
@@ -12,6 +14,20 @@ vi.mock('@/components/ContributionDialog', () => ({
 vi.mock('@/components/PriceAlertDialog', () => ({
   default: () => null,
 }));
+
+vi.mock('@shared/firebase-utils', async () => {
+  const actual = await vi.importActual<typeof import('@shared/firebase-utils')>('@shared/firebase-utils');
+  return {
+    ...actual,
+    FeatureFlags: {
+      ...actual.FeatureFlags,
+      PRICE_ALERTS_ENABLED: 'price_alerts_enabled',
+    },
+    getRemoteConfig: () => ({
+      isFeatureEnabled: () => isPriceAlertsEnabled,
+    }),
+  };
+});
 
 describe('WishlistItem Component', () => {
   let writeTextMock: ReturnType<typeof vi.fn>;
@@ -50,6 +66,7 @@ describe('WishlistItem Component', () => {
   
   beforeEach(() => {
     vi.clearAllMocks();
+    isPriceAlertsEnabled = true;
     writeTextMock = vi.fn().mockResolvedValue(undefined);
     Object.defineProperty(navigator, 'clipboard', {
       value: {
@@ -378,5 +395,25 @@ describe('WishlistItem Component', () => {
 
     expect(screen.getByRole('button', { name: 'Reserving...' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Marking...' })).toBeInTheDocument();
+  });
+
+  it('should hide price alert actions when remote config disables price alerts', async () => {
+    isPriceAlertsEnabled = false;
+
+    render(
+      <WishlistItem
+        item={mockItem}
+        onDelete={mockOnDelete}
+      />
+    );
+
+    const user = userEvent.setup();
+    await user.click(screen.getByTestId('wishlist-item-more-1'));
+    expect(screen.queryByTestId('wishlist-item-alert-1')).not.toBeInTheDocument();
+
+    await user.keyboard('{Escape}');
+    await user.click(screen.getByRole('button', { name: /details/i }));
+
+    expect(screen.queryByRole('button', { name: 'Alert' })).not.toBeInTheDocument();
   });
 });

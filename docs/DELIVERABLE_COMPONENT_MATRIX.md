@@ -1,7 +1,7 @@
 # Deliverable Component Completion Matrix
 
 **Version**: 1.0  
-**Last Updated**: March 6, 2026  
+**Last Updated**: May 6, 2026  
 **Purpose**: Single execution tracker for the 3 production deliverables.
 
 ---
@@ -111,7 +111,8 @@ A component is ✅ only when all are true:
 - [ ] Notifications and wishlist CRUD core flows manually verified
 - [x] Build/check commands pass for web workspace
 - [ ] Persona outcome coverage reviewed against `docs/DESIGN_EXECUTION_MATRIX.md` (P0/P1 rows)
-- [ ] Design linkage validation passes (`npm run requirements:verify`) with 0 enforced design-link failures
+- [x] Design linkage validation passes (`npm run requirements:verify`) with 0 enforced design-link failures
+- [ ] Production post-deploy validation workflow completed for current release candidate (`production-validation`)
 - [ ] Ad monetization KPI gate reviewed from `/api/analytics/ad-revenue-summary` (trailing 7 days)
 - [ ] Viewable impressions >= 1,000 and viewability rate >= 60%
 - [ ] Estimated ad revenue >= $5.00 and ad config/render errors are not increasing week-over-week
@@ -203,6 +204,6 @@ npm run test -- --run
 
 | Deliverable | Owner | Backup | Last Reviewed |
 |---|---|---|---|
-| Website | Mark Nelson | Web Engineering Lead | 2026-02-20 |
-| Mobile apps | Mark Nelson | Mobile Engineering Lead | 2026-02-20 |
-| Browser extension | Mark Nelson | Extension Engineering Lead | 2026-02-20 |
+| Website | Mark Nelson | Web Engineering Lead | 2026-05-06 |
+| Mobile apps | Mark Nelson | Mobile Engineering Lead | 2026-05-06 |
+| Browser extension | Mark Nelson | Extension Engineering Lead | 2026-05-06 |

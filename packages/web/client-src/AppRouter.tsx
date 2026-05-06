@@ -2,9 +2,10 @@ import { Router, Route, Switch, useLocation } from "wouter";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { Suspense, lazy, useEffect } from "react";
+import { Suspense, lazy, useEffect, useRef } from "react";
+import { getAnalyticsTracker } from "@shared/firebase-utils";
 import { useAuth } from "./contexts/AuthContext";
-import { initGA } from "./lib/analytics";
+import { initGA, trackPageView } from "./lib/analytics";
 import { AuthProvider } from "./contexts/AuthContext";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 import { queryClient } from "./lib/queryClient";
@@ -50,6 +51,23 @@ function Redirect({ to }: { to: string }) {
   return null;
 }
 
+function AnalyticsRouteTracker() {
+  const [location] = useLocation();
+  const hasTrackedInitialRoute = useRef(false);
+
+  useEffect(() => {
+    if (!hasTrackedInitialRoute.current) {
+      hasTrackedInitialRoute.current = true;
+      return;
+    }
+
+    getAnalyticsTracker().logPageView(location, document.title);
+    trackPageView(location);
+  }, [location]);
+
+  return null;
+}
+
 // Determine which layout to use based on current route
 function LayoutRouter({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
@@ -73,6 +91,9 @@ function LayoutRouter({ children }: { children: React.ReactNode }) {
 }
 
 function AppRouter() {
+  const environment = String(import.meta.env.VITE_ENVIRONMENT || import.meta.env.MODE || 'development').toLowerCase();
+  const isProductionEnvironment = environment === 'production';
+
   // Initialize Google Analytics when app loads
   useEffect(() => {
     // Initialize GA if key is provided (no warning if missing)
@@ -88,12 +109,13 @@ function AppRouter() {
         <TooltipProvider>
           <Toaster />
           <Router>
+            <AnalyticsRouteTracker />
             <LayoutRouter>
               <Suspense fallback={null}>
                 <Switch>
                   {/* Public Pages - Marketing Site */}
                   <Route path="/" component={Home} />
-                <Route path="/extension" component={ExtensionPage} />
+                  <Route path="/extension" component={ExtensionPage} />
                     <Route path="/about" component={About} />
                     <Route path="/blog" component={Blog} />
                     <Route path="/contact" component={Contact} />
@@ -110,6 +132,8 @@ function AppRouter() {
                     {/* Redirect legacy marketing route to homepage */}
                     <Route path="/price-tracking" component={() => <Redirect to="/" />} />
 
+                  {!isProductionEnvironment && (
+                    <>
                   {/* Auth Pages */}
                   <Route path="/login" component={Login} />
                   <Route path="/register" component={Register} />
@@ -242,6 +266,25 @@ function AppRouter() {
                   <Route path="/notifications" component={() => <Redirect to="/app/notifications" />} />
                   <Route path="/privacy-settings" component={() => <Redirect to="/app/privacy-settings" />} />
                   <Route path="/analytics" component={() => <Redirect to="/app/analytics" />} />
+                    </>
+                  )}
+
+                  {isProductionEnvironment && (
+                    <>
+                      <Route path="/app/:rest*" component={() => <Redirect to="/" />} />
+                      <Route path="/dashboard" component={() => <Redirect to="/" />} />
+                      <Route path="/wishlists" component={() => <Redirect to="/" />} />
+                      <Route path="/dashboard-firebase" component={() => <Redirect to="/" />} />
+                      <Route path="/user-profile" component={() => <Redirect to="/" />} />
+                      <Route path="/wishlist/:id" component={() => <Redirect to="/" />} />
+                      <Route path="/shared/:shareId" component={() => <Redirect to="/" />} />
+                      <Route path="/login" component={() => <Redirect to="/" />} />
+                      <Route path="/register" component={() => <Redirect to="/" />} />
+                      <Route path="/forgot-password" component={() => <Redirect to="/" />} />
+                      <Route path="/reset-password" component={() => <Redirect to="/" />} />
+                      <Route path="/verify-email" component={() => <Redirect to="/" />} />
+                    </>
+                  )}
 
                   {/* 404 */}
                   <Route component={NotFound} />

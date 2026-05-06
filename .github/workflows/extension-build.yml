@@ -2,7 +2,7 @@ name: Build & Test Browser Extension
 
 on:
   push:
-    branches: [main, develop]
+    branches: [main]
     paths:
       - 'packages/browser-extension/**'
       - 'packages/shared/**'
@@ -13,6 +13,10 @@ on:
       - 'packages/browser-extension/**'
       - 'packages/shared/**'
   workflow_dispatch:
+
+concurrency:
+  group: extension-build-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build:

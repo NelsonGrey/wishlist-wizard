@@ -95,6 +95,25 @@ NODE
     export VITE_FIREBASE_MEASUREMENT_ID="$FW_MEASUREMENT_ID"
     export VITE_ENVIRONMENT="$environment"
 
+    local non_prod_password=""
+    case "$env_upper" in
+        DEVELOPMENT)
+            non_prod_password="${NON_PROD_SITE_PASSWORD_DEVELOPMENT:-}"
+            ;;
+        DEMONSTRATION)
+            non_prod_password="${NON_PROD_SITE_PASSWORD_DEMONSTRATION:-}"
+            ;;
+        STAGING)
+            non_prod_password="${NON_PROD_SITE_PASSWORD_STAGING:-}"
+            ;;
+    esac
+
+    if [[ -n "$non_prod_password" ]]; then
+        export VITE_NON_PROD_SITE_PASSWORD="$non_prod_password"
+    else
+        unset VITE_NON_PROD_SITE_PASSWORD || true
+    fi
+
     log_info "Loaded Firebase web config for $environment from ${project_id}.web.app"
 }
 
@@ -113,6 +132,9 @@ resolve_environment() {
             ;;
         staging)
             echo "staging"
+            ;;
+        demonstration)
+            echo "demonstration"
             ;;
         develop)
             echo "development"
@@ -133,11 +155,14 @@ resolve_project_alias() {
         staging)
             echo "staging"
             ;;
+        demonstration)
+            echo "demonstration"
+            ;;
         development)
             echo "development"
             ;;
         *)
-            log_error "Invalid environment '$environment'. Use: development | staging | production"
+            log_error "Invalid environment '$environment'. Use: development | demonstration | staging | production"
             return 1
             ;;
     esac
@@ -249,9 +274,9 @@ show_usage() {
     echo "  package-ext     Create Chrome extension package"
     echo "  help            Show this help message"
     echo ""
-    echo "Environment (optional): development | staging | production"
+    echo "Environment (optional): development | demonstration | staging | production"
     echo "If omitted, environment is inferred from current branch:"
-    echo "  develop -> development, staging -> staging, main -> production"
+    echo "  develop -> development, demonstration -> demonstration, staging -> staging, main -> production"
     echo ""
     echo "Examples:"
     echo "  $0 build"

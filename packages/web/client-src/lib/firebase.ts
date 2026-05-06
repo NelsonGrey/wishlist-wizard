@@ -2,7 +2,13 @@
 // This module safely initializes Firebase using the shared FirebaseClient.
 // All imports are tree-shakeable.
 
-import { FirebaseClient } from '@shared/firebase-utils';
+import {
+  FirebaseClient,
+  getAnalyticsTracker,
+  getRemoteConfig,
+  initializeAnalytics,
+  initializeRemoteConfig,
+} from '@shared/firebase-utils';
 import type { User, Auth } from 'firebase/auth';
 import type { FirebaseApp } from 'firebase/app';
 import type { Firestore } from 'firebase/firestore';
@@ -233,6 +239,8 @@ let firebaseClient: FirebaseClient | null = null;
 export let firebaseApp: FirebaseApp | null = null;
 export let firebaseAuth: Auth | null = null;
 export let firebaseFirestore: Firestore | null = null;
+let analyticsInitialized = false;
+let remoteConfigInitialized = false;
 
 function ensureFirebaseCoreInitialized(): boolean {
   if (firebaseClient) {
@@ -263,6 +271,7 @@ export async function initFirebase(options?: {
   enableMessaging?: boolean;
   enableAuth?: boolean;
   enableFirestore?: boolean;
+  enableRemoteConfig?: boolean;
 }) {
   await loadRuntimeFirebaseConfigFromHosting();
 
@@ -299,12 +308,31 @@ export async function initFirebase(options?: {
     }
   }
 
+  if (options?.enableAnalytics && !analyticsInitialized) {
+    initializeAnalytics();
+    analyticsInitialized = true;
+
+    if (import.meta.env.DEV) {
+      console.log('[firebase] Analytics tracker initialized');
+    }
+  }
+
+  if (options?.enableRemoteConfig && !remoteConfigInitialized) {
+    await initializeRemoteConfig();
+    remoteConfigInitialized = true;
+
+    if (import.meta.env.DEV) {
+      console.log('[firebase] Remote Config initialized');
+    }
+  }
+
   return {
     app: client.app,
-    analytics: null, // Analytics not handled by FirebaseClient yet
+    analytics: analyticsInitialized ? getAnalyticsTracker() : null,
     messaging: null, // Messaging not handled by FirebaseClient yet
     auth: client.auth,
-    firestore: client.firestore
+    firestore: client.firestore,
+    remoteConfig: remoteConfigInitialized ? getRemoteConfig() : null,
   };
 }
 

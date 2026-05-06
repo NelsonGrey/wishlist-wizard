@@ -352,6 +352,37 @@ test.describe('Tier 1: Basic Features', () => {
     }
   });
 
+  test('T1.12b: Private Shared Wishlist Denies Anonymous Access', async () => {
+    await ensureAuthenticated(page);
+    await ensureWishlistExists(page, primaryWishlistName);
+
+    const opened = await openPrimaryWishlistFromDashboard();
+    if (!opened) return;
+
+    const url = await getShareLinkFromOpenWishlist();
+    if (!url) return;
+
+    const anonymousContext = await page.context().browser()?.newContext();
+    if (!anonymousContext) return;
+
+    const anonymousPage = await anonymousContext.newPage();
+    await anonymousPage.goto(url);
+
+    const accessRestricted = anonymousPage.getByText(/Access Restricted|private/i).first();
+    const failedLoad = anonymousPage.getByText(/Failed to load shared wishlist/i).first();
+
+    const isAccessRestrictedVisible = await accessRestricted.isVisible().catch(() => false);
+    const isFailedLoadVisible = await failedLoad.isVisible().catch(() => false);
+    expect(isAccessRestrictedVisible || isFailedLoadVisible).toBeTruthy();
+
+    await anonymousContext.close();
+  });
+
+  test('T1.12c: Shared Route Guards Malformed Share IDs', async () => {
+    await page.goto('/shared/bad.share.id');
+    await expect(page.getByText(/Invalid share link/i)).toBeVisible({ timeout: 5000 });
+  });
+
   test('T1.13: Save/Update Notification Settings', async () => {
     const isAuthenticated = await ensureAuthenticated(page);
     if (!isAuthenticated) {
