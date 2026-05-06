@@ -9,6 +9,7 @@ import { initGA, trackPageView } from "./lib/analytics";
 import { AuthProvider } from "./contexts/AuthContext";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 import { queryClient } from "./lib/queryClient";
+import EnvironmentPasswordGate from "./components/security/EnvironmentPasswordGate";
 
 // Layouts
 import PublicLayout from "./components/layout/PublicLayout";
@@ -90,6 +91,23 @@ function LayoutRouter({ children }: { children: React.ReactNode }) {
   return <PublicLayout>{children}</PublicLayout>;
 }
 
+function NonHomeEnvironmentGate({ children }: { children: React.ReactNode }) {
+  const [location] = useLocation();
+  const environment = String(import.meta.env.VITE_ENVIRONMENT || import.meta.env.MODE || 'development').toLowerCase();
+  const nonProdPassword = String(import.meta.env.VITE_NON_PROD_SITE_PASSWORD || '');
+  const normalizedPath = String(location || '/').split('?')[0] || '/';
+
+  if (normalizedPath === '/') {
+    return <>{children}</>;
+  }
+
+  return (
+    <EnvironmentPasswordGate environment={environment} requiredPassword={nonProdPassword}>
+      {children}
+    </EnvironmentPasswordGate>
+  );
+}
+
 function AppRouter() {
   const environment = String(import.meta.env.VITE_ENVIRONMENT || import.meta.env.MODE || 'development').toLowerCase();
   const isProductionEnvironment = environment === 'production';
@@ -111,8 +129,9 @@ function AppRouter() {
           <Router>
             <AnalyticsRouteTracker />
             <LayoutRouter>
-              <Suspense fallback={null}>
-                <Switch>
+              <NonHomeEnvironmentGate>
+                <Suspense fallback={null}>
+                  <Switch>
                   {/* Public Pages - Marketing Site */}
                   <Route path="/" component={Home} />
                   <Route path="/extension" component={ExtensionPage} />
@@ -288,8 +307,9 @@ function AppRouter() {
 
                   {/* 404 */}
                   <Route component={NotFound} />
-                </Switch>
-              </Suspense>
+                  </Switch>
+                </Suspense>
+              </NonHomeEnvironmentGate>
             </LayoutRouter>
           </Router>
         </TooltipProvider>
