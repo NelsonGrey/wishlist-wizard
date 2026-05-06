@@ -26,9 +26,12 @@
     "preflight:extension": "./scripts/extension-release-preflight.sh",
     "preflight:mobile": "./scripts/mobile-release-preflight.sh",
     "go-live:check": "./scripts/release-readiness-check.sh",
-    "test:users:smoke": "node scripts/check-java21.mjs && npm run build --workspace=functions && npx --yes firebase-tools emulators:exec --project wishlist-wizard --only auth,firestore,functions \"node packages/functions/scripts/emulator-smoke-users.cjs\"",
+    "test:users:smoke": "node scripts/check-java21.mjs && npm run build --workspace=functions && npx --yes firebase-tools emulators:exec --project wishlist-wizard --only auth,firestore,functions \"node packages/functions/scripts/emulator-smoke-users.cjs\" && npm run test:functions:smoke:firebase-features",
     "test:users:smoke:live": "npm run build --workspace=functions && node packages/functions/scripts/emulator-smoke-users.cjs",
     "test:functions:smoke:all": "node scripts/check-java21.mjs && npm run build --workspace=functions && npx --yes firebase-tools emulators:exec --project wishlist-wizard --only auth,firestore,functions \"node packages/functions/scripts/emulator-smoke-all-functions.cjs\"",
+    "test:functions:smoke:firebase-features": "npm run build --workspace=functions && node packages/functions/scripts/firebase-features-smoke.cjs",
+    "seed:demo:emulator": "node scripts/check-java21.mjs && npm run build --workspace=functions && npx --yes firebase-tools emulators:exec --project wishlist-wizard --only auth,firestore,functions \"node packages/functions/scripts/firebase-demo-seed.cjs\"",
+    "seed:demo:project": "npm run build --workspace=functions && node packages/functions/scripts/firebase-demo-seed.cjs",
     "test:functions:smoke:all:strict": "npm run test:functions:smoke:all",
     "test:functions:smoke:all:env-aware": "SMOKE_TREAT_EXPECTED_DEPENDENCY_GAPS_AS_PASS=true node scripts/check-java21.mjs && npm run build --workspace=functions && SMOKE_TREAT_EXPECTED_DEPENDENCY_GAPS_AS_PASS=true npx --yes firebase-tools emulators:exec --project wishlist-wizard --only auth,firestore,functions \"node packages/functions/scripts/emulator-smoke-all-functions.cjs\"",
     "test:e2e:smoke": "playwright test packages/web/e2e/smoke.spec.ts",
@@ -42,7 +45,8 @@
     "test:e2e:ui": "playwright test --ui packages/web/e2e/",
     "test:e2e:debug": "playwright test --debug packages/web/e2e/",
     "test:e2e:report": "playwright show-report",
-    "requirements:verify": "node scripts/validate-requirements-status.mjs"
+    "requirements:verify": "node scripts/validate-requirements-status.mjs",
+    "requirements:traceability": "node scripts/validate-requirements-traceability.mjs"
   },
   "devDependencies": {
     "@playwright/test": "^1.58.2",

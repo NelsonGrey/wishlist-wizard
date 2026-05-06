@@ -7,6 +7,8 @@
     "serve": "npm run build && firebase emulators:start --only functions",
     "smoke:users": "node ./scripts/emulator-smoke-users.cjs",
     "smoke:all": "node ./scripts/emulator-smoke-all-functions.cjs",
+    "smoke:firebase-features": "node ./scripts/firebase-features-smoke.cjs",
+    "seed:demo": "node ./scripts/firebase-demo-seed.cjs",
     "shell": "npm run build && firebase functions:shell",
     "start": "npm run shell",
     "deploy": "firebase deploy --only functions",
