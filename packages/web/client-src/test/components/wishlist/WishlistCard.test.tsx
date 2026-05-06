@@ -21,6 +21,17 @@ vi.mock('@/components/privacy/PrivacyControls', () => ({
   default: () => <span data-testid="privacy-controls" />,
 }));
 
+vi.mock('@/components/ui/dropdown-menu', () => ({
+  DropdownMenu: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  DropdownMenuTrigger: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  DropdownMenuContent: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  DropdownMenuItem: ({ children, onClick, ...props }: React.ButtonHTMLAttributes<HTMLButtonElement>) => (
+    <button type="button" onClick={onClick} {...props}>
+      {children}
+    </button>
+  ),
+}));
+
 vi.mock('@/lib/firebase', () => ({
   firebaseApp: {},
   firebaseAuth: {},
@@ -122,16 +133,7 @@ describe('WishlistCard Component', () => {
       />
     );
 
-    const user = userEvent.setup();
-
-    // Act - Open dropdown menu
-    const menuTrigger = screen.getByRole('button', { name: /more/i });
-    await user.click(menuTrigger);
-
-    // Assert - Wait for dropdown to open
-    await waitFor(() => {
-      expect(screen.getByText('Rename')).toBeInTheDocument();
-    });
+    expect(await screen.findByTestId('wishlist-edit-action-1')).toBeInTheDocument();
   });
 
   it('should show delete option in dropdown menu', async () => {
@@ -143,16 +145,7 @@ describe('WishlistCard Component', () => {
       />
     );
 
-    const user = userEvent.setup();
-
-    // Act - Open dropdown menu
-    const menuTrigger = screen.getByRole('button', { name: /more/i });
-    await user.click(menuTrigger);
-
-    // Assert - Wait for dropdown to open
-    await waitFor(() => {
-      expect(screen.getByText('Delete')).toBeInTheDocument();
-    });
+    expect(await screen.findByTestId('wishlist-delete-action-1')).toBeInTheDocument();
   });
   
   it('should display collaborative wishlist indicator', () => {

@@ -1,20 +1,24 @@
+import { vi, describe, it, expect, beforeEach } from 'vitest';
+const reactQueryMocks = vi.hoisted(() => ({
+  useQuery: vi.fn(),
+  useMutation: vi.fn(),
+  useQueryClient: vi.fn(),
+}));
+
 // Mock useQuery hook properly for React Query v5
 vi.mock('@tanstack/react-query', async () => {
   const actual = await vi.importActual('@tanstack/react-query');
   return {
     ...actual,
-    useQuery: vi.fn(),
-    useMutation: vi.fn(),
+    ...reactQueryMocks,
   };
 });
 
-import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { screen, waitFor, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { render } from '../utils';
 import { NotificationDropdown } from '@/components/ui/NotificationDropdown';
 import { apiRequest } from '@/lib/queryClient';
-import { useQuery, useMutation } from '@tanstack/react-query';
 
 // Mock the API request function
 vi.mock('@/lib/queryClient', () => ({
@@ -30,7 +34,7 @@ describe('NotificationDropdown', () => {
 
     // Mock useQuery to return default data
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (useQuery as any).mockReturnValue({
+    reactQueryMocks.useQuery.mockReturnValue({
       data: {
         notifications: [
           {
@@ -51,7 +55,7 @@ describe('NotificationDropdown', () => {
 
     // Mock useMutation
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (useMutation as any).mockReturnValue({
+    reactQueryMocks.useMutation.mockReturnValue({
       mutate: vi.fn(),
       isPending: false,
       error: null
@@ -84,7 +88,7 @@ describe('NotificationDropdown', () => {
   it('should show "No notifications yet" when there are no notifications', async () => {
     // Arrange
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (useQuery as any).mockReturnValue({
+    reactQueryMocks.useQuery.mockReturnValue({
       data: { notifications: [], unreadCount: 0 },
       isLoading: false
     });
@@ -116,7 +120,7 @@ describe('NotificationDropdown', () => {
   it('should not show "Mark all as read" button when all notifications are read', async () => {
     // Arrange
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (useQuery as any).mockReturnValue({
+    reactQueryMocks.useQuery.mockReturnValue({
       data: {
         notifications: [
           {
@@ -164,7 +168,7 @@ describe('NotificationDropdown', () => {
   it('should handle loading state', async () => {
     // Arrange
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (useQuery as any).mockReturnValue({
+    reactQueryMocks.useQuery.mockReturnValue({
       data: undefined,
       isLoading: true
     });
