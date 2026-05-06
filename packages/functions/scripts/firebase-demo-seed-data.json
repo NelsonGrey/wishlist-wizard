@@ -1,0 +1,107 @@
+{
+  "users": [
+    {
+      "email": "demo.owner@wishlist-wizard.test",
+      "password": "DemoPass123!",
+      "displayName": "Demo Owner",
+      "role": "demo-owner"
+    },
+    {
+      "email": "demo.collab@wishlist-wizard.test",
+      "password": "DemoPass123!",
+      "displayName": "Demo Collaborator",
+      "role": "demo-collaborator"
+    },
+    {
+      "email": "demo.viewer@wishlist-wizard.test",
+      "password": "DemoPass123!",
+      "displayName": "Demo Viewer",
+      "role": "demo-viewer"
+    }
+  ],
+  "wishlists": [
+    {
+      "slug": "spring-launch",
+      "owner": "demo.owner@wishlist-wizard.test",
+      "name": "Spring Launch Showcase",
+      "description": "Demo wishlist featuring premium home and lifestyle products.",
+      "isPublic": true,
+      "isCollaborative": true,
+      "occasion": "Spring Launch",
+      "recipientName": "Marketing Showcase"
+    },
+    {
+      "slug": "family-gifts",
+      "owner": "demo.owner@wishlist-wizard.test",
+      "name": "Family Gift Planner",
+      "description": "Promotional demo for recurring family planning and collaboration.",
+      "isPublic": false,
+      "isCollaborative": true,
+      "occasion": "Holiday",
+      "recipientName": "Family"
+    }
+  ],
+  "items": [
+    {
+      "wishlist": "spring-launch",
+      "title": "Smart Espresso Machine",
+      "description": "Connected espresso machine with app controls and presets.",
+      "price": "$549.00",
+      "productUrl": "https://example.com/products/smart-espresso-machine",
+      "imageUrl": "https://images.unsplash.com/photo-1511920170033-f8396924c348",
+      "store": "Demo Store",
+      "priority": 1
+    },
+    {
+      "wishlist": "spring-launch",
+      "title": "Noise Cancelling Headphones",
+      "description": "Wireless over-ear headphones for focus and travel.",
+      "price": "$329.00",
+      "productUrl": "https://example.com/products/noise-cancelling-headphones",
+      "imageUrl": "https://images.unsplash.com/photo-1505740420928-5e560c06d30e",
+      "store": "Demo Electronics",
+      "priority": 2
+    },
+    {
+      "wishlist": "family-gifts",
+      "title": "Building Blocks Deluxe Set",
+      "description": "Creative building kit for collaborative family play.",
+      "price": "$89.00",
+      "productUrl": "https://example.com/products/building-blocks-deluxe",
+      "imageUrl": "https://images.unsplash.com/photo-1587654780291-39c9404d746b",
+      "store": "Demo Kids",
+      "priority": 1
+    }
+  ],
+  "collaborators": [
+    {
+      "wishlist": "spring-launch",
+      "user": "demo.collab@wishlist-wizard.test",
+      "role": "editor"
+    },
+    {
+      "wishlist": "spring-launch",
+      "user": "demo.viewer@wishlist-wizard.test",
+      "role": "viewer"
+    },
+    {
+      "wishlist": "family-gifts",
+      "user": "demo.collab@wishlist-wizard.test",
+      "role": "editor"
+    }
+  ],
+  "notifications": [
+    {
+      "user": "demo.owner@wishlist-wizard.test",
+      "type": "item_added",
+      "title": "New Item Added",
+      "content": "Your collaborator added a featured product to Spring Launch Showcase."
+    },
+    {
+      "user": "demo.collab@wishlist-wizard.test",
+      "type": "wishlist_shared",
+      "title": "Wishlist Shared",
+      "content": "You were added to collaborate on Family Gift Planner."
+    }
+  ]
+}
