@@ -1,21 +1,25 @@
+import { vi, describe, it, expect, beforeEach } from 'vitest';
+
+const reactQueryMocks = vi.hoisted(() => ({
+  useQuery: vi.fn(),
+  useMutation: vi.fn(),
+  useQueryClient: vi.fn(),
+}));
+
 // Mock useQuery hook properly for React Query v5
 vi.mock('@tanstack/react-query', async () => {
   const actual = await vi.importActual('@tanstack/react-query');
   return {
     ...actual,
-    useQuery: vi.fn(),
-    useMutation: vi.fn(),
-    useQueryClient: vi.fn(),
+    ...reactQueryMocks,
   };
 });
 
-import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { render } from '../utils';
 import Notifications from '@/pages/Notifications';
 import { format } from 'date-fns';
-import { useQuery, useMutation } from '@tanstack/react-query';
 
 // Mock the API request function
 vi.mock('@/lib/queryClient', () => ({
@@ -45,7 +49,7 @@ describe('Notifications Page', () => {
     
     // Mock useQuery to return default data
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (useQuery as any).mockReturnValue({
+    reactQueryMocks.useQuery.mockReturnValue({
       data: {
         notifications: [
           {
@@ -77,7 +81,7 @@ describe('Notifications Page', () => {
     
     // Mock useMutation
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (useMutation as any).mockReturnValue({
+    reactQueryMocks.useMutation.mockReturnValue({
       mutate: vi.fn(),
       isPending: false
     });
@@ -118,7 +122,7 @@ describe('Notifications Page', () => {
   it('should not show "Mark all as read" button when all notifications are read', () => {
     // Arrange
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (useQuery as any).mockReturnValue({
+    reactQueryMocks.useQuery.mockReturnValue({
       data: {
         notifications: [
           {
@@ -167,7 +171,7 @@ describe('Notifications Page', () => {
   it('should show the "Mark as read" button for unread notifications without action URLs', () => {
     // Arrange
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (useQuery as any).mockReturnValue({
+    reactQueryMocks.useQuery.mockReturnValue({
       data: {
         notifications: [
           {
@@ -198,7 +202,7 @@ describe('Notifications Page', () => {
   it('should trigger mark as read mutation when "Mark as read" button is clicked', async () => {
     // Arrange
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (useQuery as any).mockReturnValue({
+    reactQueryMocks.useQuery.mockReturnValue({
       data: {
         notifications: [
           {
@@ -221,7 +225,7 @@ describe('Notifications Page', () => {
     
     const markAsReadMutation = { mutate: vi.fn() };
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (useMutation as any).mockReturnValue(markAsReadMutation);
+    reactQueryMocks.useMutation.mockReturnValue(markAsReadMutation);
     
     render(<Notifications />, { pathname: '/notifications' });
     const user = userEvent.setup();
@@ -236,7 +240,7 @@ describe('Notifications Page', () => {
   it('should show loading state when isLoading is true', () => {
     // Arrange
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (useQuery as any).mockReturnValue({
+    reactQueryMocks.useQuery.mockReturnValue({
       data: undefined,
       isLoading: true,
       isError: false,
@@ -258,7 +262,7 @@ describe('Notifications Page', () => {
   it('should show empty state when there are no notifications', () => {
     // Arrange
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (useQuery as any).mockReturnValue({
+    reactQueryMocks.useQuery.mockReturnValue({
       data: { notifications: [], unreadCount: 0 },
       isLoading: false,
       isError: false,
@@ -277,7 +281,7 @@ describe('Notifications Page', () => {
   it('should render safely when notification timestamp is invalid', () => {
     // Arrange
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (useQuery as any).mockReturnValue({
+    reactQueryMocks.useQuery.mockReturnValue({
       data: {
         notifications: [
           {
@@ -308,7 +312,7 @@ describe('Notifications Page', () => {
   it('should show query error state and retry action', async () => {
     const refetch = vi.fn();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (useQuery as any).mockReturnValue({
+    reactQueryMocks.useQuery.mockReturnValue({
       data: undefined,
       isLoading: false,
       isError: true,

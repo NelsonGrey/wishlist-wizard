@@ -193,39 +193,13 @@ jobs:
           path: playwright-report/
           retention-days: 7
 
-  e2e-production-smoke:
-    name: Production Smoke Test (Daily)
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
+  production-smoke-validation:
+    name: Production Smoke Validation (Daily)
     if: github.event.schedule == '0 7 * * *'
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Install Playwright browsers
-        run: npx playwright install --with-deps
-
-      - name: Run smoke tests against production
-        run: npm run test:e2e:prod
-        env:
-          CI: true
-
-      - name: Upload test report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: playwright-report-production
-          path: playwright-report/
-          retention-days: 14
+    uses: ./.github/workflows/production-validation.yml
+    with:
+      base_url: https://wishlist-wizard.web.app
+    secrets: inherit
 
   test-summary:
     name: E2E Test Summary

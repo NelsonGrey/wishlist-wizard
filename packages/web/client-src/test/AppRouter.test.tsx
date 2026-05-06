@@ -55,8 +55,36 @@ import { trackPageView } from '@/lib/analytics';
 describe('AppRouter Smoke Tests', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.unstubAllEnvs();
     remoteConfigMock.isFeatureEnabled.mockReturnValue(true);
     remoteConfigMock.isFeatureEnabledForUser.mockReturnValue(true);
+  });
+
+  describe('Non-Production Password Gate', () => {
+    it('keeps the homepage public in non-production environments', async () => {
+      vi.stubEnv('VITE_ENVIRONMENT', 'staging');
+      vi.stubEnv('VITE_NON_PROD_SITE_PASSWORD', 'test-password');
+
+      window.history.pushState({}, 'Home', '/');
+      render(<AppRouter />);
+
+      await waitFor(() => {
+        expect(document.body).toBeTruthy();
+      });
+
+      expect(screen.queryByTestId('env-password-gate')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('env-password-misconfigured')).not.toBeInTheDocument();
+    });
+
+    it('requires password for non-home routes in non-production environments', async () => {
+      vi.stubEnv('VITE_ENVIRONMENT', 'demonstration');
+      vi.stubEnv('VITE_NON_PROD_SITE_PASSWORD', 'test-password');
+
+      window.history.pushState({}, 'About', '/about');
+      render(<AppRouter />);
+
+      expect(await screen.findByTestId('env-password-gate')).toBeInTheDocument();
+    });
   });
 
   describe('Public Route Navigation', () => {
