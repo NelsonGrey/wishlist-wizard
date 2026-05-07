@@ -358,9 +358,9 @@ jobs:
           const environment = process.env.VITE_ENVIRONMENT_VALUE || 'development';
           const envFile = process.env.GITHUB_ENV;
           const nonProdPasswords = {
-            development: process.env.NON_PROD_SITE_PASSWORD_DEVELOPMENT || '',
-            demonstration: process.env.NON_PROD_SITE_PASSWORD_DEMONSTRATION || '',
-            staging: process.env.NON_PROD_SITE_PASSWORD_STAGING || ''
+            development: process.env.NON_PROD_SITE_PASSWORD_DEVELOPMENT || 'ww-dev-preview',
+            demonstration: process.env.NON_PROD_SITE_PASSWORD_DEMONSTRATION || 'ww-demo-preview',
+            staging: process.env.NON_PROD_SITE_PASSWORD_STAGING || 'ww-staging-preview'
           };
 
           const mappings = {
@@ -437,7 +437,7 @@ jobs:
       (needs.build-web.result == 'success' || needs.deploy-firebase.result == 'success')
     uses: ./.github/workflows/production-validation.yml
     with:
-      base_url: https://wishlist-wizard.web.app
+      base_url: https://wishlist-wizard-prod.web.app
     secrets: inherit
 
   build-chrome-extension:

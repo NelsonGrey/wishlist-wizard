@@ -41,7 +41,7 @@
     "test:e2e:all": "playwright test packages/web/e2e/",
     "test:e2e:dev": "TEST_URL=http://localhost:5173 playwright test packages/web/e2e/",
     "test:e2e:staging": "TEST_URL=https://wishlist-wizard-staging.web.app playwright test packages/web/e2e/",
-    "test:e2e:prod": "TEST_URL=https://wishlist-wizard.web.app playwright test packages/web/e2e/smoke.spec.ts",
+    "test:e2e:prod": "TEST_URL=https://wishlist-wizard-prod.web.app playwright test packages/web/e2e/smoke.spec.ts",
     "test:e2e:ui": "playwright test --ui packages/web/e2e/",
     "test:e2e:debug": "playwright test --debug packages/web/e2e/",
     "test:e2e:report": "playwright show-report",

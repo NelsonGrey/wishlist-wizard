@@ -127,7 +127,7 @@ class PriceComparison {
     const envConfig = {
       development: 'https://wishlist-wizard-dev.web.app',
       staging: 'https://wishlist-wizard-staging.web.app',
-      production: 'https://wishlist-wizard.web.app',
+      production: 'https://wishlist-wizard-prod.web.app',
       local: 'http://localhost:3001'
     };
 

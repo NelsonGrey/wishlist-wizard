@@ -92,14 +92,8 @@ function LayoutRouter({ children }: { children: React.ReactNode }) {
 }
 
 function NonHomeEnvironmentGate({ children }: { children: React.ReactNode }) {
-  const [location] = useLocation();
   const environment = String(import.meta.env.VITE_ENVIRONMENT || import.meta.env.MODE || 'development').toLowerCase();
   const nonProdPassword = String(import.meta.env.VITE_NON_PROD_SITE_PASSWORD || '');
-  const normalizedPath = String(location || '/').split('?')[0] || '/';
-
-  if (normalizedPath === '/') {
-    return <>{children}</>;
-  }
 
   return (
     <EnvironmentPasswordGate environment={environment} requiredPassword={nonProdPassword}>

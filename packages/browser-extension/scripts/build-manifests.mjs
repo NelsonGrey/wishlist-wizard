@@ -40,7 +40,7 @@ const SHOPPING_SITES = [
 
 const EXTENSION_API_HOSTS = [
   'https://wishlist-wizard-dev.web.app/*',
-  'https://wishlist-wizard.web.app/*',
+  'https://wishlist-wizard-prod.web.app/*',
 ];
 
 const ICON_SIZES = {

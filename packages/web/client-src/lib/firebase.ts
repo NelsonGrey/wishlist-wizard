@@ -45,7 +45,7 @@ function resolveEnvironmentSuffixFromHostname(): 'DEVELOPMENT' | 'STAGING' | 'PR
   if (hostname.includes('wishlist-wizard-staging.web.app')) {
     return 'STAGING';
   }
-  if (hostname.includes('wishlist-wizard.web.app')) {
+  if (hostname.includes('wishlist-wizard-prod.web.app') || hostname.includes('wishlist-wizard.web.app')) {
     return 'PRODUCTION';
   }
 
@@ -69,6 +69,7 @@ function isHostedWebAppDomain(): boolean {
   return (
     hostname.includes('wishlist-wizard-dev.web.app') ||
     hostname.includes('wishlist-wizard-staging.web.app') ||
+    hostname === 'wishlist-wizard-prod.web.app' ||
     hostname === 'wishlist-wizard.web.app'
   );
 }
@@ -160,6 +161,7 @@ function mergeWithRuntimeFirebaseConfig(runtimeConfig: Record<string, unknown>) 
   const preferRuntimeConfig =
     hostname.includes('wishlist-wizard-dev.web.app') ||
     hostname.includes('wishlist-wizard-staging.web.app') ||
+    hostname === 'wishlist-wizard-prod.web.app' ||
     hostname === 'wishlist-wizard.web.app';
 
   firebaseConfig = {

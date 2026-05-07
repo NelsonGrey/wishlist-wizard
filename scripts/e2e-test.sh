@@ -34,7 +34,7 @@ case $ENVIRONMENT in
     echo -e "${BLUE}Testing against STAGING environment${NC}"
     ;;
   prod)
-    TEST_URL="https://wishlist-wizard.web.app"
+    TEST_URL="https://wishlist-wizard-prod.web.app"
     echo -e "${YELLOW}Testing against PRODUCTION environment (smoke only)${NC}"
     ;;
   local)

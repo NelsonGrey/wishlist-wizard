@@ -18,7 +18,7 @@ const EXTENSION_ENVIRONMENTS = {
     cloudFunctionsBaseUrl: 'https://us-central1-wishlist-wizard-staging.cloudfunctions.net'
   },
   production: {
-    baseUrl: 'https://wishlist-wizard.web.app',
+    baseUrl: 'https://wishlist-wizard-prod.web.app',
     cloudFunctionsBaseUrl: 'https://us-central1-wishlist-wizard-prod.cloudfunctions.net'
   },
   local: {

@@ -19,7 +19,7 @@ const MAX_CONTENT_SCRIPT_RETRIES = 2;
 const EXTENSION_ENV_OPTIONS = {
   development: 'https://wishlist-wizard-dev.web.app',
   staging: 'https://wishlist-wizard-staging.web.app',
-  production: 'https://wishlist-wizard.web.app',
+  production: 'https://wishlist-wizard-prod.web.app',
   local: 'http://localhost:3001'
 };
 

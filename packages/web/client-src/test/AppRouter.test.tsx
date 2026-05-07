@@ -61,19 +61,14 @@ describe('AppRouter Smoke Tests', () => {
   });
 
   describe('Non-Production Password Gate', () => {
-    it('keeps the homepage public in non-production environments', async () => {
+    it('gates the homepage in non-production environments when password is set', async () => {
       vi.stubEnv('VITE_ENVIRONMENT', 'staging');
       vi.stubEnv('VITE_NON_PROD_SITE_PASSWORD', 'test-password');
 
       window.history.pushState({}, 'Home', '/');
       render(<AppRouter />);
 
-      await waitFor(() => {
-        expect(document.body).toBeTruthy();
-      });
-
-      expect(screen.queryByTestId('env-password-gate')).not.toBeInTheDocument();
-      expect(screen.queryByTestId('env-password-misconfigured')).not.toBeInTheDocument();
+      expect(await screen.findByTestId('env-password-gate')).toBeInTheDocument();
     });
 
     it('requires password for non-home routes in non-production environments', async () => {

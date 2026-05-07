@@ -58,12 +58,15 @@ test.describe('Smoke Test: Critical Features', () => {
     // This would be better with a logged-in user context
     // For demo, checking if nav items are clickable
     await page.goto('/');
-    
-    const navLinks = page.locator('nav a, [role="navigation"] a').all();
-    const linkCount = await navLinks.then((links: any) => links.length);
-    
-    // At least some navigation links should exist
-    expect(linkCount).toBeGreaterThan(0);
+
+    const navigation = page.locator('nav, [role="navigation"]').first();
+    await expect(navigation).toBeAttached({ timeout: 5000 });
+
+    const actionableNavItems = page.locator(
+      'nav a, [role="navigation"] a, nav button, [role="navigation"] button'
+    );
+
+    await expect.poll(async () => actionableNavItems.count()).toBeGreaterThan(0);
   });
 
   test('Footer is visible', async ({ page }: { page: Page }) => {
