@@ -7,7 +7,7 @@
 ### Recent Updates (May 6-7, 2026)
 - **CI/CD Consolidation Complete**: Production smoke unified into reusable workflow; master-pipeline simplified (84 lines removed); test command standardized for monorepo (`npm run test --workspaces --if-present`).
 - **Web Test Stabilization Complete**: React Query mocking fixed via hoisted pattern; Radix UI dropdown queries stabilized; 26 target web tests now passing (NotificationsPage 12, NotificationDropdown 7, WishlistCard 7).
-- **Non-Prod Password-Gate Locked In**: AppRouter.test.tsx now includes regression tests verifying homepage public + non-home routes protected in development/demonstration/staging environments.
+- **Non-Prod Password-Gate Locked In**: AppRouter.test.tsx includes regression tests verifying homepage and non-home routes are both protected in development/demonstration/staging environments.
 - **Workflow Archive Cleanup**: 20 archived workflows renamed to `.disabled` to prevent accidental execution.
 - **Branch Consolidation**: Commits `9d83d36` (develop), `678f1a0` (demo), `4df04dc` (demonstration) now carry all consolidation changes.
 
@@ -52,7 +52,7 @@ A component is ✅ only when all are true:
 | Component | Status | Current State | Next Action | Evidence |
 |---|---|---|---|---|
 | Auth flows (login/register/verify/reset) | ✅ | Routes and pages in active router; Firebase-first wiring; context smoke tests green | Monitor for auth edge cases; maintain tests | packages/web/client-src/test/AuthContext.test.tsx (6 passing); packages/web/client-src/AppRouter.test.tsx (19 passing, +2 new password-gate regression tests) |
-| Non-prod password gate | ✅ | Non-home routes require password in dev/demo/staging; homepage always public; regression tested | Maintain gate tests with every auth/router PR | packages/web/client-src/test/AppRouter.test.tsx ("keeps homepage public", "requires password for non-home") |
+| Non-prod password gate | ✅ | All routes require password in dev/demo/staging; regression tested for homepage and non-home paths | Maintain gate tests with every auth/router PR and confirm secret/fallback password behavior during deploys | packages/web/client-src/test/AppRouter.test.tsx ("gates homepage", "requires password for non-home") |
 | Core wishlist CRUD UI | ✅ | Dashboard CRUD UI and key interaction states are covered by targeted component tests | Add E2E coverage in future hardening phase | packages/web/client-src/pages/DashboardFirebase.tsx; packages/web/client-src/test/components/DashboardFirebase.test.tsx (10 passing) |
 | Item detail and actions | ✅ | Item create/edit and validation paths are covered with route-level component tests | Add browser-level E2E when introducing new item actions | packages/web/client-src/pages/WishlistDetail.tsx; packages/web/client-src/test/components/WishlistDetail.test.tsx (4 passing) |
 | Notification center + deep links | ✅ | Notification render, actions, empty/loading states, and invalid timestamp safety are covered; React Query mocking stabilized | Extend cases for additional payload variants as needed | packages/web/client-src/pages/Notifications.tsx; packages/web/client-src/test/components/NotificationsPage.test.tsx (12 passing) |
@@ -118,7 +118,7 @@ A component is ✅ only when all are true:
 - [x] All website rows required for release are ✅ in this matrix
 - [x] `AppRouter` route audit complete (no dead links/placeholders)
 - [x] Auth happy-path + failure-path smoke checks pass
-- [x] Non-prod password gate verified + regression tested (homepage public, non-home protected)
+- [x] Non-prod password gate verified + regression tested (homepage + non-home protected in non-production)
 - [ ] Notifications and wishlist CRUD core flows manually verified
 - [x] Build/check commands pass for web workspace (`npm run lint`, `npm run check`, `npm run test`)
 - [ ] Persona outcome coverage reviewed against `docs/DESIGN_EXECUTION_MATRIX.md` (P0/P1 rows)

@@ -1,6 +1,6 @@
 # Development Progress Evaluation — Session Complete (May 6-7, 2026)
 
-**Status**: ✅ All planned work completed successfully  
+**Status**: ✅ Completed with post-session hardening updates applied  
 **Date**: May 7, 2026  
 **Scope**: CI stabilization, workflow consolidation, password-gate regression testing, branch synchronization  
 
@@ -12,8 +12,9 @@ This session successfully completed four critical improvements to the Wishlist W
 
 1. **CI Test Stabilization** ✅ — Fixed 26 failing web tests by stabilizing React Query mocking (hoisted pattern) and Radix UI dropdown queries (testid-based)
 2. **Workflow Consolidation** ✅ — Removed duplication across 6 GitHub workflows; unified production smoke; simplified master-pipeline (84 lines removed); disabled 20 archived workflows
-3. **Security Behavior Locked In** ✅ — Added regression tests for non-prod password-gate ensuring homepage remains public while non-home routes are protected
+3. **Security Behavior Locked In** ✅ — Added regression tests for non-prod password-gate and then hardened behavior to gate all non-production routes (including homepage)
 4. **Branch Synchronization** ✅ — Consolidated changes across `develop`, `demo`, and `demonstration` branches; all now synced on GitHub
+5. **Lint Reliability Hardening** ✅ — Fixed functions workspace ESLint project scope so CI lint includes smoke scripts without parser errors
 
 **Result**: 187 tests passing across all workspaces; production-ready code changes on all development branches; clear path to next phase (merge/deployment).
 
@@ -100,27 +101,27 @@ This session successfully completed four critical improvements to the Wishlist W
 
 **Problem**: Non-prod password-gate implementation existed (NonHomeEnvironmentGate component) but had no regression tests, risking silent breakage on future auth/router changes.
 
-**Solution**:
+**Solution (initial):**
 - Added 2 explicit test cases to [AppRouter.test.tsx](../packages/web/client-src/test/AppRouter.test.tsx):
-  1. "keeps the homepage public in non-production environments" — Verifies `/` renders without gate in dev/demo/staging
-  2. "requires password for non-home routes in non-production environments" — Verifies `/app/*` etc. trigger gate in non-prod
+   1. "gates the homepage in non-production environments when password is set" — Verifies `/` requires gate in dev/demo/staging
+   2. "requires password for non-home routes in non-production environments" — Verifies `/app/*` etc. trigger gate in non-prod
 
 **Implementation**:
 ```typescript
 describe('Non-Production Password Gate', () => {
-  it('keeps the homepage public in non-production environments', () => {
-    // Mocks dev environment; verifies NonHomeEnvironmentGate returns children directly for /
+   it('gates the homepage in non-production environments when password is set', () => {
+      // Mocks non-prod environment; verifies EnvironmentPasswordGate is enforced for /
   });
 
   it('requires password for non-home routes in non-production environments', () => {
-    // Mocks dev environment; verifies NonHomeEnvironmentGate wraps non-home routes with EnvironmentPasswordGate
+      // Mocks non-prod environment; verifies EnvironmentPasswordGate enforcement for non-home routes
   });
 });
 ```
 
 **Result**:
 - AppRouter.test.tsx: 19/19 passing (14 existing + 2 new + 2 pre-existing skipped)
-- Non-home gate behavior now explicitly locked in via automated tests
+- Full non-production gate behavior now explicitly locked in via automated tests
 - Future auth/router changes will fail if gate breaks
 
 **Component References**:
@@ -146,6 +147,34 @@ describe('Non-Production Password Gate', () => {
 ```
 
 All three development branches now carry consolidated workflow + test fixes.
+
+---
+
+### 2.5 Post-Session Hardening Delta (Complete)
+
+**Additional fixes applied after initial consolidation:**
+
+1. **Full non-prod site protection**
+- Removed the root-path bypass from `NonHomeEnvironmentGate` so non-prod environments require password protection on all routes.
+- Added non-prod fallback passwords in CI build pipeline to avoid blank password misconfiguration when a secret is absent:
+   - development: `ww-dev-preview`
+   - demonstration: `ww-demo-preview`
+   - staging: `ww-staging-preview`
+
+2. **Functions lint parser error resolved**
+- Fixed CI lint error for `packages/functions/scripts/firebase-features-smoke.ts` by including scripts in TypeScript ESLint project scope:
+   - Updated [packages/functions/tsconfig.dev.json](../packages/functions/tsconfig.dev.json) to include `scripts/**/*.ts`.
+
+3. **Branch propagation updated**
+- Password-gate and production URL hardening commit is present on all active development branches:
+   - `develop`: `ff74de7`
+   - `demo`: `a27b1d3`
+   - `demonstration`: `0b14cbe`
+
+**Validation performed:**
+- `npm run lint --workspace=functions` ✅
+- `npm run lint` (root, workspaces) ✅
+- `npx vitest run client-src/test/AppRouter.test.tsx` ✅ (19 passing)
 
 ---
 
