@@ -259,7 +259,7 @@ export default function Dashboard() {
 
   const selectedWishlist = wishlists?.find((wishlist) => wishlist.id === selectedWishlistId) ?? null;
   const collaborationNotifications = (liveNotifications || [])
-    .map((notification) => toCollaborationActivityEvent(notification as Record<string, unknown>))
+    .map((notification) => toCollaborationActivityEvent(notification as unknown as Record<string, unknown>))
     .filter((notification): notification is NonNullable<typeof notification> => notification !== null)
     .slice(0, 5);
   const selectedCreatedAt = selectedWishlist
@@ -534,8 +534,8 @@ export default function Dashboard() {
                       <p className="text-sm text-gray-500">Syncing activity...</p>
                     ) : collaborationNotifications.length > 0 ? (
                       <div className="space-y-3">
-                        {collaborationNotifications.map((notification) => (
-                          <div key={String(notification.id)} className="border-b last:border-b-0 pb-2 last:pb-0">
+                        {collaborationNotifications.map((notification, idx) => (
+                          <div key={`${notification.type}-${idx}`} className="border-b last:border-b-0 pb-2 last:pb-0">
                             <p className="text-sm font-medium text-gray-900 line-clamp-1">{notification.title || 'Collaboration update'}</p>
                             <p className="text-xs text-gray-500 line-clamp-2">{notification.content || 'A wishlist activity update is available.'}</p>
                             <p className="text-xs text-gray-400 mt-1">{formatRelativeTime(notification.createdAt)}</p>
