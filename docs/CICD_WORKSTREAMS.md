@@ -2,7 +2,7 @@
 
 **Version**: 1.1  
 **Last Updated**: May 7, 2026  
-**Status**: Workflow consolidation complete; 6 active workflows optimized; 20 archived workflows disabled.
+**Status**: Workflow consolidation complete; 6 active workflows optimized; 20 archived workflows disabled; functions lint parser scope fixed.
 
 ## Requirements
 - iOS distribution is zero-touch:
@@ -28,6 +28,7 @@
   - Chrome extension (handled by current `extension-build.yml`): `chrome-extension-submit`.
 - iOS distribution workflow: [wishlist-wizard/.github/workflows/ios-build.yml](../.github/workflows/ios-build.yml) (manual dispatch)
 - Token refresh health check LaunchAgent: [wishlist-wizard/com.wishlist-wizard.runner-token-refresh.plist](../com.wishlist-wizard.runner-token-refresh.plist)
+- Functions lint reliability: [packages/functions/tsconfig.dev.json](../packages/functions/tsconfig.dev.json) now includes `scripts/**/*.ts` so ESLint `parserOptions.project` covers smoke scripts in CI.
 
 ## Workstreams
 
