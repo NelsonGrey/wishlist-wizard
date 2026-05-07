@@ -90,7 +90,7 @@ jobs:
               TARGET_COMMAND="npm run test:e2e:smoke"
               ;;
             production)
-              TARGET_URL="https://wishlist-wizard.web.app"
+              TARGET_URL="https://wishlist-wizard-prod.web.app"
               TARGET_COMMAND="npm run test:e2e:prod"
               ;;
             *)
@@ -198,7 +198,7 @@ jobs:
     if: github.event.schedule == '0 7 * * *'
     uses: ./.github/workflows/production-validation.yml
     with:
-      base_url: https://wishlist-wizard.web.app
+      base_url: https://wishlist-wizard-prod.web.app
     secrets: inherit
 
   test-summary:
