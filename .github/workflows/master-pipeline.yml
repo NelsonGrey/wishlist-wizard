@@ -346,17 +346,18 @@ jobs:
             local max_attempts=5
             local attempt=1
             local delay=2
+            local response
             
             while [ $attempt -le $max_attempts ]; do
-              echo "Fetching Firebase config (attempt $attempt/$max_attempts)..."
-              if INIT_JSON="$(curl -sfL -m 30 "$INIT_URL" 2>&1)"; then
-                echo "$INIT_JSON"
+              echo "Fetching Firebase config (attempt $attempt/$max_attempts)..." >&2
+              if response="$(curl -sfL -m 30 "$INIT_URL")"; then
+                echo "$response"
                 return 0
               else
                 local exit_code=$?
-                echo "⚠️  Attempt $attempt failed (curl exit: $exit_code)"
+                echo "⚠️  Attempt $attempt failed (curl exit: $exit_code)" >&2
                 if [ $attempt -lt $max_attempts ]; then
-                  echo "Waiting ${delay}s before retry..."
+                  echo "Waiting ${delay}s before retry..." >&2
                   sleep $delay
                   delay=$((delay * 2))
                 fi
@@ -364,11 +365,13 @@ jobs:
               attempt=$((attempt + 1))
             done
             
-            echo "❌ Failed to load Firebase config from $INIT_URL after $max_attempts attempts"
+            echo "❌ Failed to load Firebase config from $INIT_URL after $max_attempts attempts" >&2
             return 1
           }
           
-          INIT_JSON="$(fetch_firebase_config)"
+          if ! INIT_JSON="$(fetch_firebase_config)"; then
+            exit 1
+          fi
           
           if [ -z "$INIT_JSON" ]; then
             echo "❌ Firebase config is empty"
