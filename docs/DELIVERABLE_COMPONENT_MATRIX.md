@@ -1,8 +1,15 @@
 # Deliverable Component Completion Matrix
 
-**Version**: 1.0  
-**Last Updated**: May 6, 2026  
+**Version**: 1.1  
+**Last Updated**: May 7, 2026  
 **Purpose**: Single execution tracker for the 3 production deliverables.
+
+### Recent Updates (May 6-7, 2026)
+- **CI/CD Consolidation Complete**: Production smoke unified into reusable workflow; master-pipeline simplified (84 lines removed); test command standardized for monorepo (`npm run test --workspaces --if-present`).
+- **Web Test Stabilization Complete**: React Query mocking fixed via hoisted pattern; Radix UI dropdown queries stabilized; 26 target web tests now passing (NotificationsPage 12, NotificationDropdown 7, WishlistCard 7).
+- **Non-Prod Password-Gate Locked In**: AppRouter.test.tsx now includes regression tests verifying homepage public + non-home routes protected in development/demonstration/staging environments.
+- **Workflow Archive Cleanup**: 20 archived workflows renamed to `.disabled` to prevent accidental execution.
+- **Branch Consolidation**: Commits `9d83d36` (develop), `678f1a0` (demo), `4df04dc` (demonstration) now carry all consolidation changes.
 
 ---
 
@@ -44,14 +51,17 @@ A component is ✅ only when all are true:
 
 | Component | Status | Current State | Next Action | Evidence |
 |---|---|---|---|---|
-| Auth flows (login/register/verify/reset) | ✅ | Routes and pages in active router; Firebase-first wiring; context smoke tests green | Monitor for auth edge cases; maintain tests | packages/web/client-src/test/AuthContext.test.tsx (6 passing); packages/web/client-src/AppRouter.test.tsx (14 passing) |
+| Auth flows (login/register/verify/reset) | ✅ | Routes and pages in active router; Firebase-first wiring; context smoke tests green | Monitor for auth edge cases; maintain tests | packages/web/client-src/test/AuthContext.test.tsx (6 passing); packages/web/client-src/AppRouter.test.tsx (19 passing, +2 new password-gate regression tests) |
+| Non-prod password gate | ✅ | Non-home routes require password in dev/demo/staging; homepage always public; regression tested | Maintain gate tests with every auth/router PR | packages/web/client-src/test/AppRouter.test.tsx ("keeps homepage public", "requires password for non-home") |
 | Core wishlist CRUD UI | ✅ | Dashboard CRUD UI and key interaction states are covered by targeted component tests | Add E2E coverage in future hardening phase | packages/web/client-src/pages/DashboardFirebase.tsx; packages/web/client-src/test/components/DashboardFirebase.test.tsx (10 passing) |
 | Item detail and actions | ✅ | Item create/edit and validation paths are covered with route-level component tests | Add browser-level E2E when introducing new item actions | packages/web/client-src/pages/WishlistDetail.tsx; packages/web/client-src/test/components/WishlistDetail.test.tsx (4 passing) |
-| Notification center + deep links | ✅ | Notification render, actions, empty/loading states, and invalid timestamp safety are covered | Extend cases for additional payload variants as needed | packages/web/client-src/pages/Notifications.tsx; packages/web/client-src/test/components/NotificationsPage.test.tsx (10 passing) |
+| Notification center + deep links | ✅ | Notification render, actions, empty/loading states, and invalid timestamp safety are covered; React Query mocking stabilized | Extend cases for additional payload variants as needed | packages/web/client-src/pages/Notifications.tsx; packages/web/client-src/test/components/NotificationsPage.test.tsx (12 passing) |
+| Notification dropdown interactions | ✅ | Dropdown render, event handling, Radix UI portal behavior stabilized via testid-based queries | Continue refining dropdown state coverage | packages/web/client-src/test/components/NotificationDropdown.test.tsx (7 passing) |
 | Privacy controls | ✅ | Production-facing controls present (demo action removed) | Add smoke tests for key toggles | packages/web/client-src/components/privacy/PrivacyControls.tsx |
-| Price tracking surfaces | ✅ | Price drop/volatility loading, empty, and populated states are validated with dedicated tests | Continue monitoring backend signal quality in production | packages/web/client-src/pages/PriceTracking.tsx; packages/web/client-src/test/components/PriceTracking.test.tsx (3 passing) |
-| Navigation/layout integrity | ✅ | Single-shell ownership spec and cleanup completed | Run routing smoke tests on every nav PR | packages/web/client-src/AppRouter.test.tsx (14 passing) |
+| Price tracking surfaces | ✅ | Price drop/volatility loading, empty, and populated states are validated with dedicated tests; WishlistCard interactions stabilized | Continue monitoring backend signal quality in production | packages/web/client-src/pages/PriceTracking.tsx; packages/web/client-src/test/components/PriceTracking.test.tsx (3 passing); packages/web/client-src/test/components/wishlist/WishlistCard.test.tsx (7 passing) |
+| Navigation/layout integrity | ✅ | Single-shell ownership spec and cleanup completed; password-gate behavior locked in | Run routing smoke tests on every nav PR | packages/web/client-src/AppRouter.test.tsx (19 passing) |
 | Demo/placeholder route removal | ✅ | Demo routes/pages removed from production router | Prevent reintroduction via PR checklist | packages/web/client-src/AppRouter.tsx |
+| React Query + Radix UI test mocking | ✅ | Hoisted mock pattern stabilizes all React Query hooks; Radix dropdown tests use testid queries | Keep hoisted pattern as template for new React Query tests | packages/web/client-src/test/components/NotificationsPage.test.tsx (hoisted pattern documented); packages/web/client-src/test/components/NotificationDropdown.test.tsx (Radix mocking pattern) |
 
 ---
 
@@ -104,15 +114,16 @@ A component is ✅ only when all are true:
 
 ## Release Gates (Must Pass Before Ship)
 
-### Website Release Gate
+#### Website Release Gate
 - [x] All website rows required for release are ✅ in this matrix
 - [x] `AppRouter` route audit complete (no dead links/placeholders)
 - [x] Auth happy-path + failure-path smoke checks pass
+- [x] Non-prod password gate verified + regression tested (homepage public, non-home protected)
 - [ ] Notifications and wishlist CRUD core flows manually verified
-- [x] Build/check commands pass for web workspace
+- [x] Build/check commands pass for web workspace (`npm run lint`, `npm run check`, `npm run test`)
 - [ ] Persona outcome coverage reviewed against `docs/DESIGN_EXECUTION_MATRIX.md` (P0/P1 rows)
 - [x] Design linkage validation passes (`npm run requirements:verify`) with 0 enforced design-link failures
-- [ ] Production post-deploy validation workflow completed for current release candidate (`production-validation`)
+- [ ] Production post-deploy validation workflow completed for current release candidate (`production-validation.yml`)
 - [ ] Ad monetization KPI gate reviewed from `/api/analytics/ad-revenue-summary` (trailing 7 days)
 - [ ] Viewable impressions >= 1,000 and viewability rate >= 60%
 - [ ] Estimated ad revenue >= $5.00 and ad config/render errors are not increasing week-over-week
