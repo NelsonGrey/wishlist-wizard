@@ -340,10 +340,38 @@ jobs:
           set -euo pipefail
 
           INIT_URL="https://${{ steps.firebase_project.outputs.project_id }}.web.app/__/firebase/init.json"
-          INIT_JSON="$(curl -sfL --retry 3 --retry-delay 5 --retry-all-errors "$INIT_URL")"
-
+          
+          # Retry function for curl with exponential backoff
+          fetch_firebase_config() {
+            local max_attempts=5
+            local attempt=1
+            local delay=2
+            
+            while [ $attempt -le $max_attempts ]; do
+              echo "Fetching Firebase config (attempt $attempt/$max_attempts)..."
+              if INIT_JSON="$(curl -sfL -m 30 "$INIT_URL" 2>&1)"; then
+                echo "$INIT_JSON"
+                return 0
+              else
+                local exit_code=$?
+                echo "⚠️  Attempt $attempt failed (curl exit: $exit_code)"
+                if [ $attempt -lt $max_attempts ]; then
+                  echo "Waiting ${delay}s before retry..."
+                  sleep $delay
+                  delay=$((delay * 2))
+                fi
+              fi
+              attempt=$((attempt + 1))
+            done
+            
+            echo "❌ Failed to load Firebase config from $INIT_URL after $max_attempts attempts"
+            return 1
+          }
+          
+          INIT_JSON="$(fetch_firebase_config)"
+          
           if [ -z "$INIT_JSON" ]; then
-            echo "❌ Failed to load Firebase web config from $INIT_URL after retries"
+            echo "❌ Firebase config is empty"
             exit 1
           fi
 
