@@ -1,15 +1,17 @@
 # Deliverable Component Completion Matrix
 
 **Version**: 1.1  
-**Last Updated**: May 7, 2026  
+**Last Updated**: May 8, 2026  
 **Purpose**: Single execution tracker for the 3 production deliverables.
 
-### Recent Updates (May 6-7, 2026)
+### Recent Updates (May 6-8, 2026)
 - **CI/CD Consolidation Complete**: Production smoke unified into reusable workflow; master-pipeline simplified (84 lines removed); test command standardized for monorepo (`npm run test --workspaces --if-present`).
 - **Web Test Stabilization Complete**: React Query mocking fixed via hoisted pattern; Radix UI dropdown queries stabilized; 26 target web tests now passing (NotificationsPage 12, NotificationDropdown 7, WishlistCard 7).
 - **Non-Prod Password-Gate Locked In**: AppRouter.test.tsx includes regression tests verifying homepage and non-home routes are both protected in development/demonstration/staging environments.
 - **Workflow Archive Cleanup**: 20 archived workflows renamed to `.disabled` to prevent accidental execution.
 - **Branch Consolidation**: Commits `9d83d36` (develop), `678f1a0` (demo), `4df04dc` (demonstration) now carry all consolidation changes.
+- **Monorepo Test Determinism**: Workspace `test` scripts for web/shared now use `vitest run` so CI and root workspace test runs terminate cleanly.
+- **Current Quality Gates (May 8, 2026)**: `npm run lint`, `npm run check`, `npm run requirements:verify`, `npm run test --workspace=@wishlist-wizard/shared`, and `npm run test --workspace=@wishlist-wizard/web` all pass.
 
 ---
 
@@ -166,12 +168,12 @@ A component is ✅ only when all are true:
 ## Test Coverage Summary (Latest)
 
 ### Website Test Suite
-- **AppRouter Tests**: 14 tests covering public routes, auth pages, protected access, layout context, routing errors (all passing)
+- **AppRouter Tests**: 19 tests covering public routes, auth pages, protected access, layout context, routing errors, and non-production password-gate behavior (all passing)
 - **AuthContext Tests**: 6 tests covering context initialization, state management, hook functionality (all passing)
 - **Dashboard Tests**: 10 tests covering dashboard rendering, loading/error/empty states, and key interactions (all passing)
 - **Additional Web Tests**: Notifications, wishlist card/item, and wishlist detail behavior (all passing)
 - **Price Tracking Tests**: 3 tests covering loading, empty, and populated price signal states (all passing)
-- **Total Website Tests**: 70 passing, 1 skipped
+- **Total Website Tests**: 159 passing, 1 skipped
 
 ### Mobile Test Suite
 - **Notification Parser Tests**: 5 tests covering direct metadata extraction, query-parameter parsing, path-based fallback, null handling (all passing)

@@ -1,8 +1,8 @@
 # CI/CD Workstreams (wishlist-wizard)
 
 **Version**: 1.1  
-**Last Updated**: May 7, 2026  
-**Status**: Workflow consolidation complete; 6 active workflows optimized; 20 archived workflows disabled; functions lint parser scope fixed.
+**Last Updated**: May 8, 2026  
+**Status**: Workflow consolidation complete; 6 active workflows optimized; 20 archived workflows disabled; lint parser scope fixed; workspace tests standardized for non-watch CI execution.
 
 ## Requirements
 - iOS distribution is zero-touch:
@@ -29,6 +29,9 @@
 - iOS distribution workflow: [wishlist-wizard/.github/workflows/ios-build.yml](../.github/workflows/ios-build.yml) (manual dispatch)
 - Token refresh health check LaunchAgent: [wishlist-wizard/com.wishlist-wizard.runner-token-refresh.plist](../com.wishlist-wizard.runner-token-refresh.plist)
 - Functions lint reliability: [packages/functions/tsconfig.dev.json](../packages/functions/tsconfig.dev.json) now includes `scripts/**/*.ts` so ESLint `parserOptions.project` covers smoke scripts in CI.
+- Workspace test determinism: test scripts now use non-watch mode for CI compatibility:
+  - [packages/shared/package.json](../packages/shared/package.json): `test` -> `vitest run` (+ `test:watch`)
+  - [packages/web/package.json](../packages/web/package.json): `test` -> `vitest run` (+ `test:watch`)
 
 ## Workstreams
 
@@ -60,6 +63,19 @@ Objectives: Remove workflow duplication and simplify maintenance.
 - Easier maintenance: one production smoke setup, not two.
 - Monorepo test command works across all workspaces (web, shared, functions, browser-extension, firebase-utils).
 - 187 tests passing (web 157 + shared 16 + browser-extension 10 + firebase-utils 0 + functions 4).
+
+### WS5 — Test Command Determinism (DONE)
+Objectives: Ensure `npm run test --workspaces --if-present` exits deterministically in CI.
+
+**Changes (May 8, 2026):**
+- Converted workspace test scripts from interactive/watch defaults to explicit run mode:
+  - `@wishlist-wizard/shared`: `vitest` -> `vitest run`
+  - `@wishlist-wizard/web`: `vitest` -> `vitest run`
+- Added `test:watch` script aliases in both workspaces for local developer watch workflows.
+
+**Result:**
+- Root monorepo test execution is CI-friendly by default.
+- Local watch behavior remains available via explicit `test:watch` scripts.
 
 ## Dependencies / Secrets
 Required secrets (per repo environment):
