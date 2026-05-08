@@ -339,44 +339,43 @@ jobs:
         run: |
           set -euo pipefail
 
-          INIT_URL="https://${{ steps.firebase_project.outputs.project_id }}.web.app/__/firebase/init.json"
-          
-          # Retry function for curl with exponential backoff
-          fetch_firebase_config() {
-            local max_attempts=5
-            local attempt=1
-            local delay=2
-            local response
-            
-            while [ $attempt -le $max_attempts ]; do
-              echo "Fetching Firebase config (attempt $attempt/$max_attempts)..." >&2
-              if response="$(curl -sfL -m 30 "$INIT_URL")"; then
-                echo "$response"
-                return 0
-              else
-                local exit_code=$?
-                echo "⚠️  Attempt $attempt failed (curl exit: $exit_code)" >&2
-                if [ $attempt -lt $max_attempts ]; then
-                  echo "Waiting ${delay}s before retry..." >&2
-                  sleep $delay
-                  delay=$((delay * 2))
-                fi
-              fi
-              attempt=$((attempt + 1))
-            done
-            
-            echo "❌ Failed to load Firebase config from $INIT_URL after $max_attempts attempts" >&2
-            return 1
-          }
-          
-          if ! INIT_JSON="$(fetch_firebase_config)"; then
+          PROJECT_ID="${{ steps.firebase_project.outputs.project_id }}"
+          INIT_JSON=""
+
+          # Primary: use Firebase CLI apps:sdkconfig (works even before hosting is deployed)
+          echo "Fetching Firebase web config via CLI for project: $PROJECT_ID..." >&2
+          APP_LIST="$(firebase apps:list WEB \
+            --project "$PROJECT_ID" \
+            --token "$FIREBASE_TOKEN" \
+            --json 2>/dev/null)" || APP_LIST=""
+
+          APP_ID="$(printf '%s' "$APP_LIST" | node -e \
+            'let d="";process.stdin.on("data",c=>d+=c);process.stdin.on("end",()=>{try{const o=JSON.parse(d);const a=o.result||[];console.log(a[0]&&a[0].appId||"");}catch(e){console.log("");}});' \
+            2>/dev/null)" || APP_ID=""
+
+          if [ -n "$APP_ID" ]; then
+            CLI_OUT="$(firebase apps:sdkconfig WEB "$APP_ID" \
+              --project "$PROJECT_ID" \
+              --token "$FIREBASE_TOKEN" \
+              --json 2>/dev/null)" || CLI_OUT=""
+            INIT_JSON="$(printf '%s' "$CLI_OUT" | node -e \
+              'let d="";process.stdin.on("data",c=>d+=c);process.stdin.on("end",()=>{try{const o=JSON.parse(d);const cfg=(o.result||{}).sdkConfig||{};console.log(JSON.stringify(cfg));}catch(e){process.exit(1);}});' \
+              2>/dev/null)" || INIT_JSON=""
+          fi
+
+          # Fallback: fetch from hosting endpoint (requires hosting to already be deployed)
+          if [ -z "$INIT_JSON" ] || [ "$INIT_JSON" = '{}' ]; then
+            echo "⚠️  CLI unavailable, falling back to hosting endpoint..." >&2
+            INIT_URL="https://$PROJECT_ID.web.app/__/firebase/init.json"
+            INIT_JSON="$(curl -sfL -m 30 "$INIT_URL" 2>/dev/null)" || INIT_JSON=""
+          fi
+
+          if [ -z "$INIT_JSON" ] || [ "$INIT_JSON" = '{}' ]; then
+            echo "❌ Failed to load Firebase config for project $PROJECT_ID" >&2
             exit 1
           fi
-          
-          if [ -z "$INIT_JSON" ]; then
-            echo "❌ Firebase config is empty"
-            exit 1
-          fi
+
+          echo "✓ Firebase config loaded for $PROJECT_ID" >&2
 
           FIREBASE_INIT_JSON="$INIT_JSON" \
           ENV_SUFFIX="${{ steps.firebase_project.outputs.env_suffix }}" \
