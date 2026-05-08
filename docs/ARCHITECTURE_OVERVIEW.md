@@ -2,239 +2,172 @@
 
 ## Three Distinct User Journeys
 
-Wishlist Wizard is structured around three distinct user experiences, each with its own specialized layout and visual identity:
+Wishlist Wizard is structured around three distinct user experiences, each with its own specialized layout and visual identity.
 
-### 1. **Marketing Website** (PublicLayout)
-The public-facing website that promotes the product and its capabilities.
+### 1. Marketing Website (PublicLayout)
+The public-facing website that promotes the product and capabilities.
 
-**Purpose:** Educate potential users about Wishlist Wizard's features and benefits
+Purpose: Educate potential users and convert visitors into authenticated users.
 
-**Pages:**
-- `/` - Home page with hero section and features
-- `/extension` - How It Works / Extension information
-- `/about` - About company and mission
-- `/blog` - Blog articles and updates
-- `/contact` - Contact form and support information
-- `/terms` - Terms of Service
-- `/privacy-policy` - Privacy Policy
-- `/cookie-policy` - Cookie Policy
+Pages:
+- `/`
+- `/extension`
+- `/about`
+- `/blog`
+- `/contact`
+- `/terms`
+- `/privacy-policy`
+- `/cookie-policy`
+- Feature demo routes (`/mobile-app-demo`, `/browser-extension-demo`, etc.)
 
-**Design Characteristics:**
-- Clean, professional marketing header with navigation to key features
-- Sign In / Sign Up buttons in header
-- Full marketing footer with links and information
-- White background with ample whitespace
-- Calls-to-action for registration and trying the product
+Design characteristics:
+- Marketing header + footer
+- CTA-driven presentation
+- Public content and legal pages
 
-**Header Navigation:**
-- Home link
-- How It Works
-- About
-- Blog
-- Sign In / Sign Up buttons
+### 2. Authentication Portal (AuthLayout)
+Focused, minimal authentication flows for account access and recovery.
 
----
+Purpose: Provide secure, distraction-free account management.
 
-### 2. **Authentication Portal** (AuthLayout)
-Focused, minimal authentication flows for account creation and management.
+Pages:
+- `/login`
+- `/register`
+- `/forgot-password`
+- `/reset-password`
+- `/verify-email`
 
-**Purpose:** Provide secure, distraction-free account management
+Design characteristics:
+- Compact form-focused composition
+- Minimal header and helper links
+- Reduced navigation noise during auth flows
 
-**Pages:**
-- `/login` - User login
-- `/register` - New user registration
-- `/forgot-password` - Password recovery
-- `/reset-password` - Password reset
-- `/verify-email` - Email verification
+### 3. Application Portal (AppLayout)
+Authenticated workspace for wishlist operations and user intelligence features.
 
-**Design Characteristics:**
-- Centered, compact form design for focused attention
-- Minimal header with back-to-home and contact links
-- Gradient background (indigo-to-purple)
-- No distracting marketing content
-- Simple footer with links to legal pages and contact
+Purpose: Provide day-to-day product functionality (CRUD, collaboration, analytics, privacy, notifications).
 
-**Header Navigation:**
-- Wishlist Wizard logo (links home)
-- "Need help? Contact us" link
+Pages:
+- `/app/dashboard`
+- `/app/wishlists`
+- `/app/dashboard-firebase`
+- `/app/user-profile`
+- `/app/wishlist/:id`
+- `/app/wishlists/:id`
+- `/app/recommendations`
+- `/app/price-tracking`
+- `/app/calendar`
+- `/app/notifications`
+- `/app/privacy-settings`
+- `/app/analytics`
+- `/shared/:shareId` (public shared view)
 
----
-
-### 3. **Application Portal** (AppLayout)
-Full-featured authenticated workspace where users manage their wishlists.
-
-**Purpose:** Provide powerful tools for wishlist management and discovery
-
-**Pages:**
-
-
-**Design Characteristics:**
-
-**Header Navigation:**
-
+Design characteristics:
+- Utility-first app shell
+- `ProtectedRoute` wrapper for authenticated `/app/*` routes
+- Legacy route redirects to canonical `/app/*` namespace
+- Non-production environment password gate support
 
 ## Smart Layout Routing
 
-The `LayoutRouter` component in `AppRouter.tsx` intelligently selects the appropriate layout based on the current URL:
+The router in `AppRouter.tsx` applies a layout wrapper based on route category.
 
 ```typescript
 // Auth pages (AuthLayout)
 /login, /register, /forgot-password, /reset-password, /verify-email
 
 // App pages (AppLayout)
-/dashboard, /recommendations, /price-tracking, /calendar, /notifications,
-/user-profile, /privacy-settings, /analytics, /wishlist/*, /shared/*
+/app/dashboard, /app/wishlists, /app/dashboard-firebase, /app/user-profile,
+/app/wishlist/*, /app/wishlists/*, /app/recommendations, /app/price-tracking,
+/app/calendar, /app/notifications, /app/privacy-settings, /app/analytics,
+/shared/*
 
 // Public pages (PublicLayout)
-/ , /extension, /about, /blog, /contact, /terms, /privacy-policy, 
-/cookie-policy, and any other routes
+/, /extension, /about, /blog, /contact, /terms, /privacy-policy,
+/cookie-policy, feature demo routes, and fallback routes
 ```
+
+## Route Security Model
+
+- Production mode (`VITE_ENVIRONMENT=production`): authentication routes and protected app routes are redirected to home marketing pages unless explicitly public.
+- Non-production mode: full auth and app route surface is available for development/testing.
+- Environment gate: `EnvironmentPasswordGate` is applied with non-prod password configuration to restrict preview/staging environments.
 
 ## Technical Implementation
 
-### File Structure
+### Core Router Responsibilities
+- Route declaration and lazy loading
+- Layout assignment via `LayoutRouter`
+- Analytics route tracking (`AnalyticsRouteTracker`)
+- Protected route enforcement via `ProtectedRoute`
+- Legacy-to-canonical route redirects
+
+### File Structure (layout-relevant)
 ```
-components/
-├── layout/
-│   ├── PublicLayout.tsx    ← Marketing website
-│   ├── AppLayout.tsx       ← Authenticated application
-│   └── AuthLayout.tsx      ← Authentication pages
-│   └── MainLayout.tsx      ← [Deprecated - replaced by three above]
-└── ... other components
-
-pages/
-├── Home.tsx                ← Public
-├── Extension...            ← Public
-├── About.tsx               ← Public
-├── Blog.tsx                ← Public
-├── Contact.tsx             ← Public
-├── PrivacyPolicy.tsx       ← Public
-├── TermsOfService.tsx      ← Public
-├── CookiePolicy.tsx        ← Public
-│
-├── Login.tsx               ← Auth
-├── Register.tsx            ← Auth
-├── ForgotPassword.tsx      ← Auth
-├── ResetPassword.tsx       ← Auth
-├── VerifyEmail.tsx         ← Auth
-│
-├── Dashboard.tsx           ← App
-├── Recommendations.tsx     ← App
-├── Calendar.tsx            ← App
-├── PriceTracking.tsx       ← App
-├── And more...
+packages/web/client-src/
+  AppRouter.tsx
+  components/layout/
+    PublicLayout.tsx
+    AuthLayout.tsx
+    AppLayout.tsx
+  components/security/
+    EnvironmentPasswordGate.tsx
+  components/auth/
+    ProtectedRoute.tsx
+  pages/
+    Home.tsx
+    Login.tsx
+    Register.tsx
+    Dashboard.tsx
+    DashboardFirebase.tsx
+    WishlistDetail.tsx
+    Recommendations.tsx
+    PriceTracking.tsx
+    Calendar.tsx
+    Notifications.tsx
+    PrivacySettings.tsx
+    Analytics.tsx
+    SharedWishlist.tsx
 ```
-
-### AppRouter Design
-
-The router uses a `LayoutRouter` wrapper that:
-1. Observes the current location
-2. Determines which layout should wrap the page
-3. Applies the appropriate layout's styling and navigation
-4. Automatically scrolls to top on navigation
-
-This approach allows:
-- **Unified routing** - Single Route definition per page
-- **Smart layout selection** - Based on URL pattern matching
-- **Easy maintenance** - Add new pages and layout rules in one place
-- **Consistent behavior** - All pages in a category behave similarly
-
----
 
 ## User Experience Flow
 
-### New Visitor
-1. Lands on `/` (Home) → **PublicLayout**
-2. Learns about features
-3. Clicks "Sign Up" → `/register` → **AuthLayout**
-4. Creates account
-5. Redirected to `/dashboard` → **AppLayout**
+New visitor flow:
+1. Lands on `/` (PublicLayout)
+2. Navigates to auth (`/register` or `/login`) in non-production contexts
+3. Redirects to app namespace (`/app/*`) after auth
 
-### Returning User
-1. Visits site
-2. Clicks "Sign In" → `/login` → **AuthLayout**
-3. Authenticates
-4. Redirected to `/dashboard` → **AppLayout**
+Returning user flow:
+1. Opens app route
+2. `ProtectedRoute` verifies auth state
+3. Renders app page or redirects to auth/home based on environment policy
 
-### Account Management
-- Password recovery: `/forgot-password` → **AuthLayout**
-- Email verification: `/verify-email` → **AuthLayout**
-- Profile edit: `/user-profile` → **AppLayout**
-- Settings: `/privacy-settings` → **AppLayout**
+Shared wishlist flow:
+1. Receives `/shared/:shareId` link
+2. Accesses shared view without full app auth requirements
 
----
+## Benefits of the Architecture
 
-## Benefits of This Architecture
+For users:
+- Clear context separation between marketing, auth, and app tasks
+- More predictable navigation behavior
+- Reduced accidental exposure of non-production app surfaces
 
-### For Users
-- **Clear intent** - Layout visually indicates where they are and what to do
-- **Reduced cognitive load** - Marketing, auth, and app interfaces are distinct
-- **Focused experiences** - Each context optimized for its purpose
-- **Professional appearance** - Clean separation between marketing and tools
+For developers:
+- Explicit route policy by environment
+- Centralized route/lifecycle logic
+- Easier testing of layout and guard behavior
 
-### For Developers
-- **Maintainability** - Three focused layouts instead of one complex MainLayout
-- **Scalability** - Easy to add new features to each section
-- **Testability** - Can test each layout independently
-- **Clarity** - Clear visual feedback about page categorization
-
-### For the Product
-- **Professional positioning** - Marketing site looks like a marketing site
-- **User trust** - Authentication pages are focused and secure-feeling
-- **Feature showcase** - App portal highlights powerful capabilities
-- **Clear positioning** - Company clearly distinguishes between "learning" and "doing"
-
----
-
-## Future Enhancements
-
-### Mobile Optimization
-- Mobile-specific navigation patterns for each layout  
-- Hamburger menus are already implemented in AppLayout
-- Could add mobile app-like nav for better mobile UX
-
-### Performance
-- Lazy-load layouts only when needed
-- Optimize CSS for each layout separately
-- Consider code-splitting layouts into separate bundles
-
-### Analytics
-- Track which pages users visit and in which layout
-- Measure conversion from PublicLayout → AuthLayout → AppLayout
-- Monitor engagement in each section
-
-### A/B Testing
-- Test different marketing messaging
-- Experiment with auth page layouts
-- Optimize app navigation for productivity
-
----
+For delivery:
+- Clean production surface area
+- Safer pre-production access control
+- Better maintainability via canonical route namespace
 
 ## Maintenance Notes
 
 When adding a new page:
-1. Determine which category it belongs to (Public/Auth/App)
-2. Create the page component
-3. Add the route to AppRouter
-4. Add the route pattern to appropriate list in LayoutRouter
-5. The correct layout will be automatically selected
-
-### Example: Adding a new app feature
-```typescript
-// 1. Create the page
-// pages/MyNewFeature.tsx
-
-// 2. Import in AppRouter
-import MyNewFeature from "./pages/MyNewFeature";
-
-// 3. Add route
-<Route path="/my-new-feature" component={MyNewFeature} />
-
-// 4. Add pattern to LayoutRouter
-const appPages = [
-  // ... existing pages
-  '/my-new-feature'  // ← Add here
-];
-```
-
-The page will automatically use AppLayout! ✓
+1. Determine route category (public/auth/app/shared)
+2. Add page component and route in `AppRouter.tsx`
+3. Apply `ProtectedRoute` if app-authenticated
+4. Add legacy redirect only if backward compatibility is required
+5. Update architecture and readiness docs with new route evidence

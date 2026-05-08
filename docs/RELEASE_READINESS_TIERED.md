@@ -1,12 +1,31 @@
 # Release Readiness: Tiered Feature Assessment
 
-**Last Updated:** 2026-02-23  
-**Report:** Firebase Endpoint Readiness with Feature Prioritization  
-**Summary:** ✅ **GO-LIVE READY** - All 33 basic features fully functional (100%)
+**Last Updated:** 2026-05-08  
+**Report:** Integrated Solution Readiness (Docs + Architecture + Technology + Code)  
+**Summary:** ⚠️ **TEST-READY, PRODUCTION-CONDITIONAL** - quality gates pass, but production release gates still require final execution evidence.
+
+---
+
+## Current Validation Snapshot (May 8, 2026)
+
+Validated on `develop`:
+- `npm run lint` ✅
+- `npm run check` ✅
+- `npm run requirements:verify` ✅ (blocking failures: 0)
+
+Additional delivery hardening applied:
+- CI Firebase init config fetch in `master-pipeline.yml` hardened for transient network failures and JSON-safe logging.
+- Workspace test scripts standardized for CI completion (`vitest run`) in web/shared packages.
+
+Readiness interpretation:
+- **Testing readiness**: ✅ Ready (build, lint, typecheck, requirements traceability are green)
+- **Production readiness**: ⚠️ Conditional until release gate checkboxes are completed for current candidate (manual flow verification, production validation run, KPI/ad gates).
 
 ---
 
 ## Executive Summary
+
+Note: The tier-by-tier endpoint results below are historical baseline data from the original endpoint readiness run. Current release decisions should use the "Current Validation Snapshot" and the updated Go/No-Go section in this document.
 
 | Tier | Status | Score | Details |
 |------|--------|-------|---------|
@@ -294,21 +313,20 @@ Separate end-to-end test suite ("smoke-users-report.json") validates real user j
 
 ## Go/No-Go Decision
 
-### ✅ RECOMMENDATION: GO FOR LAUNCH
+### ⚠️ RECOMMENDATION: GO FOR TESTING, HOLD PRODUCTION RELEASE UNTIL GATES CLOSE
 
 **Criteria for launch readiness:**
 
 | Criterion | Status | Evidence |
 |-----------|--------|----------|
-| All basic features working | ✅ | 33/33 passed |
-| Zero code failures | ✅ | 0/82 failed |
-| Core user flows validated | ✅ | 31/31 smoke tests passed |
-| Extension ready | ✅ | 9/9 endpoints passed |
-| Monetization ready | ✅ | 7/7 affiliate endpoints passed |
-| Notification system ready | ✅ | FCM tokens working; triggers verified |
-| Zero blocking bugs | ✅ | All warnings are expected or deferred features |
+| Workspace lint/typecheck pass | ✅ | `npm run lint`, `npm run check` green |
+| Requirements traceability gate | ✅ | `npm run requirements:verify` green (blocking=0) |
+| CI pipeline resilience | ✅ | Firebase config fetch retry/logging fixes in `master-pipeline.yml` |
+| Monorepo tests deterministic in CI | ✅ | web/shared `test` scripts use `vitest run` |
+| Production post-deploy validation evidence for current candidate | ⚠️ | Not captured yet in this report |
+| Manual release gate evidence (core flows / KPI thresholds) | ⚠️ | Outstanding checklist items remain |
 
-**Launch Confidence:** 🟢 **HIGH** - Ship with v1.0 scope (33 basic + 27 advanced = 60/82)
+**Launch Confidence:** 🟡 **MEDIUM** - suitable for full testing cycle; production go/no-go should remain pending until current release-gate evidence is completed.
 
 ---
 
