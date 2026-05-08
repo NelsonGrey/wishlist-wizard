@@ -2,7 +2,7 @@
 
 **Version**: 1.1  
 **Last Updated**: May 8, 2026  
-**Status**: Workflow consolidation complete; 6 active workflows optimized; 20 archived workflows disabled; lint parser scope fixed; workspace tests standardized for non-watch CI execution.
+**Status**: Workflow consolidation complete; 6 active workflows optimized; 20 archived workflows disabled; lint parser scope fixed; workspace tests standardized for non-watch CI execution; Firebase config loading hardened with multi-source fallback.
 
 ## Requirements
 - iOS distribution is zero-touch:
@@ -76,6 +76,20 @@ Objectives: Ensure `npm run test --workspaces --if-present` exits deterministica
 **Result:**
 - Root monorepo test execution is CI-friendly by default.
 - Local watch behavior remains available via explicit `test:watch` scripts.
+
+### WS6 — Firebase Config Bootstrap Hardening (DONE)
+Objectives: Prevent non-production builds from failing when hosting has not yet been deployed.
+
+**Changes (May 8, 2026):**
+- Updated `master-pipeline.yml` web config load order to use three fallback sources:
+  - Firebase Management API via CLI (`firebase apps:list` + `firebase apps:sdkconfig`).
+  - Hosting endpoint fallback (`https://<project>.web.app/__/firebase/init.json`).
+  - Environment-secret synthesis fallback (`VITE_FIREBASE_*_{ENV}` / `VITE_FIREBASE_*`).
+- Added explicit support for `demonstration` fallback resolution (`*_DEMONSTRATION` then `*_STAGING` then base value).
+
+**Result:**
+- Demonstration and other bootstrap environments no longer depend on pre-existing Hosting deployments to build.
+- Pipeline remains backward compatible for environments already using hosting `init.json`.
 
 ## Dependencies / Secrets
 Required secrets (per repo environment):

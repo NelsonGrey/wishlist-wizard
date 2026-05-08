@@ -270,6 +270,41 @@ jobs:
       FIREBASE_PROJECT_DEMO: ${{ secrets.FIREBASE_PROJECT_DEMONSTRATION || 'wishlist-wizard-demo' }}
       FIREBASE_PROJECT_STAGING: ${{ secrets.FIREBASE_PROJECT_STAGING || 'wishlist-wizard-staging' }}
       FIREBASE_PROJECT_PROD: ${{ secrets.FIREBASE_PROJECT_PRODUCTION || 'wishlist-wizard-prod' }}
+      VITE_FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY }}
+      VITE_FIREBASE_AUTH_DOMAIN: ${{ secrets.VITE_FIREBASE_AUTH_DOMAIN }}
+      VITE_FIREBASE_PROJECT_ID: ${{ secrets.VITE_FIREBASE_PROJECT_ID }}
+      VITE_FIREBASE_STORAGE_BUCKET: ${{ secrets.VITE_FIREBASE_STORAGE_BUCKET }}
+      VITE_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.VITE_FIREBASE_MESSAGING_SENDER_ID }}
+      VITE_FIREBASE_APP_ID: ${{ secrets.VITE_FIREBASE_APP_ID }}
+      VITE_FIREBASE_MEASUREMENT_ID: ${{ secrets.VITE_FIREBASE_MEASUREMENT_ID }}
+      VITE_FIREBASE_API_KEY_DEVELOPMENT: ${{ secrets.VITE_FIREBASE_API_KEY_DEVELOPMENT }}
+      VITE_FIREBASE_AUTH_DOMAIN_DEVELOPMENT: ${{ secrets.VITE_FIREBASE_AUTH_DOMAIN_DEVELOPMENT }}
+      VITE_FIREBASE_PROJECT_ID_DEVELOPMENT: ${{ secrets.VITE_FIREBASE_PROJECT_ID_DEVELOPMENT }}
+      VITE_FIREBASE_STORAGE_BUCKET_DEVELOPMENT: ${{ secrets.VITE_FIREBASE_STORAGE_BUCKET_DEVELOPMENT }}
+      VITE_FIREBASE_MESSAGING_SENDER_ID_DEVELOPMENT: ${{ secrets.VITE_FIREBASE_MESSAGING_SENDER_ID_DEVELOPMENT }}
+      VITE_FIREBASE_APP_ID_DEVELOPMENT: ${{ secrets.VITE_FIREBASE_APP_ID_DEVELOPMENT }}
+      VITE_FIREBASE_MEASUREMENT_ID_DEVELOPMENT: ${{ secrets.VITE_FIREBASE_MEASUREMENT_ID_DEVELOPMENT }}
+      VITE_FIREBASE_API_KEY_DEMONSTRATION: ${{ secrets.VITE_FIREBASE_API_KEY_DEMONSTRATION }}
+      VITE_FIREBASE_AUTH_DOMAIN_DEMONSTRATION: ${{ secrets.VITE_FIREBASE_AUTH_DOMAIN_DEMONSTRATION }}
+      VITE_FIREBASE_PROJECT_ID_DEMONSTRATION: ${{ secrets.VITE_FIREBASE_PROJECT_ID_DEMONSTRATION }}
+      VITE_FIREBASE_STORAGE_BUCKET_DEMONSTRATION: ${{ secrets.VITE_FIREBASE_STORAGE_BUCKET_DEMONSTRATION }}
+      VITE_FIREBASE_MESSAGING_SENDER_ID_DEMONSTRATION: ${{ secrets.VITE_FIREBASE_MESSAGING_SENDER_ID_DEMONSTRATION }}
+      VITE_FIREBASE_APP_ID_DEMONSTRATION: ${{ secrets.VITE_FIREBASE_APP_ID_DEMONSTRATION }}
+      VITE_FIREBASE_MEASUREMENT_ID_DEMONSTRATION: ${{ secrets.VITE_FIREBASE_MEASUREMENT_ID_DEMONSTRATION }}
+      VITE_FIREBASE_API_KEY_STAGING: ${{ secrets.VITE_FIREBASE_API_KEY_STAGING }}
+      VITE_FIREBASE_AUTH_DOMAIN_STAGING: ${{ secrets.VITE_FIREBASE_AUTH_DOMAIN_STAGING }}
+      VITE_FIREBASE_PROJECT_ID_STAGING: ${{ secrets.VITE_FIREBASE_PROJECT_ID_STAGING }}
+      VITE_FIREBASE_STORAGE_BUCKET_STAGING: ${{ secrets.VITE_FIREBASE_STORAGE_BUCKET_STAGING }}
+      VITE_FIREBASE_MESSAGING_SENDER_ID_STAGING: ${{ secrets.VITE_FIREBASE_MESSAGING_SENDER_ID_STAGING }}
+      VITE_FIREBASE_APP_ID_STAGING: ${{ secrets.VITE_FIREBASE_APP_ID_STAGING }}
+      VITE_FIREBASE_MEASUREMENT_ID_STAGING: ${{ secrets.VITE_FIREBASE_MEASUREMENT_ID_STAGING }}
+      VITE_FIREBASE_API_KEY_PRODUCTION: ${{ secrets.VITE_FIREBASE_API_KEY_PRODUCTION }}
+      VITE_FIREBASE_AUTH_DOMAIN_PRODUCTION: ${{ secrets.VITE_FIREBASE_AUTH_DOMAIN_PRODUCTION }}
+      VITE_FIREBASE_PROJECT_ID_PRODUCTION: ${{ secrets.VITE_FIREBASE_PROJECT_ID_PRODUCTION }}
+      VITE_FIREBASE_STORAGE_BUCKET_PRODUCTION: ${{ secrets.VITE_FIREBASE_STORAGE_BUCKET_PRODUCTION }}
+      VITE_FIREBASE_MESSAGING_SENDER_ID_PRODUCTION: ${{ secrets.VITE_FIREBASE_MESSAGING_SENDER_ID_PRODUCTION }}
+      VITE_FIREBASE_APP_ID_PRODUCTION: ${{ secrets.VITE_FIREBASE_APP_ID_PRODUCTION }}
+      VITE_FIREBASE_MEASUREMENT_ID_PRODUCTION: ${{ secrets.VITE_FIREBASE_MEASUREMENT_ID_PRODUCTION }}
       NON_PROD_SITE_PASSWORD_DEVELOPMENT: ${{ secrets.NON_PROD_SITE_PASSWORD_DEVELOPMENT }}
       NON_PROD_SITE_PASSWORD_DEMONSTRATION: ${{ secrets.NON_PROD_SITE_PASSWORD_DEMONSTRATION }}
       NON_PROD_SITE_PASSWORD_STAGING: ${{ secrets.NON_PROD_SITE_PASSWORD_STAGING }}
@@ -368,6 +403,66 @@ jobs:
             echo "⚠️  CLI unavailable, falling back to hosting endpoint..." >&2
             INIT_URL="https://$PROJECT_ID.web.app/__/firebase/init.json"
             INIT_JSON="$(curl -sfL -m 30 "$INIT_URL" 2>/dev/null)" || INIT_JSON=""
+          fi
+
+          # Final fallback: synthesize Firebase config from environment secrets.
+          # This covers branches/environments where hosting is not deployed and CLI app listing is unavailable.
+          if [ -z "$INIT_JSON" ] || [ "$INIT_JSON" = '{}' ]; then
+            echo "⚠️  Hosting endpoint unavailable, attempting env-secret fallback..." >&2
+            TARGET_ENV="${{ needs.load-config.outputs.target_environment }}"
+
+            resolve_env_value() {
+              local base_name="$1"
+              local value=""
+
+              case "$TARGET_ENV" in
+                production)
+                  eval "value=\${${base_name}_PRODUCTION:-}"
+                  ;;
+                demonstration)
+                  eval "value=\${${base_name}_DEMONSTRATION:-}"
+                  if [ -z "$value" ]; then
+                    eval "value=\${${base_name}_STAGING:-}"
+                  fi
+                  ;;
+                staging)
+                  eval "value=\${${base_name}_STAGING:-}"
+                  ;;
+                development|*)
+                  eval "value=\${${base_name}_DEVELOPMENT:-}"
+                  ;;
+              esac
+
+              if [ -z "$value" ]; then
+                eval "value=\${${base_name}:-}"
+              fi
+
+              printf '%s' "$value"
+            }
+
+            API_KEY="$(resolve_env_value VITE_FIREBASE_API_KEY)"
+            AUTH_DOMAIN="$(resolve_env_value VITE_FIREBASE_AUTH_DOMAIN)"
+            PROJECT_ID_FROM_ENV="$(resolve_env_value VITE_FIREBASE_PROJECT_ID)"
+            STORAGE_BUCKET="$(resolve_env_value VITE_FIREBASE_STORAGE_BUCKET)"
+            MESSAGING_SENDER_ID="$(resolve_env_value VITE_FIREBASE_MESSAGING_SENDER_ID)"
+            APP_ID="$(resolve_env_value VITE_FIREBASE_APP_ID)"
+            MEASUREMENT_ID="$(resolve_env_value VITE_FIREBASE_MEASUREMENT_ID)"
+
+            if [ -n "$API_KEY" ] && [ -n "$AUTH_DOMAIN" ] && [ -n "$PROJECT_ID_FROM_ENV" ] && [ -n "$APP_ID" ]; then
+              INIT_JSON="$(API_KEY="$API_KEY" AUTH_DOMAIN="$AUTH_DOMAIN" PROJECT_ID="$PROJECT_ID_FROM_ENV" STORAGE_BUCKET="$STORAGE_BUCKET" MESSAGING_SENDER_ID="$MESSAGING_SENDER_ID" APP_ID="$APP_ID" MEASUREMENT_ID="$MEASUREMENT_ID" node -e '
+                const cfg = {
+                  apiKey: process.env.API_KEY || "",
+                  authDomain: process.env.AUTH_DOMAIN || "",
+                  projectId: process.env.PROJECT_ID || "",
+                  storageBucket: process.env.STORAGE_BUCKET || "",
+                  messagingSenderId: process.env.MESSAGING_SENDER_ID || "",
+                  appId: process.env.APP_ID || "",
+                  measurementId: process.env.MEASUREMENT_ID || ""
+                };
+                process.stdout.write(JSON.stringify(cfg));
+              ')"
+              echo "✓ Firebase config loaded from env secrets" >&2
+            fi
           fi
 
           if [ -z "$INIT_JSON" ] || [ "$INIT_JSON" = '{}' ]; then
