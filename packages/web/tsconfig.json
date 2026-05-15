@@ -3,6 +3,7 @@
   "compilerOptions": {
     // "baseUrl": ".",
     "ignoreDeprecations": "5.0",
+    "downlevelIteration": true,
     "paths": {
       "@/*": ["./client-src/*"],
       "@/components/*": ["./client-src/components/*"],
