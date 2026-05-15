@@ -529,13 +529,13 @@ export function getMissingFeatures(
     if (otherPlatforms.length > 0 && features[platform].length === 0) {
       missing.push({
         category,
-        features: [
-          ...new Set([
+        features: Array.from(
+          new Set([
             ...features.web,
             ...features.mobile,
             ...features.extension,
-          ]),
-        ],
+          ])
+        ),
       });
     }
   });
