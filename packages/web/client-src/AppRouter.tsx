@@ -42,6 +42,7 @@ const CookiePolicy = lazy(() => import("./pages/CookiePolicy"));
 const About = lazy(() => import("./pages/About"));
 const Blog = lazy(() => import("./pages/Blog"));
 const Contact = lazy(() => import("./pages/Contact"));
+const Plans = lazy(() => import("./pages/Plans"));
 const FeatureDemo = lazy(() => import("./pages/FeatureDemo"));
 
 // Super-admin pages
@@ -169,6 +170,7 @@ function AppRouter() {
                   {/* Public Pages - Marketing Site */}
                   <Route path="/" component={Home} />
                   <Route path="/extension" component={ExtensionPage} />
+                  <Route path="/plans" component={Plans} />
                     <Route path="/about" component={About} />
                     <Route path="/blog" component={Blog} />
                     <Route path="/contact" component={Contact} />
