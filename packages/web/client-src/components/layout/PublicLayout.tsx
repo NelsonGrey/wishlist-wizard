@@ -19,7 +19,7 @@ export default function PublicLayout({ children }: PublicLayoutProps) {
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-emerald-50/30 via-white to-green-50/30">
       {/* Marketing Header */}
       <header className="bg-white/95 backdrop-blur-sm border-b border-emerald-100 sticky top-0 z-10 shadow-sm">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+        <div className="container mx-auto px-4 py-3.5 flex items-center justify-between">
           {/* Logo - acts as home button */}
           <Link href="/">
             <span className="flex items-center hover:scale-105 transition-transform duration-200">
@@ -29,7 +29,7 @@ export default function PublicLayout({ children }: PublicLayoutProps) {
           </Link>
 
           {/* Navigation */}
-          <nav className="hidden md:flex items-center space-x-8">
+          <nav className="hidden md:flex items-center space-x-6">
             <Link href="/extension" className="text-gray-700 hover:text-emerald-700 font-medium transition-colors">
               How It Works
             </Link>
@@ -65,12 +65,14 @@ export default function PublicLayout({ children }: PublicLayoutProps) {
         </div>
       </header>
 
-      <GlobalAdSlot />
+      <GlobalAdSlot placement="top" />
 
       {/* Main content */}
       <main className="flex-1">
         {children}
       </main>
+
+      <GlobalAdSlot placement="bottom" />
 
       {/* Footer */}
       <Footer />

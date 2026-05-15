@@ -17,9 +17,9 @@ function formatPrice(value: number | null): string {
 
 export default function Plans() {
   return (
-    <section id="plans" className="py-16 bg-white border-t border-emerald-100/70">
+    <section id="plans" className="py-12 bg-white border-t border-emerald-100/70">
       <div className="container mx-auto px-4">
-        <div className="text-center mb-12">
+        <div className="text-center mb-8">
           <h2 className="text-3xl md:text-4xl font-bold mb-4 bg-gradient-to-r from-emerald-800 to-green-700 bg-clip-text text-transparent">
             Plans That Scale With You
           </h2>
@@ -28,7 +28,7 @@ export default function Plans() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-5">
           {MARKETING_TIERS.map((tierKey) => {
             const tier = TIER_PRICING[tierKey];
             const isHighlighted = tierKey === "plus";
