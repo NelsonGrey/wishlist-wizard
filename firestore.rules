@@ -109,5 +109,58 @@ service cloud.firestore {
     match /userSessions/{sessionId} {
       allow read, write: if isAuthenticated() && request.auth.uid == resource.data.userId;
     }
+
+    // ─── SUBSCRIPTION SYSTEM (NEW) ───
+
+    // Subscriptions - users can read their own; Cloud Functions write-only
+    match /subscriptions/{userId} {
+      allow read: if isAuthenticated() && (
+        request.auth.uid == userId ||
+        (get(/databases/$(database)/documents/adminUsers/$(request.auth.uid)).data.isActive == true)
+      );
+      allow write: if false; // Cloud Functions only (via admin SDK)
+    }
+
+    // Usage metrics - users can read their own; Cloud Functions write-only
+    match /usageMetrics/{userId} {
+      allow read: if isAuthenticated() && (
+        request.auth.uid == userId ||
+        (get(/databases/$(database)/documents/adminUsers/$(request.auth.uid)).data.isActive == true)
+      );
+      allow write: if false; // Cloud Functions only (via admin SDK)
+    }
+
+    // Admin users - admin-only access, Cloud Functions manage
+    match /adminUsers/{uid} {
+      allow read: if isAuthenticated() && 
+        (get(/databases/$(database)/documents/adminUsers/$(request.auth.uid)).data.isActive == true);
+      allow write: if false; // Cloud Functions only (via admin SDK)
+    }
+
+    // Support tickets - users can create and read their own; admins read all
+    match /supportTickets/{ticketId} {
+      allow read: if isAuthenticated() && (
+        resource.data.userId == request.auth.uid ||
+        (get(/databases/$(database)/documents/adminUsers/$(request.auth.uid)).data.isActive == true)
+      );
+      
+      allow create: if isAuthenticated() && 
+        request.auth.uid == request.resource.data.userId;
+      
+      allow update: if isAuthenticated() && 
+        ((get(/databases/$(database)/documents/adminUsers/$(request.auth.uid)).data.isActive == true) ||
+         request.auth.uid == resource.data.userId);
+      
+      allow delete: if false; // Tickets are immutable via client
+    }
+
+    // Audit log - admin-only read; append-only (no updates/deletes)
+    match /auditLog/{logId} {
+      allow read: if isAuthenticated() && 
+        (get(/databases/$(database)/documents/adminUsers/$(request.auth.uid)).data.isActive == true);
+      
+      allow create: if false; // Cloud Functions only (via admin SDK)
+      allow update, delete: if false; // Append-only, immutable
+    }
   }
 }
