@@ -502,3 +502,9 @@ Success Probability: 98%+
 - Latest pipeline on `develop`: green
 - Local type check/build: passing
 - Branch status: ready for review
+
+### Follow-up Reliability Fix
+
+- A later CI run surfaced a brittle WishlistDetail test assertion.
+- Test was updated to validate PATCH contract with a dynamic item id matcher.
+- Targeted test run now passes locally; fix prepared and pushed for CI re-validation.

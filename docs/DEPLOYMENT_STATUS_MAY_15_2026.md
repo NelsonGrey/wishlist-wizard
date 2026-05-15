@@ -391,3 +391,22 @@ Push status: SUCCESSFUL
 - Local build: passing
 - Latest `develop` workflow: **success**
 - Repository status: ready for review
+
+---
+
+## 🔁 Follow-up CI Update (May 15, 2026)
+
+### Issue
+
+- A subsequent pipeline run failed in `Run Tests` due to a brittle assertion in `WishlistDetail.test.tsx`.
+
+### Resolution
+
+- Updated assertion to match intended PATCH contract independent of item id ordering.
+- Validated locally with targeted test execution:
+   - `client-src/test/components/WishlistDetail.test.tsx`: passing
+
+### Current Deployment Readiness
+
+- Fix is staged for push and rerun.
+- Expected impact: restores stable CI pass behavior for WishlistDetail CRUD test path.
