@@ -28,6 +28,15 @@ test.describe('Smoke Test: Critical Features', () => {
     }
   });
 
+  test('Homepage is not blocked by the environment gate', async ({ page }: { page: Page }) => {
+    await page.goto('/');
+    await page.waitForLoadState('networkidle');
+
+    await expect(page.getByText('Protected Environment')).toHaveCount(0);
+    await expect(page.getByText('Environment Is Locked')).toHaveCount(0);
+    await expect(page.getByLabel('Environment Password')).toHaveCount(0);
+  });
+
   test('Login page accessible', async ({ page }: { page: Page }) => {
     await page.goto('/');
     
