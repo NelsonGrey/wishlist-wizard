@@ -119,9 +119,9 @@ const rows: MatrixRow[] = [
 
 export default function PlansComparisonMatrix() {
   return (
-    <section className="py-16 bg-slate-50 border-t border-slate-200">
+    <section className="py-12 bg-slate-50 border-t border-slate-200">
       <div className="container mx-auto px-4">
-        <div className="text-center mb-10">
+        <div className="text-center mb-8">
           <p className="uppercase tracking-[0.24em] text-emerald-700 text-sm font-semibold mb-3">
             Compare plans
           </p>

@@ -2,18 +2,18 @@ import { Link } from "wouter";
 
 export default function Hero() {
   return (
-    <section className="relative bg-gradient-to-br from-emerald-700 via-green-700 to-teal-700 text-white py-24 overflow-hidden">
+    <section className="relative bg-gradient-to-br from-emerald-700 via-green-700 to-teal-700 text-white py-14 md:py-16 overflow-hidden">
       {/* Decorative background patterns */}
       <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTSAxMCAwIEwgMCAwIDAgMTAiIGZpbGw9Im5vbmUiIHN0cm9rZT0icmdiYSgyNTUsMjU1LDI1NSwwLjA1KSIgc3Ryb2tlLXdpZHRoPSIxIi8+PC9wYXR0ZXJuPjwvZGVmcz48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSJ1cmwoI2dyaWQpIi8+PC9zdmc+')] opacity-40"></div>
       
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-10 items-center">
           <div>
-            <h1 className="text-5xl md:text-6xl font-extrabold mb-6 leading-tight">
+            <h1 className="text-4xl md:text-5xl font-extrabold mb-5 leading-tight">
               Save Anything
               <span className="block bg-gradient-to-r from-emerald-100 to-green-100 bg-clip-text text-transparent">From Anywhere</span>
             </h1>
-            <p className="text-xl md:text-2xl mb-10 text-emerald-50 leading-relaxed">Create wishlists from your favorite shopping sites with just one click. <span className="font-semibold text-white">Wishlist Wizard</span> makes tracking, organizing, and sharing your shopping lists effortless.</p>
+            <p className="text-lg md:text-xl mb-7 text-emerald-50 leading-relaxed">Create wishlists from your favorite shopping sites with just one click. <span className="font-semibold text-white">Wishlist Wizard</span> makes tracking, organizing, and sharing your shopping lists effortless.</p>
             <div className="flex flex-wrap gap-4">
               <Link 
                 href="/extension"
