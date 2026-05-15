@@ -138,7 +138,7 @@ export const TIER_LIMITS: Record<SubscriptionTier, TierLimits> = {
     maxPriceTrackedItems: 25,
     maxCollaboratorsPerWishlist: 15,
     priceHistoryMonths: 12,
-    adsEnabled: false,
+    adsEnabled: true,
     groupGiftingEnabled: false,
     creatorDashboardEnabled: false,
     affiliateCommissionShare: 0,

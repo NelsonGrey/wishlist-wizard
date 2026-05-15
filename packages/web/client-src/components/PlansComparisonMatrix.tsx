@@ -92,13 +92,8 @@ const rows: MatrixRow[] = [
   },
   {
     label: 'Creator dashboard',
-    description: 'Affiliate and creator analytics tools',
+    description: 'Advanced creator analytics tools',
     renderValue: (tier) => TIER_LIMITS[tier].creatorDashboardEnabled,
-  },
-  {
-    label: 'Affiliate commission share',
-    description: 'Portion of platform commissions paid back to creators',
-    renderValue: (tier) => TIER_LIMITS[tier].affiliateCommissionShare > 0 ? `${Math.round(TIER_LIMITS[tier].affiliateCommissionShare * 100)}%` : null,
   },
   {
     label: 'Monthly price',
@@ -170,8 +165,6 @@ export default function PlansComparisonMatrix() {
                           </span>
                         ) : row.label === 'Trial period' ? (
                           <span className="font-medium">{typeof tierValue === 'number' && tierValue > 0 ? `${tierValue} days` : 'None'}</span>
-                        ) : row.label === 'Affiliate commission share' ? (
-                          <span className="font-medium">{tierValue ?? 'None'}</span>
                         ) : row.label === 'Analytics depth' ? (
                           <span className="font-medium capitalize">{String(tierValue)}</span>
                         ) : typeof tierValue === 'boolean' ? (

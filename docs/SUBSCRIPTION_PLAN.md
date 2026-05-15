@@ -108,7 +108,7 @@ Wishlist Wizard sits between "simple free wishlist" apps (Giftster, MyRegistry) 
 | **Items/wishlist** | 25 | 75 | 200 | Unlimited | Unlimited |
 | **Price-tracked items** | 5 | 25 | 75 | Unlimited | Unlimited |
 | **Collaborators/wishlist** | 5 | 15 | 50 | Unlimited | Unlimited |
-| **Ads** | ✅ Displayed | ❌ None | ❌ None | ❌ None | ❌ None |
+| **Ads** | ✅ Displayed | ✅ Displayed | ❌ None | ❌ None | ❌ None |
 | **Price history** | 3 months | 1 year | 2 years | Full history | Full history |
 | **Affiliate commission share** | None (platform keeps) | None | None | 20% of user-generated commissions | 30% of user-generated commissions |
 | **Calendar integration** | ❌ | 1 calendar | All calendars | All calendars | All calendars |
@@ -152,7 +152,7 @@ Wishlist Wizard sits between "simple free wishlist" apps (Giftster, MyRegistry) 
 **Why upgrade from Free**:
 - Planning 4–5 annual occasions: birthday × 2 kids + holiday + anniversary + personal = 5+ wishlists needed
 - Tracks 15–25 items → without upgrade, 20 items would be untracked
-- No ads → cleaner experience when managing multiple active wishlists
+- Maintains ads while still unlocking higher wishlist and tracking limits at a lower entry price
 - A single price drop notification (e.g., $40 saving on a holiday gift) pays for the entire yearly subscription
 
 **Value justification**: At $39/year, if Wishlist Wizard alerts the user to a single $40+ price drop that they act on, the product has paid for itself.
