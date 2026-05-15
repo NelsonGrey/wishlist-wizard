@@ -247,7 +247,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
         </div>
       </header>
 
-      <GlobalAdSlot />
+      <GlobalAdSlot placement="top" />
 
       {/* Main content */}
       <main className="flex-1 bg-gray-50">
