@@ -268,6 +268,51 @@
       <button id="close-button" class="secondary-button">Close</button>
     </div>
 
+    <div id="paywall-overlay" class="paywall-overlay hidden">
+      <div class="paywall-card">
+        <h2>Upgrade To Keep Going</h2>
+        <p id="paywall-subtitle" class="small-text">
+          You have reached a plan limit. Upgrade to unlock more wishlists, items, and tracking.
+        </p>
+
+        <div id="paywall-usage" class="paywall-usage"></div>
+
+        <div class="paywall-pricing-toggle">
+          <button id="paywall-billing-monthly" class="secondary-button">Monthly</button>
+          <button id="paywall-billing-annual" class="secondary-button">Annual</button>
+        </div>
+
+        <div id="paywall-options" class="paywall-options"></div>
+
+        <div class="button-group">
+          <button id="paywall-compare-button" class="secondary-button">Compare All Tiers</button>
+          <button id="paywall-manage-billing-button" class="secondary-button">Manage Billing</button>
+          <button id="paywall-close-button" class="text-button">Maybe Later</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="tier-modal-overlay" class="paywall-overlay hidden">
+      <div class="paywall-card tier-modal-card">
+        <h2>Tier Comparison</h2>
+        <div class="tier-table-wrap">
+          <table class="tier-table" id="tier-comparison-table">
+            <thead>
+              <tr>
+                <th>Tier</th>
+                <th>Monthly</th>
+                <th>Annual</th>
+              </tr>
+            </thead>
+            <tbody id="tier-comparison-body"></tbody>
+          </table>
+        </div>
+        <div class="button-group">
+          <button id="tier-modal-close-button" class="secondary-button">Close</button>
+        </div>
+      </div>
+    </div>
+
     <div class="footer">
       <span id="user-info" class="user-info hidden">Signed in as <span id="username"></span></span>
       <div class="environment-control">
