@@ -1,4 +1,5 @@
 import PlansSection from "@/components/Plans";
+import PlansComparisonMatrix from "@/components/PlansComparisonMatrix";
 
 export default function Plans() {
   return (
@@ -18,6 +19,7 @@ export default function Plans() {
       </section>
 
       <PlansSection />
+      <PlansComparisonMatrix />
     </div>
   );
 }
