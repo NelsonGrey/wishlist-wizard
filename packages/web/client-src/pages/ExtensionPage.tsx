@@ -12,7 +12,6 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 // Using alternative icons from the React Icons library
 import { FaChrome, FaFirefox, FaEdge, FaSafari } from 'react-icons/fa';
-import { ResponsiveAd } from '@/components/ads/AdUnit';
 import { ExtensionHelp } from '@/components/help/ExtensionHelp';
 
 const ExtensionPage = () => {
@@ -273,10 +272,6 @@ const ExtensionPage = () => {
             </Card>
           </TabsContent>
         </Tabs>
-
-        <div className="mb-16">
-          <ResponsiveAd />
-        </div>
 
         <div className="grid md:grid-cols-3 gap-6 mb-16">
           <Card>
