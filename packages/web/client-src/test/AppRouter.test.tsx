@@ -131,6 +131,16 @@ describe('AppRouter Smoke Tests', () => {
       }, { timeout: 500 });
     });
 
+    it('should render the plans page at /plans', async () => {
+      window.history.pushState({}, 'Plans', '/plans');
+
+      render(<AppRouter />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Plans That Scale With You')).toBeInTheDocument();
+      });
+    });
+
     it('should render public pages without authentication', async () => {
       // Arrange: Test a sample of public routes
       const publicRoutes = ['/', '/about', '/blog'];
