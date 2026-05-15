@@ -482,3 +482,23 @@ Success Probability: 98%+
 **Status**: ✅ SUCCESS - ALL WORK DELIVERED
 
 **Next Review**: After GitHub workflow completion (estimated 7:15 PM UTC)
+
+---
+
+## 🔄 Final Addendum (May 15, 2026 - Late Evening)
+
+### Additional Delivered Change
+
+- Login/register pages were repositioned closer to the top for improved first-screen visibility.
+
+### Workflow Incident and Resolution
+
+- A later `develop` workflow run failed on TypeScript (`TS2741`) due to missing `placement` prop in `AppLayout.tsx`.
+- Immediate corrective fix was committed and pushed in `82c9f83`.
+- Corrective rerun (`25945573668`) completed with overall **success**.
+
+### Verified End State
+
+- Latest pipeline on `develop`: green
+- Local type check/build: passing
+- Branch status: ready for review
