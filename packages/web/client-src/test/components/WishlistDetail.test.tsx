@@ -514,7 +514,15 @@ describe('WishlistDetail Item CRUD', () => {
     await user.click(screen.getByRole('button', { name: 'Save Changes' }));
 
     await waitFor(() => {
-      expect(apiRequest).toHaveBeenCalledWith('/api/items/1', expect.objectContaining({ method: 'PATCH' }));
+      expect(apiRequest).toHaveBeenCalledWith(
+        expect.stringMatching(/^\/api\/items\/\d+$/),
+        expect.objectContaining({
+          method: 'PATCH',
+          body: expect.objectContaining({
+            title: 'Updated Item Title',
+          }),
+        })
+      );
     });
   });
 });
