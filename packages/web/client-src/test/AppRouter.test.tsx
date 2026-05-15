@@ -80,6 +80,18 @@ describe('AppRouter Smoke Tests', () => {
 
       expect(await screen.findByTestId('env-password-gate')).toBeInTheDocument();
     });
+
+    it('does not gate the development environment when a password is set', async () => {
+      vi.stubEnv('VITE_ENVIRONMENT', 'development');
+      vi.stubEnv('VITE_NON_PROD_SITE_PASSWORD', 'test-password');
+
+      window.history.pushState({}, 'Home', '/');
+      render(<AppRouter />);
+
+      await waitFor(() => {
+        expect(screen.queryByTestId('env-password-gate')).not.toBeInTheDocument();
+      });
+    });
   });
 
   describe('Public Route Navigation', () => {

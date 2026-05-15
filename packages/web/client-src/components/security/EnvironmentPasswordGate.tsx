@@ -1,5 +1,7 @@
 import { FormEvent, useMemo, useState } from 'react';
 
+const PROTECTED_ENVIRONMENTS = new Set(['staging', 'demonstration']);
+
 interface EnvironmentPasswordGateProps {
   environment: string;
   requiredPassword: string;
@@ -17,7 +19,7 @@ export default function EnvironmentPasswordGate({
 }: EnvironmentPasswordGateProps) {
   const normalizedEnvironment = normalizeEnvironment(environment);
 
-  const requiresProtection = normalizedEnvironment !== 'production' && normalizedEnvironment !== 'test';
+  const requiresProtection = PROTECTED_ENVIRONMENTS.has(normalizedEnvironment);
 
   const storageKey = useMemo(
     () => `ww:env-password-unlocked:${normalizedEnvironment}`,
