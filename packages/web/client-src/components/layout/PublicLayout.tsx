@@ -33,6 +33,9 @@ export default function PublicLayout({ children }: PublicLayoutProps) {
             <Link href="/extension" className="text-gray-700 hover:text-emerald-700 font-medium transition-colors">
               How It Works
             </Link>
+            <a href="/#plans" className="text-gray-700 hover:text-emerald-700 font-medium transition-colors">
+              Plans
+            </a>
             <Link href="/about" className="text-gray-700 hover:text-emerald-700 font-medium transition-colors">
               About
             </Link>
@@ -49,6 +52,9 @@ export default function PublicLayout({ children }: PublicLayoutProps) {
 
           {/* Mobile menu */}
           <div className="md:hidden flex items-center gap-3">
+            <a href="/#plans" className="text-gray-700 hover:text-emerald-800 font-medium">
+              Plans
+            </a>
             <Link href="/login" className="text-gray-700 hover:text-emerald-800 font-medium">
               Sign In
             </Link>

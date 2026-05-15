@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { render } from './utils';
@@ -61,8 +61,27 @@ describe('AppRouter Smoke Tests', () => {
   });
 
   describe('Non-Production Password Gate', () => {
+    const originalLocation = window.location;
+
+    const setHostname = (hostname: string) => {
+      Object.defineProperty(window, 'location', {
+        configurable: true,
+        value: {
+          ...originalLocation,
+          hostname,
+        },
+      });
+    };
+
+    afterEach(() => {
+      Object.defineProperty(window, 'location', {
+        configurable: true,
+        value: originalLocation,
+      });
+    });
+
     it('gates the homepage in non-production environments when password is set', async () => {
-      vi.stubEnv('VITE_ENVIRONMENT', 'staging');
+      setHostname('wishlist-wizard-staging.web.app');
       vi.stubEnv('VITE_NON_PROD_SITE_PASSWORD', 'test-password');
 
       window.history.pushState({}, 'Home', '/');
@@ -72,7 +91,7 @@ describe('AppRouter Smoke Tests', () => {
     });
 
     it('requires password for non-home routes in non-production environments', async () => {
-      vi.stubEnv('VITE_ENVIRONMENT', 'demonstration');
+      setHostname('wishlist-wizard-staging.web.app');
       vi.stubEnv('VITE_NON_PROD_SITE_PASSWORD', 'test-password');
 
       window.history.pushState({}, 'About', '/about');
@@ -82,7 +101,7 @@ describe('AppRouter Smoke Tests', () => {
     });
 
     it('does not gate the development environment when a password is set', async () => {
-      vi.stubEnv('VITE_ENVIRONMENT', 'development');
+      setHostname('wishlist-wizard-dev.web.app');
       vi.stubEnv('VITE_NON_PROD_SITE_PASSWORD', 'test-password');
 
       window.history.pushState({}, 'Home', '/');
