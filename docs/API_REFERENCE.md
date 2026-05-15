@@ -1,7 +1,7 @@
 # Wishlist Wizard - API Reference (Firebase Functions)
 
-**Version**: 1.0  
-**Last Updated**: February 16, 2026
+**Version**: 1.1  
+**Last Updated**: May 15, 2026
 
 ---
 

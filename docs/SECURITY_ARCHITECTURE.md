@@ -1,7 +1,7 @@
 # Wishlist Wizard - Security Architecture
 
-**Version**: 1.0  
-**Last Updated**: February 16, 2026  
+**Version**: 1.1  
+**Last Updated**: May 15, 2026  
 **Owner**: Mark Nelson
 
 ---
@@ -626,4 +626,96 @@ Before each release:
 - [System Architecture](SYSTEM_ARCHITECTURE.md)
 - [API Reference](API_REFERENCE.md)
 - [Database Schema](DATABASE_SCHEMA.md)
+- [Subscription Plan](SUBSCRIPTION_PLAN.md)
+
+---
+
+## 🔐 Super-Administrator Security Model (Added May 2026)
+
+### Why Super-Admin Is Architecturally Separate
+
+Adding subscription billing and user-to-user relationships creates new attack surfaces:
+- A compromised regular admin account could grant tier upgrades or issue refunds
+- PCI-DSS requires clear separation of duties for payment-related access
+- Impersonation capability (for support) must be strictly audited
+
+The super-admin system uses a defense-in-depth approach:
+
+### Admin Role Hierarchy
+
+| Role | Who Has It | Key Capabilities |
+|------|-----------|-----------------|
+| `user` | All users | Own data only |
+| `support_agent` | Customer support staff | Read users, read subscriptions, respond to tickets |
+| `billing_admin` | Finance team | Modify subscriptions, issue refunds, read payment history |
+| `super_admin` | 1–3 principals | All of the above + impersonate users, grant admin roles, system config |
+
+### Admin Authentication Requirements
+
+All admin roles require:
+1. **Firebase Auth** with a verified email from the company domain
+2. **Multi-Factor Authentication** (TOTP or hardware key) — enforced at the Firebase Auth tenant level, not app-level
+3. **Allowlisted Firebase UID** in the `/adminUsers` Firestore collection with `isActive: true`
+4. **IP allowlist** (Cloud Armor rule) for the admin API endpoints in production
+
+Admin sessions time out after 4 hours of inactivity (shorter than user sessions).
+
+### Admin Token Claims
+
+When an admin signs in, a Cloud Function (`onAuthStateChanged` trigger) sets custom Firebase Auth token claims:
+
+```json
+{
+  "uid": "admin_uid",
+  "role": "super_admin",
+  "permissions": ["users.read", "users.suspend", "subscriptions.modify", "system.config"],
+  "adminSessionId": "sess_abc123"
+}
+```
+
+These claims are verified server-side on every admin API call without a Firestore lookup.
+
+### Super-Admin Bootstrap
+
+The initial super-admin cannot be created through the normal UI. A one-time Cloud Function is called during deployment:
+
+```bash
+# Called once during initial deployment, never again
+firebase functions:call bootstrapSuperAdmin \
+  --data '{"uid":"...", "email":"...", "secret":"BOOTSTRAP_SECRET"}'
+```
+
+The `BOOTSTRAP_SECRET` is a deploy-time environment variable, discarded after first use by the function (it marks itself as bootstrapped in a system document).
+
+### Impersonation Security
+
+Super-admins can impersonate users for support purposes. Every impersonation:
+1. Creates an `AuditLog` entry with the reason field required
+2. Issues a short-lived (15 min) impersonation token, not the real user's token
+3. Revokes automatically; cannot be extended without re-authenticating
+4. Is visible to the impersonated user on their next login ("A support agent accessed your account on May 15, 2026")
+
+### Payment Data Security
+
+Credit card data is **never stored in Firestore or Firebase**. The platform handles card payments through Stripe:
+- Client collects card details in a Stripe-hosted iframe (Stripe Elements)
+- Stripe returns a `paymentMethodId` — this is what the backend receives
+- The backend calls Stripe's API server-to-server to attach the method and create subscriptions
+- Only `stripeCustomerId` and `stripeSubscriptionId` are stored in Firestore
+- PCI DSS SAQ-A compliance (minimal scope — card data never touches our servers)
+
+### Webhook Signature Verification
+
+All Stripe webhook events are verified using the `STRIPE_WEBHOOK_SECRET` (Stripe's HMAC-SHA256 signature). The webhook endpoint:
+1. Rejects requests without a valid `Stripe-Signature` header
+2. Uses raw body bytes for signature verification (middleware must not parse JSON before verification)
+3. Processes events idempotently (Stripe may replay events)
+4. Writes to AuditLog for every subscription lifecycle event
+
+### Subscription Limit Enforcement — Security Considerations
+
+Tier limits are enforced **server-side only**. Client-side UI gates are UX conveniences, not security controls:
+- Every API call that creates a wishlist, price alert, or collaborator checks the caller's tier from Firestore
+- Bypassing the UI (direct API calls) hits the same server-side checks
+- Users can never self-grant a higher tier — subscription upgrades flow exclusively through Stripe webhooks
 

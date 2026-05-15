@@ -9,6 +9,11 @@ import { convertAffiliateUrl } from '../utils/affiliate.js';
 import { requireAppCheck } from '../utils/app-check.js';
 import { CustomTrace } from '../utils/performance-monitoring.js';
 import { logErrorWithContext } from '../utils/error-reporting.js';
+import {
+  assertCanCreateWishlist,
+  assertCanAddItemToWishlist,
+  incrementUsage,
+} from '../utils/subscription-guard.js';
 
 ensureFirebaseAdmin();
 const db = getFirestore();
@@ -266,6 +271,9 @@ export const createWishlist = onCall(publicCallableOptions, async (request: Call
 
   return trace.executeAsync(async () => {
     try {
+      // Check subscription tier wishlist limit before creating
+      await assertCanCreateWishlist(userId);
+
       const validRecurrence = ['none', 'yearly', 'monthly'].includes(String(recurrence))
         ? String(recurrence)
         : 'none';
@@ -301,7 +309,10 @@ export const createWishlist = onCall(publicCallableOptions, async (request: Call
       };
 
       const docRef = await db.collection('wishlists').add(wishlistData);
-      
+
+      // Update usage metrics counter
+      await incrementUsage(userId, 'wishlistsOwned');
+
       // Create notification for wishlist creation
       await createNotification(userId, {
         type: 'wishlist_created',
@@ -490,6 +501,9 @@ export const deleteWishlist = onCall(publicCallableOptions, async (request: Call
 
     await batch.commit();
 
+    // Decrement usage metrics counter
+    await incrementUsage(userId, 'wishlistsOwned', -1);
+
     trace.incrementMetric('wishlists_deleted', 1);
     return { success: true };
     } catch (error) {
@@ -608,6 +622,15 @@ export const addWishlistItem = onCall(publicCallableOptions, async (request: Cal
       if (!isOwner && !canEditAsCollaborator) {
         throw new HttpsError('permission-denied', 'You do not have permission to add items to this wishlist');
       }
+
+      // Check subscription tier item-per-wishlist limit
+      const currentItemCount = await db
+        .collection('wishlistItems')
+        .where('wishlistId', '==', wishlistId)
+        .count()
+        .get()
+        .then((s) => s.data().count);
+      await assertCanAddItemToWishlist(wishlistData?.userId ?? userId, currentItemCount);
 
       const affiliateConversion = productUrl ? convertAffiliateUrl(productUrl) : null;
 
