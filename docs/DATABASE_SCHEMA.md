@@ -1,7 +1,7 @@
 # Wishlist Wizard - Database Schema & Data Modeling
 
-**Version**: 1.0  
-**Last Updated**: February 16, 2026  
+**Version**: 1.1  
+**Last Updated**: May 15, 2026  
 **Owner**: Mark Nelson
 
 ---
@@ -9,6 +9,8 @@
 ## 📋 Overview
 
 This document describes the current Firestore data model used by Firebase Functions. A legacy SQL schema exists in the shared package, but production reads and writes are performed against Firestore.
+
+> **May 2026 Update**: Collections added for subscription billing (`/subscriptions`), super-admin support (`/adminUsers`, `/supportTickets`), and subscription usage metering (`/usageMetrics`). User documents extended with `subscription` and `role` fields.
 
 ---
 
@@ -810,4 +812,261 @@ WishlistItem (1) ──→ (1) GroupGift
 - [System Architecture](SYSTEM_ARCHITECTURE.md)
 - [API Reference](API_REFERENCE.md)
 - [Firebase Implementation](FIREBASE_IMPLEMENTATION_SUMMARY.md)
+- [Subscription Plan](SUBSCRIPTION_PLAN.md)
+
+---
+
+## 💳 Subscription & Billing Collections (Added May 2026)
+
+### Subscriptions Collection
+
+**Path**: `/subscriptions/{userId}`
+
+**Purpose**: Tracks the active subscription tier for each user, keyed by user ID for O(1) lookup at every API call.
+
+```typescript
+interface SubscriptionDocument {
+  userId: string;                         // Firebase UID (primary key, mirrors doc ID)
+  tier: 'free' | 'starter' | 'plus' | 'creator' | 'business' | 'enterprise';
+  status: 'active' | 'trialing' | 'past_due' | 'canceled' | 'paused';
+  billingCycle: 'monthly' | 'annual' | 'none';
+
+  // Stripe references
+  stripeCustomerId: string;               // cus_xxx
+  stripeSubscriptionId?: string;          // sub_xxx (null for free)
+  stripePriceId?: string;                 // price_xxx (the Stripe Price object ID)
+
+  // Period tracking
+  currentPeriodStart: Timestamp;
+  currentPeriodEnd: Timestamp;
+  trialEnd?: Timestamp;                   // Set during 14-day trial period
+
+  // Metered usage (reset each billing period)
+  usage: {
+    wishlistCount: number;               // Active wishlists owned
+    priceTrackedItems: number;           // Items with active price tracking
+    apiCallsThisMonth: number;           // API calls consumed this billing month
+  };
+
+  // Commission share (Creator/Business tiers)
+  affiliateCommissionShare?: number;      // 0.20 = 20%; null for non-creator tiers
+
+  // Cancellation / downgrade
+  cancelAtPeriodEnd: boolean;
+  canceledAt?: Timestamp;
+  downgradeTo?: string;                   // Tier to move to at period end
+
+  // Audit
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+  updatedBy: 'stripe_webhook' | 'admin' | 'user';
+}
+```
+
+**Security rules**: Readable by owning user and super-admins. Writable only by Cloud Functions (not by clients directly).
+
+**Indexes**:
+- `tier` + `status` (admin dashboards)
+- `status` = `past_due` (billing recovery flows)
+- `stripeCustomerId` (Stripe webhook lookups)
+
+---
+
+### Usage Metrics Collection
+
+**Path**: `/usageMetrics/{userId}`
+
+**Purpose**: Real-time metered counters that are cheaper to increment than re-querying full collections. These drive the limit enforcement at API call time.
+
+```typescript
+interface UsageMetricsDocument {
+  userId: string;
+  period: string;                         // "2026-05" — YYYY-MM for monthly reset
+  wishlistsOwned: number;                 // Incremented on create, decremented on delete
+  itemsInWishlists: number;               // Total items across all user wishlists
+  priceAlertsActive: number;              // Active price tracking subscriptions
+  collaboratorsInvited: number;           // Total collaborators added this period
+  apiCallsTotal: number;                  // Total API calls (Creator/Business tiers)
+  lastUpdated: Timestamp;
+}
+```
+
+**Update pattern**: Always use `FieldValue.increment()` — never read-then-write. Atomic increments prevent race conditions.
+
+---
+
+### Admin Users Collection
+
+**Path**: `/adminUsers/{uid}`
+
+**Purpose**: Super-administrator registry. Only users listed here have elevated platform-wide access. Separate from the users collection to prevent privilege escalation through normal user update paths.
+
+```typescript
+interface AdminUser {
+  uid: string;                            // Firebase UID
+  email: string;                          // Admin email (denormalized for audit logs)
+  displayName: string;
+  role: 'super_admin' | 'support_agent' | 'billing_admin' | 'read_only';
+  permissions: AdminPermission[];
+
+  // Access control
+  isActive: boolean;                      // Revoke access without deleting document
+  mfaRequired: boolean;                   // Enforce 2FA for this admin
+  mfaVerified: boolean;
+
+  // Audit trail
+  grantedBy: string;                      // UID of admin who granted access
+  grantedAt: Timestamp;
+  lastLoginAt?: Timestamp;
+  lastActionAt?: Timestamp;
+  loginCount: number;
+
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+
+type AdminPermission =
+  | 'users.read'
+  | 'users.suspend'
+  | 'users.delete'
+  | 'users.impersonate'        // super_admin only
+  | 'subscriptions.read'
+  | 'subscriptions.modify'     // billing_admin, super_admin
+  | 'subscriptions.refund'     // billing_admin, super_admin
+  | 'affiliate.read'
+  | 'affiliate.adjust'
+  | 'support.read'
+  | 'support.respond'
+  | 'system.config'            // super_admin only
+  | 'audit.read';
+```
+
+**Bootstrap**: The first super-admin is created via a one-time Cloud Function invocation (`bootstrapSuperAdmin`) protected by a deploy-time secret. Subsequent admins are created by existing super-admins only.
+
+---
+
+### Support Tickets Collection
+
+**Path**: `/supportTickets/{ticketId}`
+
+**Purpose**: In-platform support request tracking. Enables super-admins to provide business support without needing an external helpdesk for core billing/subscription issues.
+
+```typescript
+interface SupportTicket {
+  id: string;
+  userId: string;                         // User who created the ticket
+  userEmail: string;                      // Denormalized for admin queries
+  
+  // Ticket content
+  category: 'billing' | 'subscription' | 'account' | 'technical' | 'abuse' | 'other';
+  subject: string;
+  description: string;
+  priority: 'low' | 'normal' | 'high' | 'urgent';
+  
+  // Status tracking
+  status: 'open' | 'in_progress' | 'waiting_user' | 'resolved' | 'closed';
+  assignedTo?: string;                    // Admin UID
+  
+  // Resolution
+  resolvedAt?: Timestamp;
+  resolution?: string;
+  
+  // Conversation thread
+  messages: TicketMessage[];
+  
+  // Context (attached automatically by system)
+  context: {
+    subscriptionTier: string;
+    accountCreatedAt: Timestamp;
+    lastPaymentAt?: Timestamp;
+    stripeCustomerId?: string;
+  };
+  
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+
+interface TicketMessage {
+  id: string;
+  authorUid: string;
+  authorRole: 'user' | 'admin';
+  message: string;
+  attachments?: string[];                 // Storage URLs
+  createdAt: Timestamp;
+}
+```
+
+---
+
+### Audit Log Collection
+
+**Path**: `/auditLog/{logId}`
+
+**Purpose**: Immutable record of all sensitive admin actions and subscription events. Required for compliance, dispute resolution, and security forensics.
+
+```typescript
+interface AuditLogEntry {
+  id: string;
+  timestamp: Timestamp;
+  
+  // Actor
+  actorUid: string;
+  actorRole: 'user' | 'admin' | 'system' | 'stripe_webhook';
+  actorEmail?: string;
+  
+  // Action
+  action: AuditAction;
+  resourceType: 'user' | 'subscription' | 'payment' | 'admin' | 'wishlist' | 'ticket';
+  resourceId: string;
+  
+  // Before/After state (for mutations)
+  previousState?: Record<string, unknown>;
+  newState?: Record<string, unknown>;
+  
+  // Context
+  ipAddress?: string;
+  userAgent?: string;
+  reason?: string;                        // Human-readable reason for admin actions
+}
+
+type AuditAction =
+  | 'subscription.created' | 'subscription.upgraded' | 'subscription.downgraded'
+  | 'subscription.canceled' | 'subscription.reactivated' | 'subscription.paused'
+  | 'payment.succeeded' | 'payment.failed' | 'payment.refunded'
+  | 'user.suspended' | 'user.unsuspended' | 'user.deleted' | 'user.impersonated'
+  | 'admin.granted' | 'admin.revoked' | 'admin.login'
+  | 'ticket.created' | 'ticket.resolved' | 'ticket.escalated';
+```
+
+**Retention**: 7 years (legal/compliance requirement for financial records).  
+**Security**: Append-only. No document can be updated or deleted, enforced by Firestore security rules.
+
+---
+
+## 🔒 User Document Extensions (May 2026)
+
+The `/users/{uid}` document gains the following fields:
+
+```typescript
+// Added to existing User interface
+{
+  // Subscription (denormalized from /subscriptions/{uid} for fast reads)
+  subscriptionTier: 'free' | 'starter' | 'plus' | 'creator' | 'business' | 'enterprise';
+  subscriptionStatus: 'active' | 'trialing' | 'past_due' | 'canceled';
+  
+  // Platform role (separate from accountType)
+  role: 'user' | 'support_agent' | 'billing_admin' | 'super_admin';
+  
+  // Billing
+  stripeCustomerId?: string;             // Set on first checkout attempt
+  
+  // Admin-managed flags
+  isSuspended: boolean;
+  suspendedAt?: Timestamp;
+  suspendedReason?: string;
+  suspendedBy?: string;                  // Admin UID
+}
+```
+
+> **Denormalization note**: `subscriptionTier` and `subscriptionStatus` are denormalized onto the user document so that a single Firestore read at login populates both profile and tier. The canonical source of truth remains `/subscriptions/{uid}`, updated by Stripe webhooks.
 

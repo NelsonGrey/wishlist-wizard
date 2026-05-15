@@ -183,3 +183,34 @@ export {
 export {
   stripeWebhook
 } from './api/stripeWebhook';
+
+// =============================================================================
+// SUBSCRIPTION MANAGEMENT
+// =============================================================================
+
+export {
+  getSubscriptionStatus,
+  getUpgradeOptions,
+  createCheckout,
+  createBillingPortal,
+  stripeSubscriptionWebhook
+} from './api/subscriptions';
+
+// =============================================================================
+// SUPER-ADMIN FUNCTIONS
+// =============================================================================
+
+export {
+  bootstrapSuperAdmin,
+  grantAdminRole,
+  revokeAdminRole,
+  adminGetUsers,
+  adminGetUser,
+  adminSuspendUser,
+  adminUnsuspendUser,
+  adminModifySubscription,
+  adminGetSupportTickets,
+  adminRespondToTicket,
+  adminGetAuditLog,
+  createSupportTicket
+} from './api/admin';

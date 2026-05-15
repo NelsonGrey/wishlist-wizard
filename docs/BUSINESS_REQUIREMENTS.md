@@ -1,7 +1,7 @@
 # Wishlist Wizard - Business Requirements & Strategic Analysis
 
-**Version**: 1.0  
-**Last Updated**: February 12, 2026  
+**Version**: 1.1  
+**Last Updated**: May 15, 2026  
 **Status**: ✅ MVP OPERATIONAL | 🟡 SCALING PHASE  
 **Owner**: Mark Nelson
 
@@ -21,9 +21,11 @@
 **Market Opportunity**: Target the $250B+ e-gift market + $150B+ social gifting space with a digital-first solution that adds intelligence (price tracking, recommendations, group coordination) and monetization (affiliate revenue sharing).
 
 **Business Model**: 
-1. **Primary**: Affiliate commissions (8-15%) on items purchased through Wishlist Wizard links
-2. **Secondary**: Premium features subscription ($99/year) for advanced analytics, group gifting
-3. **Tertiary**: B2B (influencers, content creators, brands) partnerships
+1. **Primary**: Affiliate commissions (2–8%) on items purchased through Wishlist Wizard links
+2. **Secondary**: Tiered subscriptions (Free → Starter $39/yr → Plus $79/yr → Creator Pro $149/yr → Business $299/yr) — see [SUBSCRIPTION_PLAN.md](./SUBSCRIPTION_PLAN.md)
+3. **Tertiary**: B2B (influencers, content creators, brands) partnerships and Enterprise licensing
+
+> ⚠️ **Note (May 2026)**: The original single-tier $99/year premium model has been replaced with a five-tier subscription structure. Analysis showed the advertising-only model is structurally loss-making for users who create 6+ wishlists or track 20+ items for price drops. See [SUBSCRIPTION_PLAN.md](./SUBSCRIPTION_PLAN.md) for the full analysis and rationale.
 
 **Current Status**: ✅ MVP complete with Web, Mobile, Browser Extension. 100% core features implemented. Ready for growth phase and affiliate monetization.
 
@@ -452,15 +454,24 @@
 
 ---
 
-#### Stream 2: Premium Subscription (20% of total)
-**Model**: Annual subscription for advanced features
+#### Stream 2: Subscription Revenue (30% of total)
+**Model**: Tiered annual/monthly subscriptions. See [SUBSCRIPTION_PLAN.md](./SUBSCRIPTION_PLAN.md) for full analysis.
 
-| Tier | Price | Features | Target Users | Revenue |
+| Tier | Price | Features | Target Users (Y1) | Revenue |
 |------|-------|----------|--------------|---------|
-| **Premium** | $99/year | Advanced analytics, group gifting, priority support | 50K users | **$4.95M** |
-| **Premium Plus** | $199/year | + API access, white-label, team management | 5K users | **$995K** |
-| **Creator Tier** | $299/year | + high-volume affiliate tracking, dashboard | 3K creators | **$897K** |
-| **SUBTOTAL** | — | — | 58K | **$5.84M** |
+| **Starter** | $39/year | 10 wishlists, 25 price-tracked items, no ads, calendar | 20K users | **$780K** |
+| **Plus** | $79/year | Unlimited wishlists, group gifting, analytics | 12K users | **$948K** |
+| **Creator Pro** | $149/year | Creator dashboard, 20% affiliate share, unlimited tracking | 6K users | **$894K** |
+| **Business** | $299/year | Team accounts, 30% affiliate share, API access | 2K users | **$598K** |
+| **Enterprise** | Custom | White-label, unlimited API, dedicated support | 10 clients | **$300K** |
+| **SUBTOTAL** | — | — | ~40K paid | **$3.52M** |
+
+**Upgrade Thresholds** (when users hit limits and are prompted to subscribe):
+- Creating a 4th active wishlist → Starter
+- Trying to price-track a 6th item → Starter  
+- Needing group gifting coordination → Plus
+- Wanting to see affiliate commissions earned → Creator Pro
+- Needing team/multi-user access → Business
 
 ---
 

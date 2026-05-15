@@ -43,6 +43,12 @@ const Blog = lazy(() => import("./pages/Blog"));
 const Contact = lazy(() => import("./pages/Contact"));
 const FeatureDemo = lazy(() => import("./pages/FeatureDemo"));
 
+// Super-admin pages
+const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
+const UserManagement = lazy(() => import("./pages/admin/UserManagement"));
+const SupportTickets = lazy(() => import("./pages/admin/SupportTickets"));
+const AuditLog = lazy(() => import("./pages/admin/AuditLog"));
+
 // Small redirect helper component for wouter routes
 function Redirect({ to }: { to: string }) {
   const [, setLocation] = useLocation();
@@ -301,6 +307,15 @@ function AppRouter() {
 
                   {/* 404 */}
                   <Route component={NotFound} />
+
+                  {/* ──────────────────────────────────────── */}
+                  {/* Super-Admin Routes (always registered;   */}
+                  {/* pages self-guard via token claim check)  */}
+                  {/* ──────────────────────────────────────── */}
+                  <Route path="/admin" component={AdminDashboard} />
+                  <Route path="/admin/users" component={UserManagement} />
+                  <Route path="/admin/tickets" component={SupportTickets} />
+                  <Route path="/admin/audit-log" component={AuditLog} />
                   </Switch>
                 </Suspense>
               </NonHomeEnvironmentGate>
