@@ -51,6 +51,38 @@ const UserDetail = lazy(() => import("./pages/admin/UserDetail"));
 const SupportTickets = lazy(() => import("./pages/admin/SupportTickets"));
 const AuditLog = lazy(() => import("./pages/admin/AuditLog"));
 
+function resolveRuntimeEnvironment(): 'development' | 'staging' | 'production' {
+  const processEnvironment =
+    typeof process !== 'undefined' && process.env
+      ? String(process.env.VITE_ENVIRONMENT || '')
+      : '';
+  const explicitEnvironment = String(import.meta.env.VITE_ENVIRONMENT || processEnvironment || '').toLowerCase();
+  if (explicitEnvironment === 'development' || explicitEnvironment === 'staging' || explicitEnvironment === 'production') {
+    return explicitEnvironment;
+  }
+
+  if (typeof window !== 'undefined') {
+    const hostname = String(window.location?.hostname || '').toLowerCase();
+
+    if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname.includes('wishlist-wizard-dev.web.app')) {
+      return 'development';
+    }
+
+    if (hostname.includes('wishlist-wizard-staging.web.app')) {
+      return 'staging';
+    }
+
+    if (
+      hostname === 'wishlist-wizard-prod.web.app' ||
+      hostname === 'wishlist-wizard.web.app'
+    ) {
+      return 'production';
+    }
+  }
+
+  return 'development';
+}
+
 // Small redirect helper component for wouter routes
 function Redirect({ to }: { to: string }) {
   const [, setLocation] = useLocation();
@@ -100,7 +132,7 @@ function LayoutRouter({ children }: { children: React.ReactNode }) {
 }
 
 function NonHomeEnvironmentGate({ children }: { children: React.ReactNode }) {
-  const environment = String(import.meta.env.VITE_ENVIRONMENT || import.meta.env.MODE || 'development').toLowerCase();
+  const environment = resolveRuntimeEnvironment();
   const nonProdPassword = String(import.meta.env.VITE_NON_PROD_SITE_PASSWORD || '');
 
   return (
@@ -111,7 +143,7 @@ function NonHomeEnvironmentGate({ children }: { children: React.ReactNode }) {
 }
 
 function AppRouter() {
-  const environment = String(import.meta.env.VITE_ENVIRONMENT || import.meta.env.MODE || 'development').toLowerCase();
+  const environment = resolveRuntimeEnvironment();
   const isProductionEnvironment = environment === 'production';
 
   // Initialize Google Analytics when app loads
