@@ -6,18 +6,14 @@ import { Response } from 'express';
 import { DecodedIdToken, getAuth } from 'firebase-admin/auth';
 import { getFirestore } from 'firebase-admin/firestore';
 import { logger } from 'firebase-functions/v2';
-import { defineSecret } from 'firebase-functions/params';
 import { ensureFirebaseAdmin } from '../firebase-admin.js';
 import { getBearerTokenFromHeaders } from '../utils/http-normalization.js';
 
 ensureFirebaseAdmin();
 const auth = getAuth();
 const db = getFirestore();
-const serpApiSecret = defineSecret('SERPAPI_API_KEY');
 
 function getSerpApiKey(): string {
-  const secretValue = String(serpApiSecret.value() || '').trim();
-  if (secretValue) return secretValue;
   return String(process.env.SERPAPI_API_KEY || process.env.SERPAPI_KEY || '').trim();
 }
 
@@ -464,7 +460,7 @@ function validateQuietHours(quietHours: any): { valid: boolean; reason?: string 
 }
 
 // Main API router function
-export const api = onRequest({ secrets: [serpApiSecret] }, async (req, res) => {
+export const api = onRequest(async (req, res) => {
   // Enable CORS
   res.set('Access-Control-Allow-Origin', '*');
   res.set('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');

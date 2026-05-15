@@ -2,20 +2,16 @@ import { onCall, CallableRequest, HttpsError } from 'firebase-functions/v2/https
 import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { getFirestore } from 'firebase-admin/firestore';
 import { logger } from 'firebase-functions/v2';
-import { defineSecret } from 'firebase-functions/params';
 import { ensureFirebaseAdmin } from '../firebase-admin.js';
 import { requireAuthenticatedUser } from '../utils/auth-guards.js';
 
 ensureFirebaseAdmin();
 const db = getFirestore();
 
-const serpApiSecret = defineSecret('SERPAPI_API_KEY');
 const INTELLIGENCE_REFRESH_MINUTES = 360;
 const SCHEDULED_BATCH_LIMIT = 25;
 
 function getSerpApiKey(): string {
-  const secretValue = String(serpApiSecret.value() || '').trim();
-  if (secretValue) return secretValue;
   return String(process.env.SERPAPI_API_KEY || process.env.SERPAPI_KEY || '').trim();
 }
 
@@ -300,7 +296,7 @@ async function requireWishlistVisibilityForUser(itemId: string, uid: string): Pr
   return item;
 }
 
-export const refreshPriceIntelligenceOffers = onCall({ secrets: [serpApiSecret] }, async (request: CallableRequest) => {
+export const refreshPriceIntelligenceOffers = onCall(async (request: CallableRequest) => {
   const uid = requireAuthenticatedUser(request);
   const itemId = normalizeText((request.data || {}).itemId);
   const forceRefresh = Boolean((request.data || {}).forceRefresh ?? true);
@@ -327,7 +323,7 @@ export const scheduledRefreshPriceIntelligenceOffers = onSchedule({
   region: 'us-central1',
   timeoutSeconds: 540,
   memory: '512MiB',
-  secrets: [serpApiSecret],
+  secrets: [],
 }, async () => {
   if (!getSerpApiKey()) {
     logger.warn('Skipping scheduled intelligence refresh because SERPAPI key is missing');
