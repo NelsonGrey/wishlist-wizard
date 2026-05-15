@@ -83,7 +83,7 @@ jobs:
       target_environment: ${{ steps.context.outputs.environment }}
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 1
 
@@ -159,10 +159,10 @@ jobs:
     continue-on-error: false
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: 20
           cache: npm
@@ -310,10 +310,10 @@ jobs:
       NON_PROD_SITE_PASSWORD_STAGING: ${{ secrets.NON_PROD_SITE_PASSWORD_STAGING }}
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: 20
           cache: npm
