@@ -38,8 +38,8 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
 
       <GlobalAdSlot placement="top" />
 
-      {/* Main content - centered, compact */}
-      <main className="flex-1 flex items-center justify-center py-12 px-4">
+      {/* Main content - aligned closer to top */}
+      <main className="flex-1 flex items-start justify-center pt-6 pb-12 px-4">
         <div className="w-full max-w-md">
           {children}
         </div>

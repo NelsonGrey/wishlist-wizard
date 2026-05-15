@@ -311,3 +311,34 @@ If any GitHub workflow fails:
 
 **Report Generated**: May 15, 2026, 5:55 PM  
 **Next Review**: After workflow completion (estimated 6:30 PM)
+
+---
+
+## 🔄 Update: May 15, 2026 (Late Evening)
+
+### ✅ Additional UX Improvement Completed
+
+- Auth screens (login/register) were repositioned closer to the top for faster first-content visibility.
+- Updated layout behavior in:
+   - `packages/web/client-src/components/layout/AuthLayout.tsx`
+   - `packages/web/client-src/pages/Login.tsx`
+   - `packages/web/client-src/pages/Register.tsx`
+- Change details:
+   - Replaced vertical centering (`items-center`, `min-h-[80vh]`) with top-aligned placement.
+   - Adjusted spacing to `pt-6 pb-12` in auth layout and `py-4` in page wrappers.
+
+### ✅ CI Incident Resolved with Corrective Action
+
+- Initial workflow failure detected in `Master CI/CD Pipeline` (run `25945292737`).
+- Root cause from logs:
+   - `client-src/components/layout/AppLayout.tsx(250,8): error TS2741`
+   - Missing required `placement` prop for `GlobalAdSlot`.
+- Immediate fix applied in commit `82c9f83` by setting `placement="top"`.
+- Corrective rerun succeeded:
+   - `Master CI/CD Pipeline` run `25945573668`: **success**.
+
+### ✅ Validation Snapshot
+
+- `npm run check --workspace=@wishlist-wizard/web`: passing
+- `npm run build --workspace=@wishlist-wizard/web`: passing
+- Workflow status: green on latest `develop` pipeline after fix
