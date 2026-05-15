@@ -38,6 +38,29 @@
 
 ---
 
+## Update — May 15, 2026 (Web Marketing Plans Delta)
+
+**Current Status**: **Web marketing plans work completed and pushed to `develop` for review** ✅
+
+**Completed Since Last Update**:
+
+- Split the plans content out of the homepage and exposed it on a dedicated `/plans` route.
+- Added a subscription comparison matrix to the plans page so users can compare limits and features side by side.
+- Kept the matrix aligned with shared subscription definitions in `packages/shared` to avoid pricing and limit drift.
+- Verified the web build and route tests locally before push.
+
+**Validation Snapshot**:
+
+- Web build: ✅ pass (`npm run build` in `packages/web`)
+- Route coverage: ✅ pass (`AppRouter.test.tsx` includes `/plans`)
+- Local workspace state: ✅ clean after push to GitHub `develop`
+
+**Release Note**:
+
+- The marketing side now has a dedicated plans page with a clearer comparison view, and the change is ready for review on `develop`.
+
+---
+
 ## Executive Summary
 
 Implemented a production-ready **5-tier SaaS subscription model** with **Stripe integration**, **super-administrator RBAC system**, **audit trail**, and **support ticket management**. All backend services, tier enforcement middleware, and admin dashboard pages are complete and tested. Remaining work is user-facing subscription upgrade page, Firestore security rules, and final deployment prep.
