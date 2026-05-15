@@ -22,6 +22,7 @@ const DashboardFirebase = lazy(() => import("./pages/DashboardFirebase"));
 const Login = lazy(() => import("./pages/Login"));
 const Register = lazy(() => import("./pages/Register"));
 const UserProfile = lazy(() => import("./pages/UserProfile"));
+const Subscription = lazy(() => import("./pages/Subscription"));
 const WishlistDetail = lazy(() => import("./pages/WishlistDetail"));
 const Recommendations = lazy(() => import("./pages/Recommendations"));
 const PriceTracking = lazy(() => import("./pages/PriceTracking"));
@@ -46,6 +47,7 @@ const FeatureDemo = lazy(() => import("./pages/FeatureDemo"));
 // Super-admin pages
 const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
 const UserManagement = lazy(() => import("./pages/admin/UserManagement"));
+const UserDetail = lazy(() => import("./pages/admin/UserDetail"));
 const SupportTickets = lazy(() => import("./pages/admin/SupportTickets"));
 const AuditLog = lazy(() => import("./pages/admin/AuditLog"));
 
@@ -194,6 +196,14 @@ function AppRouter() {
                     )}
                   />
                   <Route
+                    path="/app/subscription"
+                    component={() => (
+                      <ProtectedRoute requireAuth>
+                        <Subscription />
+                      </ProtectedRoute>
+                    )}
+                  />
+                  <Route
                     path="/app/wishlist/:id"
                     component={() => (
                       <ProtectedRoute requireAuth>
@@ -314,6 +324,7 @@ function AppRouter() {
                   {/* ──────────────────────────────────────── */}
                   <Route path="/admin" component={AdminDashboard} />
                   <Route path="/admin/users" component={UserManagement} />
+                  <Route path="/admin/users/:uid" component={UserDetail} />
                   <Route path="/admin/tickets" component={SupportTickets} />
                   <Route path="/admin/audit-log" component={AuditLog} />
                   </Switch>
