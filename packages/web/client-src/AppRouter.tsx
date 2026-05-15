@@ -43,7 +43,13 @@ const About = lazy(() => import("./pages/About"));
 const Blog = lazy(() => import("./pages/Blog"));
 const Contact = lazy(() => import("./pages/Contact"));
 const Plans = lazy(() => import("./pages/Plans"));
-const FeatureDemo = lazy(() => import("./pages/FeatureDemo"));
+const MobileAppDemo = lazy(() => import("./pages/demos/MobileAppDemo"));
+const BrowserExtensionDemo = lazy(() => import("./pages/demos/BrowserExtensionDemo"));
+const SocialIntegrationDemo = lazy(() => import("./pages/demos/SocialIntegrationDemo"));
+const CalendarIntegrationDemo = lazy(() => import("./pages/demos/CalendarIntegrationDemo"));
+const WishlistManagementDemo = lazy(() => import("./pages/demos/WishlistManagementDemo"));
+const ActivityInsightsDemo = lazy(() => import("./pages/demos/ActivityInsightsDemo"));
+const AdvancedUserProfilesDemo = lazy(() => import("./pages/demos/AdvancedUserProfilesDemo"));
 
 // Super-admin pages
 const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
@@ -177,13 +183,13 @@ function AppRouter() {
                     <Route path="/terms" component={TermsOfService} />
                     <Route path="/privacy-policy" component={PrivacyPolicy} />
                     <Route path="/cookie-policy" component={CookiePolicy} />
-                    <Route path="/mobile-app-demo" component={() => <FeatureDemo feature="mobile-app" />} />
-                    <Route path="/browser-extension-demo" component={() => <FeatureDemo feature="browser-extension" />} />
-                    <Route path="/social-integration-demo" component={() => <FeatureDemo feature="social-integration" />} />
-                    <Route path="/calendar-integration-demo" component={() => <FeatureDemo feature="calendar-integration" />} />
-                    <Route path="/wishlist-management-demo" component={() => <FeatureDemo feature="wishlist-management" />} />
-                    <Route path="/basic-activity-insights-demo" component={() => <FeatureDemo feature="basic-activity-insights" />} />
-                    <Route path="/advanced-user-profiles-demo" component={() => <FeatureDemo feature="advanced-user-profiles" />} />
+                    <Route path="/mobile-app-demo" component={MobileAppDemo} />
+                    <Route path="/browser-extension-demo" component={BrowserExtensionDemo} />
+                    <Route path="/social-integration-demo" component={SocialIntegrationDemo} />
+                    <Route path="/calendar-integration-demo" component={CalendarIntegrationDemo} />
+                    <Route path="/wishlist-management-demo" component={WishlistManagementDemo} />
+                    <Route path="/basic-activity-insights-demo" component={ActivityInsightsDemo} />
+                    <Route path="/advanced-user-profiles-demo" component={AdvancedUserProfilesDemo} />
                     {/* Redirect legacy marketing route to homepage */}
                     <Route path="/price-tracking" component={() => <Redirect to="/" />} />
 
