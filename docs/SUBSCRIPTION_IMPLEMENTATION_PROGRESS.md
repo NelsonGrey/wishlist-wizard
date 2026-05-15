@@ -6,6 +6,38 @@
 
 ---
 
+## Update — May 15, 2026 (Phase 4 Delta)
+
+**Current Status**: **Phase 4 in progress — Mobile + Extension Monetization Implemented** ✅  
+**Delta Scope Completed**:
+
+- Mobile subscription management implemented:
+  - `packages/mobile/lib/providers/subscription_provider.dart`
+  - `packages/mobile/lib/screens/subscription_screen.dart`
+  - `packages/mobile/lib/services/firebase_functions_service.dart` (subscription callables)
+  - `packages/mobile/lib/main.dart` + provider/screen exports wired for navigation from Profile
+- Browser extension paywall implemented:
+  - `packages/browser-extension/src/popup.html` (paywall + tier comparison modal)
+  - `packages/browser-extension/src/popup.css` (paywall and modal styling)
+  - `packages/browser-extension/src/popup.js` (subscription fetch, limit-triggered paywall, checkout/billing actions)
+  - `packages/browser-extension/src/background.js` (callable proxy actions: getSubscriptionStatus, getUpgradeOptions, createCheckout, createBillingPortal)
+- Stripe redirect flow integrated for both surfaces by opening checkout/billing URLs in browser tabs.
+
+**Validation Snapshot (May 15, 2026)**:
+
+- Root lint: ✅ pass (`npm run lint`)
+- Root type-check: ✅ pass (`npm run check`)
+- Root tests: ✅ pass (`npm run test --workspaces --if-present`) — 24 files, 159 passed, 1 skipped
+- Extension build: ✅ pass (`packages/browser-extension`, `npm run build`)
+- Flutter static analysis: ✅ no errors in new implementation; 12 pre-existing info-level lints in unrelated files
+
+**Release Note**:
+
+- Subscription monetization is now present on web, mobile, and browser extension surfaces.
+- Remaining operational work is CI workflow completion and release rollout checks after push.
+
+---
+
 ## Executive Summary
 
 Implemented a production-ready **5-tier SaaS subscription model** with **Stripe integration**, **super-administrator RBAC system**, **audit trail**, and **support ticket management**. All backend services, tier enforcement middleware, and admin dashboard pages are complete and tested. Remaining work is user-facing subscription upgrade page, Firestore security rules, and final deployment prep.

@@ -945,6 +945,67 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       chrome.storage.local.remove(['errors']);
       sendResponse({ success: true });
     }
+
+    else if (message.action === 'getSubscriptionStatus') {
+      callCallableFunction('getSubscriptionStatus', {})
+        .then((data) => sendResponse({ success: true, data }))
+        .catch((error) => {
+          const trackingInfo = trackError(error, 'getSubscriptionStatus');
+          sendResponse({
+            success: false,
+            error: error.message,
+            errorId: trackingInfo.timestamp
+          });
+        });
+      return true;
+    }
+
+    else if (message.action === 'getUpgradeOptions') {
+      callCallableFunction('getUpgradeOptions', {})
+        .then((data) => sendResponse({ success: true, data }))
+        .catch((error) => {
+          const trackingInfo = trackError(error, 'getUpgradeOptions');
+          sendResponse({
+            success: false,
+            error: error.message,
+            errorId: trackingInfo.timestamp
+          });
+        });
+      return true;
+    }
+
+    else if (message.action === 'createCheckout') {
+      const payload = {
+        tier: String(message.tier || ''),
+        billingCycle: String(message.billingCycle || 'monthly')
+      };
+
+      callCallableFunction('createCheckout', payload)
+        .then((data) => sendResponse({ success: true, data }))
+        .catch((error) => {
+          const trackingInfo = trackError(error, 'createCheckout');
+          sendResponse({
+            success: false,
+            error: error.message,
+            errorId: trackingInfo.timestamp
+          });
+        });
+      return true;
+    }
+
+    else if (message.action === 'createBillingPortal') {
+      callCallableFunction('createBillingPortal', {})
+        .then((data) => sendResponse({ success: true, data }))
+        .catch((error) => {
+          const trackingInfo = trackError(error, 'createBillingPortal');
+          sendResponse({
+            success: false,
+            error: error.message,
+            errorId: trackingInfo.timestamp
+          });
+        });
+      return true;
+    }
     
     else {
       // Unknown action
@@ -1058,6 +1119,27 @@ async function makeAuthenticatedRequest(url, options = {}) {
 
   console.log('[API Success] Response:', responseJson);
   return responseJson;
+}
+
+async function callCallableFunction(functionName, data = {}) {
+  const response = await makeAuthenticatedRequest(
+    `${cloudFunctionsBaseUrl}/${functionName}`,
+    {
+      method: 'POST',
+      body: JSON.stringify({ data })
+    }
+  );
+
+  if (response && typeof response === 'object') {
+    if (Object.prototype.hasOwnProperty.call(response, 'result')) {
+      return response.result;
+    }
+    if (Object.prototype.hasOwnProperty.call(response, 'data')) {
+      return response.data;
+    }
+  }
+
+  return response;
 }
 
 // Fetch wishlists from the API

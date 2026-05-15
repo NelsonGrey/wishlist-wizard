@@ -353,4 +353,76 @@ class FirebaseFunctionsService {
       rethrow;
     }
   }
+
+  // =============================================================================
+  // SUBSCRIPTION FUNCTIONS
+  // =============================================================================
+
+  Future<Map<String, dynamic>> getSubscriptionStatus() async {
+    if (!await _ensureFirebaseInitialized()) {
+      throw Exception('Firebase not initialized');
+    }
+
+    try {
+      final result = await _functions!
+          .httpsCallable('getSubscriptionStatus')
+          .call(<String, dynamic>{});
+      return Map<String, dynamic>.from(result.data);
+    } catch (e) {
+      _logger.severe('Error calling getSubscriptionStatus: $e');
+      rethrow;
+    }
+  }
+
+  Future<Map<String, dynamic>> getUpgradeOptions() async {
+    if (!await _ensureFirebaseInitialized()) {
+      throw Exception('Firebase not initialized');
+    }
+
+    try {
+      final result = await _functions!
+          .httpsCallable('getUpgradeOptions')
+          .call(<String, dynamic>{});
+      return Map<String, dynamic>.from(result.data);
+    } catch (e) {
+      _logger.severe('Error calling getUpgradeOptions: $e');
+      rethrow;
+    }
+  }
+
+  Future<Map<String, dynamic>> createCheckout(
+    String tier,
+    String billingCycle,
+  ) async {
+    if (!await _ensureFirebaseInitialized()) {
+      throw Exception('Firebase not initialized');
+    }
+
+    try {
+      final result = await _functions!.httpsCallable('createCheckout').call({
+        'tier': tier,
+        'billingCycle': billingCycle,
+      });
+      return Map<String, dynamic>.from(result.data);
+    } catch (e) {
+      _logger.severe('Error calling createCheckout: $e');
+      rethrow;
+    }
+  }
+
+  Future<Map<String, dynamic>> createBillingPortal() async {
+    if (!await _ensureFirebaseInitialized()) {
+      throw Exception('Firebase not initialized');
+    }
+
+    try {
+      final result = await _functions!
+          .httpsCallable('createBillingPortal')
+          .call(<String, dynamic>{});
+      return Map<String, dynamic>.from(result.data);
+    } catch (e) {
+      _logger.severe('Error calling createBillingPortal: $e');
+      rethrow;
+    }
+  }
 }
