@@ -541,7 +541,7 @@ jobs:
       needs.load-config.outputs.firebase_enabled == 'true' &&
       (needs.load-config.outputs.trigger_context == 'build_and_deploy' ||
        needs.load-config.outputs.trigger_context == 'deploy_only')
-    uses: mnelson3/nelson-grey/.github/workflows/firebase-deploy.yml@main
+    uses: ./.github/workflows/firebase-deploy-local.yml
     with:
       project_name: ${{ needs.load-config.outputs.project_name }}
       environment: ${{ needs.load-config.outputs.target_environment }}
