@@ -1,6 +1,7 @@
 import React, { useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { GlobalAdSlot } from "@/components/ads";
+import Footer from "@/components/Footer";
 
 interface AuthLayoutProps {
   children: React.ReactNode;
@@ -35,7 +36,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
         </div>
       </header>
 
-      <GlobalAdSlot />
+      <GlobalAdSlot placement="top" />
 
       {/* Main content - centered, compact */}
       <main className="flex-1 flex items-center justify-center py-12 px-4">
@@ -44,26 +45,9 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
         </div>
       </main>
 
-      {/* Minimal Footer */}
-      <footer className="bg-white border-t py-6 mt-8">
-        <div className="container mx-auto px-4 text-center text-sm text-gray-600">
-          <div className="flex flex-col sm:flex-row justify-center gap-4 mb-4">
-            <Link href="/about" className="text-gray-600 hover:text-emerald-700">
-              About
-            </Link>
-            <Link href="/terms" className="text-gray-600 hover:text-emerald-700">
-              Terms
-            </Link>
-            <Link href="/privacy-policy" className="text-gray-600 hover:text-emerald-700">
-              Privacy
-            </Link>
-            <Link href="/contact" className="text-gray-600 hover:text-emerald-700">
-              Contact
-            </Link>
-          </div>
-          <p>© {new Date().getFullYear()} Wishlist Wizard. All rights reserved.</p>
-        </div>
-      </footer>
+      <GlobalAdSlot placement="bottom" />
+
+      <Footer />
     </div>
   );
 }
