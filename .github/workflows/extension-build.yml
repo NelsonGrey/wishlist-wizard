@@ -1,17 +1,6 @@
 name: Build & Test Browser Extension
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'packages/browser-extension/**'
-      - 'packages/shared/**'
-      - '.github/workflows/extension-build.yml'
-  pull_request:
-    branches: [main, develop]
-    paths:
-      - 'packages/browser-extension/**'
-      - 'packages/shared/**'
   workflow_dispatch:
 
 concurrency:

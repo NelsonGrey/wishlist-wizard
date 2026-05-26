@@ -1,29 +1,6 @@
 name: E2E Tests - Website Readiness
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'packages/web/**'
-      - 'packages/functions/**'
-      - 'packages/shared/**'
-      - 'playwright.config.ts'
-      - 'package.json'
-      - 'package-lock.json'
-      - '.github/workflows/e2e-tests.yml'
-  pull_request:
-    branches: [develop, main]
-    paths:
-      - 'packages/web/**'
-      - 'packages/functions/**'
-      - 'packages/shared/**'
-      - 'playwright.config.ts'
-      - 'package.json'
-      - 'package-lock.json'
-      - '.github/workflows/e2e-tests.yml'
-  schedule:
-    # Run tests daily at 2 AM ET on dev environment
-    - cron: '0 7 * * *'
   workflow_dispatch:
     inputs:
       environment:
@@ -72,8 +49,6 @@ jobs:
           TARGET_ENV=""
           if [ "$INPUT_ENV" != "auto" ]; then
             TARGET_ENV="$INPUT_ENV"
-          elif [ "$EVENT_NAME" = "schedule" ]; then
-            TARGET_ENV="development"
           elif [ "$REF_NAME" = "main" ]; then
             TARGET_ENV="staging"
           else
@@ -194,8 +169,8 @@ jobs:
           retention-days: 7
 
   production-smoke-validation:
-    name: Production Smoke Validation (Daily)
-    if: github.event.schedule == '0 7 * * *'
+    name: Production Smoke Validation
+    if: github.event_name == 'workflow_dispatch' && (github.event.inputs.environment == 'production')
     uses: ./.github/workflows/production-validation.yml
     with:
       base_url: https://wishlist-wizard-prod.web.app

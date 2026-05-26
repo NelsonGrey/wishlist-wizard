@@ -72,7 +72,7 @@ export default function Register() {
   };
 
   return (
-    <div className="container flex justify-center py-4">
+    <div className="container flex justify-center py-1">
       <Card className="w-full max-w-md border-emerald-200/70">
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl font-bold text-center">Create an account</CardTitle>
