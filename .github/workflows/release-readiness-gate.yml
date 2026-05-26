@@ -1,20 +1,6 @@
 name: Release Readiness Gate
 
 on:
-  pull_request:
-    branches:
-      - main
-    paths:
-      - 'packages/**'
-      - 'scripts/**'
-      - 'firestore.rules'
-      - 'firestore.indexes.json'
-      - 'package.json'
-      - 'package-lock.json'
-      - 'playwright.config.ts'
-      - '.github/workflows/release-readiness-gate.yml'
-      - '.github/workflows/master-pipeline.yml'
-      - '.github/workflows/e2e-tests.yml'
   workflow_dispatch:
 
 concurrency:

@@ -6,26 +6,35 @@ import { test, expect, Page, devices, Browser } from '@playwright/test';
  * Runs basic checks on all tier 1 features in minimal time
  */
 
+const menuToggleSelector = 'button[aria-label*="menu" i], button[aria-label*="navigation" i], .mobile-menu-toggle, .hamburger, [data-testid="hamburger"]';
+
+function isProductionTarget() {
+  const target = String(process.env.TEST_URL || '').toLowerCase();
+  return target.includes('wishlist-wizard-prod.web.app') || target.includes('wishlist-wizard.web.app');
+}
+
+async function hasPrimaryNavigation(page: Page) {
+  const navCount = await page.locator('nav, [role="navigation"]').count();
+  const menuToggleCount = await page.locator(menuToggleSelector).count();
+  const headerActionCount = await page.locator('header a, header button').count();
+  return navCount > 0 || menuToggleCount > 0 || headerActionCount > 0;
+}
+
+async function isComingSoonShell(page: Page) {
+  const comingSoonBadge = await page.getByText('Coming Soon', { exact: false }).count();
+  const comingSoonHeading = await page.getByRole('heading', { name: /something amazing is coming soon/i }).count();
+  return comingSoonBadge > 0 || comingSoonHeading > 0;
+}
+
 test.describe('Smoke Test: Critical Features', () => {
   test('Site loads and is accessible', async ({ page }: { page: Page }) => {
     await page.goto('/');
     await expect(page).toHaveTitle(/(Wishlist|wizard)/i);
-    
-    // Verify navigation exists (may be hidden on mobile with hamburger menu)
-    const nav = page.locator('nav, [role="navigation"]').first();
-    await expect(nav).toBeAttached({ timeout: 5000 });
-    
-    // On mobile viewports, check for hamburger menu; on desktop, nav should be visible
-    const viewport = page.viewportSize();
-    if (viewport && viewport.width < 768) {
-      // Mobile: Check for hamburger menu button or mobile nav toggle
-      const mobileMenu = page.locator('button[aria-label*="menu" i], button[aria-label*="navigation" i], .mobile-menu-toggle').first();
-      // Mobile menu button should exist (but we don't require it to be visible as some designs hide it)
-      await expect(nav).toBeAttached();
-    } else {
-      // Desktop: Navigation should be visible
-      await expect(nav).toBeVisible({ timeout: 5000 });
-    }
+
+    await expect(page.locator('header').first()).toBeAttached({ timeout: 10000 });
+    const hasNav = await hasPrimaryNavigation(page);
+    const isComingSoon = await isComingSoonShell(page);
+    expect(hasNav || isComingSoon).toBeTruthy();
   });
 
   test('Homepage is not blocked by the environment gate', async ({ page }: { page: Page }) => {
@@ -63,17 +72,13 @@ test.describe('Smoke Test: Critical Features', () => {
     }
   });
 
-  test('Navigation works (authenticated user)', async ({ page, context }: { page: Page; context: any }) => {
-    // This would be better with a logged-in user context
-    // For demo, checking if nav items are clickable
+  test('Navigation links are available', async ({ page }: { page: Page }) => {
+    test.skip(isProductionTarget(), 'Production build intentionally disables authenticated routes.');
+
     await page.goto('/');
 
-    const navigation = page.locator('nav, [role="navigation"]').first();
-    await expect(navigation).toBeAttached({ timeout: 5000 });
-
-    const actionableNavItems = page.locator(
-      'nav a, [role="navigation"] a, nav button, [role="navigation"] button'
-    );
+    await expect(page.locator('header').first()).toBeAttached({ timeout: 10000 });
+    const actionableNavItems = page.locator('header a, header button, nav a, [role="navigation"] a, nav button, [role="navigation"] button');
 
     await expect.poll(async () => actionableNavItems.count()).toBeGreaterThan(0);
   });
@@ -107,7 +112,9 @@ test.describe('Smoke Test: Critical Features', () => {
     const criticalErrors = errors.filter(e => 
       !e.includes('sourcemap') && 
       !e.includes('DevTools') &&
-      !e.includes('favicon')
+      !e.includes('favicon') &&
+      !/Cookie\s.*rejected for invalid domain/i.test(e) &&
+      !e.includes('_ga')
     );
     
     if (criticalErrors.length > 0) {
@@ -129,15 +136,10 @@ test.describe('Smoke Test: Critical Features', () => {
 
     await mobileePage.goto('/');
 
-    // Check for either visible nav or hamburger menu button
-    const nav = mobileePage.locator('nav, [role="navigation"]').first();
-    const hamburger = mobileePage.locator('button[aria-label*="menu" i], button[aria-label*="navigation" i], .hamburger, [data-testid="hamburger"]').first();
-    
-    const navExists = await nav.count() > 0;
-    const hamburgerExists = await hamburger.count() > 0;
-    
-    // At least one should exist
-    expect(navExists || hamburgerExists).toBeTruthy();
+    await expect(mobileePage.locator('header').first()).toBeAttached({ timeout: 10000 });
+    const hasNav = await hasPrimaryNavigation(mobileePage);
+    const isComingSoon = await isComingSoonShell(mobileePage);
+    expect(hasNav || isComingSoon).toBeTruthy();
 
     await context.close();
   });

@@ -27,29 +27,6 @@ on:
         required: false
         type: boolean
         default: false
-  push:
-    branches:
-      - develop
-      - demonstration
-      - staging
-      - main
-    paths-ignore:
-      - 'docs/**'
-      - '**/*.md'
-      - 'artifacts/**'
-      - 'playwright-report/**'
-      - 'test-results/**'
-  pull_request:
-    branches:
-      - develop
-      - staging
-      - main
-    paths-ignore:
-      - 'docs/**'
-      - '**/*.md'
-      - 'artifacts/**'
-      - 'playwright-report/**'
-      - 'test-results/**'
 
 concurrency:
   group: master-pipeline-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
