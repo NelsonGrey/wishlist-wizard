@@ -3,6 +3,12 @@
     "module": "CommonJS",
     "esModuleInterop": true,
     "moduleResolution": "node",
+    "baseUrl": ".",
+    "paths": {
+      "@wishlist-wizard/shared": [
+        "../shared/src/index.ts"
+      ]
+    },
     "noImplicitReturns": true,
     "noUnusedLocals": true,
     "rootDir": "src",
