@@ -1,0 +1,3 @@
+scripts:
+  buildCommand: npm run build --workspace=@wishlist-wizard/shared && npm run build --workspace=@wishlist-wizard/web
+  runCommand: node scripts/apphosting-server.js
