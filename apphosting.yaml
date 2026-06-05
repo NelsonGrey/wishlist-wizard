@@ -1,3 +1,2 @@
 scripts:
-  buildCommand: cd packages/web && npm run build
   runCommand: node scripts/apphosting-server.js
