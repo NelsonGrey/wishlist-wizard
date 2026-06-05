@@ -11,7 +11,6 @@
     },
     "noImplicitReturns": true,
     "noUnusedLocals": true,
-    "rootDir": "src",
     "outDir": "lib",
     "sourceMap": true,
     "strict": true,
