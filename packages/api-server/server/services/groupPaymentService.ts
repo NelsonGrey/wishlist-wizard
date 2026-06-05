@@ -3,7 +3,9 @@ import { storage } from '../storage';
 import { emailService } from './emailService';
 
 // Initialize Stripe - use default API version
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '');
+const stripe = process.env.STRIPE_SECRET_KEY
+  ? new Stripe(process.env.STRIPE_SECRET_KEY)
+  : null;
 
 export interface PaymentIntent {
   id: string;
@@ -59,7 +61,7 @@ export interface GroupGiftContribution {
  * This version works with the memory storage system until PostgreSQL is configured
  */
 export class GroupPaymentService {
-  private stripe: Stripe;
+  private stripe: Stripe | null;
   private groupGifts: Map<number, GroupGift> = new Map();
   private contributions: Map<number, GroupGiftContribution> = new Map();
   private payments: Map<string, any> = new Map();
@@ -67,6 +69,13 @@ export class GroupPaymentService {
 
   constructor() {
     this.stripe = stripe;
+  }
+
+  private requireStripe(): Stripe {
+    if (!this.stripe) {
+      throw new Error('Stripe is not configured. Set STRIPE_SECRET_KEY to enable payments.');
+    }
+    return this.stripe;
   }
 
   /**
@@ -99,7 +108,7 @@ export class GroupPaymentService {
       const item = await storage.getWishlistItem(groupGift.itemId);
       
       // Create payment intent with Stripe
-      const paymentIntent = await this.stripe.paymentIntents.create({
+      const paymentIntent = await this.requireStripe().paymentIntents.create({
         amount: Math.round(amount * 100), // Convert to cents
         currency,
         automatic_payment_methods: {
@@ -168,7 +177,7 @@ export class GroupPaymentService {
       const item = await storage.getWishlistItem(groupGift.itemId);
 
       // Create Stripe Checkout session
-      const session = await this.stripe.checkout.sessions.create({
+      const session = await this.requireStripe().checkout.sessions.create({
         payment_method_types: ['card'],
         line_items: [
           {
@@ -331,7 +340,7 @@ export class GroupPaymentService {
       // Process refund with Stripe
       let refund;
       if (contribution.stripePaymentIntentId) {
-        refund = await this.stripe.refunds.create({
+        refund = await this.requireStripe().refunds.create({
           payment_intent: contribution.stripePaymentIntentId,
           reason: reason as any, // Cast to bypass type checking for now
           metadata: {
