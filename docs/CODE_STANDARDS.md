@@ -1,7 +1,7 @@
 # Wishlist Wizard - Code Standards & Best Practices
 
-**Version**: 1.0  
-**Last Updated**: February 16, 2026  
+**Version**: 1.1
+**Last Updated**: January 2025
 **Owner**: Mark Nelson
 
 ---
@@ -93,6 +93,39 @@ function createWishlist(data: WishlistCreateRequest): Promise<Wishlist> {
 // ❌ Wrong - Any types
 function createWishlist(data: any): Promise<any> {
   // implementation
+}
+```
+
+**Avoid `any` Types**:
+```typescript
+// ✅ Correct - Use unknown for error handling
+try {
+  await someOperation();
+} catch (err: unknown) {
+  const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred';
+  console.error(errorMessage);
+}
+
+// ❌ Wrong - Using any
+try {
+  await someOperation();
+} catch (err: any) {
+  console.error(err?.message);
+}
+```
+
+**Use Union Types for Flexible Date Handling**:
+```typescript
+// ✅ Correct - Accept both Date and string
+interface SupportTicket {
+  createdAt: Date | string;
+  updatedAt: Date | string;
+}
+
+// ❌ Wrong - Using any
+interface SupportTicket {
+  createdAt: any;
+  updatedAt: any;
 }
 ```
 
@@ -264,9 +297,62 @@ const MyComponent = () => {
   if (someCondition) {
     const [count, setCount] = useState(0); // WRONG!
   }
+```
 
-  return <div></div>;
+### Error Boundaries
+
+**Wrap Components with Error Boundaries**:
+```typescript
+// ✅ Correct - Use error boundaries for critical sections
+import ErrorBoundary from '@/components/ErrorBoundary';
+
+const MyComponent = () => {
+  return (
+    <ErrorBoundary
+      onError={(error, errorInfo) => {
+        console.error('Component error:', error, errorInfo);
+      }}
+    >
+      <ChildComponent />
+    </ErrorBoundary>
+  );
 };
+
+// ✅ Correct - Global error boundary in app root
+const App = () => {
+  return (
+    <ErrorBoundary>
+      <Router>
+        <Routes>
+          {/* routes */}
+        </Routes>
+      </Router>
+    </ErrorBoundary>
+  );
+};
+```
+
+### Loading States
+
+**Use Loading Skeletons for Better UX**:
+```typescript
+// ✅ Correct - Use skeleton components
+import { Skeleton, DashboardSkeleton } from '@/components/ui/loading-skeleton';
+
+const Dashboard = () => {
+  const { data, isLoading } = useDashboardData();
+
+  if (isLoading) {
+    return <DashboardSkeleton />;
+  }
+
+  return <div>{/* actual content */}</div>;
+};
+
+// ❌ Wrong - Simple loading text
+if (isLoading) {
+  return <div>Loading...</div>;
+}
 ```
 
 **Custom Hooks Naming**:

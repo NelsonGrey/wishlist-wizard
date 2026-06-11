@@ -15,6 +15,11 @@ import 'package:flutter/foundation.dart'
 /// );
 /// ```
 class DefaultFirebaseOptions {
+  static const String firebaseEnv = String.fromEnvironment(
+    'FIREBASE_ENV',
+    defaultValue: 'prod',
+  );
+
   static FirebaseOptions get currentPlatform {
     if (kIsWeb) {
       return web;
@@ -23,9 +28,9 @@ class DefaultFirebaseOptions {
       case TargetPlatform.android:
         return android;
       case TargetPlatform.iOS:
-        return ios;
+        return _iosForEnv;
       case TargetPlatform.macOS:
-        return macos;
+        return _macosForEnv;
       case TargetPlatform.windows:
         return windows;
       case TargetPlatform.linux:
@@ -38,6 +43,34 @@ class DefaultFirebaseOptions {
           'DefaultFirebaseOptions have not been configured for fuchsia - '
           'you can reconfigure this by running the FlutterFire CLI again.',
         );
+    }
+  }
+
+  static FirebaseOptions get _iosForEnv {
+    switch (firebaseEnv.toLowerCase()) {
+      case 'dev':
+      case 'develop':
+      case 'development':
+        return iosDev;
+      case 'stage':
+      case 'staging':
+        return iosStaging;
+      default:
+        return ios;
+    }
+  }
+
+  static FirebaseOptions get _macosForEnv {
+    switch (firebaseEnv.toLowerCase()) {
+      case 'dev':
+      case 'develop':
+      case 'development':
+        return macosDev;
+      case 'stage':
+      case 'staging':
+        return macosStaging;
+      default:
+        return macos;
     }
   }
 
@@ -68,12 +101,48 @@ class DefaultFirebaseOptions {
     iosBundleId: 'com.nelsongrey.wishlistwizard.app.ios',
   );
 
+  static const FirebaseOptions iosDev = FirebaseOptions(
+    apiKey: 'AIzaSyAUFasexruct9M9HVzzG9o2S4upVeuks7c',
+    appId: '1:1000918568663:ios:93f8e4c5e1480b6b04ea92',
+    messagingSenderId: '1000918568663',
+    projectId: 'wishlist-wizard-dev',
+    storageBucket: 'wishlist-wizard-dev.firebasestorage.app',
+    iosBundleId: 'com.nelsongrey.wishlistwizard.app.ios',
+  );
+
+  static const FirebaseOptions iosStaging = FirebaseOptions(
+    apiKey: 'AIzaSyAUFasexruct9M9HVzzG9o2S4upVeuks7c',
+    appId: '1:1000918568663:ios:93f8e4c5e1480b6b04ea92',
+    messagingSenderId: '1000918568663',
+    projectId: 'wishlist-wizard-staging',
+    storageBucket: 'wishlist-wizard-staging.firebasestorage.app',
+    iosBundleId: 'com.nelsongrey.wishlistwizard.app.ios',
+  );
+
   static const FirebaseOptions macos = FirebaseOptions(
     apiKey: 'AIzaSyAUFasexruct9M9HVzzG9o2S4upVeuks7c',
     appId: '1:1000918568663:ios:93f8e4c5e1480b6b04ea92',
     messagingSenderId: '1000918568663',
     projectId: 'wishlist-wizard',
     storageBucket: 'wishlist-wizard.firebasestorage.app',
+    iosBundleId: 'com.nelsongrey.wishlistwizard.app.ios',
+  );
+
+  static const FirebaseOptions macosDev = FirebaseOptions(
+    apiKey: 'AIzaSyAUFasexruct9M9HVzzG9o2S4upVeuks7c',
+    appId: '1:1000918568663:ios:93f8e4c5e1480b6b04ea92',
+    messagingSenderId: '1000918568663',
+    projectId: 'wishlist-wizard-dev',
+    storageBucket: 'wishlist-wizard-dev.firebasestorage.app',
+    iosBundleId: 'com.nelsongrey.wishlistwizard.app.ios',
+  );
+
+  static const FirebaseOptions macosStaging = FirebaseOptions(
+    apiKey: 'AIzaSyAUFasexruct9M9HVzzG9o2S4upVeuks7c',
+    appId: '1:1000918568663:ios:93f8e4c5e1480b6b04ea92',
+    messagingSenderId: '1000918568663',
+    projectId: 'wishlist-wizard-staging',
+    storageBucket: 'wishlist-wizard-staging.firebasestorage.app',
     iosBundleId: 'com.nelsongrey.wishlistwizard.app.ios',
   );
 

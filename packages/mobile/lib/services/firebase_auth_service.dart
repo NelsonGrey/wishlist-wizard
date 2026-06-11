@@ -1,5 +1,6 @@
 // ignore_for_file: avoid_print
 
+import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import '../models/models.dart';
 import 'firebase_initialization_service.dart';
@@ -25,15 +26,24 @@ class FirebaseAuthService {
   Future<bool> _ensureFirebaseInitialized() async {
     if (_firebaseAuth != null) return true;
 
+    if (kDebugMode) {
+      debugPrint('[FirebaseAuthService] Ensuring Firebase is initialized');
+    }
     final initialized = await _firebaseInit.initialize();
     if (initialized) {
       try {
         _firebaseAuth = firebase_auth.FirebaseAuth.instance;
+        if (kDebugMode) {
+          debugPrint('[FirebaseAuthService] FirebaseAuth instance ready');
+        }
         return true;
       } catch (e) {
         print('Error accessing FirebaseAuth: $e');
         return false;
       }
+    }
+    if (kDebugMode) {
+      debugPrint('[FirebaseAuthService] Firebase initialization failed');
     }
     return false;
   }
@@ -58,9 +68,17 @@ class FirebaseAuthService {
         return AuthResult.failure(error: 'Login failed');
       }
     } on firebase_auth.FirebaseAuthException catch (e) {
+      if (kDebugMode) {
+        debugPrint(
+          '[FirebaseAuthService] login FirebaseAuthException code=${e.code} message=${e.message}',
+        );
+      }
       String errorMessage = _getErrorMessage(e.code);
       return AuthResult.failure(error: errorMessage);
     } catch (e) {
+      if (kDebugMode) {
+        debugPrint('[FirebaseAuthService] login unexpected error: $e');
+      }
       return AuthResult.failure(error: 'An unexpected error occurred: $e');
     }
   }
@@ -142,6 +160,24 @@ class FirebaseAuthService {
     } catch (e) {
       print('Error checking login status: $e');
       return false;
+    }
+  }
+
+  Future<AuthResult> resetPassword(String email) async {
+    if (!await _ensureFirebaseInitialized()) {
+      return AuthResult.failure(
+        error: 'Firebase not available. Please check your connection.',
+      );
+    }
+
+    try {
+      await _auth.sendPasswordResetEmail(email: email.trim());
+      return AuthResult._(isSuccess: true);
+    } on firebase_auth.FirebaseAuthException catch (e) {
+      String errorMessage = _getErrorMessage(e.code);
+      return AuthResult.failure(error: errorMessage);
+    } catch (e) {
+      return AuthResult.failure(error: 'An unexpected error occurred: $e');
     }
   }
 

@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import '../models/models.dart';
 import '../services/firebase_auth_service.dart';
 
@@ -20,9 +20,17 @@ class AuthProvider extends ChangeNotifier {
 
   Future<void> _initializeAuth() async {
     _setLoading(true);
+    if (kDebugMode) {
+      debugPrint('[AuthProvider] Starting auth initialization');
+    }
     try {
       // Listen to auth state changes
       _authService.authStateChanges.listen((user) {
+        if (kDebugMode) {
+          debugPrint(
+            '[AuthProvider] Auth state changed: ${user == null ? 'signed out' : 'signed in'}',
+          );
+        }
         _setUser(user);
         if (!_isLoading) {
           _setLoading(false);
@@ -31,11 +39,22 @@ class AuthProvider extends ChangeNotifier {
 
       // Get initial auth state
       final user = await _authService.getCurrentUser();
+      if (kDebugMode) {
+        debugPrint(
+          '[AuthProvider] Initial auth state resolved: ${user == null ? 'signed out' : 'signed in'}',
+        );
+      }
       _setUser(user);
     } catch (e) {
+      if (kDebugMode) {
+        debugPrint('[AuthProvider] Auth initialization error: $e');
+      }
       _setError('Failed to check authentication status');
     } finally {
       _setLoading(false);
+      if (kDebugMode) {
+        debugPrint('[AuthProvider] Auth initialization complete');
+      }
     }
   }
 
@@ -91,6 +110,27 @@ class AuthProvider extends ChangeNotifier {
     } catch (e) {
       // Even if server logout fails, clear local user
       _setUser(null);
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  Future<bool> resetPassword(String email) async {
+    _setLoading(true);
+    _clearError();
+
+    try {
+      final result = await _authService.resetPassword(email);
+
+      if (result.isSuccess) {
+        return true;
+      } else {
+        _setError(result.error ?? 'Password reset failed');
+        return false;
+      }
+    } catch (e) {
+      _setError('An unexpected error occurred');
+      return false;
     } finally {
       _setLoading(false);
     }

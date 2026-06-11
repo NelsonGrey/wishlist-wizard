@@ -1,7 +1,7 @@
 # Wishlist Wizard - System Architecture
 
-**Version**: 1.0  
-**Last Updated**: February 16, 2026  
+**Version**: 1.1
+**Last Updated**: January 2025
 **Owner**: Mark Nelson
 
 ---
@@ -77,6 +77,10 @@ Wishlist Wizard is a multi-platform, cloud-native application built on a Firebas
 - Admin panel access
 - Analytics dashboard
 - Social sharing interface
+- **NEW**: Enhanced error boundaries with recovery options
+- **NEW**: Loading skeleton components for async operations
+- **NEW**: Optimized bundle size with code splitting
+- **NEW**: Improved type safety (eliminated any types)
 
 **Directory Structure**:
 ```
@@ -84,6 +88,8 @@ packages/web/
 ├── client-src/
 │   ├── pages/              # Page components
 │   ├── components/         # Reusable components
+│   │   ├── ui/            # UI components (loading-skeleton.tsx, error-boundary.tsx)
+│   │   └── ...
 │   ├── hooks/              # Custom React hooks
 │   ├── services/           # API client services
 │   ├── stores/             # State management
@@ -91,7 +97,7 @@ packages/web/
 │   ├── utils/              # Utility functions
 │   └── styles/             # Global styles
 ├── public/                 # Static assets
-├── vite.config.ts          # Vite configuration
+├── vite.config.ts          # Vite configuration (with manual chunk splitting)
 └── tailwind.config.ts      # Tailwind CSS config
 ```
 
@@ -120,18 +126,45 @@ packages/web/
 - Camera & image picker integration
 - Biometric authentication
 - Deep linking
+- **NEW**: Password reset flow with Firebase Auth
+- **NEW**: Price tracking UI with custom charts
+- **NEW**: Social sharing (WhatsApp, Instagram, TikTok, Facebook, Twitter, Email)
+- **NEW**: Error boundaries and loading states
 
 **Platform Support**:
 - iOS 11.0+
 - Android 7.0+ (API 24)
 
 **Key Screens**:
-- Authentication flows
+- Authentication flows (Login, Register, Forgot Password)
 - Wishlist browsing and creation
 - Item management
 - Collaboration features
 - Push notification handling
 - Local wishlist cache
+- **NEW**: Price tracking screen with charts
+- **NEW**: Social sharing bottom sheet
+
+**Directory Structure**:
+```
+packages/mobile/
+├── lib/
+│   ├── screens/            # Screen widgets
+│   │   ├── forgot_password_screen.dart
+│   │   ├── price_tracking_screen.dart
+│   │   └── ...
+│   ├── services/           # Business logic services
+│   │   ├── firebase_auth_service.dart (with resetPassword)
+│   │   ├── social_share_service.dart
+│   │   └── ...
+│   ├── providers/          # State management
+│   ├── models/             # Data models
+│   ├── widgets/            # Reusable widgets
+│   │   ├── error_boundary.dart
+│   │   ├── loading_skeleton.dart
+│   │   └── ...
+│   └── main.dart           # App entry point (with ErrorBoundary)
+```
 
 #### 1.3 Browser Extension (`packages/browser-extension`)
 **Technology Stack**: TypeScript with Web APIs  

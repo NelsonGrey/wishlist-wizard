@@ -20,7 +20,7 @@ import {
 import { AlertCircle, TrendingDown, TrendingUp } from "lucide-react";
 import { format } from "date-fns";
 
-const isValidDate = (d: any): d is Date => d instanceof Date && !isNaN(d.getTime());
+const isValidDate = (d: unknown): d is Date => d instanceof Date && !isNaN(d.getTime());
 
 // Type for price history data point
 type PriceHistoryPoint = {

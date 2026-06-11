@@ -45,6 +45,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const isFirebaseNotConfiguredError = (error: unknown): boolean => {
+    if (!error || typeof error !== 'object') {
+      return false;
+    }
+    return (error as { code?: string }).code === 'app/firebase-not-configured';
+  };
+
   useEffect(() => {
     let unsubscribe: (() => void) | undefined;
     const analyticsTracker = getAnalyticsTracker();
@@ -88,7 +95,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           setLoading(false);
         });
       } catch (error) {
-        console.error('[AuthContext] Failed to initialize auth:', error);
+        if (isFirebaseNotConfiguredError(error)) {
+          console.warn('[AuthContext] Firebase config is unavailable; continuing in limited mode');
+        } else {
+          console.error('[AuthContext] Failed to initialize auth:', error);
+        }
         setLoading(false);
       }
     };

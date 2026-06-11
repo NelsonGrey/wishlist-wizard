@@ -1,7 +1,7 @@
 # Wishlist Wizard - Testing Strategy & Guidelines
 
-**Version**: 1.0  
-**Last Updated**: February 16, 2026  
+**Version**: 1.1
+**Last Updated**: January 2025
 **Owner**: Mark Nelson
 
 ---
@@ -17,6 +17,22 @@ This document outlines the testing strategy, best practices, and guidelines for 
 3. **Documentation**: Tests serve as executable documentation
 4. **Regression Prevention**: Prevent previously fixed bugs from recurring
 5. **Performance**: Catch performance regressions early
+
+### Recent Testing Updates (January 2025)
+
+**New Components Requiring Tests**:
+- iOS Password Reset Flow (ForgotPasswordScreen, resetPassword service)
+- iOS Price Tracking UI (PriceTrackingScreen, custom chart painter)
+- iOS Social Sharing (SocialShareService, platform-specific handlers)
+- iOS Error Boundaries (ErrorBoundary widget)
+- iOS Loading Skeletons (LoadingSkeleton widgets)
+- Website Error Boundaries (enhanced ErrorBoundary component)
+- Website Loading Skeletons (comprehensive skeleton components)
+
+**Type Safety Improvements**:
+- Eliminated `any` types across admin and component files
+- Replaced with proper TypeScript types (unknown for errors, Date | string for dates)
+- Improved error handling patterns with type guards
 
 ---
 

@@ -31,8 +31,8 @@ interface SupportTicket {
   priority: string;
   status: string;
   assignedTo?: string;
-  createdAt: any;
-  updatedAt: any;
+  createdAt: Date | string;
+  updatedAt: Date | string;
   context?: { subscriptionTier?: string };
 }
 
@@ -99,8 +99,9 @@ export default function SupportTickets() {
       setReplyTarget(null);
       setReplyMessage('');
       setNewStatus('');
-    } catch (err: any) {
-      toast({ title: 'Error', description: err?.message, variant: 'destructive' });
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred';
+      toast({ title: 'Error', description: errorMessage, variant: 'destructive' });
     } finally {
       setActing(false);
     }

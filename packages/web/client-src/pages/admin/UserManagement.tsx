@@ -27,7 +27,7 @@ interface UserRow {
   subscriptionTier: string;
   subscriptionStatus: string;
   isSuspended: boolean;
-  createdAt: any;
+  createdAt: Date | string;
 }
 
 const TIER_BADGE_VARIANT: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
@@ -90,8 +90,9 @@ export default function UserManagement() {
       toast({ title: 'User suspended', description: suspendTarget.email });
       setSuspendTarget(null);
       setSuspendReason('');
-    } catch (err: any) {
-      toast({ title: 'Error', description: err?.message ?? 'Failed to suspend user', variant: 'destructive' });
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to suspend user';
+      toast({ title: 'Error', description: errorMessage, variant: 'destructive' });
     } finally {
       setActing(false);
     }
@@ -106,8 +107,9 @@ export default function UserManagement() {
         prev.map((u) => u.uid === user.uid ? { ...u, isSuspended: false } : u),
       );
       toast({ title: 'User reinstated', description: user.email });
-    } catch (err: any) {
-      toast({ title: 'Error', description: err?.message ?? 'Failed to unsuspend', variant: 'destructive' });
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to unsuspend';
+      toast({ title: 'Error', description: errorMessage, variant: 'destructive' });
     } finally {
       setActing(false);
     }

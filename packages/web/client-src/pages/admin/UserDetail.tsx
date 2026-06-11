@@ -99,8 +99,9 @@ export default function UserDetail() {
       toast({ title: 'User suspended' });
       setSuspendDialog(false);
       setSuspendReason('');
-    } catch (err: any) {
-      toast({ title: 'Error', description: err?.message, variant: 'destructive' });
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred';
+      toast({ title: 'Error', description: errorMessage, variant: 'destructive' });
     } finally {
       setActing(false);
     }
@@ -114,8 +115,9 @@ export default function UserDetail() {
       await fn({ targetUid: uid, reason: 'Admin reinstatement' });
       setUser({ ...user, isSuspended: false });
       toast({ title: 'User reinstated' });
-    } catch (err: any) {
-      toast({ title: 'Error', description: err?.message, variant: 'destructive' });
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred';
+      toast({ title: 'Error', description: errorMessage, variant: 'destructive' });
     } finally {
       setActing(false);
     }
@@ -132,8 +134,9 @@ export default function UserDetail() {
       setTierDialog(false);
       setNewTier('');
       setTierReason('');
-    } catch (err: any) {
-      toast({ title: 'Error', description: err?.message, variant: 'destructive' });
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred';
+      toast({ title: 'Error', description: errorMessage, variant: 'destructive' });
     } finally {
       setActing(false);
     }

@@ -4,7 +4,9 @@ import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/models.dart';
 import '../providers/providers.dart';
+import '../services/social_share_service.dart';
 import '../main.dart';
+import 'price_tracking_screen.dart';
 
 class WishlistDetailScreen extends StatefulWidget {
   final Wishlist wishlist;
@@ -335,6 +337,17 @@ class _WishlistDetailScreenState extends State<WishlistDetailScreen> {
                       ],
                     ),
                   ),
+                if (item.price != null)
+                  const PopupMenuItem(
+                    value: 'price_tracking',
+                    child: Row(
+                      children: [
+                        Icon(Icons.trending_down),
+                        SizedBox(width: 8),
+                        Text('Price History'),
+                      ],
+                    ),
+                  ),
                 const PopupMenuItem(
                   value: 'delete',
                   child: Row(
@@ -366,6 +379,14 @@ class _WishlistDetailScreenState extends State<WishlistDetailScreen> {
         if (item.productUrl != null && item.productUrl!.isNotEmpty) {
           await _openExternalProductUrl(item.productUrl!);
         }
+        break;
+      case 'price_tracking':
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => PriceTrackingScreen(item: item),
+          ),
+        );
         break;
       case 'delete':
         _confirmDeleteItem(item);
@@ -838,13 +859,10 @@ class _WishlistDetailScreenState extends State<WishlistDetailScreen> {
   }
 
   void _shareWishlist() {
-    // Create shareable content
     final wishlistName = widget.wishlist.name;
-    final itemCount = widget.wishlist.items.length;
     final isPublic = widget.wishlist.isPublic;
 
     if (!isPublic) {
-      // Show dialog explaining that private wishlists can't be shared
       showDialog(
         context: context,
         builder: (context) => AlertDialog(
@@ -859,8 +877,8 @@ class _WishlistDetailScreenState extends State<WishlistDetailScreen> {
             ),
             ElevatedButton(
               onPressed: () {
-                Navigator.pop(context); // Close this dialog
-                _showEditWishlistDialog(); // Open edit dialog
+                Navigator.pop(context);
+                _showEditWishlistDialog();
               },
               child: const Text('Make Public'),
             ),
@@ -870,19 +888,140 @@ class _WishlistDetailScreenState extends State<WishlistDetailScreen> {
       return;
     }
 
-    // Create shareable message
-    final shareText =
-        '''
-Check out my wishlist: "$wishlistName"
+    final shareService = SocialShareService();
+    final shareLink = 'https://wishlist-wizard.com/wishlist/${widget.wishlist.id}';
+    final platforms = shareService.getAvailablePlatforms();
 
-${widget.wishlist.description != null ? '${widget.wishlist.description}\n\n' : ''}It has $itemCount ${itemCount == 1 ? 'item' : 'items'}.
+    showModalBottomSheet(
+      context: context,
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              'Share Wishlist',
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              wishlistName,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: Colors.grey[600],
+              ),
+            ),
+            const SizedBox(height: 24),
+            GridView.builder(
+              shrinkWrap: true,
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 4,
+                childAspectRatio: 1,
+                crossAxisSpacing: 12,
+                mainAxisSpacing: 12,
+              ),
+              itemCount: platforms.length,
+              itemBuilder: (context, index) {
+                final platform = platforms[index];
+                return InkWell(
+                  onTap: () async {
+                    Navigator.pop(context);
+                    try {
+                      if (platform.name == 'WhatsApp') {
+                        await shareService.shareToWhatsApp(
+                          wishlistName: wishlistName,
+                          shareLink: shareLink,
+                          description: widget.wishlist.description,
+                        );
+                      } else if (platform.name == 'Instagram') {
+                        await shareService.shareToInstagram(shareLink: shareLink);
+                      } else if (platform.name == 'TikTok') {
+                        await shareService.shareToTikTok(shareLink: shareLink);
+                      } else if (platform.name == 'Facebook') {
+                        await shareService.shareToFacebook(
+                          shareLink: shareLink,
+                          quote: widget.wishlist.description,
+                        );
+                      } else if (platform.name == 'Twitter') {
+                        await shareService.shareToTwitter(
+                          wishlistName: wishlistName,
+                          shareLink: shareLink,
+                        );
+                      } else if (platform.name == 'Email') {
+                        await shareService.shareViaEmail(
+                          wishlistName: wishlistName,
+                          shareLink: shareLink,
+                          description: widget.wishlist.description,
+                        );
+                      } else if (platform.name == 'Copy Link') {
+                        await shareService.copyShareLink(shareLink: shareLink);
+                      }
+                    } catch (e) {
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Failed to share to ${platform.name}'),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                      }
+                    }
+                  },
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        width: 48,
+                        height: 48,
+                        decoration: BoxDecoration(
+                          color: Color(platform.color).withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Icon(
+                          _getPlatformIcon(platform.icon),
+                          color: Color(platform.color),
+                          size: 24,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        platform.name,
+                        style: const TextStyle(fontSize: 12),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+            const SizedBox(height: 16),
+          ],
+        ),
+      ),
+    );
+  }
 
-View it here: https://wishlist-wizard.com/wishlist/${widget.wishlist.id}
-'''
-            .trim();
-
-    // Share using share_plus
-    SharePlus.instance.share(ShareParams(text: shareText));
+  IconData _getPlatformIcon(String iconName) {
+    switch (iconName) {
+      case 'whatsapp':
+        return Icons.message;
+      case 'instagram':
+        return Icons.camera_alt;
+      case 'tiktok':
+        return Icons.music_note;
+      case 'facebook':
+        return Icons.facebook;
+      case 'twitter':
+        return Icons.alternate_email;
+      case 'email':
+        return Icons.email;
+      case 'link':
+        return Icons.link;
+      default:
+        return Icons.share;
+    }
   }
 
   void _confirmDeleteWishlist() {

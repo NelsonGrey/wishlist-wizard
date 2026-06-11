@@ -89,8 +89,9 @@ export default function Subscription() {
       );
       const { data } = await fn({ tier, billingCycle });
       window.location.href = data.url;
-    } catch (err: any) {
-      toast({ title: 'Error', description: err?.message, variant: 'destructive' });
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred';
+      toast({ title: 'Error', description: errorMessage, variant: 'destructive' });
       setRedirecting(false);
     }
   }
@@ -101,8 +102,9 @@ export default function Subscription() {
       const fn = httpsCallable<object, { url: string }>(functions, 'createBillingPortal');
       const { data } = await fn();
       window.location.href = data.url;
-    } catch (err: any) {
-      toast({ title: 'Error', description: err?.message, variant: 'destructive' });
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred';
+      toast({ title: 'Error', description: errorMessage, variant: 'destructive' });
       setRedirecting(false);
     }
   }

@@ -11,6 +11,7 @@ const configuredApiBaseUrl = String(import.meta.env.VITE_API_BASE_URL || '').tri
 const API_BASE_URL = configuredApiBaseUrl || (import.meta.env.PROD ? '' : 'http://localhost:3001');
 
 const FIREBASE_FUNCTIONS_REGION = String(import.meta.env.VITE_FIREBASE_FUNCTIONS_REGION || 'us-central1');
+const USE_FIREBASE_EMULATORS = String(import.meta.env.VITE_USE_FIREBASE_EMULATORS || '').toLowerCase() === 'true';
 
 let functionsEmulatorConnected = false;
 
@@ -283,7 +284,7 @@ export async function apiRequest(
 
     const functions = getFunctions(firebaseApp, FIREBASE_FUNCTIONS_REGION);
 
-    if (!import.meta.env.PROD && !functionsEmulatorConnected) {
+    if (!import.meta.env.PROD && USE_FIREBASE_EMULATORS && !functionsEmulatorConnected) {
       connectFunctionsEmulator(functions, 'localhost', 5001);
       functionsEmulatorConnected = true;
     }
