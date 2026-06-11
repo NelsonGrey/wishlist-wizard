@@ -539,7 +539,7 @@ jobs:
     name: Build Chrome Extension
     needs: load-config
     if: needs.load-config.outputs.chrome_extension == 'true'
-    uses: mnelson3/nelson-grey/.github/workflows/chrome-extension-submit.yml@main
+    uses: ./.github/workflows/extension-build.yml
     with:
       project_name: ${{ needs.load-config.outputs.project_name }}
       publish: false
