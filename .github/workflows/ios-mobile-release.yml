@@ -78,9 +78,6 @@ on:
         default: '["macos-latest"]'
         type: string
 
-permissions:
-  contents: read
-
 jobs:
   build-ios:
     name: Build iOS App
