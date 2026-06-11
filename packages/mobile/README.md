@@ -33,11 +33,10 @@ make uat-smoke
 make uat-smoke-device DEVICE_ID=<DEVICE_ID>
 ```
 
-## iOS CI
+## iOS Release
 
-The iOS build workflow runs both:
+The `iOS Mobile Release` workflow builds and ships the Flutter iOS app on the HADES runner.
 
-1. `flutter test`
-2. `flutter test integration_test/auth_smoke_test.dart -d <auto-detected-device>`
-
-before building and distributing iOS artifacts.
+- `build_all` runs the release build without uploading
+- `testflight` runs the release build, then uploads to TestFlight
+- The workflow runs `flutter test` and the mobile smoke test when tests are enabled

@@ -608,7 +608,7 @@ platform :ios do
       beta_app_feedback_email: "mark.a.nelson@outlook.com",
       changelog: "Automated TestFlight build from CI/CD pipeline",
       distribute_external: true,
-      groups: ["Internal Testers"]
+      groups: [ENV["BETA_GROUP_NAME"] || "Internal Testers"]
     )
   end
 

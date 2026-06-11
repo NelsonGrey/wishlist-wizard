@@ -213,24 +213,17 @@ jobs:
     needs: load-config
     if: |
       needs.load-config.outputs.ios_enabled == 'true' &&
-      needs.load-config.outputs.trigger_context == 'build_and_deploy'
-    uses: mnelson3/nelson-grey/.github/workflows/ios-build.yml@main
+      (
+        needs.load-config.outputs.trigger_context == 'build_all' ||
+        needs.load-config.outputs.trigger_context == 'build_and_deploy' ||
+        needs.load-config.outputs.trigger_context == 'deploy_only'
+      )
+    uses: ./.github/workflows/ios-mobile-release.yml
     with:
-      project_name: ${{ needs.load-config.outputs.project_name }}
-      release_type: ${{ needs.load-config.outputs.trigger_context == 'build_and_deploy' && 'testflight' || 'build_only' }}
-      release_notes: ${{ needs.load-config.outputs.trigger_context == 'build_and_deploy' && format('Automated build from {0} ({1})', github.sha, github.ref_name) || '' }}
+      release_type: ${{ needs.load-config.outputs.trigger_context == 'build_all' && 'build_only' || 'testflight' }}
       beta_group_name: "Internal Testers"
-      ruby_version: "3.2"
-      bundler_version: "2.4.22"
-      fastlane_version: "2.230.0"
-    secrets:
-      app_store_connect_key_id: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
-      app_store_connect_issuer_id: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
-      app_store_connect_key: ${{ secrets.APP_STORE_CONNECT_KEY }}
-      match_git_password: ${{ secrets.MATCH_GIT_PASSWORD }}
-      keychain_password: ${{ secrets.KEYCHAIN_PASSWORD }}
-      match_git_url: ${{ secrets.MATCH_GIT_URL }}
-      match_git_branch: ${{ secrets.MATCH_GIT_BRANCH }}
+      skip_tests: true
+    secrets: inherit
 
   build-web:
     name: Build Web App
