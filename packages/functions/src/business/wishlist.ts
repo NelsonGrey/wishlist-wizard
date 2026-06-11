@@ -1,14 +1,15 @@
 import * as functions from "firebase-functions";
-import * as admin from "firebase-admin";
+import { getApps, initializeApp } from "firebase-admin/app";
+import { Timestamp, getFirestore } from "firebase-admin/firestore";
 import * as logger from "firebase-functions/logger";
 
 // Initialize Firebase Admin (safe for multiple imports)
-if (!admin.apps.length) {
-  admin.initializeApp();
+if (!getApps().length) {
+  initializeApp();
 }
 
 // Initialize Firestore
-const firestore = admin.firestore();
+const firestore = getFirestore();
 
 export interface Wishlist {
   id?: string;
@@ -17,8 +18,8 @@ export interface Wishlist {
   ownerId: string;
   collaborators: string[];
   isPublic: boolean;
-  createdAt: admin.firestore.Timestamp;
-  updatedAt: admin.firestore.Timestamp;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
 }
 
 export interface WishlistItem {
@@ -33,9 +34,9 @@ export interface WishlistItem {
   priority: 'low' | 'medium' | 'high';
   isPurchased: boolean;
   purchasedBy?: string;
-  purchasedAt?: admin.firestore.Timestamp;
-  createdAt: admin.firestore.Timestamp;
-  updatedAt: admin.firestore.Timestamp;
+  purchasedAt?: Timestamp;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
 }
 
 /**
@@ -60,8 +61,8 @@ export const createWishlist = functions.https.onCall(async (request) => {
       ownerId: uid,
       collaborators: [uid], // Owner is always a collaborator
       isPublic,
-      createdAt: admin.firestore.Timestamp.now(),
-      updatedAt: admin.firestore.Timestamp.now(),
+      createdAt: Timestamp.now(),
+      updatedAt: Timestamp.now(),
     };
 
     const docRef = await firestore.collection('wishlists').add(wishlist);
@@ -199,7 +200,7 @@ export const updateWishlist = functions.https.onCall(async (request) => {
 
     const updateData = {
       ...updates,
-      updatedAt: admin.firestore.Timestamp.now(),
+      updatedAt: Timestamp.now(),
     };
 
     await firestore.collection('wishlists').doc(wishlistId).update(updateData);
@@ -304,8 +305,8 @@ export const addWishlistItem = functions.https.onCall(async (request) => {
       imageUrl: item.imageUrl || '',
       priority: item.priority || 'medium',
       isPurchased: false,
-      createdAt: admin.firestore.Timestamp.now(),
-      updatedAt: admin.firestore.Timestamp.now(),
+      createdAt: Timestamp.now(),
+      updatedAt: Timestamp.now(),
     };
 
     const docRef = await firestore.collection('wishlistItems').add(wishlistItem);
@@ -361,7 +362,7 @@ export const updateWishlistItem = functions.https.onCall(async (request) => {
 
     const updateData = {
       ...updates,
-      updatedAt: admin.firestore.Timestamp.now(),
+      updatedAt: Timestamp.now(),
     };
 
     await firestore.collection('wishlistItems').doc(itemId).update(updateData);
@@ -457,8 +458,8 @@ export const purchaseWishlistItem = functions.https.onCall(async (request) => {
     const updateData = {
       isPurchased: true,
       purchasedBy: uid,
-      purchasedAt: admin.firestore.Timestamp.now(),
-      updatedAt: admin.firestore.Timestamp.now(),
+      purchasedAt: Timestamp.now(),
+      updatedAt: Timestamp.now(),
     };
 
     await firestore.collection('wishlistItems').doc(itemId).update(updateData);
