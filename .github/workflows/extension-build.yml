@@ -1,7 +1,45 @@
 name: Build & Test Browser Extension
 
 on:
+  workflow_call:
+    inputs:
+      project_name:
+        required: true
+        type: string
+      publish:
+        required: false
+        type: boolean
+        default: false
+      node_version:
+        required: false
+        type: string
+        default: "20"
+    secrets:
+      chrome_extension_id:
+        required: false
+      chrome_client_id:
+        required: false
+      chrome_client_secret:
+        required: false
+      chrome_refresh_token:
+        required: false
   workflow_dispatch:
+    inputs:
+      project_name:
+        description: Project name
+        required: true
+        default: wishlist-wizard
+        type: string
+      publish:
+        description: Publish the extension after build
+        required: false
+        default: false
+        type: boolean
+      node_version:
+        description: Node.js version
+        required: false
+        default: "20"
+        type: string
 
 concurrency:
   group: extension-build-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -19,7 +57,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v5
         with:
-          node-version: '20'
+          node-version: ${{ inputs.node_version || '20' }}
           cache: 'npm'
       
       - name: Install dependencies
