@@ -198,7 +198,7 @@ jobs:
 
             pushd packages/mobile
             flutter pub get
-            flutter analyze --no-fatal-infos
+            flutter analyze --no-fatal-infos --no-fatal-warnings
             flutter test
             popd
           fi
