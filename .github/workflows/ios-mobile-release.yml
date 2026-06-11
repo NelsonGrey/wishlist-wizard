@@ -135,6 +135,7 @@ jobs:
             echo "MATCH_GIT_BRANCH=develop" >> "$GITHUB_ENV"
           fi
 
+          MATCH_SSH_AUTH=false
           if [ -n "${MATCH_SSH_PRIVATE_KEY:-}" ]; then
             mkdir -p "$HOME/.ssh"
             chmod 700 "$HOME/.ssh"
@@ -147,14 +148,16 @@ jobs:
             chmod 600 "$MATCH_SSH_KEY_FILE"
 
             if ! ssh-keygen -y -f "$MATCH_SSH_KEY_FILE" >/dev/null 2>&1; then
-              echo "❌ MATCH_SSH_PRIVATE_KEY is not a valid SSH private key"
-              exit 1
+              echo "⚠️ MATCH_SSH_PRIVATE_KEY is invalid; falling back to URL/token auth"
+            else
+              ssh-keyscan -t rsa,ecdsa,ed25519 github.com >> "$HOME/.ssh/known_hosts" 2>/dev/null || true
+              echo "GIT_SSH_COMMAND=ssh -i $MATCH_SSH_KEY_FILE -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile=$HOME/.ssh/known_hosts" >> "$GITHUB_ENV"
+              echo "MATCH_GIT_URL=git@github.com:mnelson3/nelson-grey.git" >> "$GITHUB_ENV"
+              MATCH_SSH_AUTH=true
             fi
+          fi
 
-            ssh-keyscan -t rsa,ecdsa,ed25519 github.com >> "$HOME/.ssh/known_hosts" 2>/dev/null || true
-            echo "GIT_SSH_COMMAND=ssh -i $MATCH_SSH_KEY_FILE -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile=$HOME/.ssh/known_hosts" >> "$GITHUB_ENV"
-            echo "MATCH_GIT_URL=git@github.com:mnelson3/nelson-grey.git" >> "$GITHUB_ENV"
-          elif [ -n "${MATCH_GIT_URL:-}" ]; then
+          if [ "$MATCH_SSH_AUTH" != "true" ] && [ -n "${MATCH_GIT_URL:-}" ]; then
             if [[ "$MATCH_GIT_URL" != *"@"* ]]; then
               if [ -z "${NELSON_GREY_PAT:-}" ]; then
                 echo "❌ MATCH_GIT_URL does not include credentials and no PAT/SSH key is configured"
@@ -169,7 +172,7 @@ jobs:
             fi
 
             echo "MATCH_GIT_URL=$MATCH_GIT_URL" >> "$GITHUB_ENV"
-          else
+          elif [ "$MATCH_SSH_AUTH" != "true" ]; then
             if [ -z "${MATCH_GIT_URL_TOKEN:-}" ] && [ -z "${NELSON_GREY_PAT:-}" ]; then
               echo "❌ No match repo auth configured"
               exit 1
