@@ -1,5 +1,8 @@
 name: Reusable Firebase Functions Deployment (Local)
 
+permissions:
+  contents: read
+
 on:
   workflow_call:
     inputs:

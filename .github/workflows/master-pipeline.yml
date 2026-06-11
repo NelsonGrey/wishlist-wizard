@@ -1,5 +1,8 @@
 name: "Master CI/CD Pipeline"
 
+permissions:
+  contents: read
+
 on:
   workflow_dispatch:
     inputs:

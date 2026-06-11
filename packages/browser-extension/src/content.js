@@ -236,6 +236,8 @@ function extractProductInfo() {
 function extractProductInfoLegacy() {
   try {
     const url = window.location.href;
+    const parsedUrl = new URL(url);
+    const hostname = parsedUrl.hostname.toLowerCase();
     let productInfo = null;
     let extractionMethod = 'unknown';
     
@@ -245,7 +247,7 @@ function extractProductInfoLegacy() {
     }
     
     // Try site-specific extractors first for better results
-    if (url.includes('amazon.com') && url.includes('/dp/')) {
+    if (isAllowedStoreHost(hostname, 'amazon.com') && parsedUrl.pathname.includes('/dp/')) {
       try {
         productInfo = extractAmazonProductInfo();
         extractionMethod = 'amazon-legacy';
@@ -253,7 +255,7 @@ function extractProductInfoLegacy() {
         console.warn('Amazon-specific extraction failed, falling back to generic extraction', err);
       }
     }
-    else if (url.includes('target.com') && url.includes('/p/')) {
+    else if (isAllowedStoreHost(hostname, 'target.com') && parsedUrl.pathname.includes('/p/')) {
       try {
         productInfo = extractTargetProductInfo();
         extractionMethod = 'target-legacy';
@@ -261,7 +263,7 @@ function extractProductInfoLegacy() {
         console.warn('Target-specific extraction failed, falling back to generic extraction', err);
       }
     }
-    else if (url.includes('walmart.com') && url.includes('/ip/')) {
+    else if (isAllowedStoreHost(hostname, 'walmart.com') && parsedUrl.pathname.includes('/ip/')) {
       try {
         productInfo = extractWalmartProductInfo();
         extractionMethod = 'walmart-legacy';
@@ -364,6 +366,10 @@ function extractProductInfoLegacy() {
       url: window.location.href
     };
   }
+}
+
+function isAllowedStoreHost(hostname, domain) {
+  return hostname === domain || hostname.endsWith(`.${domain}`);
 }
 
 // Helper function to sanitize price strings
