@@ -72,10 +72,7 @@ ci:
   runners:
     macos:
       labels:
-        - self-hosted
-        - macos
-        - arm64
-        - wishlist-wizard
+        - macos-latest
       required: true
     docker:
       labels:
