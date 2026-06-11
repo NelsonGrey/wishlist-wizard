@@ -53,7 +53,7 @@ Note: The tier-by-tier endpoint results below are historical baseline data from 
 | Tier | Status | Score | Details |
 |------|--------|-------|---------|
 | **Basic Features** | ✅ READY | 33/33 (100%) | User accounts, wishlists, items, sharing, notifications, device sync |
-| **Advanced Features** | ⚠️ PARTIAL | 37/49 (76%) | Extension, affiliate, calendar, analytics - most working, some require config |
+| **Advanced Features** | ⚠️ PARTIAL | 37/49 (76%) | Extension, link conversion, calendar, analytics - most working, some require config |
 | **Overall** | ✅ APPROVED | 67/82 (82%) | Zero code failures; all soft warnings are expected or post-launch config |
 
 ---
@@ -139,25 +139,25 @@ Users can add items while shopping online.
 
 ---
 
-### 2B: Affiliate Program (7/7 ✅ - FULLY READY)
+### 2B: Link Conversion (7/7 ✅ - FULLY READY)
 
-Monetization via affiliate links.
+Backend link transformation and reporting.
 
 - `convertAffiliateLink` ✅ Pass - Single link conversion
 - `batchConvertAffiliateLinks` ✅ Pass - Bulk link conversion
 - `convertWishlistAffiliateLinks` ✅ Pass - Auto-convert wishlist links
 - `trackAffiliateClick` ✅ Pass - Click tracking
 - `getAffiliatePrograms` ✅ Pass - Available programs
-- `getAffiliateStats` ✅ Pass - Revenue/click analytics
+- `getAffiliateStats` ✅ Pass - Click and conversion analytics
 - `getAffiliateDisclosure` ✅ Pass - Legal disclosures
 
-**Recommendation:** ✅ Ship with MVP (revenue feature!)
+**Recommendation:** ✅ Ship with MVP
 
 ---
 
 ### 2C: Analytics (3/3 ✅ - FULLY READY)
 
-User behavior tracking and insights.
+User behavior tracking and reporting.
 
 - `trackAnalyticsEvent` ✅ Pass - Log events
 - `getAnalyticsEvents` ✅ Pass - Retrieve event history
@@ -190,7 +190,7 @@ Product visualization in augmented reality.
 
 ### 2F: Calendar Integration (7/12 ⚠️ PARTIAL)
 
-Sync birthdays/gift occasions with calendar.
+Sync birthdays/gift occasions with external calendars.
 
 **Fully Ready (7/7):**
 - `getCalendarEvents` ✅ Pass - Fetch calendar events
@@ -209,7 +209,7 @@ Sync birthdays/gift occasions with calendar.
 - `syncCalendarConnection` ⚠️ Test fixture limitation (no connection to sync)
 - (4th issue: `notifyPriceAlert` is a Firestore trigger, not a callable)
 
-**Recommendation:** ⚠️ Launch calendar *reading* now; schedule OAuth setup for v1.1
+**Recommendation:** ⚠️ Launch calendar reading now; schedule OAuth setup for a later release
 
 ---
 
@@ -220,11 +220,11 @@ Multiple people contribute to one gift.
 **Ready (1/1):**
 - `getGroupGiftSummary` ✅ Pass - View pooled gift status
 
-**Blocked (2 warnings - Stripe not configured):**
-- `createGroupPaymentIntent` ⚠️ Requires Stripe account setup
-- `confirmGroupContribution` ⚠️ Requires Stripe account setup
+**Blocked (2 warnings - payment provider not configured):**
+- `createGroupPaymentIntent` ⚠️ Requires payment provider setup
+- `confirmGroupContribution` ⚠️ Requires payment provider setup
 
-**Recommendation:** ⚠️ Launch basic pooling (view summaries); schedule v1.1 for Stripe integration
+**Recommendation:** ⚠️ Launch basic pooling (view summaries); schedule payment flow for a later release
 
 ---
 
@@ -245,13 +245,13 @@ Real-time notifications to mobile/web users.
 
 ---
 
-### 2I: Checkout & Stripe Webhooks (0/2 ⚠️ NOT IMPLEMENTED)
+### 2I: Checkout & Payment Webhooks (0/2 ⚠️ NOT IMPLEMENTED)
 
 **Status:**
 - `createCheckoutSession` ⚠️ HTTP 501 Not Implemented
-- `stripeWebhook` ⚠️ HTTP 501 Not Implemented
+- `paymentWebhook` ⚠️ HTTP 501 Not Implemented
 
-**Recommendation:** ⛔ Remove from MVP; schedule for v1.1 when Stripe integration is ready
+**Recommendation:** ⛔ Remove from MVP; schedule for a later release when payment integration is ready
 
 ---
 
@@ -277,7 +277,7 @@ These are Firestore triggers that run server-side when data changes. They're not
 All Tier 1 features (33/33) plus these ready Tier 2 features:
 
 1. **Browser Extension** (9/9) - Revenue + engagement multiplier
-2. **Affiliate Program** (7/7) - Day-1 monetization
+2. **Link Conversion** (7/7) - Backend-managed link handling
 3. **Analytics** (3/3) - Product insights
 4. **Calendar Reading** (7/8) - Event sync prep
 5. **Price History & AR** (3/3) - Product enrichment
@@ -288,7 +288,7 @@ All Tier 1 features (33/33) plus these ready Tier 2 features:
 ### ⚠️ SCHEDULE FOR v1.1
 
 1. **Calendar OAuth** (2 endpoints) - Requires external auth setup
-2. **Group Payments** (2 endpoints) - Requires Stripe account
+2. **Group Payments** (2 endpoints) - Requires payment provider setup
 3. **Checkout Session** (2 endpoints) - Not yet implemented
 
 ### ❌ OUT OF SCOPE (Background Functions)
@@ -305,9 +305,9 @@ All Tier 1 features (33/33) plus these ready Tier 2 features:
 ### Soft Warnings: 15/82
 All warnings are either:
 1. **Expected in emulator** (FCM topics, not production-blocked)
-2. **External service config** (Stripe, Google OAuth)
+2. **External service config** (payment provider, Google OAuth)
 3. **Test fixture limitation** (calendar connections require OAuth setup first)
-4. **Not implemented** (Stripe checkout, intentionally deferred)
+4. **Not implemented** (payment checkout, intentionally deferred)
 5. **Background functions** (Firestore triggers that don't expose HTTP callables)
 
 **None of these warnings impact launch.**
@@ -355,11 +355,11 @@ Separate end-to-end test suite ("smoke-users-report.json") validates real user j
 
 ## Deployment Checklist
 
-- [ ] Mark Stripe endpoints as "coming soon" in v1.0 client UIs
+- [ ] Mark payment endpoints as "coming soon" in v1.0 client UIs
 - [ ] Mark Checkout as "coming soon" in v1.0
 - [ ] Hide calendar OAuth connection UI until v1.1
 - [ ] Enable calendar reading (sync events, create/edit local events)
-- [ ] Ensure Firebase production has Stripe configured before payments launch
+- [ ] Ensure Firebase production has the payment provider configured before payments launch
 - [ ] Set up Google OAuth for v1.1 calendar OAuth flow
 - [ ] Configure CloudEvents for Firestore notification triggers
 - [ ] Validate FCM topic subscriptions work in production (emulator limitation)

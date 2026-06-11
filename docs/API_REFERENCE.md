@@ -298,7 +298,7 @@ Deletes an item from the extension.
 Creates or returns a share link for a wishlist.
 
 ### `getExtensionAnalytics`
-Returns extension usage analytics.
+Returns extension usage analytics and aggregate counters.
 
 ### `trackExtensionEvent`
 Tracks extension events.
@@ -362,7 +362,7 @@ Returns available tiers for upgrade from current tier.
 ```
 
 ### `createCheckout`
-Creates a Stripe Checkout session for upgrading subscription.
+Creates a checkout session for upgrading subscription via the configured payment provider.
 
 **Request**:
 ```json
@@ -376,29 +376,29 @@ Creates a Stripe Checkout session for upgrading subscription.
 ```json
 {
   "sessionId": "cs_abc123",
-  "checkoutUrl": "https://checkout.stripe.com/pay/cs_abc123"
+  "checkoutUrl": "https://payment.example.com/checkout/cs_abc123"
 }
 ```
 
 **Errors**:
 - `invalid-argument`: Invalid tier or billing cycle
 - `permission-denied`: User cannot upgrade to this tier
-- `internal`: Stripe API error
+- `internal`: Payment provider error
 
 ### `createBillingPortal`
-Creates a Stripe Billing Portal session for managing subscriptions and payment methods.
+Creates a billing portal session for managing subscriptions and payment methods.
 
 **Response**:
 ```json
 {
-  "portalUrl": "https://billing.stripe.com/..."
+  "portalUrl": "https://payment.example.com/billing/..."
 }
 ```
 
-### `stripeSubscriptionWebhook`
-HTTP webhook handler for Stripe events (subscription updates, payment failures, etc.).
+### `subscriptionWebhook`
+HTTP webhook handler for payment provider events (subscription updates, payment failures, etc.). The implementation is exported as `stripeSubscriptionWebhook`.
 
-**Webhook Signature**: Verified via `Stripe-Signature` header
+**Webhook Signature**: Verified via the provider signature header
 **Events Handled**:
 - `customer.subscription.updated`: Tier changed
 - `customer.subscription.deleted`: Subscription cancelled
@@ -707,7 +707,7 @@ All errors follow the standard Firebase HttpsError format:
 | `not-found` | Resource not found |
 | `already-exists` | Resource already exists |
 | `internal` | Server error (check logs) |
-| `unavailable` | External service error (Stripe, etc.) |
+| `unavailable` | External service error |
 
 ---
 
