@@ -22,7 +22,7 @@ on:
         description: Runner labels JSON array
         required: false
         type: string
-        default: '["self-hosted","macOS","HADES"]'
+        default: '["self-hosted","macos","arm64","wishlist-wizard"]'
     secrets:
       APP_STORE_CONNECT_KEY_ID:
         required: false
@@ -72,7 +72,7 @@ on:
       runner_labels:
         description: Runner labels JSON array
         required: false
-        default: '["self-hosted","macOS","HADES"]'
+        default: '["self-hosted","macos","arm64","wishlist-wizard"]'
         type: string
 
 permissions:

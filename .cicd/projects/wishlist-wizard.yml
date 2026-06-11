@@ -73,8 +73,9 @@ ci:
     macos:
       labels:
         - self-hosted
-        - macOS
-        - HADES
+        - macos
+        - arm64
+        - wishlist-wizard
       required: true
     docker:
       labels:
