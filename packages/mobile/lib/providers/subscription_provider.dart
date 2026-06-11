@@ -73,10 +73,10 @@ class SubscriptionProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final statusResponse = await _functionsService.getSubscriptionStatus();
+      final statusResponse = await _functionsService.billingStatus();
       _applyStatusResponse(statusResponse);
 
-      final optionsResponse = await _functionsService.getUpgradeOptions();
+      final optionsResponse = await _functionsService.billingPlans();
       _applyUpgradeOptionsResponse(optionsResponse);
     } catch (_) {
       _error = 'Unable to load subscription data';
@@ -92,7 +92,7 @@ class SubscriptionProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final response = await _functionsService.createCheckout(
+      final response = await _functionsService.billingCheckout(
         tier,
         billingCycle,
       );
@@ -112,7 +112,7 @@ class SubscriptionProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final response = await _functionsService.createBillingPortal();
+      final response = await _functionsService.billingPortal();
       return _pickFirstString(response, const <String>['portalUrl', 'url']);
     } catch (_) {
       _error = 'Unable to open billing portal';

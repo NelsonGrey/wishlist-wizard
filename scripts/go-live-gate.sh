@@ -191,7 +191,7 @@ section_header "CHECK 6: Tier 2 Features (Advanced/Optional)"
 TIER2_FEATURES=(
   "authenticateExtension"
   "addItemFromExtension"
-  "convertAffiliateLink"
+  "linkConvert"
   "trackAnalyticsEvent"
   "getCalendarEvents"
   "saveFCMToken"

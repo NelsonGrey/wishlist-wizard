@@ -143,13 +143,13 @@ Users can add items while shopping online.
 
 Backend link transformation and reporting.
 
-- `convertAffiliateLink` ✅ Pass - Single link conversion
-- `batchConvertAffiliateLinks` ✅ Pass - Bulk link conversion
-- `convertWishlistAffiliateLinks` ✅ Pass - Auto-convert wishlist links
-- `trackAffiliateClick` ✅ Pass - Click tracking
-- `getAffiliatePrograms` ✅ Pass - Available programs
-- `getAffiliateStats` ✅ Pass - Click and conversion analytics
-- `getAffiliateDisclosure` ✅ Pass - Legal disclosures
+- `linkConvert` ✅ Pass - Single link conversion
+- `linkConvertBatch` ✅ Pass - Bulk link conversion
+- `linkConvertWishlist` ✅ Pass - Auto-convert wishlist links
+- `linkTrackClick` ✅ Pass - Click tracking
+- `linkPrograms` ✅ Pass - Available programs
+- `linkStats` ✅ Pass - Click and conversion analytics
+- `linkDisclosure` ✅ Pass - Legal disclosures
 
 **Recommendation:** ✅ Ship with MVP
 
@@ -248,7 +248,7 @@ Real-time notifications to mobile/web users.
 ### 2I: Checkout & Payment Webhooks (0/2 ⚠️ NOT IMPLEMENTED)
 
 **Status:**
-- `createCheckoutSession` ⚠️ HTTP 501 Not Implemented
+- `checkoutSessionCreate` ⚠️ HTTP 501 Not Implemented
 - `paymentWebhook` ⚠️ HTTP 501 Not Implemented
 
 **Recommendation:** ⛔ Remove from MVP; schedule for a later release when payment integration is ready

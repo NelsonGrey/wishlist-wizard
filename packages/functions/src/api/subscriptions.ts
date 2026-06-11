@@ -5,12 +5,12 @@
  * Stripe is the payment processor; we never handle raw card data.
  *
  * Endpoints:
- *   getSubscriptionStatus   — return current tier, usage, and limits
- *   createCheckout          — create a Stripe Checkout session for upgrade
- *   createBillingPortal     — create a Stripe Customer Portal session (manage/cancel)
- *   getUpgradeOptions       — return available tiers with pricing
- *   cancelSubscription      — schedule cancellation at period end
- *   reactivateSubscription  — remove cancel_at_period_end
+ *   billingStatus   — return current tier, usage, and limits
+ *   billingCheckout  — create a Stripe Checkout session for upgrade
+ *   billingPortal    — create a Stripe Customer Portal session (manage/cancel)
+ *   billingPlans     — return available tiers with pricing
+ *   cancelSubscription   — schedule cancellation at period end
+ *   reactivateSubscription — remove cancel_at_period_end
  */
 
 import { onCall, HttpsError, CallableRequest } from 'firebase-functions/v2/https';
@@ -53,14 +53,14 @@ function getStripeInstance(): any {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// getSubscriptionStatus
+// billingStatus
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
  * Returns the user's current subscription tier, status, usage, limits, and
  * upgrade prompt information. Called on every app load.
  */
-export const getSubscriptionStatus = onCall(async (request: CallableRequest) => {
+export const billingStatus = onCall(async (request: CallableRequest) => {
   if (!request.auth?.uid) throw new HttpsError('unauthenticated', 'Must be signed in');
   const uid = request.auth.uid;
 
@@ -108,14 +108,14 @@ export const getSubscriptionStatus = onCall(async (request: CallableRequest) => 
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// getUpgradeOptions
+// billingPlans
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
  * Returns all available tiers above the current tier with pricing and feature
  * highlights — used to populate the upgrade modal.
  */
-export const getUpgradeOptions = onCall(async (request: CallableRequest) => {
+export const billingPlans = onCall(async (request: CallableRequest) => {
   if (!request.auth?.uid) throw new HttpsError('unauthenticated', 'Must be signed in');
   const currentTier = await getUserTier(request.auth.uid);
 
@@ -130,7 +130,7 @@ export const getUpgradeOptions = onCall(async (request: CallableRequest) => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// createCheckout
+// billingCheckout
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
@@ -139,7 +139,7 @@ export const getUpgradeOptions = onCall(async (request: CallableRequest) => {
  *
  * Request: { tier: SubscriptionTier, billingCycle: 'monthly' | 'annual', successUrl, cancelUrl }
  */
-export const createCheckout = onCall(async (request: CallableRequest) => {
+export const billingCheckout = onCall(async (request: CallableRequest) => {
   if (!request.auth?.uid) throw new HttpsError('unauthenticated', 'Must be signed in');
   const uid = request.auth.uid;
   const { tier, billingCycle, successUrl, cancelUrl } = request.data ?? {};
@@ -205,7 +205,7 @@ export const createCheckout = onCall(async (request: CallableRequest) => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// createBillingPortal
+// billingPortal
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
@@ -213,7 +213,7 @@ export const createCheckout = onCall(async (request: CallableRequest) => {
  * subscription, update payment methods, and view invoices.
  * Returns { url }
  */
-export const createBillingPortal = onCall(async (request: CallableRequest) => {
+export const billingPortal = onCall(async (request: CallableRequest) => {
   if (!request.auth?.uid) throw new HttpsError('unauthenticated', 'Must be signed in');
   const uid = request.auth.uid;
 
@@ -247,7 +247,7 @@ export const createBillingPortal = onCall(async (request: CallableRequest) => {
  *   customer.subscription.updated      — tier change, cancel scheduling
  *   customer.subscription.deleted      — canceled; downgrade to free
  */
-export const stripeSubscriptionWebhook = onRequest(async (req, res) => {
+export const billingWebhook = onRequest(async (req, res) => {
   if (req.method !== 'POST') {
     res.status(405).send({ error: 'Method not allowed' });
     return;

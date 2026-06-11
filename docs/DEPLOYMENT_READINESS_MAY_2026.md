@@ -200,7 +200,7 @@ Admin Dashboard: Displays in AuditLog.tsx (read-only)
 ```
 Stripe Event (e.g., payment succeeded)
          ↓
-HTTP POST to stripeSubscriptionWebhook()
+HTTP POST to billingWebhook()
          ↓
 Verify: Stripe-Signature header (raw body bytes)
          ↓

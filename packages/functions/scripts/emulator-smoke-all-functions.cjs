@@ -62,7 +62,7 @@ const CALLABLE_DEPENDENCY_GAP_RULES = {
 };
 
 const HTTP_DEPENDENCY_GAP_RULES = {
-  createCheckoutSession: {
+  checkoutSessionCreate: {
     statuses: new Set([501]),
     messageIncludes: ['Stripe not configured'],
   },
@@ -4237,13 +4237,13 @@ async function resolveCallablePayload(functionName, ctx) {
     case 'sendBatchNotification':
       return { userIds: [uid], notification: { title: 'Batch Contract', body: 'Batch notification body' } };
 
-    case 'convertAffiliateLink':
+    case 'linkConvert':
       return { url: 'https://www.amazon.com/dp/B000000002' };
-    case 'batchConvertAffiliateLinks':
+    case 'linkConvertBatch':
       return { urls: ['https://www.amazon.com/dp/B000000003', 'https://www.target.com/p/example-product'] };
-    case 'convertWishlistAffiliateLinks':
+    case 'linkConvertWishlist':
       return { wishlistId: ctx.ids.wishlistId };
-    case 'trackAffiliateClick':
+    case 'linkTrackClick':
       return { url: 'https://www.amazon.com/dp/B000000004', program: 'Amazon Associates' };
 
     case 'createGroupPaymentIntent':

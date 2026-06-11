@@ -358,7 +358,7 @@ class FirebaseFunctionsService {
   // SUBSCRIPTION FUNCTIONS
   // =============================================================================
 
-  Future<Map<String, dynamic>> getSubscriptionStatus() async {
+  Future<Map<String, dynamic>> billingStatus() async {
     if (!await _ensureFirebaseInitialized()) {
       throw Exception('Firebase not initialized');
     }
@@ -374,7 +374,7 @@ class FirebaseFunctionsService {
     }
   }
 
-  Future<Map<String, dynamic>> getUpgradeOptions() async {
+  Future<Map<String, dynamic>> billingPlans() async {
     if (!await _ensureFirebaseInitialized()) {
       throw Exception('Firebase not initialized');
     }
@@ -390,7 +390,7 @@ class FirebaseFunctionsService {
     }
   }
 
-  Future<Map<String, dynamic>> createCheckout(
+  Future<Map<String, dynamic>> billingCheckout(
     String tier,
     String billingCycle,
   ) async {
@@ -410,7 +410,7 @@ class FirebaseFunctionsService {
     }
   }
 
-  Future<Map<String, dynamic>> createBillingPortal() async {
+  Future<Map<String, dynamic>> billingPortal() async {
     if (!await _ensureFirebaseInitialized()) {
       throw Exception('Firebase not initialized');
     }
