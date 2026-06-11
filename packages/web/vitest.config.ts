@@ -8,6 +8,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, 'client-src'),
+      '@wishlist-wizard/shared': path.resolve(__dirname, '../shared/src'),
       '@shared/firebase-utils': path.resolve(__dirname, '../firebase-utils/src'),
       '@assets': path.resolve(__dirname, '../../attached_assets'),
     },
