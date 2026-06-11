@@ -946,11 +946,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       sendResponse({ success: true });
     }
 
-    else if (message.action === 'getSubscriptionStatus') {
-      callCallableFunction('getSubscriptionStatus', {})
+    else if (message.action === 'billingStatus') {
+      callCallableFunction('billingStatus', {})
         .then((data) => sendResponse({ success: true, data }))
         .catch((error) => {
-          const trackingInfo = trackError(error, 'getSubscriptionStatus');
+          const trackingInfo = trackError(error, 'billingStatus');
           sendResponse({
             success: false,
             error: error.message,
@@ -960,11 +960,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       return true;
     }
 
-    else if (message.action === 'getUpgradeOptions') {
-      callCallableFunction('getUpgradeOptions', {})
+    else if (message.action === 'billingPlans') {
+      callCallableFunction('billingPlans', {})
         .then((data) => sendResponse({ success: true, data }))
         .catch((error) => {
-          const trackingInfo = trackError(error, 'getUpgradeOptions');
+          const trackingInfo = trackError(error, 'billingPlans');
           sendResponse({
             success: false,
             error: error.message,
@@ -974,16 +974,16 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       return true;
     }
 
-    else if (message.action === 'createCheckout') {
+    else if (message.action === 'billingCheckout') {
       const payload = {
         tier: String(message.tier || ''),
         billingCycle: String(message.billingCycle || 'monthly')
       };
 
-      callCallableFunction('createCheckout', payload)
+      callCallableFunction('billingCheckout', payload)
         .then((data) => sendResponse({ success: true, data }))
         .catch((error) => {
-          const trackingInfo = trackError(error, 'createCheckout');
+          const trackingInfo = trackError(error, 'billingCheckout');
           sendResponse({
             success: false,
             error: error.message,
@@ -993,11 +993,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       return true;
     }
 
-    else if (message.action === 'createBillingPortal') {
-      callCallableFunction('createBillingPortal', {})
+    else if (message.action === 'billingPortal') {
+      callCallableFunction('billingPortal', {})
         .then((data) => sendResponse({ success: true, data }))
         .catch((error) => {
-          const trackingInfo = trackError(error, 'createBillingPortal');
+          const trackingInfo = trackError(error, 'billingPortal');
           sendResponse({
             success: false,
             error: error.message,

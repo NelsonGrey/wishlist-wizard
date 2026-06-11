@@ -98,13 +98,13 @@ Enables shopping while browsing web.
 Monetization via affiliate links.
 
 ```
-✅ convertAffiliateLink        | onCall | Pass  | Convert single link
-✅ batchConvertAffiliateLinks  | onCall | Pass  | Bulk link conversion
-✅ convertWishlistAffiliateLinks | onCall | Pass | Auto-convert all links
-✅ trackAffiliateClick         | onCall | Pass  | Click tracking
-✅ getAffiliatePrograms        | onCall | Pass  | Available programs
-✅ getAffiliateStats           | onCall | Pass  | Revenue/click analytics
-✅ getAffiliateDisclosure      | onCall | Pass  | Legal disclosures
+✅ linkConvert                 | onCall | Pass  | Convert single link
+✅ linkConvertBatch            | onCall | Pass  | Bulk link conversion
+✅ linkConvertWishlist         | onCall | Pass | Auto-convert all links
+✅ linkTrackClick              | onCall | Pass  | Click tracking
+✅ linkPrograms                | onCall | Pass  | Available programs
+✅ linkStats                   | onCall | Pass  | Revenue/click analytics
+✅ linkDisclosure              | onCall | Pass  | Legal disclosures
 ```
 
 **Status:** Ready for v1.0 launch
@@ -212,7 +212,7 @@ Price history and barcode scanning.
 ### ❌ Stripe Checkout (0/2 - NOT IMPLEMENTED)
 
 ```
-❌ createCheckoutSession       | onRequest | Warn (HTTP 501) | Not implemented
+❌ checkoutSessionCreate       | onRequest | Warn (HTTP 501) | Not implemented
 ❌ stripeWebhook               | onRequest | Warn (HTTP 501) | Not implemented
 ```
 

@@ -102,13 +102,13 @@ export {
 } from './fcm';
 
 export {
-  convertAffiliateLink as linkConvert,
-  batchConvertAffiliateLinks as linkConvertBatch,
-  convertWishlistAffiliateLinks as linkConvertWishlist,
-  trackAffiliateClick as linkTrackClick,
-  getAffiliatePrograms as linkPrograms,
-  getAffiliateStats as linkStats,
-  getAffiliateDisclosure as linkDisclosure
+  linkConvert,
+  linkConvertBatch,
+  linkConvertWishlist,
+  linkTrackClick,
+  linkPrograms,
+  linkStats,
+  linkDisclosure
 } from './api/affiliate';
 
 export {
@@ -177,7 +177,7 @@ export {
 } from './api/priceIntelligenceRefresh';
 
 export {
-  createCheckoutSession as checkoutSessionCreate
+  checkoutSessionCreate
 } from './api/stripe';
 
 export {
@@ -189,11 +189,11 @@ export {
 // =============================================================================
 
 export {
-  getSubscriptionStatus as billingStatus,
-  getUpgradeOptions as billingPlans,
-  createCheckout as billingCheckout,
-  createBillingPortal as billingPortal,
-  stripeSubscriptionWebhook as billingWebhook
+  billingStatus,
+  billingPlans,
+  billingCheckout,
+  billingPortal,
+  billingWebhook
 } from './api/subscriptions';
 
 // =============================================================================

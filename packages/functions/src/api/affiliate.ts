@@ -7,7 +7,7 @@ import { ensureFirebaseAdmin } from "../firebase-admin.js";
 ensureFirebaseAdmin();
 const db = getFirestore();
 
-export const convertAffiliateLink = onCall(async (request: CallableRequest) => {
+export const linkConvert = onCall(async (request: CallableRequest) => {
   const { url } = request.data;
   if (!url) {
     throw new HttpsError("invalid-argument", "URL is required");
@@ -37,7 +37,7 @@ export const convertAffiliateLink = onCall(async (request: CallableRequest) => {
   }
 });
 
-export const batchConvertAffiliateLinks = onCall(async (request: CallableRequest) => {
+export const linkConvertBatch = onCall(async (request: CallableRequest) => {
   const { urls = [] } = request.data;
   if (!Array.isArray(urls) || urls.length === 0) {
     throw new HttpsError("invalid-argument", "URLs array is required");
@@ -74,7 +74,7 @@ export const batchConvertAffiliateLinks = onCall(async (request: CallableRequest
   }
 });
 
-export const convertWishlistAffiliateLinks = onCall(async (request: CallableRequest) => {
+export const linkConvertWishlist = onCall(async (request: CallableRequest) => {
   if (!request.auth) {
     throw new HttpsError("unauthenticated", "User must be authenticated");
   }
@@ -136,7 +136,7 @@ export const convertWishlistAffiliateLinks = onCall(async (request: CallableRequ
   }
 });
 
-export const trackAffiliateClick = onCall(async (request: CallableRequest) => {
+export const linkTrackClick = onCall(async (request: CallableRequest) => {
   const { url, program } = request.data;
   if (!url) {
     throw new HttpsError("invalid-argument", "URL is required");
@@ -157,7 +157,7 @@ export const trackAffiliateClick = onCall(async (request: CallableRequest) => {
   }
 });
 
-export const getAffiliatePrograms = onCall(async () => {
+export const linkPrograms = onCall(async () => {
   return {
     programs: AFFILIATE_PROGRAMS.map((program) => ({
       name: program.name,
@@ -167,7 +167,7 @@ export const getAffiliatePrograms = onCall(async () => {
   };
 });
 
-export const getAffiliateStats = onCall(async (request: CallableRequest) => {
+export const linkStats = onCall(async (request: CallableRequest) => {
   const userId = request.auth?.uid || null;
 
   try {
@@ -231,7 +231,7 @@ export const getAffiliateStats = onCall(async (request: CallableRequest) => {
   }
 });
 
-export const getAffiliateDisclosure = onCall(async () => {
+export const linkDisclosure = onCall(async () => {
   return {
     disclosure:
       "This site participates in affiliate programs. When you click certain links, we may earn a commission at no additional cost to you.",

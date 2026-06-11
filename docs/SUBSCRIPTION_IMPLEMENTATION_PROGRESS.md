@@ -20,7 +20,7 @@
   - `packages/browser-extension/src/popup.html` (paywall + tier comparison modal)
   - `packages/browser-extension/src/popup.css` (paywall and modal styling)
   - `packages/browser-extension/src/popup.js` (subscription fetch, limit-triggered paywall, checkout/billing actions)
-  - `packages/browser-extension/src/background.js` (callable proxy actions: getSubscriptionStatus, getUpgradeOptions, createCheckout, createBillingPortal)
+  - `packages/browser-extension/src/background.js` (callable proxy actions: billingStatus, billingPlans, billingCheckout, billingPortal)
 - Stripe redirect flow integrated for both surfaces by opening checkout/billing URLs in browser tabs.
 
 **Validation Snapshot (May 15, 2026)**:
@@ -140,11 +140,11 @@ Implemented a production-ready **5-tier SaaS subscription model** with **Stripe 
 - `assertFeatureEnabled(uid, feature)` — Boolean feature gate
 
 #### Subscription API (`packages/functions/src/api/subscriptions.ts`)
-- `getSubscriptionStatus()` — Returns tier, usage, limits, pricing, trial info (called on app load)
-- `getUpgradeOptions()` — Available tiers above current with upgrade pricing
-- `createCheckout(tier, billingCycle)` — Stripe Checkout Session creation; auto-creates Stripe customer; supports trial
-- `createBillingPortal()` — Stripe Customer Portal session for self-service billing
-- `stripeSubscriptionWebhook()` — HTTP webhook handler
+- `billingStatus()` — Returns tier, usage, limits, pricing, trial info (called on app load)
+- `billingPlans()` — Available tiers above current with upgrade pricing
+- `billingCheckout(tier, billingCycle)` — Stripe Checkout Session creation; auto-creates Stripe customer; supports trial
+- `billingPortal()` — Stripe Customer Portal session for self-service billing
+- `billingWebhook()` — HTTP webhook handler
   - Verifies Stripe-Signature header (raw body bytes)
   - **Events**:
     - `checkout.session.completed` → write subscription doc, update user tier
@@ -252,8 +252,8 @@ All pages self-guard via token claim check; redirect to `/app/dashboard` if unau
 
 - Shows current tier, billing period, usage vs. limits
 - Usage progress bars (wishlists, price tracking, etc.)
-- If paid: Billing portal button → calls `createBillingPortal` → redirect
-- If free/upgrading: Pricing table with all tiers + upgrade buttons → calls `createCheckout`
+- If paid: Billing portal button → calls `billingPortal` → redirect
+- If free/upgrading: Pricing table with all tiers + upgrade buttons → calls `billingCheckout`
 - Soft-warning nudge if approaching 80% of limit
 
 ### 2. Admin User Detail Page ⏳
@@ -283,7 +283,7 @@ All pages self-guard via token claim check; redirect to `/app/dashboard` if unau
 **Scope**: ~200 new lines
 
 Add sections:
-- **Subscription Endpoints** — getSubscriptionStatus, getUpgradeOptions, createCheckout, createBillingPortal, stripeSubscriptionWebhook
+- **Subscription Endpoints** — billingStatus, billingPlans, billingCheckout, billingPortal, billingWebhook
 - **Admin Endpoints** — All admin callable functions with request/response schemas
 - **Error Codes** — resource-exhausted, permission-denied, unauthenticated, invalid-argument specifics
 

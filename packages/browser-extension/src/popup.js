@@ -286,8 +286,8 @@ async function refreshSubscriptionData() {
   }
 
   const [statusResponse, optionsResponse] = await Promise.all([
-    sendBackgroundAction('getSubscriptionStatus'),
-    sendBackgroundAction('getUpgradeOptions')
+    sendBackgroundAction('billingStatus'),
+    sendBackgroundAction('billingPlans')
   ]);
 
   if (statusResponse?.success) {
@@ -416,7 +416,7 @@ function renderPaywall() {
           return;
         }
 
-        const checkoutResponse = await sendBackgroundAction('createCheckout', {
+        const checkoutResponse = await sendBackgroundAction('billingCheckout', {
           tier,
           billingCycle: paywallBillingCycle
         });
@@ -1843,7 +1843,7 @@ function setupEventListeners() {
   const paywallManageBillingButton = document.getElementById('paywall-manage-billing-button');
   if (paywallManageBillingButton) {
     paywallManageBillingButton.addEventListener('click', async () => {
-      const response = await sendBackgroundAction('createBillingPortal');
+      const response = await sendBackgroundAction('billingPortal');
       if (!response?.success) {
         showStatusBanner(response?.error || 'Unable to open billing portal', 'error', 3000);
         return;

@@ -7,7 +7,7 @@ import { normalizeText } from '../utils/http-normalization.js';
  * Body: { priceId?: string, successUrl?: string, cancelUrl?: string, quantity?: number }
  * Requires env `STRIPE_SECRET` to be set. Returns { sessionId }
  */
-export const createCheckoutSession = onRequest(async (req, res) => {
+export const checkoutSessionCreate = onRequest(async (req, res) => {
   try {
     if (req.method !== 'POST') {
       res.status(405).send({ error: 'Method not allowed' });
@@ -61,9 +61,9 @@ export const createCheckoutSession = onRequest(async (req, res) => {
 
     res.status(200).send({ sessionId: session.id });
   } catch (error) {
-    logger.error('Error in createCheckoutSession', error);
+    logger.error('Error in checkoutSessionCreate', error);
     res.status(500).send({ error: 'Internal server error' });
   }
 });
 
-export default { createCheckoutSession };
+export default { checkoutSessionCreate };
