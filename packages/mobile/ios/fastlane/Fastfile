@@ -484,10 +484,10 @@ platform :ios do
       sh("flutter pub get")
     end
 
-    # Install CocoaPods dependencies explicitly
-    Dir.chdir("..") do
-      sh("rm -f Podfile.lock")
-      sh("pod install --repo-update") 
+    # Build the iOS project once with Flutter so CocoaPods and generated iOS
+    # metadata are refreshed before Xcode archive/signing.
+    Dir.chdir("../../") do
+      sh("flutter build ios --release --no-codesign")
     end
 
     # Build the iOS app using gym (standard fastlane action, handles signing better than manual flutter build)
