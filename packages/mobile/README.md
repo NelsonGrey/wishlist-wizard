@@ -35,7 +35,7 @@ make uat-smoke-device DEVICE_ID=<DEVICE_ID>
 
 ## iOS Release
 
-The `iOS Mobile Release` workflow builds and ships the Flutter iOS app on the HADES runner.
+The `iOS Mobile Release` workflow builds and ships the Flutter iOS app on the self-hosted macOS runner.
 
 - `build_all` runs the release build without uploading
 - `testflight` runs the release build, then uploads to TestFlight
