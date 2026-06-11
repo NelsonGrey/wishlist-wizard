@@ -31,7 +31,6 @@ export const stripeWebhook = onRequest(async (req, res) => {
   let stripeLib: any;
   try {
     // lazy-require to avoid startup errors when stripe SDK is not installed in some environments
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
     stripeLib = require('stripe');
   } catch (err) {
     logger.error('Stripe SDK not installed', err);

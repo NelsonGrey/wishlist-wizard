@@ -7,7 +7,6 @@ module.exports = {
   extends: [],
   parser: "@typescript-eslint/parser",
   parserOptions: {
-    project: ["tsconfig.json", "tsconfig.dev.json"],
     sourceType: "module",
   },
   ignorePatterns: [
@@ -15,10 +14,6 @@ module.exports = {
     "/generated/**/*", // Ignore generated files.
     "/shared/**/*", // Shared helpers are compiled separately.
     "/test/**/*", // Test scripts are not part of functions runtime lint scope.
-  ],
-  plugins: [
-    "@typescript-eslint",
-    "import",
   ],
   rules: {},
 };

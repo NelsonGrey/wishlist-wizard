@@ -23,7 +23,6 @@ export const checkoutSessionCreate = onRequest(async (req, res) => {
     // Lazily require Stripe to avoid startup failure when dependency missing
     let stripe: any;
     try {
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
       const Stripe = require('stripe');
       stripe = Stripe(secret);
     } catch (err) {
