@@ -5,7 +5,7 @@ project:
 
 targets:
   ios:
-    enabled: false
+    enabled: true
     schemes:
       - name: "Runner"
         path: "packages/mobile/ios"
@@ -74,7 +74,7 @@ ci:
       labels:
         - self-hosted
         - macOS
-        - ios
+        - HADES
       required: true
     docker:
       labels:
