@@ -32,8 +32,14 @@ function getContentType(filePath) {
 
 function resolveFilePath(urlPath) {
   const safePath = decodeURIComponent(urlPath.split('?')[0]).replace(/\0/g, '');
-  const requested = path.normalize(safePath).replace(/^([.][.][/\\])+/, '');
-  const candidate = path.join(distDir, requested === '/' ? 'index.html' : requested);
+  const relativePath = safePath === '/' ? 'index.html' : safePath.replace(/^\/+/, '');
+  const candidate = path.resolve(distDir, relativePath);
+  const relativeToRoot = path.relative(distDir, candidate);
+
+  if (relativeToRoot.startsWith('..') || path.isAbsolute(relativeToRoot)) {
+    return null;
+  }
+
   return candidate;
 }
 
@@ -41,15 +47,17 @@ const server = http.createServer(async (req, res) => {
   const requestPath = req.url || '/';
   const directFile = resolveFilePath(requestPath);
 
-  try {
-    const fileStat = await stat(directFile);
-    if (fileStat.isFile()) {
-      res.writeHead(200, { 'Content-Type': getContentType(directFile) });
-      createReadStream(directFile).pipe(res);
-      return;
+  if (directFile) {
+    try {
+      const fileStat = await stat(directFile);
+      if (fileStat.isFile()) {
+        res.writeHead(200, { 'Content-Type': getContentType(directFile) });
+        createReadStream(directFile).pipe(res);
+        return;
+      }
+    } catch {
+      // Fall through to SPA fallback.
     }
-  } catch {
-    // Fall through to SPA fallback.
   }
 
   const fallback = path.join(distDir, 'index.html');

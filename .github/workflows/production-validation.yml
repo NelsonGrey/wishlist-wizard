@@ -1,5 +1,8 @@
 name: Production Deployment Validation
 
+permissions:
+  contents: read
+
 on:
   workflow_call:
     inputs:
