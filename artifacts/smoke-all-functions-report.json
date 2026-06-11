@@ -997,7 +997,7 @@
       "message": "Callable reachable"
     },
     {
-      "endpoint": "convertAffiliateLink",
+      "endpoint": "linkConvert",
       "type": "onCall",
       "status": "passed",
       "durationMs": 418,
@@ -1005,7 +1005,7 @@
       "message": "Callable reachable"
     },
     {
-      "endpoint": "batchConvertAffiliateLinks",
+      "endpoint": "linkConvertBatch",
       "type": "onCall",
       "status": "passed",
       "durationMs": 517,
@@ -1013,7 +1013,7 @@
       "message": "Callable reachable"
     },
     {
-      "endpoint": "convertWishlistAffiliateLinks",
+      "endpoint": "linkConvertWishlist",
       "type": "onCall",
       "status": "passed",
       "durationMs": 536,
@@ -1021,7 +1021,7 @@
       "message": "Callable reachable"
     },
     {
-      "endpoint": "trackAffiliateClick",
+      "endpoint": "linkTrackClick",
       "type": "onCall",
       "status": "passed",
       "durationMs": 532,
@@ -1029,7 +1029,7 @@
       "message": "Callable reachable"
     },
     {
-      "endpoint": "getAffiliatePrograms",
+      "endpoint": "linkPrograms",
       "type": "onCall",
       "status": "passed",
       "durationMs": 415,
@@ -1037,7 +1037,7 @@
       "message": "Callable reachable"
     },
     {
-      "endpoint": "getAffiliateStats",
+      "endpoint": "linkStats",
       "type": "onCall",
       "status": "passed",
       "durationMs": 518,
@@ -1045,7 +1045,7 @@
       "message": "Callable reachable"
     },
     {
-      "endpoint": "getAffiliateDisclosure",
+      "endpoint": "linkDisclosure",
       "type": "onCall",
       "status": "passed",
       "durationMs": 413,
@@ -1365,7 +1365,7 @@
       "message": "HTTP endpoint reachable"
     },
     {
-      "endpoint": "createCheckoutSession",
+      "endpoint": "checkoutSessionCreate",
       "type": "onRequest",
       "status": "warned",
       "durationMs": 415,
