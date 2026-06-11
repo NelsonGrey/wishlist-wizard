@@ -19,7 +19,7 @@ on:
 
 jobs:
   build-ios:
-    runs-on: macos-13
+    runs-on: [self-hosted, macOS, ios]
     timeout-minutes: 60
     
     environment:
