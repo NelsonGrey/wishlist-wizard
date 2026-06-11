@@ -307,7 +307,7 @@ Tracks extension events.
 
 ## Subscription Management (User-Facing)
 
-### `getSubscriptionStatus`
+### `billingStatus`
 Returns the current user's subscription tier, billing info, and usage metrics.
 
 **Response**:
@@ -336,7 +336,7 @@ Returns the current user's subscription tier, billing info, and usage metrics.
 - `unauthenticated`: User not signed in
 - `not-found`: No subscription found (user on free tier)
 
-### `getUpgradeOptions`
+### `billingPlans`
 Returns available tiers for upgrade from current tier.
 
 **Response**:
@@ -361,7 +361,7 @@ Returns available tiers for upgrade from current tier.
 }
 ```
 
-### `createCheckout`
+### `billingCheckout`
 Creates a checkout session for upgrading subscription via the configured payment provider.
 
 **Request**:
@@ -385,7 +385,7 @@ Creates a checkout session for upgrading subscription via the configured payment
 - `permission-denied`: User cannot upgrade to this tier
 - `internal`: Payment provider error
 
-### `createBillingPortal`
+### `billingPortal`
 Creates a billing portal session for managing subscriptions and payment methods.
 
 **Response**:
@@ -395,8 +395,8 @@ Creates a billing portal session for managing subscriptions and payment methods.
 }
 ```
 
-### `subscriptionWebhook`
-HTTP webhook handler for payment provider events (subscription updates, payment failures, etc.). The implementation is exported as `stripeSubscriptionWebhook`.
+### `billingWebhook`
+HTTP webhook handler for payment provider events (subscription updates, payment failures, etc.).
 
 **Webhook Signature**: Verified via the provider signature header
 **Events Handled**:
