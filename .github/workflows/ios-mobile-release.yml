@@ -43,6 +43,8 @@ on:
         required: false
       MATCH_GIT_URL_TOKEN:
         required: false
+      MATCH_GIT_PASSWORD:
+        required: false
       MATCH_KEYCHAIN_PASSWORD:
         required: false
       MATCH_PASSWORD:
@@ -98,6 +100,7 @@ jobs:
       MATCH_GIT_BRANCH: ${{ secrets.MATCH_GIT_BRANCH || 'develop' }}
       MATCH_GIT_URL: ${{ secrets.MATCH_GIT_URL }}
       MATCH_GIT_URL_TOKEN: ${{ secrets.MATCH_GIT_URL_TOKEN }}
+      MATCH_GIT_PASSWORD: ${{ secrets.MATCH_GIT_PASSWORD }}
       MATCH_KEYCHAIN_PASSWORD: ${{ secrets.MATCH_KEYCHAIN_PASSWORD }}
       MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
       MATCH_SSH_PRIVATE_KEY: ${{ secrets.MATCH_SSH_PRIVATE_KEY }}
@@ -159,27 +162,28 @@ jobs:
 
           if [ "$MATCH_SSH_AUTH" != "true" ] && [ -n "${MATCH_GIT_URL:-}" ]; then
             if [[ "$MATCH_GIT_URL" != *"@"* ]]; then
-              if [ -z "${NELSON_GREY_PAT:-}" ]; then
+              TOKEN="${MATCH_GIT_PASSWORD:-${MATCH_GIT_URL_TOKEN:-${NELSON_GREY_PAT:-}}}"
+              if [ -z "$TOKEN" ]; then
                 echo "❌ MATCH_GIT_URL does not include credentials and no PAT/SSH key is configured"
                 exit 1
               fi
 
               if [[ "$MATCH_GIT_URL" == https://* ]]; then
-                MATCH_GIT_URL="https://mnelson3:${NELSON_GREY_PAT}@${MATCH_GIT_URL#https://}"
+                MATCH_GIT_URL="https://x-access-token:${TOKEN}@${MATCH_GIT_URL#https://}"
               else
-                MATCH_GIT_URL="https://mnelson3:${NELSON_GREY_PAT}@github.com/${MATCH_GIT_URL#github.com/}"
+                MATCH_GIT_URL="https://x-access-token:${TOKEN}@github.com/${MATCH_GIT_URL#github.com/}"
               fi
             fi
 
             echo "MATCH_GIT_URL=$MATCH_GIT_URL" >> "$GITHUB_ENV"
           elif [ "$MATCH_SSH_AUTH" != "true" ]; then
-            if [ -z "${MATCH_GIT_URL_TOKEN:-}" ] && [ -z "${NELSON_GREY_PAT:-}" ]; then
+            TOKEN="${MATCH_GIT_PASSWORD:-${MATCH_GIT_URL_TOKEN:-${NELSON_GREY_PAT:-}}}"
+            if [ -z "$TOKEN" ]; then
               echo "❌ No match repo auth configured"
               exit 1
             fi
 
-            TOKEN="${MATCH_GIT_URL_TOKEN:-$NELSON_GREY_PAT}"
-            echo "MATCH_GIT_URL=https://mnelson3:${TOKEN}@github.com/mnelson3/nelson-grey.git" >> "$GITHUB_ENV"
+            echo "MATCH_GIT_URL=https://x-access-token:${TOKEN}@github.com/mnelson3/nelson-grey.git" >> "$GITHUB_ENV"
           fi
 
           echo "MATCH_PASSWORD=${MATCH_PASSWORD:-}" >> "$GITHUB_ENV"

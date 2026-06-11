@@ -47,7 +47,6 @@ function getStripePriceId(tier: SubscriptionTier, cycle: 'monthly' | 'annual'): 
 function getStripeInstance(): any {
   const secret = process.env.STRIPE_SECRET;
   if (!secret) throw new HttpsError('internal', 'Stripe not configured');
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const Stripe = require('stripe');
   return new Stripe(secret, { apiVersion: '2024-06-20' });
 }
@@ -270,7 +269,6 @@ export const billingWebhook = onRequest(async (req, res) => {
   let stripe: any;
   let event: any;
   try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const Stripe = require('stripe');
     stripe = new Stripe(process.env.STRIPE_SECRET ?? '', { apiVersion: '2024-06-20' });
     event = stripe.webhooks.constructEvent(rawBody, sig, webhookSecret);
