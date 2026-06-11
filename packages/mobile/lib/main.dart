@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:logging/logging.dart';
+import 'package:flutter/foundation.dart';
 import 'firebase_options.dart';
 import 'models/models.dart';
 import 'providers/providers.dart';
@@ -10,6 +13,7 @@ import 'screens/login_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/firebase_wishlists_screen.dart';
 import 'screens/subscription_screen.dart';
+import 'widgets/error_boundary.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -27,6 +31,20 @@ void main() async {
 
   // Initialize Firebase
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  if (kDebugMode) {
+    debugPrint(
+      '[Bootstrap] FIREBASE_ENV=${DefaultFirebaseOptions.firebaseEnv}',
+    );
+    debugPrint(
+      '[Bootstrap] Active Firebase project: ${Firebase.app().options.projectId}',
+    );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      debugPrint('[Bootstrap] First frame rendered');
+    });
+    Timer.periodic(const Duration(seconds: 15), (_) {
+      debugPrint('[Bootstrap] Heartbeat: app isolate alive');
+    });
+  }
 
   // Initialize API client (for non-auth requests)
   ApiClient().initialize();
@@ -39,49 +57,55 @@ class WishlistWizardApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MultiProvider(
-      providers: [
-        ChangeNotifierProvider(create: (_) => AuthProvider()),
-        ChangeNotifierProvider(create: (_) => WishlistProvider()),
-        ChangeNotifierProvider(create: (_) => FirebaseWishlistProvider()),
-        ChangeNotifierProvider(create: (_) => SubscriptionProvider()),
-      ],
-      child: MaterialApp(
-        title: 'Wishlist Wizard',
-        theme: ThemeData(
-          primarySwatch: Colors.purple,
-          primaryColor: const Color(0xFF6B46C1),
-          hintColor: const Color(0xFF9333EA),
-          appBarTheme: const AppBarTheme(
-            backgroundColor: Color(0xFF6B46C1),
-            foregroundColor: Colors.white,
-            elevation: 2,
-          ),
-          elevatedButtonTheme: ElevatedButtonThemeData(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF6B46C1),
+    return ErrorBoundary(
+      onError: (error, stackTrace) {
+        debugPrint('[Global ErrorBoundary] Caught error: $error');
+        debugPrint('[Global ErrorBoundary] Stack trace: $stackTrace');
+      },
+      child: MultiProvider(
+        providers: [
+          ChangeNotifierProvider(create: (_) => AuthProvider()),
+          ChangeNotifierProvider(create: (_) => WishlistProvider()),
+          ChangeNotifierProvider(create: (_) => FirebaseWishlistProvider()),
+          ChangeNotifierProvider(create: (_) => SubscriptionProvider()),
+        ],
+        child: MaterialApp(
+          title: 'Wishlist Wizard',
+          theme: ThemeData(
+            primarySwatch: Colors.purple,
+            primaryColor: const Color(0xFF6B46C1),
+            hintColor: const Color(0xFF9333EA),
+            appBarTheme: const AppBarTheme(
+              backgroundColor: Color(0xFF6B46C1),
               foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
+              elevation: 2,
+            ),
+            elevatedButtonTheme: ElevatedButtonThemeData(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF6B46C1),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
               ),
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            ),
+            inputDecorationTheme: InputDecorationTheme(
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: const BorderSide(color: Color(0xFF6B46C1)),
+              ),
+            ),
+            cardTheme: CardThemeData(
+              elevation: 2,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
             ),
           ),
-          inputDecorationTheme: InputDecorationTheme(
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: Color(0xFF6B46C1)),
-            ),
-          ),
-          cardTheme: CardThemeData(
-            elevation: 2,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-          ),
+          home: const AuthWrapper(),
         ),
-        home: const AuthWrapper(),
       ),
     );
   }
@@ -92,18 +116,54 @@ class AuthWrapper extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (kDebugMode) {
+      debugPrint('[AuthWrapper] building auth gate');
+    }
     return Consumer<AuthProvider>(
       builder: (context, authProvider, child) {
         if (authProvider.isLoading) {
-          return const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
+          if (kDebugMode) {
+            debugPrint('[AuthWrapper] showing loading gate');
+          }
+          return Scaffold(
+            body: Container(
+              color: const Color(0xFFF7F2FF),
+              child: const Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.card_giftcard,
+                      size: 56,
+                      color: Color(0xFF6B46C1),
+                    ),
+                    SizedBox(height: 16),
+                    CircularProgressIndicator(),
+                    SizedBox(height: 16),
+                    Text(
+                      'Starting Wishlist Wizard...',
+                      style: TextStyle(
+                        color: Color(0xFF4C1D95),
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           );
         }
 
         if (authProvider.isLoggedIn) {
+          if (kDebugMode) {
+            debugPrint('[AuthWrapper] routing to MainNavigator');
+          }
           return const MainNavigator();
         }
 
+        if (kDebugMode) {
+          debugPrint('[AuthWrapper] routing to LoginScreen');
+        }
         return const LoginScreen();
       },
     );
@@ -129,6 +189,9 @@ class _MainNavigatorState extends State<MainNavigator> {
 
   @override
   Widget build(BuildContext context) {
+    if (kDebugMode) {
+      debugPrint('[MainNavigator] building tab index=$_currentIndex');
+    }
     return Scaffold(
       body: _screens[_currentIndex],
       bottomNavigationBar: BottomNavigationBar(

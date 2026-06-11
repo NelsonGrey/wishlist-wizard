@@ -1,16 +1,43 @@
-# mobile
+# Wishlist Wizard Mobile
 
-A new Flutter project.
+Flutter mobile application for Wishlist Wizard.
 
-## Getting Started
+## Automated Testing
 
-This project is a starting point for a Flutter application.
+### Unit and widget tests
 
-A few resources to get you started if this is your first Flutter project:
+Run all unit/widget tests:
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+```bash
+flutter test
+```
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+### Mobile UAT smoke tests
+
+Run the integration UAT smoke suite:
+
+```bash
+flutter test integration_test/auth_smoke_test.dart
+```
+
+Run the same suite on a specific physical device or simulator:
+
+```bash
+flutter test integration_test/auth_smoke_test.dart -d <DEVICE_ID>
+```
+
+Convenience Make targets:
+
+```bash
+make uat-smoke
+make uat-smoke-device DEVICE_ID=<DEVICE_ID>
+```
+
+## iOS CI
+
+The iOS build workflow runs both:
+
+1. `flutter test`
+2. `flutter test integration_test/auth_smoke_test.dart -d <auto-detected-device>`
+
+before building and distributing iOS artifacts.

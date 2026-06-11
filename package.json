@@ -45,6 +45,8 @@
     "test:e2e:ui": "playwright test --ui packages/web/e2e/",
     "test:e2e:debug": "playwright test --debug packages/web/e2e/",
     "test:e2e:report": "playwright show-report",
+    "test:mobile:uat": "cd packages/mobile && flutter test integration_test/auth_smoke_test.dart",
+    "test:mobile:uat:device": "cd packages/mobile && flutter test integration_test/auth_smoke_test.dart -d ${MOBILE_DEVICE_ID:-macos}",
     "requirements:verify": "node scripts/validate-requirements-status.mjs",
     "requirements:traceability": "node scripts/validate-requirements-traceability.mjs",
     "metrics:baseline": "node scripts/monitor-baseline-metrics.mjs"

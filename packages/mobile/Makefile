@@ -9,6 +9,8 @@ help:
 	@echo "  make fastlane-ephemeral  - Run arbitrary fastlane command via ephemeral keychain helper"
 	@echo "  make fastlane-beta       - Run TestFlight upload (uses Gemfile if present)"
 	@echo "  make fastlane-test       - Run test_and_build lane (dev builds)"
+	@echo "  make uat-smoke           - Run Flutter integration UAT smoke test"
+	@echo "  make uat-smoke-device    - Run UAT smoke test on a specific device (DEVICE_ID required)"
 
 # Run arbitrary fastlane command via ephemeral helper if available
 fastlane-ephemeral:
@@ -66,3 +68,12 @@ fastlane-test:
 			fastlane test_and_build; \
 		fi; \
 	fi
+
+uat-smoke:
+	@flutter test integration_test/auth_smoke_test.dart
+
+uat-smoke-device:
+	@if [ -z "$(DEVICE_ID)" ]; then \
+		echo "Please provide DEVICE_ID, e.g. make uat-smoke-device DEVICE_ID=00008020-..."; exit 2; \
+	fi
+	@flutter test integration_test/auth_smoke_test.dart -d "$(DEVICE_ID)"

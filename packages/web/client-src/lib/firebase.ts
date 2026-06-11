@@ -26,6 +26,10 @@ import {
 } from 'firebase/auth';
 import { getToken, isSupported as messagingIsSupported } from 'firebase/messaging';
 
+function shouldUseFirebaseEmulators(): boolean {
+  return String(import.meta.env.VITE_USE_FIREBASE_EMULATORS || '').toLowerCase() === 'true';
+}
+
 function resolveEnvironmentSuffixFromHostname(): 'DEVELOPMENT' | 'STAGING' | 'PRODUCTION' | null {
   if (typeof window === 'undefined' || !window.location?.hostname) {
     return null;
@@ -104,7 +108,9 @@ function pickEnvValue(
         : productionValue
   );
 
-  const allowFallback = !isHostedWebAppDomain();
+  const allowFallback =
+    !isHostedWebAppDomain() &&
+    String(import.meta.env.VITE_ALLOW_FIREBASE_PLAIN_FALLBACK || '').toLowerCase() === 'true';
   return selectedByEnvironment || (allowFallback ? (fallbackValue || '') : '');
 }
 
@@ -261,7 +267,7 @@ function ensureFirebaseCoreInitialized(): boolean {
   firebaseAuth = firebaseClient.auth;
   firebaseFirestore = firebaseClient.firestore;
 
-  if (import.meta.env.DEV) {
+  if (import.meta.env.DEV && shouldUseFirebaseEmulators()) {
     firebaseClient.connectToEmulators();
   }
 
