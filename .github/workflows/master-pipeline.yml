@@ -33,7 +33,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  MANIFEST_PATH: ".cicd/projects/${{ github.event.repository.name }}.yml"
+  MANIFEST_PATH: ".cicd/projects/wishlist-wizard.yml"
 
 jobs:
   load-config:
