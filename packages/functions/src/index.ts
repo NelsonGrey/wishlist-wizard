@@ -102,34 +102,34 @@ export {
 } from './fcm';
 
 export {
-  convertAffiliateLink,
-  batchConvertAffiliateLinks,
-  convertWishlistAffiliateLinks,
-  trackAffiliateClick,
-  getAffiliatePrograms,
-  getAffiliateStats,
-  getAffiliateDisclosure
+  convertAffiliateLink as linkConvert,
+  batchConvertAffiliateLinks as linkConvertBatch,
+  convertWishlistAffiliateLinks as linkConvertWishlist,
+  trackAffiliateClick as linkTrackClick,
+  getAffiliatePrograms as linkPrograms,
+  getAffiliateStats as linkStats,
+  getAffiliateDisclosure as linkDisclosure
 } from './api/affiliate';
 
 export {
-  createGroupPaymentIntent,
-  confirmGroupContribution,
-  getGroupGiftSummary
+  createGroupPaymentIntent as groupPaymentCreateIntent,
+  confirmGroupContribution as groupPaymentConfirm,
+  getGroupGiftSummary as groupGiftSummary
 } from './api/groupPayments';
 
 export {
-  getCalendarEvents,
-  createCalendarEvent,
-  updateCalendarEvent,
-  deleteCalendarEvent,
-  getCalendarAuthUrl,
-  connectCalendar,
-  getCalendarConnections,
-  updateCalendarConnectionSettings,
-  disconnectCalendar,
-  syncCalendarConnection,
-  syncCalendar,
-  getCalendarSyncSettings
+  getCalendarEvents as calendarEventsList,
+  createCalendarEvent as calendarEventCreate,
+  updateCalendarEvent as calendarEventUpdate,
+  deleteCalendarEvent as calendarEventDelete,
+  getCalendarAuthUrl as calendarAuthUrl,
+  connectCalendar as calendarConnect,
+  getCalendarConnections as calendarConnections,
+  updateCalendarConnectionSettings as calendarConnectionUpdate,
+  disconnectCalendar as calendarDisconnect,
+  syncCalendarConnection as calendarConnectionSync,
+  syncCalendar as calendarSync,
+  getCalendarSyncSettings as calendarSyncSettings
 } from './api/calendar';
 
 export {
@@ -141,43 +141,43 @@ export {
 } from './api/contacts';
 
 export {
-  registerDevice,
-  listDevices,
-  updateDevice,
-  logSyncEvent,
-  getSyncLogs,
-  syncMobileActions
+  registerDevice as deviceRegister,
+  listDevices as deviceList,
+  updateDevice as deviceUpdate,
+  logSyncEvent as deviceSyncLog,
+  getSyncLogs as deviceSyncLogs,
+  syncMobileActions as mobileSyncActions
 } from './api/sync';
 
 export {
-  lookupBarcode
+  lookupBarcode as barcodeLookup
 } from './api/mobile';
 
 export {
-  getItemPriceHistory
+  getItemPriceHistory as priceHistoryGetItem
 } from './api/priceHistory';
 
 export {
-  getARModel
+  getARModel as arModelLookup
 } from './api/ar';
 
 export {
-  trackAnalyticsEvent,
-  getAnalyticsEvents,
-  getAnalyticsSummary,
-  getAdRevenueSummary,
-  createAdKpiSnapshot,
-  scheduledAdKpiSnapshot,
-  getAdKpiSnapshots
+  trackAnalyticsEvent as metricsTrackEvent,
+  getAnalyticsEvents as metricsEvents,
+  getAnalyticsSummary as metricsSummary,
+  getAdRevenueSummary as metricsRevenueSummary,
+  createAdKpiSnapshot as metricsSnapshotCreate,
+  scheduledAdKpiSnapshot as metricsSnapshotScheduled,
+  getAdKpiSnapshots as metricsSnapshots
 } from './api/analytics';
 
 export {
-  refreshPriceIntelligenceOffers,
-  scheduledRefreshPriceIntelligenceOffers,
+  refreshPriceIntelligenceOffers as priceIntelRefresh,
+  scheduledRefreshPriceIntelligenceOffers as priceIntelRefreshScheduled,
 } from './api/priceIntelligenceRefresh';
 
 export {
-  createCheckoutSession
+  createCheckoutSession as checkoutSessionCreate
 } from './api/stripe';
 
 export {
@@ -189,11 +189,11 @@ export {
 // =============================================================================
 
 export {
-  getSubscriptionStatus,
-  getUpgradeOptions,
-  createCheckout,
-  createBillingPortal,
-  stripeSubscriptionWebhook
+  getSubscriptionStatus as billingStatus,
+  getUpgradeOptions as billingPlans,
+  createCheckout as billingCheckout,
+  createBillingPortal as billingPortal,
+  stripeSubscriptionWebhook as billingWebhook
 } from './api/subscriptions';
 
 // =============================================================================

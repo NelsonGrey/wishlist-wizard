@@ -73,7 +73,7 @@ export default function Subscription() {
     queryKey: ['subscription-status', user?.uid],
     queryFn: async () => {
       if (!user) throw new Error('Not authenticated');
-      const fn = httpsCallable<object, SubscriptionStatus>(functions, 'getSubscriptionStatus');
+      const fn = httpsCallable<object, SubscriptionStatus>(functions, 'billingStatus');
       const { data } = await fn();
       return data;
     },
@@ -85,7 +85,7 @@ export default function Subscription() {
     try {
       const fn = httpsCallable<object, { url: string; sessionId: string }>(
         functions,
-        'createCheckout',
+        'billingCheckout',
       );
       const { data } = await fn({ tier, billingCycle });
       window.location.href = data.url;
@@ -99,7 +99,7 @@ export default function Subscription() {
   async function handleManageBilling() {
     setRedirecting(true);
     try {
-      const fn = httpsCallable<object, { url: string }>(functions, 'createBillingPortal');
+      const fn = httpsCallable<object, { url: string }>(functions, 'billingPortal');
       const { data } = await fn();
       window.location.href = data.url;
     } catch (err: unknown) {

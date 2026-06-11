@@ -365,11 +365,11 @@ class FirebaseFunctionsService {
 
     try {
       final result = await _functions!
-          .httpsCallable('getSubscriptionStatus')
+          .httpsCallable('billingStatus')
           .call(<String, dynamic>{});
       return Map<String, dynamic>.from(result.data);
     } catch (e) {
-      _logger.severe('Error calling getSubscriptionStatus: $e');
+      _logger.severe('Error calling billingStatus: $e');
       rethrow;
     }
   }
@@ -381,11 +381,11 @@ class FirebaseFunctionsService {
 
     try {
       final result = await _functions!
-          .httpsCallable('getUpgradeOptions')
+          .httpsCallable('billingPlans')
           .call(<String, dynamic>{});
       return Map<String, dynamic>.from(result.data);
     } catch (e) {
-      _logger.severe('Error calling getUpgradeOptions: $e');
+      _logger.severe('Error calling billingPlans: $e');
       rethrow;
     }
   }
@@ -399,13 +399,13 @@ class FirebaseFunctionsService {
     }
 
     try {
-      final result = await _functions!.httpsCallable('createCheckout').call({
+      final result = await _functions!.httpsCallable('billingCheckout').call({
         'tier': tier,
         'billingCycle': billingCycle,
       });
       return Map<String, dynamic>.from(result.data);
     } catch (e) {
-      _logger.severe('Error calling createCheckout: $e');
+      _logger.severe('Error calling billingCheckout: $e');
       rethrow;
     }
   }
@@ -417,11 +417,11 @@ class FirebaseFunctionsService {
 
     try {
       final result = await _functions!
-          .httpsCallable('createBillingPortal')
+          .httpsCallable('billingPortal')
           .call(<String, dynamic>{});
       return Map<String, dynamic>.from(result.data);
     } catch (e) {
-      _logger.severe('Error calling createBillingPortal: $e');
+      _logger.severe('Error calling billingPortal: $e');
       rethrow;
     }
   }
