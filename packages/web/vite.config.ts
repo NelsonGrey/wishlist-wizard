@@ -9,7 +9,7 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(import.meta.dirname, "client-src"),
-      "@wishlist-wizard/shared": path.resolve(import.meta.dirname, "../shared/src"),
+      "@wishlist-wizard/shared": path.resolve(import.meta.dirname, "../shared/dist/index.js"),
       "@shared/firebase-utils": path.resolve(import.meta.dirname, "../firebase-utils/src"),
       "@assets": path.resolve(import.meta.dirname, "../../attached_assets"),
     },
