@@ -88,7 +88,7 @@ jobs:
 
       - name: Install Dependencies
         run: |
-          npm ci
+          npm ci --legacy-peer-deps 2>/dev/null || npm ci --force
           npm run build --workspace=@wishlist-wizard/shared
           npm run build --workspace=functions
 
