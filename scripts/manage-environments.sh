@@ -144,7 +144,7 @@ MOBILE_ANDROID_PACKAGE=com.nelsongrey.wishlistwizard.mobile
 # Apple Services (Production/Staging only)
 APP_STORE_CONNECT_KEY_ID=your_app_store_connect_key_id
 APP_STORE_CONNECT_ISSUER_ID=your_app_store_connect_issuer_id
-APP_STORE_CONNECT_KEY=-----BEGIN APP_STORE_CONNECT_KEY-----\nYOUR_PRIVATE_KEY\n-----END PRIVATE KEY-----
+APP_STORE_CONNECT_KEY=<app-store-connect-private-key-pem-or-base64>
 FASTLANE_APPLE_ID=your_apple_id@email.com
 FASTLANE_TEAM_ID=your_team_id
 FASTLANE_ITC_TEAM_ID=your_itc_team_id

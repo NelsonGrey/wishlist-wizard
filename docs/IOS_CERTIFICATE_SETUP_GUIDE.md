@@ -39,7 +39,7 @@ This guide provides a complete, reusable setup for iOS code signing certificates
 3. **Set Repository URL**
    ```bash
    # Format: https://oauth2:{token}@github.com/{username}/{repo-name}.git
-   CERT_REPO_URL="https://oauth2:gho_YOUR_TOKEN_HERE@github.com/yourusername/your-app-certificates.git"
+   CERT_REPO_URL="https://oauth2:<github-token>@github.com/yourusername/your-app-certificates.git"
    ```
 
 ### Step 2: Initialize Fastlane Match
@@ -113,10 +113,10 @@ FASTLANE_ITC_TEAM_ID=YOUR_ITC_TEAM_ID
 # App Store Connect API Key
 APP_STORE_CONNECT_KEY_ID=YOUR_KEY_ID
 APP_STORE_CONNECT_ISSUER_ID=YOUR_ISSUER_ID
-APP_STORE_CONNECT_KEY=-----BEGIN APP_STORE_CONNECT_KEY-----\nYOUR_PRIVATE_KEY_HERE\n-----END PRIVATE KEY-----
+APP_STORE_CONNECT_KEY=<app-store-connect-private-key-pem-or-base64>
 
 # Match Configuration
-MATCH_GIT_URL=https://oauth2:gho_YOUR_TOKEN@github.com/yourusername/your-app-certificates.git
+MATCH_GIT_URL=https://oauth2:<github-token>@github.com/yourusername/your-app-certificates.git
 MATCH_PASSWORD=your_match_password
 
 # TestFlight Configuration

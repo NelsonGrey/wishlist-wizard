@@ -3,9 +3,9 @@
 
 // Firebase configuration - used for REST API authentication
 const firebaseConfig = {
-  apiKey: "AIzaSyBKaPCEKcIUaqn5GJNFNSBU799_wQPLCZo",
-  authDomain: "wishlist-wizard-dev.firebaseapp.com",
-  projectId: "wishlist-wizard-dev"
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || 'your-firebase-web-api-key',
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || 'your-project.firebaseapp.com',
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || 'your-project-id'
 };
 
 const EXTENSION_ENVIRONMENTS = {

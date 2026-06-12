@@ -8,7 +8,7 @@
 ```bash
 # Create private GitHub repo: {project-name}-certificates
 # Generate PAT with 'repo' scope
-CERT_REPO_URL="https://oauth2:gho_YOUR_TOKEN@github.com/username/project-certificates.git"
+CERT_REPO_URL="https://oauth2:<github-token>@github.com/username/project-certificates.git"
 ```
 
 ### 2. Initialize Fastlane (in project/packages/mobile/ios/)
@@ -45,10 +45,10 @@ FASTLANE_ITC_TEAM_ID=YOUR_ITC_TEAM_ID
 # App Store Connect API
 APP_STORE_CONNECT_KEY_ID=YOUR_KEY_ID
 APP_STORE_CONNECT_ISSUER_ID=YOUR_ISSUER_ID
-APP_STORE_CONNECT_KEY=-----BEGIN APP_STORE_CONNECT_KEY-----\nYOUR_KEY\n-----END PRIVATE KEY-----
+APP_STORE_CONNECT_KEY=<app-store-connect-private-key-pem-or-base64>
 
 # Certificates
-MATCH_GIT_URL=https://oauth2:gho_TOKEN@github.com/username/project-certificates.git
+MATCH_GIT_URL=https://oauth2:<github-token>@github.com/username/project-certificates.git
 MATCH_PASSWORD=your_password
 
 # TestFlight
@@ -111,7 +111,7 @@ FASTLANE_ITC_TEAM_ID       → YOUR_ITC_TEAM_ID
 APP_STORE_CONNECT_KEY_ID        → YOUR_KEY_ID
 APP_STORE_CONNECT_ISSUER_ID     → YOUR_ISSUER_ID
 APP_STORE_CONNECT_KEY           → base64-encoded .p8 content
-MATCH_GIT_URL              → https://oauth2:gho_TOKEN@github.com/user/repo.git
+MATCH_GIT_URL              → https://oauth2:<github-token>@github.com/user/repo.git
 MATCH_PASSWORD             → your_match_password
 BETA_FEEDBACK_EMAIL        → feedback@company.com
 ```

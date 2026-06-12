@@ -211,14 +211,14 @@ Wishlist Wizard integrates with the following external APIs:
 
 #### Required Firebase Setup:
 1. **Firebase Project Configuration**: Already configured with project ID `wishlist-wizard`
-```
-VITE_FIREBASE_API_KEY=AIzaSyDXBMWTCbNDi2MhWxhZL9BQA3xEnGDEf70
-VITE_FIREBASE_AUTH_DOMAIN=wishlist-wizard.firebaseapp.com
-VITE_FIREBASE_PROJECT_ID=wishlist-wizard
-VITE_FIREBASE_STORAGE_BUCKET=wishlist-wizard.appspot.app
-VITE_FIREBASE_MESSAGING_SENDER_ID=1000918568663
-VITE_FIREBASE_APP_ID=1:1000918568663:web:143b262fb4bd8fd904ea92
-VITE_FIREBASE_MEASUREMENT_ID=G-75WET6CFDE
+```dotenv
+VITE_FIREBASE_API_KEY=your-firebase-web-api-key
+VITE_FIREBASE_AUTH_DOMAIN=your-project.firebaseapp.com
+VITE_FIREBASE_PROJECT_ID=your-project-id
+VITE_FIREBASE_STORAGE_BUCKET=your-project.firebasestorage.app
+VITE_FIREBASE_MESSAGING_SENDER_ID=your-messaging-sender-id
+VITE_FIREBASE_APP_ID=your-web-app-id
+VITE_FIREBASE_MEASUREMENT_ID=your-measurement-id
 VITE_FIREBASE_AUTO_INIT=false
 ```
 
