@@ -9,6 +9,8 @@ paths = [
   '''packages/mobile/lib/firebase_options\.dart''',
   '''packages/mobile/android/app/google-services(\.(dev|prod|staging))?\.json''',
   '''packages/mobile/ios/Runner/GoogleService-Info(\.(dev|prod|staging))?\.plist''',
+  '''packages/mobile/(ios|macos)/Podfile\.lock''',
+  '''packages/mobile-app/ios/Podfile\.lock''',
   '''packages/browser-extension/src/background\.js''',
 ]
 regexes = [

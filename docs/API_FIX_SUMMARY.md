@@ -97,21 +97,21 @@ The extension should now:
 ### HTTP Endpoint Structure
 ```
 GET /api/extension/wishlists
-  - Authorization: Bearer <idToken>
+  - Authorization header with a Firebase ID token
   - Returns: [{ id, name, description, isPublic, itemCount, createdAt, updatedAt }, ...]
 
 POST /api/extension/wishlists
-  - Authorization: Bearer <idToken>
+  - Authorization header with a Firebase ID token
   - Body: { name, description? }
   - Returns: { id, name, description, isPublic, itemCount, createdAt, updatedAt }
 
 POST /api/extension/items
-  - Authorization: Bearer <idToken>
+  - Authorization header with a Firebase ID token
   - Body: { wishlistId, title, productUrl?, imageUrl?, price?, store?, addedAt? }
   - Returns: { id, title, productUrl, imageUrl, price, store, addedAt, updatedAt, ... }
 
 DELETE /api/extension/items/:itemId
-  - Authorization: Bearer <idToken>
+  - Authorization header with a Firebase ID token
   - Returns: { success: true, message: "Item deleted" }
 ```
 

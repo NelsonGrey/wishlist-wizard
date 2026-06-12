@@ -63,7 +63,7 @@ platform :ios do
       private_key_content = private_key_content.lines.map { |l| l.strip }.reject { |l| l.empty? }.join("\n") + "\n"
 
       # If the key doesn't have proper BEGIN/END markers, try base64 decoding
-      unless private_key_content.include?("-----BEGIN APP_STORE_CONNECT_KEY-----") || private_key_content.include?("-----BEGIN EC PRIVATE KEY-----")
+      unless private_key_content.match?(/-----BEGIN [A-Z ]+-----/)
         begin
           require 'base64'
           decoded = Base64.decode64(private_key_content)
@@ -228,7 +228,7 @@ platform :ios do
       private_key_content = private_key_content.gsub(/\r\n?/, "\n")
       private_key_content = private_key_content.lines.map { |l| l.strip }.reject { |l| l.empty? }.join("\n") + "\n"
 
-      unless private_key_content.include?("-----BEGIN APP_STORE_CONNECT_KEY-----") || private_key_content.include?("-----BEGIN EC PRIVATE KEY-----")
+      unless private_key_content.match?(/-----BEGIN [A-Z ]+-----/)
         begin
           require 'base64'
           decoded = Base64.decode64(private_key_content)
