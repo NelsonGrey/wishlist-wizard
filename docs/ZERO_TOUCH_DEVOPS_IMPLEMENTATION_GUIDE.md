@@ -474,7 +474,7 @@ API_PROD_ENDPOINT=https://us-central1-wishlist-wizard-prod.cloudfunctions.net/ap
 # iOS App Store Connect
 APP_STORE_CONNECT_KEY_ID=your-app-store-connect-key-id
 APP_STORE_CONNECT_ISSUER_ID=your-app-store-connect-issuer-id
-APP_STORE_CONNECT_KEY=-----BEGIN APP_STORE_CONNECT_KEY-----\nYOUR_PRIVATE_KEY\n-----END PRIVATE KEY-----
+APP_STORE_CONNECT_KEY=<app-store-connect-private-key-pem-or-base64>
 FASTLANE_APPLE_ID=your-apple-id@email.com
 FASTLANE_TEAM_ID=your-team-id
 

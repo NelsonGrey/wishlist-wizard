@@ -46,7 +46,7 @@ FASTLANE_ITC_TEAM_ID=your-itc-team-id
 # App Store Connect API Key (generate from App Store Connect)
 APP_STORE_CONNECT_KEY_ID=your-key-id
 APP_STORE_CONNECT_ISSUER_ID=your-issuer-id
-APP_STORE_CONNECT_KEY=-----BEGIN APP_STORE_CONNECT_KEY-----\nyour-private-key-here\n-----END PRIVATE KEY-----
+APP_STORE_CONNECT_KEY=<app-store-connect-private-key-pem-or-base64>
 
 # Match (Code Signing) Configuration
 MATCH_GIT_URL=https://github.com/mnelson3/nelson-grey

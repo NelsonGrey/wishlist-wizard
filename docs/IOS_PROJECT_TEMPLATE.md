@@ -94,7 +94,7 @@ FASTLANE_ITC_TEAM_ID=$ITC_TEAM_ID
 # App Store Connect API Key (generate from App Store Connect)
 APP_STORE_CONNECT_KEY_ID=your-key-id
 APP_STORE_CONNECT_ISSUER_ID=your-issuer-id
-APP_STORE_CONNECT_KEY=-----BEGIN APP_STORE_CONNECT_KEY-----\nyour-private-key-here\n-----END PRIVATE KEY-----
+APP_STORE_CONNECT_KEY=<app-store-connect-private-key-pem-or-base64>
 
 # Match Configuration
 MATCH_GIT_URL=$CERT_REPO_URL
@@ -346,7 +346,7 @@ FASTLANE_ITC_TEAM_ID       → YOUR_ITC_TEAM_ID
 APP_STORE_CONNECT_KEY_ID        → YOUR_KEY_ID
 APP_STORE_CONNECT_ISSUER_ID     → YOUR_ISSUER_ID
 APP_STORE_CONNECT_KEY           → base64-encoded .p8 content
-MATCH_GIT_URL              → https://oauth2:gho_TOKEN@github.com/user/repo.git
+MATCH_GIT_URL              → https://oauth2:<github-token>@github.com/user/repo.git
 MATCH_PASSWORD             → your_match_password
 BETA_FEEDBACK_EMAIL        → feedback@yourcompany.com
 ```

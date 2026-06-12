@@ -1,7 +1,5 @@
 # Act CLI secrets
 .act-secrets/
-!.act-secrets/test-secrets
-!.act-secrets/secrets
 .act-secrets/real-secrets
 
 # Local tooling artifacts
@@ -191,6 +189,13 @@ packages/mobile/.pub/
 .jwt-secret
 certs/
 monitoring-report-*.json
+*.pem
+*.key
+*.p12
+*.mobileprovision
+*.cer
+*.crt
+*.der
 
 # IDE files
 *.iml

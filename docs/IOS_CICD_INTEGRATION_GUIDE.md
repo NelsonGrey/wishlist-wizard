@@ -106,7 +106,7 @@ APP_STORE_CONNECT_ISSUER_ID     → YOUR_ISSUER_ID (36 characters)
 APP_STORE_CONNECT_KEY           → base64-encoded .p8 file content
 
 # Certificate Repository
-MATCH_GIT_URL              → https://oauth2:gho_TOKEN@github.com/user/repo.git
+MATCH_GIT_URL              → https://oauth2:<github-token>@github.com/user/repo.git
 MATCH_PASSWORD             → your_match_password
 
 # Distribution
@@ -221,7 +221,7 @@ FASTLANE_ITC_TEAM_ID        → YOUR_ITC_TEAM_ID
 APP_STORE_CONNECT_KEY_ID        → YOUR_KEY_ID
 APP_STORE_CONNECT_ISSUER_ID     → YOUR_ISSUER_ID
 APP_STORE_CONNECT_KEY           → base64-encoded .p8 content
-MATCH_GIT_URL               → https://oauth2:gho_TOKEN@github.com/user/repo.git
+MATCH_GIT_URL               → https://oauth2:<github-token>@github.com/user/repo.git
 MATCH_PASSWORD              → your_match_password
 BETA_FEEDBACK_EMAIL         → feedback@yourcompany.com
 ```
