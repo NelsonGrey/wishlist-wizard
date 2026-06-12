@@ -117,7 +117,7 @@ APP_STORE_CONNECT_KEY=<app-store-connect-private-key-pem-or-base64>
 
 # Match Configuration
 MATCH_GIT_URL=https://oauth2:<github-token>@github.com/yourusername/your-app-certificates.git
-MATCH_PASSWORD=your_match_password
+MATCH_PASSWORD=<set-in-secret-manager>
 
 # TestFlight Configuration
 BETA_FEEDBACK_EMAIL=feedback@yourcompany.com

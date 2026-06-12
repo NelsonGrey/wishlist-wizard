@@ -11,7 +11,7 @@ const auth = getAuth();
 
 /**
  * HTTP GET /api/items/:itemId/price-history
- * Requires Authorization: Bearer <idToken>
+ * Requires an Authorization header carrying a Firebase ID token
  * Returns an array of price history points: { date: string, price: number, store?: string }
  */
 export const getItemPriceHistory = onRequest(async (req, res) => {
