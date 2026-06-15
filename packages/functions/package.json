@@ -39,7 +39,7 @@
     "globby": "^11.1.0",
     "tsutils": "^3.21.0",
     "typescript": "^5.7.3",
-    "zod": "^3.25.76"
+    "zod": "^4.4.3"
   },
   "private": true
 }
