@@ -18,7 +18,7 @@
     "@wishlist-wizard/shared": "file:../shared"
   },
   "devDependencies": {
-    "@types/chrome": "^0.0.270",
+    "@types/chrome": "^0.1.43",
     "jsdom": "^26.1.0",
     "typescript": "^5.6.3",
     "vite": "^7.1.10",
