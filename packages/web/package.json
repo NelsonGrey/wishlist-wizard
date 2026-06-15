@@ -50,7 +50,7 @@
     "@react-three/drei": "^10.7.6",
     "@react-three/fiber": "^9.4.0",
     "@shared/firebase-utils": "file:../firebase-utils",
-    "@stripe/react-stripe-js": "^5.2.0",
+    "@stripe/react-stripe-js": "^6.6.0",
     "@stripe/stripe-js": "^8.1.0",
     "@tanstack/react-query": "^5.76.1",
     "@wishlist-wizard/shared": "file:../shared",
