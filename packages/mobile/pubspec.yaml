@@ -44,7 +44,7 @@ dependencies:
   flutter_svg: ^2.0.10+1
   
   # Camera & AR (stubs for now)
-  camera: ^0.11.0+2
+  camera: ^0.12.0+1
   
   # Notifications
   flutter_local_notifications: ^19.4.2
