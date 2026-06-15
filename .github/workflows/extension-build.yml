@@ -136,7 +136,7 @@ jobs:
       
       - name: Upload builds as artifacts
         if: success()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: extension-builds
           path: packages/browser-extension/dist/
@@ -157,7 +157,7 @@ jobs:
       
       - name: Upload deployment packages
         if: success()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: extension-deployment-packages
           path: packages/browser-extension/dist/*.zip
@@ -243,7 +243,7 @@ jobs:
           cat /tmp/report.md
       
       - name: Upload report
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: manifest-comparison-report

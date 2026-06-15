@@ -54,7 +54,7 @@ jobs:
 
       - name: Upload Production Validation Report
         if: always()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: production-validation-report
           path: |
