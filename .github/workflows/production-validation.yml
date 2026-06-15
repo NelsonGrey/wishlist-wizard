@@ -32,7 +32,7 @@ jobs:
       TARGET_URL: ${{ inputs.base_url || github.event.inputs.base_url || 'https://wishlist-wizard-prod.web.app' }}
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: Setup Node.js
         uses: actions/setup-node@v5
