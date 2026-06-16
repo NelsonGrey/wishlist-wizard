@@ -22,6 +22,7 @@ jobs:
   deploy-hosting:
     name: Build and Deploy to Firebase Hosting (Production)
     runs-on: ubuntu-latest
+    timeout-minutes: 20
 
     steps:
       - name: Checkout
