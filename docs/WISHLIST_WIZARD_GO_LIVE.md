@@ -1,0 +1,729 @@
+# Wishlist Wizard — Go Live Document
+
+> **Version:** 1.0  
+> **Last Updated:** 2026-06-16  
+> **Repo:** https://github.com/mnelson3/wishlist-wizard (default branch: `develop`)  
+> **Production URL:** https://wishlist-wizard.web.app  
+> **Staging URL:** https://wishlist-wizard-staging.web.app  
+
+---
+
+## How to Use This Document
+
+Work through each section top-to-bottom. Check off items as they are completed. Items marked **[BLOCKER]** must be resolved before proceeding to the Deployment section. Items marked **[WARN]** are important but non-blocking if a documented exception exists.
+
+Owner columns should be filled in with initials or role before launch begins.
+
+---
+
+## Platform Components Summary
+
+| Component | Technology | Deploy Target |
+|---|---|---|
+| Web App | React 19 + Vite + TypeScript | Firebase Hosting |
+| API / Backend | Firebase Functions v2 (Node 22) | Firebase Functions |
+| Database | Firestore + Firestore indexes | Firebase Firestore |
+| Mobile (iOS) | Flutter 3.8+ | TestFlight → App Store |
+| Mobile (Android) | Flutter 3.8+ | Play Store internal → production |
+| Browser Extension | TypeScript / Chrome Extension MV3 | Chrome Web Store (manual) |
+| Automation | Shell scripts + GitHub Actions | Self-hosted runners |
+
+---
+
+## Part 1 — Critical Issues to Resolve First
+
+These issues were identified during repository analysis. They must be addressed before running the go-live gate or deploying to production.
+
+### 1.1 SPA Routing Bug in `firebase.prod.json` [BLOCKER]
+
+**Problem:** `firebase.prod.json` uses `"redirects"` for all SPA routes (`/dashboard`, `/wishlists/**`, `/login`, etc.). Redirects send the browser to a new URL — they do not serve `index.html` in place. For a single-page application, all non-asset routes must be handled by the `"rewrites"` rule so that React Router can render the correct page.
+
+**Fix:** Remove all the individual route entries from the `"redirects"` array in `firebase.prod.json`. The existing catch-all rewrite `"source": "**" → "/index.html"` already handles SPA routing correctly. Only keep redirects for routes that need a true 301/302 redirect to a different destination.
+
+**Verify:** After deploying, directly navigate to `https://wishlist-wizard.web.app/dashboard` in a fresh browser tab (no prior navigation). It should render the app, not return a 404 or redirect to home.
+
+- [ ] **Fix SPA redirect/rewrite configuration in firebase.prod.json** — Owner: _______ — Due: _______
+
+---
+
+### 1.2 Production Branch Strategy [BLOCKER]
+
+**Problem:** The repository's default branch is `develop`. The Firebase Hosting merge workflow (`firebase-hosting-merge.yml`) is disabled. It is not clear how merges to `develop` or `main` trigger a production deployment.
+
+**Fix:** Decide and document the promotion flow:
+- Option A: `develop` → `main` triggers production deploy (re-enable `firebase-hosting-merge.yml`, targeting `main`).
+- Option B: Production is deployed manually via `npm run deploy` on a tagged release.
+- Option C: The `firebase-deploy-local.yml` workflow is the intended production trigger.
+
+Whichever path is chosen, document it in the repo and confirm the `master-pipeline.yml` is targeting the correct branch.
+
+- [ ] **Document and implement branch promotion strategy (develop → main or equivalent)** — Owner: _______ — Due: _______
+- [ ] **Re-enable or replace firebase-hosting-merge.yml for production** — Owner: _______ — Due: _______
+
+---
+
+### 1.3 Open Issues Triage [BLOCKER]
+
+**Problem:** The repository has 44 open GitHub issues. Before launch, each issue must be classified as: (a) pre-launch blocker, (b) known acceptable debt, or (c) closed/invalid.
+
+- [ ] **Triage all 44 open issues and assign milestone: pre-launch, post-launch, or close** — Owner: _______ — Due: _______
+- [ ] **Resolve all issues marked pre-launch blocker** — Owner: _______ — Due: _______
+
+---
+
+### 1.4 Empty Stub Files [WARN]
+
+`mock-api-server.js` and `test-server.js` in the repo root are 0-byte files. Either implement them, delete them, or add them to `.gitignore`. Their presence suggests incomplete scaffolding.
+
+- [ ] **Remove or implement mock-api-server.js and test-server.js** — Owner: _______ — Due: _______
+
+---
+
+### 1.5 App Bundle ID Branding [WARN]
+
+The mobile bundle ID `com.nelsongrey.wishlistwizard.mobile` uses a personal account name (`nelsongrey`), not a company or brand name. This is visible in the App Store and Play Store and cannot be changed after first publication without losing all existing installs and ratings. Confirm this is intentional.
+
+- [ ] **Confirm or update bundle ID before first App Store / Play Store submission** — Owner: _______ — Due: _______
+
+---
+
+### 1.6 Repository Hygiene [WARN]
+
+The following files should not be tracked in git:
+
+- `health-status.json` — runtime output, add to `.gitignore`
+- `test-ci-cd-pipeline.txt` — test artifact, delete or add to `.gitignore`
+
+- [ ] **Add health-status.json and test-ci-cd-pipeline.txt to .gitignore and remove from tracking** — Owner: _______ — Due: _______
+
+---
+
+## Part 2 — Pre-Launch Checklist
+
+### 2.1 Firebase Infrastructure
+
+- [ ] Firebase project `wishlist-wizard-prod` exists and is the active production project — Owner: _______
+- [ ] Firebase project `wishlist-wizard-staging` exists and staging is tested — Owner: _______
+- [ ] Firebase Blaze (pay-as-you-go) plan enabled on production project (required for Functions) — Owner: _______
+- [ ] All required Firebase services are enabled: Authentication, Firestore, Functions, Hosting, Storage, Analytics, Cloud Messaging — Owner: _______
+- [ ] Firebase App Hosting (`apphosting.yaml`) reviewed for production — Owner: _______
+- [ ] Firestore security rules deployed: `firebase deploy --only firestore:rules --project wishlist-wizard-prod` — Owner: _______
+- [ ] Firestore indexes deployed: `firebase deploy --only firestore:indexes --project wishlist-wizard-prod` — Owner: _______
+- [ ] Firebase Functions runtime is `nodejs22` — verify this is supported in your Firebase project region — Owner: _______
+- [ ] Firebase Storage security rules configured (not currently in repo — create `storage.rules`) — Owner: _______
+- [ ] Daily Firestore backup configured in Firebase console — Owner: _______
+- [ ] Firebase budget alerts configured to prevent runaway costs — Owner: _______
+
+---
+
+### 2.2 Secrets & Environment Variables
+
+All secrets must be in GitHub Secrets or Firebase Secret Manager — never in source code.
+
+**Firebase Functions (set via Firebase Secret Manager or environment config):**
+
+- [ ] `SENDGRID_API_KEY` — transactional email — Owner: _______
+- [ ] `OPENAI_API_KEY` — AI recommendations — Owner: _______
+- [ ] `STRIPE_SECRET_KEY` — group gifting payments (Phase 1 or Phase 2?) — Owner: _______
+- [ ] `STRIPE_WEBHOOK_SECRET` — Stripe webhook verification — Owner: _______
+- [ ] `JWT_SECRET` — strong random value, minimum 64 characters — Owner: _______
+- [ ] `SESSION_SECRET` — strong random value, minimum 64 characters — Owner: _______
+- [ ] FCM server credentials configured in Firebase console (push notifications) — Owner: _______
+
+**GitHub Secrets (for CI/CD workflows):**
+
+- [ ] `FIREBASE_SERVICE_ACCOUNT_PROD` — Firebase deployment service account — Owner: _______
+- [ ] `FIREBASE_SERVICE_ACCOUNT_STAGING` — staging deployment — Owner: _______
+- [ ] `GH_TOKEN` — GitHub PAT with `repo`, `workflow` scopes (for automation) — Owner: _______
+- [ ] `APP_STORE_CONNECT_KEY_ID` — Apple App Store Connect — Owner: _______
+- [ ] `APP_STORE_CONNECT_ISSUER_ID` — Apple App Store Connect — Owner: _______
+- [ ] `APP_STORE_CONNECT_KEY` — base64-encoded .p8 private key — Owner: _______
+- [ ] `FASTLANE_APPLE_ID` — Apple developer account email — Owner: _______
+- [ ] `FASTLANE_TEAM_ID` — Apple team ID — Owner: _______
+- [ ] `MATCH_GIT_URL` — iOS certificates repo URL — Owner: _______
+- [ ] `MATCH_PASSWORD` — Fastlane Match encryption password — Owner: _______
+- [ ] `GOOGLE_PLAY_SERVICE_ACCOUNT_KEY` — Android deployment JSON — Owner: _______
+- [ ] `ANDROID_KEYSTORE` — base64-encoded keystore file — Owner: _______
+- [ ] `ANDROID_KEYSTORE_PASSWORD` — keystore password — Owner: _______
+- [ ] `ANDROID_KEY_ALIAS` — key alias — Owner: _______
+- [ ] `ANDROID_KEY_PASSWORD` — key password — Owner: _______
+
+**Web App build-time variables (VITE_ prefix, set in CI):**
+
+- [ ] `VITE_FIREBASE_API_KEY` — Owner: _______
+- [ ] `VITE_FIREBASE_AUTH_DOMAIN` — Owner: _______
+- [ ] `VITE_FIREBASE_PROJECT_ID` — (should be `wishlist-wizard-prod` for production build) — Owner: _______
+- [ ] `VITE_FIREBASE_STORAGE_BUCKET` — Owner: _______
+- [ ] `VITE_FIREBASE_MESSAGING_SENDER_ID` — Owner: _______
+- [ ] `VITE_FIREBASE_APP_ID` — Owner: _______
+- [ ] `VITE_FIREBASE_MEASUREMENT_ID` — Google Analytics measurement ID — Owner: _______
+- [ ] `VITE_GA_MEASUREMENT_ID` — Google Analytics (separate from Firebase) — Owner: _______
+
+---
+
+### 2.3 Code Quality Gates
+
+Run the following commands in sequence. All must pass before deployment.
+
+```bash
+# 1. Dependency audit — no high/critical vulnerabilities
+npm audit --audit-level=high
+
+# 2. TypeScript type check across all packages
+npm run check
+
+# 3. Linting
+npm run lint
+
+# 4. Firebase functions smoke test (strict mode)
+npm run test:functions:smoke:all:strict
+
+# 5. User flow smoke test
+npm run test:users:smoke
+
+# 6. Requirements traceability
+npm run requirements:traceability
+npm run requirements:verify
+
+# 7. Go-live gate (comprehensive automated check)
+./scripts/go-live-gate.sh
+
+# 8. Extension preflight
+npm run preflight:extension
+
+# 9. Mobile preflight
+npm run preflight:mobile
+```
+
+- [ ] `npm audit` — 0 high/critical vulnerabilities — Owner: _______
+- [ ] `npm run check` — TypeScript passes with 0 errors — Owner: _______
+- [ ] `npm run lint` — ESLint passes with 0 errors — Owner: _______
+- [ ] Secret scan (gitleaks) — no secrets in codebase — Owner: _______
+- [ ] Firebase smoke test (strict mode): 265+/273 passed, 0 failed — Owner: _______
+- [ ] User flow smoke test: all core flows pass — Owner: _______
+- [ ] `npm run requirements:verify` — passes — Owner: _______
+- [ ] `./scripts/go-live-gate.sh` — exits 0 (GO FOR LAUNCH) — Owner: _______
+- [ ] `npm run preflight:extension` — passes — Owner: _______
+- [ ] `npm run preflight:mobile` — passes — Owner: _______
+
+---
+
+### 2.4 Staging Validation
+
+All end-to-end testing should be run against staging before promoting to production.
+
+```bash
+# E2E tests against staging
+npm run test:e2e:staging
+
+# Mobile UAT
+npm run test:mobile:uat
+```
+
+- [ ] Staging environment deployed and matches production configuration — Owner: _______
+- [ ] `npm run test:e2e:staging` — Tier 1 and smoke tests pass — Owner: _______
+- [ ] `npm run test:mobile:uat` — iOS and Android auth smoke tests pass — Owner: _______
+- [ ] Manual walkthrough: register new account, create wishlist, add item, share link — Owner: _______
+- [ ] Manual walkthrough: install browser extension, add item from retailer page — Owner: _______
+- [ ] Manual walkthrough: mobile app — register, create wishlist, receive push notification — Owner: _______
+- [ ] Email delivery tested — registration confirmation and password reset emails received — Owner: _______
+- [ ] Wishlist public share link accessible without authentication — Owner: _______
+- [ ] Collaborative wishlist invite flow tested — Owner: _______
+
+---
+
+### 2.5 Web App Production Build
+
+```bash
+# Production build
+npm run build --workspace=@wishlist-wizard/web
+
+# Verify build output
+ls packages/web/dist
+```
+
+- [ ] Production build completes with no errors — Owner: _______
+- [ ] `packages/web/dist/index.html` exists — Owner: _______
+- [ ] All VITE_ environment variables are baked into the build — Owner: _______
+- [ ] Bundle size reviewed — no unexpectedly large chunks — Owner: _______
+- [ ] Source maps excluded from production build (or stored privately) — Owner: _______
+- [ ] Content Security Policy headers configured in `firebase.prod.json` under `"headers"` — Owner: _______
+- [ ] Favicon and app icons present in `public/` — Owner: _______
+- [ ] Open Graph meta tags correct (og:title, og:description, og:image) for social sharing — Owner: _______
+- [ ] robots.txt reviewed and appropriate for a public app — Owner: _______
+
+---
+
+### 2.6 iOS Mobile Release
+
+```bash
+# From packages/mobile:
+flutter pub get
+flutter build ios --release
+```
+
+- [ ] Flutter version pinned and matches CI (`flutter --version`) — Owner: _______
+- [ ] CocoaPods install completes without errors (`pod install`) — Owner: _______
+- [ ] Bundle ID confirmed: `com.nelsongrey.wishlistwizard.mobile` (or updated) — Owner: _______
+- [ ] App version set to `1.0.0`, build number set (increment each submission) — Owner: _______
+- [ ] App icons (all required sizes) present — Owner: _______
+- [ ] Launch screen / splash screen implemented — Owner: _______
+- [ ] Privacy manifest (`PrivacyInfo.xcprivacy`) included — required by Apple as of May 2024 — Owner: _______
+- [ ] Push notification entitlements configured (APS environment: production) — Owner: _______
+- [ ] iOS code signing via Fastlane Match configured and certificates downloaded — Owner: _______
+- [ ] Archive builds successfully in Xcode or via `ios-mobile-release.yml` workflow — Owner: _______
+- [ ] TestFlight build uploaded and tested by at least one internal tester — Owner: _______
+- [ ] App Store listing prepared: name, description, screenshots (6.7", 5.5" minimum), keywords — Owner: _______
+- [ ] App privacy labels completed in App Store Connect — Owner: _______
+- [ ] App Review submission created — Owner: _______
+- [ ] Expected App Review time: 24–48 hours — plan timeline accordingly — Owner: _______
+
+---
+
+### 2.7 Android Mobile Release
+
+- [ ] Keystore file secured and backed up (NOT in the repo) — Owner: _______
+- [ ] App version set, `versionCode` incremented — Owner: _______
+- [ ] App icons present for all densities — Owner: _______
+- [ ] AAB (Android App Bundle) built: `flutter build appbundle --release` — Owner: _______
+- [ ] AAB signed with release keystore — Owner: _______
+- [ ] Google Play listing prepared: title, description, screenshots (phone + tablet), short description — Owner: _______
+- [ ] Content rating questionnaire completed in Play Console — Owner: _______
+- [ ] App uploaded to internal testing track — Owner: _______
+- [ ] Internal testing completed (minimum 1 tester, 1 device) — Owner: _______
+- [ ] Promoted to alpha/beta track for expanded testing — Owner: _______
+- [ ] Promoted to production track when ready — Owner: _______
+- [ ] Data safety section completed in Play Console — Owner: _______
+
+---
+
+### 2.8 Chrome Extension Release
+
+```bash
+# Package the extension
+npm run package:extension:release
+
+# This produces chrome-extension-package/ or a .zip file
+```
+
+- [ ] Extension version in `manifest.json` set to `1.0.0` — Owner: _______
+- [ ] Extension preflight passes: `npm run preflight:extension` — Owner: _______
+- [ ] `npm run package:extension:release` succeeds and produces valid .zip — Owner: _______
+- [ ] Extension manually tested: install from local .zip, add item from Amazon/eBay/Target — Owner: _______
+- [ ] Chrome Web Store developer account set up — Owner: _______
+- [ ] Store listing prepared: icon (128px), screenshots, short description (max 132 chars), detailed description — Owner: _______
+- [ ] Extension privacy policy URL added to store listing — Owner: _______
+- [ ] Extension submitted for review (expect 1–3 business days for first submission) — Owner: _______
+
+---
+
+### 2.9 DNS, Domain & SSL
+
+- [ ] Custom domain purchased (e.g., `wishlistwizard.com`) — Owner: _______
+- [ ] Firebase Hosting custom domain configured in Firebase console — Owner: _______
+- [ ] DNS A/CNAME records pointed to Firebase Hosting — Owner: _______
+- [ ] SSL certificate provisioned by Firebase (automatic via Let's Encrypt) — Owner: _______
+- [ ] `www` redirect to apex domain (or vice versa) configured — Owner: _______
+- [ ] `docs.wishlistwizard.com` domain configured and documentation live — Owner: _______
+- [ ] `api.wishlist-wizard.web.app` (or custom API domain) confirmed operational — Owner: _______
+- [ ] Email domain verified for SendGrid (SPF, DKIM, DMARC DNS records set) — Owner: _______
+
+---
+
+### 2.10 Legal & Compliance
+
+- [ ] Terms of Service written and published at a public URL — Owner: _______
+- [ ] Privacy Policy written and published at a public URL — Owner: _______
+- [ ] Privacy Policy linked in mobile app and extension (required by app stores) — Owner: _______
+- [ ] Cookie consent banner implemented on web app (required for GDPR/CCPA) — Owner: _______
+- [ ] Data retention policy defined — Owner: _______
+- [ ] User account deletion flow working end-to-end (GDPR Art. 17 / CCPA) — Owner: _______
+- [ ] Data export capability available for users (GDPR Art. 20) — Owner: _______
+- [ ] COPPA considerations reviewed (if app is used by under-13s) — Owner: _______
+- [ ] License file (`LICENSE`) added to repository root (package.json declares MIT) — Owner: _______
+
+---
+
+### 2.11 External Service Integrations
+
+- [ ] **SendGrid:** Account set up, sender identity verified, transactional email templates created (welcome, password reset, invitation, notification digest) — Owner: _______
+- [ ] **Stripe:** Account created, webhooks configured, group gifting Stripe integration tested (or explicitly deferred to Phase 2 with feature flag off) — Owner: _______
+- [ ] **OpenAI:** API key provisioned, usage limits/alerts set — Owner: _______
+- [ ] **Google Calendar API:** OAuth app configured in Google Cloud Console, OAuth consent screen reviewed and approved — Owner: _______
+- [ ] **Microsoft Outlook Calendar API:** Azure app registration configured — Owner: _______
+- [ ] **E-commerce APIs:** Integrations with Amazon/eBay/Etsy/Walmart/Target/Best Buy tested against production endpoints — Owner: _______
+- [ ] **FCM (Firebase Cloud Messaging):** Push notifications working on web (VAPID key configured), iOS (APNs token configured), and Android — Owner: _______
+- [ ] **Firebase Analytics:** Events flowing into Firebase console — Owner: _______
+- [ ] **Google Analytics:** Measurement ID producing traffic in GA4 dashboard — Owner: _______
+
+---
+
+### 2.12 Monitoring & Alerting Setup
+
+```bash
+# Start 24/7 monitoring (run before go-live)
+./automate.sh monitor start
+
+# Baseline metrics snapshot
+npm run metrics:baseline
+```
+
+- [ ] `./automate.sh monitor start` — monitoring daemon running — Owner: _______
+- [ ] Alert email `admin@wishlist-wizard.com` (or configured email) is a real, monitored inbox — Owner: _______
+- [ ] Slack webhook configured and alert messages tested — Owner: _______
+- [ ] Firebase console alerts configured: Functions error rate, Firestore quota thresholds — Owner: _______
+- [ ] Uptime monitoring configured (e.g., Firebase Alerting or external uptime tool) — Owner: _______
+- [ ] `npm run metrics:baseline` run and baseline snapshot saved — Owner: _______
+- [ ] GitHub Actions cost monitoring script configured: `scripts/monitor-github-actions-costs.sh` — Owner: _______
+- [ ] `health-status.json` endpoint accessible publicly (if intended as a status page) — Owner: _______
+
+---
+
+### 2.13 Documentation
+
+The `go-live-gate.sh` checks for these specific docs at launch:
+
+- [ ] `RELEASE_READINESS_TIERED.md` exists (in root or `docs/`) — Owner: _______
+- [ ] `LAUNCH_CHECKLIST.md` exists (in root or `docs/`) — Owner: _______
+- [ ] `E2E_TESTING_GUIDE.md` exists (in root or `docs/`) — Owner: _______
+- [ ] `FIREBASE_STRATEGY.md` exists (referenced in README) — Owner: _______
+- [ ] `ZERO_TOUCH_DEVOPS_IMPLEMENTATION_GUIDE.md` exists — Owner: _______
+- [ ] `AUTOMATED_DEPLOYMENT.md` exists — Owner: _______
+- [ ] README.md is accurate for the `1.0.0` public release — Owner: _______
+- [ ] Support email `support@wishlistwizard.com` is a live, monitored inbox — Owner: _______
+- [ ] `docs.wishlistwizard.com` is live or has a coming-soon redirect — Owner: _______
+
+---
+
+### 2.14 Token Rotation & Security Schedule
+
+Set up rotation reminders now so they don't lapse post-launch.
+
+| Secret | Rotation Interval | Next Rotation Due | Owner |
+|---|---|---|---|
+| GitHub PAT (`GH_TOKEN`) | 30 days | ___________ | _______ |
+| Firebase token | 7 days | ___________ | _______ |
+| JWT_SECRET | 90 days | ___________ | _______ |
+| Encryption keys | 180 days | ___________ | _______ |
+| SSL certificates | Auto (Firebase) | Auto-renewed | — |
+| App Store Connect key | Per Apple policy | ___________ | _______ |
+| Stripe API keys | On compromise | — | _______ |
+
+Use the automated rotation script: `./automate.sh tokens rotate`
+
+---
+
+## Part 3 — Launch Day Execution
+
+### 3.1 T-24 Hours (Day Before Launch)
+
+- [ ] All Part 2 items complete and checked — Owner: _______
+- [ ] Staging E2E tests pass with latest code — Owner: _______
+- [ ] Team briefed on launch time, responsibilities, and rollback procedure — Owner: _______
+- [ ] Rollback plan documented (see Section 3.5) — Owner: _______
+- [ ] Customer support team ready to receive reports — Owner: _______
+- [ ] Monitoring dashboards bookmarked and verified accessible — Owner: _______
+- [ ] Firebase console access confirmed for all relevant team members — Owner: _______
+- [ ] GitHub Actions workflow access confirmed — Owner: _______
+
+---
+
+### 3.2 T-1 Hour (Pre-Deploy)
+
+```bash
+# Final automated gate
+./scripts/go-live-gate.sh
+
+# Final release readiness check
+npm run go-live:check
+```
+
+- [ ] `./scripts/go-live-gate.sh` exits 0 — **GO FOR LAUNCH** — Owner: _______
+- [ ] Git working directory is clean: `git status` — Owner: _______
+- [ ] On correct branch (develop/main as per chosen strategy) — Owner: _______
+- [ ] No active GitHub Actions runs that could conflict — Owner: _______
+- [ ] Monitoring daemon running: `./automate.sh monitor start` — Owner: _______
+- [ ] All team members at their stations — Owner: _______
+
+---
+
+### 3.3 Deployment Sequence
+
+Execute steps in this exact order:
+
+**Step 1 — Firestore Rules & Indexes**
+```bash
+firebase deploy --only firestore:rules,firestore:indexes --project wishlist-wizard-prod
+```
+- [ ] Rules deployed — Owner: _______
+
+**Step 2 — Firebase Functions**
+```bash
+npm run build --workspace=functions
+firebase deploy --only functions --project wishlist-wizard-prod
+```
+- [ ] Functions deployed — watch Firebase console for errors — Owner: _______
+- [ ] No function deployment errors — Owner: _______
+
+**Step 3 — Web App**
+```bash
+npm run build --workspace=@wishlist-wizard/web
+firebase deploy --only hosting --project wishlist-wizard-prod
+```
+- [ ] Web app deployed — Owner: _______
+- [ ] `https://wishlist-wizard.web.app` loads successfully — Owner: _______
+
+**Step 4 — Or: Deploy All via Script**
+```bash
+npm run deploy
+# Or via GitHub Actions: merge to main triggers master-pipeline.yml
+```
+- [ ] Full deployment completed without errors — Owner: _______
+
+**Step 5 — Verify Pipeline**
+- [ ] GitHub Actions `master-pipeline.yml` run completed green — Owner: _______
+- [ ] `production-validation.yml` workflow passed — Owner: _______
+
+---
+
+### 3.4 Post-Deploy Smoke Tests (Production)
+
+```bash
+# Smoke test against production
+npm run test:e2e:prod
+```
+
+Execute these tests within 30 minutes of deployment:
+
+- [ ] `npm run test:e2e:prod` passes — Owner: _______
+- [ ] **Web:** Navigate to `https://wishlist-wizard.web.app` — page loads, no console errors — Owner: _______
+- [ ] **Web:** Create a new account — registration email received — Owner: _______
+- [ ] **Web:** Log in and create a wishlist — Owner: _______
+- [ ] **Web:** Add an item to the wishlist — Owner: _______
+- [ ] **Web:** Generate and open a share link in an incognito window — Owner: _______
+- [ ] **Web:** Direct URL navigation test — navigate to `/dashboard` in a fresh tab — renders correctly (not redirected to home) — Owner: _______
+- [ ] **Extension:** Install from Chrome Web Store (or sideload .zip) — Owner: _______
+- [ ] **Extension:** Navigate to Amazon product page, click extension icon, add item — Owner: _______
+- [ ] **iOS:** Install TestFlight build and run auth smoke test — Owner: _______
+- [ ] **Android:** Install from Play Store internal track and run auth test — Owner: _______
+- [ ] **API:** Firebase Functions are responding — check Firebase console function logs — Owner: _______
+- [ ] **Email:** Password reset email sent and received — Owner: _______
+- [ ] **Push:** Send test FCM notification from Firebase console — Owner: _______
+- [ ] **Analytics:** Events appearing in Firebase Analytics realtime view — Owner: _______
+
+---
+
+### 3.5 Rollback Plan
+
+If blocking issues are discovered post-deploy, execute within the decision window (15 minutes):
+
+**Decision Criteria for Rollback:**
+- Web app returns 5xx errors for more than 5% of requests
+- User registration or login is broken
+- Data corruption detected in Firestore
+- Critical security vulnerability discovered
+
+**Rollback — Firebase Hosting (immediate, < 2 minutes):**
+```bash
+# List previous releases
+firebase hosting:releases:list --project wishlist-wizard-prod
+
+# Roll back to previous version
+firebase hosting:rollback --project wishlist-wizard-prod
+```
+
+**Rollback — Firebase Functions:**
+```bash
+# Redeploy previous function version (requires previous build artifact)
+# Or: disable the specific function and revert code
+firebase deploy --only functions:functionName --project wishlist-wizard-prod
+```
+
+**Rollback — Firestore Rules:**
+```bash
+# Revert firestore.rules to previous version (via git)
+git checkout HEAD~1 -- firestore.rules
+firebase deploy --only firestore:rules --project wishlist-wizard-prod
+```
+
+- [ ] Rollback procedure tested on staging before launch day — Owner: _______
+- [ ] All team members know who has authority to call a rollback — Owner: _______
+- [ ] Previous build artifacts available (Firebase keeps last 10 releases) — Owner: _______
+
+---
+
+## Part 4 — Post-Launch
+
+### 4.1 First 24 Hours
+
+- [ ] Firebase console — monitor function error rates (target: < 1%) — Owner: _______
+- [ ] Firebase console — monitor Firestore read/write counts vs. quota — Owner: _______
+- [ ] Firebase console — review Auth usage for unusual patterns — Owner: _______
+- [ ] SendGrid dashboard — email delivery rates > 95% — Owner: _______
+- [ ] Firebase Analytics — new user count and session data flowing — Owner: _______
+- [ ] App Store Connect — review any early crash reports from TestFlight/App Review — Owner: _______
+- [ ] Play Console — review Android vitals for crashes/ANRs — Owner: _______
+- [ ] Customer support inbox — review and respond to first reports — Owner: _______
+- [ ] GitHub Actions — no unexpected workflow failures — Owner: _______
+- [ ] Monitoring daemon health check: `./automate.sh monitor status` — Owner: _______
+
+---
+
+### 4.2 First 48–72 Hours
+
+- [ ] App Store Review completed and app approved (iOS) — Owner: _______
+- [ ] Chrome Extension review completed and extension approved — Owner: _______
+- [ ] Android app promoted from internal → alpha/beta track — Owner: _______
+- [ ] Collect and review first user feedback — Owner: _______
+- [ ] Monitor Firebase Function cold start times — Owner: _______
+- [ ] Review Firestore query performance against configured indexes — Owner: _______
+- [ ] Baseline metrics snapshot compared to pre-launch baseline: `npm run metrics:baseline` — Owner: _______
+
+---
+
+### 4.3 First 7 Days
+
+- [ ] Firebase token rotation: `./automate.sh tokens rotate` — Owner: _______
+- [ ] Review and prioritize any bug reports — Owner: _______
+- [ ] Android app promoted to production track (if internal + alpha testing successful) — Owner: _______
+- [ ] iOS app publicly visible on App Store (after approval) — Owner: _______
+- [ ] Weekly status review with team — Owner: _______
+- [ ] Post-launch retrospective scheduled — Owner: _______
+
+---
+
+### 4.4 Ongoing Operations
+
+| Cadence | Task | Owner |
+|---|---|---|
+| Daily | Review Firebase console error dashboard | _______ |
+| Daily | Review monitoring logs and alerts | _______ |
+| Weekly | Review user feedback and support tickets | _______ |
+| Weekly | GitHub Actions cost review | _______ |
+| 30 days | Rotate GitHub PAT (`GH_TOKEN`) | _______ |
+| 7 days | Rotate Firebase token | _______ |
+| 90 days | Rotate JWT_SECRET | _______ |
+| 180 days | Rotate encryption keys | _______ |
+| Quarterly | Dependency audit: `npm audit` | _______ |
+| Quarterly | Review and update Firestore security rules | _______ |
+| Quarterly | Review Firebase Functions cold start optimization | _______ |
+
+---
+
+## Part 5 — Phase 2 Roadmap (Post-Launch)
+
+The following features are explicitly documented as deferred to Phase 2. Do not launch with them enabled unless fully tested:
+
+- **Price tracking** — planned; not in Phase 1 scope
+- **Affiliate monetization** — planned; not in Phase 1 scope
+- **Stripe group gifting payments** — partially scaffolded (2 Stripe callables warn in smoke tests); must be either fully implemented and tested, or gated behind a feature flag set to OFF at launch
+- **AI-powered recommendations** — requires OpenAI API key; may be included in Phase 1 if tested
+- **Barcode lookup** — 1 upstream dependency gap noted in smoke tests
+- **AR features** — Phase 3
+- **White-label / creator economy** — Phase 3
+
+For any Phase 2 feature that has scaffolding in the codebase, verify it is behind a feature flag or environment check so it degrades gracefully when unconfigured.
+
+---
+
+## Appendix A — Quick Reference Commands
+
+```bash
+# Full test suite (functions smoke + user smoke)
+npm run test:functions:smoke:all:strict
+npm run test:users:smoke
+
+# E2E against staging
+npm run test:e2e:staging
+
+# E2E against production (smoke only)
+npm run test:e2e:prod
+
+# Go-live gate
+./scripts/go-live-gate.sh
+
+# Release readiness
+npm run go-live:check
+
+# Deploy all
+npm run deploy
+
+# Deploy individual components
+npm run deploy:web       # Firebase Hosting
+npm run deploy:api       # Firebase Functions
+npm run deploy:mobile    # Flutter web build to Hosting
+
+# Package Chrome extension
+npm run package:extension:release
+
+# Start monitoring
+./automate.sh monitor start
+
+# Rotate tokens
+./automate.sh tokens rotate
+
+# Mobile preflight
+npm run preflight:mobile
+
+# Extension preflight
+npm run preflight:extension
+```
+
+---
+
+## Appendix B — Key Files Reference
+
+| File | Purpose |
+|---|---|
+| `firebase.prod.json` | Production Firebase configuration |
+| `firestore.rules` | Firestore security rules |
+| `firestore.indexes.json` | Firestore composite indexes |
+| `.firebaserc` | Firebase project aliases (dev/staging/prod) |
+| `apphosting.yaml` | Firebase App Hosting config |
+| `scripts/go-live-gate.sh` | Automated release readiness gate |
+| `scripts/release-readiness-check.sh` | Secondary readiness check |
+| `scripts/deploy.sh` | Deployment script |
+| `scripts/monitoring.sh` | Monitoring daemon |
+| `scripts/token-rotation.sh` | Token rotation automation |
+| `.github/workflows/master-pipeline.yml` | Main CI/CD pipeline |
+| `.github/workflows/ios-mobile-release.yml` | iOS build and release |
+| `.github/workflows/extension-build.yml` | Chrome extension build |
+| `.github/workflows/e2e-tests.yml` | End-to-end test runner |
+| `.github/workflows/production-validation.yml` | Post-deploy validation |
+| `packages/web/` | React web app |
+| `packages/functions/` | Firebase Cloud Functions |
+| `packages/mobile/` | Flutter mobile app |
+| `packages/browser-extension/` | Chrome extension |
+| `packages/shared/` | Shared TypeScript types/utils |
+| `.env.automation.development.example` | Automation environment variable template |
+
+---
+
+## Appendix C — Go-Live Gate Criteria (from scripts/go-live-gate.sh)
+
+The automated gate at `./scripts/go-live-gate.sh` enforces:
+
+| Check | Threshold | Blocking? |
+|---|---|---|
+| Git working directory clean | Clean or warn | Warn |
+| On develop/main branch | develop or main | Warn |
+| Firebase smoke test: zero failures | 0 hard failures | Yes |
+| Firebase smoke test: endpoints ready | ≥ 60 passed | Yes |
+| User flow smoke tests: no failures | 0 failed | Yes |
+| Playwright config exists | File present | Yes |
+| E2E test files count | ≥ 3 .spec.ts files | Warn |
+| GitHub Actions E2E workflow | File present | Warn |
+| Tier 1 features (10 core callables) | All 10 passing | Yes |
+| Tier 2 features (6 advanced callables) | ≥ 5 passing | Warn |
+| Documentation: RELEASE_READINESS_TIERED.md | Exists | Warn |
+| Documentation: LAUNCH_CHECKLIST.md | Exists | Warn |
+| Documentation: E2E_TESTING_GUIDE.md | Exists | Warn |
+| Playwright in package.json | Present | Warn |
+| Node modules installed | node_modules/ exists | Warn |
+| TypeScript config | tsconfig.json present | Warn |
+| Firebase config exists | firebase.json or firestore.rules | Warn |
+| Requirements matrix verification | npm run requirements:verify passes | Yes |
+
+---
+
+*This document was generated from analysis of the wishlist-wizard repository at commit state as of 2026-06-16. Update this document as the codebase evolves.*
