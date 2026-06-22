@@ -8,12 +8,41 @@
     <meta property="og:title" content="Wishlist Wizard - Smart Wishlist Management" />
     <meta property="og:description" content="Create, share, and manage wishlists with price tracking, collaboration, and personalized recommendations." />
     <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://wishlist-wizard-prod.web.app" />
+    <meta property="og:url" content="https://wishlist-wizard.com" />
     <link rel="icon" href="/favicon.ico" sizes="any" />
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/site.webmanifest" />
+  <!-- Google Consent Mode v2: deny all by default before any tag fires -->
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('consent', 'default', {
+      analytics_storage: 'denied',
+      ad_storage: 'denied',
+      ad_user_data: 'denied',
+      ad_personalization: 'denied',
+      functionality_storage: 'denied',
+      personalization_storage: 'denied',
+      security_storage: 'granted'
+    });
+    // Restore previously saved consent on page load so returning visitors
+    // don't see the banner again and tags fire immediately.
+    try {
+      var _c = JSON.parse(localStorage.getItem('ww_consent') || 'null');
+      if (_c && _c.decided) {
+        gtag('consent', 'update', {
+          analytics_storage: _c.analytics ? 'granted' : 'denied',
+          functionality_storage: _c.analytics ? 'granted' : 'denied',
+          personalization_storage: _c.analytics ? 'granted' : 'denied',
+          ad_storage: _c.marketing ? 'granted' : 'denied',
+          ad_user_data: _c.marketing ? 'granted' : 'denied',
+          ad_personalization: _c.marketing ? 'granted' : 'denied'
+        });
+      }
+    } catch(e) {}
+  </script>
   </head>
   <body>
     <div id="root"></div>

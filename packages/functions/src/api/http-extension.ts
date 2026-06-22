@@ -504,7 +504,7 @@ export const extensionShareWishlist = onRequest(async (req, res) => {
     });
 
     // Generate share URL (base URL depends on deployment environment)
-    const baseUrl = process.env.FIREBASE_CONFIG ? 'https://wishlist-wizard-dev.web.app' : 'https://wishlist-wizard-prod.web.app';
+    const baseUrl = process.env.FIREBASE_CONFIG ? 'https://wishlist-wizard-dev.web.app' : 'https://wishlist-wizard.com';
     const shareUrl = `${baseUrl}/wishlist/shared/${wishlistId}`;
 
     sendJson(res, { shareUrl, wishlistId });

@@ -387,3 +387,4 @@ v2-migration-msg.txt
 # Test artifacts
 playwright-report/
 test-results/
+test-ci-cd-pipeline.txt

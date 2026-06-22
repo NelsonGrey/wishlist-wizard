@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/models.dart';
 import '../providers/providers.dart';
+import '../widgets/admob_widgets.dart';
 import '../main.dart';
 
 class FirebaseWishlistsScreen extends StatefulWidget {
@@ -145,6 +146,17 @@ class _FirebaseWishlistsScreenState extends State<FirebaseWishlistsScreen> {
                         ),
                       ],
                     ),
+                  ),
+                  Consumer<SubscriptionProvider>(
+                    builder: (context, sub, _) {
+                      if (sub.tier == 'free') {
+                        return const AdContainer(
+                          label: 'Advertisement',
+                          child: BannerAdWidget(),
+                        );
+                      }
+                      return const SizedBox.shrink();
+                    },
                   ),
                   Expanded(
                     child: ListView.builder(

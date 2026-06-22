@@ -5,7 +5,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { Suspense, lazy, useEffect, useRef } from "react";
 import { getAnalyticsTracker } from "@shared/firebase-utils";
 import { useAuth } from "./contexts/AuthContext";
-import { initGA, trackPageView } from "./lib/analytics";
+import { trackPageView } from "./lib/analytics";
+import CookieConsentBanner from "./components/CookieConsentBanner";
 import { AuthProvider } from "./contexts/AuthContext";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 import { queryClient } from "./lib/queryClient";
@@ -81,7 +82,9 @@ function resolveRuntimeEnvironment(): 'development' | 'staging' | 'production' {
 
     if (
       hostname === 'wishlist-wizard-prod.web.app' ||
-      hostname === 'wishlist-wizard.web.app'
+      hostname === 'wishlist-wizard.web.app' ||
+      hostname === 'wishlist-wizard.com' ||
+      hostname === 'www.wishlist-wizard.com'
     ) {
       return 'production';
     }
@@ -153,14 +156,7 @@ function AppRouter() {
   const environment = resolveRuntimeEnvironment();
   const isProductionEnvironment = environment === 'production';
 
-  // Initialize Google Analytics when app loads
-  useEffect(() => {
-    // Initialize GA if key is provided (no warning if missing)
-    initGA();
-
-    // Firebase initialization is now handled by AuthProvider
-    // to ensure proper Auth initialization timing
-  }, []);
+  // GA is now loaded lazily by useConsent once the user grants analytics consent.
 
   return (
     <QueryClientProvider client={queryClient}>
@@ -168,6 +164,7 @@ function AppRouter() {
         <TooltipProvider>
           <Toaster />
           <Router>
+            <CookieConsentBanner />
             <AnalyticsRouteTracker />
             <LayoutRouter>
               <NonHomeEnvironmentGate>
@@ -179,10 +176,15 @@ function AppRouter() {
                   <Route path="/plans" component={Plans} />
                     <Route path="/about" component={About} />
                     <Route path="/blog" component={Blog} />
-                    <Route path="/contact" component={Contact} />
+                    {/* Canonical legal/support routes */}
                     <Route path="/terms" component={TermsOfService} />
-                    <Route path="/privacy-policy" component={PrivacyPolicy} />
-                    <Route path="/cookie-policy" component={CookiePolicy} />
+                    <Route path="/privacy" component={PrivacyPolicy} />
+                    <Route path="/cookies" component={CookiePolicy} />
+                    <Route path="/support" component={Contact} />
+                    {/* Legacy URL redirects — keep for backlinks / indexed pages */}
+                    <Route path="/privacy-policy" component={() => <Redirect to="/privacy" />} />
+                    <Route path="/cookie-policy" component={() => <Redirect to="/cookies" />} />
+                    <Route path="/contact" component={() => <Redirect to="/support" />} />
                     <Route path="/mobile-app-demo" component={MobileAppDemo} />
                     <Route path="/browser-extension-demo" component={BrowserExtensionDemo} />
                     <Route path="/social-integration-demo" component={SocialIntegrationDemo} />

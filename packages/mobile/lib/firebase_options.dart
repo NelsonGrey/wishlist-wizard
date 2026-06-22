@@ -22,17 +22,17 @@ class DefaultFirebaseOptions {
 
   static FirebaseOptions get currentPlatform {
     if (kIsWeb) {
-      return web;
+      return _webForEnv;
     }
     switch (defaultTargetPlatform) {
       case TargetPlatform.android:
-        return android;
+        return _androidForEnv;
       case TargetPlatform.iOS:
         return _iosForEnv;
       case TargetPlatform.macOS:
         return _macosForEnv;
       case TargetPlatform.windows:
-        return windows;
+        return _webForEnv;
       case TargetPlatform.linux:
         throw UnsupportedError(
           'DefaultFirebaseOptions have not been configured for linux - '
@@ -43,6 +43,34 @@ class DefaultFirebaseOptions {
           'DefaultFirebaseOptions have not been configured for fuchsia - '
           'you can reconfigure this by running the FlutterFire CLI again.',
         );
+    }
+  }
+
+  static FirebaseOptions get _webForEnv {
+    switch (firebaseEnv.toLowerCase()) {
+      case 'dev':
+      case 'develop':
+      case 'development':
+        return webDev;
+      case 'stage':
+      case 'staging':
+        return webStaging;
+      default:
+        return web;
+    }
+  }
+
+  static FirebaseOptions get _androidForEnv {
+    switch (firebaseEnv.toLowerCase()) {
+      case 'dev':
+      case 'develop':
+      case 'development':
+        return androidDev;
+      case 'stage':
+      case 'staging':
+        return androidStaging;
+      default:
+        return android;
     }
   }
 
@@ -65,94 +93,99 @@ class DefaultFirebaseOptions {
       case 'dev':
       case 'develop':
       case 'development':
-        return macosDev;
+        return iosDev;
       case 'stage':
       case 'staging':
-        return macosStaging;
+        return iosStaging;
       default:
-        return macos;
+        return ios;
     }
   }
 
+  // ── Production (wishlist-wizard-prod) ──────────────────────────────────────
+
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyDXBMWTCbNDi2MhWxhZL9BQA3xEnGDEf70',
-    appId: '1:1000918568663:web:143b262fb4bd8fd904ea92',
-    messagingSenderId: '1000918568663',
-    projectId: 'wishlist-wizard',
-    authDomain: 'wishlist-wizard.firebaseapp.com',
-    storageBucket: 'wishlist-wizard.firebasestorage.app',
-    measurementId: 'G-75WET6CFDE',
+    apiKey: 'AIzaSyCbpeOZbE49Bx58pE-TZnSkb1C6LuXZYBY',
+    appId: '1:464233600681:web:7591d99a2258b082957bb8',
+    messagingSenderId: '464233600681',
+    projectId: 'wishlist-wizard-prod',
+    authDomain: 'wishlist-wizard-prod.firebaseapp.com',
+    storageBucket: 'wishlist-wizard-prod.firebasestorage.app',
+    measurementId: 'G-EVSC05Z24C',
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyDs93rijhaegkhZyanNyNBT9Ps2j8ZmrCM',
-    appId: '1:1000918568663:android:4f0b526ad64522d704ea92',
-    messagingSenderId: '1000918568663',
-    projectId: 'wishlist-wizard',
-    storageBucket: 'wishlist-wizard.firebasestorage.app',
+    apiKey: 'AIzaSyCWBTcCm5NDaBvlBK251cAlBNnyuOAyyr8',
+    appId: '1:464233600681:android:3674b697f74dcf2f957bb8',
+    messagingSenderId: '464233600681',
+    projectId: 'wishlist-wizard-prod',
+    storageBucket: 'wishlist-wizard-prod.firebasestorage.app',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyAUFasexruct9M9HVzzG9o2S4upVeuks7c',
-    appId: '1:1000918568663:ios:93f8e4c5e1480b6b04ea92',
-    messagingSenderId: '1000918568663',
-    projectId: 'wishlist-wizard',
-    storageBucket: 'wishlist-wizard.firebasestorage.app',
+    apiKey: 'AIzaSyD-c5SJNvcvWYIJeM_c2fWyW6iusQeSXrQ',
+    appId: '1:464233600681:ios:96af1444cfdb7996957bb8',
+    messagingSenderId: '464233600681',
+    projectId: 'wishlist-wizard-prod',
+    storageBucket: 'wishlist-wizard-prod.firebasestorage.app',
     iosBundleId: 'com.nelsongrey.wishlistwizard.app.ios',
+  );
+
+  // ── Development (wishlist-wizard-dev) ─────────────────────────────────────
+
+  static const FirebaseOptions webDev = FirebaseOptions(
+    apiKey: 'AIzaSyBKaPCEKcIUaqn5GJNFNSBU799_wQPLCZo',
+    appId: '1:1055615167809:web:4aa8734ea763474c5485c0',
+    messagingSenderId: '1055615167809',
+    projectId: 'wishlist-wizard-dev',
+    authDomain: 'wishlist-wizard-dev.firebaseapp.com',
+    storageBucket: 'wishlist-wizard-dev.firebasestorage.app',
+    measurementId: 'G-R9N3G478FF',
+  );
+
+  static const FirebaseOptions androidDev = FirebaseOptions(
+    apiKey: 'AIzaSyAvV2MI-A0pJAsCHu9mSIBXhZGNL42Qz8M',
+    appId: '1:1055615167809:android:3d52fc8b06b344e15485c0',
+    messagingSenderId: '1055615167809',
+    projectId: 'wishlist-wizard-dev',
+    storageBucket: 'wishlist-wizard-dev.firebasestorage.app',
   );
 
   static const FirebaseOptions iosDev = FirebaseOptions(
-    apiKey: 'AIzaSyAUFasexruct9M9HVzzG9o2S4upVeuks7c',
-    appId: '1:1000918568663:ios:93f8e4c5e1480b6b04ea92',
-    messagingSenderId: '1000918568663',
+    apiKey: 'AIzaSyBO1gSdOqTIjNz1mWHSaZnhDc4hPNnlT6A',
+    appId: '1:1055615167809:ios:0eb227596e9e64715485c0',
+    messagingSenderId: '1055615167809',
     projectId: 'wishlist-wizard-dev',
     storageBucket: 'wishlist-wizard-dev.firebasestorage.app',
     iosBundleId: 'com.nelsongrey.wishlistwizard.app.ios',
+  );
+
+  // ── Staging (wishlist-wizard-staging) ─────────────────────────────────────
+
+  static const FirebaseOptions webStaging = FirebaseOptions(
+    apiKey: 'AIzaSyA10PFvlDF4OenGG70hHEo4mIWbWJ10aVI',
+    appId: '1:1039527515823:web:6b189a8d597a16d9dee65a',
+    messagingSenderId: '1039527515823',
+    projectId: 'wishlist-wizard-staging',
+    authDomain: 'wishlist-wizard-staging.firebaseapp.com',
+    storageBucket: 'wishlist-wizard-staging.firebasestorage.app',
+    measurementId: 'G-49ZJQVE5GH',
+  );
+
+  static const FirebaseOptions androidStaging = FirebaseOptions(
+    apiKey: 'AIzaSyCIeL17Pyydg7NAImCh64pwnvIV2RxPxrk',
+    appId: '1:1039527515823:android:ddd4f0bca0411bbddee65a',
+    messagingSenderId: '1039527515823',
+    projectId: 'wishlist-wizard-staging',
+    storageBucket: 'wishlist-wizard-staging.firebasestorage.app',
   );
 
   static const FirebaseOptions iosStaging = FirebaseOptions(
-    apiKey: 'AIzaSyAUFasexruct9M9HVzzG9o2S4upVeuks7c',
-    appId: '1:1000918568663:ios:93f8e4c5e1480b6b04ea92',
-    messagingSenderId: '1000918568663',
+    apiKey: 'AIzaSyDd7wB94TpmEtIgyFeADs2iB0ll8E6BIMQ',
+    appId: '1:1039527515823:ios:74badb9bdfe11b2bdee65a',
+    messagingSenderId: '1039527515823',
     projectId: 'wishlist-wizard-staging',
     storageBucket: 'wishlist-wizard-staging.firebasestorage.app',
     iosBundleId: 'com.nelsongrey.wishlistwizard.app.ios',
-  );
-
-  static const FirebaseOptions macos = FirebaseOptions(
-    apiKey: 'AIzaSyAUFasexruct9M9HVzzG9o2S4upVeuks7c',
-    appId: '1:1000918568663:ios:93f8e4c5e1480b6b04ea92',
-    messagingSenderId: '1000918568663',
-    projectId: 'wishlist-wizard',
-    storageBucket: 'wishlist-wizard.firebasestorage.app',
-    iosBundleId: 'com.nelsongrey.wishlistwizard.app.ios',
-  );
-
-  static const FirebaseOptions macosDev = FirebaseOptions(
-    apiKey: 'AIzaSyAUFasexruct9M9HVzzG9o2S4upVeuks7c',
-    appId: '1:1000918568663:ios:93f8e4c5e1480b6b04ea92',
-    messagingSenderId: '1000918568663',
-    projectId: 'wishlist-wizard-dev',
-    storageBucket: 'wishlist-wizard-dev.firebasestorage.app',
-    iosBundleId: 'com.nelsongrey.wishlistwizard.app.ios',
-  );
-
-  static const FirebaseOptions macosStaging = FirebaseOptions(
-    apiKey: 'AIzaSyAUFasexruct9M9HVzzG9o2S4upVeuks7c',
-    appId: '1:1000918568663:ios:93f8e4c5e1480b6b04ea92',
-    messagingSenderId: '1000918568663',
-    projectId: 'wishlist-wizard-staging',
-    storageBucket: 'wishlist-wizard-staging.firebasestorage.app',
-    iosBundleId: 'com.nelsongrey.wishlistwizard.app.ios',
-  );
-
-  static const FirebaseOptions windows = FirebaseOptions(
-    apiKey: 'AIzaSyDXBMWTCbNDi2MhWxhZL9BQA3xEnGDEf70',
-    appId: '1:1000918568663:web:143b262fb4bd8fd904ea92',
-    messagingSenderId: '1000918568663',
-    projectId: 'wishlist-wizard',
-    authDomain: 'wishlist-wizard.firebaseapp.com',
-    storageBucket: 'wishlist-wizard.firebasestorage.app',
-    measurementId: 'G-75WET6CFDE',
   );
 }

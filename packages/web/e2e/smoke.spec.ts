@@ -10,7 +10,7 @@ const menuToggleSelector = 'button[aria-label*="menu" i], button[aria-label*="na
 
 function isProductionTarget() {
   const target = String(process.env.TEST_URL || '').toLowerCase();
-  return target.includes('wishlist-wizard-prod.web.app') || target.includes('wishlist-wizard.web.app');
+  return target.includes('wishlist-wizard-prod.web.app') || target.includes('wishlist-wizard.web.app') || target.includes('wishlist-wizard.com');
 }
 
 async function hasPrimaryNavigation(page: Page) {
