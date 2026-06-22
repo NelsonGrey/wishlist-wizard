@@ -29,7 +29,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
           {/* Help text */}
           <div className="hidden md:flex items-center text-sm text-gray-600">
             <span>Need help? </span>
-            <Link href="/contact" className="text-emerald-700 hover:text-emerald-800 ml-1 font-medium transition-colors">
+            <Link href="/support" className="text-emerald-700 hover:text-emerald-800 ml-1 font-medium transition-colors">
               Contact us
             </Link>
           </div>

@@ -2,40 +2,34 @@ import { Link } from "wouter";
 
 export default function Footer() {
   return (
-    <footer className="bg-gray-900 text-white py-12">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-          <div>
-            <h3 className="text-lg font-bold mb-4">Wishlist Wizard</h3>
-            <p className="text-gray-400">The easiest way to track and share your wishlists across the web.</p>
+    <footer className="flex-none bg-emerald-900 text-white">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          {/* Brand */}
+          <div className="flex items-center gap-2.5">
+            <img src="/logo.svg" alt="Wishlist Wizard" className="h-6 w-6" />
+            <span className="font-semibold text-sm">Wishlist Wizard</span>
           </div>
-          <div>
-            <h4 className="text-md font-semibold mb-4">Resources</h4>
-            <ul className="space-y-2">
-              <li><Link href="/extension" className="text-gray-400 hover:text-white transition">How It Works</Link></li>
-              <li><Link href="/extension" className="text-gray-400 hover:text-white transition">Download Extension</Link></li>
-              <li><Link href="/extension" className="text-gray-400 hover:text-white transition">Supported Stores</Link></li>
-            </ul>
-          </div>
-          <div>
-            <h4 className="text-md font-semibold mb-4">Company</h4>
-            <ul className="space-y-2">
-              <li><Link href="/about" className="text-gray-400 hover:text-white transition">About Us</Link></li>
-              <li><Link href="/blog" className="text-gray-400 hover:text-white transition">Blog</Link></li>
-              <li><Link href="/contact" className="text-gray-400 hover:text-white transition">Contact</Link></li>
-            </ul>
-          </div>
-          <div>
-            <h4 className="text-md font-semibold mb-4">Legal</h4>
-            <ul className="space-y-2">
-              <li><Link href="/privacy-policy" className="text-gray-400 hover:text-white transition">Privacy Policy</Link></li>
-              <li><Link href="/terms" className="text-gray-400 hover:text-white transition">Terms of Service</Link></li>
-              <li><Link href="/cookie-policy" className="text-gray-400 hover:text-white transition">Cookie Policy</Link></li>
-            </ul>
-          </div>
+
+          {/* Main nav */}
+          <nav className="flex flex-wrap gap-x-5 gap-y-1 text-sm text-emerald-200">
+            <Link href="/about" className="hover:text-white transition-colors">About</Link>
+            <Link href="/blog" className="hover:text-white transition-colors">Blog</Link>
+            <Link href="/plans" className="hover:text-white transition-colors">Plans</Link>
+            <Link href="/extension" className="hover:text-white transition-colors">Extension</Link>
+            <Link href="/support" className="hover:text-white transition-colors">Support</Link>
+          </nav>
+
+          {/* Legal */}
+          <nav className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-emerald-300">
+            <Link href="/privacy" className="hover:text-white transition-colors">Privacy</Link>
+            <Link href="/terms" className="hover:text-white transition-colors">Terms</Link>
+            <Link href="/cookies" className="hover:text-white transition-colors">Cookies</Link>
+          </nav>
         </div>
-        <div className="border-t border-gray-800 mt-8 pt-8">
-          <p className="text-gray-400 text-sm">© {new Date().getFullYear()} Wishlist Wizard. All rights reserved.</p>
+
+        <div className="mt-3 pt-3 border-t border-emerald-800 text-xs text-emerald-400 text-center sm:text-left">
+          © {new Date().getFullYear()} Wishlist Wizard. All rights reserved.
         </div>
       </div>
     </footer>

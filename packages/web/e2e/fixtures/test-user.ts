@@ -44,7 +44,7 @@ export function getTestUrl(): string {
   }
 
   if (process.env.PRODUCTION === 'true') {
-    return 'https://wishlist-wizard-prod.web.app';
+    return 'https://wishlist-wizard.com';
   }
 
   // Default to dev

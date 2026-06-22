@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import 'forgot_password_screen.dart';
@@ -79,24 +78,6 @@ class _LoginScreenState extends State<LoginScreen> {
                         mainAxisAlignment: MainAxisAlignment.start,
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          if (kDebugMode) ...[
-                            Container(
-                              padding: const EdgeInsets.symmetric(vertical: 8),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFF4C1D95),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: const Text(
-                                'DEBUG: Login Screen Active',
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 20),
-                          ],
                           // App Logo/Title
                           const Icon(
                             Icons.card_giftcard,

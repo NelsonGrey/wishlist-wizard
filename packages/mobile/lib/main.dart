@@ -9,6 +9,7 @@ import 'firebase_options.dart';
 import 'models/models.dart';
 import 'providers/providers.dart';
 import 'services/services.dart';
+import 'services/admob_service.dart';
 import 'screens/login_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/firebase_wishlists_screen.dart';
@@ -31,6 +32,9 @@ void main() async {
 
   // Initialize Firebase
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
+  // Initialize AdMob (must come after Firebase, before runApp)
+  await AdMobManager().initialize();
   if (kDebugMode) {
     debugPrint(
       '[Bootstrap] FIREBASE_ENV=${DefaultFirebaseOptions.firebaseEnv}',

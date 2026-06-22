@@ -6,30 +6,33 @@ declare global {
   }
 }
 
-// Initialize Google Analytics
+let _gaLoaded = false;
+
+// Initialize Google Analytics — only call after the user has granted analytics consent.
+// The Consent Mode v2 defaults in index.html ensure no data is sent before this runs.
 export const initGA = () => {
   const measurementId = import.meta.env.VITE_GA_MEASUREMENT_ID;
+  if (!measurementId || _gaLoaded) return;
 
-  if (!measurementId) {
-    // Silently skip GA initialization if no key provided
+  // Verify consent before loading the script
+  try {
+    const stored = JSON.parse(localStorage.getItem('ww_consent') || 'null');
+    if (!stored?.analytics) return;
+  } catch {
     return;
   }
 
-  // Add Google Analytics script to the head
-  const script1 = document.createElement('script');
-  script1.async = true;
-  script1.src = `https://www.googletagmanager.com/gtag/js?id=${measurementId}`;
-  document.head.appendChild(script1);
+  _gaLoaded = true;
 
-  // Initialize gtag
-  const script2 = document.createElement('script');
-  script2.innerHTML = `
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-    gtag('config', '${measurementId}');
-  `;
-  document.head.appendChild(script2);
+  const script = document.createElement('script');
+  script.async = true;
+  script.src = `https://www.googletagmanager.com/gtag/js?id=${measurementId}`;
+  document.head.appendChild(script);
+
+  window.dataLayer = window.dataLayer || [];
+  window.gtag = function gtag() { window.dataLayer.push(arguments); };
+  window.gtag('js', new Date());
+  window.gtag('config', measurementId);
 };
 
 // Track page views - useful for single-page applications

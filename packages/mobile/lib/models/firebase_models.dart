@@ -1,4 +1,18 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'wishlist.dart';
+
+DateTime _parseDate(dynamic v, {DateTime? fallback}) {
+  if (v is Timestamp) return v.toDate();
+  if (v is String) return DateTime.tryParse(v) ?? (fallback ?? DateTime.now());
+  return fallback ?? DateTime.now();
+}
+
+DateTime? _parseDateNullable(dynamic v) {
+  if (v == null) return null;
+  if (v is Timestamp) return v.toDate();
+  if (v is String) return DateTime.tryParse(v);
+  return null;
+}
 
 enum Priority { low, medium, high }
 
@@ -54,8 +68,8 @@ class FirebaseWishlist {
       userId: data['userId'] ?? '',
       isPublic: data['isPublic'] ?? false,
       tags: List<String>.from(data['tags'] ?? []),
-      createdAt: (data['createdAt'] as DateTime?) ?? DateTime.now(),
-      updatedAt: (data['updatedAt'] as DateTime?) ?? DateTime.now(),
+      createdAt: _parseDate(data['createdAt']),
+      updatedAt: _parseDate(data['updatedAt']),
     );
   }
 
@@ -147,11 +161,11 @@ class FirebaseWishlistItem {
       userId: data['userId'] ?? '',
       isPurchased: data['isPurchased'] ?? false,
       purchasedBy: data['purchasedBy'],
-      purchasedAt: data['purchasedAt'] as DateTime?,
+      purchasedAt: _parseDateNullable(data['purchasedAt']),
       tags: List<String>.from(data['tags'] ?? []),
       priority: _stringToPriority(data['priority']),
-      createdAt: (data['createdAt'] as DateTime?) ?? DateTime.now(),
-      updatedAt: (data['updatedAt'] as DateTime?) ?? DateTime.now(),
+      createdAt: _parseDate(data['createdAt']),
+      updatedAt: _parseDate(data['updatedAt']),
     );
   }
 
@@ -232,8 +246,8 @@ class FirebaseNotification {
       message: data['message'] ?? '',
       type: _stringToNotificationType(data['type']),
       isRead: data['isRead'] ?? false,
-      createdAt: (data['createdAt'] as DateTime?) ?? DateTime.now(),
-      readAt: data['readAt'] as DateTime?,
+      createdAt: _parseDate(data['createdAt']),
+      readAt: _parseDateNullable(data['readAt']),
       metadata: Map<String, dynamic>.from(data['metadata'] ?? {}),
     );
   }
