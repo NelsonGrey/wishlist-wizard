@@ -4,8 +4,8 @@ import PlansComparisonMatrix from "@/components/PlansComparisonMatrix";
 export default function Plans() {
   return (
     <div className="flex flex-col">
-      <section className="bg-gradient-to-br from-emerald-700 via-green-700 to-teal-700 text-white py-14 md:py-16">
-        <div className="container mx-auto px-4 text-center max-w-4xl">
+      <section className="py-10 md:py-12 px-4 sm:px-6 lg:px-8">
+        <div className="container mx-auto max-w-4xl bg-emerald-900 text-white rounded-2xl px-8 py-10 md:py-12 text-center">
           <p className="uppercase tracking-[0.24em] text-emerald-100/90 text-sm font-semibold mb-4">
             Pricing
           </p>
