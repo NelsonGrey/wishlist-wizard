@@ -9,8 +9,18 @@ import { test, expect, Page, devices, Browser } from '@playwright/test';
 const menuToggleSelector = 'button[aria-label*="menu" i], button[aria-label*="navigation" i], .mobile-menu-toggle, .hamburger, [data-testid="hamburger"]';
 
 function isProductionTarget() {
-  const target = String(process.env.TEST_URL || '').toLowerCase();
-  return target.includes('wishlist-wizard-prod.web.app') || target.includes('wishlist-wizard.web.app') || target.includes('wishlist-wizard.com');
+  const target = String(process.env.TEST_URL || '');
+  try {
+    const { hostname } = new URL(target);
+    return (
+      hostname === 'wishlist-wizard-prod.web.app' ||
+      hostname === 'wishlist-wizard.web.app' ||
+      hostname === 'wishlist-wizard.com' ||
+      hostname === 'www.wishlist-wizard.com'
+    );
+  } catch {
+    return false;
+  }
 }
 
 async function hasPrimaryNavigation(page: Page) {
