@@ -156,7 +156,7 @@ function AppRouter() {
   const environment = resolveRuntimeEnvironment();
   const isProductionEnvironment = environment === 'production';
 
-  // GA is now loaded lazily by useConsent once the user grants analytics consent.
+  // Analytics is handled by GTM (GTM-KRDC75LR loaded in index.html) + Consent Mode v2.
 
   return (
     <QueryClientProvider client={queryClient}>

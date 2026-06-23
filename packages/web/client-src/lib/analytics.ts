@@ -1,50 +1,17 @@
-// Define the gtag function globally
+// Define the dataLayer/gtag globals set up by GTM (loaded in index.html).
 declare global {
   interface Window {
-    dataLayer: unknown[];
+    dataLayer: Record<string, unknown>[];
     gtag: (...args: unknown[]) => void;
   }
 }
 
-let _gaLoaded = false;
-
-// Initialize Google Analytics — only call after the user has granted analytics consent.
-// The Consent Mode v2 defaults in index.html ensure no data is sent before this runs.
-export const initGA = () => {
-  const measurementId = import.meta.env.VITE_GA_MEASUREMENT_ID;
-  if (!measurementId || _gaLoaded) return;
-
-  // Verify consent before loading the script
-  try {
-    const stored = JSON.parse(localStorage.getItem('ww_consent') || 'null');
-    if (!stored?.analytics) return;
-  } catch {
-    return;
-  }
-
-  _gaLoaded = true;
-
-  const script = document.createElement('script');
-  script.async = true;
-  script.src = `https://www.googletagmanager.com/gtag/js?id=${measurementId}`;
-  document.head.appendChild(script);
-
-  window.dataLayer = window.dataLayer || [];
-  window.gtag = function gtag() { window.dataLayer.push(arguments); };
-  window.gtag('js', new Date());
-  window.gtag('config', measurementId);
-};
-
-// Track page views - useful for single-page applications
+// Track SPA page views via GTM dataLayer.
+// GTM should have a Custom Event trigger on "page_view" wired to a GA4 tag.
 export const trackPageView = (url: string) => {
-  if (typeof window === 'undefined' || !window.gtag) return;
-  
-  const measurementId = import.meta.env.VITE_GA_MEASUREMENT_ID;
-  if (!measurementId) return;
-  
-  window.gtag('config', measurementId, {
-    page_path: url
-  });
+  if (typeof window === 'undefined') return;
+  window.dataLayer = window.dataLayer || [];
+  window.dataLayer.push({ event: 'page_view', page_path: url, page_title: document.title });
 };
 
 // Track events

@@ -43,10 +43,7 @@ export function useConsent() {
     applyToGtag(next);
     setConsentState(next);
 
-    // Load GA now if analytics just became granted and it hasn't loaded yet.
-    if (next.analytics && typeof window.gtag === "function") {
-      import("../lib/analytics").then(({ initGA }) => initGA());
-    }
+    // GTM + Consent Mode handles GA loading automatically once consent is updated above.
   }, []);
 
   const acceptAll = useCallback(() => {
