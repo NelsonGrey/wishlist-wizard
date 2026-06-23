@@ -106,14 +106,20 @@ export function AdUnit({
   useEffect(() => {
     // Only push the ad to Google AdSense when the component mounts and we have a publisherId
     if (publisherId && !loading) {
-      try {
-        // Initialize the adsbygoogle object if it doesn't exist
-        (window.adsbygoogle = window.adsbygoogle || []).push({});
-        trackEvent('ad_slot_rendered', 'advertising', slot);
-      } catch (error) {
-        console.error('AdSense error:', error);
-        trackEvent('ad_slot_render_failed', 'advertising', slot);
-      }
+      // Defer until after paint so the <ins> has been laid out and has non-zero width.
+      // AdSense throws "No slot size for availableWidth=0" when pushed against a 0-width element.
+      const frame = requestAnimationFrame(() => {
+        const adEl = adElementRef.current;
+        if (!adEl || adEl.offsetWidth === 0) return;
+        try {
+          (window.adsbygoogle = window.adsbygoogle || []).push({});
+          trackEvent('ad_slot_rendered', 'advertising', slot);
+        } catch (error) {
+          console.error('AdSense error:', error);
+          trackEvent('ad_slot_render_failed', 'advertising', slot);
+        }
+      });
+      return () => cancelAnimationFrame(frame);
     }
   }, [publisherId, loading, slot]);
 
@@ -170,6 +176,7 @@ export function AdUnit({
           adElementRef.current = element;
         }}
         className="adsbygoogle"
+        style={{ display: 'block', width: '100%' }}
         data-ad-client={publisherId}
         data-ad-slot={slot}
         data-ad-format={format}
