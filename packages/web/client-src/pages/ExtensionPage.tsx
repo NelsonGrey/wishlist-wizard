@@ -81,11 +81,52 @@ const ExtensionPage = () => {
           </div>
           
           <div className="flex items-center justify-center">
-            <img 
-              src="/extension/screenshot.png" 
-              alt="Wishlist Wizard Extension Screenshot" 
-              className="rounded-lg shadow-lg w-full max-w-md"
-            />
+            {/* Browser chrome mockup — replace outer div contents with a real screenshot once available */}
+            <div className="w-full max-w-sm rounded-xl shadow-xl overflow-hidden border border-gray-200">
+              {/* Browser toolbar */}
+              <div className="bg-gray-100 px-4 py-2 flex items-center gap-2 border-b border-gray-200">
+                <div className="flex gap-1.5">
+                  <div className="w-3 h-3 rounded-full bg-red-400" />
+                  <div className="w-3 h-3 rounded-full bg-yellow-400" />
+                  <div className="w-3 h-3 rounded-full bg-green-400" />
+                </div>
+                <div className="flex-1 bg-white rounded-md px-3 py-1 text-xs text-gray-400 border border-gray-200 truncate">
+                  amazon.com/product/…
+                </div>
+                {/* Extension icon in toolbar */}
+                <div className="w-6 h-6 rounded bg-emerald-700 flex items-center justify-center flex-shrink-0">
+                  <svg viewBox="0 0 24 24" className="w-4 h-4 fill-white" aria-hidden="true">
+                    <path d="M19 3H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V5a2 2 0 00-2-2zm-7 14l-5-5 1.41-1.41L12 14.17l7.59-7.59L21 8l-9 9z"/>
+                  </svg>
+                </div>
+              </div>
+              {/* Extension popup */}
+              <div className="bg-white p-5">
+                <div className="flex items-center gap-3 mb-4 pb-3 border-b border-gray-100">
+                  <div className="w-8 h-8 rounded-lg bg-emerald-700 flex items-center justify-center flex-shrink-0">
+                    <svg viewBox="0 0 24 24" className="w-5 h-5 fill-white" aria-hidden="true">
+                      <path d="M19 3H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V5a2 2 0 00-2-2zm-7 14l-5-5 1.41-1.41L12 14.17l7.59-7.59L21 8l-9 9z"/>
+                    </svg>
+                  </div>
+                  <span className="font-semibold text-gray-800 text-sm">Wishlist Wizard</span>
+                </div>
+                <div className="bg-gray-50 rounded-lg p-3 mb-3 flex gap-3">
+                  <div className="w-14 h-14 bg-gray-200 rounded-md flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <div className="h-3 bg-gray-300 rounded mb-1.5 w-full" />
+                    <div className="h-3 bg-gray-200 rounded mb-2 w-2/3" />
+                    <div className="h-4 bg-emerald-100 rounded w-1/3 flex items-center justify-center">
+                      <span className="text-[10px] font-semibold text-emerald-700">$49.99</span>
+                    </div>
+                  </div>
+                </div>
+                <div className="text-xs text-gray-500 mb-2">Save to wishlist:</div>
+                <div className="border border-gray-200 rounded-lg px-3 py-2 text-xs text-gray-400 mb-3">My Wishlist ▾</div>
+                <div className="bg-emerald-700 text-white text-xs font-semibold text-center py-2.5 rounded-lg">
+                  Add to Wishlist
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
