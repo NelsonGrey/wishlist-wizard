@@ -81,7 +81,7 @@ export default function CalendarIntegrationDemo() {
                 </div>
                 <div>
                   <h3 className="font-semibold text-lg text-slate-900">Sync Your Calendars</h3>
-                  <p className="text-slate-600 mt-1">Connect to Google Calendar, Outlook, Apple Calendar, or other popular calendar apps.</p>
+                  <p className="text-slate-600 mt-1">Connect to Google Calendar, Outlook, or Apple Calendar to sync events with your wishlists.</p>
                 </div>
               </div>
             </div>
@@ -157,14 +157,24 @@ export default function CalendarIntegrationDemo() {
 
         {/* Supported Calendars */}
         <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-8 mb-8">
-          <h2 className="text-2xl font-bold text-slate-900 mb-6">Works With All Major Calendars</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {["Google Calendar", "Outlook", "Apple Calendar", "Synology Calendar", "NextCloud", "CalDAV", "iCal", "Zoho Calendar"].map((cal) => (
-              <div key={cal} className="bg-white border border-emerald-200 rounded-lg p-4 text-center font-medium text-slate-900 hover:bg-emerald-100 transition-colors">
-                {cal}
+          <h2 className="text-2xl font-bold text-slate-900 mb-2">Supported Calendars</h2>
+          <p className="text-slate-600 mb-6">Connect one of these calendar services to sync important dates with your wishlists.</p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            {[
+              { name: "Google Calendar", desc: "Sign in with Google to sync your events" },
+              { name: "Outlook", desc: "Connect your Microsoft account" },
+              { name: "Apple Calendar", desc: "Subscribe via iCal URL" },
+            ].map((cal) => (
+              <div key={cal.name} className="bg-white border border-emerald-200 rounded-lg p-4 hover:bg-emerald-100 transition-colors">
+                <div className="flex items-center gap-2 mb-1">
+                  <CheckCircle className="text-emerald-600 flex-shrink-0" size={16} />
+                  <span className="font-medium text-slate-900">{cal.name}</span>
+                </div>
+                <p className="text-xs text-slate-500 pl-6">{cal.desc}</p>
               </div>
             ))}
           </div>
+          <p className="text-sm text-slate-500">More calendar integrations coming soon.</p>
         </div>
 
         {/* CTA */}
