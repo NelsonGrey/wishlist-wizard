@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import { Link, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -42,10 +42,11 @@ export default function AppLayout({ children }: AppLayoutProps) {
   const [location] = useLocation();
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
   const { user, signOut } = useAuth();
+  const mainRef = useRef<HTMLElement>(null);
 
   // Scroll to top when location changes
   useEffect(() => {
-    window.scrollTo(0, 0);
+    mainRef.current?.scrollTo(0, 0);
   }, [location]);
 
   const currentUser = user;
@@ -86,7 +87,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
   ];
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50">
+    <div className="h-screen flex flex-col overflow-hidden bg-gray-50">
       {/* App Header */}
       <header className="bg-white border-b border-emerald-100 sticky top-0 z-10 shadow-sm">
         <div className="container mx-auto px-4 py-3 flex items-center justify-between">
@@ -249,8 +250,8 @@ export default function AppLayout({ children }: AppLayoutProps) {
 
       <GlobalAdSlot placement="top" />
 
-      {/* Main content */}
-      <main className="flex-1 bg-gray-50">
+      {/* Main content — scrolls within viewport so footer stays pinned */}
+      <main ref={mainRef} className="flex-1 overflow-y-auto bg-gray-50">
         {children}
       </main>
 
