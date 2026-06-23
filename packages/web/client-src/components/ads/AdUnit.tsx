@@ -171,17 +171,24 @@ export function AdUnit({
       className={`ad-unit ${className}`}
       onClick={() => trackEvent('ad_slot_container_click', 'advertising', slot)}
     >
-      <ins
-        ref={(element) => {
-          adElementRef.current = element;
-        }}
-        className="adsbygoogle"
-        style={{ display: 'block', width: '100%' }}
-        data-ad-client={publisherId}
-        data-ad-slot={slot}
-        data-ad-format={format}
-        data-full-width-responsive={responsive ? 'true' : 'false'}
-      />
+      {import.meta.env.DEV && (
+        <div className="flex items-center justify-center min-h-[90px] bg-gray-100 border-2 border-dashed border-gray-300 text-gray-400 text-xs font-mono rounded">
+          Ad slot {slot}
+        </div>
+      )}
+      {!import.meta.env.DEV && (
+        <ins
+          ref={(element) => {
+            adElementRef.current = element;
+          }}
+          className="adsbygoogle"
+          style={{ display: 'block', width: '100%' }}
+          data-ad-client={publisherId}
+          data-ad-slot={slot}
+          data-ad-format={format}
+          data-full-width-responsive={responsive ? 'true' : 'false'}
+        />
+      )}
     </div>
   );
 }
