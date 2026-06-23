@@ -1,4 +1,4 @@
-// WishKeeper Extension - Coupon Finder Module
+// Wishlist Wizard Extension - Coupon Finder Module
 // This script handles finding and applying coupons for the current product
 
 // List of popular coupon websites and their APIs

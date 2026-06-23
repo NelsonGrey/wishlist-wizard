@@ -1,5 +1,5 @@
 /**
- * WishKeeper Extension Packaging Script
+ * Wishlist Wizard Extension Packaging Script
  * 
  * This script creates browser-specific ZIP files of the extension for distribution.
  * 
@@ -20,9 +20,9 @@ const browser = argv.browser || 'chrome'; // Default to Chrome if not specified
 // Configuration
 const OUTPUT_DIR = path.join(__dirname, 'dist');
 const VERSION = require('./manifest.json').version;
-const OUTPUT_FILE = path.join(OUTPUT_DIR, `wishkeeper-extension-${browser}-v${VERSION}.zip`);
+const OUTPUT_FILE = path.join(OUTPUT_DIR, `wishlist-wizard-extension-${browser}-v${VERSION}.zip`);
 
-console.log(`🔧 Packaging WishKeeper extension for ${browser.toUpperCase()} v${VERSION}`);
+console.log(`🔧 Packaging Wishlist Wizard extension for ${browser.toUpperCase()} v${VERSION}`);
 
 // Browser-specific manifest adjustments
 const manifestAdjustments = {

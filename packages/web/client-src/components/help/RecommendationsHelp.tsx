@@ -3,9 +3,9 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 
 export function RecommendationsHelp() {
   return (
-    <HelpDialog title="AI-Powered Recommendations Help">
+    <HelpDialog title="Personalized Recommendations Help">
       <p className="text-sm text-muted-foreground mb-4">
-        Get personalized gift suggestions with our AI-powered recommendation system.
+        Get personalized gift suggestions based on your wishlist activity and preferences.
         Here&apos;s everything you need to know:
       </p>
 
@@ -14,7 +14,7 @@ export function RecommendationsHelp() {
           <AccordionTrigger>How Do Recommendations Work?</AccordionTrigger>
           <AccordionContent>
             <p className="text-sm mb-2">
-              Our AI recommendation system analyzes several factors to suggest gifts you might like:
+              Our recommendation engine analyzes several factors to suggest gifts you might like:
             </p>
             <ul className="text-sm list-disc pl-5 space-y-1">
               <li>Your past wishlist items</li>
@@ -37,10 +37,10 @@ export function RecommendationsHelp() {
                 <strong>Complete your preferences:</strong> Go to your profile settings and fill out your interests, favorite colors, sizes, and brands.
               </li>
               <li>
-                <strong>Add more items to wishlists:</strong> The more items you add, the better the AI understands your tastes.
+                <strong>Add more items to wishlists:</strong> The more items you add, the better we understand your tastes.
               </li>
               <li>
-                <strong>Provide feedback:</strong> Rate recommendations with thumbs up/down to help the AI learn.
+                <strong>Provide feedback:</strong> Rate recommendations with thumbs up/down to help refine your suggestions.
               </li>
               <li>
                 <strong>Browse related items:</strong> When viewing a product, check out similar items and categories.
@@ -72,7 +72,7 @@ export function RecommendationsHelp() {
           <AccordionTrigger>Event-Based Recommendations</AccordionTrigger>
           <AccordionContent>
             <p className="text-sm mb-2">
-              Our AI can suggest gifts for upcoming events:
+              We can suggest gifts for upcoming events:
             </p>
             <ol className="text-sm list-decimal pl-5 space-y-2">
               <li>

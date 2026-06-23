@@ -9,6 +9,12 @@
     <meta property="og:description" content="Create, share, and manage wishlists with price tracking, collaboration, and personalized recommendations." />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://wishlist-wizard.com" />
+    <meta property="og:site_name" content="Wishlist Wizard" />
+    <meta property="og:image" content="https://wishlist-wizard.com/android-chrome-512x512.png" />
+    <meta property="og:image:width" content="512" />
+    <meta property="og:image:height" content="512" />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:image" content="https://wishlist-wizard.com/android-chrome-512x512.png" />
     <link rel="icon" href="/favicon.ico" sizes="any" />
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
@@ -43,8 +49,23 @@
       }
     } catch(e) {}
   </script>
+  <!-- Google AdSense — Consent Mode defaults above ensure no personalised ads fire before consent -->
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5198775482699756"
+       crossorigin="anonymous"></script>
+  <!-- End Google AdSense -->
+  <!-- Google Tag Manager — must load after Consent Mode defaults above -->
+  <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+  new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+  j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+  'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+  })(window,document,'script','dataLayer','GTM-KRDC75LR');</script>
+  <!-- End Google Tag Manager -->
   </head>
   <body>
+  <!-- Google Tag Manager (noscript) -->
+  <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-KRDC75LR"
+  height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+  <!-- End Google Tag Manager (noscript) -->
     <div id="root"></div>
     <script type="module" src="/client-src/main.tsx"></script>
   </body>

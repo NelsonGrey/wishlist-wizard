@@ -1,4 +1,4 @@
-// WishKeeper Extension - Quick Add Module
+// Wishlist Wizard Extension - Quick Add Module
 // This script provides one-click adding to wishlist functionality
 
 // Class for handling one-click add to wishlist
@@ -100,7 +100,7 @@ class QuickAdd {
       const button = document.createElement('div');
       button.id = 'wishkeeper-quick-add-button';
       button.className = 'wishkeeper-floating-button';
-      button.title = 'Add to WishKeeper';
+      button.title = 'Add to Wishlist Wizard';
       
       // Style the button
       button.style.cssText = `

@@ -31,14 +31,14 @@ export default function PublicLayout({ children }: PublicLayoutProps) {
             <Link href="/extension" className="text-gray-700 hover:text-emerald-700 font-medium transition-colors">
               How It Works
             </Link>
-            <Link href="/plans" className="text-gray-700 hover:text-emerald-700 font-medium transition-colors">
-              Plans
+            <Link href="/subscriptions" className="text-gray-700 hover:text-emerald-700 font-medium transition-colors">
+              Subscriptions
+            </Link>
+            <Link href="/download" className="text-gray-700 hover:text-emerald-700 font-medium transition-colors">
+              Download
             </Link>
             <Link href="/about" className="text-gray-700 hover:text-emerald-700 font-medium transition-colors">
               About
-            </Link>
-            <Link href="/blog" className="text-gray-700 hover:text-emerald-700 font-medium transition-colors">
-              Blog
             </Link>
             <Link href="/login" className="px-5 py-2 text-gray-700 hover:text-emerald-800 hover:bg-emerald-50 rounded-lg font-medium transition-all">
               Sign In
@@ -49,8 +49,8 @@ export default function PublicLayout({ children }: PublicLayoutProps) {
           </nav>
 
           <div className="md:hidden flex items-center gap-3">
-            <Link href="/plans" className="text-gray-700 hover:text-emerald-800 font-medium">
-              Plans
+            <Link href="/subscriptions" className="text-gray-700 hover:text-emerald-800 font-medium">
+              Subscriptions
             </Link>
             <Link href="/login" className="text-gray-700 hover:text-emerald-800 font-medium">
               Sign In

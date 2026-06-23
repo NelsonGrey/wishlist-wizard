@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import '../providers/providers.dart';
 import '../models/models.dart';
 import '../main.dart';
 
@@ -15,7 +13,6 @@ class PriceTrackingScreen extends StatefulWidget {
 
 class _PriceTrackingScreenState extends State<PriceTrackingScreen> {
   bool _alertsEnabled = false;
-  double? _alertThreshold;
 
   @override
   Widget build(BuildContext context) {
@@ -340,9 +337,7 @@ class _PriceTrackingScreenState extends State<PriceTrackingScreen> {
                   border: OutlineInputBorder(),
                 ),
                 keyboardType: TextInputType.number,
-                onChanged: (value) {
-                  _alertThreshold = double.tryParse(value);
-                },
+                onChanged: (_) {},
               ),
               const SizedBox(height: 16),
               ElevatedButton(

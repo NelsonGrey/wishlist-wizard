@@ -52,16 +52,16 @@ export default function Recommendations() {
 
   const recommendationsTitle =
     selectedBeneficiaryId === "all"
-      ? "AI-Powered Recommendations"
-      : `AI Recommendations for ${beneficiaryOptions.find((option) => option.id === selectedBeneficiaryId)?.name || "Beneficiary"}`;
+      ? "Personalized Recommendations"
+      : `Recommendations for ${beneficiaryOptions.find((option) => option.id === selectedBeneficiaryId)?.name || "Beneficiary"}`;
 
   return (
     <>
       <Helmet>
-        <title>AI Recommendations | Wishlist Wizard</title>
-        <meta 
-          name="description" 
-          content="Get personalized product recommendations powered by AI based on your wishlist items and preferences."
+        <title>Recommendations | Wishlist Wizard</title>
+        <meta
+          name="description"
+          content="Get personalized product recommendations based on your wishlist items and preferences."
         />
       </Helmet>
 
@@ -137,7 +137,7 @@ export default function Recommendations() {
         </div>
 
         <div className="space-y-8">
-          {/* Display AI-Powered Recommendations */}
+          {/* Personalized Recommendations */}
           <RecommendationsSection
             beneficiaryId={parsedBeneficiaryId}
             wishlistOptions={wishlistOptions}
@@ -147,7 +147,7 @@ export default function Recommendations() {
           {/* How it works section */}
           <Card>
             <CardHeader>
-              <CardTitle>How AI Recommendations Work</CardTitle>
+              <CardTitle>How Recommendations Work</CardTitle>
               <CardDescription>
                 Our recommendation engine analyzes your wishlists to find products you&apos;ll love
               </CardDescription>
@@ -170,9 +170,9 @@ export default function Recommendations() {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
                     </svg>
                   </div>
-                  <h3 className="font-semibold text-lg mb-2">AI Processing</h3>
+                  <h3 className="font-semibold text-lg mb-2">Pattern Matching</h3>
                   <p className="text-gray-600">
-                    Our advanced AI models process this data to identify patterns and preferences that inform product recommendations.
+                    Your activity and preferences are analyzed to identify patterns that inform product recommendations.
                   </p>
                 </div>
                 

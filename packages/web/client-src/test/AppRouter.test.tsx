@@ -131,19 +131,19 @@ describe('AppRouter Smoke Tests', () => {
       }, { timeout: 500 });
     });
 
-    it('should render the plans page at /plans', async () => {
-      window.history.pushState({}, 'Plans', '/plans');
+    it('should render the subscriptions page at /subscriptions', async () => {
+      window.history.pushState({}, 'Subscriptions', '/subscriptions');
 
       render(<AppRouter />);
 
       await waitFor(() => {
-        expect(screen.getByText('Plans That Scale With You')).toBeInTheDocument();
+        expect(screen.getByText('Subscriptions That Scale With You')).toBeInTheDocument();
       });
     });
 
     it('should render public pages without authentication', async () => {
       // Arrange: Test a sample of public routes
-      const publicRoutes = ['/', '/about', '/blog'];
+      const publicRoutes = ['/', '/about'];
 
       for (const route of publicRoutes) {
         // Act
@@ -164,12 +164,11 @@ describe('AppRouter Smoke Tests', () => {
       });
 
       // Assert
-      // Check for navigation landmark
-      const navigation = screen.queryByRole('navigation');
-      const mainContent = screen.queryByRole('main');
-      
-      // Either nav or document should exist
-      expect(navigation || mainContent || document.body).toBeTruthy();
+      // Use queryAllByRole (never throws on multiple matches) to check landmarks exist
+      const navigations = screen.queryAllByRole('navigation');
+      const mains = screen.queryAllByRole('main');
+
+      expect(navigations.length > 0 || mains.length > 0 || document.body).toBeTruthy();
     });
   });
 

@@ -15,13 +15,13 @@ function formatPrice(value: number | null): string {
   return `$${value.toFixed(2)}`;
 }
 
-export default function Plans() {
+export default function Subscriptions() {
   return (
-    <section id="plans" className="py-12 bg-white border-t border-emerald-100/70">
+    <section id="subscriptions" className="py-12 bg-white border-t border-emerald-100/70">
       <div className="container mx-auto px-4">
         <div className="text-center mb-8">
           <h2 className="text-3xl md:text-4xl font-bold mb-4 bg-gradient-to-r from-emerald-800 to-green-700 bg-clip-text text-transparent">
-            Plans That Scale With You
+            Subscriptions That Scale With You
           </h2>
           <p className="text-lg text-slate-600 max-w-3xl mx-auto">
             Start free, then unlock more wishlists, collaboration, tracking, and analytics as your gifting workflow grows.
@@ -66,7 +66,7 @@ export default function Plans() {
                       : "bg-slate-100 text-slate-900 hover:bg-slate-200"
                   }`}
                 >
-                  {tierKey === "free" ? "Start Free" : "Choose Plan"}
+                  {tierKey === "free" ? "Start Free" : "Subscribe"}
                 </Link>
               </article>
             );

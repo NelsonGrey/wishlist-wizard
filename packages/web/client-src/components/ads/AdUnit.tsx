@@ -89,7 +89,8 @@ export function AdUnit({
   const adElementRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
-    const configuredPublisher = import.meta.env.VITE_ADSENSE_PUBLISHER_ID || '';
+    // Publisher ID is public (visible in page source) — safe to hard-code as default.
+    const configuredPublisher = import.meta.env.VITE_ADSENSE_PUBLISHER_ID || 'ca-pub-5198775482699756';
 
     if (!configuredPublisher) {
       setError('AdSense publisher is not configured');

@@ -149,18 +149,22 @@ class FirebaseWishlistItem {
     String docId,
     Map<String, dynamic> data,
   ) {
+    // Support cross-platform field aliases written by Cloud Functions:
+    //   title → name,  productUrl → url,  addedBy → userId,
+    //   purchasedByUserId → isPurchased=true + purchasedBy
+    final purchasedByUserId = data['purchasedByUserId'] as String?;
     return FirebaseWishlistItem(
       id: docId,
-      name: data['name'] ?? '',
+      name: data['name'] ?? data['title'] ?? '',
       description: data['description'],
       price: (data['price'] as num?)?.toDouble(),
       currency: data['currency'] ?? 'USD',
-      url: data['url'],
+      url: data['url'] ?? data['productUrl'],
       imageUrl: data['imageUrl'],
       wishlistId: data['wishlistId'] ?? '',
-      userId: data['userId'] ?? '',
-      isPurchased: data['isPurchased'] ?? false,
-      purchasedBy: data['purchasedBy'],
+      userId: data['userId'] ?? data['addedBy'] ?? '',
+      isPurchased: (data['isPurchased'] as bool? ?? false) || purchasedByUserId != null,
+      purchasedBy: data['purchasedBy'] ?? purchasedByUserId,
       purchasedAt: _parseDateNullable(data['purchasedAt']),
       tags: List<String>.from(data['tags'] ?? []),
       priority: _stringToPriority(data['priority']),
@@ -239,16 +243,20 @@ class FirebaseNotification {
     String docId,
     Map<String, dynamic> data,
   ) {
+    // Support cross-platform field aliases written by Cloud Functions:
+    //   body → message,  read → isRead,  data → metadata
     return FirebaseNotification(
       id: docId,
       userId: data['userId'] ?? '',
       title: data['title'] ?? '',
-      message: data['message'] ?? '',
+      message: data['message'] ?? data['body'] ?? '',
       type: _stringToNotificationType(data['type']),
-      isRead: data['isRead'] ?? false,
+      isRead: data['isRead'] as bool? ?? data['read'] as bool? ?? false,
       createdAt: _parseDate(data['createdAt']),
       readAt: _parseDateNullable(data['readAt']),
-      metadata: Map<String, dynamic>.from(data['metadata'] ?? {}),
+      metadata: Map<String, dynamic>.from(
+        data['metadata'] ?? data['data'] ?? {},
+      ),
     );
   }
 

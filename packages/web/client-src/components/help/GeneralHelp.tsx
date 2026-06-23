@@ -183,7 +183,7 @@ export function GeneralHelp() {
               </li>
             </ul>
             <p className="text-sm mt-2">
-              Download the mobile app from the App Store or Google Play Store.
+              Download the iOS app from the App Store. Android coming soon!
             </p>
           </AccordionContent>
         </AccordionItem>

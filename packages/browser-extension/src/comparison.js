@@ -1,4 +1,4 @@
-// WishKeeper Extension - Comparison Shopping Module
+// Wishlist Wizard Extension - Comparison Shopping Module
 // This script handles comparing prices across different retailers
 
 // Major shopping sites to compare prices
