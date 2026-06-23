@@ -126,15 +126,15 @@ function LayoutRouter({ children }: { children: React.ReactNode }) {
 
   // Auth pages - use AuthLayout
   const authPages = ['/login', '/register', '/forgot-password', '/reset-password', '/verify-email'];
-  const isAuthPage = authPages.some(page => location.startsWith(page));
-
-  if (isAuthPage) {
+  if (authPages.some(page => location.startsWith(page))) {
     return <AuthLayout>{children}</AuthLayout>;
   }
 
-  // Once authenticated, always use AppLayout on non-auth pages
-  // so navigation updates to solution-specific functionality.
-  if (!authLoading && isAuthenticated) {
+  // Authenticated app pages (/app/* and /admin/*) use AppLayout (app-shell scroll).
+  // All other pages — marketing, demos, legal — always use PublicLayout (traditional
+  // browser-window scroll) regardless of auth state.
+  const isAppShellPage = location.startsWith('/app/') || location.startsWith('/admin');
+  if (!authLoading && isAuthenticated && isAppShellPage) {
     return <AppLayout>{children}</AppLayout>;
   }
 
