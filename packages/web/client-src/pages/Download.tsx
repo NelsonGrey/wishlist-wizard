@@ -5,8 +5,8 @@ import { Smartphone, Clock, Check, Star, Bell, Camera } from "lucide-react";
 const APP_STORE_URL = "https://apps.apple.com/app/wishlist-wizard/id000000000";
 
 const IOS_FEATURES = [
-  { icon: <Bell className="h-5 w-5 text-emerald-700" />, text: "Price drop alerts delivered to your lock screen" },
-  { icon: <Camera className="h-5 w-5 text-emerald-700" />, text: "Scan barcodes and QR codes to add items instantly" },
+  { icon: <Bell className="h-5 w-5 text-emerald-700" />, text: "In-app alerts when tracked prices drop" },
+  { icon: <Camera className="h-5 w-5 text-emerald-700" />, text: "Scan items in-store to add them to your wishlists" },
   { icon: <Check className="h-5 w-5 text-emerald-700" />, text: "Share wishlists and collaborate with family and friends" },
   { icon: <Star className="h-5 w-5 text-emerald-700" />, text: "Full wishlist management synced with the web app" },
 ];

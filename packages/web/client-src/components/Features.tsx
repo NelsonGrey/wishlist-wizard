@@ -33,8 +33,8 @@ export default function Features() {
             </CardHeader>
             <CardContent>
               <p className="text-slate-600">
-                Our native mobile app with offline mode keeps your wishlists synced across all your devices.
-                Scan barcodes in-store to instantly add items.
+                Our native iOS app keeps your wishlists synced across all your devices.
+                Use your camera in-store to capture and add items on the go.
               </p>
             </CardContent>
             <CardFooter>
@@ -55,7 +55,7 @@ export default function Features() {
             </CardHeader>
             <CardContent>
               <p className="text-slate-600">
-                Discover people you trust, share curated wishlists, and coordinate gifting without duplicate purchases.
+                Share wishlists with family and friends via a secure link. Viewers can mark items as purchased so nobody buys duplicates.
               </p>
             </CardContent>
             <CardFooter>

@@ -70,7 +70,7 @@ export default function MobileAppDemo() {
                 </div>
                 <div>
                   <h3 className="font-semibold text-lg text-slate-900">Quick Capture</h3>
-                  <p className="text-slate-600 mt-1">Instantly save items you find while shopping. Camera scanner detects barcodes automatically.</p>
+                  <p className="text-slate-600 mt-1">Instantly save items you find while shopping. Use the camera to capture and add items on the go.</p>
                 </div>
               </div>
             </div>
@@ -94,7 +94,7 @@ export default function MobileAppDemo() {
                 </div>
                 <div>
                   <h3 className="font-semibold text-lg text-slate-900">Smart Notifications</h3>
-                  <p className="text-slate-600 mt-1">Get alerts on price drops, new items added, or when friends add to shared lists.</p>
+                  <p className="text-slate-600 mt-1">Stay updated on wishlist activity and price changes from within the app.</p>
                 </div>
               </div>
             </div>
@@ -107,12 +107,12 @@ export default function MobileAppDemo() {
           <div className="grid md:grid-cols-3 gap-6">
             {[
               {
-                title: "Offline Mode",
-                description: "View and manage lists even without an internet connection. Syncs automatically when you reconnect."
+                title: "In-Store Capture",
+                description: "Use your camera to photograph items while shopping and add them to any wishlist instantly."
               },
               {
-                title: "Barcode Scanning",
-                description: "Use your phone's camera to scan product barcodes and auto-populate item details from retail databases."
+                title: "Price Tracking",
+                description: "Track prices on items in your wishlists and see when they change."
               },
               {
                 title: "Cross-Device Sync",

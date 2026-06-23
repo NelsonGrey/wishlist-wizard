@@ -131,16 +131,16 @@ export default function SocialIntegrationDemo() {
           <div className="grid md:grid-cols-3 gap-6">
             {[
               {
-                title: "Encrypted Links",
-                description: "Share links are secure and can be password-protected for sensitive wishlists."
+                title: "Unique Share Links",
+                description: "Share links use a unique token — only people with the link can view the wishlist."
               },
               {
                 title: "Permission Control",
-                description: "You decide exactly what viewers can see and do. Change permissions at any time."
+                description: "You decide exactly what viewers can see and do. Revoke access at any time."
               },
               {
-                title: "Activity Tracking",
-                description: "See who viewed your list and what they marked as purchased for full transparency."
+                title: "Purchase Tracking",
+                description: "See what's been marked as purchased so the group stays coordinated."
               }
             ].map((feature, idx) => (
               <div key={idx} className="bg-white rounded-lg p-4 border border-emerald-100">
