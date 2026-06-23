@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import Footer from "@/components/Footer";
 import { GlobalAdSlot } from "@/components/ads";
@@ -9,16 +9,16 @@ interface PublicLayoutProps {
 
 export default function PublicLayout({ children }: PublicLayoutProps) {
   const [location] = useLocation();
-  const mainRef = useRef<HTMLElement>(null);
 
+  // Scroll the browser window to top on route change (traditional model).
   useEffect(() => {
-    mainRef.current?.scrollTo(0, 0);
+    window.scrollTo(0, 0);
   }, [location]);
 
   return (
-    <div className="h-screen flex flex-col overflow-hidden bg-white">
-      {/* Header — fixed at top via flex-none */}
-      <header className="flex-none bg-white border-b border-gray-200 shadow-sm z-50">
+    <div className="min-h-screen flex flex-col bg-white">
+      {/* Header — sticky so it stays visible while the page scrolls */}
+      <header className="sticky top-0 z-50 flex-none bg-white border-b border-gray-200 shadow-sm">
         <div className="container mx-auto px-4 py-3.5 flex items-center justify-between">
           <Link href="/">
             <span className="flex items-center hover:scale-105 transition-transform duration-200">
@@ -29,7 +29,7 @@ export default function PublicLayout({ children }: PublicLayoutProps) {
 
           <nav className="hidden md:flex items-center space-x-6">
             <Link href="/extension" className="text-gray-700 hover:text-emerald-700 font-medium transition-colors">
-              How It Works
+              Browser Extension
             </Link>
             <Link href="/subscriptions" className="text-gray-700 hover:text-emerald-700 font-medium transition-colors">
               Subscriptions
@@ -62,14 +62,13 @@ export default function PublicLayout({ children }: PublicLayoutProps) {
         </div>
       </header>
 
-      {/* Body — scrolls independently between header and footer */}
-      <main ref={mainRef} className="flex-1 overflow-y-auto bg-white">
+      {/* Main content — takes remaining vertical space so footer is always at bottom */}
+      <main className="flex-1 bg-white">
         <GlobalAdSlot placement="top" />
         {children}
         <GlobalAdSlot placement="bottom" />
       </main>
 
-      {/* Footer — fixed at bottom via flex-none */}
       <Footer />
     </div>
   );
