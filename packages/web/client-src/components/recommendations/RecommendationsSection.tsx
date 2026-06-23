@@ -49,7 +49,7 @@ interface RecommendationsSectionProps {
 export default function RecommendationsSection({
   beneficiaryId,
   wishlistOptions,
-  title = "AI-Powered Recommendations"
+  title = "Personalized Recommendations"
 }: RecommendationsSectionProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -162,7 +162,7 @@ export default function RecommendationsSection({
         imageUrl: recommendation.imageUrl,
         productUrl: recommendation.productUrl,
         store: recommendation.store,
-        note: `Added from AI recommendations. ${recommendation.matchReason}`,
+        note: `Added from recommendations. ${recommendation.matchReason}`,
         category: recommendation.category || null
       };
 

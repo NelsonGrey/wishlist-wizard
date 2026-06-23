@@ -1,25 +1,26 @@
-import { ResponsiveAd } from "./AdUnit";
+import { AdUnit } from "./AdUnit";
 
-/**
- * Global ad reservation area rendered in a consistent position across layouts.
- * Keeps monetization predictable without scattering ad blocks throughout pages.
- */
+// Slot IDs from AdSense console
+const SLOT_IDS = {
+  top: '5307111653',    // Wishlist Wizard Below Header
+  bottom: '7845645081', // Wishlist Wizard Above Footer
+} as const;
+
 interface GlobalAdSlotProps {
   placement: "top" | "bottom";
 }
 
 export function GlobalAdSlot({ placement }: GlobalAdSlotProps) {
   return (
-    <section aria-label={`Sponsored ${placement}`} className="border-y border-emerald-100 bg-white/80">
-      <div className="container mx-auto px-4 py-3">
-        <div className="min-h-[132px] rounded-lg border border-dashed border-emerald-200 bg-emerald-50/40 px-3 py-2">
-          <div className="mb-2 flex items-center justify-between gap-2">
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-emerald-800">Sponsored</p>
-            <p className="text-[11px] text-emerald-700/80">Reserved placement</p>
-          </div>
-          <div className="mx-auto w-full max-w-[970px] min-h-[74px]">
-            <ResponsiveAd />
-          </div>
+    <section aria-label="Sponsored" className="bg-white/80">
+      <div className="container mx-auto px-4 py-2">
+        <div className="mx-auto w-full max-w-[970px]">
+          <AdUnit
+            slot={SLOT_IDS[placement]}
+            format="auto"
+            responsive={true}
+            className="w-full"
+          />
         </div>
       </div>
     </section>

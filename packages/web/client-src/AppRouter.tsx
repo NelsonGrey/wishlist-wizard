@@ -41,9 +41,9 @@ const TermsOfService = lazy(() => import("./pages/TermsOfService"));
 const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
 const CookiePolicy = lazy(() => import("./pages/CookiePolicy"));
 const About = lazy(() => import("./pages/About"));
-const Blog = lazy(() => import("./pages/Blog"));
 const Contact = lazy(() => import("./pages/Contact"));
-const Plans = lazy(() => import("./pages/Plans"));
+const Subscriptions = lazy(() => import("./pages/Subscriptions"));
+const Download = lazy(() => import("./pages/Download"));
 const MobileAppDemo = lazy(() => import("./pages/demos/MobileAppDemo"));
 const BrowserExtensionDemo = lazy(() => import("./pages/demos/BrowserExtensionDemo"));
 const SocialIntegrationDemo = lazy(() => import("./pages/demos/SocialIntegrationDemo"));
@@ -168,14 +168,16 @@ function AppRouter() {
             <AnalyticsRouteTracker />
             <LayoutRouter>
               <NonHomeEnvironmentGate>
-                <Suspense fallback={null}>
+                <Suspense fallback={<div className="flex-1 min-h-[60vh]" aria-busy="true" />}>
                   <Switch>
                   {/* Public Pages - Marketing Site */}
                   <Route path="/" component={Home} />
                   <Route path="/extension" component={ExtensionPage} />
-                  <Route path="/plans" component={Plans} />
+                  <Route path="/download" component={Download} />
+                  <Route path="/subscriptions" component={Subscriptions} />
+                  {/* Legacy redirect — keep for existing links and search indexing */}
+                  <Route path="/plans" component={() => <Redirect to="/subscriptions" />} />
                     <Route path="/about" component={About} />
-                    <Route path="/blog" component={Blog} />
                     {/* Canonical legal/support routes */}
                     <Route path="/terms" component={TermsOfService} />
                     <Route path="/privacy" component={PrivacyPolicy} />

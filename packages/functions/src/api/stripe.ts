@@ -56,6 +56,7 @@ export const checkoutSessionCreate = onRequest(async (req, res) => {
       line_items: [{ price: priceId, quantity }],
       success_url: successUrl,
       cancel_url: cancelUrl,
+      automatic_tax: { enabled: true },
     });
 
     res.status(200).send({ sessionId: session.id });

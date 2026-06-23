@@ -1,4 +1,4 @@
-/* WishKeeper Extension Popup Styles */
+/* Wishlist Wizard Extension Popup Styles */
 body {
   font-family: 'Segoe UI', 'Roboto', Arial, sans-serif;
   margin: 0;
@@ -37,7 +37,7 @@ body {
 
 .status-banner.info {
   background-color: #eef2ff;
-  color: #4338ca;
+  color: #065f46;
   border-color: #c7d2fe;
 }
 
@@ -67,7 +67,7 @@ body {
 
 h1 {
   font-size: 20px;
-  color: #4f46e5;
+  color: #064e3b;
   margin: 0;
   font-weight: 600;
 }
@@ -96,13 +96,13 @@ h1 {
 }
 
 .tab-button:hover {
-  color: #4f46e5;
-  background-color: rgba(79, 70, 229, 0.05);
+  color: #064e3b;
+  background-color: rgba(6, 78, 59, 0.05);
 }
 
 .tab-button.active {
   background-color: #ffffff;
-  color: #4f46e5;
+  color: #064e3b;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
@@ -132,7 +132,7 @@ h1 {
 
 .spinner {
   border: 3px solid rgba(0, 0, 0, 0.1);
-  border-top: 3px solid #4f46e5;
+  border-top: 3px solid #064e3b;
   border-radius: 50%;
   width: 30px;
   height: 30px;
@@ -283,7 +283,7 @@ label {
 }
 
 .primary-button {
-  background-color: #4f46e5;
+  background-color: #064e3b;
   color: white;
   border: none;
   padding: 10px 16px;
@@ -296,7 +296,7 @@ label {
 }
 
 .primary-button:hover {
-  background-color: #4338ca;
+  background-color: #065f46;
 }
 
 .primary-button:disabled,
@@ -308,8 +308,8 @@ label {
 
 .secondary-button {
   background-color: white;
-  color: #4f46e5;
-  border: 1px solid #4f46e5;
+  color: #064e3b;
+  border: 1px solid #064e3b;
   padding: 9px 16px;
   border-radius: 6px;
   font-weight: 500;
@@ -320,13 +320,13 @@ label {
 }
 
 .secondary-button:hover {
-  background-color: #f5f5ff;
+  background-color: #ecfdf5;
 }
 
 .text-button {
   background: none;
   border: none;
-  color: #4f46e5;
+  color: #064e3b;
   cursor: pointer;
   font-size: 13px;
   padding: 4px;
@@ -336,7 +336,7 @@ label {
 }
 
 .text-button:hover {
-  color: #4338ca;
+  color: #065f46;
 }
 
 /* Quick Add Options */
@@ -422,7 +422,7 @@ label {
 #price-comparison-screen h2,
 #coupon-screen h2 {
   font-size: 18px;
-  color: #4f46e5;
+  color: #064e3b;
   margin: 0 0 16px 0;
   text-align: center;
 }
@@ -540,7 +540,7 @@ label {
 }
 
 .view-button {
-  color: #4f46e5;
+  color: #064e3b;
   font-size: 13px;
   font-weight: 500;
   text-decoration: none;
@@ -550,7 +550,7 @@ label {
 }
 
 .view-button:hover {
-  background-color: #f5f5ff;
+  background-color: #ecfdf5;
 }
 
 /* Coupon Screen */
@@ -634,7 +634,7 @@ label {
 }
 
 .apply-button {
-  background-color: #4f46e5;
+  background-color: #064e3b;
   color: white;
 }
 
@@ -646,16 +646,16 @@ label {
 }
 
 .link-list a {
-  color: #4f46e5;
+  color: #064e3b;
   text-decoration: none;
   font-size: 13px;
   padding: 4px 8px;
   border-radius: 4px;
-  background-color: #f5f5ff;
+  background-color: #ecfdf5;
 }
 
 .link-list a:hover {
-  background-color: #e4e3ff;
+  background-color: #d1fae5;
 }
 
 /* Footer */

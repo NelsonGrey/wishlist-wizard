@@ -5,6 +5,15 @@ import path from 'path';
 
 export default defineConfig({
   plugins: [react()],
+  // Vite 7 uses OXC/rolldown. @vitejs/plugin-react v4.x sets the deprecated
+  // `esbuild.jsx` option which Vite 7 ignores. We must configure OXC directly
+  // so that JSX is transformed in the SSR/test transform path vitest uses.
+  oxc: {
+    jsx: {
+      runtime: 'automatic',
+      importSource: 'react',
+    },
+  } as Record<string, unknown>,
   resolve: {
     alias: {
       '@': path.resolve(__dirname, 'client-src'),

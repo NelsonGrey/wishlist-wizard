@@ -192,6 +192,7 @@ export const billingCheckout = onCall(async (request: CallableRequest) => {
     success_url: successUrl ?? `${process.env.APP_URL}/subscription/success?session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: cancelUrl ?? `${process.env.APP_URL}/subscription/upgrade`,
     allow_promotion_codes: true,
+    automatic_tax: { enabled: true },
     subscription_data: {
       metadata: { firebaseUid: uid, tier },
       ...(hasTrialEligibility ? { trial_period_days: pricing.trialDays } : {}),

@@ -254,7 +254,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
         {children}
       </main>
 
-      {/* Footer */}
+      <GlobalAdSlot placement="bottom" />
       <Footer />
     </div>
   );

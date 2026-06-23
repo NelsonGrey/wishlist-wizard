@@ -117,16 +117,16 @@ const rows: MatrixRow[] = [
   },
 ];
 
-export default function PlansComparisonMatrix() {
+export default function SubscriptionsComparisonMatrix() {
   return (
     <section className="py-12 bg-white">
       <div className="container mx-auto px-4">
         <div className="text-center mb-8">
           <p className="uppercase tracking-[0.24em] text-emerald-700 text-sm font-semibold mb-3">
-            Compare plans
+            Compare subscriptions
           </p>
           <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mb-4">
-            What each plan includes
+            What each subscription includes
           </h2>
           <p className="text-slate-600 max-w-3xl mx-auto">
             A side-by-side view of the limits and capabilities users get at each subscription tier.

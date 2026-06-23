@@ -5,10 +5,11 @@ export default function CookiePolicy() {
     <>
       <Helmet>
         <title>Cookie Policy | Wishlist Wizard</title>
-        <meta 
-          name="description" 
-          content="Information about how Wishlist Wizard uses cookies and similar tracking technologies."
-        />
+        <meta name="description" content="Information about how Wishlist Wizard uses cookies and similar tracking technologies." />
+        <meta property="og:title" content="Cookie Policy | Wishlist Wizard" />
+        <meta property="og:description" content="Information about how Wishlist Wizard uses cookies and similar tracking technologies." />
+        <meta property="og:url" content="https://wishlist-wizard.com/cookies" />
+        <meta name="robots" content="noindex" />
       </Helmet>
 
       <div className="container mx-auto px-4 py-8 max-w-6xl">

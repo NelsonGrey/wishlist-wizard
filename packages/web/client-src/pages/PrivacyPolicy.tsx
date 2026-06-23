@@ -5,10 +5,11 @@ export default function PrivacyPolicy() {
     <>
       <Helmet>
         <title>Privacy Policy | Wishlist Wizard</title>
-        <meta 
-          name="description" 
-          content="Learn how Wishlist Wizard protects your privacy and uses your personal information."
-        />
+        <meta name="description" content="Learn how Wishlist Wizard protects your privacy and uses your personal information." />
+        <meta property="og:title" content="Privacy Policy | Wishlist Wizard" />
+        <meta property="og:description" content="Learn how Wishlist Wizard protects your privacy and uses your personal information." />
+        <meta property="og:url" content="https://wishlist-wizard.com/privacy" />
+        <meta name="robots" content="noindex" />
       </Helmet>
 
       <div className="container mx-auto px-4 py-8 max-w-6xl">

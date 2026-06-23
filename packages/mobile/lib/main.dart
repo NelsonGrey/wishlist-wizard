@@ -76,17 +76,17 @@ class WishlistWizardApp extends StatelessWidget {
         child: MaterialApp(
           title: 'Wishlist Wizard',
           theme: ThemeData(
-            primarySwatch: Colors.purple,
-            primaryColor: const Color(0xFF6B46C1),
-            hintColor: const Color(0xFF9333EA),
+            primarySwatch: Colors.green,
+            primaryColor: const Color(0xFF064E3B),
+            hintColor: const Color(0xFF065F46),
             appBarTheme: const AppBarTheme(
-              backgroundColor: Color(0xFF6B46C1),
+              backgroundColor: Color(0xFF064E3B),
               foregroundColor: Colors.white,
               elevation: 2,
             ),
             elevatedButtonTheme: ElevatedButtonThemeData(
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF6B46C1),
+                backgroundColor: const Color(0xFF064E3B),
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
@@ -98,7 +98,7 @@ class WishlistWizardApp extends StatelessWidget {
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: Color(0xFF6B46C1)),
+                borderSide: const BorderSide(color: Color(0xFF064E3B)),
               ),
             ),
             cardTheme: CardThemeData(
@@ -131,7 +131,7 @@ class AuthWrapper extends StatelessWidget {
           }
           return Scaffold(
             body: Container(
-              color: const Color(0xFFF7F2FF),
+              color: const Color(0xFFECFDF5),
               child: const Center(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -139,7 +139,7 @@ class AuthWrapper extends StatelessWidget {
                     Icon(
                       Icons.card_giftcard,
                       size: 56,
-                      color: Color(0xFF6B46C1),
+                      color: Color(0xFF064E3B),
                     ),
                     SizedBox(height: 16),
                     CircularProgressIndicator(),
@@ -147,7 +147,7 @@ class AuthWrapper extends StatelessWidget {
                     Text(
                       'Starting Wishlist Wizard...',
                       style: TextStyle(
-                        color: Color(0xFF4C1D95),
+                        color: Color(0xFF064E3B),
                         fontWeight: FontWeight.w600,
                       ),
                     ),

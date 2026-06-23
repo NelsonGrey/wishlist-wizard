@@ -5,10 +5,11 @@ export default function TermsOfService() {
     <>
       <Helmet>
         <title>Terms of Service | Wishlist Wizard</title>
-        <meta 
-          name="description" 
-          content="Read the terms and conditions for using Wishlist Wizard services."
-        />
+        <meta name="description" content="Read the terms and conditions for using Wishlist Wizard services." />
+        <meta property="og:title" content="Terms of Service | Wishlist Wizard" />
+        <meta property="og:description" content="Read the terms and conditions for using Wishlist Wizard services." />
+        <meta property="og:url" content="https://wishlist-wizard.com/terms" />
+        <meta name="robots" content="noindex" />
       </Helmet>
 
       <div className="container mx-auto px-4 py-8 max-w-6xl">

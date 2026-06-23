@@ -1,4 +1,5 @@
 import React from 'react';
+import { Helmet } from 'react-helmet';
 import { Link } from 'wouter';
 import { Button } from '@/components/ui/button';
 import {
@@ -16,6 +17,16 @@ import { ExtensionHelp } from '@/components/help/ExtensionHelp';
 
 const ExtensionPage = () => {
   return (
+    <>
+      <Helmet>
+        <title>Browser Extension | Wishlist Wizard</title>
+        <meta name="description" content="Save products to your wishlists from any online retailer in one click with the Wishlist Wizard browser extension. Available for Chrome, Firefox, Edge, and Safari." />
+        <meta property="og:title" content="Wishlist Wizard Browser Extension" />
+        <meta property="og:description" content="Save products to your wishlists from any online retailer in one click. Available for Chrome, Firefox, Edge, and Safari." />
+        <meta property="og:url" content="https://wishlist-wizard.com/extension" />
+        <meta name="twitter:title" content="Wishlist Wizard Browser Extension" />
+        <meta name="twitter:description" content="Save products to your wishlists from any online retailer in one click. Available for Chrome, Firefox, Edge, and Safari." />
+      </Helmet>
     <div className="container mx-auto px-4 py-8 max-w-6xl">
       <div>
         <div className="mb-8">
@@ -349,6 +360,7 @@ const ExtensionPage = () => {
         </div>
       </div>
     </div>
+    </>
   );
 };
 

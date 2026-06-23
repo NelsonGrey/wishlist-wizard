@@ -49,6 +49,11 @@ Object.defineProperty(window, 'scrollTo', {
   value: vi.fn(),
 });
 
+// JSDOM also does not implement scrollTo on DOM elements (e.g. mainRef.current?.scrollTo).
+if (!HTMLElement.prototype.scrollTo) {
+  HTMLElement.prototype.scrollTo = vi.fn() as unknown as typeof HTMLElement.prototype.scrollTo;
+}
+
 // Reset all mocks between tests
 afterEach(() => {
   cleanup();
