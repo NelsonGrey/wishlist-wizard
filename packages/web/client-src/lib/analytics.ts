@@ -14,11 +14,16 @@ export const trackPageView = (url: string) => {
   window.dataLayer.push({ event: 'page_view', page_path: url, page_title: document.title });
 };
 
+// Only fire backend analytics in the production project.
+// The metricsTrackEvent callable function is not deployed to dev/staging,
+// so calling it from those environments causes CORS errors in the browser console.
+const IS_PROD_PROJECT = import.meta.env.VITE_FIREBASE_PROJECT_ID === 'wishlist-wizard-prod';
+
 // Track events
 export const trackEvent = (
-  action: string, 
-  category?: string, 
-  label?: string, 
+  action: string,
+  category?: string,
+  label?: string,
   value?: number
 ) => {
   if (typeof window !== 'undefined' && window.gtag) {
@@ -29,7 +34,9 @@ export const trackEvent = (
     });
   }
 
-  // Best-effort backend tracking (does not block UI)
+  // Best-effort backend tracking — production only to avoid CORS errors on dev/staging.
+  if (!IS_PROD_PROJECT) return;
+
   import('./queryClient').then(({ apiRequest }) => {
     apiRequest('/api/analytics/track', {
       method: 'POST',
