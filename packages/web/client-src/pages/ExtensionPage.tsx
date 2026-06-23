@@ -33,7 +33,7 @@ const ExtensionPage = () => {
           <h1 className="text-4xl font-bold bg-gradient-to-r from-emerald-800 to-green-800 bg-clip-text text-transparent mb-2">
             Wishlist Wizard Browser Extension
           </h1>
-          <div id="browser-install-help" className="flex items-center gap-2 mb-4">
+          <div className="flex items-center gap-2 mb-4">
             <p className="text-xl text-gray-600">
               Save products to your wishlists from any online retailer in one click
             </p>
@@ -171,16 +171,11 @@ const ExtensionPage = () => {
                   </div>
                 </div>
               </CardContent>
-              <CardFooter className="flex flex-col sm:flex-row gap-4">
+              <CardFooter>
                 <Button className="w-full sm:w-auto bg-gradient-to-r from-emerald-700 to-green-700 text-white hover:from-emerald-800 hover:to-green-800" size="lg" asChild>
                   <a href="https://chromewebstore.google.com/" target="_blank" rel="noopener noreferrer">
                     <FaChrome className="mr-2 h-5 w-5" />
                     Install for Chrome
-                  </a>
-                </Button>
-                <Button variant="outline" className="w-full sm:w-auto border-2 border-emerald-700 text-emerald-700 hover:bg-emerald-50 hover:border-emerald-800 hover:text-emerald-800" asChild>
-                  <a href="#browser-install-help">
-                    View Installation Guide
                   </a>
                 </Button>
               </CardFooter>
@@ -226,16 +221,11 @@ const ExtensionPage = () => {
                   </div>
                 </div>
               </CardContent>
-              <CardFooter className="flex flex-col sm:flex-row gap-4">
+              <CardFooter>
                 <Button className="w-full sm:w-auto bg-gradient-to-r from-emerald-700 to-green-700 text-white hover:from-emerald-800 hover:to-green-800" size="lg" asChild>
                   <a href="https://addons.mozilla.org/en-US/firefox/addon/wishlist-wizard/" target="_blank" rel="noopener noreferrer">
                     <FaFirefox className="mr-2 h-5 w-5" />
                     Install from Mozilla Add-ons
-                  </a>
-                </Button>
-                <Button variant="outline" className="w-full sm:w-auto border-2 border-emerald-700 text-emerald-700 hover:bg-emerald-50 hover:border-emerald-800 hover:text-emerald-800" asChild>
-                  <a href="#browser-install-help">
-                    View Installation Guide
                   </a>
                 </Button>
               </CardFooter>
@@ -267,16 +257,11 @@ const ExtensionPage = () => {
                   </div>
                 </div>
               </CardContent>
-              <CardFooter className="flex flex-col sm:flex-row gap-4">
+              <CardFooter>
                 <Button className="w-full sm:w-auto bg-gradient-to-r from-emerald-700 to-green-700 text-white hover:from-emerald-800 hover:to-green-800" size="lg" asChild>
                   <a href="https://microsoftedge.microsoft.com/addons/" target="_blank" rel="noopener noreferrer">
                     <FaEdge className="mr-2 h-5 w-5" />
                     Install for Edge
-                  </a>
-                </Button>
-                <Button variant="outline" className="w-full sm:w-auto border-2 border-emerald-700 text-emerald-700 hover:bg-emerald-50 hover:border-emerald-800 hover:text-emerald-800" asChild>
-                  <a href="#browser-install-help">
-                    View Installation Guide
                   </a>
                 </Button>
               </CardFooter>
@@ -308,16 +293,11 @@ const ExtensionPage = () => {
                   </div>
                 </div>
               </CardContent>
-              <CardFooter className="flex flex-col sm:flex-row gap-4">
+              <CardFooter>
                 <Button className="w-full sm:w-auto bg-gradient-to-r from-emerald-700 to-green-700 text-white hover:from-emerald-800 hover:to-green-800" size="lg" asChild>
                   <a href="https://apps.apple.com/" target="_blank" rel="noopener noreferrer">
                     <FaSafari className="mr-2 h-5 w-5" />
                     Install for Safari
-                  </a>
-                </Button>
-                <Button variant="outline" className="w-full sm:w-auto border-2 border-emerald-700 text-emerald-700 hover:bg-emerald-50 hover:border-emerald-800 hover:text-emerald-800" asChild>
-                  <a href="#browser-install-help">
-                    View Installation Guide
                   </a>
                 </Button>
               </CardFooter>
