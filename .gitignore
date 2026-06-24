@@ -50,6 +50,7 @@ packages/*/package.json.backup
 # Browser extension builds
 packages/browser-extension/dist/
 packages/browser-extension/build/
+packages/browser-extension/releases/
 chrome-extension-package/
 wishlist-wizard-extension.zip
 
