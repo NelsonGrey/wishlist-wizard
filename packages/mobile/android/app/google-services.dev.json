@@ -7,43 +7,6 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:1055615167809:android:3d52fc8b06b344e15485c0",
-        "android_client_info": {
-          "package_name": "com.nelsongrey.wishlistwizard.app.android"
-        }
-      },
-      "oauth_client": [
-        {
-          "client_id": "1055615167809-7o8ss6p72kahvmprfvn0dolli1v2hcad.apps.googleusercontent.com",
-          "client_type": 3
-        }
-      ],
-      "api_key": [
-        {
-          "current_key": "AIzaSyAvV2MI-A0pJAsCHu9mSIBXhZGNL42Qz8M"
-        }
-      ],
-      "services": {
-        "appinvite_service": {
-          "other_platform_oauth_client": [
-            {
-              "client_id": "1055615167809-7o8ss6p72kahvmprfvn0dolli1v2hcad.apps.googleusercontent.com",
-              "client_type": 3
-            },
-            {
-              "client_id": "1055615167809-nuuvuekieveiti9cbivds0qv9ac5d1jq.apps.googleusercontent.com",
-              "client_type": 2,
-              "ios_info": {
-                "bundle_id": "com.nelsongrey.wishlistwizard.app.ios",
-                "app_store_id": "6753732641"
-              }
-            }
-          ]
-        }
-      }
-    },
-    {
-      "client_info": {
         "mobilesdk_app_id": "1:1055615167809:android:9dde4f0315d2dd075485c0",
         "android_client_info": {
           "package_name": "com.wishlistwizard.app.android"
