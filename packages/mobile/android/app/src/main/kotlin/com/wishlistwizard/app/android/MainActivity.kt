@@ -1,4 +1,4 @@
-package com.wishlistwizard.mobile
+package com.wishlistwizard.app.android
 
 import io.flutter.embedding.android.FlutterActivity
 
