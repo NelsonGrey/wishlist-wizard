@@ -128,7 +128,7 @@ class DefaultFirebaseOptions {
     messagingSenderId: '464233600681',
     projectId: 'wishlist-wizard-prod',
     storageBucket: 'wishlist-wizard-prod.firebasestorage.app',
-    iosBundleId: 'com.nelsongrey.wishlistwizard.app.ios',
+    iosBundleId: 'com.wishlistwizard.app.ios',
   );
 
   // ── Development (wishlist-wizard-dev) ─────────────────────────────────────
@@ -157,7 +157,7 @@ class DefaultFirebaseOptions {
     messagingSenderId: '1055615167809',
     projectId: 'wishlist-wizard-dev',
     storageBucket: 'wishlist-wizard-dev.firebasestorage.app',
-    iosBundleId: 'com.nelsongrey.wishlistwizard.app.ios',
+    iosBundleId: 'com.wishlistwizard.app.ios',
   );
 
   // ── Staging (wishlist-wizard-staging) ─────────────────────────────────────
@@ -186,6 +186,6 @@ class DefaultFirebaseOptions {
     messagingSenderId: '1039527515823',
     projectId: 'wishlist-wizard-staging',
     storageBucket: 'wishlist-wizard-staging.firebasestorage.app',
-    iosBundleId: 'com.nelsongrey.wishlistwizard.app.ios',
+    iosBundleId: 'com.wishlistwizard.app.ios',
   );
 }
