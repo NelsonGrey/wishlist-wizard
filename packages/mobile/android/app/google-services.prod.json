@@ -1,40 +1,78 @@
 {
   "project_info": {
-    "project_number": "1000918568663",
-    "project_id": "wishlist-wizard",
-    "storage_bucket": "wishlist-wizard.firebasestorage.app"
+    "project_number": "464233600681",
+    "project_id": "wishlist-wizard-prod",
+    "storage_bucket": "wishlist-wizard-prod.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:1000918568663:android:4f0b526ad64522d704ea92",
+        "mobilesdk_app_id": "1:464233600681:android:3674b697f74dcf2f957bb8",
         "android_client_info": {
-          "package_name": "com.wishlistwizard.app.android"
+          "package_name": "com.nelsongrey.wishlistwizard.app.android"
         }
       },
       "oauth_client": [
         {
-          "client_id": "1000918568663-nrhbu4uba7lg74f7jmden61f1uv1v72v.apps.googleusercontent.com",
+          "client_id": "464233600681-j7hqj66h26k00478ng3h241amabq6n6v.apps.googleusercontent.com",
           "client_type": 3
         }
       ],
       "api_key": [
         {
-          "current_key": "AIzaSyDs93rijhaegkhZyanNyNBT9Ps2j8ZmrCM"
+          "current_key": "AIzaSyCWBTcCm5NDaBvlBK251cAlBNnyuOAyyr8"
         }
       ],
       "services": {
         "appinvite_service": {
           "other_platform_oauth_client": [
             {
-              "client_id": "1000918568663-nrhbu4uba7lg74f7jmden61f1uv1v72v.apps.googleusercontent.com",
+              "client_id": "464233600681-j7hqj66h26k00478ng3h241amabq6n6v.apps.googleusercontent.com",
               "client_type": 3
             },
             {
-              "client_id": "1000918568663-563u504lg5con8e1lb297r5pot9nknu6.apps.googleusercontent.com",
+              "client_id": "464233600681-hgcbp50pupt6bap25hfebgl1hl1ma5g5.apps.googleusercontent.com",
               "client_type": 2,
               "ios_info": {
-                "bundle_id": "com.wishlistwizard.app.ios"
+                "bundle_id": "com.nelsongrey.wishlistwizard.app.ios",
+                "app_store_id": "6753732641"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:464233600681:android:df14c48368aac2b0957bb8",
+        "android_client_info": {
+          "package_name": "com.wishlistwizard.app.android"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "464233600681-j7hqj66h26k00478ng3h241amabq6n6v.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCWBTcCm5NDaBvlBK251cAlBNnyuOAyyr8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "464233600681-j7hqj66h26k00478ng3h241amabq6n6v.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "464233600681-hgcbp50pupt6bap25hfebgl1hl1ma5g5.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.nelsongrey.wishlistwizard.app.ios",
+                "app_store_id": "6753732641"
               }
             }
           ]

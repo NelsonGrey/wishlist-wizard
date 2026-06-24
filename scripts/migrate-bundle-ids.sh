@@ -57,14 +57,15 @@ firebase_delete_app() {
   esac
 
   echo "  Archiving old $platform app $app_id from $project..."
-  curl -s -X PATCH \
-    "https://firebase.googleapis.com/v1beta1/projects/${project}/${resource_type}/${app_id}?updateMask=state" \
+  curl -s -X POST \
+    "https://firebase.googleapis.com/v1beta1/projects/${project}/${resource_type}/${app_id}:remove" \
     -H "Authorization: Bearer ${ACCESS_TOKEN}" \
+    -H "X-Goog-User-Project: ${project}" \
     -H "Content-Type: application/json" \
-    -d '{"state":"DELETED"}' | python3 -c "
+    -d '{"allowMissing": false}' | python3 -c "
 import sys, json
 r = json.load(sys.stdin)
-if r.get('done') or r.get('name'):
+if r.get('done') or (r.get('response', {}).get('state') == 'DELETED'):
     print('  ✓ Archived')
 else:
     print('  Response:', json.dumps(r, indent=2))
