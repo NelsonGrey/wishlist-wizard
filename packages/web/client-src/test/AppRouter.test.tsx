@@ -137,7 +137,7 @@ describe('AppRouter Smoke Tests', () => {
       render(<AppRouter />);
 
       await waitFor(() => {
-        expect(screen.getByText('Subscriptions That Scale With You')).toBeInTheDocument();
+        expect(screen.getByText('A subscription for every wishlist workflow')).toBeInTheDocument();
       });
     });
 
