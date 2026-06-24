@@ -79,11 +79,15 @@ Whichever path is chosen, document it in the repo and confirm the `master-pipeli
 
 ---
 
-### 1.5 App Bundle ID Branding [WARN]
+### 1.5 App Bundle ID Branding [RESOLVED]
 
-The mobile bundle ID `com.wishlistwizard.app.android` uses a personal account name (`nelsongrey`), not a company or brand name. This is visible in the App Store and Play Store and cannot be changed after first publication without losing all existing installs and ratings. Confirm this is intentional.
+Bundle IDs updated to brand-aligned identifiers:
+- iOS: `com.wishlistwizard.app.ios`
+- Android: `com.wishlistwizard.app.android`
 
-- [ ] **Confirm or update bundle ID before first App Store / Play Store submission** — Owner: _______ — Due: _______
+These do not contain any personal account name and are ready for App Store / Play Store submission.
+
+- [x] **Bundle IDs updated to com.wishlistwizard.app.{ios,android}** — Completed 2026-06-24
 
 ---
 
