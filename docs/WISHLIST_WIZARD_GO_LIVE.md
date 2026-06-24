@@ -81,7 +81,7 @@ Whichever path is chosen, document it in the repo and confirm the `master-pipeli
 
 ### 1.5 App Bundle ID Branding [WARN]
 
-The mobile bundle ID `com.wishlistwizard.mobile` uses a personal account name (`nelsongrey`), not a company or brand name. This is visible in the App Store and Play Store and cannot be changed after first publication without losing all existing installs and ratings. Confirm this is intentional.
+The mobile bundle ID `com.wishlistwizard.app.android` uses a personal account name (`nelsongrey`), not a company or brand name. This is visible in the App Store and Play Store and cannot be changed after first publication without losing all existing installs and ratings. Confirm this is intentional.
 
 - [ ] **Confirm or update bundle ID before first App Store / Play Store submission** — Owner: _______ — Due: _______
 
@@ -264,7 +264,7 @@ flutter build ios --release
 
 - [ ] Flutter version pinned and matches CI (`flutter --version`) — Owner: _______
 - [ ] CocoaPods install completes without errors (`pod install`) — Owner: _______
-- [ ] Bundle ID confirmed: `com.wishlistwizard.mobile` (or updated) — Owner: _______
+- [ ] Bundle ID confirmed: `com.wishlistwizard.app.android` (or updated) — Owner: _______
 - [ ] App version set to `1.0.0`, build number set (increment each submission) — Owner: _______
 - [ ] App icons (all required sizes) present — Owner: _______
 - [ ] Launch screen / splash screen implemented — Owner: _______

@@ -138,8 +138,8 @@ FACEBOOK_APP_ID=your_facebook_app_id
 FACEBOOK_APP_SECRET=your_facebook_app_secret
 
 # Mobile App Configuration
-MOBILE_BUNDLE_ID=com.wishlistwizard.mobile
-MOBILE_ANDROID_PACKAGE=com.wishlistwizard.mobile
+MOBILE_BUNDLE_ID=com.wishlistwizard.app.android
+MOBILE_ANDROID_PACKAGE=com.wishlistwizard.app.android
 
 # Apple Services (Production/Staging only)
 APP_STORE_CONNECT_KEY_ID=your_app_store_connect_key_id

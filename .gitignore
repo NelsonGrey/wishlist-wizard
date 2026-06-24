@@ -307,6 +307,7 @@ ehthumbs.db
 android/
 ios/
 !packages/mobile/android/
+!packages/mobile/android/app/src/main/kotlin/com/wishlistwizard/app/android/
 !packages/mobile/ios/
 *.keystore
 *.jks

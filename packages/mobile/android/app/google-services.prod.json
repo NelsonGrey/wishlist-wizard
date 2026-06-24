@@ -9,7 +9,7 @@
       "client_info": {
         "mobilesdk_app_id": "1:1000918568663:android:4f0b526ad64522d704ea92",
         "android_client_info": {
-          "package_name": "com.wishlistwizard.mobile"
+          "package_name": "com.wishlistwizard.app.android"
         }
       },
       "oauth_client": [

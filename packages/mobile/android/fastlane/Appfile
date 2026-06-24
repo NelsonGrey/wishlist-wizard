@@ -2,7 +2,7 @@
 # https://docs.fastlane.tools/advanced/Appfile/
 
 # Package name for the Android app
-package_name(ENV["MOBILE_ANDROID_PACKAGE"] || "com.wishlistwizard.mobile")
+package_name(ENV["MOBILE_ANDROID_PACKAGE"] || "com.wishlistwizard.app.android")
 
 # JSON key file path for Google Play Store (optional, can use json_key_data instead)
 # json_key_file("path/to/google-play-service-account.json")
