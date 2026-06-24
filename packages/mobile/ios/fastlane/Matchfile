@@ -16,7 +16,7 @@ storage_mode("git")
 type("appstore")
 
 # App Identifier for this app (if not specified in Appfile)
-# app_identifier(["com.wishlistwizard.mobile"])
+# app_identifier(["com.wishlistwizard.app.ios"])
 
 # Username for the Apple ID
 username(ENV["FASTLANE_APPLE_ID"]) if ENV["FASTLANE_APPLE_ID"]
