@@ -12,7 +12,7 @@ targets:
         configuration: "Release"
     signing:
       team_id: "${APPLE_TEAM_ID}"
-      bundle_id: "com.nelsongrey.wishlistwizard.app.ios"
+      bundle_id: "com.wishlistwizard.app.ios"
       profiles:
         development: true
         distribution: true

@@ -9,7 +9,7 @@
       "client_info": {
         "mobilesdk_app_id": "1:1000918568663:android:4f0b526ad64522d704ea92",
         "android_client_info": {
-          "package_name": "com.nelsongrey.wishlistwizard.mobile"
+          "package_name": "com.wishlistwizard.mobile"
         }
       },
       "oauth_client": [
@@ -34,7 +34,7 @@
               "client_id": "1000918568663-563u504lg5con8e1lb297r5pot9nknu6.apps.googleusercontent.com",
               "client_type": 2,
               "ios_info": {
-                "bundle_id": "com.nelsongrey.wishlistwizard.app.ios"
+                "bundle_id": "com.wishlistwizard.app.ios"
               }
             }
           ]

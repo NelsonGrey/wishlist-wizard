@@ -306,7 +306,7 @@ monitor_mobile_apps() {
     fi
 
     # Check Android Play Store availability
-    android_package="com.nelsongrey.wishlistwizard.mobile"
+    android_package="com.wishlistwizard.mobile"
     android_url="https://play.google.com/store/apps/details?id=$android_package"
 
     android_response=$(curl -s --max-time 10 "$android_url" 2>/dev/null)
