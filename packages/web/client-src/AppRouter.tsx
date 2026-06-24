@@ -41,7 +41,7 @@ const TermsOfService = lazy(() => import("./pages/TermsOfService"));
 const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
 const CookiePolicy = lazy(() => import("./pages/CookiePolicy"));
 const About = lazy(() => import("./pages/About"));
-const Contact = lazy(() => import("./pages/Contact"));
+const Support = lazy(() => import("./pages/Support"));
 const Subscriptions = lazy(() => import("./pages/Subscriptions"));
 const Download = lazy(() => import("./pages/Download"));
 const MobileAppDemo = lazy(() => import("./pages/demos/MobileAppDemo"));
@@ -182,7 +182,7 @@ function AppRouter() {
                     <Route path="/terms" component={TermsOfService} />
                     <Route path="/privacy" component={PrivacyPolicy} />
                     <Route path="/cookies" component={CookiePolicy} />
-                    <Route path="/support" component={Contact} />
+                    <Route path="/support" component={Support} />
                     {/* Legacy URL redirects — keep for backlinks / indexed pages */}
                     <Route path="/privacy-policy" component={() => <Redirect to="/privacy" />} />
                     <Route path="/cookie-policy" component={() => <Redirect to="/cookies" />} />

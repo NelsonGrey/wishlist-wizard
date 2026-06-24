@@ -116,7 +116,7 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions android = FirebaseOptions(
     apiKey: 'AIzaSyCWBTcCm5NDaBvlBK251cAlBNnyuOAyyr8',
-    appId: '1:464233600681:android:3674b697f74dcf2f957bb8',
+    appId: '1:464233600681:android:df14c48368aac2b0957bb8',
     messagingSenderId: '464233600681',
     projectId: 'wishlist-wizard-prod',
     storageBucket: 'wishlist-wizard-prod.firebasestorage.app',
@@ -124,7 +124,7 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyD-c5SJNvcvWYIJeM_c2fWyW6iusQeSXrQ',
-    appId: '1:464233600681:ios:96af1444cfdb7996957bb8',
+    appId: '1:464233600681:ios:250d6d92b5066073957bb8',
     messagingSenderId: '464233600681',
     projectId: 'wishlist-wizard-prod',
     storageBucket: 'wishlist-wizard-prod.firebasestorage.app',
@@ -145,7 +145,7 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions androidDev = FirebaseOptions(
     apiKey: 'AIzaSyAvV2MI-A0pJAsCHu9mSIBXhZGNL42Qz8M',
-    appId: '1:1055615167809:android:3d52fc8b06b344e15485c0',
+    appId: '1:1055615167809:android:9dde4f0315d2dd075485c0',
     messagingSenderId: '1055615167809',
     projectId: 'wishlist-wizard-dev',
     storageBucket: 'wishlist-wizard-dev.firebasestorage.app',
@@ -153,7 +153,7 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions iosDev = FirebaseOptions(
     apiKey: 'AIzaSyBO1gSdOqTIjNz1mWHSaZnhDc4hPNnlT6A',
-    appId: '1:1055615167809:ios:0eb227596e9e64715485c0',
+    appId: '1:1055615167809:ios:a8a5633b35f7344c5485c0',
     messagingSenderId: '1055615167809',
     projectId: 'wishlist-wizard-dev',
     storageBucket: 'wishlist-wizard-dev.firebasestorage.app',
@@ -174,7 +174,7 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions androidStaging = FirebaseOptions(
     apiKey: 'AIzaSyCIeL17Pyydg7NAImCh64pwnvIV2RxPxrk',
-    appId: '1:1039527515823:android:ddd4f0bca0411bbddee65a',
+    appId: '1:1039527515823:android:c72fe157d450914edee65a',
     messagingSenderId: '1039527515823',
     projectId: 'wishlist-wizard-staging',
     storageBucket: 'wishlist-wizard-staging.firebasestorage.app',
@@ -182,7 +182,7 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions iosStaging = FirebaseOptions(
     apiKey: 'AIzaSyDd7wB94TpmEtIgyFeADs2iB0ll8E6BIMQ',
-    appId: '1:1039527515823:ios:74badb9bdfe11b2bdee65a',
+    appId: '1:1039527515823:ios:2dbf5a16f95d14fcdee65a',
     messagingSenderId: '1039527515823',
     projectId: 'wishlist-wizard-staging',
     storageBucket: 'wishlist-wizard-staging.firebasestorage.app',
