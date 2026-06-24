@@ -1,40 +1,78 @@
 {
   "project_info": {
-    "project_number": "1000918568663",
+    "project_number": "1055615167809",
     "project_id": "wishlist-wizard-dev",
     "storage_bucket": "wishlist-wizard-dev.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:1000918568663:android:4f0b526ad64522d704ea92",
+        "mobilesdk_app_id": "1:1055615167809:android:3d52fc8b06b344e15485c0",
         "android_client_info": {
-          "package_name": "com.wishlistwizard.app.android"
+          "package_name": "com.nelsongrey.wishlistwizard.app.android"
         }
       },
       "oauth_client": [
         {
-          "client_id": "1000918568663-nrhbu4uba7lg74f7jmden61f1uv1v72v.apps.googleusercontent.com",
+          "client_id": "1055615167809-7o8ss6p72kahvmprfvn0dolli1v2hcad.apps.googleusercontent.com",
           "client_type": 3
         }
       ],
       "api_key": [
         {
-          "current_key": "AIzaSyDs93rijhaegkhZyanNyNBT9Ps2j8ZmrCM"
+          "current_key": "AIzaSyAvV2MI-A0pJAsCHu9mSIBXhZGNL42Qz8M"
         }
       ],
       "services": {
         "appinvite_service": {
           "other_platform_oauth_client": [
             {
-              "client_id": "1000918568663-nrhbu4uba7lg74f7jmden61f1uv1v72v.apps.googleusercontent.com",
+              "client_id": "1055615167809-7o8ss6p72kahvmprfvn0dolli1v2hcad.apps.googleusercontent.com",
               "client_type": 3
             },
             {
-              "client_id": "1000918568663-563u504lg5con8e1lb297r5pot9nknu6.apps.googleusercontent.com",
+              "client_id": "1055615167809-nuuvuekieveiti9cbivds0qv9ac5d1jq.apps.googleusercontent.com",
               "client_type": 2,
               "ios_info": {
-                "bundle_id": "com.wishlistwizard.app.ios"
+                "bundle_id": "com.nelsongrey.wishlistwizard.app.ios",
+                "app_store_id": "6753732641"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1055615167809:android:9dde4f0315d2dd075485c0",
+        "android_client_info": {
+          "package_name": "com.wishlistwizard.app.android"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1055615167809-7o8ss6p72kahvmprfvn0dolli1v2hcad.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAvV2MI-A0pJAsCHu9mSIBXhZGNL42Qz8M"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1055615167809-7o8ss6p72kahvmprfvn0dolli1v2hcad.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "1055615167809-nuuvuekieveiti9cbivds0qv9ac5d1jq.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.nelsongrey.wishlistwizard.app.ios",
+                "app_store_id": "6753732641"
               }
             }
           ]
