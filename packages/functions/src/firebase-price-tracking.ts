@@ -7,7 +7,6 @@ import { onDocumentCreated } from 'firebase-functions/v2/firestore';
 import { getFirestore, FieldValue, Timestamp } from 'firebase-admin/firestore';
 import { getAuth } from 'firebase-admin/auth';
 import { initializeApp, getApps } from 'firebase-admin/app';
-import { defineSecret } from 'firebase-functions/params';
 import { logger } from 'firebase-functions/v2';
 import { sendNotificationToUser } from './fcm';
 
@@ -15,9 +14,6 @@ import { sendNotificationToUser } from './fcm';
 const app = getApps().length === 0 ? initializeApp() : getApps()[0];
 const db = getFirestore(app);
 const auth = getAuth(app);
-
-// Firebase Secrets for sensitive data
-const sendGridApiKey = defineSecret('SENDGRID_API_KEY');
 
 // Simple price scraping interface (implement as needed)
 interface PriceScrapeResult {
@@ -56,7 +52,6 @@ const emailService = {
 export const scheduledPriceCheck = onSchedule({
   schedule: 'every 60 minutes',
   timeZone: 'America/New_York',
-  secrets: [sendGridApiKey],
   memory: '1GiB',
   timeoutSeconds: 540
 }, async (event) => {
@@ -184,7 +179,6 @@ export const scheduledPriceCheck = onSchedule({
  * Callable function to create a new price alert for authenticated users
  */
 export const createPriceAlert = onCall({
-  secrets: [sendGridApiKey],
   enforceAppCheck: false // Set to true in production
 }, async (request: CallableRequest<{
   productUrl: string;
@@ -439,8 +433,7 @@ export const deletePriceAlert = onCall({
  * Automatically triggered when a new price alert is created
  */
 export const onPriceAlertCreated = onDocumentCreated({
-  document: 'priceAlerts/{alertId}',
-  secrets: [sendGridApiKey]
+  document: 'priceAlerts/{alertId}'
 }, async (event) => {
   const alertData = event.data?.data();
   const alertId = event.params.alertId;
@@ -564,7 +557,6 @@ async function createInAppNotification(userId: string, notification: {
  * Callable function for users to manually trigger price checks
  */
 export const manualPriceCheck = onCall({
-  secrets: [sendGridApiKey],
   enforceAppCheck: false
 }, async (request: CallableRequest<{ alertId: string }>) => {
   
