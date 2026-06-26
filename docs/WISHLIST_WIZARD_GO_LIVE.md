@@ -1,7 +1,7 @@
 # Wishlist Wizard — Go Live Document
 
-> **Version:** 1.0  
-> **Last Updated:** 2026-06-16  
+> **Version:** 1.1  
+> **Last Updated:** 2026-06-26  
 > **Repo:** https://github.com/mnelson3/wishlist-wizard (default branch: `develop`)  
 > **Production URL:** https://wishlist-wizard.web.app  
 > **Staging URL:** https://wishlist-wizard-staging.web.app  
@@ -34,31 +34,20 @@ Owner columns should be filled in with initials or role before launch begins.
 
 These issues were identified during repository analysis. They must be addressed before running the go-live gate or deploying to production.
 
-### 1.1 SPA Routing Bug in `firebase.prod.json` [BLOCKER]
+### 1.1 SPA Routing Bug in `firebase.prod.json` [RESOLVED]
 
-**Problem:** `firebase.prod.json` uses `"redirects"` for all SPA routes (`/dashboard`, `/wishlists/**`, `/login`, etc.). Redirects send the browser to a new URL — they do not serve `index.html` in place. For a single-page application, all non-asset routes must be handled by the `"rewrites"` rule so that React Router can render the correct page.
+All `"redirects"` entries removed. `firebase.prod.json` now has 0 redirects and 2 rewrites: `/api/**` → Cloud Function, and the SPA catch-all `**` → `/index.html`. React Router receives the correct path on direct navigation.
 
-**Fix:** Remove all the individual route entries from the `"redirects"` array in `firebase.prod.json`. The existing catch-all rewrite `"source": "**" → "/index.html"` already handles SPA routing correctly. Only keep redirects for routes that need a true 301/302 redirect to a different destination.
-
-**Verify:** After deploying, directly navigate to `https://wishlist-wizard.web.app/dashboard` in a fresh browser tab (no prior navigation). It should render the app, not return a 404 or redirect to home.
-
-- [ ] **Fix SPA redirect/rewrite configuration in firebase.prod.json** — Owner: _______ — Due: _______
+- [x] **Fix SPA redirect/rewrite configuration in firebase.prod.json** — Completed 2026-06-24
 
 ---
 
-### 1.2 Production Branch Strategy [BLOCKER]
+### 1.2 Production Branch Strategy [RESOLVED]
 
-**Problem:** The repository's default branch is `develop`. The Firebase Hosting merge workflow (`firebase-hosting-merge.yml`) is disabled. It is not clear how merges to `develop` or `main` trigger a production deployment.
+Promotion path: `develop` → `main` → production. `.github/workflows/firebase-hosting-merge.yml` triggers on push to `main`, builds the web app with `VITE_FIREBASE_*_PRODUCTION` secrets, and deploys only Firebase Hosting to `wishlist-wizard-prod`. `.github/workflows/firebase-hosting-dev.yml` triggers on push to `develop` and deploys to `wishlist-wizard-dev`.
 
-**Fix:** Decide and document the promotion flow:
-- Option A: `develop` → `main` triggers production deploy (re-enable `firebase-hosting-merge.yml`, targeting `main`).
-- Option B: Production is deployed manually via `npm run deploy` on a tagged release.
-- Option C: The `firebase-deploy-local.yml` workflow is the intended production trigger.
-
-Whichever path is chosen, document it in the repo and confirm the `master-pipeline.yml` is targeting the correct branch.
-
-- [ ] **Document and implement branch promotion strategy (develop → main or equivalent)** — Owner: _______ — Due: _______
-- [ ] **Re-enable or replace firebase-hosting-merge.yml for production** — Owner: _______ — Due: _______
+- [x] **Document and implement branch promotion strategy (develop → main)** — Completed 2026-06-24
+- [x] **Re-enable or replace firebase-hosting-merge.yml for production** — Completed 2026-06-24
 
 ---
 
@@ -71,11 +60,11 @@ Whichever path is chosen, document it in the repo and confirm the `master-pipeli
 
 ---
 
-### 1.4 Empty Stub Files [WARN]
+### 1.4 Empty Stub Files [RESOLVED]
 
-`mock-api-server.js` and `test-server.js` in the repo root are 0-byte files. Either implement them, delete them, or add them to `.gitignore`. Their presence suggests incomplete scaffolding.
+`mock-api-server.js` and `test-server.js` deleted from the repo.
 
-- [ ] **Remove or implement mock-api-server.js and test-server.js** — Owner: _______ — Due: _______
+- [x] **Remove or implement mock-api-server.js and test-server.js** — Completed 2026-06-24
 
 ---
 
@@ -91,14 +80,11 @@ These do not contain any personal account name and are ready for App Store / Pla
 
 ---
 
-### 1.6 Repository Hygiene [WARN]
+### 1.6 Repository Hygiene [RESOLVED]
 
-The following files should not be tracked in git:
+`health-status.json` and `test-ci-cd-pipeline.txt` removed from git tracking and added to `.gitignore`.
 
-- `health-status.json` — runtime output, add to `.gitignore`
-- `test-ci-cd-pipeline.txt` — test artifact, delete or add to `.gitignore`
-
-- [ ] **Add health-status.json and test-ci-cd-pipeline.txt to .gitignore and remove from tracking** — Owner: _______ — Due: _______
+- [x] **Add health-status.json and test-ci-cd-pipeline.txt to .gitignore and remove from tracking** — Completed 2026-06-24
 
 ---
 
@@ -126,27 +112,33 @@ All secrets must be in GitHub Secrets or Firebase Secret Manager — never in so
 
 **Firebase Functions (set via Firebase Secret Manager or environment config):**
 
-- [ ] `SENDGRID_API_KEY` — transactional email — Owner: _______
-- [ ] `OPENAI_API_KEY` — AI recommendations — Owner: _______
-- [ ] `STRIPE_SECRET_KEY` — group gifting payments (Phase 1 or Phase 2?) — Owner: _______
-- [ ] `STRIPE_WEBHOOK_SECRET` — Stripe webhook verification — Owner: _______
+- [ ] `SENDGRID_API_KEY` — transactional email — **DEFERRED**: email is a logging stub until Google Workspace + Nodemailer is provisioned
+- [ ] `OPENAI_API_KEY` — AI recommendations — **DEFERRED**: not in Phase 1 scope
+- [ ] `STRIPE_SECRET_KEY` — group gifting payments — **DEFERRED**: Phase 2
+- [ ] `STRIPE_WEBHOOK_SECRET` — Stripe webhook verification — **DEFERRED**: Phase 2
 - [ ] `JWT_SECRET` — strong random value, minimum 64 characters — Owner: _______
 - [ ] `SESSION_SECRET` — strong random value, minimum 64 characters — Owner: _______
 - [ ] FCM server credentials configured in Firebase console (push notifications) — Owner: _______
 
 **GitHub Secrets (for CI/CD workflows):**
 
-- [ ] `FIREBASE_SERVICE_ACCOUNT_PROD` — Firebase deployment service account — Owner: _______
-- [ ] `FIREBASE_SERVICE_ACCOUNT_STAGING` — staging deployment — Owner: _______
-- [ ] `GH_TOKEN` — GitHub PAT with `repo`, `workflow` scopes (for automation) — Owner: _______
-- [ ] `APP_STORE_CONNECT_KEY_ID` — Apple App Store Connect — Owner: _______
-- [ ] `APP_STORE_CONNECT_ISSUER_ID` — Apple App Store Connect — Owner: _______
-- [ ] `APP_STORE_CONNECT_KEY` — base64-encoded .p8 private key — Owner: _______
-- [ ] `FASTLANE_APPLE_ID` — Apple developer account email — Owner: _______
-- [ ] `FASTLANE_TEAM_ID` — Apple team ID — Owner: _______
-- [ ] `MATCH_GIT_URL` — iOS certificates repo URL — Owner: _______
-- [ ] `MATCH_PASSWORD` — Fastlane Match encryption password — Owner: _______
-- [ ] `GOOGLE_PLAY_SERVICE_ACCOUNT_KEY` — Android deployment JSON — Owner: _______
+- [x] `FIREBASE_SERVICE_ACCOUNT_PRODUCTION` — set (named `FIREBASE_SERVICE_ACCOUNT_PRODUCTION`)
+- [x] `FIREBASE_SERVICE_ACCOUNT_STAGING` — set
+- [x] `FIREBASE_SERVICE_ACCOUNT_DEVELOPMENT` — set
+- [x] `FIREBASE_TOKEN` — set
+- [ ] `GH_TOKEN` — GitHub PAT with `repo`, `workflow` scopes — `NELSON_GREY_PAT` exists; verify it has workflow scope — Owner: _______
+- [x] `APP_STORE_CONNECT_KEY_ID` — set
+- [x] `APP_STORE_CONNECT_ISSUER_ID` — set
+- [x] `APP_STORE_CONNECT_KEY` — set
+- [x] `FASTLANE_APPLE_ID` — set
+- [x] `FASTLANE_TEAM_ID` — set
+- [x] `MATCH_GIT_URL` — set
+- [x] `MATCH_PASSWORD` — set
+- [x] `MATCH_GIT_BRANCH` — set
+- [x] `MATCH_SSH_PRIVATE_KEY` — set
+- [x] `MATCH_KEYCHAIN_NAME` — set
+- [x] `MATCH_KEYCHAIN_PASSWORD` — set
+- [ ] `GOOGLE_PLAY_SERVICE_ACCOUNT_KEY` — Android CI deployment JSON — Owner: _______
 - [ ] `ANDROID_KEYSTORE` — base64-encoded keystore file — Owner: _______
 - [ ] `ANDROID_KEYSTORE_PASSWORD` — keystore password — Owner: _______
 - [ ] `ANDROID_KEY_ALIAS` — key alias — Owner: _______
@@ -154,14 +146,11 @@ All secrets must be in GitHub Secrets or Firebase Secret Manager — never in so
 
 **Web App build-time variables (VITE_ prefix, set in CI):**
 
-- [ ] `VITE_FIREBASE_API_KEY` — Owner: _______
-- [ ] `VITE_FIREBASE_AUTH_DOMAIN` — Owner: _______
-- [ ] `VITE_FIREBASE_PROJECT_ID` — (should be `wishlist-wizard-prod` for production build) — Owner: _______
-- [ ] `VITE_FIREBASE_STORAGE_BUCKET` — Owner: _______
-- [ ] `VITE_FIREBASE_MESSAGING_SENDER_ID` — Owner: _______
-- [ ] `VITE_FIREBASE_APP_ID` — Owner: _______
-- [ ] `VITE_FIREBASE_MEASUREMENT_ID` — Google Analytics measurement ID — Owner: _______
-- [ ] `VITE_GA_MEASUREMENT_ID` — Google Analytics (separate from Firebase) — Owner: _______
+- [x] Production VITE_ vars — set as `VITE_FIREBASE_*_PRODUCTION` in GitHub Secrets; `firebase-hosting-merge.yml` maps them correctly
+- [x] Dev VITE_ vars — set as `DEV_VITE_FIREBASE_*`; `firebase-hosting-dev.yml` maps them correctly
+- [x] Staging VITE_ vars — set as `VITE_FIREBASE_*_STAGING`
+- [x] `VITE_SHOW_COMING_SOON_*` — set for all three environments
+- [ ] `VITE_GA_MEASUREMENT_ID` — Google Analytics ID separate from Firebase — Owner: _______
 
 ---
 
@@ -206,7 +195,7 @@ npm run preflight:mobile
 - [ ] Firebase smoke test (strict mode): 265+/273 passed, 0 failed — Owner: _______
 - [ ] User flow smoke test: all core flows pass — Owner: _______
 - [ ] `npm run requirements:verify` — passes — Owner: _______
-- [ ] `./scripts/go-live-gate.sh` — exits 0 (GO FOR LAUNCH) — Owner: _______
+- [x] `./scripts/go-live-gate.sh` — exits 0 (GO FOR LAUNCH) — 19 passed / 0 blockers as of 2026-06-26
 - [ ] `npm run preflight:extension` — passes — Owner: _______
 - [ ] `npm run preflight:mobile` — passes — Owner: _______
 
@@ -251,7 +240,7 @@ ls packages/web/dist
 - [ ] All VITE_ environment variables are baked into the build — Owner: _______
 - [ ] Bundle size reviewed — no unexpectedly large chunks — Owner: _______
 - [ ] Source maps excluded from production build (or stored privately) — Owner: _______
-- [ ] Content Security Policy headers configured in `firebase.prod.json` under `"headers"` — Owner: _______
+- [x] Content Security Policy headers configured in `firebase.prod.json` under `"headers"` — Completed 2026-06-24
 - [ ] Favicon and app icons present in `public/` — Owner: _______
 - [ ] Open Graph meta tags correct (og:title, og:description, og:image) for social sharing — Owner: _______
 - [ ] robots.txt reviewed and appropriate for a public app — Owner: _______
@@ -268,13 +257,13 @@ flutter build ios --release
 
 - [ ] Flutter version pinned and matches CI (`flutter --version`) — Owner: _______
 - [ ] CocoaPods install completes without errors (`pod install`) — Owner: _______
-- [ ] Bundle ID confirmed: `com.wishlistwizard.app.android` (or updated) — Owner: _______
+- [x] Bundle ID confirmed: iOS `com.wishlistwizard.app.ios`, Android `com.wishlistwizard.app.android` — Completed 2026-06-24
 - [ ] App version set to `1.0.0`, build number set (increment each submission) — Owner: _______
 - [ ] App icons (all required sizes) present — Owner: _______
 - [ ] Launch screen / splash screen implemented — Owner: _______
 - [ ] Privacy manifest (`PrivacyInfo.xcprivacy`) included — required by Apple as of May 2024 — Owner: _______
 - [ ] Push notification entitlements configured (APS environment: production) — Owner: _______
-- [ ] iOS code signing via Fastlane Match configured and certificates downloaded — Owner: _______
+- [x] iOS code signing via Fastlane Match configured and certificates downloaded — `fastlane sync_signing` run for `com.wishlistwizard.app.ios` 2026-06-24
 - [ ] Archive builds successfully in Xcode or via `ios-mobile-release.yml` workflow — Owner: _______
 - [ ] TestFlight build uploaded and tested by at least one internal tester — Owner: _______
 - [ ] App Store listing prepared: name, description, screenshots (6.7", 5.5" minimum), keywords — Owner: _______
@@ -340,11 +329,12 @@ npm run package:extension:release
 - [ ] Privacy Policy written and published at a public URL — Owner: _______
 - [ ] Privacy Policy linked in mobile app and extension (required by app stores) — Owner: _______
 - [ ] Cookie consent banner implemented on web app (required for GDPR/CCPA) — Owner: _______
+- [x] Google AdMob/AdSense privacy consent (UMP) configured — Completed 2026-06-26
 - [ ] Data retention policy defined — Owner: _______
 - [ ] User account deletion flow working end-to-end (GDPR Art. 17 / CCPA) — Owner: _______
 - [ ] Data export capability available for users (GDPR Art. 20) — Owner: _______
 - [ ] COPPA considerations reviewed (if app is used by under-13s) — Owner: _______
-- [ ] License file (`LICENSE`) added to repository root (package.json declares MIT) — Owner: _______
+- [x] License file (`LICENSE`) added to repository root with proprietary terms — Completed 2026-06-24
 
 ---
 

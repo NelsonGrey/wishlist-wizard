@@ -8,7 +8,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { useState } from "react";
 import { Link } from "wouter";
 
-export default function Contact() {
+export default function Support() {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
