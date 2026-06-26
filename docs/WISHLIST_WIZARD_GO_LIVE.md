@@ -112,7 +112,7 @@ All secrets must be in GitHub Secrets or Firebase Secret Manager — never in so
 
 **Firebase Functions (set via Firebase Secret Manager or environment config):**
 
-- [ ] `SENDGRID_API_KEY` — transactional email — **DEFERRED**: email is a logging stub until Google Workspace + Nodemailer is provisioned
+- [x] Transactional email — implemented via Nodemailer + Google Workspace SMTP (`support@wishlist-wizard.com`). Secret: `GMAIL_APP_PASSWORD` in Firebase Secret Manager (set before deploying functions)
 - [ ] `OPENAI_API_KEY` — AI recommendations — **DEFERRED**: not in Phase 1 scope
 - [ ] `STRIPE_SECRET_KEY` — group gifting payments — **DEFERRED**: Phase 2
 - [ ] `STRIPE_WEBHOOK_SECRET` — Stripe webhook verification — **DEFERRED**: Phase 2
@@ -340,7 +340,7 @@ npm run package:extension:release
 
 ### 2.11 External Service Integrations
 
-- [ ] **SendGrid:** Account set up, sender identity verified, transactional email templates created (welcome, password reset, invitation, notification digest) — Owner: _______
+- [x] **Email (Nodemailer + Google Workspace):** `support@wishlist-wizard.com` via Gmail SMTP. Templates: price-tracking-welcome, price-alert. Secret `GMAIL_APP_PASSWORD` must be set in Firebase Secret Manager before deploying. `sendEmail()` in `packages/functions/src/email.ts`.
 - [ ] **Stripe:** Account created, webhooks configured, group gifting Stripe integration tested (or explicitly deferred to Phase 2 with feature flag off) — Owner: _______
 - [ ] **OpenAI:** API key provisioned, usage limits/alerts set — Owner: _______
 - [ ] **Google Calendar API:** OAuth app configured in Google Cloud Console, OAuth consent screen reviewed and approved — Owner: _______
