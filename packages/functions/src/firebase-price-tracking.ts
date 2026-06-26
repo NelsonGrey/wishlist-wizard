@@ -9,6 +9,7 @@ import { getAuth } from 'firebase-admin/auth';
 import { initializeApp, getApps } from 'firebase-admin/app';
 import { logger } from 'firebase-functions/v2';
 import { sendNotificationToUser } from './fcm';
+import { sendEmail, gmailAppPassword } from './email';
 
 // Initialize Firebase Admin (safe for multiple imports)
 const app = getApps().length === 0 ? initializeApp() : getApps()[0];
@@ -22,26 +23,10 @@ interface PriceScrapeResult {
   error?: string;
 }
 
-// Simple email interface (implement as needed)
-interface EmailData {
-  to: string;
-  subject: string;
-  template: string;
-  data: any;
-}
-
-// Mock services for now - replace with actual implementations
+// Mock price scraper — replace with real implementation
 const priceScraper = {
-  async scrapePrice(url: string): Promise<PriceScrapeResult> {
-    // Implement price scraping logic here
+  async scrapePrice(_url: string): Promise<PriceScrapeResult> {
     return { success: true, price: '29.99' };
-  }
-};
-
-const emailService = {
-  async sendEmail(data: EmailData): Promise<void> {
-    // Implement email sending logic here
-    logger.info('Sending email:', { to: data.to, subject: data.subject });
   }
 };
 
@@ -53,7 +38,8 @@ export const scheduledPriceCheck = onSchedule({
   schedule: 'every 60 minutes',
   timeZone: 'America/New_York',
   memory: '1GiB',
-  timeoutSeconds: 540
+  timeoutSeconds: 540,
+  secrets: [gmailAppPassword],
 }, async (event) => {
   logger.info('Starting scheduled price check', { timestamp: event.scheduleTime });
   
@@ -433,7 +419,8 @@ export const deletePriceAlert = onCall({
  * Automatically triggered when a new price alert is created
  */
 export const onPriceAlertCreated = onDocumentCreated({
-  document: 'priceAlerts/{alertId}'
+  document: 'priceAlerts/{alertId}',
+  secrets: [gmailAppPassword],
 }, async (event) => {
   const alertData = event.data?.data();
   const alertId = event.params.alertId;
@@ -454,7 +441,7 @@ export const onPriceAlertCreated = onDocumentCreated({
       const userRecord = await auth.getUser(alertData.userId);
       
       if (userRecord.email) {
-        await emailService.sendEmail({
+        await sendEmail({
           to: userRecord.email,
           subject: 'Welcome to Price Tracking!',
           template: 'price-tracking-welcome',
@@ -501,7 +488,7 @@ async function sendPriceAlertNotifications(notifications: Array<{
       // Send email notification
       const userRecord = await auth.getUser(notification.userId);
       if (userRecord.email) {
-        await emailService.sendEmail({
+        await sendEmail({
           to: userRecord.email,
           subject: notification.title,
           template: 'price-alert',
