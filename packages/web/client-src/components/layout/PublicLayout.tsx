@@ -50,8 +50,8 @@ export default function PublicLayout({ children }: PublicLayoutProps) {
           </Link>
 
           <nav className="hidden md:flex items-center space-x-6">
-            <Link href="/extension" className="text-gray-700 hover:text-emerald-700 font-medium transition-colors">
-              Browser Extension
+            <Link href="/about" className="text-gray-700 hover:text-emerald-700 font-medium transition-colors">
+              About
             </Link>
             <Link href="/subscriptions" className="text-gray-700 hover:text-emerald-700 font-medium transition-colors">
               Subscriptions
@@ -59,8 +59,8 @@ export default function PublicLayout({ children }: PublicLayoutProps) {
             <Link href="/download" className="text-gray-700 hover:text-emerald-700 font-medium transition-colors">
               Download
             </Link>
-            <Link href="/about" className="text-gray-700 hover:text-emerald-700 font-medium transition-colors">
-              About
+            <Link href="/extension" className="text-gray-700 hover:text-emerald-700 font-medium transition-colors">
+              Browser Extension
             </Link>
             {isAuthenticated ? (
               <Link href="/app/dashboard" className="px-6 py-2.5 bg-emerald-800 text-white hover:bg-emerald-900 rounded-lg font-medium shadow-md hover:shadow-lg transition-all">

@@ -36,10 +36,10 @@ export default function Footer() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
           {/* Brand */}
-          <div className="flex items-center gap-2.5 shrink-0">
+          <Link href="/" className="flex items-center gap-2.5 shrink-0 hover:opacity-80 transition-opacity">
             <img src="/logo.svg" alt="Wishlist Wizard" className="h-6 w-6" />
             <span className="font-semibold text-sm">Wishlist Wizard</span>
-          </div>
+          </Link>
 
           {/* Main nav */}
           <nav className="flex flex-wrap gap-x-5 gap-y-1 text-sm text-emerald-200">
