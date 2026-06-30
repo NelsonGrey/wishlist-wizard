@@ -21,7 +21,7 @@ export default function MobileAppDemo() {
           {/* Phone Mockup */}
           <div className="flex justify-center items-start">
             <div className="bg-black rounded-3xl p-3 shadow-2xl max-w-sm w-full" style={{ aspectRatio: "9/19" }}>
-              <div className="bg-white rounded-2xl h-full overflow-hidden flex flex-col">
+              <div className="bg-white rounded-lg h-full overflow-hidden flex flex-col">
                 {/* Status Bar */}
                 <div className="bg-emerald-700 text-white px-6 py-3 text-center text-sm font-semibold">
                   9:41
@@ -36,8 +36,8 @@ export default function MobileAppDemo() {
                   <div className="space-y-3 flex-1">
                     {[
                       { title: "Birthday Gifts", items: 12, color: "bg-emerald-100" },
-                      { title: "Tech Wishlist", items: 8, color: "bg-blue-100" },
-                      { title: "Home Decor", items: 5, color: "bg-purple-100" }
+                      { title: "Tech Wishlist", items: 8, color: "bg-emerald-100" },
+                      { title: "Home Decor", items: 5, color: "bg-emerald-100" }
                     ].map((list) => (
                       <div key={list.title} className={`${list.color} rounded-lg p-4`}>
                         <div className="flex justify-between items-center">
@@ -77,8 +77,8 @@ export default function MobileAppDemo() {
 
             <div className="bg-white border border-slate-200 rounded-xl p-6 hover:shadow-lg transition-shadow">
               <div className="flex gap-4">
-                <div className="bg-blue-100 p-3 rounded-lg h-fit">
-                  <Share2 className="text-blue-700" size={24} />
+                <div className="bg-emerald-100 p-3 rounded-lg h-fit">
+                  <Share2 className="text-emerald-700" size={24} />
                 </div>
                 <div>
                   <h3 className="font-semibold text-lg text-slate-900">Share on the Move</h3>
@@ -89,8 +89,8 @@ export default function MobileAppDemo() {
 
             <div className="bg-white border border-slate-200 rounded-xl p-6 hover:shadow-lg transition-shadow">
               <div className="flex gap-4">
-                <div className="bg-purple-100 p-3 rounded-lg h-fit">
-                  <Bell className="text-purple-700" size={24} />
+                <div className="bg-emerald-100 p-3 rounded-lg h-fit">
+                  <Bell className="text-emerald-700" size={24} />
                 </div>
                 <div>
                   <h3 className="font-semibold text-lg text-slate-900">Smart Notifications</h3>
@@ -102,7 +102,7 @@ export default function MobileAppDemo() {
         </div>
 
         {/* Key Benefits */}
-        <div className="bg-white border border-slate-200 rounded-2xl p-8 mb-8">
+        <div className="bg-white border border-slate-200 rounded-lg p-8 mb-8">
           <h2 className="text-2xl font-bold text-slate-900 mb-6">Key Benefits</h2>
           <div className="grid md:grid-cols-3 gap-6">
             {[

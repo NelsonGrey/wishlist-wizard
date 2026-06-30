@@ -40,7 +40,7 @@ export default function BrowserExtensionDemo() {
               <div className="p-6 bg-slate-50">
                 <div className="bg-white rounded-lg p-4 mb-4 border border-slate-200">
                   <div className="flex gap-4">
-                    <div className="w-20 h-20 bg-gradient-to-br from-slate-300 to-slate-400 rounded"></div>
+                    <div className="w-20 h-20 bg-gradient-to-br from-emerald-100 to-emerald-200 rounded"></div>
                     <div className="flex-1">
                       <h3 className="font-semibold text-slate-900">Premium Wireless Headphones</h3>
                       <p className="text-sm text-slate-600 mt-1">High-quality audio with noise cancellation</p>
@@ -84,8 +84,8 @@ export default function BrowserExtensionDemo() {
 
             <div className="bg-white border border-slate-200 rounded-xl p-6 hover:shadow-lg transition-shadow">
               <div className="flex gap-4">
-                <div className="bg-blue-100 p-3 rounded-lg h-fit">
-                  <Chrome className="text-blue-700" size={24} />
+                <div className="bg-emerald-100 p-3 rounded-lg h-fit">
+                  <Chrome className="text-emerald-700" size={24} />
                 </div>
                 <div>
                   <h3 className="font-semibold text-lg text-slate-900">Works Everywhere</h3>
@@ -96,8 +96,8 @@ export default function BrowserExtensionDemo() {
 
             <div className="bg-white border border-slate-200 rounded-xl p-6 hover:shadow-lg transition-shadow">
               <div className="flex gap-4">
-                <div className="bg-purple-100 p-3 rounded-lg h-fit">
-                  <AlertCircle className="text-purple-700" size={24} />
+                <div className="bg-emerald-100 p-3 rounded-lg h-fit">
+                  <AlertCircle className="text-emerald-700" size={24} />
                 </div>
                 <div>
                   <h3 className="font-semibold text-lg text-slate-900">Smart Detection</h3>
@@ -109,7 +109,7 @@ export default function BrowserExtensionDemo() {
         </div>
 
         {/* Supported Stores */}
-        <div className="bg-white border border-slate-200 rounded-2xl p-8 mb-8">
+        <div className="bg-white border border-slate-200 rounded-lg p-8 mb-8">
           <h2 className="text-2xl font-bold text-slate-900 mb-6">Works with Thousands of Stores</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {[
@@ -135,7 +135,7 @@ export default function BrowserExtensionDemo() {
         </div>
 
         {/* Installation Steps */}
-        <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-8 mb-8">
+        <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-8 mb-8">
           <h2 className="text-2xl font-bold text-slate-900 mb-6">Quick Setup</h2>
           <div className="space-y-4">
             {[

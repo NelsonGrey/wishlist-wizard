@@ -24,7 +24,7 @@ const PLAN_STORIES: Record<TierKey, PlanStory> = {
     valueProof: "A generous free tier keeps sharing friction low and helps new gift-givers discover the product.",
     bullets: ["3 active wishlists", "5 price-tracked items", "Shared links with purchase visibility"],
     cta: "Start Free",
-    accent: "text-rose-700 bg-rose-50 border-rose-100",
+    accent: "text-emerald-800 bg-emerald-50 border-emerald-100",
   },
   starter: {
     icon: CalendarDays,
@@ -33,7 +33,7 @@ const PLAN_STORIES: Record<TierKey, PlanStory> = {
     valueProof: "One meaningful price drop can cover the annual plan for a family shopper.",
     bullets: ["10 active wishlists", "25 price-tracked items", "Calendar reminders and basic analytics"],
     cta: "Choose Starter",
-    accent: "text-teal-700 bg-teal-50 border-teal-100",
+    accent: "text-emerald-800 bg-emerald-50 border-emerald-100",
   },
   plus: {
     icon: Users,
@@ -42,7 +42,7 @@ const PLAN_STORIES: Record<TierKey, PlanStory> = {
     valueProof: "Preventing one duplicate high-value gift can justify the plan for an event.",
     bullets: ["Unlimited wishlists", "75 price-tracked items", "Group gifting and no ads"],
     cta: "Choose Plus",
-    accent: "text-sky-700 bg-sky-50 border-sky-100",
+    accent: "text-emerald-800 bg-emerald-50 border-emerald-100",
   },
   creator: {
     icon: Megaphone,
@@ -51,7 +51,7 @@ const PLAN_STORIES: Record<TierKey, PlanStory> = {
     valueProof: "Creators can offset the subscription when recommendations start driving purchases.",
     bullets: ["Unlimited items and tracking", "20% commission share", "Full creator dashboard"],
     cta: "Choose Creator Pro",
-    accent: "text-violet-700 bg-violet-50 border-violet-100",
+    accent: "text-emerald-800 bg-emerald-50 border-emerald-100",
   },
   business: {
     icon: BadgeDollarSign,
@@ -60,7 +60,7 @@ const PLAN_STORIES: Record<TierKey, PlanStory> = {
     valueProof: "Built for teams that manage gifting as an operational workflow, not a personal list.",
     bullets: ["5 team members", "25K API calls per month", "30% commission share"],
     cta: "Choose Business",
-    accent: "text-amber-700 bg-amber-50 border-amber-100",
+    accent: "text-emerald-800 bg-emerald-50 border-emerald-100",
   },
 };
 
@@ -94,11 +94,11 @@ export default function Subscriptions({ variant = "full" }: SubscriptionsProps) 
   const isPreview = variant === "preview";
 
   return (
-    <section id="subscriptions" className={`${isPreview ? "bg-slate-50" : "bg-white"} py-14 border-t border-slate-200`}>
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+    <section id="subscriptions" className="border-t border-emerald-100 bg-white px-4 py-12 sm:px-6 lg:px-8">
+      <div className={`mx-auto max-w-7xl ${isPreview ? "rounded-lg border border-emerald-100 bg-emerald-50/60 p-6 sm:p-8" : ""}`}>
         <div className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
           <div className="max-w-3xl">
-            <p className="text-sm font-semibold uppercase tracking-[0.24em] text-teal-700">Subscriptions</p>
+            <p className="text-sm font-semibold uppercase tracking-[0.24em] text-emerald-700">Subscriptions</p>
             <h2 className="mt-3 text-3xl font-bold tracking-tight text-slate-950 sm:text-4xl">
               Pick the plan that matches the job you are doing.
             </h2>
@@ -111,7 +111,7 @@ export default function Subscriptions({ variant = "full" }: SubscriptionsProps) 
           {isPreview && (
             <Link
               href="/subscriptions"
-              className="inline-flex w-fit items-center gap-2 rounded-lg border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-950 transition-colors hover:bg-slate-100"
+              className="inline-flex w-fit items-center gap-2 rounded-lg border border-emerald-200 bg-white px-5 py-3 text-sm font-semibold text-emerald-900 transition-colors hover:bg-emerald-50"
             >
               Compare Plans
               <ArrowRight className="h-4 w-4" />
@@ -131,12 +131,12 @@ export default function Subscriptions({ variant = "full" }: SubscriptionsProps) 
                 key={tierKey}
                 className={`flex h-full flex-col rounded-lg border p-5 shadow-sm transition-all ${
                   isHighlighted
-                    ? "border-sky-300 bg-white shadow-sky-100"
+                    ? "border-emerald-300 bg-white shadow-emerald-100"
                     : "border-slate-200 bg-white"
                 }`}
               >
                 {isHighlighted && (
-                  <div className="mb-4 w-fit rounded-full bg-sky-100 px-3 py-1 text-xs font-semibold text-sky-800">
+                    <div className="mb-4 w-fit rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-800">
                     Best for group gifting
                   </div>
                 )}
@@ -163,7 +163,7 @@ export default function Subscriptions({ variant = "full" }: SubscriptionsProps) 
                 <div className="mt-5 space-y-3">
                   {story.bullets.map((bullet) => (
                     <div key={bullet} className="flex gap-2">
-                      <CheckCircle2 className="mt-0.5 h-4 w-4 flex-none text-teal-700" />
+                      <CheckCircle2 className="mt-0.5 h-4 w-4 flex-none text-emerald-700" />
                       <p className="text-sm leading-5 text-slate-700">{bullet}</p>
                     </div>
                   ))}
@@ -176,8 +176,8 @@ export default function Subscriptions({ variant = "full" }: SubscriptionsProps) 
                   href="/register"
                   className={`mt-auto inline-flex items-center justify-center gap-2 rounded-lg px-4 py-3 text-sm font-semibold transition-colors ${
                     isHighlighted
-                      ? "bg-sky-700 text-white hover:bg-sky-800"
-                      : "bg-slate-950 text-white hover:bg-slate-800"
+                      ? "bg-emerald-800 text-white hover:bg-emerald-900"
+                      : "bg-emerald-900 text-white hover:bg-emerald-800"
                   }`}
                 >
                   {story.cta}

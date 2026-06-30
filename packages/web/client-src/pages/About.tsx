@@ -16,7 +16,7 @@ const SCHEMA = JSON.stringify({
   "name": "Wishlist Wizard",
   "url": "https://wishlist-wizard.com",
   "logo": "https://wishlist-wizard.com/android-chrome-512x512.png",
-  "description": "Wishlist Wizard helps people create, manage, and share wishlists with less friction.",
+  "description": "Wishlist Wizard helps people create, share, coordinate, and track wishlists for better gifting.",
   "contactPoint": {
     "@type": "ContactPoint",
     "email": "support@wishlist-wizard.com",
@@ -68,22 +68,22 @@ export default function About() {
     <>
       <Helmet>
         <title>About Wishlist Wizard | Wishlist Wizard</title>
-        <meta name="description" content="Learn about Wishlist Wizard and our mission to make gifting and wishlist planning simpler." />
+        <meta name="description" content="Learn about Wishlist Wizard and our mission to make gifting easier, better coordinated, and more useful for every occasion." />
         <meta property="og:title" content="About Wishlist Wizard" />
-        <meta property="og:description" content="Learn about Wishlist Wizard and our mission to make gifting and wishlist planning simpler." />
+        <meta property="og:description" content="Learn about Wishlist Wizard and our mission to make gifting easier, better coordinated, and more useful for every occasion." />
         <meta property="og:url" content="https://wishlist-wizard.com/about" />
         <meta name="twitter:title" content="About Wishlist Wizard" />
-        <meta name="twitter:description" content="Learn about Wishlist Wizard and our mission to make gifting and wishlist planning simpler." />
+        <meta name="twitter:description" content="Learn about Wishlist Wizard and our mission to make gifting easier, better coordinated, and more useful for every occasion." />
         <script type="application/ld+json">{SCHEMA}</script>
       </Helmet>
 
       <div className="container mx-auto px-4 py-8 max-w-6xl">
         <div className="mb-8">
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-emerald-800 to-green-800 bg-clip-text text-transparent">
+          <h1 className="text-4xl font-bold text-emerald-900">
             About Wishlist Wizard
           </h1>
           <p className="text-gray-600 mt-2">
-            Making gifting and wishlist planning simpler.
+            Helping people give better gifts with less guesswork.
           </p>
         </div>
 
@@ -91,17 +91,17 @@ export default function About() {
           <section>
             <h2 className="text-2xl font-semibold text-gray-900 mb-4">Our Mission</h2>
             <p className="text-gray-700 mb-4">
-              Wishlist Wizard helps people create, manage, and share wishlists with less friction. We believe everyone should have an easy, reliable way to track the things they want and help friends and family choose the right gifts.
+              Wishlist Wizard helps people create, share, coordinate, and track wishlists for the moments that matter. We believe gift planning should feel clear for the person receiving the gift and simple for the people buying it.
             </p>
           </section>
 
           <section>
             <h2 className="text-2xl font-semibold text-gray-900 mb-4">Our Story</h2>
             <p className="text-gray-700 mb-4">
-              What started as a simple idea has grown into a comprehensive wishlist platform. We saw the problem: people scattered items across multiple stores, gift coordination was difficult, and list management was more complicated than it should be. So we built Wishlist Wizard.
+              Wishlist ideas are often scattered across stores, screenshots, notes, and group chats. Buyers do not always know what has already been purchased, and good deals are easy to miss. Wishlist Wizard brings those pieces together in one place.
             </p>
             <p className="text-gray-700">
-              Today, Wishlist Wizard helps users organize what they want, share lists with people they trust, and discover relevant products. We continue to improve the product based on real user feedback.
+              Today, Wishlist Wizard supports personal wishlists, family gifting, event coordination, price tracking, and creator recommendation lists. We continue to improve the product based on real user feedback.
             </p>
           </section>
 
@@ -114,7 +114,7 @@ export default function About() {
                 </div>
                 <div>
                   <h3 className="font-semibold text-gray-900">User-Centric</h3>
-                  <p className="text-gray-700 text-sm mt-1">Everything we build starts with you. Your needs and feedback shape our decisions.</p>
+                  <p className="text-gray-700 text-sm mt-1">Everything we build starts with real gifting workflows and user feedback.</p>
                 </div>
               </div>
               <div className="flex gap-4">
@@ -128,20 +128,20 @@ export default function About() {
               </div>
               <div className="flex gap-4">
                 <div className="flex-shrink-0">
-                  <Target className="h-6 w-6 text-orange-600" />
+                  <Target className="h-6 w-6 text-emerald-800" />
                 </div>
                 <div>
                   <h3 className="font-semibold text-gray-900">Innovation</h3>
-                  <p className="text-gray-700 text-sm mt-1">We're constantly exploring new ways to enhance the wishlist experience.</p>
+                  <p className="text-gray-700 text-sm mt-1">We keep improving the way people save, share, coordinate, and track gift ideas.</p>
                 </div>
               </div>
               <div className="flex gap-4">
                 <div className="flex-shrink-0">
-                  <Users className="h-6 w-6 text-green-600" />
+                  <Users className="h-6 w-6 text-emerald-800" />
                 </div>
                 <div>
                   <h3 className="font-semibold text-gray-900">Community</h3>
-                  <p className="text-gray-700 text-sm mt-1">We're building a vibrant community of people who love thoughtful gifting.</p>
+                  <p className="text-gray-700 text-sm mt-1">We build for recipients, gift-givers, families, creators, and planners.</p>
                 </div>
               </div>
             </div>
@@ -150,15 +150,15 @@ export default function About() {
           <section>
             <h2 className="text-2xl font-semibold text-gray-900 mb-4">What We Offer</h2>
             <p className="text-gray-700 mb-4">
-              Wishlist Wizard provides a comprehensive suite of tools:
+              Wishlist Wizard brings the core gifting workflow into one place:
             </p>
             <ul className="list-disc list-inside text-gray-700 space-y-2">
               <li><strong>Browser Extension:</strong> Save items from any website with a single click</li>
-              <li><strong>Web Dashboard:</strong> Manage all your wishlists in one beautiful interface</li>
+              <li><strong>Web Dashboard:</strong> Manage personal, family, event, and creator wishlists</li>
               <li><strong>Calendar Integration:</strong> Stay on top of birthdays and key gifting milestones</li>
-              <li><strong>Social Sharing:</strong> Share wishlists with friends and family</li>
-              <li><strong>Social Network Discovery:</strong> Find trusted people and coordinate gift planning</li>
-              <li><strong>Basic Activity Insights:</strong> Understand how your lists are viewed and used</li>
+              <li><strong>Sharing:</strong> Send wishlist links to friends, family, guests, or followers</li>
+              <li><strong>Gift Coordination:</strong> Help buyers avoid duplicates and coordinate purchases</li>
+              <li><strong>Activity Insights:</strong> Understand how your lists are viewed and used</li>
             </ul>
           </section>
 

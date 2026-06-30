@@ -154,7 +154,7 @@ export default function SubscriptionsComparisonMatrix() {
           </p>
         </div>
 
-        <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white shadow-sm">
           <table className="min-w-full border-collapse text-left">
             <thead className="bg-slate-100/80">
               <tr>

@@ -12,7 +12,23 @@ export default function PublicLayout({ children }: PublicLayoutProps) {
   const [location] = useLocation();
   const { isAuthenticated } = useAuth();
   const mainRef = useRef<HTMLElement>(null);
-  const shouldShowAds = !['/', '/subscriptions', '/plans'].includes(location);
+  const adFreeMarketingRoutes = [
+    '/',
+    '/subscriptions',
+    '/plans',
+    '/extension',
+    '/download',
+    '/about',
+    '/support',
+    '/mobile-app-demo',
+    '/browser-extension-demo',
+    '/social-integration-demo',
+    '/calendar-integration-demo',
+    '/wishlist-management-demo',
+    '/basic-activity-insights-demo',
+    '/advanced-user-profiles-demo',
+  ];
+  const shouldShowAds = !adFreeMarketingRoutes.includes(location);
 
   // Scroll the main content area to top on route change.
   useEffect(() => {
@@ -84,7 +100,7 @@ export default function PublicLayout({ children }: PublicLayoutProps) {
       {shouldShowAds && <GlobalAdSlot placement="top" />}
 
       {/* Scrollable content area between the pinned header and footer */}
-      <main ref={mainRef} className="flex-1 overflow-y-auto bg-white">
+      <main ref={mainRef} className="min-h-0 flex-1 overflow-y-auto bg-white">
         {children}
       </main>
 

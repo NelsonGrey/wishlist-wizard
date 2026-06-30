@@ -20,7 +20,7 @@ export default function ActivityInsightsDemo() {
         <div className="grid md:grid-cols-2 gap-12 mb-12">
           {/* Analytics Mockup */}
           <div className="flex justify-center">
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-lg p-6 w-full max-w-sm space-y-6">
+            <div className="bg-white rounded-lg border border-slate-200 shadow-lg p-6 w-full max-w-sm space-y-6">
               {/* Card Title */}
               <div>
                 <h3 className="font-bold text-slate-900 text-lg mb-2">Birthday Wishlist</h3>
@@ -33,12 +33,12 @@ export default function ActivityInsightsDemo() {
                   <p className="text-2xl font-bold text-emerald-700">42</p>
                   <p className="text-xs text-slate-600 mt-1">Views</p>
                 </div>
-                <div className="bg-blue-50 rounded-lg p-4 text-center border border-blue-200">
-                  <p className="text-2xl font-bold text-blue-700">8</p>
+                <div className="bg-emerald-50 rounded-lg p-4 text-center border border-emerald-200">
+                  <p className="text-2xl font-bold text-emerald-700">8</p>
                   <p className="text-xs text-slate-600 mt-1">Shares</p>
                 </div>
-                <div className="bg-purple-50 rounded-lg p-4 text-center border border-purple-200">
-                  <p className="text-2xl font-bold text-purple-700">3</p>
+                <div className="bg-emerald-50 rounded-lg p-4 text-center border border-emerald-200">
+                  <p className="text-2xl font-bold text-emerald-700">3</p>
                   <p className="text-xs text-slate-600 mt-1">Clicks</p>
                 </div>
               </div>
@@ -49,8 +49,8 @@ export default function ActivityInsightsDemo() {
                 <div className="space-y-3">
                   {[
                     { name: "Wireless Headphones", views: 12, color: "bg-emerald-500" },
-                    { name: "Coffee Maker", views: 8, color: "bg-blue-500" },
-                    { name: "Book Set", views: 5, color: "bg-purple-500" }
+                    { name: "Coffee Maker", views: 8, color: "bg-emerald-500" },
+                    { name: "Book Set", views: 5, color: "bg-emerald-500" }
                   ].map((item, idx) => (
                     <div key={idx}>
                       <p className="text-xs font-medium text-slate-700 mb-1">{item.name}</p>
@@ -81,8 +81,8 @@ export default function ActivityInsightsDemo() {
 
             <div className="bg-white border border-slate-200 rounded-xl p-6 hover:shadow-lg transition-shadow">
               <div className="flex gap-4">
-                <div className="bg-blue-100 p-3 rounded-lg h-fit">
-                  <Share2 className="text-blue-700" size={24} />
+                <div className="bg-emerald-100 p-3 rounded-lg h-fit">
+                  <Share2 className="text-emerald-700" size={24} />
                 </div>
                 <div>
                   <h3 className="font-semibold text-lg text-slate-900">Share Tracking</h3>
@@ -93,8 +93,8 @@ export default function ActivityInsightsDemo() {
 
             <div className="bg-white border border-slate-200 rounded-xl p-6 hover:shadow-lg transition-shadow">
               <div className="flex gap-4">
-                <div className="bg-purple-100 p-3 rounded-lg h-fit">
-                  <TrendingUp className="text-purple-700" size={24} />
+                <div className="bg-emerald-100 p-3 rounded-lg h-fit">
+                  <TrendingUp className="text-emerald-700" size={24} />
                 </div>
                 <div>
                   <h3 className="font-semibold text-lg text-slate-900">Trend Insights</h3>
@@ -106,7 +106,7 @@ export default function ActivityInsightsDemo() {
         </div>
 
         {/* Insights You Get */}
-        <div className="bg-white border border-slate-200 rounded-2xl p-8 mb-8">
+        <div className="bg-white border border-slate-200 rounded-lg p-8 mb-8">
           <h2 className="text-2xl font-bold text-slate-900 mb-6">Insights at a Glance</h2>
           <div className="grid md:grid-cols-2 gap-6">
             {[
@@ -136,7 +136,7 @@ export default function ActivityInsightsDemo() {
         </div>
 
         {/* Use Cases */}
-        <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-8 mb-8">
+        <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-8 mb-8">
           <h2 className="text-2xl font-bold text-slate-900 mb-6">How Creators Use These Insights</h2>
           <div className="space-y-4">
             {[
@@ -166,7 +166,7 @@ export default function ActivityInsightsDemo() {
         </div>
 
         {/* Keep It Simple */}
-        <div className="bg-blue-50 border border-blue-200 rounded-2xl p-8 mb-8">
+        <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-8 mb-8">
           <h2 className="text-xl font-bold text-slate-900 mb-4">Built for Non-Technical Users</h2>
           <p className="text-slate-700 mb-4">
             No complex analytics jargon. No overwhelming dashboards. Just simple, clear numbers that help you understand engagement and make better decisions about your wishlists. Get the insights you need without the noise.
