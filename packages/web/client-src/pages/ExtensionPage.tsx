@@ -20,22 +20,22 @@ const ExtensionPage = () => {
     <>
       <Helmet>
         <title>Browser Extension | Wishlist Wizard</title>
-        <meta name="description" content="Save products to your wishlists from any online retailer in one click with the Wishlist Wizard browser extension. Available for Chrome, Firefox, Edge, and Safari." />
+        <meta name="description" content="Save products from online retailers into Wishlist Wizard in one click. Available for Chrome, Firefox, Edge, and Safari." />
         <meta property="og:title" content="Wishlist Wizard Browser Extension" />
-        <meta property="og:description" content="Save products to your wishlists from any online retailer in one click. Available for Chrome, Firefox, Edge, and Safari." />
+        <meta property="og:description" content="Save products from online retailers into Wishlist Wizard in one click. Available for Chrome, Firefox, Edge, and Safari." />
         <meta property="og:url" content="https://wishlist-wizard.com/extension" />
         <meta name="twitter:title" content="Wishlist Wizard Browser Extension" />
-        <meta name="twitter:description" content="Save products to your wishlists from any online retailer in one click. Available for Chrome, Firefox, Edge, and Safari." />
+        <meta name="twitter:description" content="Save products from online retailers into Wishlist Wizard in one click. Available for Chrome, Firefox, Edge, and Safari." />
       </Helmet>
     <div className="container mx-auto px-4 py-8 max-w-6xl">
       <div>
         <div className="mb-8">
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-emerald-800 to-green-800 bg-clip-text text-transparent mb-2">
-            Wishlist Wizard Browser Extension
+          <h1 className="text-4xl font-bold text-emerald-900 mb-2">
+            Save gift ideas from any store
           </h1>
           <div className="flex items-center gap-2 mb-4">
             <p className="text-xl text-gray-600">
-              Save products to your wishlists from any online retailer in one click
+              Capture product details while you shop, then send them to the right wishlist before the idea gets lost.
             </p>
             <ExtensionHelp />
           </div>
@@ -43,7 +43,7 @@ const ExtensionPage = () => {
 
         <div className="grid md:grid-cols-2 gap-8 mb-16">
           <div className="flex flex-col justify-center">
-            <h2 className="text-2xl font-bold mb-4">Save items from any website</h2>
+            <h2 className="text-2xl font-bold mb-4">Built for the moment you find the right gift</h2>
             <ul className="space-y-3">
               <li className="flex items-start">
                 <div className="bg-emerald-100 p-1 rounded-full mr-3 mt-1">
@@ -51,7 +51,7 @@ const ExtensionPage = () => {
                     <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                   </svg>
                 </div>
-                <p className="text-gray-700">Works with <strong>any online retailer</strong> - Amazon, Target, Walmart, and thousands more</p>
+                <p className="text-gray-700">Works with major online retailers including Amazon, Target, Walmart, Etsy, and more</p>
               </li>
               <li className="flex items-start">
                 <div className="bg-emerald-100 p-1 rounded-full mr-3 mt-1">
@@ -59,7 +59,7 @@ const ExtensionPage = () => {
                     <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                   </svg>
                 </div>
-                <p className="text-gray-700">Automatically detects product information like title, price, and image</p>
+                <p className="text-gray-700">Detects product details such as title, price, image, and product URL</p>
               </li>
               <li className="flex items-start">
                 <div className="bg-emerald-100 p-1 rounded-full mr-3 mt-1">
@@ -67,7 +67,7 @@ const ExtensionPage = () => {
                     <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                   </svg>
                 </div>
-                <p className="text-gray-700">Add items to any of your personal or collaborative wishlists</p>
+                <p className="text-gray-700">Adds items to personal, family, event, or creator wishlists</p>
               </li>
               <li className="flex items-start">
                 <div className="bg-emerald-100 p-1 rounded-full mr-3 mt-1">
@@ -75,7 +75,7 @@ const ExtensionPage = () => {
                     <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                   </svg>
                 </div>
-                <p className="text-gray-700">Smart product detection works even on hard-to-parse pages</p>
+                <p className="text-gray-700">Keeps shopping separate from planning: you choose exactly what to save</p>
               </li>
             </ul>
           </div>
@@ -157,7 +157,7 @@ const ExtensionPage = () => {
               <CardContent>
                 <div className="space-y-4">
                   <p className="text-gray-700">
-                    Add the Wishlist Wizard extension to Chrome with just a few clicks. The extension will help you save products to your wishlists while shopping online.
+                    Add the Wishlist Wizard extension to Chrome, then save gift ideas directly from product pages while you shop.
                   </p>
                   
                   <div className="bg-gray-50 p-4 rounded-md">
@@ -172,7 +172,7 @@ const ExtensionPage = () => {
                 </div>
               </CardContent>
               <CardFooter>
-                <Button className="w-full sm:w-auto bg-gradient-to-r from-emerald-700 to-green-700 text-white hover:from-emerald-800 hover:to-green-800" size="lg" asChild>
+                <Button className="w-full sm:w-auto bg-emerald-800 text-white hover:bg-emerald-900" size="lg" asChild>
                   <a href="https://chromewebstore.google.com/" target="_blank" rel="noopener noreferrer">
                     <FaChrome className="mr-2 h-5 w-5" />
                     Install for Chrome
@@ -193,7 +193,7 @@ const ExtensionPage = () => {
               <CardContent>
                 <div className="space-y-4">
                   <p className="text-gray-700">
-                    Wishlist Wizard is available for Firefox! Install the extension to easily save products to your wishlists while shopping online.
+                    Install Wishlist Wizard for Firefox to capture gift ideas from product pages and keep your wishlists current.
                   </p>
                   
                   <div className="bg-emerald-50 border border-emerald-200 p-4 rounded-md">
@@ -214,15 +214,15 @@ const ExtensionPage = () => {
                     </ol>
                   </div>
                   
-                  <div className="bg-amber-50 border border-amber-200 p-4 rounded-md">
-                    <p className="text-sm text-amber-900">
+                  <div className="bg-emerald-50 border border-emerald-200 p-4 rounded-md">
+                    <p className="text-sm text-emerald-900">
                       <strong>💡 Tip:</strong> Make sure you&apos;re running Firefox 90 or later for best compatibility.
                     </p>
                   </div>
                 </div>
               </CardContent>
               <CardFooter>
-                <Button className="w-full sm:w-auto bg-gradient-to-r from-emerald-700 to-green-700 text-white hover:from-emerald-800 hover:to-green-800" size="lg" asChild>
+                <Button className="w-full sm:w-auto bg-emerald-800 text-white hover:bg-emerald-900" size="lg" asChild>
                   <a href="https://addons.mozilla.org/en-US/firefox/addon/wishlist-wizard/" target="_blank" rel="noopener noreferrer">
                     <FaFirefox className="mr-2 h-5 w-5" />
                     Install from Mozilla Add-ons
@@ -243,7 +243,7 @@ const ExtensionPage = () => {
               <CardContent>
                 <div className="space-y-4">
                   <p className="text-gray-700">
-                    Add the Wishlist Wizard extension to Microsoft Edge to easily save products to your wishlists while shopping online.
+                    Add Wishlist Wizard to Microsoft Edge to save product ideas into the right wishlist as soon as you find them.
                   </p>
                   
                   <div className="bg-gray-50 p-4 rounded-md">
@@ -258,7 +258,7 @@ const ExtensionPage = () => {
                 </div>
               </CardContent>
               <CardFooter>
-                <Button className="w-full sm:w-auto bg-gradient-to-r from-emerald-700 to-green-700 text-white hover:from-emerald-800 hover:to-green-800" size="lg" asChild>
+                <Button className="w-full sm:w-auto bg-emerald-800 text-white hover:bg-emerald-900" size="lg" asChild>
                   <a href="https://microsoftedge.microsoft.com/addons/" target="_blank" rel="noopener noreferrer">
                     <FaEdge className="mr-2 h-5 w-5" />
                     Install for Edge
@@ -294,7 +294,7 @@ const ExtensionPage = () => {
                 </div>
               </CardContent>
               <CardFooter>
-                <Button className="w-full sm:w-auto bg-gradient-to-r from-emerald-700 to-green-700 text-white hover:from-emerald-800 hover:to-green-800" size="lg" asChild>
+                <Button className="w-full sm:w-auto bg-emerald-800 text-white hover:bg-emerald-900" size="lg" asChild>
                   <a href="https://apps.apple.com/" target="_blank" rel="noopener noreferrer">
                     <FaSafari className="mr-2 h-5 w-5" />
                     Install for Safari
@@ -316,7 +316,7 @@ const ExtensionPage = () => {
               <CardTitle>Universal Support</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-gray-700">Works with thousands of online retailers, not just the major ones. Our smart detection works on almost any product page.</p>
+              <p className="text-gray-700">Save ideas from major retailers and many specialty stores without being locked into one shopping ecosystem.</p>
             </CardContent>
           </Card>
           
@@ -330,7 +330,7 @@ const ExtensionPage = () => {
               <CardTitle>Privacy First</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-gray-700">We only access the product information you want to save. Your browsing history and personal data stay private.</p>
+              <p className="text-gray-700">We only use product information from pages where you choose to save an item. Your browsing history stays private.</p>
             </CardContent>
           </Card>
           
@@ -344,7 +344,7 @@ const ExtensionPage = () => {
               <CardTitle>Lightweight & Fast</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-gray-700">Our extension is optimized for performance, using minimal resources while providing maximum functionality.</p>
+              <p className="text-gray-700">The extension stays lightweight so saving an item does not interrupt the shopping experience.</p>
             </CardContent>
           </Card>
         </div>
@@ -355,7 +355,7 @@ const ExtensionPage = () => {
           <div className="space-y-4">
             <div className="border-b pb-4">
               <h3 className="font-bold text-lg mb-2">Is the Wishlist Wizard extension free?</h3>
-              <p className="text-gray-700">Yes, the Wishlist Wizard extension is completely free to use with your Wishlist Wizard account.</p>
+              <p className="text-gray-700">Yes. The extension is free to use with a Wishlist Wizard account.</p>
             </div>
             
             <div className="border-b pb-4">

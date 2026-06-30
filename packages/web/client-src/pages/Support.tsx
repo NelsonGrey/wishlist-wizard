@@ -44,21 +44,21 @@ export default function Support() {
     <>
       <Helmet>
         <title>Help & Support | Wishlist Wizard</title>
-        <meta name="description" content="Find answers to common questions about Wishlist Wizard, or get in touch with our support team." />
+        <meta name="description" content="Find answers about Wishlist Wizard wishlists, sharing, price tracking, subscriptions, and support." />
         <meta property="og:title" content="Help & Support | Wishlist Wizard" />
-        <meta property="og:description" content="Find answers to common questions about Wishlist Wizard, or get in touch with our support team." />
+        <meta property="og:description" content="Find answers about Wishlist Wizard wishlists, sharing, price tracking, subscriptions, and support." />
         <meta property="og:url" content="https://wishlist-wizard.com/support" />
         <meta name="twitter:title" content="Help & Support | Wishlist Wizard" />
-        <meta name="twitter:description" content="Find answers to common questions about Wishlist Wizard, or get in touch with our support team." />
+        <meta name="twitter:description" content="Find answers about Wishlist Wizard wishlists, sharing, price tracking, subscriptions, and support." />
       </Helmet>
 
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         <div className="mb-10">
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-emerald-800 to-green-800 bg-clip-text text-transparent">
+          <h1 className="text-4xl font-bold text-emerald-900">
             Help & Support
           </h1>
           <p className="text-gray-600 mt-2">
-            Browse common questions below, or send us a message at the bottom of this page.
+            Get help with wishlists, sharing, price tracking, subscriptions, and account settings.
           </p>
         </div>
 
@@ -78,7 +78,7 @@ export default function Support() {
               <AccordionContent className="text-gray-700 space-y-2 pb-4">
                 <ol className="list-decimal pl-5 space-y-2">
                   <li><strong>Create an account</strong> — sign up with your email address.</li>
-                  <li><strong>Set up your profile</strong> — add preferences so recommendations stay personalised.</li>
+                  <li><strong>Set up your profile</strong> — add preferences so recommendations stay personalized.</li>
                   <li><strong>Create your first wishlist</strong> — go to My Wishlists and click Create New Wishlist.</li>
                   <li><strong>Install the browser extension</strong> — add items from any retailer in one click.</li>
                   <li><strong>Download the mobile app</strong> — manage wishlists and scan barcodes on the go. <Link href="/download" className="text-emerald-700 hover:underline">Download here.</Link></li>
@@ -95,7 +95,7 @@ export default function Support() {
                 <ul className="list-disc pl-5 space-y-2">
                   <li><strong>Create multiple wishlists</strong> — make separate lists for different events or people.</li>
                   <li><strong>Add items</strong> — use the browser extension, manual entry, or the mobile app's barcode scanner.</li>
-                  <li><strong>Organise lists</strong> — categorise, prioritise, and sort items as needed.</li>
+                  <li><strong>Organize lists</strong> — categorize, prioritize, and sort items as needed.</li>
                   <li><strong>Share wishlists</strong> — generate a shareable link for friends and family.</li>
                   <li><strong>Collaborate</strong> — invite others to add or edit items on a shared wishlist.</li>
                   <li><strong>Privacy controls</strong> — choose who can see each list (public, private, or limited).</li>
@@ -174,7 +174,7 @@ export default function Support() {
                 What is Gift Coordination and how does it work?
               </AccordionTrigger>
               <AccordionContent className="text-gray-700 space-y-2 pb-4">
-                <p>Gift Coordination lets multiple people pool contributions toward a single item on someone's wishlist — avoiding duplicates and awkward money conversations.</p>
+                <p>Gift Coordination helps multiple people reserve, contribute to, or coordinate around a single item on someone's wishlist so buyers avoid duplicates and confusion.</p>
                 <p className="mt-2"><strong>To start a group gift:</strong></p>
                 <ol className="list-decimal pl-5 space-y-1 mt-1">
                   <li>Find the item on a wishlist and click <strong>Start Group Gift</strong>.</li>
@@ -182,7 +182,7 @@ export default function Support() {
                   <li>Share the group gift link with friends and family.</li>
                 </ol>
                 <p className="mt-2"><strong>To contribute:</strong> click the link shared with you, enter your amount, and choose whether to contribute anonymously.</p>
-                <p className="mt-2">Everyone can track the total raised and the percentage toward the goal. The organiser is notified when the gift is fully funded and coordinates the purchase.</p>
+                <p className="mt-2">Everyone can track the total raised and the percentage toward the goal. The organizer is notified when the gift is fully funded and coordinates the purchase.</p>
               </AccordionContent>
             </AccordionItem>
 
@@ -192,10 +192,10 @@ export default function Support() {
                 How do personalized recommendations work?
               </AccordionTrigger>
               <AccordionContent className="text-gray-700 space-y-2 pb-4">
-                <p>Wishlist Wizard analyses your past wishlist items, browsing activity, profile preferences, and trending products to suggest gifts you might like. The more you use the app, the more personalised your recommendations become.</p>
+                <p>Wishlist Wizard uses wishlist activity, profile preferences, and product trends to suggest gift ideas that may fit your interests. The more complete your wishlists and preferences are, the more relevant suggestions can become.</p>
                 <p className="mt-2"><strong>To improve recommendations:</strong></p>
                 <ul className="list-disc pl-5 space-y-1 mt-1">
-                  <li>Complete your interests, favourite brands, and sizes in your profile settings.</li>
+                  <li>Complete your interests, favorite brands, and sizes in your profile settings.</li>
                   <li>Add more items to your wishlists.</li>
                   <li>Rate suggestions with thumbs up/down to help refine your suggestions.</li>
                   <li>Add important dates (birthdays, anniversaries) to your calendar for event-based suggestions.</li>
@@ -230,8 +230,8 @@ export default function Support() {
                 What's included in the free plan, and how do I upgrade?
               </AccordionTrigger>
               <AccordionContent className="text-gray-700 space-y-2 pb-4">
-                <p>The free plan lets you create wishlists, add items, share lists, and use the browser extension — no credit card required.</p>
-                <p className="mt-2">Paid subscriptions unlock more wishlists, collaborators, price-tracked items, analytics, and advanced features like custom branding and API access.</p>
+                <p>The free plan lets you create useful wishlists, add items, share lists, and use the browser extension — no credit card required.</p>
+                <p className="mt-2">Paid subscriptions unlock more wishlists, more price-tracked items, group gifting, creator analytics, commission share, team seats, and API access depending on the plan.</p>
                 <p className="mt-2">
                   <Link href="/subscriptions" className="text-emerald-700 hover:underline font-medium">See all subscription plans →</Link>
                 </p>
@@ -359,7 +359,7 @@ export default function Support() {
 
                   <Button
                     type="submit"
-                    className="w-full bg-gradient-to-r from-emerald-700 to-green-700 text-white hover:from-emerald-800 hover:to-green-800"
+                    className="w-full bg-emerald-800 text-white hover:bg-emerald-900"
                   >
                     Send Message
                   </Button>

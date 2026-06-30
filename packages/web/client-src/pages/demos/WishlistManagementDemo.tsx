@@ -20,7 +20,7 @@ export default function WishlistManagementDemo() {
         <div className="grid md:grid-cols-2 gap-12 mb-12">
           {/* Wishlist Mockup */}
           <div className="flex justify-center">
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-lg p-6 w-full max-w-sm space-y-4">
+            <div className="bg-white rounded-lg border border-slate-200 shadow-lg p-6 w-full max-w-sm space-y-4">
               {/* List Header */}
               <div className="border-b pb-4">
                 <h3 className="text-lg font-bold text-slate-900">My Wishlists</h3>
@@ -32,7 +32,7 @@ export default function WishlistManagementDemo() {
                 { title: "Birthday Gifts", count: 12, priority: "high", color: "border-red-500" },
                 { title: "Home Office Upgrades", count: 8, priority: "medium", color: "border-yellow-500" },
                 { title: "Vacation Must-Haves", count: 15, priority: "low", color: "border-green-500" },
-                { title: "Tech Wishlist", count: 5, priority: "high", color: "border-purple-500" }
+                { title: "Tech Wishlist", count: 5, priority: "high", color: "border-emerald-500" }
               ].map((list, idx) => (
                 <div key={idx} className={`border-l-4 ${list.color} p-4 rounded hover:bg-slate-50 transition-colors`}>
                   <div className="flex justify-between items-start mb-2">
@@ -67,8 +67,8 @@ export default function WishlistManagementDemo() {
 
             <div className="bg-white border border-slate-200 rounded-xl p-6 hover:shadow-lg transition-shadow">
               <div className="flex gap-4">
-                <div className="bg-blue-100 p-3 rounded-lg h-fit">
-                  <Filter className="text-blue-700" size={24} />
+                <div className="bg-emerald-100 p-3 rounded-lg h-fit">
+                  <Filter className="text-emerald-700" size={24} />
                 </div>
                 <div>
                   <h3 className="font-semibold text-lg text-slate-900">Smart Sorting</h3>
@@ -79,8 +79,8 @@ export default function WishlistManagementDemo() {
 
             <div className="bg-white border border-slate-200 rounded-xl p-6 hover:shadow-lg transition-shadow">
               <div className="flex gap-4">
-                <div className="bg-purple-100 p-3 rounded-lg h-fit">
-                  <Share2 className="text-purple-700" size={24} />
+                <div className="bg-emerald-100 p-3 rounded-lg h-fit">
+                  <Share2 className="text-emerald-700" size={24} />
                 </div>
                 <div>
                   <h3 className="font-semibold text-lg text-slate-900">Easy Sharing</h3>
@@ -92,7 +92,7 @@ export default function WishlistManagementDemo() {
         </div>
 
         {/* Management Features */}
-        <div className="bg-white border border-slate-200 rounded-2xl p-8 mb-8">
+        <div className="bg-white border border-slate-200 rounded-lg p-8 mb-8">
           <h2 className="text-2xl font-bold text-slate-900 mb-6">List Management Features</h2>
           <div className="grid md:grid-cols-2 gap-6">
             {[
@@ -137,7 +137,7 @@ export default function WishlistManagementDemo() {
         </div>
 
         {/* Use Cases */}
-        <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-8 mb-8">
+        <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-8 mb-8">
           <h2 className="text-2xl font-bold text-slate-900 mb-6">Organize For Every Occasion</h2>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             {[

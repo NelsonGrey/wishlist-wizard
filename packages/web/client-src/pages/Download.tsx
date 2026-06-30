@@ -16,29 +16,29 @@ export default function Download() {
     <>
       <Helmet>
         <title>Download the App | Wishlist Wizard</title>
-        <meta name="description" content="Download the Wishlist Wizard iOS app. Manage wishlists, track prices, and get deal alerts on the go. Android coming soon." />
+        <meta name="description" content="Download the Wishlist Wizard iOS app to manage wishlists, scan products, track prices, and share gift ideas on the go. Android coming soon." />
         <meta property="og:title" content="Download Wishlist Wizard" />
-        <meta property="og:description" content="Download the Wishlist Wizard iOS app. Manage wishlists, track prices, and get deal alerts on the go. Android coming soon." />
+        <meta property="og:description" content="Download the Wishlist Wizard iOS app to manage wishlists, scan products, track prices, and share gift ideas on the go. Android coming soon." />
         <meta property="og:url" content="https://wishlist-wizard.com/download" />
         <meta name="twitter:title" content="Download Wishlist Wizard" />
-        <meta name="twitter:description" content="Download the Wishlist Wizard iOS app. Manage wishlists, track prices, and get deal alerts on the go. Android coming soon." />
+        <meta name="twitter:description" content="Download the Wishlist Wizard iOS app to manage wishlists, scan products, track prices, and share gift ideas on the go. Android coming soon." />
       </Helmet>
 
       <div className="container mx-auto px-4 py-12 max-w-5xl">
         {/* Page heading */}
         <div className="mb-12 text-center">
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-emerald-800 to-green-800 bg-clip-text text-transparent mb-3">
-            Download the App
+          <h1 className="text-4xl font-bold text-emerald-900 mb-3">
+            Take your wishlists with you
           </h1>
           <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-            Take your wishlists everywhere. Scan products, track prices, and get deal alerts right from your phone.
+            Scan products in-store, manage shared lists, and catch price drops from your phone.
           </p>
         </div>
 
         <div className="grid md:grid-cols-2 gap-8">
 
           {/* ── iOS ── */}
-          <div className="rounded-2xl border border-emerald-200 bg-emerald-50/40 p-8 flex flex-col">
+          <div className="rounded-lg border border-emerald-200 bg-emerald-50/40 p-8 flex flex-col">
             <div className="flex items-center gap-3 mb-6">
               {/* Apple logo mark */}
               <div className="w-12 h-12 bg-black rounded-xl flex items-center justify-center flex-shrink-0">
@@ -75,7 +75,7 @@ export default function Download() {
           </div>
 
           {/* ── Android (Coming Soon) ── */}
-          <div className="rounded-2xl border border-gray-200 bg-gray-50/60 p-8 flex flex-col">
+          <div className="rounded-lg border border-gray-200 bg-gray-50/60 p-8 flex flex-col">
             <div className="flex items-center gap-3 mb-6">
               {/* Android robot mark */}
               <div className="w-12 h-12 bg-gray-200 rounded-xl flex items-center justify-center flex-shrink-0">
@@ -85,7 +85,7 @@ export default function Download() {
               </div>
               <div>
                 <h2 className="text-2xl font-bold text-gray-500">Android App</h2>
-                <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-amber-700 bg-amber-100 px-2.5 py-0.5 rounded-full">
+                <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-emerald-700 bg-emerald-100 px-2.5 py-0.5 rounded-full">
                   <Clock className="h-3.5 w-3.5" />
                   Coming Soon
                 </span>
@@ -93,7 +93,7 @@ export default function Download() {
             </div>
 
             <p className="text-gray-500 text-sm mb-6 flex-1">
-              We're working on the Android version of Wishlist Wizard. It will have all the same features as the iOS app — price tracking, barcode scanning, collaborative wishlists, and deal alerts.
+              We're working on the Android version of Wishlist Wizard. It will include price tracking, barcode scanning, shared wishlists, and deal alerts.
             </p>
 
             <p className="text-sm text-gray-500 mb-4 font-medium">
@@ -114,7 +114,7 @@ export default function Download() {
         </div>
 
         {/* Cross-platform note */}
-        <div className="mt-10 rounded-xl bg-emerald-900 text-white px-8 py-6 text-center">
+        <div className="mt-10 rounded-lg bg-emerald-900 text-white px-8 py-6 text-center">
           <p className="font-semibold text-lg mb-1">Works across all your devices</p>
           <p className="text-emerald-100 text-sm">
             Your wishlists sync automatically between the iOS app, the web app, and the browser extension — pick up exactly where you left off.

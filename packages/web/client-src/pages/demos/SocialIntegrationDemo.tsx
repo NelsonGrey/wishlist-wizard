@@ -20,7 +20,7 @@ export default function SocialIntegrationDemo() {
         <div className="grid md:grid-cols-2 gap-12 mb-12">
           {/* Sharing Flow */}
           <div className="space-y-6">
-            <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+            <div className="bg-white rounded-lg border border-slate-200 p-6 shadow-sm">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-semibold text-slate-900">Sarah's Birthday</h3>
                 <span className="text-sm bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full font-medium">
@@ -31,8 +31,8 @@ export default function SocialIntegrationDemo() {
               <div className="space-y-2 mb-4">
                 {[
                   { name: "You", role: "Owner", color: "bg-emerald-100" },
-                  { name: "Mom", role: "Viewer", color: "bg-blue-100" },
-                  { name: "Dad", role: "Viewer", color: "bg-purple-100" },
+                  { name: "Mom", role: "Viewer", color: "bg-emerald-100" },
+                  { name: "Dad", role: "Viewer", color: "bg-emerald-100" },
                   { name: "Aunt Jane", role: "Viewer", color: "bg-pink-100" }
                 ].map((person) => (
                   <div key={person.name} className={`${person.color} rounded-lg p-3 flex items-center justify-between`}>
@@ -66,8 +66,8 @@ export default function SocialIntegrationDemo() {
 
             <div className="bg-white border border-slate-200 rounded-xl p-6 hover:shadow-lg transition-shadow">
               <div className="flex gap-4">
-                <div className="bg-blue-100 p-3 rounded-lg h-fit">
-                  <Users className="text-blue-700" size={24} />
+                <div className="bg-emerald-100 p-3 rounded-lg h-fit">
+                  <Users className="text-emerald-700" size={24} />
                 </div>
                 <div>
                   <h3 className="font-semibold text-lg text-slate-900">Coordinated Gifting</h3>
@@ -78,8 +78,8 @@ export default function SocialIntegrationDemo() {
 
             <div className="bg-white border border-slate-200 rounded-xl p-6 hover:shadow-lg transition-shadow">
               <div className="flex gap-4">
-                <div className="bg-purple-100 p-3 rounded-lg h-fit">
-                  <Lock className="text-purple-700" size={24} />
+                <div className="bg-emerald-100 p-3 rounded-lg h-fit">
+                  <Lock className="text-emerald-700" size={24} />
                 </div>
                 <div>
                   <h3 className="font-semibold text-lg text-slate-900">Privacy Controls</h3>
@@ -91,7 +91,7 @@ export default function SocialIntegrationDemo() {
         </div>
 
         {/* Use Cases */}
-        <div className="bg-white border border-slate-200 rounded-2xl p-8 mb-8">
+        <div className="bg-white border border-slate-200 rounded-lg p-8 mb-8">
           <h2 className="text-2xl font-bold text-slate-900 mb-6">Perfect For</h2>
           <div className="grid md:grid-cols-2 gap-6">
             {[
@@ -126,7 +126,7 @@ export default function SocialIntegrationDemo() {
         </div>
 
         {/* Security & Trust */}
-        <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-8 mb-8">
+        <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-8 mb-8">
           <h2 className="text-2xl font-bold text-slate-900 mb-6">Security & Privacy</h2>
           <div className="grid md:grid-cols-3 gap-6">
             {[

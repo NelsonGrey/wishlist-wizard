@@ -20,7 +20,7 @@ export default function CalendarIntegrationDemo() {
         <div className="grid md:grid-cols-2 gap-12 mb-12">
           {/* Calendar Mockup */}
           <div className="flex justify-center">
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-lg p-6 w-full max-w-sm">
+            <div className="bg-white rounded-lg border border-slate-200 shadow-lg p-6 w-full max-w-sm">
               <div className="flex justify-between items-center mb-6">
                 <h3 className="font-bold text-slate-900 text-lg">May 2026</h3>
                 <div className="flex gap-2">
@@ -64,9 +64,9 @@ export default function CalendarIntegrationDemo() {
                   <p className="text-sm font-semibold text-emerald-900">May 5 - Sarah's Birthday</p>
                   <p className="text-xs text-emerald-700">12 items in wishlist</p>
                 </div>
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                  <p className="text-sm font-semibold text-blue-900">May 18 - Mom's Anniversary</p>
-                  <p className="text-xs text-blue-700">8 items in wishlist</p>
+                <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3">
+                  <p className="text-sm font-semibold text-emerald-900">May 18 - Mom's Anniversary</p>
+                  <p className="text-xs text-emerald-700">8 items in wishlist</p>
                 </div>
               </div>
             </div>
@@ -88,8 +88,8 @@ export default function CalendarIntegrationDemo() {
 
             <div className="bg-white border border-slate-200 rounded-xl p-6 hover:shadow-lg transition-shadow">
               <div className="flex gap-4">
-                <div className="bg-blue-100 p-3 rounded-lg h-fit">
-                  <Bell className="text-blue-700" size={24} />
+                <div className="bg-emerald-100 p-3 rounded-lg h-fit">
+                  <Bell className="text-emerald-700" size={24} />
                 </div>
                 <div>
                   <h3 className="font-semibold text-lg text-slate-900">Smart Reminders</h3>
@@ -100,8 +100,8 @@ export default function CalendarIntegrationDemo() {
 
             <div className="bg-white border border-slate-200 rounded-xl p-6 hover:shadow-lg transition-shadow">
               <div className="flex gap-4">
-                <div className="bg-purple-100 p-3 rounded-lg h-fit">
-                  <Clock className="text-purple-700" size={24} />
+                <div className="bg-emerald-100 p-3 rounded-lg h-fit">
+                  <Clock className="text-emerald-700" size={24} />
                 </div>
                 <div>
                   <h3 className="font-semibold text-lg text-slate-900">Auto-Sync Updates</h3>
@@ -113,7 +113,7 @@ export default function CalendarIntegrationDemo() {
         </div>
 
         {/* Timeline */}
-        <div className="bg-white border border-slate-200 rounded-2xl p-8 mb-8">
+        <div className="bg-white border border-slate-200 rounded-lg p-8 mb-8">
           <h2 className="text-2xl font-bold text-slate-900 mb-6">How It Works</h2>
           <div className="space-y-6">
             {[
@@ -156,7 +156,7 @@ export default function CalendarIntegrationDemo() {
         </div>
 
         {/* Supported Calendars */}
-        <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-8 mb-8">
+        <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-8 mb-8">
           <h2 className="text-2xl font-bold text-slate-900 mb-2">Supported Calendars</h2>
           <p className="text-slate-600 mb-6">Connect one of these calendar services to sync important dates with your wishlists.</p>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">

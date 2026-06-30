@@ -20,7 +20,7 @@ export default function AdvancedUserProfilesDemo() {
         <div className="grid md:grid-cols-2 gap-12 mb-12">
           {/* Profile Card Mockup */}
           <div className="flex justify-center">
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-lg w-full max-w-sm overflow-hidden">
+            <div className="bg-white rounded-lg border border-slate-200 shadow-lg w-full max-w-sm overflow-hidden">
               {/* Header Banner */}
               <div className="h-24 bg-gradient-to-r from-emerald-500 to-green-500"></div>
               
@@ -55,7 +55,7 @@ export default function AdvancedUserProfilesDemo() {
                     <p className="text-sm font-semibold text-slate-900 mb-2">❤️ Interests</p>
                     <div className="flex flex-wrap gap-2">
                       {["Gardening", "Cooking", "Travel"].map((interest) => (
-                        <span key={interest} className="bg-blue-100 text-blue-700 text-xs font-semibold px-3 py-1 rounded-full">
+                        <span key={interest} className="bg-emerald-100 text-emerald-700 text-xs font-semibold px-3 py-1 rounded-full">
                           {interest}
                         </span>
                       ))}
@@ -96,8 +96,8 @@ export default function AdvancedUserProfilesDemo() {
 
             <div className="bg-white border border-slate-200 rounded-xl p-6 hover:shadow-lg transition-shadow">
               <div className="flex gap-4">
-                <div className="bg-blue-100 p-3 rounded-lg h-fit">
-                  <Zap className="text-blue-700" size={24} />
+                <div className="bg-emerald-100 p-3 rounded-lg h-fit">
+                  <Zap className="text-emerald-700" size={24} />
                 </div>
                 <div>
                   <h3 className="font-semibold text-lg text-slate-900">Smart Recommendations</h3>
@@ -108,8 +108,8 @@ export default function AdvancedUserProfilesDemo() {
 
             <div className="bg-white border border-slate-200 rounded-xl p-6 hover:shadow-lg transition-shadow">
               <div className="flex gap-4">
-                <div className="bg-purple-100 p-3 rounded-lg h-fit">
-                  <Heart className="text-purple-700" size={24} />
+                <div className="bg-emerald-100 p-3 rounded-lg h-fit">
+                  <Heart className="text-emerald-700" size={24} />
                 </div>
                 <div>
                   <h3 className="font-semibold text-lg text-slate-900">Thoughtful Gifting</h3>
@@ -121,7 +121,7 @@ export default function AdvancedUserProfilesDemo() {
         </div>
 
         {/* Profile Components */}
-        <div className="bg-white border border-slate-200 rounded-2xl p-8 mb-8">
+        <div className="bg-white border border-slate-200 rounded-lg p-8 mb-8">
           <h2 className="text-2xl font-bold text-slate-900 mb-6">What You Can Store in Profiles</h2>
           <div className="grid md:grid-cols-2 gap-6">
             {[
@@ -166,7 +166,7 @@ export default function AdvancedUserProfilesDemo() {
         </div>
 
         {/* Benefits */}
-        <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-8 mb-8">
+        <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-8 mb-8">
           <h2 className="text-2xl font-bold text-slate-900 mb-6">Benefits of Detailed Profiles</h2>
           <div className="space-y-4">
             {[
