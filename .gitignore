@@ -390,3 +390,9 @@ v2-migration-msg.txt
 playwright-report/
 test-results/
 test-ci-cd-pipeline.txt
+
+# Firebase Functions compiled output
+packages/functions/lib/
+
+# Claude Code local session data
+.claude/

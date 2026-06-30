@@ -51,9 +51,22 @@ const rows: MatrixRow[] = [
     renderValue: (tier) => TIER_LIMITS[tier].maxPriceTrackedItems,
   },
   {
+    label: 'Price history',
+    description: 'How long price history is retained',
+    renderValue: (tier) => {
+      const months = TIER_LIMITS[tier].priceHistoryMonths;
+      return months === Number.MAX_SAFE_INTEGER ? 'Full history' : `${months} months`;
+    },
+  },
+  {
     label: 'Collaborators per wishlist',
     description: 'People who can help manage a list',
     renderValue: (tier) => TIER_LIMITS[tier].maxCollaboratorsPerWishlist,
+  },
+  {
+    label: 'Group gifting',
+    description: 'Coordinate reservations, commitments, and contributions',
+    renderValue: (tier) => TIER_LIMITS[tier].groupGiftingEnabled,
   },
   {
     label: 'Calendar integration',
@@ -94,6 +107,14 @@ const rows: MatrixRow[] = [
     label: 'Creator dashboard',
     description: 'Advanced creator analytics tools',
     renderValue: (tier) => TIER_LIMITS[tier].creatorDashboardEnabled,
+  },
+  {
+    label: 'Commission share',
+    description: 'Share of platform-earned affiliate commission',
+    renderValue: (tier) => {
+      const share = TIER_LIMITS[tier].affiliateCommissionShare;
+      return share > 0 ? `${Math.round(share * 100)}%` : null;
+    },
   },
   {
     label: 'Monthly price',
@@ -190,7 +211,7 @@ export default function SubscriptionsComparisonMatrix() {
         </div>
 
         <p className="mt-4 text-sm text-slate-500 text-center">
-          Limits are sourced from the shared subscription definitions so the marketing page matches product enforcement.
+          Start free. Upgrade when your lists, tracking needs, audience, or team outgrow the free tier.
         </p>
       </div>
     </section>

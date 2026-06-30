@@ -1,6 +1,7 @@
 import { Helmet } from "react-helmet";
 import Hero from "@/components/Hero";
 import Features from "@/components/Features";
+import Subscriptions from "@/components/Subscriptions";
 
 const SCHEMA = JSON.stringify({
   "@context": "https://schema.org",
@@ -44,6 +45,7 @@ export default function Home() {
       <div className="flex flex-col">
         <Hero />
         <Features />
+        <Subscriptions variant="preview" />
       </div>
     </>
   );
