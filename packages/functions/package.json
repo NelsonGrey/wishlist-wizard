@@ -40,7 +40,7 @@
     "firebase-functions-test": "^3.5.0",
     "globby": "^11.1.0",
     "tsutils": "^3.21.0",
-    "typescript": "^5.7.3",
+    "typescript": "^7.0.2",
     "zod": "^3.25.76"
   },
   "private": true
