@@ -1,7 +1,7 @@
 project:
   name: wishlist-wizard
   description: "Wishlist app with Chrome extension, mobile app, and web promo site"
-  owner: mnelson3
+  owner: NelsonGrey
 
 targets:
   ios:
