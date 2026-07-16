@@ -1,8 +1,8 @@
 {
   "name": "Wishlist Wizard",
   "short_name": "Wishlist Wizard",
-  "theme_color": "#fffaf3",
-  "background_color": "#fffaf3",
+  "theme_color": "#047857",
+  "background_color": "#065f46",
   "display": "standalone",
   "scope": "/",
   "start_url": "/",

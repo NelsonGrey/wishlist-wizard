@@ -425,4 +425,24 @@ class FirebaseFunctionsService {
       rethrow;
     }
   }
+
+  // =============================================================================
+  // NOTIFICATION FUNCTIONS
+  // =============================================================================
+
+  Future<void> saveFcmToken(String token, {required String platform}) async {
+    if (!await _ensureFirebaseInitialized()) {
+      throw Exception('Firebase not initialized');
+    }
+
+    try {
+      await _functions!.httpsCallable('saveFCMToken').call({
+        'token': token,
+        'platform': platform,
+      });
+    } catch (e) {
+      _logger.severe('Error calling saveFCMToken: $e');
+      rethrow;
+    }
+  }
 }

@@ -7,7 +7,7 @@ set -euo pipefail
 # and will copy the provided PNG into an `icons/` folder for future automation.
 
 SRC_PNG=${1:-}
-BG_COLOR=${2:-"#FFFFFF"} # default background color for adaptive icons
+BG_COLOR=${2:-"#004E36"} # original Wishlist Wizard icon green
 NO_BACKUP=${NO_BACKUP:-false}
 SAVE_MASTER=${SAVE_MASTER:-true}
 
@@ -48,12 +48,21 @@ if [ -f "$MASTER_SVG_SRC" ]; then
   echo "Syncing master SVG into product icon directories..."
   if [ -d "$ROOT/packages/browser-extension/src/icons" ]; then
     cp -v "$MASTER_SVG_SRC" "$ROOT/packages/browser-extension/src/icons/icon-wishlist-wizard.svg" || true
+    cp -v "$MASTER_SVG_SRC" "$ROOT/packages/browser-extension/src/icons/icon16.svg" || true
+    cp -v "$MASTER_SVG_SRC" "$ROOT/packages/browser-extension/src/icons/icon48.svg" || true
+    cp -v "$MASTER_SVG_SRC" "$ROOT/packages/browser-extension/src/icons/icon128.svg" || true
   fi
   if [ -d "$ROOT/packages/browser-extension/public/icons" ]; then
     cp -v "$MASTER_SVG_SRC" "$ROOT/packages/browser-extension/public/icons/icon-wishlist-wizard.svg" || true
+    cp -v "$MASTER_SVG_SRC" "$ROOT/packages/browser-extension/public/icons/icon16.svg" || true
+    cp -v "$MASTER_SVG_SRC" "$ROOT/packages/browser-extension/public/icons/icon48.svg" || true
+    cp -v "$MASTER_SVG_SRC" "$ROOT/packages/browser-extension/public/icons/icon128.svg" || true
   fi
   if [ -d "$ROOT/chrome-extension-package/icons" ]; then
     cp -v "$MASTER_SVG_SRC" "$ROOT/chrome-extension-package/icons/icon-wishlist-wizard.svg" || true
+  fi
+  if [ -d "$ROOT/packages/web/public" ]; then
+    cp -v "$MASTER_SVG_SRC" "$ROOT/packages/web/public/logo.svg" || true
   fi
 fi
 
@@ -114,8 +123,13 @@ generate_android_adaptive() {
     destbg="$ROOT/packages/mobile/android/app/src/main/res/mipmap-${density}/${bg_name}"
     backup_and_mkdir "$destfg"
     backup_and_mkdir "$destbg"
-    # For foreground, place a resized, transparent icon
-    resize_with_tool "$size" "$SRC_PNG" "$destfg"
+    # Render the dedicated transparent foreground inside Android's adaptive safe zone.
+    adaptive_svg="$ROOT/icons/icon-wishlist-wizard-foreground.svg"
+    if command -v rsvg-convert >/dev/null 2>&1 && [ -f "$adaptive_svg" ]; then
+      rsvg-convert --width "$size" --height "$size" "$adaptive_svg" --output "$destfg"
+    else
+      resize_with_tool "$size" "$SRC_PNG" "$destfg"
+    fi
     # For background, generate a solid color png of size
     if $USE_SIPS; then
       # sips doesn't directly create a solid color png; use a small trick
@@ -201,8 +215,8 @@ cat > "$dest_manifest" <<'MANIFEST'
 {
   "name": "Wishlist Wizard",
   "short_name": "Wishlist Wizard",
-  "theme_color": "#fffaf3",
-  "background_color": "#fffaf3",
+  "theme_color": "#047857",
+  "background_color": "#065f46",
   "display": "standalone",
   "scope": "/",
   "start_url": "/",
@@ -259,6 +273,22 @@ resize_copy 1024 "$ROOT/packages/mobile/ios/Runner/Assets.xcassets/AppIcon.appic
 
 echo "Generating adaptive Android foreground/background icons..."
 generate_android_adaptive
+
+echo "Generating macOS app icons..."
+resize_copy 16 "$ROOT/packages/mobile/macos/Runner/Assets.xcassets/AppIcon.appiconset/app_icon_16.png"
+resize_copy 32 "$ROOT/packages/mobile/macos/Runner/Assets.xcassets/AppIcon.appiconset/app_icon_32.png"
+resize_copy 64 "$ROOT/packages/mobile/macos/Runner/Assets.xcassets/AppIcon.appiconset/app_icon_64.png"
+resize_copy 128 "$ROOT/packages/mobile/macos/Runner/Assets.xcassets/AppIcon.appiconset/app_icon_128.png"
+resize_copy 256 "$ROOT/packages/mobile/macos/Runner/Assets.xcassets/AppIcon.appiconset/app_icon_256.png"
+resize_copy 512 "$ROOT/packages/mobile/macos/Runner/Assets.xcassets/AppIcon.appiconset/app_icon_512.png"
+resize_copy 1024 "$ROOT/packages/mobile/macos/Runner/Assets.xcassets/AppIcon.appiconset/app_icon_1024.png"
+
+if [ -n "$IMAGEMAGICK_BIN" ]; then
+  echo "Generating Windows app icon..."
+  mkdir -p "$ROOT/packages/mobile/windows/runner/resources"
+  $IMAGEMAGICK_BIN "$SRC_PNG" -define icon:auto-resize=256,128,64,48,32,16 \
+    "$ROOT/packages/mobile/windows/runner/resources/app_icon.ico"
+fi
 
 echo "✅ All icons generated/updated. If the repo is clean, you can commit the updated images."
 

@@ -399,6 +399,7 @@ class FirebaseFirestoreService {
       description: data['description'],
       userId: data['userId'] ?? '',
       isPublic: data['isPublic'] ?? false,
+      shareId: data['shareId'],
       tags: List<String>.from(data['tags'] ?? []),
       createdAt: _parseTimestamp(data['createdAt']),
       updatedAt: _parseTimestamp(data['updatedAt']),
@@ -419,6 +420,7 @@ class FirebaseFirestoreService {
         // Functions may write 'productUrl' instead of 'url'
         url: (data['url'] ?? data['productUrl'])?.toString(),
         imageUrl: data['imageUrl']?.toString(),
+        store: data['store']?.toString(),
         wishlistId: (data['wishlistId'] ?? '').toString(),
         // Functions may write 'addedBy' instead of 'userId'
         userId: (data['userId'] ?? data['addedBy'] ?? '').toString(),

@@ -1,6 +1,6 @@
 import { KeyboardEvent as ReactKeyboardEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { useRoute, useLocation } from "wouter";
+import { useRoute, useLocation, Link } from "wouter";
 import { ArrowLeft, Check, ChevronUp, Download, ExternalLink, Plus, Share2 } from "lucide-react";
 import WishlistItem from "@/components/WishlistItem";
 import PrivacyControls from "@/components/privacy/PrivacyControls";
@@ -87,6 +87,8 @@ export default function WishlistDetail() {
     note: "",
   });
   const [itemFormErrors, setItemFormErrors] = useState<ItemFormErrors>({});
+  const [linkUrl, setLinkUrl] = useState("");
+  const [isFetchingPreview, setIsFetchingPreview] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
 
@@ -675,6 +677,7 @@ export default function WishlistDetail() {
   const resetItemForm = () => {
     setEditingItem(null);
     setItemFormErrors({});
+    setLinkUrl("");
     setItemForm({
       title: "",
       price: "",
@@ -683,6 +686,59 @@ export default function WishlistDetail() {
       store: "",
       note: "",
     });
+  };
+
+  const handleFetchProductPreview = async () => {
+    const trimmedUrl = linkUrl.trim();
+    if (!trimmedUrl) return;
+
+    let hostname = "";
+    try {
+      hostname = new URL(trimmedUrl).hostname.replace(/^www\./, "");
+    } catch {
+      toast({
+        title: "Invalid link",
+        description: "Enter a valid product URL, e.g. https://www.amazon.com/...",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsFetchingPreview(true);
+    try {
+      const result = await apiRequest("/api/products/preview", {
+        method: "POST",
+        body: { url: trimmedUrl },
+      }) as { ok: boolean; title?: string; image?: string; price?: number; error?: string };
+
+      if (!result.ok) {
+        toast({
+          title: "Couldn't fetch product details",
+          description: result.error || "No problem — fill in the details below manually.",
+        });
+        setItemForm((prev) => ({ ...prev, productUrl: trimmedUrl, store: prev.store || hostname }));
+        return;
+      }
+
+      setItemForm((prev) => ({
+        ...prev,
+        title: result.title || prev.title,
+        imageUrl: result.image || prev.imageUrl,
+        price: result.price !== undefined ? String(result.price) : prev.price,
+        productUrl: trimmedUrl,
+        store: prev.store || hostname,
+      }));
+      setItemFormErrors({});
+      toast({ title: "Found it!", description: "Review the details below, then save." });
+    } catch (error) {
+      toast({
+        title: "Couldn't fetch product details",
+        description: getApiErrorMessage(error, "No problem — fill in the details below manually."),
+      });
+      setItemForm((prev) => ({ ...prev, productUrl: trimmedUrl, store: prev.store || hostname }));
+    } finally {
+      setIsFetchingPreview(false);
+    }
   };
 
   const updateItemFormField = (field: keyof typeof itemForm, value: string) => {
@@ -717,52 +773,36 @@ export default function WishlistDetail() {
 
     const nextErrors: ItemFormErrors = {};
 
-    if (!itemForm.title.trim()) nextErrors.title = "Title is required.";
-    if (!itemForm.price.trim()) nextErrors.price = "Price is required.";
-    if (!itemForm.productUrl.trim()) nextErrors.productUrl = "Product URL is required.";
-    if (!itemForm.imageUrl.trim()) nextErrors.imageUrl = "Image URL is required.";
-    if (!itemForm.store.trim()) nextErrors.store = "Store is required.";
+    // Only the item name is actually required (matches the backend and the mobile app) —
+    // price/store/product URL/image URL are all optional, since a manually-added item may
+    // not have all of them yet.
+    if (!itemForm.title.trim()) nextErrors.title = "Item name is required.";
+
+    if (itemForm.price.trim() && !/^\$?\d+(\.\d{1,2})?$/.test(itemForm.price.trim())) {
+      nextErrors.price = "Use 99.99 or $99.99.";
+    }
+
+    if (itemForm.productUrl.trim()) {
+      try {
+        new URL(itemForm.productUrl.trim());
+      } catch {
+        nextErrors.productUrl = "Enter a valid URL.";
+      }
+    }
+
+    if (itemForm.imageUrl.trim()) {
+      try {
+        new URL(itemForm.imageUrl.trim());
+      } catch {
+        nextErrors.imageUrl = "Enter a valid URL.";
+      }
+    }
 
     if (Object.keys(nextErrors).length > 0) {
       setItemFormErrors(nextErrors);
       toast({
-        title: "Required fields missing",
-        description: "Title, price, image URL, product URL, and store are required.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const validPriceFormat = /^\$?\d+(\.\d{1,2})?$/.test(itemForm.price.trim());
-    if (!validPriceFormat) {
-      setItemFormErrors((prev) => ({ ...prev, price: "Use 99.99 or $99.99." }));
-      toast({
-        title: "Invalid price format",
-        description: "Use a valid price like 99.99 or $99.99.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    try {
-      new URL(itemForm.productUrl.trim());
-    } catch {
-      setItemFormErrors((prev) => ({ ...prev, productUrl: "Enter a valid URL." }));
-      toast({
-        title: "Invalid product URL",
-        description: "Enter a valid URL for the product link.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    try {
-      new URL(itemForm.imageUrl.trim());
-    } catch {
-      setItemFormErrors((prev) => ({ ...prev, imageUrl: "Enter a valid URL." }));
-      toast({
-        title: "Invalid image URL",
-        description: "Enter a valid URL for the image link.",
+        title: "Check the highlighted fields",
+        description: Object.values(nextErrors).join(" "),
         variant: "destructive",
       });
       return;
@@ -872,7 +912,7 @@ export default function WishlistDetail() {
 
   if (!wishlistId) {
     return (
-      <div className="container mx-auto px-4 py-8 max-w-6xl">
+      <div className="container mx-auto px-4 py-6 2xl:py-8 max-w-7xl">
           <h1 className="text-4xl font-bold bg-gradient-to-r from-emerald-800 to-green-800 bg-clip-text text-transparent">Wishlist not found</h1>
           <p className="mt-4">The wishlist you&apos;re looking for doesn&apos;t exist or has been removed.</p>
           <Button className="mt-6" onClick={() => setLocation('/app/dashboard')}>
@@ -885,7 +925,7 @@ export default function WishlistDetail() {
   if (!isLoadingWishlist && !resolvedWishlist) {
     return (
       <main className="flex-1">
-        <div className="container mx-auto px-4 py-8 max-w-6xl">
+        <div className="container mx-auto px-4 py-6 2xl:py-8 max-w-7xl">
           <Card>
             <CardContent className="p-8 text-center">
               <h2 className="text-2xl font-semibold mb-2">Wishlist not found</h2>
@@ -910,7 +950,7 @@ export default function WishlistDetail() {
   return (
     <>
       <main className="flex-1">
-        <div data-testid="wishlist-detail-page" className="container mx-auto px-4 py-8 pb-24 sm:pb-8 max-w-6xl">
+        <div data-testid="wishlist-detail-page" className="container mx-auto px-4 py-6 2xl:py-8 pb-24 sm:pb-8 max-w-7xl">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-6">
             <div className="flex items-start sm:items-center">
               <Button 
@@ -1334,8 +1374,16 @@ export default function WishlistDetail() {
                   <CardContent className="p-8 text-center">
                     <h3 className="text-lg font-medium mb-2">No items in this wishlist yet</h3>
                     <p className="text-gray-500 mb-4">
-                      Use the Chrome extension to add items from your favorite websites
+                      Paste a product link to add your first item, or{" "}
+                      <Link href="/extension" className="text-emerald-700 underline underline-offset-2 hover:text-emerald-800">
+                        install the browser extension
+                      </Link>{" "}
+                      to add items as you browse.
                     </p>
+                    <Button onClick={openCreateItemDialog}>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Item
+                    </Button>
                   </CardContent>
                 </Card>
               )}
@@ -1345,7 +1393,7 @@ export default function WishlistDetail() {
       </main>
 
       <div className="sm:hidden fixed bottom-0 inset-x-0 z-40 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
-        <div className="container mx-auto max-w-6xl px-4 py-3">
+        <div className="container mx-auto max-w-7xl px-4 py-3">
           <div className="grid grid-cols-2 gap-2">
             <Button
               data-testid="wishlist-detail-mobile-add-item"
@@ -1397,8 +1445,34 @@ export default function WishlistDetail() {
           </DialogHeader>
 
           <div className="grid gap-4 py-2">
+            {!editingItem && (
+              <div className="grid gap-2 rounded-md border p-3 bg-muted/30">
+                <Label htmlFor="linkUrl">Paste a product link</Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="linkUrl"
+                    placeholder="https://..."
+                    value={linkUrl}
+                    onChange={(e) => setLinkUrl(e.target.value)}
+                    disabled={isItemMutationPending || isFetchingPreview}
+                  />
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={handleFetchProductPreview}
+                    disabled={!linkUrl.trim() || isFetchingPreview || isItemMutationPending}
+                  >
+                    {isFetchingPreview ? "Fetching..." : "Fetch details"}
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  We'll try to fill in the details below. You can edit anything, or skip this and enter it all manually.
+                </p>
+              </div>
+            )}
+
             <div className="grid gap-2">
-              <Label htmlFor="title">Title</Label>
+              <Label htmlFor="title">Item name</Label>
               <Input data-testid="wishlist-item-title-input" id="title" value={itemForm.title} onChange={(e) => updateItemFormField("title", e.target.value)} disabled={isItemMutationPending} />
               {itemFormErrors.title && <p className="text-xs text-red-600">{itemFormErrors.title}</p>}
             </div>
@@ -1429,7 +1503,7 @@ export default function WishlistDetail() {
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="note">Note (optional)</Label>
+              <Label htmlFor="note">Description (optional)</Label>
               <Textarea id="note" rows={3} value={itemForm.note} onChange={(e) => updateItemFormField("note", e.target.value)} disabled={isItemMutationPending} />
             </div>
           </div>

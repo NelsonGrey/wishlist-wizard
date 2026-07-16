@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useEffect, useRef, useState, ReactNode } from 'react';
 import type { User } from 'firebase/auth';
 import {
   FeatureFlags,
@@ -44,12 +44,35 @@ interface AuthProviderProps {
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const userRef = useRef<User | null>(null);
 
   const isFirebaseNotConfiguredError = (error: unknown): boolean => {
     if (!error || typeof error !== 'object') {
       return false;
     }
     return (error as { code?: string }).code === 'app/firebase-not-configured';
+  };
+
+  // Lets the Wishlist Wizard browser extension (if installed and listening
+  // on this origin) reuse this signed-in session instead of requiring a
+  // separate login — see packages/browser-extension/src/web-auth-bridge.js.
+  const broadcastAuthTokenToExtension = async (currentUser: User | null) => {
+    if (typeof window === 'undefined' || !currentUser) {
+      return;
+    }
+    try {
+      const token = await currentUser.getIdToken();
+      window.dispatchEvent(new CustomEvent('ww:auth-bridge-token', {
+        detail: {
+          token,
+          // Firebase ID tokens last ~1h; refresh well before then.
+          expiresAt: Date.now() + 55 * 60 * 1000,
+          userEmail: currentUser.email || null,
+        },
+      }));
+    } catch {
+      // Non-fatal — if the extension is listening, it just won't get a bridged token this time.
+    }
   };
 
   useEffect(() => {
@@ -81,6 +104,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         // Set up auth state listener
         unsubscribe = onAuthStateChange((user) => {
           setUser(user);
+          userRef.current = user;
+          broadcastAuthTokenToExtension(user);
 
           analyticsTracker.setUserProperties({
             platform: 'web',
@@ -110,6 +135,28 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (unsubscribe) {
         unsubscribe();
       }
+    };
+  }, []);
+
+  // Respond to the extension's content script asking for the current session,
+  // and keep it topped up with a fresh token periodically while signed in.
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    const handleTokenRequest = () => {
+      broadcastAuthTokenToExtension(userRef.current);
+    };
+    window.addEventListener('ww:request-auth-token', handleTokenRequest);
+
+    const interval = window.setInterval(() => {
+      broadcastAuthTokenToExtension(userRef.current);
+    }, 30 * 60 * 1000);
+
+    return () => {
+      window.removeEventListener('ww:request-auth-token', handleTokenRequest);
+      window.clearInterval(interval);
     };
   }, []);
 

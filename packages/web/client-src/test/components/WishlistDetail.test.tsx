@@ -418,12 +418,12 @@ describe('WishlistDetail Item CRUD', () => {
 
     await user.click(screen.getByRole('button', { name: /add item/i }));
 
-    await user.type(screen.getByLabelText('Title'), 'New Test Item');
+    await user.type(screen.getByLabelText('Item name'), 'New Test Item');
     await user.type(screen.getByLabelText('Price'), '$19.99');
     await user.type(screen.getByLabelText('Store'), 'Demo Store');
     await user.type(screen.getByLabelText('Product URL'), 'https://example.com/new-item');
     await user.type(screen.getByLabelText('Image URL'), 'https://example.com/new-item.png');
-    await user.type(screen.getByLabelText('Note (optional)'), 'test note');
+    await user.type(screen.getByLabelText('Description (optional)'), 'test note');
 
     await user.click(screen.getByRole('button', { name: 'Add Item' }));
 
@@ -432,18 +432,81 @@ describe('WishlistDetail Item CRUD', () => {
     });
   });
 
+  it('fetches product details from a pasted link and pre-fills the item form', async () => {
+    vi.mocked(apiRequest).mockImplementation(async (url: string) => {
+      if (url === '/api/products/preview') {
+        return {
+          ok: true,
+          title: 'Fetched Product',
+          image: 'https://example.com/fetched-image.png',
+          price: 42.5,
+        };
+      }
+      return {};
+    });
+
+    render(<WishlistDetail />);
+    const user = userEvent.setup();
+
+    await user.click(screen.getByRole('button', { name: /add item/i }));
+    await user.type(screen.getByLabelText('Paste a product link'), 'https://www.example.com/some-product');
+    await user.click(screen.getByRole('button', { name: 'Fetch details' }));
+
+    await waitFor(() => {
+      expect(apiRequest).toHaveBeenCalledWith(
+        '/api/products/preview',
+        expect.objectContaining({ method: 'POST', body: { url: 'https://www.example.com/some-product' } })
+      );
+    });
+
+    await waitFor(() => {
+      expect(screen.getByLabelText('Item name')).toHaveValue('Fetched Product');
+    });
+    expect(screen.getByLabelText('Price')).toHaveValue('42.5');
+    expect(screen.getByLabelText('Store')).toHaveValue('example.com');
+    expect(screen.getByLabelText('Product URL')).toHaveValue('https://www.example.com/some-product');
+  });
+
+  it('falls back to manual entry when the link fetch fails, without blocking the user', async () => {
+    vi.mocked(apiRequest).mockImplementation(async (url: string) => {
+      if (url === '/api/products/preview') {
+        return { ok: false, error: "Couldn't find product details on that page" };
+      }
+      return {};
+    });
+
+    render(<WishlistDetail />);
+    const user = userEvent.setup();
+
+    await user.click(screen.getByRole('button', { name: /add item/i }));
+    await user.type(screen.getByLabelText('Paste a product link'), 'https://www.example.com/unrecognized-page');
+    await user.click(screen.getByRole('button', { name: 'Fetch details' }));
+
+    await waitFor(() => {
+      expect(apiRequest).toHaveBeenCalledWith('/api/products/preview', expect.objectContaining({ method: 'POST' }));
+    });
+
+    // The URL the user pasted still lands in Product URL, and the item name field
+    // stays editable — the failed fetch never blocks manual entry.
+    await waitFor(() => {
+      expect(screen.getByLabelText('Product URL')).toHaveValue('https://www.example.com/unrecognized-page');
+    });
+    await user.type(screen.getByLabelText('Item name'), 'Manually typed item');
+    expect(screen.getByLabelText('Item name')).toHaveValue('Manually typed item');
+  });
+
   it('trims item fields before creating an item', async () => {
     render(<WishlistDetail />);
     const user = userEvent.setup();
 
     await user.click(screen.getByRole('button', { name: /add item/i }));
 
-    await user.type(screen.getByLabelText('Title'), '  Trimmed Title  ');
+    await user.type(screen.getByLabelText('Item name'), '  Trimmed Title  ');
     await user.type(screen.getByLabelText('Price'), '  $20.00  ');
     await user.type(screen.getByLabelText('Store'), '  Demo Store  ');
     await user.type(screen.getByLabelText('Product URL'), '  https://example.com/trimmed-item  ');
     await user.type(screen.getByLabelText('Image URL'), '  https://example.com/trimmed-item.png  ');
-    await user.type(screen.getByLabelText('Note (optional)'), '  keep note  ');
+    await user.type(screen.getByLabelText('Description (optional)'), '  keep note  ');
 
     await user.click(screen.getByRole('button', { name: 'Add Item' }));
 
@@ -465,27 +528,47 @@ describe('WishlistDetail Item CRUD', () => {
     });
   });
 
-  it('shows inline validation when required fields are missing', async () => {
+  it('shows inline validation only for the item name, which is the sole required field', async () => {
     render(<WishlistDetail />);
     const user = userEvent.setup();
 
     await user.click(screen.getByRole('button', { name: /add item/i }));
     await user.click(screen.getByRole('button', { name: 'Add Item' }));
 
-    expect(screen.getByText('Title is required.')).toBeInTheDocument();
-    expect(screen.getByText('Price is required.')).toBeInTheDocument();
-    expect(screen.getByText('Product URL is required.')).toBeInTheDocument();
-    expect(screen.getByText('Image URL is required.')).toBeInTheDocument();
-    expect(screen.getByText('Store is required.')).toBeInTheDocument();
+    // Price/store/product URL/image URL are optional — only item name blocks submission.
+    expect(screen.getByText('Item name is required.')).toBeInTheDocument();
+    expect(screen.queryByText('Price is required.')).not.toBeInTheDocument();
+    expect(screen.queryByText('Product URL is required.')).not.toBeInTheDocument();
+    expect(screen.queryByText('Image URL is required.')).not.toBeInTheDocument();
+    expect(screen.queryByText('Store is required.')).not.toBeInTheDocument();
   });
 
-  it('shows inline validation for invalid price and URL formats', async () => {
+  it('allows saving an item with only a name, no other fields filled in', async () => {
+    render(<WishlistDetail />);
+    const user = userEvent.setup();
+
+    await user.click(screen.getByRole('button', { name: /add item/i }));
+    await user.type(screen.getByLabelText('Item name'), 'Bare Minimum Item');
+    await user.click(screen.getByRole('button', { name: 'Add Item' }));
+
+    await waitFor(() => {
+      expect(apiRequest).toHaveBeenCalledWith(
+        '/api/items',
+        expect.objectContaining({
+          method: 'POST',
+          body: expect.objectContaining({ title: 'Bare Minimum Item' }),
+        })
+      );
+    });
+  });
+
+  it('shows inline validation for invalid price and URL formats when those optional fields are filled in', async () => {
     render(<WishlistDetail />);
     const user = userEvent.setup();
 
     await user.click(screen.getByRole('button', { name: /add item/i }));
 
-    await user.type(screen.getByLabelText('Title'), 'Bad Formats Item');
+    await user.type(screen.getByLabelText('Item name'), 'Bad Formats Item');
     await user.type(screen.getByLabelText('Price'), 'abc');
     await user.type(screen.getByLabelText('Store'), 'Demo Store');
     await user.type(screen.getByLabelText('Product URL'), 'not-a-url');
@@ -493,11 +576,12 @@ describe('WishlistDetail Item CRUD', () => {
 
     await user.click(screen.getByRole('button', { name: 'Add Item' }));
     expect(screen.getByText('Use 99.99 or $99.99.')).toBeInTheDocument();
+    expect(screen.getAllByText('Enter a valid URL.')).toHaveLength(2);
 
     await user.clear(screen.getByLabelText('Price'));
     await user.type(screen.getByLabelText('Price'), '$12.34');
     await user.click(screen.getByRole('button', { name: 'Add Item' }));
-    expect(screen.getByText('Enter a valid URL.')).toBeInTheDocument();
+    expect(screen.getAllByText('Enter a valid URL.')).toHaveLength(2);
   });
 
   it('edits an existing item from the item row action', async () => {
@@ -507,7 +591,7 @@ describe('WishlistDetail Item CRUD', () => {
     const editButtons = await screen.findAllByRole('button', { name: /edit item/i });
     await user.click(editButtons[0]);
 
-    const titleInput = screen.getByLabelText('Title');
+    const titleInput = screen.getByLabelText('Item name');
     await user.clear(titleInput);
     await user.type(titleInput, 'Updated Item Title');
 

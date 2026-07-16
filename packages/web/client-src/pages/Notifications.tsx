@@ -167,7 +167,7 @@ export default function Notifications() {
         <title>Notifications | Wishlist Wizard</title>
         <meta name="description" content="Manage your notifications and alerts from Wishlist Wizard." />
       </Helmet>
-      <div data-testid="notifications-page" className="container mx-auto px-4 py-8 max-w-6xl">
+      <div data-testid="notifications-page" className="container mx-auto px-4 py-6 2xl:py-8 max-w-7xl">
         <div className="mb-8">
           <h1 className="text-4xl font-bold bg-gradient-to-r from-emerald-800 to-green-800 bg-clip-text text-transparent">Notifications</h1>
           <p className="text-gray-600 mt-2">

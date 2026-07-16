@@ -76,6 +76,7 @@ export default function Dashboard() {
             ? (wishlistData.recipientMembers || '').split(',').map((value) => value.trim()).filter(Boolean)
             : [],
           description: wishlistData.description?.trim() || '',
+          isPublic: !!wishlistData.isPublic,
           occasion: wishlistData.occasion?.trim() || null,
           occasionDate: occasionDateIso,
           recurrence: wishlistData.isRecurring ? wishlistData.recurrence : 'none',
@@ -233,7 +234,7 @@ export default function Dashboard() {
   return (
     <>
       <main className="flex-1">
-        <div data-testid="dashboard-page" className="container mx-auto px-4 py-8 max-w-6xl">
+        <div data-testid="dashboard-page" className="container mx-auto px-4 py-6 2xl:py-8 max-w-7xl">
           <div className="mb-8 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <h1 data-testid="dashboard-title" className="text-4xl font-bold bg-gradient-to-r from-emerald-800 to-green-800 bg-clip-text text-transparent">My Wishlists</h1>
             <div className="flex flex-wrap items-center gap-2">

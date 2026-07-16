@@ -398,7 +398,7 @@ export default function PriceTracking() {
         <meta name="description" content="Track prices of your wishlist items and get notified when prices drop." />
       </Helmet>
 
-      <div className="container mx-auto px-4 py-8 max-w-6xl">
+      <div className="container mx-auto px-4 py-6 2xl:py-8 max-w-7xl">
         <div className="mb-8 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <h1 className="text-4xl font-bold bg-gradient-to-r from-emerald-800 to-green-800 bg-clip-text text-transparent">Price Tracking</h1>

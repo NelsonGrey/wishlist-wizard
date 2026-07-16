@@ -112,6 +112,10 @@ export {
 } from './api/affiliate';
 
 export {
+  fetchProductPreview as productPreviewFetch
+} from './api/productPreview';
+
+export {
   createGroupPaymentIntent as groupPaymentCreateIntent,
   confirmGroupContribution as groupPaymentConfirm,
   getGroupGiftSummary as groupGiftSummary

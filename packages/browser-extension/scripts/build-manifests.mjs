@@ -40,8 +40,22 @@ const SHOPPING_SITES = [
 
 const EXTENSION_API_HOSTS = [
   'https://wishlist-wizard-dev.web.app/*',
+  'https://wishlist-wizard-staging.web.app/*',
   'https://wishlist-wizard-prod.web.app/*',
+  'https://wishlist-wizard.web.app/*',
+  'https://wishlist-wizard.com/*',
+  'https://www.wishlist-wizard.com/*',
+  'http://localhost/*',
 ];
+
+// The auth-bridge content script only ever runs on the web app's own origins
+// (not the shopping sites above) — it relays the signed-in user's Firebase ID
+// token to the extension so the popup can skip a separate login.
+const WEB_APP_BRIDGE_SCRIPT = {
+  matches: EXTENSION_API_HOSTS,
+  js: ['web-auth-bridge.js'],
+  run_at: 'document_idle',
+};
 
 const ICON_SIZES = {
   '16': 'icons/icon16.png',
@@ -90,6 +104,7 @@ function manifestV3() {
         js: ['enhanced-product-extractor.js', 'content.js'],
         run_at: 'document_end',
       },
+      WEB_APP_BRIDGE_SCRIPT,
     ],
   };
 }
@@ -129,6 +144,7 @@ function manifestV2Firefox() {
         js: ['enhanced-product-extractor.js', 'content.js'],
         run_at: 'document_end',
       },
+      WEB_APP_BRIDGE_SCRIPT,
     ],
     web_accessible_resources: ['firebase-messaging-sw.js'],
   };
@@ -159,6 +175,7 @@ function manifestSafari() {
         js: ['enhanced-product-extractor.js', 'content.js'],
         run_at: 'document_end',
       },
+      WEB_APP_BRIDGE_SCRIPT,
     ],
   };
 }

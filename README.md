@@ -32,12 +32,11 @@ Wishlist Wizard is a comprehensive wishlist management platform that empowers us
 ### Development Setup
 
 This project consists of:
-- **Web App**: React frontend with TypeScript (`web/`)
-- **Backend**: Express.js API (`server/`)
+- **Web App**: React frontend with TypeScript (`packages/web/`)
+- **Backend**: Firebase Functions, serverless (`packages/functions/`) — the live API; root `server/`/`client/` and `packages/api-server` are historical and not deployed
 - **Mobile App**: Flutter app for iOS and Android (`packages/mobile/`)
 - **Browser Extension**: Chrome/Firefox extension (`packages/browser-extension/`)
 - **Shared Libraries**: Common TypeScript code (`packages/shared/`)
-- **Firebase Functions**: Serverless backend (`packages/functions/`)
 
 #### Prerequisites
 - Node.js v18+ 
@@ -176,35 +175,30 @@ flutter build apk --release
 
 ### Architecture
 - **Frontend**: React 19 + TypeScript + Vite
-- **Backend**: Express.js + TypeScript + Drizzle ORM  
-- **Database**: PostgreSQL (via DATABASE_URL)
+- **Backend**: Firebase Functions (TypeScript) + Firestore — the Express.js/PostgreSQL server this project started with was removed in the Firebase-first migration; `packages/api-server` and root `server/`/`client/` are historical and no longer contain live source
 - **Mobile**: Flutter 3.8+ with Provider state management
 - **Styling**: Tailwind CSS (web), Material Design (mobile)
 
 ### System Requirements
 - **Browser Support**: Chrome, Firefox, Safari, Edge (latest versions)
-- **Mobile Support**: iOS 13+ and Android 8.0+ (Flutter app)
+- **Mobile Support**: iOS 16+ and Android 8.0+ (Flutter app)
 - **Internet Connection**: Required for collaboration and calendar syncing
 
 ### Environment Setup
-Required environment variables (add to `.env`):
+Required environment variables (add to `.env`) — see the Firebase Integration section below for the full `VITE_FIREBASE_*` set:
 ```env
-DATABASE_URL=postgresql://...
-JWT_SECRET=your-jwt-secret
-SESSION_SECRET=your-session-secret
-OPENAI_API_KEY=sk-...
-SENDGRID_API_KEY=SG...
 VITE_GA_MEASUREMENT_ID=G-...
 ```
+Note: `OPENAI_API_KEY` and `SENDGRID_API_KEY` are **not required** — neither service is used anywhere in this codebase. Recommendations are Firestore-backed, not model-backed, and transactional email uses Workspace SMTP via Nodemailer.
 
 ### API Integration
 Wishlist Wizard integrates with the following external APIs:
 - **E-commerce APIs**: Amazon, eBay, Etsy, Walmart, Target, Best Buy
+- **SerpAPI**: For multi-retailer price comparison
 - **Calendar APIs**: Google Calendar, Microsoft Outlook, Apple Calendar
 - **Payment Processing**: For group gifting contributions
 - **Social Media**: For advanced sharing capabilities
-- **OpenAI**: For AI-powered recommendations
-- **Firebase** (Optional): Analytics, Cloud Messaging (push notifications), future real-time features
+- **Firebase**: Primary infrastructure — Auth, Firestore, Functions, Hosting, Cloud Messaging, Analytics (not optional — see below)
 
 ### 🔥 Firebase Integration (Primary Infrastructure)
 **Wishlist Wizard leverages Firebase as the primary infrastructure platform** for authentication, data storage, serverless functions, hosting, and analytics.
@@ -226,7 +220,7 @@ VITE_FIREBASE_AUTO_INIT=false
    - ✅ **Firestore Database**: Primary data storage with security rules
    - ✅ **Firebase Functions**: Serverless API and background operations  
    - ✅ **Firebase Hosting**: Web app deployment with CDN
-   - ✅ **Firebase Authentication**: User management (planned migration)
+   - ✅ **Firebase Authentication**: User management — live, used by both the web app and the browser extension
    - ✅ **Cloud Messaging**: Push notifications
    - ✅ **Firebase Analytics**: User behavior tracking
    - ✅ **Firebase Storage**: Media and file uploads

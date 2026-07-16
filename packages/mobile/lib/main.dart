@@ -1,8 +1,10 @@
 import 'dart:async';
+import 'dart:io' show Platform;
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:logging/logging.dart';
 import 'package:flutter/foundation.dart';
 import 'firebase_options.dart';
@@ -10,6 +12,7 @@ import 'models/models.dart';
 import 'providers/providers.dart';
 import 'services/services.dart';
 import 'services/admob_service.dart';
+import 'services/fcm_service.dart';
 import 'screens/login_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/firebase_wishlists_screen.dart';
@@ -32,6 +35,13 @@ void main() async {
 
   // Initialize Firebase
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
+  // Explicitly enable Firestore's offline cache (settings must be applied before
+  // any Firestore read/write) so wishlists remain viewable without a connection.
+  FirebaseFirestore.instance.settings = const Settings(
+    persistenceEnabled: true,
+    cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
+  );
 
   // Initialize AdMob (must come after Firebase, before runApp)
   await AdMobManager().initialize();
@@ -183,6 +193,7 @@ class MainNavigator extends StatefulWidget {
 
 class _MainNavigatorState extends State<MainNavigator> {
   int _currentIndex = 0;
+  final FCMManager _fcmManager = FCMManager();
 
   final List<Widget> _screens = [
     const HomeScreen(),
@@ -190,6 +201,54 @@ class _MainNavigatorState extends State<MainNavigator> {
     const NotificationsScreen(),
     const ProfileScreen(),
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeFcm();
+  }
+
+  Future<void> _initializeFcm() async {
+    await _fcmManager.initialize(
+      onTokenRefresh: (token) async {
+        try {
+          await FirebaseFunctionsService().saveFcmToken(
+            token,
+            platform: Platform.isIOS ? 'ios' : 'android',
+          );
+        } catch (e) {
+          debugPrint('[FCM] Failed to save token to backend: $e');
+        }
+      },
+      onMessageReceived: (notification) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${notification.title}: ${notification.body}'),
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      },
+      onMessageOpenedApp: (notification) {
+        if (!mounted) return;
+        // Full deep-linking to the specific wishlist/item is handled from the
+        // Notifications tab (see NotificationsScreen); opening the app from a
+        // push just brings the user to that tab to continue from there.
+        setState(() => _currentIndex = 2);
+      },
+    );
+
+    if (_fcmManager.fcmToken != null) {
+      try {
+        await FirebaseFunctionsService().saveFcmToken(
+          _fcmManager.fcmToken!,
+          platform: Platform.isIOS ? 'ios' : 'android',
+        );
+      } catch (e) {
+        debugPrint('[FCM] Failed to save initial token to backend: $e');
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {

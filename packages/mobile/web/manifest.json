@@ -1,11 +1,11 @@
 {
-    "name": "mobile",
-    "short_name": "mobile",
+    "name": "Wishlist Wizard",
+    "short_name": "Wishlist Wizard",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#065F46",
+    "theme_color": "#047857",
+    "description": "Create, organize, share, and collaborate on wishlists for every occasion.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

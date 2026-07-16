@@ -44,7 +44,7 @@ describe('CreateWishlistDialog external source mode', () => {
     vi.clearAllMocks();
   });
 
-  it('shows a warning when no source providers are connected', async () => {
+  it('skips the connected-sources picker entirely when no provider is connected, going straight to manual entry', async () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (useQuery as any).mockReturnValue({
       data: {
@@ -72,11 +72,25 @@ describe('CreateWishlistDialog external source mode', () => {
 
     const user = userEvent.setup();
 
+    await user.type(screen.getByTestId('create-wishlist-name-input'), 'Birthday Picks');
     await user.click(screen.getByRole('button', { name: 'Specific person' }));
-    await user.click(screen.getByRole('button', { name: 'Select from connected sources' }));
 
-    expect(screen.getByText(/No connected contact sources are available/i)).toBeInTheDocument();
-    expect(onCreateWishlist).not.toHaveBeenCalled();
+    // No source-vs-manual choice, and no dead-end warning — just the manual name field.
+    expect(screen.queryByRole('button', { name: 'Select from connected sources' })).not.toBeInTheDocument();
+    expect(screen.queryByText(/No connected contact sources are available/i)).not.toBeInTheDocument();
+
+    await user.type(screen.getByLabelText('Recipient name'), 'Emma Kincaid');
+    await user.click(screen.getByTestId('create-wishlist-submit'));
+
+    expect(onCreateWishlist).toHaveBeenCalledTimes(1);
+    expect(onCreateWishlist).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: 'Birthday Picks',
+        recipientType: 'person',
+        recipientInputMode: 'manual',
+        recipientName: 'Emma Kincaid',
+      })
+    );
   });
 
   it('uses selected source contact as recipient when submitted', async () => {

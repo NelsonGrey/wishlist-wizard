@@ -27,7 +27,7 @@ const ExtensionPage = () => {
         <meta name="twitter:title" content="Wishlist Wizard Browser Extension" />
         <meta name="twitter:description" content="Save products from online retailers into Wishlist Wizard in one click. Available for Chrome, Firefox, Edge, and Safari." />
       </Helmet>
-    <div className="container mx-auto px-4 py-8 max-w-6xl">
+    <div className="container mx-auto px-4 py-6 2xl:py-8 max-w-7xl">
       <div>
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-emerald-900 mb-2">

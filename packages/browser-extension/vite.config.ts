@@ -14,6 +14,7 @@ export default defineConfig({
         'popup': resolve(__dirname, 'src/popup.js'),
         background: resolve(__dirname, 'src/background.js'),
         content: resolve(__dirname, 'src/content.js'),
+        'web-auth-bridge': resolve(__dirname, 'src/web-auth-bridge.js'),
         'enhanced-product-extractor': resolve(__dirname, 'src/enhanced-product-extractor.js'),
         'popup-auth': resolve(__dirname, 'src/popup-auth.js'),
         'coupons': resolve(__dirname, 'src/coupons.js'),

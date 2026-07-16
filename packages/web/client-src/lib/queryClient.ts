@@ -220,6 +220,7 @@ function getFirebaseFunctionRoute(url: string, method: string, body?: unknown): 
     },
     { pattern: /^\/api\/wishlists\/([^/]+)\/items$/, resolve: (match) => ({ functionName: 'getWishlistItems', data: { ...data, wishlistId: match[1] } }) },
     { pattern: /^\/api\/items$/, resolve: () => ({ functionName: 'addWishlistItem', data }) },
+    { pattern: /^\/api\/products\/preview$/, resolve: () => ({ functionName: 'productPreviewFetch', data }) },
     { pattern: /^\/api\/price-intelligence\/refresh$/, resolve: () => ({ functionName: 'priceIntelRefresh', data }) },
     { pattern: /^\/api\/items\/([^/]+)\/reserve$/, resolve: (match) => ({ functionName: 'reserveWishlistItem', data: { ...data, itemId: match[1] } }) },
     { pattern: /^\/api\/items\/([^/]+)\/purchase$/, resolve: (match) => ({ functionName: 'purchaseWishlistItem', data: { ...data, itemId: match[1] } }) },

@@ -30,6 +30,7 @@ class FirebaseWishlist {
   final String? description;
   final String userId;
   final bool isPublic;
+  final String? shareId;
   final List<String> tags;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -40,6 +41,7 @@ class FirebaseWishlist {
     this.description,
     required this.userId,
     required this.isPublic,
+    this.shareId,
     this.tags = const [],
     required this.createdAt,
     required this.updatedAt,
@@ -67,6 +69,7 @@ class FirebaseWishlist {
       description: data['description'],
       userId: data['userId'] ?? '',
       isPublic: data['isPublic'] ?? false,
+      shareId: data['shareId'],
       tags: List<String>.from(data['tags'] ?? []),
       createdAt: _parseDate(data['createdAt']),
       updatedAt: _parseDate(data['updatedAt']),
@@ -96,6 +99,7 @@ class FirebaseWishlistItem {
   final String currency;
   final String? url;
   final String? imageUrl;
+  final String? store;
   final String wishlistId;
   final String userId;
   final bool isPurchased;
@@ -114,6 +118,7 @@ class FirebaseWishlistItem {
     this.currency = 'USD',
     this.url,
     this.imageUrl,
+    this.store,
     required this.wishlistId,
     required this.userId,
     this.isPurchased = false,
@@ -133,6 +138,7 @@ class FirebaseWishlistItem {
       'currency': currency,
       'url': url,
       'imageUrl': imageUrl,
+      'store': store,
       'wishlistId': wishlistId,
       'userId': userId,
       'isPurchased': isPurchased,
@@ -161,6 +167,7 @@ class FirebaseWishlistItem {
       currency: data['currency'] ?? 'USD',
       url: data['url'] ?? data['productUrl'],
       imageUrl: data['imageUrl'],
+      store: data['store'],
       wishlistId: data['wishlistId'] ?? '',
       userId: data['userId'] ?? data['addedBy'] ?? '',
       isPurchased: (data['isPurchased'] as bool? ?? false) || purchasedByUserId != null,

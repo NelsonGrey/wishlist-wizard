@@ -312,7 +312,7 @@ const UserProfile = () => {
         <title>Profile | Wishlist Wizard</title>
         <meta name="description" content="Manage your profile, preferences, and account settings." />
       </Helmet>
-      <div data-testid="user-profile-page" className="container mx-auto px-4 py-8 max-w-6xl">
+      <div data-testid="user-profile-page" className="container mx-auto px-4 py-6 2xl:py-8 max-w-7xl">
         <h1 data-testid="user-profile-title" className="text-4xl font-bold bg-gradient-to-r from-emerald-800 to-green-800 bg-clip-text text-transparent mb-8">Profile & Settings</h1>
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Sidebar */}

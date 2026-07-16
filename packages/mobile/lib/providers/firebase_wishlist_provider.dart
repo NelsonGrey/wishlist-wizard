@@ -187,6 +187,7 @@ class FirebaseWishlistProvider extends ChangeNotifier {
     String currency = 'USD',
     String? url,
     String? imageUrl,
+    String? store,
     List<String> tags = const [],
     Priority priority = Priority.medium,
   }) async {
@@ -202,6 +203,7 @@ class FirebaseWishlistProvider extends ChangeNotifier {
         currency: currency,
         url: url,
         imageUrl: imageUrl,
+        store: store,
         wishlistId: wishlistId,
         userId: userId,
         tags: tags,
