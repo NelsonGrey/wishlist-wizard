@@ -80,7 +80,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
     <div className="min-h-screen flex flex-col">
       {/* Header */}
       <header className="bg-white border-b sticky top-0 z-10">
-        <div className="container mx-auto px-4 py-3 flex items-center justify-between">
+        <div className="site-container flex items-center justify-between py-2.5 2xl:py-3">
           {/* Logo */}
           <Link href="/" className="flex items-center">
             <Gift className="h-6 w-6 text-primary mr-2" />

@@ -167,7 +167,7 @@ export default function SharedWishlist() {
   if (!match) {
     return (
       <div>
-        <div className="container mx-auto px-4 py-8 max-w-6xl">
+        <div className="container mx-auto px-4 py-6 2xl:py-8 max-w-7xl">
           <h1 className="text-2xl font-bold">Shared wishlist not found</h1>
           <p className="mt-4">The wishlist you&apos;re looking for doesn&apos;t exist or has been removed.</p>
           <Button className="mt-6" onClick={() => setLocation('/')}>
@@ -182,7 +182,7 @@ export default function SharedWishlist() {
     return (
       <div className="flex flex-col">
         <main className="flex-1">
-          <div className="container mx-auto px-4 py-8 max-w-6xl">
+          <div className="container mx-auto px-4 py-6 2xl:py-8 max-w-7xl">
             <Card>
               <CardContent className="p-8 text-center">
                 <h2 className="text-2xl font-semibold mb-2">Invalid share link</h2>
@@ -218,7 +218,7 @@ export default function SharedWishlist() {
         <meta name="robots" content="noindex" />
       </Helmet>
       <main className="flex-1">
-        <div className="container mx-auto px-4 py-8 max-w-6xl">
+        <div className="container mx-auto px-4 py-6 2xl:py-8 max-w-7xl">
           <div className="mb-8 bg-white p-6 rounded-lg shadow-sm border">
             <h1 data-testid="shared-wishlist-title" className="text-4xl font-bold bg-gradient-to-r from-emerald-800 to-green-800 bg-clip-text text-transparent mb-2">
               {isLoading ? (

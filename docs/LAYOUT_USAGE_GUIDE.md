@@ -129,7 +129,7 @@ export default function MyNewPage() {
       </Helmet>
       
       <div className="container mx-auto px-4 py-8">
-        <h1 className="text-4xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent mb-8">
+        <h1 className="text-4xl font-bold bg-gradient-to-r from-emerald-800 to-green-800 bg-clip-text text-transparent mb-8">
           My New Page
         </h1>
         {/* Page content */}
@@ -251,7 +251,7 @@ All pages follow consistent CSS patterns for uniformity:
 
 ### Page Headings
 ```typescript
-<h1 className="text-4xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent mb-8">
+<h1 className="text-4xl font-bold bg-gradient-to-r from-emerald-800 to-green-800 bg-clip-text text-transparent mb-8">
   Page Title
 </h1>
 ```

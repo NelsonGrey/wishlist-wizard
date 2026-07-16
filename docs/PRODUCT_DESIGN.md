@@ -1,8 +1,8 @@
 # Wishlist Wizard - Product Design & Feature Specifications
 
-**Version**: 1.0  
-**Last Updated**: February 12, 2026  
-**Status**: ✅ MVP SHIPPED | 🟡 SCALING PHASE  
+**Version**: 1.1  
+**Last Updated**: July 16, 2026  
+**Status**: 🟡 CORE LOOP FUNCTIONAL, RECOVERY IN PROGRESS — a 2026-07-16 audit found the product materially behind this document's prior claims (docs contradicted themselves, several "Complete" features were dead/disconnected code, and the entire authenticated web app was accidentally gated out of production by unrelated automation). A same-day recovery pass fixed the production gate, removed the dead/duplicate code found, and reconnected several disconnected features (see per-feature notes below). Every "Status" line in this document was re-verified against the actual code; treat it as ground truth over any status claims elsewhere in `docs/`.  
 **Owner**: Mark Nelson
 
 ---
@@ -34,11 +34,12 @@
 ### Visual Language
 
 **Color Palette**:
-- Primary: Vibrant Purple (#9333EA) - joyful, premium, stands out
-- Accent: Warm Orange (#FB923C) - energy, calls to action, monetization
+- Primary: Emerald (#047857) - trusted, polished, optimistic, and distinctive
+- Primary Dark: Deep Emerald (#065F46) - premium depth and strong contrast
+- Accent: Warm Gold (#F59E0B) - magic, delight, calls to action, and monetization
 - Success: Green (#10B981) - purchased, confirmed contributions
 - Alert: Amber (#F59E0B) - price drops, limited inventory
-- Social: Multi-color gradients (ref TikTok, Instagram aesthetics)
+- Social: Platform colors only inside clearly identified sharing actions
 
 **Typography**:
 - Headers: Rounded Sans (Poppins, Outfit) - friendly, modern, bold
@@ -343,7 +344,7 @@ Wedding/Event Planner creates event wishlist
 
 ### Feature 1: Wishlist Creation & Management
 
-**Status**: ✅ Complete
+**Status**: ✅ Complete — the authenticated `/app/*` route block in `packages/web/client-src/AppRouter.tsx` was found accidentally gated out of production by an unrelated cross-project automation commit (2026-05-06); the gate was removed 2026-07-16 and production now matches dev/staging.
 
 **Wishlist Types**:
 - **Personal Wishlist**: "Things I want" (private by default, can share)
@@ -386,7 +387,7 @@ Wedding/Event Planner creates event wishlist
 
 ### Feature 2: Product Catalog & Linking
 
-**Status**: ✅ Complete
+**Status**: 🟡 Partial — Browser Extension, Manual Entry, and Paste Link (auto-fetch title/price/image from a URL via `fetchProductPreview`) all work on web. Search is not yet implemented (see Feature 4 for the extension's own retailer-coverage caveats).
 
 **Supported E-Commerce Platforms**:
 - Amazon (largest, multiple regions)
@@ -429,7 +430,7 @@ Wedding/Event Planner creates event wishlist
 
 ### Feature 3: Price Tracking & Alerts
 
-**Status**: ✅ Complete
+**Status**: 🟡 Partial — comparison-shopping (multi-retailer price offers, refreshed every 6h via SerpAPI) is live and deployed. Personal price-drop alerts (the feature described below) are implemented in code but **not deployed** — no production path currently creates or triggers an alert.
 
 **Price History Tracking**:
 - Poll each item weekly (more freq for popular items)
@@ -456,27 +457,27 @@ Wedding/Event Planner creates event wishlist
 
 ### Feature 4: Browser Extension
 
-**Status**: ✅ Complete
+**Status**: 🟡 Partial — the core one-click-add flow (auto-detect → pick wishlist → save via Cloud Functions) is real and works. Retailer coverage is ~16 hardcoded sites, not 40+. Coupon Finder and Price Comparison have finished UI but call backend endpoints that don't exist, so they never return results. The per-site settings gear described below doesn't exist.
 
 **Core Functionality**:
 1. **One-Click Add**: Floating button on product pages → [+Wishlist]
-2. **Auto-Detection**: Identifies product on page (price, image, title)
-3. **Smart Retailers**: Pre-configured for 40+ sites (Amazon, Etsy, Walmart, etc.)
+2. **Auto-Detection**: Identifies product on page (price, image, title) — deep parsing for Amazon/Target/Walmart, generic heuristic fallback elsewhere
+3. **Smart Retailers**: Pre-configured for ~16 sites (Amazon, Etsy, Walmart, etc.) — not yet the 40+ originally targeted
 4. **Fallback Mode**: Manual entry if auto-detection fails
-5. **Price Comparison**: Shows lowest price across retailers
-6. **Coupon Finder**: Displays applicable coupons
+5. **Price Comparison**: 🔴 Not functional — UI calls a backend endpoint that isn't implemented
+6. **Coupon Finder**: 🔴 Not functional — same reason as above
 
 **UI/UX**:
 - Floating button (bottom-right, minimalist icon)
 - Popup overlay (wishlist selector, price preview)
 - Success toast ("Added to Electronics Wishlist")
-- Settings gear icon (enable/disable per site)
+- Settings gear icon (enable/disable per site) — 🔴 not implemented
 
 **Technical**:
 - Content script injects features on product pages
 - Background script handles API calls
 - Storage syncs across browser instances
-- Auth: JWT tokens (7-day expiry, refresh endpoint)
+- Auth: Firebase Authentication (ID token + refresh). A content-script bridge (`web-auth-bridge.js`) now relays the signed-in web app session into the extension when that tab is open, so a separate login is only needed if the user isn't already signed in on the web app in that browser.
 
 **Supported Browsers**:
 - Chrome/Brave (85+)
@@ -488,7 +489,7 @@ Wedding/Event Planner creates event wishlist
 
 ### Feature 5: Affiliate & Creator Program
 
-**Status**: ✅ Partial (affiliate tracking, creator dashboard ready, payment system next)
+**Status**: 🟡 Partial for affiliate tracking (link rewriting, click/conversion logging, and revenue aggregation are genuinely deployed) / 🟡 Planned for the Creator Dashboard and payments below — no creator-dashboard or payout code exists yet.
 
 **Affiliate Tracking**:
 - Unique link per retailer (Amazon, Etsy, etc.)
@@ -506,13 +507,13 @@ Wedding/Event Planner creates event wishlist
 | Best Buy | 3-4% | ✅ Integrated |
 | Custom Retailers | 5-15% | ✅ Case-by-case |
 
-**Creator Dashboard** (see Flow 5):
+**Creator Dashboard** (see Flow 5) — 🟡 Planned, no code yet:
 - Real-time analytics
 - Commission tracking per wishlist
 - Payout management
 - Performance trends
 
-**Payment Processing**:
+**Payment Processing** — 🟡 Planned, no code yet:
 - Minimum payout: $25 (prevents micro-transactions)
 - Frequency: Monthly (payout on 15th)
 - Methods: PayPal, direct bank transfer, check
@@ -522,34 +523,32 @@ Wedding/Event Planner creates event wishlist
 
 ### Feature 6: Mobile App (iOS & Android)
 
-**Status**: ✅ Complete (MVP)
+**Status**: 🟡 Partial — real Flutter/Firebase client with a working App Store release pipeline (Xcode project, Fastlane, TestFlight/App Store GitHub Actions workflow). Sharing, push notifications, and offline support are now live (see below). Still thin: 4 tabs (Home, Wishlists, Notifications, Profile), no Shared-with-Me, no Creator Mode.
 
 **Screens**:
-1. **Home Feed**: Recent wishlists, friends' wishlists, trending wishlists
-2. **My Wishlists**: All user wishlists (personal, events, registries)
-3. **Shared with Me**: Wishlists others shared with current user
-4. **Wishlist Detail**: View items, add to cart, share, coordinate
-5. **Item Detail**: Full product info, price history, reviews, buy now
-6. **Profile**: User settings, saved preferences, notification settings
-7. **Creator Mode**: Dashboard (if user is creator)
+1. **Home Feed**: dashboard-style recent wishlists / stats / quick actions (not a browse/discover feed)
+2. **My Wishlists**: all user wishlists
+3. **Shared with Me**: 🔴 does not exist
+4. **Wishlist Detail / Item Detail**: item detail is a bottom sheet on the wishlists screen, not a separate screen
+5. **Profile**: minimal — avatar, name, subscription management, logout
+6. **Creator Mode**: 🔴 does not exist
 
 **Key Features**:
-- Cross-platform sync (web ↔ mobile, same account)
-- Offline support (cached wishlists viewable offline)
-- Push notifications (price drops, comments, shares)
-- Social sharing (WhatsApp, Instagram, TikTok, Discord)
+- Cross-platform sync (web ↔ mobile, same Firebase account) — real
+- Offline support — ✅ Firestore's native offline persistence is explicitly enabled at startup. (The old REST-based `SyncProvider`/`SyncService` was found wired to a hardcoded personal-machine IP left over from before the Firebase migration — it was left disconnected rather than revived, since the backend it targets no longer exists.)
+- Push notifications — ✅ `FCMService` is now initialized at startup; tokens are saved to the backend via `saveFCMToken`
+- Social sharing — ✅ `SocialShareService` is now wired to a share button on the live wishlist screen (WhatsApp, Instagram, TikTok, Facebook, email, generic OS share sheet). Discord sharing is still not implemented.
 - Touch-optimized UI (large buttons, minimal scrolling)
 
 **Technologies**:
-- iOS: Swift + SwiftUI
-- Android: Kotlin + Jetpack Compose
-- Both: Firebase SDK for backend, React Query for state
+- iOS & Android: **Flutter + Dart**, Provider for state management, `go_router` for navigation
+- Firebase SDK for backend (Firestore, Auth, FCM)
 
 ---
 
 ### Feature 7: Notifications & Communication
 
-**Status**: ✅ Complete
+**Status**: 🟡 Partial — Push (FCM) and in-app are real end-to-end for item add/reserve/purchase events. Email is implemented (Nodemailer/SMTP) but only called from an undeployed code path, so it doesn't currently send in production. SMS is not implemented. Social/milestone/event-related notification types have no triggering feature behind them yet (see Feature 5 and Social network & discovery).
 
 **Notification Types**:
 1. **Price Drops**: "Item dropped to $49.99 (save $30!)"
@@ -595,21 +594,21 @@ Wedding/Event Planner creates event wishlist
 
 ### iOS
 
-**Framework**: SwiftUI, Combine
-**Apple-Specific Features**:
+**Framework**: Flutter + Dart (not native SwiftUI — see Feature 6)
+**Apple-Specific Features** — 🟡 Planned, no code exists yet (would require native platform channels beyond Flutter's default template):
 - Siri Shortcuts ("Add [item] to my [wishlist]")
 - App Clips (share wish without full app install)
 - iCloud sync (across user devices)
 - Handoff (continue on macOS)
 
-**Target**: iOS 14+
+**Target**: iOS 16+ (matches the actual `IPHONEOS_DEPLOYMENT_TARGET` in the Xcode project)
 
 ---
 
 ### Android
 
-**Framework**: Jetpack Compose
-**Google-Specific Features**:
+**Framework**: Flutter + Dart (not native Jetpack Compose)
+**Google-Specific Features** — 🟡 Planned, no code exists yet:
 - Google Assistant integration (voice add to wishlist)
 - Widgets (home screen wishlist widget)
 - Share Sheet integration (system-level sharing)
@@ -770,16 +769,16 @@ Profile / Settings
 |---------|--------|--------|----------|--------|
 | Wishlist CRUD | Critical | Medium | P0 | ✅ Complete |
 | Item management (add/remove) | Critical | Medium | P0 | ✅ Complete |
-| Public sharing & links | Critical | Low | P0 | ✅ Complete |
-| Price tracking | High | Medium | P2 | 🟡 Planned |
-| Browser extension | High | High | P1 | ✅ Complete |
-| Mobile app (iOS/Android) | Critical | High | P0 | ✅ Complete |
-| Affiliate monetization | High | High | P2 | 🟡 Planned |
-| Creator dashboard | Medium | High | P1 | ✅ Partial |
+| Public sharing & links | Critical | Low | P0 | ✅ Complete (web and mobile) |
+| Price tracking | High | Medium | P2 | 🟡 Partial (comparison-shopping live; personal alerts undeployed) |
+| Browser extension | High | High | P1 | 🟡 Partial (core add-flow real; coupon/price-compare and 40+ retailer coverage are not) |
+| Mobile app (iOS/Android) | Critical | High | P0 | 🟡 Partial (Flutter, not native — see Feature 6) |
+| Affiliate monetization | High | High | P2 | 🟡 Partial (click/conversion tracking real, no payout system) |
+| Creator dashboard | Medium | High | P1 | 🟡 Planned (no code yet) |
 | Group coordination (commitments) | Medium | Medium | P2 | 🟡 Partial |
-| Calendar integration | Medium | High | P1 | 🟡 Partial |
-| Social network and discovery | Medium | High | P1 | 🟡 Partial |
-| AI recommendations | Low | Very High | P3 | 🟡 Partial |
+| Calendar integration | Medium | High | P1 | 🟡 Partial (OAuth + event sync genuinely implemented; depends on provider credentials being configured) |
+| Social network and discovery | Medium | High | P1 | 🟡 Planned (a demo page only) |
+| Personalized recommendations | Low | Very High | P3 | 🟡 Partial (Firestore-backed, not model-backed — "AI" framing intentionally avoided in public copy) |
 | AR visualization | Low | Very High | P4 | ⏸️ Future |
 | Custom level editor | N/A | N/A | N/A | N/A |
 
@@ -892,5 +891,5 @@ Profile / Settings
 ---
 
 **Product Design Owner**: Mark Nelson  
-**Last Updated**: February 12, 2026  
-**Design Status**: ✅ MVP Shipped | 🟡 Scaling Phase
+**Last Updated**: July 16, 2026  
+**Design Status**: 🟡 Core loop functional, recovery in progress — see per-feature status above

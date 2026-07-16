@@ -41,7 +41,7 @@ export default function PublicLayout({ children }: PublicLayoutProps) {
   return (
     <div className="h-screen flex flex-col overflow-hidden bg-white">
       <header className="flex-none bg-white border-b border-gray-200 shadow-sm z-50">
-        <div className="container mx-auto px-4 py-3.5 flex items-center justify-between">
+        <div className="site-container flex items-center justify-between py-2.5 2xl:py-3.5">
           <Link href="/">
             <span className="flex items-center hover:scale-105 transition-transform duration-200">
               <img src="/logo.svg" alt="Wishlist Wizard" className="h-9 w-9 mr-2.5" />

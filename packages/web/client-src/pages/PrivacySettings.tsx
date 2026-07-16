@@ -288,7 +288,7 @@ const PrivacySettingsPage = () => {
 
   if (entitiesLoading) {
     return (
-      <div data-testid="privacy-settings-page" className="container mx-auto px-4 py-8 max-w-6xl">
+      <div data-testid="privacy-settings-page" className="container mx-auto px-4 py-6 2xl:py-8 max-w-7xl">
         <div className="flex items-center justify-center min-h-[400px]">
           <Loader2 className="h-8 w-8 animate-spin" />
         </div>
@@ -297,7 +297,7 @@ const PrivacySettingsPage = () => {
   }
 
   return (
-    <div data-testid="privacy-settings-page" className="container mx-auto px-4 py-8 max-w-6xl">
+    <div data-testid="privacy-settings-page" className="container mx-auto px-4 py-6 2xl:py-8 max-w-7xl">
       <div className="mb-8">
         <h1 data-testid="privacy-settings-title" className="text-4xl font-bold bg-gradient-to-r from-emerald-800 to-green-800 bg-clip-text text-transparent mb-2">Privacy Settings</h1>
         <p className="text-muted-foreground">

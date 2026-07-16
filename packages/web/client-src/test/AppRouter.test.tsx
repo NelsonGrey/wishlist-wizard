@@ -137,7 +137,7 @@ describe('AppRouter Smoke Tests', () => {
       render(<AppRouter />);
 
       await waitFor(() => {
-        expect(screen.getByText('A subscription for every wishlist workflow')).toBeInTheDocument();
+        expect(screen.getByText('A plan for every wishlist workflow')).toBeInTheDocument();
       });
     });
 

@@ -41,7 +41,14 @@
     "*://*.nordstrom.com/*",
     "*://*.kohls.com/*",
     "*://*.costco.com/*",
-    "*://*.samsclub.com/*"
+    "*://*.samsclub.com/*",
+    "https://wishlist-wizard.web.app/*",
+    "https://wishlist-wizard-prod.web.app/*",
+    "https://wishlist-wizard-staging.web.app/*",
+    "https://wishlist-wizard-dev.web.app/*",
+    "https://wishlist-wizard.com/*",
+    "https://www.wishlist-wizard.com/*",
+    "http://localhost/*"
   ],
   "background": {
     "service_worker": "background.js"
@@ -78,6 +85,19 @@
         "content.js"
       ],
       "run_at": "document_end"
+    },
+    {
+      "matches": [
+        "https://wishlist-wizard.web.app/*",
+        "https://wishlist-wizard-prod.web.app/*",
+        "https://wishlist-wizard-staging.web.app/*",
+        "https://wishlist-wizard-dev.web.app/*",
+        "https://wishlist-wizard.com/*",
+        "https://www.wishlist-wizard.com/*",
+        "http://localhost/*"
+      ],
+      "js": ["web-auth-bridge.js"],
+      "run_at": "document_idle"
     }
   ]
 }

@@ -4,8 +4,13 @@ import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/models.dart';
 import '../providers/providers.dart';
+import '../services/social_share_service.dart';
 import '../widgets/admob_widgets.dart';
 import '../main.dart';
+
+// Production web app origin used to build shareable wishlist links from mobile
+// (mirrors the `${window.location.origin}/shared/:shareId` link built on web).
+const String _webAppOrigin = 'https://wishlist-wizard.web.app';
 
 class FirebaseWishlistsScreen extends StatefulWidget {
   const FirebaseWishlistsScreen({super.key});
@@ -443,6 +448,7 @@ class _FirebaseWishlistsScreenState extends State<FirebaseWishlistsScreen> {
                       : descriptionController.text.trim(),
                   userId: wishlist.userId,
                   isPublic: isPublic,
+                  shareId: wishlist.shareId,
                   tags: wishlist.tags,
                   createdAt: wishlist.createdAt,
                   updatedAt: DateTime.now(),
@@ -643,6 +649,29 @@ class _FirebaseWishlistItemsScreenState
     ).showSnackBar(SnackBar(content: Text('$label copied to clipboard')));
   }
 
+  Future<void> _shareWishlist() async {
+    final shareId = widget.wishlist.shareId;
+    if (shareId == null || shareId.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('This wishlist doesn\'t have a share link yet.')),
+      );
+      return;
+    }
+
+    try {
+      await SocialShareService().shareWishlist(
+        wishlistName: widget.wishlist.name,
+        shareLink: '$_webAppOrigin/shared/$shareId',
+        description: widget.wishlist.description,
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Unable to share right now.')));
+    }
+  }
+
   void _showItemDetails(BuildContext context, FirebaseWishlistItem item) {
     final priceText = item.price != null
         ? '${item.currency} ${item.price!.toStringAsFixed(2)}'
@@ -666,6 +695,10 @@ class _FirebaseWishlistItemsScreenState
               ],
               Text('Price: $priceText'),
               const SizedBox(height: 4),
+              if ((item.store ?? '').isNotEmpty) ...[
+                Text('Store: ${item.store}'),
+                const SizedBox(height: 4),
+              ],
               Text('Priority: ${item.priority.name.toUpperCase()}'),
               const SizedBox(height: 4),
               Text(
@@ -751,7 +784,16 @@ class _FirebaseWishlistItemsScreenState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: CustomAppBar(title: widget.wishlist.name),
+      appBar: CustomAppBar(
+        title: widget.wishlist.name,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.share),
+            tooltip: 'Share wishlist',
+            onPressed: _shareWishlist,
+          ),
+        ],
+      ),
       body: Consumer2<AuthProvider, FirebaseWishlistProvider>(
         builder: (context, authProvider, wishlistProvider, child) {
           if (authProvider.user == null) {
@@ -983,6 +1025,7 @@ class _FirebaseWishlistItemsScreenState
     );
     final urlController = TextEditingController(text: item.url ?? '');
     final imageUrlController = TextEditingController(text: item.imageUrl ?? '');
+    final storeController = TextEditingController(text: item.store ?? '');
 
     showDialog(
       context: context,
@@ -1010,6 +1053,11 @@ class _FirebaseWishlistItemsScreenState
               keyboardType: const TextInputType.numberWithOptions(
                 decimal: true,
               ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: storeController,
+              decoration: const InputDecoration(labelText: 'Store (optional)'),
             ),
             const SizedBox(height: 12),
             TextField(
@@ -1081,6 +1129,9 @@ class _FirebaseWishlistItemsScreenState
                 currency: item.currency,
                 url: normalizedUrlText,
                 imageUrl: normalizedImageUrlText,
+                store: storeController.text.trim().isEmpty
+                    ? null
+                    : storeController.text.trim(),
                 wishlistId: item.wishlistId,
                 userId: item.userId,
                 isPurchased: item.isPurchased,
@@ -1122,6 +1173,7 @@ class _FirebaseWishlistItemsScreenState
     final priceController = TextEditingController();
     final urlController = TextEditingController();
     final imageUrlController = TextEditingController();
+    final storeController = TextEditingController();
 
     showDialog(
       context: context,
@@ -1149,6 +1201,11 @@ class _FirebaseWishlistItemsScreenState
               keyboardType: const TextInputType.numberWithOptions(
                 decimal: true,
               ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: storeController,
+              decoration: const InputDecoration(labelText: 'Store (optional)'),
             ),
             const SizedBox(height: 12),
             TextField(
@@ -1222,6 +1279,9 @@ class _FirebaseWishlistItemsScreenState
                 price: parsedPrice,
                 url: normalizedUrlText,
                 imageUrl: normalizedImageUrlText,
+                store: storeController.text.trim().isEmpty
+                    ? null
+                    : storeController.text.trim(),
                 wishlistId: widget.wishlist.id,
                 userId: authProvider.user!.id,
               );

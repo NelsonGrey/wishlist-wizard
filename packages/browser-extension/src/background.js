@@ -479,7 +479,23 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       sendResponse({ success: true, queued: true });
       return false;
     }
-    
+
+    // Bridged token from web-auth-bridge.js: the user is already signed into
+    // the Wishlist Wizard web app in this browser, so reuse that session
+    // instead of requiring a separate login. Treated exactly like a normal
+    // login — isAuthenticated()/makeAuthenticatedRequest() don't need to know
+    // the difference. If this never arrives (web app not open, or user not
+    // signed in there), the existing REST login flow below is the fallback.
+    if (message && message.type === 'WEB_AUTH_BRIDGE_TOKEN' && message.token) {
+      const expiry = message.expiresAt ? new Date(message.expiresAt) : new Date(Date.now() + 55 * 60 * 1000);
+      authToken = message.token;
+      tokenExpiry = expiry;
+      saveAuthState(authToken, expiry, message.userEmail ? { email: message.userEmail } : null)
+        .then(() => sendResponse({ success: true }))
+        .catch(() => sendResponse({ success: false }));
+      return true;
+    }
+
     // JWT Auth Methods
     if (message.action === 'isAuthenticated') {
       // Initialize auth and check status

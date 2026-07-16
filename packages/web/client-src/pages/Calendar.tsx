@@ -139,7 +139,7 @@ const Calendar: React.FC = () => {
     type: 'reminder',
     recurYearly: false,
     reminderDays: 7,
-    color: '#6366F1',
+    color: '#047857',
     sharedWith: []
   });
 
@@ -300,7 +300,7 @@ const Calendar: React.FC = () => {
       type: 'reminder',
       recurYearly: false,
       reminderDays: 7,
-      color: '#6366F1',
+      color: '#047857',
       sharedWith: []
     });
   };
@@ -316,7 +316,7 @@ const Calendar: React.FC = () => {
       type,
       recurYearly: false,
       reminderDays: 7,
-      color: eventTypeColors[type as keyof typeof eventTypeColors] || '#6366F1',
+      color: eventTypeColors[type as keyof typeof eventTypeColors] || '#047857',
       sharedWith: []
     });
     setIsEventDialogOpen(true);
@@ -577,7 +577,7 @@ const Calendar: React.FC = () => {
         <title>Calendar | Wishlist Wizard</title>
         <meta name="description" content="Manage important dates, birthdays, and gift deadlines with our interactive calendar." />
       </Helmet>
-      <div className="container mx-auto px-4 py-8 max-w-6xl">
+      <div className="container mx-auto px-4 py-6 2xl:py-8 max-w-7xl">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
           <div>
             <h1 className="text-4xl font-bold bg-gradient-to-r from-emerald-800 to-green-800 bg-clip-text text-transparent">Calendar</h1>

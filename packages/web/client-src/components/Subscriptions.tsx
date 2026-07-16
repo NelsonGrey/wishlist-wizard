@@ -94,98 +94,88 @@ export default function Subscriptions({ variant = "full" }: SubscriptionsProps) 
   const isPreview = variant === "preview";
 
   return (
-    <section id="subscriptions" className="border-t border-emerald-100 bg-white px-4 py-12 sm:px-6 lg:px-8">
-      <div className={`mx-auto max-w-7xl ${isPreview ? "rounded-lg border border-emerald-100 bg-emerald-50/60 p-6 sm:p-8" : ""}`}>
-        <div className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
-          <div className="max-w-3xl">
-            <p className="text-sm font-semibold uppercase tracking-[0.24em] text-emerald-700">Subscriptions</p>
-            <h2 className="mt-3 text-3xl font-bold tracking-tight text-slate-950 sm:text-4xl">
-              Pick the plan that matches the job you are doing.
-            </h2>
-            <p className="mt-4 text-lg leading-8 text-slate-600">
-              Start with a useful free wishlist, then upgrade when you need more occasions,
-              more coordination, deeper price tracking, creator revenue, or team operations.
-            </p>
+    <section id="subscriptions" className="compact-laptop-section border-t border-emerald-100 bg-white py-8 2xl:py-12">
+      <div className="site-container">
+        <div className={isPreview ? "rounded-lg border border-emerald-100 bg-emerald-50/60 p-5 2xl:p-8" : ""}>
+          <div className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
+            <div className="max-w-3xl">
+              <p className="text-sm font-semibold uppercase tracking-[0.24em] text-emerald-700">Subscriptions</p>
+              <h2 className="mt-3 text-3xl font-bold tracking-tight text-slate-950 sm:text-4xl">Pick the plan that matches the job you are doing.</h2>
+              <p className="mt-4 text-lg leading-8 text-slate-600">
+                Start with a useful free wishlist, then upgrade when you need more occasions, more coordination, deeper price tracking, creator revenue, or team operations.
+              </p>
+            </div>
+
+            {isPreview && (
+              <Link
+                href="/subscriptions"
+                className="inline-flex w-fit items-center gap-2 rounded-lg border border-emerald-200 bg-white px-5 py-3 text-sm font-semibold text-emerald-900 transition-colors hover:bg-emerald-50"
+              >
+                Compare Plans
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            )}
           </div>
 
-          {isPreview && (
-            <Link
-              href="/subscriptions"
-              className="inline-flex w-fit items-center gap-2 rounded-lg border border-emerald-200 bg-white px-5 py-3 text-sm font-semibold text-emerald-900 transition-colors hover:bg-emerald-50"
-            >
-              Compare Plans
-              <ArrowRight className="h-4 w-4" />
-            </Link>
-          )}
-        </div>
+          <div className="mt-7 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-5 2xl:mt-10 2xl:gap-5">
+            {MARKETING_TIERS.map(tierKey => {
+              const tier = TIER_PRICING[tierKey];
+              const story = PLAN_STORIES[tierKey];
+              const Icon = story.icon;
+              const isHighlighted = tierKey === "plus";
 
-        <div className="mt-10 grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-5">
-          {MARKETING_TIERS.map((tierKey) => {
-            const tier = TIER_PRICING[tierKey];
-            const story = PLAN_STORIES[tierKey];
-            const Icon = story.icon;
-            const isHighlighted = tierKey === "plus";
-
-            return (
-              <article
-                key={tierKey}
-                className={`flex h-full flex-col rounded-lg border p-5 shadow-sm transition-all ${
-                  isHighlighted
-                    ? "border-emerald-300 bg-white shadow-emerald-100"
-                    : "border-slate-200 bg-white"
-                }`}
-              >
-                {isHighlighted && (
-                    <div className="mb-4 w-fit rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-800">
-                    Best for group gifting
-                  </div>
-                )}
-
-                <div className={`mb-5 flex h-11 w-11 items-center justify-center rounded-lg border ${story.accent}`}>
-                  <Icon className="h-5 w-5" />
-                </div>
-
-                <h3 className="text-xl font-bold text-slate-950">{tier.displayName}</h3>
-                <p className="mt-2 text-sm leading-6 text-slate-600">{story.bestFor}</p>
-
-                <div className="mt-5">
-                  <p className="text-3xl font-bold text-slate-950">{formatPrice(tier.monthlyUsd)}</p>
-                  <p className="text-sm text-slate-500">
-                    per month{tier.annualUsd ? ` · ${formatPrice(tier.annualUsd)}/yr` : ""}
-                  </p>
-                </div>
-
-                <div className="mt-5 rounded-lg bg-slate-50 p-4">
-                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Upgrade when</p>
-                  <p className="mt-2 text-sm leading-6 text-slate-700">{story.upgradeWhen}</p>
-                </div>
-
-                <div className="mt-5 space-y-3">
-                  {story.bullets.map((bullet) => (
-                    <div key={bullet} className="flex gap-2">
-                      <CheckCircle2 className="mt-0.5 h-4 w-4 flex-none text-emerald-700" />
-                      <p className="text-sm leading-5 text-slate-700">{bullet}</p>
-                    </div>
-                  ))}
-                </div>
-
-                <p className="mt-5 text-sm leading-6 text-slate-600">{story.valueProof}</p>
-                <p className="mt-4 text-xs font-medium text-slate-500">{getPlanMetrics(tierKey)}</p>
-
-                <Link
-                  href="/register"
-                  className={`mt-auto inline-flex items-center justify-center gap-2 rounded-lg px-4 py-3 text-sm font-semibold transition-colors ${
-                    isHighlighted
-                      ? "bg-emerald-800 text-white hover:bg-emerald-900"
-                      : "bg-emerald-900 text-white hover:bg-emerald-800"
-                  }`}
+              return (
+                <article
+                  key={tierKey}
+                  className={`flex h-full flex-col rounded-lg border p-5 shadow-sm transition-all ${isHighlighted ? "border-emerald-300 bg-white shadow-emerald-100" : "border-slate-200 bg-white"}`}
                 >
-                  {story.cta}
-                  <ArrowRight className="h-4 w-4" />
-                </Link>
-              </article>
-            );
-          })}
+                  {isHighlighted && <div className="mb-4 w-fit rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-800">Best for group gifting</div>}
+
+                  <div className={`mb-5 flex h-11 w-11 items-center justify-center rounded-lg border ${story.accent}`}>
+                    <Icon className="h-5 w-5" />
+                  </div>
+
+                  <h3 className="text-xl font-bold text-slate-950">{tier.displayName}</h3>
+                  <p className="mt-2 text-sm leading-6 text-slate-600">{story.bestFor}</p>
+
+                  <div className="mt-5">
+                    <p className="text-3xl font-bold text-slate-950">{formatPrice(tier.monthlyUsd)}</p>
+                    <p className="text-sm text-slate-500">
+                      per month
+                      {tier.annualUsd ? ` · ${formatPrice(tier.annualUsd)}/yr` : ""}
+                    </p>
+                  </div>
+
+                  <div className="mt-5 rounded-lg bg-slate-50 p-4">
+                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Upgrade when</p>
+                    <p className="mt-2 text-sm leading-6 text-slate-700">{story.upgradeWhen}</p>
+                  </div>
+
+                  <div className="mt-5 space-y-3">
+                    {story.bullets.map(bullet => (
+                      <div key={bullet} className="flex gap-2">
+                        <CheckCircle2 className="mt-0.5 h-4 w-4 flex-none text-emerald-700" />
+                        <p className="text-sm leading-5 text-slate-700">{bullet}</p>
+                      </div>
+                    ))}
+                  </div>
+
+                  <p className="mt-5 text-sm leading-6 text-slate-600">{story.valueProof}</p>
+                  <p className="mt-4 text-xs font-medium text-slate-500">{getPlanMetrics(tierKey)}</p>
+
+                  <Link
+                    href="/register"
+                    className={`mt-auto inline-flex items-center justify-center gap-2 rounded-lg px-4 py-3 text-sm font-semibold transition-colors ${
+                      isHighlighted ? "bg-emerald-800 text-white hover:bg-emerald-900" : "bg-emerald-900 text-white hover:bg-emerald-800"
+                    }`}
+                  >
+                    {story.cta}
+                    <ArrowRight className="h-4 w-4" />
+                  </Link>
+                </article>
+              );
+            })}
+          </div>
         </div>
       </div>
     </section>

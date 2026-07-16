@@ -90,7 +90,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
     <div className="h-screen flex flex-col overflow-hidden bg-gray-50">
       {/* App Header */}
       <header className="bg-white border-b border-emerald-100 sticky top-0 z-10 shadow-sm">
-        <div className="container mx-auto px-4 py-3 flex items-center justify-between">
+        <div className="site-container flex items-center justify-between py-2.5 2xl:py-3">
           {/* Logo */}
           <Link href="/app/dashboard" className="flex items-center hover:scale-105 transition-transform duration-200">
             <img src="/logo.svg" alt="Wishlist Wizard" className="h-8 w-8 mr-2.5" />
@@ -218,7 +218,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
                       key={item.name}
                       href={item.href}
                       onClick={() => setIsMenuOpen(false)}
-                      className="flex items-center gap-2 text-lg font-medium hover:text-indigo-600"
+                      className="flex items-center gap-2 text-lg font-medium hover:text-emerald-700"
                     >
                       {item.icon}
                       {item.name}

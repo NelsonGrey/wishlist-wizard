@@ -1,10 +1,23 @@
-<svg width="128" height="128" viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg">
-  <!-- Background circle for icon -->
-  <circle cx="64" cy="64" r="60" fill="#6366F1"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-labelledby="title description">
+  <title id="title">Wishlist Wizard</title>
+  <desc id="description">An ivory gift with a heart-shaped ribbon and a gold magic sparkle on an emerald background.</desc>
+  <defs>
+    <linearGradient id="ivory" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fffdf7"/>
+      <stop offset="1" stop-color="#fff8e8"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fbbf24"/>
+      <stop offset="1" stop-color="#f59e0b"/>
+    </linearGradient>
+  </defs>
 
-  <!-- Single W - floating shape -->
-  <path d="M42 40 L52 80 L64 30 L76 80 L86 40" stroke="white" stroke-width="5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect width="1024" height="1024" fill="#004e36"/>
 
-  <!-- Second W - copy of primary shifted down 30 pixels -->
-      <path d="M42 70 L52 110 L64 60 L76 110 L86 70" stroke="white" stroke-width="5" fill="none" stroke-linecap="round" stroke-linejoin="round" opacity="0.6"/>
+  <!-- The ribbon loops form a heart while retaining a bold gift silhouette. -->
+  <path fill="url(#ivory)" d="M511 382c-51-105-111-157-181-157-70 0-119 51-119 116 0 84 74 133 204 184h-184c-22 0-40 18-40 40v85h279V518c-126-47-188-105-188-171 0-29 22-50 51-50 48 0 98 57 178 177 80-120 130-177 178-177 29 0 51 21 51 50 0 66-62 124-188 171v132h281v-85c0-22-18-40-40-40H607c130-51 204-100 204-184 0-65-49-116-119-116-70 0-130 52-181 157Z"/>
+  <path fill="url(#ivory)" d="M231 674h239v212H319c-49 0-88-39-88-88V674Zm321 0h241v124c0 49-39 88-88 88H552V674Z"/>
+
+  <!-- One large sparkle carries the Wizard idea without adding small-size noise. -->
+  <path fill="url(#gold)" d="M817 101c13 71 39 97 110 110-71 13-97 39-110 110-13-71-39-97-110-110 71-13 97-39 110-110Z"/>
 </svg>

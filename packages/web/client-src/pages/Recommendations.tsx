@@ -65,7 +65,7 @@ export default function Recommendations() {
         />
       </Helmet>
 
-      <div className="container mx-auto px-4 py-8 max-w-6xl">
+      <div className="container mx-auto px-4 py-6 2xl:py-8 max-w-7xl">
         <div className="mb-8 flex flex-col gap-4">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex items-center gap-3">

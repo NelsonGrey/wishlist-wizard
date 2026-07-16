@@ -37,6 +37,16 @@ Light Background:    from-emerald-50/30 via-white to-green-50/30
 Auth Background:     from-emerald-50 via-white to-green-50
 ```
 
+## Layout Width
+
+- **Canonical shell width**: `80rem` / `1280px` (`max-w-7xl`)
+- **Reusable class**: `site-container`
+- **Responsive gutters**: `16px` mobile, `24px` small screens, `32px` desktop
+- Use `site-container` for headers, footers, advertising rails, consent UI, and new full-width page shells.
+- Existing product pages use `max-w-7xl` for their primary workspace. Preserve narrower widths only where readability or task focus requires them, such as legal copy, support articles, authentication forms, and modal content.
+
+This width matches the shared web-product shell used by Modulo Squares and prevents navigation, hero, content, and footer edges from drifting between products.
+
 ## Typography
 
 ### Headings

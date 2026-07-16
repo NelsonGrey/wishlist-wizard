@@ -546,58 +546,15 @@ async function resolveAuthStatus() {
     return window.checkAuthentication();
   }
 
-  const baseUrl = await getBaseUrl();
-
   return new Promise((resolve) => {
-    let settled = false;
-
-    const finish = (value) => {
-      if (!settled) {
-        settled = true;
-        resolve(value);
-      }
-    };
-
-    const fallbackTimer = setTimeout(async () => {
-      try {
-        const response = await fetch(`${baseUrl}/api/auth/me`, {
-          method: 'GET',
-          credentials: 'include'
-        });
-
-        if (response.ok) {
-          const userData = await response.json();
-          finish({ isAuthenticated: true, userData });
-        } else {
-          finish({ isAuthenticated: false });
-        }
-      } catch {
-        finish({ isAuthenticated: false });
-      }
-    }, 300);
-
     chrome.runtime.sendMessage({ action: 'isAuthenticated' }, (response) => {
-      clearTimeout(fallbackTimer);
       if (response && response.success && response.authenticated) {
-        finish({
+        resolve({
           isAuthenticated: true,
           userData: response.userData
         });
       } else {
-        // Use the fallback path immediately if background did not provide auth data
-        fetch(`${baseUrl}/api/auth/me`, {
-          method: 'GET',
-          credentials: 'include'
-        })
-          .then((authResponse) => authResponse.ok ? authResponse.json() : null)
-          .then((userData) => {
-            if (userData) {
-              finish({ isAuthenticated: true, userData });
-            } else {
-              finish({ isAuthenticated: false });
-            }
-          })
-          .catch(() => finish({ isAuthenticated: false }));
+        resolve({ isAuthenticated: false });
       }
     });
   });
@@ -1485,59 +1442,18 @@ async function addToWishlist() {
     
     // Send request through background script (uses authenticated Cloud Function calls)
     const responseData = await new Promise((resolve, reject) => {
-      let settled = false;
-
-      const finishResolve = (value) => {
-        if (!settled) {
-          settled = true;
-          resolve(value);
-        }
-      };
-
-      const finishReject = (error) => {
-        if (!settled) {
-          settled = true;
-          reject(error);
-        }
-      };
-
-      const fallbackTimer = setTimeout(async () => {
-        try {
-          const baseUrl = await getBaseUrl();
-          const legacyResponse = await fetch(`${baseUrl}/api/extension/add-item`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            credentials: 'include',
-            body: JSON.stringify(itemData)
-          });
-
-          if (!legacyResponse.ok) {
-            throw new Error(`Failed to add item: ${legacyResponse.status}`);
-          }
-
-          const legacyData = await legacyResponse.json();
-          finishResolve(legacyData);
-        } catch (legacyError) {
-          finishReject(legacyError instanceof Error ? legacyError : new Error('Failed to add item'));
-        }
-      }, 300);
-
       chrome.runtime.sendMessage({ action: 'addItemToWishlist', itemData }, (result) => {
-        clearTimeout(fallbackTimer);
-
         if (chrome.runtime.lastError) {
-          finishReject(new Error(chrome.runtime.lastError.message));
+          reject(new Error(chrome.runtime.lastError.message));
           return;
         }
 
         if (!result || !result.success) {
-          finishReject(new Error(result?.error || 'Failed to add item'));
+          reject(new Error(result?.error || 'Failed to add item'));
           return;
         }
 
-        finishResolve(result.data || result);
+        resolve(result.data || result);
       });
     });
     

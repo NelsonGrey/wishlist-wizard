@@ -4,7 +4,7 @@ import { Smartphone, Zap, Share2, Bell } from "lucide-react";
 export default function MobileAppDemo() {
   return (
     <div className="py-12 bg-gradient-to-br from-emerald-50 via-white to-green-50">
-      <div className="container mx-auto px-4 max-w-6xl">
+      <div className="container mx-auto px-4 max-w-7xl">
         <div className="mb-12">
           <p className="text-sm font-semibold text-emerald-700 uppercase tracking-wide mb-3">
             Feature Demo

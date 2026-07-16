@@ -2,7 +2,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { useQuery } from "@tanstack/react-query";
 import { z } from "zod";
-import { Link } from "wouter";
+import { ChevronDown } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -29,6 +29,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { apiRequest } from "@/lib/queryClient";
 
 const formSchema = z.object({
@@ -39,6 +40,7 @@ const formSchema = z.object({
   recipientName: z.string().trim().max(80, "Recipient name cannot exceed 80 characters").optional(),
   recipientMembers: z.string().trim().max(300, "Recipient members cannot exceed 300 characters").optional(),
   occasion: z.string().max(50, "Event cannot exceed 50 characters").optional(),
+  isPublic: z.boolean().default(false),
   occasionDate: z.string().optional(),
   isRecurring: z.boolean().default(false),
   recurrence: z.enum(["yearly", "monthly"]),
@@ -115,6 +117,7 @@ export default function CreateWishlistDialog({
       recipientName: "",
       recipientMembers: "",
       occasion: "",
+      isPublic: false,
       occasionDate: "",
       isRecurring: false,
       recurrence: "yearly",
@@ -149,7 +152,10 @@ export default function CreateWishlistDialog({
   const recipientInputMode = form.watch("recipientInputMode");
   const selectedExternalContactId = form.watch("externalContactId");
 
-  const shouldLoadExternalContacts = open && recipientType === "person" && recipientInputMode === "source";
+  // Load provider connection status as soon as "Specific person" is selected — before the
+  // user picks manual vs. source — so the source-picker option can be hidden entirely when
+  // no provider is connected, instead of showing it and then dead-ending.
+  const shouldLoadExternalContacts = open && recipientType === "person";
   const { data: externalContactsResponse, isFetching: isLoadingExternalContacts } = useQuery<ExternalContactsResponse>({
     queryKey: ["/api/contacts/external"],
     enabled: shouldLoadExternalContacts,
@@ -243,7 +249,7 @@ export default function CreateWishlistDialog({
                 )}
               />
 
-              {recipientType === "person" && (
+              {recipientType === "person" && hasConnectedSourceProvider && (
                 <FormField
                   control={form.control}
                   name="recipientInputMode"
@@ -273,81 +279,47 @@ export default function CreateWishlistDialog({
                 />
               )}
 
-              {recipientType === "person" && recipientInputMode === "source" && (
-                <>
-                  <div className="rounded-md border p-3 space-y-2 text-xs text-muted-foreground">
-                    <p className="text-xs text-muted-foreground">
-                      Contacts are read live from your connected providers and are not stored when using this picker.
-                    </p>
-                    <p>
-                      Configure provider connections and Apple contact setup in Profile Settings.
-                    </p>
-                    <Link href="/app/user-profile" className="inline-flex text-emerald-800 underline underline-offset-2">
-                      Open Profile Settings
-                    </Link>
-                  </div>
-
-                  <div className="space-y-2">
-                    {providerStatuses.length > 0 && (
-                      <div className="rounded-md border p-2 text-xs space-y-1">
-                        {providerStatuses.map((status) => (
-                          <div key={status.provider}>
-                            <span className="font-medium">{formatProviderName(status.provider)}:</span>{" "}
-                            {status.connected ? "connected" : status.supported ? "not connected" : "capability available"}
-                            {status.message ? ` - ${status.message}` : ""}
-                          </div>
-                        ))}
-                      </div>
+              {recipientType === "person" && recipientInputMode === "source" && hasConnectedSourceProvider && (
+                <div className="space-y-2">
+                  <FormField
+                    control={form.control}
+                    name="externalContactId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Select contact</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value} disabled={externalContacts.length === 0}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder={isLoadingExternalContacts ? "Loading contacts..." : "Select a contact"} />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {externalContacts.map((contact) => {
+                              const sources = contact.sources.map((source) => formatProviderName(source.provider)).join(", ");
+                              return (
+                                <SelectItem key={contact.id} value={contact.id}>
+                                  {`${contact.name} • ${sources} • ${formatQualityLabel(contact.quality.level)} quality (${contact.quality.score})`}
+                                </SelectItem>
+                              );
+                            })}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
                     )}
+                  />
 
-                    {!isLoadingExternalContacts && !hasConnectedSourceProvider && (
-                      <div className="rounded-md border p-2 text-xs text-amber-700 bg-amber-50 border-amber-200">
-                        No connected contact sources are available. Connect Outlook/Apple in Profile Settings, then return here.
-                      </div>
-                    )}
-
-                    <FormField
-                      control={form.control}
-                      name="externalContactId"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Select contact</FormLabel>
-                          <Select onValueChange={field.onChange} value={field.value} disabled={!hasConnectedSourceProvider || externalContacts.length === 0}>
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder={isLoadingExternalContacts ? "Loading contacts..." : "Select a contact from source providers"} />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {externalContacts.map((contact) => {
-                                const sources = contact.sources.map((source) => formatProviderName(source.provider)).join(", ");
-                                return (
-                                  <SelectItem key={contact.id} value={contact.id}>
-                                    {`${contact.name} • ${sources} • ${formatQualityLabel(contact.quality.level)} quality (${contact.quality.score})`}
-                                  </SelectItem>
-                                );
-                              })}
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    {selectedExternalContact && (
-                      <div className="rounded-md border p-2 text-xs space-y-1">
-                        <div><span className="font-medium">Primary source:</span> {formatProviderName(selectedExternalContact.primarySource)}</div>
-                        <div><span className="font-medium">All sources:</span> {selectedExternalContact.sources.map((source) => formatProviderName(source.provider)).join(", ")}</div>
-                        <div><span className="font-medium">Quality:</span> {formatQualityLabel(selectedExternalContact.quality.level)} ({selectedExternalContact.quality.score})</div>
-                        {selectedExternalContact.email && <div><span className="font-medium">Email:</span> {selectedExternalContact.email}</div>}
-                        {selectedExternalContact.phone && <div><span className="font-medium">Phone:</span> {selectedExternalContact.phone}</div>}
-                      </div>
-                    )}
-                  </div>
-                </>
+                  {selectedExternalContact && (
+                    <div className="rounded-md border p-2 text-xs space-y-1">
+                      <div><span className="font-medium">Source:</span> {selectedExternalContact.sources.map((source) => formatProviderName(source.provider)).join(", ")}</div>
+                      {selectedExternalContact.email && <div><span className="font-medium">Email:</span> {selectedExternalContact.email}</div>}
+                      {selectedExternalContact.phone && <div><span className="font-medium">Phone:</span> {selectedExternalContact.phone}</div>}
+                    </div>
+                  )}
+                </div>
               )}
 
-              {recipientType !== "self" && recipientInputMode === "manual" && (
+              {recipientType !== "self" && (recipientInputMode === "manual" || !hasConnectedSourceProvider) && (
                 <FormField
                   control={form.control}
                   name="recipientName"
@@ -392,9 +364,9 @@ export default function CreateWishlistDialog({
                 name="occasion"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Event (optional)</FormLabel>
+                    <FormLabel>Occasion (optional)</FormLabel>
                     <FormControl>
-                      <Input placeholder="e.g., Emma's Birthday Party" {...field} value={field.value ?? ""} />
+                      <Input placeholder="e.g., Birthday, Wedding, Just Because" {...field} value={field.value ?? ""} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -403,92 +375,131 @@ export default function CreateWishlistDialog({
 
               <FormField
                 control={form.control}
-                name="occasionDate"
+                name="isPublic"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Event Date (optional)</FormLabel>
-                    <FormControl>
-                      <Input type="date" {...field} value={field.value ?? ""} />
-                    </FormControl>
+                    <FormLabel>Visibility</FormLabel>
+                    <Select
+                      onValueChange={(value) => field.onChange(value === "shared")}
+                      value={field.value ? "shared" : "private"}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="private">Private — only you can view</SelectItem>
+                        <SelectItem value="shared">Shared — anyone with the link can view</SelectItem>
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-
-              <FormField
-                control={form.control}
-                name="description"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Description (optional)</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Notes for this event wishlist" {...field} value={field.value ?? ""} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="isRecurring"
-                render={({ field }) => (
-                  <FormItem className="flex flex-row items-center justify-between rounded-md border p-3">
-                    <FormLabel className="text-sm">Recurring event wishlist</FormLabel>
-                    <FormControl>
-                      <Checkbox checked={field.value} onCheckedChange={(checked) => field.onChange(!!checked)} />
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
-
-              {isRecurring && (
-                <>
-                  <FormField
-                    control={form.control}
-                    name="recurrence"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Recurrence</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select recurrence" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="yearly">Yearly</SelectItem>
-                            <SelectItem value="monthly">Monthly</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="reminderDays"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Reminder lead time (days)</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            min={0}
-                            max={90}
-                            {...field}
-                            value={Number.isFinite(field.value) ? field.value : 7}
-                            onChange={(e) => field.onChange(Number(e.target.value))}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </>
-              )}
             </div>
+
+            <Collapsible className="mt-4">
+              <CollapsibleTrigger asChild>
+                <button
+                  type="button"
+                  className="flex w-full items-center justify-between text-sm font-medium text-muted-foreground hover:text-foreground [&[data-state=open]>svg]:rotate-180"
+                >
+                  <span>Advanced options</span>
+                  <ChevronDown className="h-4 w-4 transition-transform" />
+                </button>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="space-y-3 pt-3">
+                <FormField
+                  control={form.control}
+                  name="occasionDate"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Event Date (optional)</FormLabel>
+                      <FormControl>
+                        <Input type="date" {...field} value={field.value ?? ""} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="description"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Description (optional)</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Notes for this event wishlist" {...field} value={field.value ?? ""} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="isRecurring"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-center justify-between rounded-md border p-3">
+                      <FormLabel className="text-sm">Recurring event wishlist</FormLabel>
+                      <FormControl>
+                        <Checkbox checked={field.value} onCheckedChange={(checked) => field.onChange(!!checked)} />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+
+                {isRecurring && (
+                  <>
+                    <FormField
+                      control={form.control}
+                      name="recurrence"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Recurrence</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select recurrence" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="yearly">Yearly</SelectItem>
+                              <SelectItem value="monthly">Monthly</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="reminderDays"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Reminder lead time (days)</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="number"
+                              min={0}
+                              max={90}
+                              {...field}
+                              value={Number.isFinite(field.value) ? field.value : 7}
+                              onChange={(e) => field.onChange(Number(e.target.value))}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </>
+                )}
+              </CollapsibleContent>
+            </Collapsible>
+
             <DialogFooter className="mt-4">
               <Button 
                 data-testid="create-wishlist-cancel"

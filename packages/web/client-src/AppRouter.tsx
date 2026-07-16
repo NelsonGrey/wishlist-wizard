@@ -19,7 +19,6 @@ import AuthLayout from "./components/layout/AuthLayout";
 
 const Home = lazy(() => import("./pages/Home"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
-const DashboardFirebase = lazy(() => import("./pages/DashboardFirebase"));
 const Login = lazy(() => import("./pages/Login"));
 const Register = lazy(() => import("./pages/Register"));
 const UserProfile = lazy(() => import("./pages/UserProfile"));
@@ -153,9 +152,6 @@ function NonHomeEnvironmentGate({ children }: { children: React.ReactNode }) {
 }
 
 function AppRouter() {
-  const environment = resolveRuntimeEnvironment();
-  const isProductionEnvironment = environment === 'production';
-
   // Analytics is handled by GTM (GTM-KRDC75LR loaded in index.html) + Consent Mode v2.
 
   return (
@@ -197,8 +193,6 @@ function AppRouter() {
                     {/* Redirect legacy marketing route to homepage */}
                     <Route path="/price-tracking" component={() => <Redirect to="/" />} />
 
-                  {!isProductionEnvironment && (
-                    <>
                   {/* Auth Pages */}
                   <Route path="/login" component={Login} />
                   <Route path="/register" component={Register} />
@@ -220,14 +214,6 @@ function AppRouter() {
                     component={() => (
                       <ProtectedRoute requireAuth>
                         <Dashboard />
-                      </ProtectedRoute>
-                    )}
-                  />
-                  <Route
-                    path="/app/dashboard-firebase"
-                    component={() => (
-                      <ProtectedRoute requireAuth>
-                        <DashboardFirebase />
                       </ProtectedRoute>
                     )}
                   />
@@ -316,7 +302,7 @@ function AppRouter() {
                   {/* Legacy Authenticated Routes -> canonical /app namespace */}
                   <Route path="/dashboard" component={() => <Redirect to="/app/dashboard" />} />
                   <Route path="/wishlists" component={() => <Redirect to="/app/wishlists" />} />
-                  <Route path="/dashboard-firebase" component={() => <Redirect to="/app/dashboard-firebase" />} />
+                  <Route path="/dashboard-firebase" component={() => <Redirect to="/app/dashboard" />} />
                   <Route path="/user-profile" component={() => <Redirect to="/app/user-profile" />} />
                   <Route
                     path="/wishlist/:id"
@@ -339,28 +325,6 @@ function AppRouter() {
                   <Route path="/notifications" component={() => <Redirect to="/app/notifications" />} />
                   <Route path="/privacy-settings" component={() => <Redirect to="/app/privacy-settings" />} />
                   <Route path="/analytics" component={() => <Redirect to="/app/analytics" />} />
-                    </>
-                  )}
-
-                  {isProductionEnvironment && (
-                    <>
-                      <Route path="/app/:rest*" component={() => <Redirect to="/" />} />
-                      <Route path="/dashboard" component={() => <Redirect to="/" />} />
-                      <Route path="/wishlists" component={() => <Redirect to="/" />} />
-                      <Route path="/dashboard-firebase" component={() => <Redirect to="/" />} />
-                      <Route path="/user-profile" component={() => <Redirect to="/" />} />
-                      <Route path="/wishlist/:id" component={() => <Redirect to="/" />} />
-                      <Route path="/shared/:shareId" component={() => <Redirect to="/" />} />
-                      <Route path="/login" component={() => <Redirect to="/" />} />
-                      <Route path="/register" component={() => <Redirect to="/" />} />
-                      <Route path="/forgot-password" component={() => <Redirect to="/" />} />
-                      <Route path="/reset-password" component={() => <Redirect to="/" />} />
-                      <Route path="/verify-email" component={() => <Redirect to="/" />} />
-                    </>
-                  )}
-
-                  {/* 404 */}
-                  <Route component={NotFound} />
 
                   {/* ──────────────────────────────────────── */}
                   {/* Super-Admin Routes (always registered;   */}
@@ -371,6 +335,9 @@ function AppRouter() {
                   <Route path="/admin/users/:uid" component={UserDetail} />
                   <Route path="/admin/tickets" component={SupportTickets} />
                   <Route path="/admin/audit-log" component={AuditLog} />
+
+                  {/* 404 — must stay last: wouter's path-less Route always matches */}
+                  <Route component={NotFound} />
                   </Switch>
                 </Suspense>
               </NonHomeEnvironmentGate>

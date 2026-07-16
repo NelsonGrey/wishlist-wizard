@@ -1,7 +1,7 @@
 # Wishlist Wizard — Go Live Document
 
-> **Version:** 1.1  
-> **Last Updated:** 2026-06-26  
+> **Version:** 1.2  
+> **Last Updated:** 2026-07-16  
 > **Repo:** https://github.com/mnelson3/wishlist-wizard (default branch: `develop`)  
 > **Production URL:** https://wishlist-wizard.web.app  
 > **Staging URL:** https://wishlist-wizard-staging.web.app  
@@ -27,6 +27,21 @@ Owner columns should be filled in with initials or role before launch begins.
 | Mobile (Android) | Flutter 3.8+ | Play Store internal → production |
 | Browser Extension | TypeScript / Chrome Extension MV3 | Chrome Web Store (manual) |
 | Automation | Shell scripts + GitHub Actions | Self-hosted runners |
+
+---
+
+## Current Deliverable Status (as of 2026-07-16)
+
+A 2026-07-16 audit found this document's — and `docs/PRODUCT_DESIGN.md`'s — prior status claims materially overstated in places, including a launch-blocking bug neither document knew about (§1.7). A same-day recovery pass fixed most of what was found. Table below reflects verified code state; see `docs/PRODUCT_DESIGN.md` for full per-feature detail and evidence.
+
+| Deliverable | State | Notes |
+|---|---|---|
+| **Web app** | 🟢 Core loop live in production | Production gate bug (§1.7) fixed — `/app/*` and `/shared/:shareId` now render in prod, matching dev/staging. Create wishlist, add item (incl. new paste-a-link auto-fetch), and share all work. |
+| **Browser extension** | 🟡 Core flow real, two features still stubbed | One-click add works end-to-end via real Cloud Functions. Coupon finder and price comparison call backend endpoints that don't exist — deferred to Phase 2 (§ Part 5), not launch-blocking since they fail silently rather than crash. An auth bridge (reuse the web app's login instead of a separate one) was built this pass but **has not been verified in a real browser** — verify before relying on it for launch. |
+| **Mobile (iOS/Android, Flutter)** | 🟡 Thin but real | Push notifications, Firestore offline caching, and wishlist sharing are now actually wired up (were previously dead code). Still missing: Shared-with-Me, Creator Mode, and all native platform features (Siri Shortcuts, App Clips, iCloud, widgets) — these were never built, not regressions. |
+| **Backend (Firebase Functions + Firestore)** | 🟢 Live, confirmed | Root `server/`/`client/` (old Express+Postgres) are dead — do not resurrect or reference them. Affiliate tracking and calendar OAuth sync are solid. Personal price-drop alerts are coded but not exported from the Functions deploy entrypoint, so they don't run in production (comparison-shopping, a related but different feature, is live). |
+
+**Important:** Part 2.3's automated code-quality gates (npm audit, lint, secret scan, functions smoke tests, e2e tests, `go-live-gate.sh`) have **not** been re-run end-to-end since 2026-06-26. This pass verified unit/component test suites (web 182 passing, shared 106, extension 40, mobile 40) and TypeScript compilation across all packages — that is necessary but not sufficient for a go-live decision. Re-run Part 2.3 in full before relying on this document to green-light a launch.
 
 ---
 
@@ -88,6 +103,29 @@ These do not contain any personal account name and are ready for App Store / Pla
 
 ---
 
+### 1.7 Accidental Production Gate [RESOLVED — 2026-07-16]
+
+**Problem found:** The entire authenticated web app (`/app/*`, login, etc.) and shared-wishlist links (`/shared/:shareId`) were silently redirected to the homepage in production by an `isProductionEnvironment` conditional in `packages/web/client-src/AppRouter.tsx`. Traced to commit `91c1ab4` (2026-05-06), authored under a **different repository's** CI bot identity (`Vehicle Vitals CI`) — the signature of cross-project automation contamination, not a deliberate feature flag. This document's own §3.4 post-deploy smoke test ("navigate to `/dashboard`... renders correctly, not redirected to home") implies whoever authored this checklist didn't know the gate existed — it had been live in production for over two months undetected.
+
+**Also found while investigating:** the 404 catch-all route was positioned *before* the five `/admin/*` routes inside the same router `<Switch>`. Wouter's path-less `<Route>` always matches, so the entire super-admin section (`AdminDashboard`, `UserManagement`, `SupportTickets`, `AuditLog`) was unreachable, silently shadowed by the 404 page.
+
+- [x] **Remove `isProductionEnvironment` gating from AppRouter.tsx** — Completed 2026-07-16
+- [x] **Fix 404-route-before-admin-routes ordering bug in the same file** — Completed 2026-07-16
+- [ ] **Confirm via an actual production deploy that `/app/*`, `/shared/:shareId`, and `/admin/*` all render correctly (not just via the local test suite)** — Owner: _______
+
+---
+
+### 1.8 Dead/Duplicate Code Cleanup [RESOLVED — 2026-07-16]
+
+A 2026-07-16 audit found three confirmed-unreachable code paths, each superseded by a real implementation elsewhere; all three were removed in the same pass:
+- `packages/web/client-src/pages/DashboardFirebase.tsx` — dev-only demo dashboard duplicate of `Dashboard.tsx` (plus its route and test)
+- `chrome-extension-package/` (repo root) — stale, gitignored build residue from Feb 2026, unrelated to the live `packages/browser-extension/`
+- `packages/mobile/lib/screens/wishlist_detail_screen.dart` — orphaned pre-Firebase-migration screen, unreachable from `main.dart`'s navigation
+
+- [x] **Delete confirmed-dead code identified in the 2026-07-16 audit** — Completed 2026-07-16
+
+---
+
 ## Part 2 — Pre-Launch Checklist
 
 ### 2.1 Firebase Infrastructure
@@ -113,12 +151,11 @@ All secrets must be in GitHub Secrets or Firebase Secret Manager — never in so
 **Firebase Functions (set via Firebase Secret Manager or environment config):**
 
 - [x] Transactional email — implemented via Nodemailer + Google Workspace SMTP (`support@wishlist-wizard.com`). Secret: `GMAIL_APP_PASSWORD` in Firebase Secret Manager (set before deploying functions)
-- [ ] `OPENAI_API_KEY` — AI recommendations — **DEFERRED**: not in Phase 1 scope
+- [x] `OPENAI_API_KEY` — **N/A, not used** — not referenced anywhere in the codebase; recommendations are Firestore-backed, not model-backed. Do not provision. — Confirmed 2026-07-16
 - [ ] `STRIPE_SECRET_KEY` — group gifting payments — **DEFERRED**: Phase 2
 - [ ] `STRIPE_WEBHOOK_SECRET` — Stripe webhook verification — **DEFERRED**: Phase 2
-- [ ] `JWT_SECRET` — strong random value, minimum 64 characters — Owner: _______
-- [ ] `SESSION_SECRET` — strong random value, minimum 64 characters — Owner: _______
-- [ ] FCM server credentials configured in Firebase console (push notifications) — Owner: _______
+- [x] `JWT_SECRET` / `SESSION_SECRET` — **N/A, not needed** — leftover from the pre-Firebase Express backend; auth is Firebase Authentication, which manages its own token signing. Remove from rotation schedule (§2.14) too. — Confirmed 2026-07-16
+- [ ] FCM server credentials configured in Firebase console (push notifications) — Owner: _______ (client-side FCM init now live in the mobile app as of 2026-07-16 — see Current Deliverable Status — but server-side credentials/APNs config in the Firebase console still need verifying)
 
 **GitHub Secrets (for CI/CD workflows):**
 
@@ -319,7 +356,7 @@ npm run package:extension:release
 - [ ] `www` redirect to apex domain (or vice versa) configured — Owner: _______
 - [ ] `docs.wishlistwizard.com` domain configured and documentation live — Owner: _______
 - [ ] `api.wishlist-wizard.web.app` (or custom API domain) confirmed operational — Owner: _______
-- [ ] Email domain verified for SendGrid (SPF, DKIM, DMARC DNS records set) — Owner: _______
+- [ ] Email domain SPF/DKIM/DMARC DNS records set for Google Workspace (SendGrid is not used — see §2.11, email goes via Nodemailer + Gmail SMTP) — Owner: _______
 
 ---
 
@@ -342,7 +379,7 @@ npm run package:extension:release
 
 - [x] **Email (Nodemailer + Google Workspace):** `support@wishlist-wizard.com` via Gmail SMTP. Templates: price-tracking-welcome, price-alert. Secret `GMAIL_APP_PASSWORD` must be set in Firebase Secret Manager before deploying. `sendEmail()` in `packages/functions/src/email.ts`.
 - [ ] **Stripe:** Account created, webhooks configured, group gifting Stripe integration tested (or explicitly deferred to Phase 2 with feature flag off) — Owner: _______
-- [ ] **OpenAI:** API key provisioned, usage limits/alerts set — Owner: _______
+- [x] **OpenAI:** N/A — not used anywhere in the codebase (recommendations are Firestore-backed, not model-backed). Do not provision. — Confirmed 2026-07-16
 - [ ] **Google Calendar API:** OAuth app configured in Google Cloud Console, OAuth consent screen reviewed and approved — Owner: _______
 - [ ] **Microsoft Outlook Calendar API:** Azure app registration configured — Owner: _______
 - [ ] **E-commerce APIs:** Integrations with Amazon/eBay/Etsy/Walmart/Target/Best Buy tested against production endpoints — Owner: _______
@@ -397,7 +434,7 @@ Set up rotation reminders now so they don't lapse post-launch.
 |---|---|---|---|
 | GitHub PAT (`GH_TOKEN`) | 30 days | ___________ | _______ |
 | Firebase token | 7 days | ___________ | _______ |
-| JWT_SECRET | 90 days | ___________ | _______ |
+| ~~JWT_SECRET~~ | N/A — not used (Firebase Auth manages its own tokens) | — | — |
 | Encryption keys | 180 days | ___________ | _______ |
 | SSL certificates | Auto (Firebase) | Auto-renewed | — |
 | App Store Connect key | Per Apple policy | ___________ | _______ |
@@ -553,7 +590,7 @@ firebase deploy --only firestore:rules --project wishlist-wizard-prod
 - [ ] Firebase console — monitor function error rates (target: < 1%) — Owner: _______
 - [ ] Firebase console — monitor Firestore read/write counts vs. quota — Owner: _______
 - [ ] Firebase console — review Auth usage for unusual patterns — Owner: _______
-- [ ] SendGrid dashboard — email delivery rates > 95% — Owner: _______
+- [ ] Google Workspace / Gmail SMTP — email delivery rates > 95% (SendGrid is not used) — Owner: _______
 - [ ] Firebase Analytics — new user count and session data flowing — Owner: _______
 - [ ] App Store Connect — review any early crash reports from TestFlight/App Review — Owner: _______
 - [ ] Play Console — review Android vitals for crashes/ANRs — Owner: _______
@@ -596,7 +633,6 @@ firebase deploy --only firestore:rules --project wishlist-wizard-prod
 | Weekly | GitHub Actions cost review | _______ |
 | 30 days | Rotate GitHub PAT (`GH_TOKEN`) | _______ |
 | 7 days | Rotate Firebase token | _______ |
-| 90 days | Rotate JWT_SECRET | _______ |
 | 180 days | Rotate encryption keys | _______ |
 | Quarterly | Dependency audit: `npm audit` | _______ |
 | Quarterly | Review and update Firestore security rules | _______ |
@@ -606,12 +642,16 @@ firebase deploy --only firestore:rules --project wishlist-wizard-prod
 
 ## Part 5 — Phase 2 Roadmap (Post-Launch)
 
-The following features are explicitly documented as deferred to Phase 2. Do not launch with them enabled unless fully tested:
+The following features are explicitly documented as deferred to Phase 2. Do not launch with them enabled unless fully tested. List reconciled against the 2026-07-16 code audit — several entries below were corrected or added based on what's actually in the codebase today.
 
-- **Price tracking** — planned; not in Phase 1 scope
-- **Affiliate monetization** — planned; not in Phase 1 scope
+- **Personal price-drop alerts** — coded (`firebase-price-tracking.ts`) but not exported from the Functions deploy entrypoint; not launch-blocking since nothing calls it, but don't assume it works. (Multi-retailer comparison-shopping, a related but separate feature, **is** live via SerpAPI — no action needed there.)
+- **Affiliate monetization** — click/conversion tracking and revenue aggregation are already live and deployed; only the creator-facing dashboard and payout system below remain undone.
+- **Browser extension coupon finder & price comparison** — UI is complete but calls backend endpoints that don't exist anywhere in the repo (`/api/extension/coupons`, `/api/extension/price-comparisons`); either implement the backend or remove the UI before it's user-facing at scale.
+- **Creator dashboard & payouts** — no code exists anywhere (dashboard, commission tracking, payout processing). Docs previously called this "ready, payment system next" — that was inaccurate; treat as unstarted.
+- **Social network & discovery** — no code beyond a page literally named `SocialIntegrationDemo.tsx`. Treat as unstarted, not partial.
+- **iOS/Android native platform features** — Siri Shortcuts, App Clips, iCloud sync, Handoff, Google Assistant integration, home-screen widgets: zero code exists (the app is Flutter, not native Swift/Kotlin as earlier docs claimed — see `docs/PRODUCT_DESIGN.md` Feature 6).
 - **Stripe group gifting payments** — partially scaffolded (2 Stripe callables warn in smoke tests); must be either fully implemented and tested, or gated behind a feature flag set to OFF at launch
-- **AI-powered recommendations** — requires OpenAI API key; may be included in Phase 1 if tested
+- **AI-powered recommendations** — **not applicable / do not provision.** `OPENAI_API_KEY` does not appear anywhere in the live codebase; recommendations are Firestore-backed (pattern-matching on user activity), not model-backed, and public copy was deliberately reworded away from "AI" framing. Re-introduce only if a real model integration is built.
 - **Barcode lookup** — 1 upstream dependency gap noted in smoke tests
 - **AR features** — Phase 3
 - **White-label / creator economy** — Phase 3
@@ -720,4 +760,4 @@ The automated gate at `./scripts/go-live-gate.sh` enforces:
 
 ---
 
-*This document was generated from analysis of the wishlist-wizard repository at commit state as of 2026-06-16. Update this document as the codebase evolves.*
+*This document was originally generated from analysis of the wishlist-wizard repository at commit state as of 2026-06-16, and updated 2026-07-16 following a full audit + recovery pass (see "Current Deliverable Status" near the top, and §1.7/§1.8). The 2026-06-16 analysis did not catch the production gate bug in §1.7 — treat any "Complete"/"Resolved" status in this document that predates 2026-07-16 as unverified until spot-checked against code. Update this document as the codebase evolves.*

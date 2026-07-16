@@ -76,7 +76,7 @@ export default function Header() {
 
   return (
     <header className="bg-white shadow-sm border-b">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="site-container">
         <div className="flex justify-between items-center py-4">
           <div className="flex items-center">
             <Link href="/" className="text-2xl font-bold text-primary">
@@ -98,7 +98,7 @@ export default function Header() {
                 {isHome ? (
                   <Button
                     onClick={() => window.location.href = "/app/dashboard"}
-                    className="bg-primary hover:bg-indigo-700 text-white"
+                    className="bg-primary hover:bg-emerald-800 text-white"
                   >
                     Dashboard
                   </Button>
@@ -122,7 +122,7 @@ export default function Header() {
                 <Link href="/extension" className="text-gray-600 hover:text-gray-900 font-medium">
                   Download Extension
                 </Link>
-                <Button asChild className="bg-primary hover:bg-indigo-700 text-white">
+                <Button asChild className="bg-primary hover:bg-emerald-800 text-white">
                   <Link href="/login">Log In</Link>
                 </Button>
               </>
@@ -196,7 +196,7 @@ export default function Header() {
                       >
                         Download Extension
                       </Link>
-                      <Button asChild className="bg-primary hover:bg-indigo-700 text-white w-full mt-4">
+                      <Button asChild className="bg-primary hover:bg-emerald-800 text-white w-full mt-4">
                         <Link href="/login" onClick={() => setIsMenuOpen(false)}>Log In</Link>
                       </Button>
                     </>

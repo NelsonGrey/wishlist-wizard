@@ -33,7 +33,7 @@ const SOCIAL_LINKS = [
 export default function Footer() {
   return (
     <footer className="flex-none bg-emerald-900 text-white">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+      <div className="site-container py-3 2xl:py-4">
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
           {/* Brand */}
           <Link href="/" className="flex items-center gap-2.5 shrink-0 hover:opacity-80 transition-opacity">

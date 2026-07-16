@@ -180,10 +180,10 @@ export default function PriceHistory({ itemId }: PriceHistoryProps) {
               <Line
                 type="monotone"
                 dataKey="price"
-                stroke="#6366F1"
+                stroke="#047857"
                 strokeWidth={2}
                 dot={{ r: 3 }}
-                activeDot={{ r: 5, stroke: '#4F46E5', strokeWidth: 2 }}
+                activeDot={{ r: 5, stroke: '#065F46', strokeWidth: 2 }}
               />
             </LineChart>
           </ResponsiveContainer>
