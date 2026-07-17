@@ -33,6 +33,8 @@ on:
         required: false
       firebase_project_prod:
         required: false
+      functions_repo_pat:
+        required: true
 
 jobs:
   deploy-firebase:
@@ -44,6 +46,19 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v5
+
+      # packages/functions moved to a separate private repo (business logic
+      # shouldn't be world-readable on this public repo). It lands at the
+      # exact path it used to occupy, so vendor-shared.js's relative path to
+      # packages/shared/dist and firebase*.json's "source": "packages/functions"
+      # both keep working unchanged.
+      - name: Checkout Functions (private companion repo)
+        uses: actions/checkout@v5
+        with:
+          repository: NelsonGrey/wishlist-wizard-functions
+          token: ${{ secrets.functions_repo_pat }}
+          ref: ${{ inputs.environment == 'production' && 'main' || inputs.environment == 'staging' && 'staging' || 'develop' }}
+          path: ${{ inputs.functions_dir }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v5

@@ -141,6 +141,19 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v5
 
+      # packages/functions moved to a separate private repo (business logic
+      # shouldn't be world-readable on this public repo). It lands at the
+      # exact path it used to occupy, so vendor-shared.js's relative path to
+      # packages/shared/dist and firebase*.json's "source": "packages/functions"
+      # both keep working unchanged.
+      - name: Checkout Functions (private companion repo)
+        uses: actions/checkout@v5
+        with:
+          repository: NelsonGrey/wishlist-wizard-functions
+          token: ${{ secrets.FUNCTIONS_REPO_PAT }}
+          ref: ${{ needs.load-config.outputs.target_environment == 'production' && 'main' || needs.load-config.outputs.target_environment == 'staging' && 'staging' || 'develop' }}
+          path: packages/functions
+
       - name: Setup Node.js
         uses: actions/setup-node@v5
         with:
@@ -284,6 +297,19 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v5
+
+      # packages/functions moved to a separate private repo (business logic
+      # shouldn't be world-readable on this public repo). It lands at the
+      # exact path it used to occupy, so vendor-shared.js's relative path to
+      # packages/shared/dist and firebase*.json's "source": "packages/functions"
+      # both keep working unchanged.
+      - name: Checkout Functions (private companion repo)
+        uses: actions/checkout@v5
+        with:
+          repository: NelsonGrey/wishlist-wizard-functions
+          token: ${{ secrets.FUNCTIONS_REPO_PAT }}
+          ref: ${{ needs.load-config.outputs.target_environment == 'production' && 'main' || needs.load-config.outputs.target_environment == 'staging' && 'staging' || 'develop' }}
+          path: packages/functions
 
       - name: Setup Node.js
         uses: actions/setup-node@v5
@@ -524,6 +550,7 @@ jobs:
       firebase_project_dev: ${{ secrets.FIREBASE_PROJECT_DEV }}
       firebase_project_staging: ${{ secrets.FIREBASE_PROJECT_STAGING }}
       firebase_project_prod: ${{ secrets.FIREBASE_PROJECT_PROD }}
+      functions_repo_pat: ${{ secrets.FUNCTIONS_REPO_PAT }}
 
   validate-production:
     name: Validate Production Deployment
