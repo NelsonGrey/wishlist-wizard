@@ -391,8 +391,10 @@ playwright-report/
 test-results/
 test-ci-cd-pipeline.txt
 
-# Firebase Functions compiled output
-packages/functions/lib/
+# packages/functions now lives in a separate private repo
+# (NelsonGrey/wishlist-wizard-functions). A local clone into this path for
+# dev/emulator use is fine, but it should never be committed here.
+packages/functions/
 
 # Claude Code local session data
 .claude/
