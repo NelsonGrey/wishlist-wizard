@@ -162,6 +162,19 @@ let firebaseConfig = {
     import.meta.env.VITE_FIREBASE_MEASUREMENT_ID_PRODUCTION,
     import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
   ) || undefined,
+  // App Check: enforced server-side on Auth/Firestore/Storage in
+  // wishlist-wizard-dev as of 2026-07-18; wiring the client through so real
+  // requests aren't rejected. appCheckDebugToken lets local dev / automated
+  // E2E tests pass without solving a real reCAPTCHA challenge — it must
+  // match a token already registered for this app (see
+  // e2e/fixtures/bootstrap.ts / .env.local for the local one).
+  appCheckSiteKey: pickEnvValue(
+    import.meta.env.VITE_FIREBASE_APPCHECK_SITE_KEY_DEVELOPMENT,
+    import.meta.env.VITE_FIREBASE_APPCHECK_SITE_KEY_STAGING,
+    import.meta.env.VITE_FIREBASE_APPCHECK_SITE_KEY_PRODUCTION,
+    import.meta.env.VITE_FIREBASE_APPCHECK_SITE_KEY
+  ) || undefined,
+  appCheckDebugToken: (import.meta.env.DEV && import.meta.env.VITE_FIREBASE_APPCHECK_DEBUG_TOKEN) || undefined,
 };
 
 function mergeWithRuntimeFirebaseConfig(runtimeConfig: Record<string, unknown>) {

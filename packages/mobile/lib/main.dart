@@ -4,6 +4,7 @@ import 'dart:io' show Platform;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:logging/logging.dart';
 import 'package:flutter/foundation.dart';
@@ -33,8 +34,27 @@ void main() async {
     );
   });
 
-  // Initialize Firebase
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  // Initialize Firebase. On iOS, the native SDK can auto-configure the
+  // "[DEFAULT]" app from GoogleService-Info.plist before this ever runs, so
+  // Firebase.apps.isEmpty (a Dart-side registry) doesn't reliably reflect
+  // that. Catching core/duplicate-app specifically and treating it as
+  // already-configured is the standard fix for this ordering issue.
+  try {
+    await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  } on FirebaseException catch (e) {
+    if (e.code != 'duplicate-app') rethrow;
+  }
+
+  // App Check is enforced server-side (Auth/Firestore/Storage) in
+  // wishlist-wizard-dev as of 2026-07-18 — without this, every real
+  // request gets rejected with a 403. Debug providers are used in debug
+  // builds (including simulators, which can't do real App Attest/Play
+  // Integrity attestation) and print a token to the console that must be
+  // registered once via the Firebase Console/App Check API before it works.
+  await FirebaseAppCheck.instance.activate(
+    providerApple: kDebugMode ? const AppleDebugProvider() : const AppleAppAttestWithDeviceCheckFallbackProvider(),
+    providerAndroid: kDebugMode ? const AndroidDebugProvider() : const AndroidPlayIntegrityProvider(),
+  );
 
   // Explicitly enable Firestore's offline cache (settings must be applied before
   // any Firestore read/write) so wishlists remain viewable without a connection.
