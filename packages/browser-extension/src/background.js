@@ -496,6 +496,19 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       return true;
     }
 
+    // The tab that bridged a session just saw the user sign out of the web
+    // app — clear the bridged auth state immediately rather than leaving it
+    // to linger until the token's natural ~55min expiry. If the current
+    // session was actually established via the separate REST login instead,
+    // this still just signs the user out, which is the same "you're logged
+    // out now" behavior a user would expect.
+    if (message && message.type === 'WEB_AUTH_BRIDGE_SIGNOUT') {
+      clearAuthState()
+        .then(() => sendResponse({ success: true }))
+        .catch(() => sendResponse({ success: false }));
+      return true;
+    }
+
     // JWT Auth Methods
     if (message.action === 'isAuthenticated') {
       // Initialize auth and check status
