@@ -25,30 +25,7 @@
     "notifications"
   ],
   "host_permissions": [
-    "*://*.amazon.com/*",
-    "*://*.amazon.ca/*",
-    "*://*.amazon.co.uk/*",
-    "*://*.target.com/*",
-    "*://*.walmart.com/*",
-    "*://*.ebay.com/*",
-    "*://*.bestbuy.com/*",
-    "*://*.etsy.com/*",
-    "*://*.wayfair.com/*",
-    "*://*.overstock.com/*",
-    "*://*.homedepot.com/*",
-    "*://*.lowes.com/*",
-    "*://*.macys.com/*",
-    "*://*.nordstrom.com/*",
-    "*://*.kohls.com/*",
-    "*://*.costco.com/*",
-    "*://*.samsclub.com/*",
-    "https://wishlist-wizard.web.app/*",
-    "https://wishlist-wizard-prod.web.app/*",
-    "https://wishlist-wizard-staging.web.app/*",
-    "https://wishlist-wizard-dev.web.app/*",
-    "https://wishlist-wizard.com/*",
-    "https://www.wishlist-wizard.com/*",
-    "http://localhost/*"
+    "<all_urls>"
   ],
   "background": {
     "service_worker": "background.js"
@@ -62,23 +39,8 @@
   "content_scripts": [
     {
       "matches": [
-        "*://*.amazon.com/*",
-        "*://*.amazon.ca/*",
-        "*://*.amazon.co.uk/*",
-        "*://*.target.com/*",
-        "*://*.walmart.com/*",
-        "*://*.ebay.com/*",
-        "*://*.bestbuy.com/*",
-        "*://*.etsy.com/*",
-        "*://*.wayfair.com/*",
-        "*://*.overstock.com/*",
-        "*://*.homedepot.com/*",
-        "*://*.lowes.com/*",
-        "*://*.macys.com/*",
-        "*://*.nordstrom.com/*",
-        "*://*.kohls.com/*",
-        "*://*.costco.com/*",
-        "*://*.samsclub.com/*"
+        "http://*/*",
+        "https://*/*"
       ],
       "js": [
         "enhanced-product-extractor.js",

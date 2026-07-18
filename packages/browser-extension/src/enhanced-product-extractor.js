@@ -131,9 +131,90 @@ class EnhancedProductExtractor {
   }
 
   /**
+   * Extract real product fields from JSON-LD structured data, when present.
+   * Reuses the same Product-shape detection as isProductSchema() (direct,
+   * array, and @graph forms) but pulls actual field values instead of just
+   * scoring — this is the most reliable signal available on sites without a
+   * dedicated adapter, so it's tried before any CSS-selector guesswork.
+   */
+  extractFromJsonLd() {
+    const findProduct = (data) => {
+      if (!data) return null;
+      if (data['@type'] === 'Product') return data;
+      if (Array.isArray(data)) {
+        return data.find((item) => item && item['@type'] === 'Product') || null;
+      }
+      if (data['@graph'] && Array.isArray(data['@graph'])) {
+        return data['@graph'].find((item) => item && item['@type'] === 'Product') || null;
+      }
+      return null;
+    };
+
+    const jsonLdElements = document.querySelectorAll('script[type="application/ld+json"]');
+    for (const element of jsonLdElements) {
+      let parsed;
+      try {
+        parsed = JSON.parse(element.textContent);
+      } catch (e) {
+        continue;
+      }
+
+      const product = findProduct(parsed);
+      if (!product) continue;
+
+      const title = typeof product.name === 'string' ? product.name.trim() : '';
+      if (!title) continue;
+
+      let imageUrl = '';
+      if (typeof product.image === 'string') {
+        imageUrl = product.image;
+      } else if (Array.isArray(product.image) && product.image.length > 0) {
+        imageUrl = typeof product.image[0] === 'string' ? product.image[0] : (product.image[0]?.url || '');
+      } else if (product.image && typeof product.image === 'object') {
+        imageUrl = product.image.url || '';
+      }
+
+      let offers = product.offers;
+      if (Array.isArray(offers)) {
+        offers = offers[0];
+      }
+      let price = '';
+      if (offers) {
+        if (offers.price !== undefined) {
+          price = String(offers.price);
+        } else if (offers.priceSpecification && offers.priceSpecification.price !== undefined) {
+          price = String(offers.priceSpecification.price);
+        }
+      }
+
+      let availability = 'In Stock';
+      if (offers && typeof offers.availability === 'string') {
+        availability = offers.availability.includes('OutOfStock') ? 'Out of Stock' : 'In Stock';
+      }
+
+      return {
+        title,
+        price,
+        imageUrl,
+        productUrl: window.location.href,
+        store: 'Generic',
+        availability,
+      };
+    }
+
+    return null;
+  }
+
+  /**
    * Generic product extraction using common patterns with multiple fallback strategies
    */
   extractGenericProduct() {
+    // Structured data is the most reliable signal when present — try it first.
+    const jsonLdResult = this.extractFromJsonLd();
+    if (jsonLdResult && jsonLdResult.title && jsonLdResult.title.trim().length >= 3) {
+      return jsonLdResult;
+    }
+
     // First attempt with comprehensive selectors
     const primarySelectors = {
       title: [

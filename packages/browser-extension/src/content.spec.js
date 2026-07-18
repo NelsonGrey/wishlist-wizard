@@ -124,24 +124,6 @@ describe('content script — message handling', () => {
     expect(['detection', 'parsing']).toContain(resp.errorType);
   });
 
-  // ── enableQuickAdd ────────────────────────────────────────────────────────
-
-  it('enableQuickAdd fails when isLoggedIn is false', async () => {
-    const resp = await sendMessage({ action: 'enableQuickAdd', isLoggedIn: false });
-    expect(resp.success).toBe(false);
-    expect(resp.error).toMatch(/log.*in|logged.*in/i);
-  });
-
-  it('enableQuickAdd fails when baseUrl is missing even if logged in', async () => {
-    const resp = await sendMessage({
-      action: 'enableQuickAdd',
-      isLoggedIn: true,
-      baseUrl: '',
-    });
-    expect(resp.success).toBe(false);
-    expect(resp.error).toMatch(/base.*url/i);
-  });
-
   // ── applyCoupon ───────────────────────────────────────────────────────────
 
   it('applyCoupon fails when no code is provided', async () => {

@@ -300,8 +300,7 @@ label {
 }
 
 .primary-button:disabled,
-.secondary-button:disabled,
-.option-button:disabled {
+.secondary-button:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }
@@ -337,37 +336,6 @@ label {
 
 .text-button:hover {
   color: #065f46;
-}
-
-/* Quick Add Options */
-.quick-add-options {
-  margin-bottom: 16px;
-}
-
-.option-button {
-  display: flex;
-  align-items: center;
-  background-color: #f8fafc;
-  border: 1px solid #e2e8f0;
-  padding: 8px 12px;
-  border-radius: 6px;
-  width: 100%;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.option-button:hover {
-  background-color: #f1f5f9;
-  border-color: #cbd5e1;
-}
-
-.option-icon {
-  margin-right: 8px;
-  font-size: 16px;
-}
-
-.option-text {
-  font-size: 14px;
 }
 
 /* Success Screen */

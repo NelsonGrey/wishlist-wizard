@@ -509,6 +509,30 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       return true;
     }
 
+    // The floating in-page button was clicked: the content script already
+    // extracted the product info. Stash it so the popup can pre-fill from it
+    // instantly instead of re-running its own detection chain, then try to
+    // open the toolbar popup directly. chrome.action.openPopup() is
+    // Chrome/Edge-only (Chrome 99+) — on browsers without it (e.g. Firefox)
+    // the stashed data is simply there whenever the user opens the popup
+    // themselves.
+    if (message && message.action === 'openPopup') {
+      chrome.storage.session.set({
+        pendingProductData: {
+          data: message.data || null,
+          capturedAt: Date.now(),
+        },
+      }, () => {
+        if (chrome.action && typeof chrome.action.openPopup === 'function') {
+          Promise.resolve(chrome.action.openPopup()).catch(() => {
+            // Not supported in this context/browser — stashed data still covers a manual open.
+          });
+        }
+        sendResponse({ success: true });
+      });
+      return true;
+    }
+
     // JWT Auth Methods
     if (message.action === 'isAuthenticated') {
       // Initialize auth and check status
