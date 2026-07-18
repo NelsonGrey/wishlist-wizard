@@ -238,7 +238,7 @@ jobs:
     with:
       release_type: ${{ needs.load-config.outputs.trigger_context == 'build_all' && 'build_only' || 'testflight' }}
       beta_group_name: "Internal Testers"
-      skip_tests: true
+      skip_tests: false
     secrets: inherit
 
   build-web:
