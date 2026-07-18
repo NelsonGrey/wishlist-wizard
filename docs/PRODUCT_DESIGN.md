@@ -524,7 +524,7 @@ Wedding/Event Planner creates event wishlist
 
 ### Feature 6: Mobile App (iOS & Android)
 
-**Status**: 🟡 Partial — real Flutter/Firebase client with a working App Store release pipeline (Xcode project, Fastlane, TestFlight/App Store GitHub Actions workflow). Sharing, push notifications, and offline support are now live (see below). Still thin: 4 tabs (Home, Wishlists, Notifications, Profile), no Shared-with-Me, no Creator Mode.
+**Status**: 🟡 Partial — real Flutter/Firebase client with a working App Store release pipeline (Xcode project, Fastlane, TestFlight/App Store GitHub Actions workflow). Sharing, push notifications, and offline support are now live (see below). Still thin: 4 tabs (Home, Wishlists, Notifications, Profile), no Shared-with-Me, no Creator Mode. A 2026-07-18 audit (`docs/WISHLIST_WIZARD_GO_LIVE.md` §1.14) found and fixed a bug where `createWishlist()` always reported failure to the user despite genuinely succeeding server-side, added injectable test doubles (`mocktail`) and 9 regression-proven unit tests for the provider's write paths, and wired (but has not yet populated) CI secrets needed to actually run the existing logged-in integration test suite.
 
 **Screens**:
 1. **Home Feed**: dashboard-style recent wishlists / stats / quick actions (not a browse/discover feed)

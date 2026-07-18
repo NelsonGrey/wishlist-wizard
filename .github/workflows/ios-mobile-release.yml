@@ -191,13 +191,21 @@ jobs:
 
       - name: Run mobile tests
         if: ${{ !inputs.skip_tests }}
+        env:
+          TEST_EMAIL: ${{ secrets.MOBILE_INTEGRATION_TEST_EMAIL }}
+          TEST_PASSWORD: ${{ secrets.MOBILE_INTEGRATION_TEST_PASSWORD }}
         run: |
           cd packages/mobile
           flutter test
 
           DEVICE_ID="$(flutter devices --machine | node -e "const fs=require('fs');const devices=JSON.parse(fs.readFileSync(0,'utf8'));const preferred=devices.find(d=>d.targetPlatform==='ios'&&d.emulator)||devices.find(d=>d.targetPlatform==='ios');if(!preferred){process.exit(1);}process.stdout.write(preferred.id);")" || true
           if [ -n "${DEVICE_ID:-}" ]; then
-            flutter test integration_test/auth_smoke_test.dart -d "$DEVICE_ID"
+            if [ -z "${TEST_EMAIL:-}" ] || [ -z "${TEST_PASSWORD:-}" ]; then
+              echo "ℹ️ MOBILE_INTEGRATION_TEST_EMAIL/PASSWORD secrets not set; 'Home screen (logged in)' integration tests will skip themselves"
+            fi
+            flutter test integration_test/auth_smoke_test.dart -d "$DEVICE_ID" \
+              --dart-define=TEST_EMAIL="${TEST_EMAIL:-}" \
+              --dart-define=TEST_PASSWORD="${TEST_PASSWORD:-}"
           else
             echo "⚠️ No iOS simulator/device detected for integration smoke test; skipping smoke run"
           fi
