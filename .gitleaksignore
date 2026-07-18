@@ -1,0 +1,5 @@
+# Historical finding, assessed 2026-07-16 (docs/WISHLIST_WIZARD_GO_LIVE.md §1.9):
+# a JWT test fixture in a now-deleted server/tests/unit/auth/jwt.test.ts, not a
+# live credential. History rewrite was ruled out (branch protection blocks
+# force-push); acknowledged here instead so the scan can pass going forward.
+f448d6c66395bc7ed99511486f8637286f18796b:server/tests/unit/auth/jwt.test.ts:jwt:19
