@@ -126,6 +126,38 @@ A 2026-07-16 audit found three confirmed-unreachable code paths, each superseded
 
 ---
 
+### 1.9 Historical Secret in Git History [ACKNOWLEDGED — 2026-07-16, not remediated by history rewrite]
+
+A `gitleaks` scan (run as part of §2.3 for the first time since 2026-06-24) found a GitHub OAuth token pattern in `.act-secrets/secrets`, committed in two commits from 2025-11-14 and 2025-11-16. The file itself is gone and `.gitignore`'d today, but the commits are still in history.
+
+**Scope found:** `main` (production) is **not** affected — the commits aren't reachable from it. They are reachable from `origin/demo` and `origin/backup/staging-before-develop-sync-20260717`, both already on GitHub. A prior scrub attempt appears to have happened around 2026-06-12 (see local branch `backup/pre-history-rewrite-20260612-091735`), which didn't end up covering these two commits.
+
+**Decision (2026-07-16):** rotate/verify the token directly in GitHub rather than rewriting git history — main is unaffected, no other clones of the repo exist yet, and the cost of rewriting history across `develop`/`demo`/the staging-backup branch (and force-pushing each) outweighs the benefit at this point.
+
+- [ ] **Rotate or confirm revocation of the GitHub OAuth token that was in `.act-secrets/secrets`** — Owner: _______
+- [x] **Decision made not to rewrite git history for this** — Completed 2026-07-16 — revisit if the repo is ever made public or shared more broadly, since the exposure remains on `demo`/backup branches indefinitely otherwise
+
+---
+
+### 1.10 PR Backlog & CI Housekeeping [RESOLVED — 2026-07-16]
+
+**PR backlog:** 25 open PRs, all Dependabot dependency bumps (no pending human-authored PRs). Triaged and resolved:
+- 6 targeted `packages/functions/*` and no longer apply now that `packages/functions` has been extracted to the private companion repo (no `package.json` here for Dependabot/npm to act on) — closed with an explanation (#91, #98, #100, #107, #109, #110).
+- 17 were major-version bumps on packages still in this repo (Tailwind 3→4, Vite 7→8 ×2, ESLint 8→10 ×3, TypeScript 5.9→7.0 ×3, Stripe SDKs, framer-motion, recharts, react-resizable-panels, lucide-react, @types/node ×2, @types/chrome, actions/setup-node) — closed rather than merged untested; revisit as a deliberate, tested dependency-upgrade pass, not piecemeal (#82, #87, #90, #101, #102, #104, #105, #106, #108, #111, #115, #116, #117, #118, #119, #120, #122).
+- 2 were low-risk minor/patch bumps (`three` 0.183→0.185, `firebase_data_connect` 0.2.4→0.3.0+7) — verified CI-clean and merged (#92, #121).
+- **Follow-up not yet done:** update `.github/dependabot.yml` to stop watching `packages/functions/` in this repo, so the same 6 stale PRs don't reappear on the next Dependabot run — Owner: _______
+
+**CI workflow audit:** 11 active `.yml` workflows found (not the 14 the directory listing initially suggested — that count included an empty `archive/` folder and a `test-events/` fixture folder, neither of which are real workflows). Of the 11: 4 are `workflow_call`-only reusable building blocks (`extension-build.yml`, `firebase-deploy-local.yml`, `ios-mobile-release.yml`, `production-validation.yml`) invoked by the others, not duplicates; the remaining 7 (CodeQL, e2e-tests, firebase-hosting-dev, firebase-hosting-merge, master-pipeline, release-readiness-gate, secret-scan) each have a distinct trigger and purpose. **Verdict: not actually bloated.** Removed the genuine clutter: the empty `archive/` folder, the `test-events/` fixture folder, and the already-inert `firebase-hosting-pull-request.yml.disabled`.
+
+**Real bug found in the process:** `secret-scan.yml`'s Gitleaks step (`gitleaks/gitleaks-action@v2`) fails on every run with "missing gitleaks license" — that action now requires a paid `GITLEAKS_LICENSE` secret for organization-owned repos, which broke the moment this repo moved under the `NelsonGrey` org. It was not a required/blocking status check on `develop` (no branch protection references it), so it hasn't silently blocked merges, but it would show a red X on every future PR. Fixed by replacing the action with a direct install-and-run of the open-source `gitleaks` CLI binary (same tool, no license needed) — verified equivalent locally in §1.9's investigation.
+
+- [x] **Triage and resolve 25 open Dependabot PRs** — Completed 2026-07-16
+- [x] **Remove CI workflow clutter (archive/, test-events/, .disabled file)** — Completed 2026-07-16
+- [x] **Fix broken Gitleaks CI check (org license requirement)** — Completed 2026-07-16
+- [ ] **Update dependabot.yml to exclude packages/functions/** — Owner: _______
+
+---
+
 ## Part 2 — Pre-Launch Checklist
 
 ### 2.1 Firebase Infrastructure
@@ -225,16 +257,16 @@ npm run preflight:extension
 npm run preflight:mobile
 ```
 
-- [ ] `npm audit` — 0 high/critical vulnerabilities — Owner: _______
-- [ ] `npm run check` — TypeScript passes with 0 errors — Owner: _______
-- [ ] `npm run lint` — ESLint passes with 0 errors — Owner: _______
-- [ ] Secret scan (gitleaks) — no secrets in codebase — Owner: _______
-- [ ] Firebase smoke test (strict mode): 265+/273 passed, 0 failed — Owner: _______
-- [ ] User flow smoke test: all core flows pass — Owner: _______
-- [ ] `npm run requirements:verify` — passes — Owner: _______
-- [x] `./scripts/go-live-gate.sh` — exits 0 (GO FOR LAUNCH) — 19 passed / 0 blockers as of 2026-06-26
-- [ ] `npm run preflight:extension` — passes — Owner: _______
-- [ ] `npm run preflight:mobile` — passes — Owner: _______
+- [x] `npm audit --audit-level=high` — 0 high/critical (2 moderate, in a dev-only test dependency of `firebase-functions-test`) — Verified 2026-07-16
+- [x] `npm run check` — TypeScript passes with 0 errors across web/shared/firebase-utils — Verified 2026-07-16
+- [x] `npm run lint` — ESLint passes with 0 errors across web/shared/firebase-utils — Verified 2026-07-16
+- [x] Secret scan (gitleaks, proper git-history mode) — 2 false positives (placeholder token in docs, fake test Stripe key) + 1 real historical finding, see §1.9 (acknowledged, not remediated by rewrite — main/production unaffected) — Verified 2026-07-16
+- [ ] **Firebase functions smoke test — STALE, not re-verifiable from this repo as currently structured.** `artifacts/smoke-all-functions-report.json` is dated 2026-06-11 and `artifacts/smoke-users-report.json` is dated 2026-05-15 — both predate the `packages/functions` extraction to the private `wishlist-wizard-functions` companion repo. `go-live-gate.sh` only reads these cached JSON files; it does not re-run the tests, and `npm run test:functions:smoke:all:strict` / `npm run test:users:smoke` both call `npm run build --workspace=functions`, which no longer resolves now that `packages/functions` has no `package.json` in this repo. **Action needed:** either run these smoke tests from the companion repo and copy the resulting artifact JSON back here, or update the scripts to point at the companion repo. — Owner: _______
+- [x] `npm run requirements:traceability` — passes (14 business / 18 technical requirements, 0 warnings, 0 failures) — Verified 2026-07-16
+- [x] `npm run requirements:verify` — passes (30/30 completed requirements mapped, 0 drift) — Verified 2026-07-16
+- [x] `./scripts/go-live-gate.sh` — exits 0, GO FOR LAUNCH, 19 passed / 1 warning (uncommitted artifact files from this run) / 0 blockers — Verified 2026-07-16, **but see the smoke-test staleness note above — this script's Firebase/user-flow checks (CHECK 2, CHECK 3) are reading the same stale artifacts, not fresh data**
+- [ ] `npm run preflight:extension` — not yet run this pass — Owner: _______
+- [ ] `npm run preflight:mobile` — not yet run this pass — Owner: _______
 
 ---
 
