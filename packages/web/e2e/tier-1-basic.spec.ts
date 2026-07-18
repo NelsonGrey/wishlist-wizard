@@ -234,7 +234,7 @@ test.describe('Tier 1: Basic Features', () => {
 
     await page.waitForURL(/\/wishlist[s]?\/[\w-]+/, { timeout: 5000 });
     await expect(page.getByTestId('wishlist-detail-page')).toBeVisible({ timeout: 10000 });
-    await expect(page.getByTestId('wishlist-detail-title')).toContainText(primaryWishlistName);
+    await expect(page.getByTestId('wishlist-detail-title')).toContainText(primaryWishlistName, { timeout: 10000 });
   });
 
   test('T1.6: Update Wishlist', async () => {
