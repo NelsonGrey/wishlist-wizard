@@ -217,6 +217,29 @@ Asked directly "do we have automated unit testing and automated UAT for this del
 
 ---
 
+### 1.14 Mobile App: Same Rigor Pass — a Fourth Real Bug, Injectable Test Doubles, CI Gap [RESOLVED — 2026-07-18]
+
+With the browser extension's core flow fixed and tested, applied the same audit-then-verify-then-close-gaps pass to the mobile app, per the pattern established in §1.12/§1.13 (this is the same class of bug this whole session kept finding: code that looks correctly wired but is silently non-functional).
+
+**A fourth real bug, same family as the extension's:** `FirebaseWishlistProvider.createWishlist()` in `packages/mobile/lib/providers/firebase_wishlist_provider.dart` called `FirebaseWishlist.fromFirestore('', result)` — passing an empty string as the `docId` argument instead of the real id the Cloud Function returned. `fromFirestore`'s `docId` parameter always wins over any `id` key inside `data` (`lib/models/firebase_models.dart`), so `createdWishlist.id` was **always empty**, and the subsequent `if (createdWishlist.id.isNotEmpty)` check **always failed** — meaning `createWishlist()` reported failure and showed a full error screen to the user on every single call, even though `packages/functions/src/api/wishlists.ts`'s `createWishlist` Cloud Function had genuinely created the wishlist and returned its real `id` (`Object.assign({ id: docRef.id }, wishlistData)`). Confirmed `updateWishlist`'s weaker `result.isNotEmpty` check doesn't have the same problem — the backend's `updateWishlist` function also always returns a real, non-empty `id`. Fixed by passing `(result['id'] as String?) ?? ''` as the `docId` argument.
+
+**No mocking library existed for the mobile app before this** — `mocktail: ^1.0.4` added to `pubspec.yaml`'s dev dependencies. `FirebaseWishlistProvider`'s hardcoded `FirebaseFirestoreService()`/`FirebaseFunctionsService()` field initializers were refactored into constructor-injectable optional parameters (defaulting to real instances) so tests can substitute mocks without a live Firebase connection.
+
+**9 new unit tests added** (`test/firebase_wishlist_provider_test.dart`, suite: 11 → 20 tests) covering `createWishlist` (including an explicit regression-guard test), `updateWishlist`, and `addWishlistItem`. **The regression-guard test was proven meaningful, not just present**: temporarily reverted the fix back to `FirebaseWishlist.fromFirestore('', result)`, re-ran the suite, confirmed the two `createWishlist` "success" tests failed exactly as expected (`Bad state: No element`), then restored the fix and reconfirmed all 20 tests pass.
+
+**Live simulator verification was deliberately not performed** for this fix, unlike the extension's runtime/platform-specific bugs — this is a pure Dart data-mapping defect, and the revert-and-confirm-failure step above is stronger evidence than a single manual click-through would give. A full iOS simulator build cycle was judged not worth the added time for this specific bug; flagged here rather than silently skipped.
+
+**CI gap found and partially closed:** `integration_test/auth_smoke_test.dart`'s "Home screen (logged in)" test group (the only integration-level coverage of the create-wishlist/add-item flows) reads `TEST_EMAIL`/`TEST_PASSWORD` via `String.fromEnvironment(...)` and silently skips all 4 of its tests if either is empty. Neither `master-pipeline.yml` nor `ios-mobile-release.yml` (the only workflow that even runs this file) ever set these — worse, the `flutter test integration_test/auth_smoke_test.dart` invocation didn't forward them as `--dart-define` flags even if they had been set as secrets, so the tests were structurally guaranteed to skip regardless. Fixed the CI-side wiring: `ios-mobile-release.yml` now reads `MOBILE_INTEGRATION_TEST_EMAIL`/`MOBILE_INTEGRATION_TEST_PASSWORD` from GitHub Secrets and forwards them via `--dart-define`, with a clear log line when they're unset.
+
+- [ ] **Create a dedicated test account in the `wishlist-wizard-dev` (or staging) Firebase project and add its credentials as the `MOBILE_INTEGRATION_TEST_EMAIL`/`MOBILE_INTEGRATION_TEST_PASSWORD` GitHub repo secrets** — Owner: _______ (creating a persistent account in a real Firebase project and setting repo secrets are both actions only the repo/project owner should take; the CI plumbing to consume them is done and ready)
+- [x] **Find and fix the real bug: `createWishlist()` always reported failure due to a discarded real id** — Completed 2026-07-18
+- [x] **Add injectable test doubles + regression-proven unit tests for the provider's write paths** — Completed 2026-07-18
+- [x] **Wire CI to forward `TEST_EMAIL`/`TEST_PASSWORD` to the integration test (secrets still need to be created — see above)** — Completed 2026-07-18
+
+Not yet covered by any automated test, assessed as lower risk and out of scope for this pass: FCM push notifications, offline behavior, and wishlist sharing — functionally plausible from code review but genuinely untested.
+
+---
+
 ## Part 2 — Pre-Launch Checklist
 
 ### 2.1 Firebase Infrastructure
