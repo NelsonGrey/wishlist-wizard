@@ -1,44 +1,42 @@
 import { expect, Page } from '@playwright/test';
 
+async function waitForDashboardIndicator(page: Page, timeout: number): Promise<boolean> {
+  // A one-shot .isVisible() check races the async chain that gets a user
+  // from "just navigated"/"just registered" to an actually-rendered
+  // dashboard (Firebase auth-state resolution, then a client-side wouter
+  // <Redirect> from /dashboard to /app/dashboard, then the dashboard's own
+  // data fetch). .waitFor() polls instead of sampling once, so it doesn't
+  // flag a real success as a failure just because it hasn't rendered yet.
+  return page
+    .locator('[data-testid="dashboard-page"], [data-testid="dashboard-create-wishlist"], [data-testid="dashboard-empty-create-wishlist"]')
+    .first()
+    .waitFor({ state: 'visible', timeout })
+    .then(() => true)
+    .catch(() => false);
+}
+
 export async function ensureAuthenticated(page: Page): Promise<boolean> {
   await page.goto('/dashboard');
   await page.waitForLoadState('domcontentloaded');
-  await page.waitForTimeout(800);
 
-  const appIndicator = page
-    .locator('[data-testid="dashboard-create-wishlist"], [data-testid="dashboard-empty-create-wishlist"], h2:has-text("My Wishlists")')
-    .first();
-  if (await appIndicator.isVisible().catch(() => false)) {
+  if (await waitForDashboardIndicator(page, 5000)) {
     return true;
   }
-
-  const loginEmail = page.locator('input[type="email"]').first();
 
   const uniqueEmail = `e2e-${Date.now()}@wishlist-wizard.test`;
   const password = 'Test@Secure123Password';
 
-  const inlineRegisterButton = page.locator('button:has-text("Register")').first();
-  if (await inlineRegisterButton.isVisible().catch(() => false)) {
-    await inlineRegisterButton.click();
-    await page.waitForLoadState('domcontentloaded');
-  } else {
-    await page.goto('/register');
-    await page.waitForLoadState('domcontentloaded');
-  }
+  await page.goto('/register');
+  await page.waitForLoadState('domcontentloaded');
 
-  await page.fill('input[type="email"]', uniqueEmail);
-  const passwordInputs = page.locator('input[type="password"]');
-  await passwordInputs.first().fill(password);
-  if ((await passwordInputs.count()) > 1) {
-    await passwordInputs.nth(1).fill(password);
+  const displayNameInput = page.getByTestId('register-display-name-input');
+  if (await displayNameInput.isVisible().catch(() => false)) {
+    await displayNameInput.fill('E2E Bootstrap User');
   }
-
-  const nameField = page.locator('input[placeholder*="display" i], input[placeholder*="name" i], input[aria-label*="name" i]').first();
-  if (await nameField.isVisible().catch(() => false)) {
-    await nameField.fill('E2E Bootstrap User');
-  }
-
-  await page.click('button[type="submit"], button:has-text("Create account"), button:has-text("Create"), button:has-text("Sign Up")');
+  await page.getByTestId('register-email-input').fill(uniqueEmail);
+  await page.getByTestId('register-password-input').fill(password);
+  await page.getByTestId('register-confirm-password-input').fill(password);
+  await page.getByTestId('register-submit').click();
   await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => undefined);
 
   await page.goto('/dashboard');
@@ -47,9 +45,11 @@ export async function ensureAuthenticated(page: Page): Promise<boolean> {
     page.url().includes('/register') ||
     page.url().includes('/forgot-password');
   if (stillNeedsAuth) {
-    await page.fill('input[type="email"]', uniqueEmail);
-    await page.fill('input[type="password"]', password);
-    await page.click('button[type="submit"], button:has-text("Sign in"), button:has-text("Sign In"), button:has-text("Login")');
+    await page.goto('/login');
+    await page.waitForLoadState('domcontentloaded');
+    await page.getByTestId('login-email-input').fill(uniqueEmail);
+    await page.getByTestId('login-password-input').fill(password);
+    await page.getByTestId('login-submit').click();
     await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => undefined);
     await page.goto('/dashboard');
   }
@@ -60,13 +60,7 @@ export async function ensureAuthenticated(page: Page): Promise<boolean> {
     return false;
   }
 
-  const dashboardReady = await page
-    .locator('h2:has-text("My Wishlists"), button:has-text("Create New List"), button:has-text("Create Wishlist")')
-    .first()
-    .isVisible()
-    .catch(() => false);
-
-  return dashboardReady;
+  return waitForDashboardIndicator(page, 10000);
 }
 
 export async function ensureWishlistExists(page: Page, wishlistName: string): Promise<void> {
@@ -87,7 +81,7 @@ export async function ensureWishlistExists(page: Page, wishlistName: string): Pr
   await expect
     .poll(
       async () => {
-        const headerVisible = await page.locator('h2:has-text("My Wishlists")').first().isVisible().catch(() => false);
+        const headerVisible = await page.getByTestId('dashboard-title').isVisible().catch(() => false);
         const createButtonVisible = await page
           .locator('[data-testid="dashboard-create-wishlist"], [data-testid="dashboard-empty-create-wishlist"]')
           .first()

@@ -1,5 +1,6 @@
 /// <reference types="@playwright/test" />
 import { test, expect, Page } from '@playwright/test';
+import { ensureAuthenticated } from './fixtures/bootstrap';
 
 /**
  * TIER 2: ADVANCED FEATURES (NICE TO HAVE)
@@ -8,9 +9,16 @@ import { test, expect, Page } from '@playwright/test';
 
 test.describe('Tier 2: Advanced Features', () => {
   let page: Page;
+  let isAuthenticated = false;
 
   test.beforeAll(async ({ browser }: { browser: any }) => {
     page = await browser.newPage();
+    // Each spec file gets its own isolated browser context, so a login done
+    // in tier-1-basic.spec.ts never carries over here — this file needs its
+    // own real sign-in, not a hope that "the user is logged in from Tier 1
+    // tests." Previously this always evaluated false (wrong selector for
+    // this app's logged-in state), so all 19 tests below always skipped.
+    isAuthenticated = await ensureAuthenticated(page);
   });
 
   test.afterAll(async () => {
@@ -18,12 +26,18 @@ test.describe('Tier 2: Advanced Features', () => {
   });
 
   test.beforeEach(async () => {
-    // Ensure logged in
+    if (!isAuthenticated) {
+      test.skip(true, 'Authentication unavailable in this environment');
+    }
     await page.goto('/');
-    const isLoggedIn = await page.locator('[aria-label="User menu"], button:has-text("Profile")').isVisible();
-    if (!isLoggedIn) {
-      // User needs to be logged in from Tier 1 tests or manual auth
-      test.skip();
+    // The cookie consent banner (CookieConsentBanner.tsx) is fixed to the
+    // bottom of the viewport and re-appears on every fresh navigation to
+    // '/'. Left undismissed, it intercepts pointer events for anything
+    // underneath it, which previously made T2.1's nav-link click retry for
+    // the full 30s test timeout before failing.
+    const declineCookies = page.getByText('Decline All').first();
+    if (await declineCookies.isVisible().catch(() => false)) {
+      await declineCookies.click().catch(() => undefined);
     }
   });
 
@@ -83,7 +97,7 @@ test.describe('Tier 2: Advanced Features', () => {
 
   test('T2.4: Analytics - View Summary', async () => {
     // Navigate to analytics if available
-    const analyticsLink = page.locator('a[href*="analytics"], text="Analytics"').first();
+    const analyticsLink = page.locator('a[href*="analytics"]').or(page.getByText('Analytics')).first();
     if (await analyticsLink.isVisible()) {
       await analyticsLink.click();
 
@@ -97,7 +111,7 @@ test.describe('Tier 2: Advanced Features', () => {
 
   test('T2.5: Affiliate Program - Get Program Info', async () => {
     // Navigate to affiliate section
-    const affiliateLink = page.locator('a[href*="affiliate"], text="Affiliate"').first();
+    const affiliateLink = page.locator('a[href*="affiliate"]').or(page.getByText('Affiliate')).first();
     if (await affiliateLink.isVisible()) {
       await affiliateLink.click();
 
@@ -144,7 +158,7 @@ test.describe('Tier 2: Advanced Features', () => {
 
   test('T2.8: Calendar - Get Events', async () => {
     // Navigate to calendar
-    const calendarLink = page.locator('a[href*="calendar"], text="Calendar"').first();
+    const calendarLink = page.locator('a[href*="calendar"]').or(page.getByText('Calendar')).first();
     if (await calendarLink.isVisible()) {
       await calendarLink.click();
     } else {
@@ -299,7 +313,7 @@ test.describe('Tier 2: Advanced Features', () => {
 
   test('T2.15: Group Payments - View Pool Summary', async () => {
     // Navigate to group payments
-    const groupPaymentsLink = page.locator('a[href*="group"], text="Group Gift"').first();
+    const groupPaymentsLink = page.locator('a[href*="group"]').or(page.getByText('Group Gift')).first();
     if (await groupPaymentsLink.isVisible()) {
       await groupPaymentsLink.click();
 
@@ -372,7 +386,7 @@ test.describe('Tier 2: Advanced Features', () => {
 
   test('T2.20: Sync Logs - View Sync History', async () => {
     // Navigate to sync logs if available
-    const syncLogsLink = page.locator('a[href*="sync"], text="Sync Logs"').first();
+    const syncLogsLink = page.locator('a[href*="sync"]').or(page.getByText('Sync Logs')).first();
     if (await syncLogsLink.isVisible()) {
       await syncLogsLink.click();
 

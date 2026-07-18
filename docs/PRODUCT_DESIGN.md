@@ -344,7 +344,7 @@ Wedding/Event Planner creates event wishlist
 
 ### Feature 1: Wishlist Creation & Management
 
-**Status**: ✅ Complete — the authenticated `/app/*` route block in `packages/web/client-src/AppRouter.tsx` was found accidentally gated out of production by an unrelated cross-project automation commit (2026-05-06); the gate was removed 2026-07-16 and production now matches dev/staging.
+**Status**: 🔴 Create Wishlist confirmed broken in `wishlist-wizard-dev` — the authenticated `/app/*` route block in `packages/web/client-src/AppRouter.tsx` was found accidentally gated out of production by an unrelated cross-project automation commit (2026-05-06); the gate was removed 2026-07-16 and production now matches dev/staging. However, a 2026-07-18 audit (`docs/WISHLIST_WIZARD_GO_LIVE.md` §1.15) found the `createWishlist` Cloud Function unconditionally enforces Firebase App Check while the web client never initializes it — confirmed via a plain `curl` call with a real auth token and no browser involved, which still got rejected. No real user can currently create a wishlist through the web app in dev; staging/production are unverified.
 
 **Wishlist Types**:
 - **Personal Wishlist**: "Things I want" (private by default, can share)
