@@ -457,21 +457,22 @@ Wedding/Event Planner creates event wishlist
 
 ### Feature 4: Browser Extension
 
-**Status**: 🟡 Partial — the core one-click-add flow (auto-detect → pick wishlist → save via Cloud Functions) is real and works. Retailer coverage is ~16 hardcoded sites, not 40+. Coupon Finder and Price Comparison have finished UI but call backend endpoints that don't exist, so they never return results. The per-site settings gear described below doesn't exist.
+**Status**: 🟡 Partial, but the core "killer app" flow is now genuinely real and verified live (2026-07-18): click the floating button on any website → product auto-detected (JSON-LD structured data preferred, CSS-selector/heuristic fallback otherwise) → toolbar popup opens pre-filled → pick or create a wishlist → save via Cloud Functions. Coupon Finder and Price Comparison remain UI-only, calling backend endpoints that don't exist (deferred, see `docs/WISHLIST_WIZARD_GO_LIVE.md` Part 5). The per-site settings gear described below doesn't exist.
 
 **Core Functionality**:
-1. **One-Click Add**: Floating button on product pages → [+Wishlist]
-2. **Auto-Detection**: Identifies product on page (price, image, title) — deep parsing for Amazon/Target/Walmart, generic heuristic fallback elsewhere
-3. **Smart Retailers**: Pre-configured for ~16 sites (Amazon, Etsy, Walmart, etc.) — not yet the 40+ originally targeted
+1. **One-Click Add**: Floating button on product pages → auto-detects the product and hands it straight to the toolbar popup, pre-filled (fixed 2026-07-18 — previously the button showed a fake success checkmark but the message it sent had no listener anywhere, so nothing was ever saved)
+2. **Auto-Detection**: Identifies product on page (price, image, title) — deep parsing for Amazon/Target/Walmart adapters; real JSON-LD `Product` schema parsing (title/price/image) for every other site, falling back further to CSS-selector heuristics only when no structured data is present
+3. **Site Coverage**: Runs on all http(s) websites, not a fixed retailer list (broadened 2026-07-18 from ~16 hardcoded domains)
 4. **Fallback Mode**: Manual entry if auto-detection fails
 5. **Price Comparison**: 🔴 Not functional — UI calls a backend endpoint that isn't implemented
 6. **Coupon Finder**: 🔴 Not functional — same reason as above
 
 **UI/UX**:
 - Floating button (bottom-right, minimalist icon)
-- Popup overlay (wishlist selector, price preview)
+- Popup overlay (wishlist selector, price preview) — opens automatically via `chrome.action.openPopup()` on Chrome/Edge when supported by the browser context; always reachable manually via the toolbar icon regardless
 - Success toast ("Added to Electronics Wishlist")
 - Settings gear icon (enable/disable per site) — 🔴 not implemented
+- Two broken/dead legacy "quick add" code paths removed 2026-07-18: an "Enable One-Click Add" button that posted to a non-existent unauthenticated endpoint, and an entirely orphaned `QuickAdd` class that was loaded into every popup session but never activated
 
 **Technical**:
 - Content script injects features on product pages
