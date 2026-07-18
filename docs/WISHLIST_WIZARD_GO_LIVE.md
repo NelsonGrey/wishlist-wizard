@@ -126,16 +126,16 @@ A 2026-07-16 audit found three confirmed-unreachable code paths, each superseded
 
 ---
 
-### 1.9 Historical Secret in Git History [ACKNOWLEDGED — 2026-07-16, not remediated by history rewrite]
+### 1.9 Historical Secret in Git History [CLOSED — 2026-07-16, no live credential involved]
 
-A `gitleaks` scan (run as part of §2.3 for the first time since 2026-06-24) found a GitHub OAuth token pattern in `.act-secrets/secrets`, committed in two commits from 2025-11-14 and 2025-11-16. The file itself is gone and `.gitignore`'d today, but the commits are still in history.
+A `gitleaks` scan (run as part of §2.3 for the first time since 2026-06-24) found a `GITHUB_TOKEN`/`GITHUB_PASSWORD` pair in `.act-secrets/secrets`, committed in two commits from 2025-11-14 and 2025-11-16.
 
 **Scope found:** `main` (production) is **not** affected — the commits aren't reachable from it. They are reachable from `origin/demo` and `origin/backup/staging-before-develop-sync-20260717`, both already on GitHub. A prior scrub attempt appears to have happened around 2026-06-12 (see local branch `backup/pre-history-rewrite-20260612-091735`), which didn't end up covering these two commits.
 
-**Decision (2026-07-16):** rotate/verify the token directly in GitHub rather than rewriting git history — main is unaffected, no other clones of the repo exist yet, and the cost of rewriting history across `develop`/`demo`/the staging-backup branch (and force-pushing each) outweighs the benefit at this point.
+**Resolution (2026-07-16):** `.act-secrets/secrets` only ever fed local `act` (GitHub Actions emulator) runs via `--secret-file .act-secrets/secrets` (see `scripts/test-cicd-local.sh`, `scripts/test-act.sh`, `docs/ACT_TESTING_GUIDE.md`) — it was never read by any GitHub-hosted workflow or production code. The file doesn't exist on disk today (confirmed 2026-07-16; current `.act-secrets/` holds a different, unrelated set of `.env.automation.*` files). Owner confirmed no wishlist-wizard token corresponding to this leak currently exists. **No live credential is exposed; closed without a history rewrite.**
 
-- [ ] **Rotate or confirm revocation of the GitHub OAuth token that was in `.act-secrets/secrets`** — Owner: _______
-- [x] **Decision made not to rewrite git history for this** — Completed 2026-07-16 — revisit if the repo is ever made public or shared more broadly, since the exposure remains on `demo`/backup branches indefinitely otherwise
+- [x] **Confirm no live credential corresponds to the historical `.act-secrets/secrets` leak** — Completed 2026-07-16
+- [x] **Decision made not to rewrite git history for this** — Completed 2026-07-16 — revisit only if the repo is ever made public, since the (now-confirmed-inert) exposure remains on `demo`/backup branches indefinitely otherwise
 
 ---
 
