@@ -3,11 +3,14 @@
 // Runs only on the Wishlist Wizard web app's own origin (see manifest.json).
 // Relays the signed-in user's Firebase ID token from the page to the
 // extension's background script, so the extension can reuse an existing web
-// session instead of requiring a separate login. Falls back silently if the
-// page isn't logged in — background.js keeps its own REST-based login as a
-// fallback for that case.
+// session instead of requiring a separate login. Also relays an explicit
+// sign-out signal when a tab that had bridged a session sees the user log
+// out, so a stale bridged session doesn't linger in the extension until its
+// token naturally expires. Falls back silently if the page isn't logged in —
+// background.js keeps its own REST-based login as a fallback for that case.
 
 const WW_AUTH_BRIDGE_EVENT = 'ww:auth-bridge-token';
+const WW_AUTH_BRIDGE_SIGNOUT_EVENT = 'ww:auth-bridge-signout';
 const WW_REQUEST_TOKEN_EVENT = 'ww:request-auth-token';
 
 function relayTokenToExtension(detail) {
@@ -33,8 +36,26 @@ function relayTokenToExtension(detail) {
   }
 }
 
+function relaySignOutToExtension() {
+  try {
+    const maybePromise = chrome.runtime.sendMessage({ type: 'WEB_AUTH_BRIDGE_SIGNOUT' });
+    if (maybePromise && typeof maybePromise.catch === 'function') {
+      maybePromise.catch(() => {
+        // Background service worker may be asleep/restarting; non-fatal.
+      });
+    }
+  } catch (error) {
+    // Extension context can be invalidated (e.g. during an extension reload).
+    // Never let that break the host page.
+  }
+}
+
 window.addEventListener(WW_AUTH_BRIDGE_EVENT, (event) => {
   relayTokenToExtension(event.detail);
+});
+
+window.addEventListener(WW_AUTH_BRIDGE_SIGNOUT_EVENT, () => {
+  relaySignOutToExtension();
 });
 
 // Ask the page for its current auth state as soon as this script attaches —

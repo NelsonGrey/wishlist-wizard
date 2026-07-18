@@ -37,7 +37,7 @@ A 2026-07-16 audit found this document's — and `docs/PRODUCT_DESIGN.md`'s — 
 | Deliverable | State | Notes |
 |---|---|---|
 | **Web app** | 🟢 Core loop live in production | Production gate bug (§1.7) fixed — `/app/*` and `/shared/:shareId` now render in prod, matching dev/staging. Create wishlist, add item (incl. new paste-a-link auto-fetch), and share all work. |
-| **Browser extension** | 🟡 Core flow real, two features still stubbed | One-click add works end-to-end via real Cloud Functions. Coupon finder and price comparison call backend endpoints that don't exist — deferred to Phase 2 (§ Part 5), not launch-blocking since they fail silently rather than crash. An auth bridge (reuse the web app's login instead of a separate one) was built this pass but **has not been verified in a real browser** — verify before relying on it for launch. |
+| **Browser extension** | 🟡 Core flow real, two features still stubbed | One-click add works end-to-end via real Cloud Functions. Coupon finder and price comparison call backend endpoints that don't exist — deferred to Phase 2 (§ Part 5), not launch-blocking since they fail silently rather than crash. The auth bridge (reuse the web app's login instead of a separate one) was **verified 2026-07-18 in a real Chrome instance against a live Firebase Auth emulator**: sign-in propagates to the extension (confirmed via direct `chrome.storage.local` inspection, not just UI), and sign-out now propagates immediately too (a gap found during verification and fixed the same session — see below), without clobbering an independently-logged-in extension session that was never bridged. |
 | **Mobile (iOS/Android, Flutter)** | 🟡 Thin but real | Push notifications, Firestore offline caching, and wishlist sharing are now actually wired up (were previously dead code). Still missing: Shared-with-Me, Creator Mode, and all native platform features (Siri Shortcuts, App Clips, iCloud, widgets) — these were never built, not regressions. |
 | **Backend (Firebase Functions + Firestore)** | 🟢 Live, confirmed | Root `server/`/`client/` (old Express+Postgres) are dead — do not resurrect or reference them. Affiliate tracking and calendar OAuth sync are solid. Personal price-drop alerts are coded but not exported from the Functions deploy entrypoint, so they don't run in production (comparison-shopping, a related but different feature, is live). |
 
@@ -155,6 +155,22 @@ A `gitleaks` scan (run as part of §2.3 for the first time since 2026-06-24) fou
 - [x] **Remove CI workflow clutter (archive/, test-events/, .disabled file)** — Completed 2026-07-16
 - [x] **Fix broken Gitleaks CI check (org license requirement)** — Completed 2026-07-16
 - [ ] **Update dependabot.yml to exclude packages/functions/** — Owner: _______
+
+---
+
+### 1.11 Extension Auth Bridge — Verified Live, Sign-Out Gap Found and Fixed [RESOLVED — 2026-07-18]
+
+The auth bridge built in the 2026-07-16 recovery pass (§1.7-era work) had never been run in an actual browser — only typechecked and unit-tested. Verified 2026-07-18 by loading the real unpacked extension in Chrome via Playwright (`--load-extension`), running the web app against a live Firebase Auth emulator with a throwaway test user, and reading the extension's actual `chrome.storage.local` state directly rather than trusting the UI alone.
+
+**Sign-in path: confirmed working exactly as designed.** Real sign-in on the web app → `AuthContext.tsx` broadcasts the ID token → `web-auth-bridge.js` relays it → `background.js` stores it. Extension popup correctly skipped its login screen and showed "Signed in as [email]" — verified by reading storage directly (`hasAuthToken: true`, `userData.email` matching the signed-in account exactly).
+
+**Sign-out path: found broken, then fixed.** A real sign-out on the web app did **not** propagate — the extension kept showing "Signed in as..." with the stale token still in storage. Root cause: `broadcastAuthTokenToExtension` in `AuthContext.tsx` only ran when there was a current user; on sign-out it silently no-op'd, so the extension had no way to know the session ended (it would have eventually self-corrected once the bridged token's ~55-minute window elapsed and its refresh attempt failed, since a bridged session never gets a `refreshToken` — but that's a delayed correction, not the immediate fallback expected).
+
+**Fix:** `AuthContext.tsx` now broadcasts an explicit `ww:auth-bridge-signout` event when `onAuthStateChange` transitions from a signed-in user to none — but only if *this tab* had actually broadcast a signed-in session before, so a logged-out visit to a public page doesn't clobber an unrelated, independently-logged-in extension session that was never bridged from that tab. `web-auth-bridge.js` relays it as a `WEB_AUTH_BRIDGE_SIGNOUT` message; `background.js` clears auth state on receipt via the existing `clearAuthState()`. Re-verified after the fix: sign-out now propagates immediately, and a separate test confirmed the "don't clobber an independent session" guard works as intended.
+
+- [x] **Verify auth bridge sign-in path in a real browser** — Completed 2026-07-18
+- [x] **Find and fix immediate sign-out propagation gap** — Completed 2026-07-18
+- [x] **Confirm no regression to independently-logged-in (non-bridged) extension sessions** — Completed 2026-07-18
 
 ---
 
