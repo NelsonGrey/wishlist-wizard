@@ -11,13 +11,15 @@
     "build:firefox": "bash scripts/build-extension.sh firefox",
     "build:safari": "bash scripts/build-extension.sh safari",
     "dev": "vite build --watch",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@dataconnect/generated": "file:src/dataconnect-generated",
     "@wishlist-wizard/shared": "file:../shared"
   },
   "devDependencies": {
+    "@playwright/test": "^1.58.2",
     "@types/chrome": "^0.0.270",
     "jsdom": "^26.1.0",
     "typescript": "^5.6.3",

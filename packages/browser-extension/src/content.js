@@ -48,81 +48,87 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     }
     
     if (message.action === 'extractProductInfo' || message.action === 'getProductInfo') {
-      // If force flag is set, use a more aggressive approach
+      // extractProductInfo() is async (it awaits the enhanced extractor), so
+      // this whole branch runs in an IIFE and responds when it settles —
+      // 'return true' below tells Chrome to keep the message channel open
+      // for that async response.
       if (message.force) {
         // For forced detection, lower the threshold for product page detection
-        const isProductPage = true; // Skip the check entirely
-        
-        try {
-          const productInfo = extractProductInfo();
-          
-          // Validate that we have sufficient product information
-          if (!productInfo.success || !productInfo.productInfo.title) {
-            // Track failed product extraction
-            trackContentEvent('product_extraction_failed', 'product', 'insufficient_info');
-            
-            sendResponse({ 
-              success: false, 
-              error: 'Could not extract sufficient product information', 
+        (async () => {
+          try {
+            const productInfo = await extractProductInfo();
+
+            // Validate that we have sufficient product information
+            if (!productInfo.success || !productInfo.productInfo.title) {
+              // Track failed product extraction
+              trackContentEvent('product_extraction_failed', 'product', 'insufficient_info');
+
+              sendResponse({
+                success: false,
+                error: 'Could not extract sufficient product information',
+                errorType: 'parsing',
+                partialInfo: productInfo.productInfo || null
+              });
+              return;
+            }
+
+            // Track successful product extraction
+            trackContentEvent('product_extraction_success', 'product',
+              productInfo.productInfo.store || window.location.hostname);
+
+            sendResponse(productInfo);
+          } catch (error) {
+            console.error('Error extracting product info (forced):', error);
+            sendResponse({
+              success: false,
+              error: error.message || 'Error extracting product information',
               errorType: 'parsing',
-              partialInfo: productInfo.productInfo || null
+              stack: error.stack
             });
-            return true;
           }
-          
-          // Track successful product extraction
-          trackContentEvent('product_extraction_success', 'product', 
-            productInfo.productInfo.store || window.location.hostname);
-          
-          sendResponse(productInfo);
-        } catch (error) {
-          console.error('Error extracting product info (forced):', error);
-          sendResponse({ 
-            success: false, 
-            error: error.message || 'Error extracting product information', 
-            errorType: 'parsing',
-            stack: error.stack
-          });
-        }
+        })();
       } else {
         // Normal detection with error handling
-        try {
-          const isProductPage = checkIfProductPage();
-          
-          if (!isProductPage) {
-            sendResponse({ 
-              success: false, 
-              error: 'Not a product page', 
-              errorType: 'detection',
-              url: window.location.href
+        (async () => {
+          try {
+            const isProductPage = checkIfProductPage();
+
+            if (!isProductPage) {
+              sendResponse({
+                success: false,
+                error: 'Not a product page',
+                errorType: 'detection',
+                url: window.location.href
+              });
+              return;
+            }
+
+            const productInfo = await extractProductInfo();
+
+            // Validate extraction results
+            if (!productInfo.success || !productInfo.productInfo.title) {
+              sendResponse({
+                success: false,
+                error: 'Could not extract sufficient product information',
+                errorType: 'parsing',
+                partialInfo: productInfo.productInfo || null
+              });
+              return;
+            }
+
+            sendResponse(productInfo);
+          } catch (error) {
+            console.error('Error in product detection/extraction:', error);
+            sendResponse({
+              success: false,
+              error: error.message || 'Error processing product page',
+              errorType: error.message.includes('detection') ? 'detection' : 'parsing',
+              stack: error.stack
             });
-            return true;
           }
-          
-          const productInfo = extractProductInfo();
-          
-          // Validate extraction results
-          if (!productInfo.success || !productInfo.productInfo.title) {
-            sendResponse({ 
-              success: false, 
-              error: 'Could not extract sufficient product information',
-              errorType: 'parsing',
-              partialInfo: productInfo.productInfo || null
-            });
-            return true;
-          }
-          
-          sendResponse(productInfo);
-        } catch (error) {
-          console.error('Error in product detection/extraction:', error);
-          sendResponse({ 
-            success: false, 
-            error: error.message || 'Error processing product page', 
-            errorType: error.message.includes('detection') ? 'detection' : 'parsing',
-            stack: error.stack
-          });
-        }
+        })();
       }
+      return true;
     } else if (message.action === 'applyCoupon') {
       // Handle applying a coupon code
       try {
@@ -170,13 +176,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 console.log('🎯 WISHLIST WIZARD: Message listener registered successfully');
 
 // Extract product information using the enhanced extractor
-function extractProductInfo() {
+async function extractProductInfo() {
   try {
     // Use the enhanced product extractor if available
     if (typeof window.EnhancedProductExtractor !== 'undefined') {
       const extractor = new window.EnhancedProductExtractor();
-      const result = extractor.extract();
-      
+      const result = await extractor.extract();
+
       if (result.success) {
         return {
           success: true,
@@ -635,9 +641,16 @@ function addWishlistWizardButton() {
   // Only show the button if we're confident this is a product page
   if (!isLikelyProductPage) return;
   
-  // Pre-extract product info for faster response
-  const productInfo = extractProductInfo();
-  
+  // Pre-extract product info in the background so it's very likely already
+  // resolved by the time the user actually clicks — extraction is async
+  // (it awaits the enhanced extractor), so it must not block showing the
+  // button itself. The click handler below falls back to a fresh await'd
+  // extraction if this hasn't resolved yet.
+  let cachedProductInfo = { success: false };
+  extractProductInfo()
+    .then((result) => { cachedProductInfo = result; })
+    .catch(() => {});
+
   // Create floating action button with modern design
   const buttonContainer = document.createElement('div');
   buttonContainer.id = 'wishlist-wizard-button-container';
@@ -753,8 +766,8 @@ function addWishlistWizardButton() {
     trackContentEvent('wishlist_wizard_button_clicked', 'engagement', window.location.hostname);
     
     try {
-      // Extract product info (use cached if available)
-      const extractedInfo = productInfo.success ? productInfo : extractProductInfo();
+      // Extract product info (use the pre-fetched cache if it's ready by now)
+      const extractedInfo = cachedProductInfo.success ? cachedProductInfo : await extractProductInfo();
       
       if (extractedInfo.success) {
         // Track successful product detection

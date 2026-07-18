@@ -12,7 +12,12 @@ const onMessageHandlers = [];
 const storageMock = {
   local: {
     get: vi.fn((keys, cb) => { if (cb) cb({}); }),
-    set: vi.fn(),
+    set: vi.fn((items, cb) => { if (cb) cb(); }),
+    remove: vi.fn((keys, cb) => { if (cb) cb(); }),
+  },
+  session: {
+    get: vi.fn((keys, cb) => { if (cb) cb({}); }),
+    set: vi.fn((items, cb) => { if (cb) cb(); }),
     remove: vi.fn(),
   },
   onChanged: {
@@ -39,6 +44,7 @@ const chromeMock = {
   action: {
     setBadgeText: vi.fn(),
     setBadgeBackgroundColor: vi.fn(),
+    openPopup: vi.fn().mockReturnValue(Promise.resolve()),
   },
   alarms: {
     create: vi.fn(),
@@ -243,5 +249,99 @@ describe('background script — normalizeExtensionEnvironment (via environment c
     // that it doesn't interfere with sync message handling.
     const resp = await sendMessage({ action: 'getErrorStatus' });
     expect(resp.success).toBe(true);
+  });
+});
+
+describe('background script — openPopup handler (floating button click)', () => {
+  beforeEach(() => {
+    storageMock.session.set.mockClear();
+    chromeMock.action.openPopup.mockClear();
+  });
+
+  it('stashes the extracted product in chrome.storage.session and returns success', async () => {
+    const productInfo = { title: 'Trail Backpack 40L', price: '89.95', imageUrl: '', productUrl: 'https://store.example.com/p', store: 'Example Store' };
+    const resp = await sendMessage({ action: 'openPopup', data: productInfo });
+
+    expect(resp.success).toBe(true);
+    expect(storageMock.session.set).toHaveBeenCalledTimes(1);
+    const [stashed] = storageMock.session.set.mock.calls[0];
+    expect(stashed.pendingProductData.data).toEqual(productInfo);
+    expect(typeof stashed.pendingProductData.capturedAt).toBe('number');
+  });
+
+  it('calls chrome.action.openPopup()', async () => {
+    await sendMessage({ action: 'openPopup', data: { title: 'Test Product' } });
+    expect(chromeMock.action.openPopup).toHaveBeenCalledTimes(1);
+  });
+
+  it('still stashes data and succeeds when chrome.action.openPopup is unavailable (e.g. Firefox)', async () => {
+    const original = chromeMock.action.openPopup;
+    delete chromeMock.action.openPopup;
+
+    const resp = await sendMessage({ action: 'openPopup', data: { title: 'Test Product' } });
+
+    expect(resp.success).toBe(true);
+    expect(storageMock.session.set).toHaveBeenCalledTimes(1);
+
+    chromeMock.action.openPopup = original;
+  });
+
+  it('still succeeds when chrome.action.openPopup() rejects', async () => {
+    chromeMock.action.openPopup.mockReturnValueOnce(Promise.reject(new Error('not allowed in this context')));
+
+    const resp = await sendMessage({ action: 'openPopup', data: { title: 'Test Product' } });
+
+    expect(resp.success).toBe(true);
+  });
+
+  it('handles a click with no detected product (data is null)', async () => {
+    const resp = await sendMessage({ action: 'openPopup', data: null });
+
+    expect(resp.success).toBe(true);
+    const [stashed] = storageMock.session.set.mock.calls[0];
+    expect(stashed.pendingProductData.data).toBeNull();
+  });
+});
+
+describe('background script — auth bridge messages', () => {
+  beforeEach(() => {
+    storageMock.local.set.mockClear();
+    storageMock.local.remove.mockClear();
+  });
+
+  it('WEB_AUTH_BRIDGE_TOKEN saves the bridged session and returns success', async () => {
+    const resp = await sendMessage({
+      type: 'WEB_AUTH_BRIDGE_TOKEN',
+      token: 'fake-id-token',
+      expiresAt: Date.now() + 60000,
+      userEmail: 'bridge-test@example.com',
+    });
+
+    expect(resp.success).toBe(true);
+    expect(storageMock.local.set).toHaveBeenCalledTimes(1);
+    const [saved] = storageMock.local.set.mock.calls[0];
+    expect(saved.authToken).toBe('fake-id-token');
+    expect(saved.userData).toEqual({ email: 'bridge-test@example.com' });
+  });
+
+  it('WEB_AUTH_BRIDGE_TOKEN with no token is ignored (falls through, not saved as auth)', async () => {
+    const resp = await sendMessage({ type: 'WEB_AUTH_BRIDGE_TOKEN' }).catch(() => null);
+    // Falls through to "unknown action" handling (which separately tracks the
+    // error via its own storage.local.set call) rather than saving an auth token.
+    const authSaveCalls = storageMock.local.set.mock.calls.filter(([items]) => 'authToken' in items);
+    expect(authSaveCalls).toHaveLength(0);
+    if (resp) {
+      expect(resp.success).toBe(false);
+    }
+  });
+
+  it('WEB_AUTH_BRIDGE_SIGNOUT clears auth state and returns success', async () => {
+    const resp = await sendMessage({ type: 'WEB_AUTH_BRIDGE_SIGNOUT' });
+
+    expect(resp.success).toBe(true);
+    expect(storageMock.local.remove).toHaveBeenCalledWith(
+      ['authToken', 'tokenExpiry', 'userData', 'refreshToken'],
+      expect.any(Function)
+    );
   });
 });

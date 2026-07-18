@@ -201,4 +201,145 @@ describe('popup integration smoke', () => {
     expect(payload.title).toBe('Coffee Maker');
     expect(payload.store).toBe('Example Store');
   }, 15000);
+
+  it('uses the chrome.storage.session fast path (floating button click) instead of the normal detection chain', async () => {
+    const pendingProductData = {
+      capturedAt: Date.now(),
+      data: {
+        title: 'Trail Backpack 40L',
+        price: '89.95',
+        imageUrl: 'https://cdn.example.com/backpack.jpg',
+        productUrl: 'http://localhost:8899/product.html',
+        store: 'localhost',
+      },
+    };
+
+    const tabsSendMessageSpy = vi.fn(() => Promise.resolve({ success: false }));
+    const sessionGetSpy = vi.fn((_keys, cb) => cb({ pendingProductData }));
+    const sessionRemoveSpy = vi.fn();
+
+    const runtimeSendMessageSpy = vi.fn((payload, cb) => {
+      if (payload?.action === 'getActiveTab') {
+        if (typeof cb === 'function') cb({ success: true, tab: { id: 11, url: 'http://localhost:8899/product.html' } });
+        return;
+      }
+      if (payload?.action === 'isAuthenticated') {
+        if (typeof cb === 'function') cb({ success: true, authenticated: true, userData: { id: 1, username: 'mark' } });
+        return;
+      }
+      if (payload?.action === 'fetchWishlists') {
+        if (typeof cb === 'function') cb({ success: true, wishlists: [{ id: 1, name: 'Main Wishlist' }] });
+        return;
+      }
+      if (typeof cb === 'function') cb({ success: false });
+    });
+
+    global.chrome = {
+      runtime: {
+        getURL: vi.fn(() => 'chrome-extension://abc123/'),
+        sendMessage: runtimeSendMessageSpy,
+      },
+      tabs: {
+        create: vi.fn(),
+        sendMessage: tabsSendMessageSpy,
+      },
+      scripting: {
+        executeScript: vi.fn().mockResolvedValue(undefined),
+      },
+      storage: {
+        local: {
+          get: vi.fn((_, cb) => cb({ addedItems: [] })),
+          set: vi.fn(),
+        },
+        session: {
+          get: sessionGetSpy,
+          remove: sessionRemoveSpy,
+        },
+      },
+    };
+    window.chrome = global.chrome;
+
+    await initializePopup('./popup.js?case=fastpath');
+
+    const titleEl = document.getElementById('product-title');
+    await waitForCondition(() => titleEl && titleEl.textContent === 'Trail Backpack 40L');
+
+    expect(document.getElementById('product-price').textContent).toContain('89.95');
+
+    // The fast path must skip the ping/getProductInfo detection chain entirely.
+    expect(tabsSendMessageSpy).not.toHaveBeenCalled();
+
+    // And it must consume the one-shot stash so a later normal popup open doesn't reuse it.
+    expect(sessionRemoveSpy).toHaveBeenCalledWith('pendingProductData');
+  });
+
+  it('falls back to normal detection when chrome.storage.session has no pending data', async () => {
+    const sessionGetSpy = vi.fn((_keys, cb) => cb({}));
+
+    const tabsSendMessageSpy = vi.fn((tabId, payload) => {
+      if (payload?.action === 'ping') return Promise.resolve({ success: true });
+      if (payload?.action === 'getProductInfo') {
+        return Promise.resolve({
+          success: true,
+          extractionMethod: 'generic',
+          productInfo: {
+            title: 'Normal Detection Product',
+            price: '10.00',
+            imageUrl: '',
+            productUrl: 'https://store.example.com/item',
+            store: 'Example Store',
+          },
+        });
+      }
+      return Promise.resolve({ success: false });
+    });
+
+    const runtimeSendMessageSpy = vi.fn((payload, cb) => {
+      if (payload?.action === 'getActiveTab') {
+        if (typeof cb === 'function') cb({ success: true, tab: { id: 12, url: 'https://store.example.com/item' } });
+        return;
+      }
+      if (payload?.action === 'isAuthenticated') {
+        if (typeof cb === 'function') cb({ success: true, authenticated: true, userData: { id: 1, username: 'mark' } });
+        return;
+      }
+      if (payload?.action === 'fetchWishlists') {
+        if (typeof cb === 'function') cb({ success: true, wishlists: [{ id: 1, name: 'Main Wishlist' }] });
+        return;
+      }
+      if (typeof cb === 'function') cb({ success: false });
+    });
+
+    global.chrome = {
+      runtime: {
+        getURL: vi.fn(() => 'chrome-extension://abc123/'),
+        sendMessage: runtimeSendMessageSpy,
+      },
+      tabs: {
+        create: vi.fn(),
+        sendMessage: tabsSendMessageSpy,
+      },
+      scripting: {
+        executeScript: vi.fn().mockResolvedValue(undefined),
+      },
+      storage: {
+        local: {
+          get: vi.fn((_, cb) => cb({ addedItems: [] })),
+          set: vi.fn(),
+        },
+        session: {
+          get: sessionGetSpy,
+          remove: vi.fn(),
+        },
+      },
+    };
+    window.chrome = global.chrome;
+
+    await initializePopup('./popup.js?case=normalpath');
+
+    const titleEl = document.getElementById('product-title');
+    await waitForCondition(() => titleEl && titleEl.textContent === 'Normal Detection Product');
+
+    expect(tabsSendMessageSpy).toHaveBeenCalled();
+  });
 });
