@@ -14,7 +14,11 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 
 // Define form validation schema - Updated for Firebase Auth
 const registerSchema = z.object({
-  displayName: z.string().min(2, "Display name must be at least 2 characters").optional(),
+  // z.string().min(2).optional() only permits `undefined`, not `""` — the
+  // form's default value is `""`, so this field never actually accepted
+  // being left blank despite the "(optional)" label. .or(z.literal('')))
+  // makes an empty string valid too.
+  displayName: z.string().min(2, "Display name must be at least 2 characters").optional().or(z.literal('')),
   email: z.string().trim().email("Please enter a valid email address"),
   password: z.string().min(6, "Password must be at least 6 characters"),
   confirmPassword: z.string(),

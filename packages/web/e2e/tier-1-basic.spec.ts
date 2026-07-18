@@ -127,13 +127,30 @@ test.describe('Tier 1: Basic Features', () => {
     return shareLinkInput.inputValue();
   };
 
+  let isAuthenticated = false;
+
   test.beforeAll(async ({ browser }: { browser: any }) => {
     page = await browser.newPage();
+    // Run once up front rather than letting each test silently discover this
+    // on its own: every test below opens with `if (await
+    // shouldBypassAuthGatedFlow()) return;` or an equivalent early return, so
+    // if auth is broken (e.g. packages/web/.env.local has no real Firebase
+    // dev credentials — see e2e/fixtures/bootstrap.ts), every test would
+    // otherwise report PASSED without ever exercising real behavior. Skipping
+    // loudly here instead means a broken local dev config is visible as 18
+    // skips, not 18 false passes.
+    isAuthenticated = await ensureAuthenticated(page);
   });
 
   test.afterAll(async () => {
     if (page) {
       await page.close();
+    }
+  });
+
+  test.beforeEach(async () => {
+    if (!isAuthenticated) {
+      test.skip(true, 'Authentication unavailable in this environment — see e2e/fixtures/bootstrap.ts');
     }
   });
 
@@ -200,7 +217,12 @@ test.describe('Tier 1: Basic Features', () => {
     await submitButton.click();
 
     await page.waitForURL(/\/dashboard/, { timeout: 10000 });
-    await expect(findWishlistCardByName(wishlistName)).toBeVisible({ timeout: 5000 });
+    // /dashboard is a client-side redirect shim to /app/dashboard (see
+    // AppRouter.tsx) — waitForURL's regex matches both, so it can resolve
+    // before the actual redirect + wishlist-list fetch finishes. 10s (matching
+    // the equivalent check in getWishlistCardOnDashboard) gives that real
+    // completion room instead of racing a too-tight 5s timeout.
+    await expect(findWishlistCardByName(wishlistName)).toBeVisible({ timeout: 10000 });
   });
 
   test('T1.5: Get Wishlist by ID', async () => {
@@ -238,7 +260,7 @@ test.describe('Tier 1: Basic Features', () => {
       }
 
       await page.goto('/dashboard');
-      await expect(findWishlistCardByName(updatedName)).toBeVisible({ timeout: 5000 });
+      await expect(findWishlistCardByName(updatedName)).toBeVisible({ timeout: 10000 });
       return;
     }
 
