@@ -109,8 +109,27 @@ jobs:
       - name: Run tests
         run: |
           cd packages/browser-extension
-          npm run test || echo "Tests not configured yet"
-      
+          npm run test
+
+      - name: Install Playwright Chromium + xvfb
+        run: |
+          cd packages/browser-extension
+          npx playwright install --with-deps chromium
+          sudo apt-get install -y xvfb
+
+      - name: Run E2E tests (extension loaded in a real browser)
+        run: |
+          cd packages/browser-extension
+          xvfb-run --auto-servernum npm run test:e2e
+
+      - name: Upload Playwright report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: extension-e2e-report
+          path: packages/browser-extension/test-results/
+          retention-days: 7
+
       - name: Generate manifest comparison report
         if: success()
         run: |

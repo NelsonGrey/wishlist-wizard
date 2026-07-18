@@ -1,4 +1,4 @@
-import { beforeAll, beforeEach, describe, it, expect, vi } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, it, expect, vi } from 'vitest';
 
 // ---------------------------------------------------------------------------
 // Chrome API mock — must be in place before content.js is imported so the
@@ -232,5 +232,110 @@ describe('content script — Amazon product page detection', () => {
     if (!resp.success) {
       expect(resp.errorType).toBeTruthy();
     }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Floating button injection and click — this is the flagship "add while
+// browsing" gesture. The button's onclick handler sends
+// chrome.runtime.sendMessage({action: 'openPopup', data: ...}), which
+// background.js picks up to stash the product and open the toolbar popup.
+// ---------------------------------------------------------------------------
+
+describe('content script — floating button injection and click', () => {
+  beforeAll(async () => {
+    // manifest.json loads enhanced-product-extractor.js alongside content.js
+    // in the real extension (content.js prefers it when present, falling
+    // back to legacy heuristics otherwise). Load it here too so extraction
+    // uses the same real JSON-LD path a real browser would, rather than the
+    // legacy fallback's layout-dependent heuristics, which jsdom can't
+    // compute meaningfully (no real rendering/layout engine).
+    await import('./enhanced-product-extractor.js');
+  });
+
+  beforeEach(() => {
+    // jsdom doesn't implement innerText (it requires layout, which jsdom
+    // doesn't compute) — a real browser handles this fine. Fall back to
+    // textContent so checkIfProductPageLegacy()'s page-text scoring works
+    // the same way it would in an actual browser.
+    if (!('innerText' in HTMLElement.prototype) || !Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'innerText')) {
+      Object.defineProperty(HTMLElement.prototype, 'innerText', {
+        configurable: true,
+        get() { return this.textContent; },
+      });
+    }
+
+    chromeMock.runtime.sendMessage.mockClear();
+    chromeMock.runtime.sendMessage.mockReturnValue(Promise.resolve());
+    document.head.innerHTML = `
+      <script type="application/ld+json">
+        {"@type":"Product","name":"Trail Backpack 40L","image":"https://cdn.example.com/backpack.jpg","offers":{"price":"89.95"}}
+      </script>
+      <meta property="og:title" content="Trail Backpack 40L" />
+      <meta property="og:type" content="product" />
+    `;
+    document.body.innerHTML = `
+      <h1>Trail Backpack 40L</h1>
+      <div class="price">$89.95</div>
+      <button>Add to cart</button>
+      <div>Product details</div>
+      <div>Specifications</div>
+    `;
+    window.history.replaceState({}, '', '/products/trail-backpack');
+  });
+
+  afterEach(() => {
+    // content.js is a singleton imported once for the whole file: its
+    // window 'load' listener was registered against real timers before any
+    // test ever engaged fake timers, so a stray real 1s-delayed callback can
+    // in principle still fire later and inject a button against whatever DOM
+    // a subsequent test happens to have at that moment. Removing any button
+    // here (and fully draining pending fake timers) keeps that from bleeding
+    // into the next test's assertions.
+    vi.clearAllTimers();
+    vi.useRealTimers();
+    document.getElementById('wishlist-wizard-button-container')?.remove();
+  });
+
+  async function triggerPageLoadDetection() {
+    vi.useFakeTimers();
+    document.dispatchEvent(new Event('DOMContentLoaded'));
+    await vi.runAllTimersAsync();
+    vi.useRealTimers();
+  }
+
+  it('injects a floating button on a page that looks like a product', async () => {
+    await triggerPageLoadDetection();
+
+    expect(document.getElementById('wishlist-wizard-button-container')).toBeTruthy();
+    expect(document.getElementById('wishlist-wizard-add-button')).toBeTruthy();
+  });
+
+  // Note: a "does not inject a button on a non-product page" test was tried
+  // here but proved unreliable in this file — content.js registers its
+  // window 'load' listener once, at module import, using real timers before
+  // any test engages fake timers, and that can leak a button-injection call
+  // into a later test's DOM non-deterministically. isProductPage() itself
+  // (the underlying logic this would exercise) is verified directly in
+  // enhanced-product-extractor.spec.js and indirectly via the "not a product
+  // page" cases in the message-handling describe block above, so coverage
+  // isn't lost — this file just isn't a reliable place to re-test it via the
+  // button-injection path specifically.
+
+  it('clicking the button sends {action: "openPopup", data: <extracted product>}', async () => {
+    await triggerPageLoadDetection();
+
+    const button = document.getElementById('wishlist-wizard-add-button');
+    expect(button).toBeTruthy();
+
+    button.click();
+    // The onclick handler is async — flush microtasks/timers it schedules.
+    await new Promise((resolve) => setTimeout(resolve, 20));
+
+    const openPopupCall = chromeMock.runtime.sendMessage.mock.calls.find(([msg]) => msg?.action === 'openPopup');
+    expect(openPopupCall).toBeTruthy();
+
+    const [message] = openPopupCall;
+    expect(message.data.title).toBe('Trail Backpack 40L');
   });
 });
