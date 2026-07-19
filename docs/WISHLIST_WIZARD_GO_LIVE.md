@@ -294,9 +294,18 @@ The user set up Firebase App Check in `wishlist-wizard-dev` (reCAPTCHA v3 for we
 - [x] **Wire up the App Check SDK client-side for iOS** — Completed 2026-07-18
 - [x] **Find and fix the real bug: iOS `Firebase.initializeApp()` duplicate-app crash on launch** — Completed 2026-07-18
 - [x] **Verify `createWishlist` succeeds end-to-end in `wishlist-wizard-dev`** — Completed 2026-07-18, verified via the full local E2E suite
-- [ ] **Verify in staging and production once App Check is set up there too** — Owner: _______ (only `wishlist-wizard-dev` has App Check configured so far)
-- [ ] **Confirm Android App Check enforcement status and test once enabled** — Owner: _______ (client SDK is wired defensively but the user only confirmed enforcement for web/iOS)
+- [ ] **Android App Check is on hold indefinitely** — no physical Android device available, which is also required for Play Store submission independent of App Check; the Flutter client SDK is wired defensively (`AndroidPlayIntegrityProvider`/`AndroidDebugProvider`) but untested and enforcement status is unconfirmed
 - [ ] **Harden the intermittent flake in `ensureWishlistExists`'s post-create wishlist-card check** — Owner: _______ (low priority; network-timing related, not a correctness bug)
+
+**2026-07-18, same day: the user configured App Check for staging and production too**, using the same reCAPTCHA v3 site key as dev (one key covers all three environments). Wired the site key into all three real web deploy paths — each uses a different config pattern, and App Check's site key isn't covered by Firebase Hosting's runtime `/__/firebase/init.json` auto-config the way the rest of the Firebase SDK config is, so each needed its own explicit fix:
+- `firebase-hosting-dev.yml` (deploys `wishlist-wizard-dev` on every push to `develop` — the live path this whole session's work has been landing through)
+- `firebase-hosting-merge.yml` (deploys `wishlist-wizard-prod` on push to `main`)
+- `master-pipeline.yml`'s `build-web` job (covers staging and other build contexts)
+
+Added `VITE_FIREBASE_APPCHECK_SITE_KEY_DEVELOPMENT`/`_STAGING`/`_PRODUCTION` as GitHub repo secrets (all three set to the same site key, matching the user's setup). **Per the user's explicit choice, staging and production were not live-verified this round** — only the config wiring was done; dev remains the only environment confirmed working end-to-end via the full E2E suite (§1.16 above).
+
+- [x] **Wire the App Check site key into all three real web deploy paths (dev/staging/prod) and set the corresponding GitHub secrets** — Completed 2026-07-18
+- [ ] **Live-verify staging and production now that App Check is configured there** — Owner: _______ (deliberately not done this round; use the same direct-`curl`-with-real-ID-token approach from §1.15 — skip production unless explicitly authorized each time, since it's real infrastructure and a prior attempt was correctly blocked by this session's own safety guardrails)
 
 ---
 
