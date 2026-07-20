@@ -127,16 +127,19 @@
       "section": "2. Advanced Features",
       "requirement": "Track price history, manual update, price alerts, price drop query",
       "enforced": true,
-      "verificationStatus": "verified",
+      "verificationStatus": "partial",
       "persona": "Budget-Conscious Shopper",
       "flow": "Flow 2: Add Item to Wishlist",
       "designRef": "docs/PRODUCT_DESIGN.md#flow-2-add-item-to-wishlist-product-discovery",
       "owner": "backend",
       "evidence": [
-        "npm run test:functions:smoke:all",
-        "artifacts/smoke-all-functions-report.json"
+        "2026-07-20: the prior 'verified' status here was false - POST /api/price-alerts didn't exist (the create dialog failed every time), nothing ever set triggered:true on an alert, and priceHistory had never been written to. The scheduled smoke test that fed this record (test:functions:smoke:all) seeded its fixture alert via the generic createDocument callable, bypassing the real create endpoint entirely, and had an explicit check asserting POST should be REJECTED - it was validating the bug as correct behavior.",
+        "2026-07-20: implemented POST /api/price-alerts, GET enrichment, evaluatePriceAlertsForItem + scheduledEvaluatePriceAlerts (the real trigger evaluator), recordPriceHistoryIfChanged, and the processPriceAlertDispatch field fix. Deployed live to wishlist-wizard-dev, confirmed via `firebase functions:list` (priceAlertsEvaluateScheduled, updated api, etc. all present).",
+        "2026-07-20: evaluatePriceAlertsForItem and recordPriceHistoryIfChanged independently verified against a real Firestore emulator - trigger/hysteresis-rearm/inactive-alert-exclusion (7 scenarios) and price-history-on-change/no-op-on-unchanged/orphan-item-guard (4 scenarios), 22 assertions total, all passing.",
+        "2026-07-20: scripts/emulator-smoke-all-functions.cjs updated with real POST coverage (contract:api-router:price-alerts-create, -create-upserts-duplicate, -create-foreign-item-denied) and the inverted method-not-allowed check fixed to test PUT instead of POST. NOT yet run to completion end-to-end - the local sandbox this was built in couldn't keep the Auth emulator up for a full multi-emulator run (connect ECONNREFUSED after ~15-25s twice in a row); syntax/lint clean and logic traced carefully but not executed live.",
+        "Marked partial, not verified, until `npm run test:functions:smoke:all` is actually run to a clean pass somewhere the full emulator suite is stable (e.g. CI or a local machine) - see artifacts/smoke-all-functions-report.json once that happens."
       ],
-      "lastVerifiedAt": "2026-03-03"
+      "lastVerifiedAt": "2026-07-20"
     },
     {
       "id": "advanced-privacy-sharing-controls",
