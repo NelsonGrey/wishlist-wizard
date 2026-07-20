@@ -11,6 +11,7 @@ import { AuthProvider } from "./contexts/AuthContext";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 import { queryClient } from "./lib/queryClient";
 import EnvironmentPasswordGate from "./components/security/EnvironmentPasswordGate";
+import ComingSoon from "./pages/ComingSoon";
 
 // Layouts
 import PublicLayout from "./components/layout/PublicLayout";
@@ -153,6 +154,14 @@ function NonHomeEnvironmentGate({ children }: { children: React.ReactNode }) {
 
 function AppRouter() {
   // Analytics is handled by GTM (GTM-KRDC75LR loaded in index.html) + Consent Mode v2.
+
+  // Production isn't launched yet — hold the real app behind a marketing
+  // placeholder there regardless of auth/routing state. Staging and demo
+  // environments use EnvironmentPasswordGate instead (see NonHomeEnvironmentGate
+  // below), since those need real access for internal testing, not a public hold page.
+  if (resolveRuntimeEnvironment() === 'production') {
+    return <ComingSoon />;
+  }
 
   return (
     <QueryClientProvider client={queryClient}>
