@@ -1,7 +1,7 @@
 # Technical Requirements Specification
 
-Version: 1.0
-Last updated: 2026-05-06
+Version: 1.1
+Last updated: 2026-07-20
 Owner: Engineering
 
 ## Purpose
@@ -19,7 +19,7 @@ This document translates baseline business requirements into implementable techn
 | TR-005 | Implement share links and privacy controls with server-side enforcement for public/private/invite flows. | Functional | P0 | packages/functions/src/api, packages/web/src/pages |
 | TR-006 | Implement reservation and purchase mutation paths with duplicate prevention and immutable audit metadata. | Functional | P0 | packages/functions/src/api, packages/shared |
 | TR-007 | Implement collaboration membership/roles and event notifications for add/remove/update actions. | Functional | P1 | packages/functions/src/api, packages/web |
-| TR-008 | Implement price tracking pipeline, history persistence, threshold alert evaluation, and notification trigger integration. | Functional | P1 | packages/functions/src/firebase-price-tracking.ts |
+| TR-008 | Implement price tracking pipeline, history persistence, threshold alert evaluation, and notification trigger integration. | Functional | P1 | packages/functions/src/api/router.ts, packages/functions/src/api/priceIntelligenceRefresh.ts, packages/functions/src/fcm.ts |
 | TR-009 | Implement creator analytics aggregation and reconciliation checks from extension events to dashboard metrics. | Functional | P1 | packages/functions/src/api/analytics, packages/web |
 | TR-010 | Implement group gifting commitments, budget guardrail validation, and export schema endpoint. | Functional | P1 | packages/functions/src/api/group, packages/web |
 | TR-011 | Provide notification delivery adapters for in-app/email/push with retries and failure telemetry. | Reliability | P1 | packages/functions/src/notifications, packages/mobile |
