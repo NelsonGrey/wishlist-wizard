@@ -28,8 +28,8 @@ type PriceDropItem = {
 };
 
 type PriceAlertItem = {
-  id: number;
-  itemId: number;
+  id: string;
+  itemId: string;
   item: {
     title: string;
     imageUrl?: string;
@@ -266,7 +266,7 @@ export default function PriceTracking() {
   });
 
   const trackedItemIds = Array.from(
-    new Set((alerts || []).map((alert) => alert.itemId).filter((itemId) => Number.isFinite(itemId)))
+    new Set((alerts || []).map((alert) => alert.itemId).filter((itemId) => typeof itemId === "string" && itemId.length > 0))
   );
 
   const { data: volatileItems, isLoading: isLoadingVolatility } = useQuery<VolatilityItem[]>({
