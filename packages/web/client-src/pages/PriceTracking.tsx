@@ -43,7 +43,7 @@ type PriceHistoryPoint = {
 };
 
 type VolatilityItem = {
-  itemId: number;
+  itemId: string;
   title: string;
   imageUrl?: string;
   store?: string;
