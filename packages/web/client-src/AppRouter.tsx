@@ -27,6 +27,7 @@ const Subscription = lazy(() => import("./pages/Subscription"));
 const WishlistDetail = lazy(() => import("./pages/WishlistDetail"));
 const Recommendations = lazy(() => import("./pages/Recommendations"));
 const PriceTracking = lazy(() => import("./pages/PriceTracking"));
+const CreatorDashboard = lazy(() => import("./pages/CreatorDashboard"));
 const Calendar = lazy(() => import("./pages/Calendar"));
 const Notifications = lazy(() => import("./pages/Notifications"));
 const ExtensionPage = lazy(() => import("./pages/ExtensionPage"));
@@ -58,6 +59,7 @@ const UserManagement = lazy(() => import("./pages/admin/UserManagement"));
 const UserDetail = lazy(() => import("./pages/admin/UserDetail"));
 const SupportTickets = lazy(() => import("./pages/admin/SupportTickets"));
 const AuditLog = lazy(() => import("./pages/admin/AuditLog"));
+const AffiliateAdmin = lazy(() => import("./pages/admin/AffiliateAdmin"));
 
 function resolveRuntimeEnvironment(): 'development' | 'staging' | 'production' {
   const processEnvironment =
@@ -275,6 +277,14 @@ function AppRouter() {
                     )}
                   />
                   <Route
+                    path="/app/creator-dashboard"
+                    component={() => (
+                      <ProtectedRoute requireAuth>
+                        <CreatorDashboard />
+                      </ProtectedRoute>
+                    )}
+                  />
+                  <Route
                     path="/app/calendar"
                     component={() => (
                       <ProtectedRoute requireAuth>
@@ -344,6 +354,7 @@ function AppRouter() {
                   <Route path="/admin/users/:uid" component={UserDetail} />
                   <Route path="/admin/tickets" component={SupportTickets} />
                   <Route path="/admin/audit-log" component={AuditLog} />
+                  <Route path="/admin/affiliate" component={AffiliateAdmin} />
 
                   {/* 404 — must stay last: wouter's path-less Route always matches */}
                   <Route component={NotFound} />

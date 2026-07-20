@@ -13,7 +13,8 @@ import {
   Users,
   Smartphone,
   Puzzle,
-  BarChart3
+  BarChart3,
+  WalletCards
 } from "lucide-react";
 
 import {
@@ -76,6 +77,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
     { name: 'Dashboard', href: '/app/dashboard', icon: <LayoutDashboard className="h-5 w-5" />, activePaths: ['/app/dashboard', '/app/wishlists', '/app/wishlist', '/dashboard', '/wishlists', '/wishlist'] },
     { name: 'Calendar', href: '/app/calendar', icon: <Calendar className="h-5 w-5" />, activePaths: ['/app/calendar', '/calendar'] },
     { name: 'Analytics', href: '/app/analytics', icon: <BarChart3 className="h-5 w-5" />, activePaths: ['/app/analytics', '/analytics'] },
+    { name: 'Creator Dashboard', href: '/app/creator-dashboard', icon: <WalletCards className="h-5 w-5" />, activePaths: ['/app/creator-dashboard'] },
   ];
 
   const featureNavItems = [
