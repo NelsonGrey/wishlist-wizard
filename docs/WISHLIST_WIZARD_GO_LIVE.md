@@ -309,6 +309,29 @@ Added `VITE_FIREBASE_APPCHECK_SITE_KEY_DEVELOPMENT`/`_STAGING`/`_PRODUCTION` as 
 
 ---
 
+### 1.17 GitHub Actions Had Never Run, a Stale Lockfile Was Silently Blocking It, and Production Had No Real Launch Gate [RESOLVED — 2026-07-20]
+
+Picking up the §1.16 "live-verify staging" item surfaced something much bigger: **every GitHub Actions workflow in this repo had 0 runs, ever** (`actions/runs` → `total_count: 0`, confirmed per-workflow too), despite push events arriving normally and repo-level Actions permissions reporting enabled. All prior "fixed in CI" claims in recent commits/docs had never actually been validated by a real CI execution — deploys were happening via the user running `firebase deploy` locally (confirmed via the GitHub Deployments API: ~1,296 deployment records, all created by `mnelson3`, none by `github-actions[bot]`). Root cause was an org-level Actions policy on the `NelsonGrey` organization (Settings → Actions → General) — the user fixed it there; confirmed via a manually-triggered `secret-scan.yml` run that actually executed and completed.
+
+With Actions genuinely running for the first time, `master-pipeline.yml`'s `test_all` action immediately failed on `npm ci` — the root `package-lock.json` was stale relative to `packages/functions` (checked out live from the private `wishlist-wizard-functions` companion repo on every CI run), missing ~200 transitive dependencies (`gtoken`, `gcp-metadata`, `jsonwebtoken`, etc.) that `firebase-admin`'s dependency tree now pulls in. This has been failing deterministically since the functions extraction — CI just never ran to surface it. Fixed by cloning the companion repo's `develop` branch into an isolated scratch copy (the user's actual local `packages/functions` was on its own feature branch with uncommitted work and was never touched) and regenerating the root lockfile against it. Verified both `npm ci` and `npm run lint` pass clean afterward.
+
+The next `master-pipeline.yml` run got much further (65 mobile unit tests passed) and failed on a legitimate next gate: `scripts/release-readiness-check.sh`'s "no coming-soon copy in production" check, flagging genuine marketing copy ("Android coming soon", etc.) in 5 files. Chasing why turned up the real finding: **`main` is 848 commits behind `develop`** (last touched 2026-06-05) and its `App.tsx` unconditionally renders nothing but the old `ComingSoon.tsx` — that's the entire reason `wishlist-wizard-prod.web.app` has been showing "Coming Soon" (confirmed live, HTTP 200, title "Wishlist Wizard — Coming Soon"). It's not a bug, just staleness. But it means **`develop`'s current code has no production gate at all** — `ComingSoon.tsx` was dropped at some point during `develop`'s evolution and replaced with `EnvironmentPasswordGate`, whose `PROTECTED_ENVIRONMENTS` set only covers `staging`/`demonstration`, not `production`. The moment `develop` merges to `main` for real launch, the real app would go fully public with no soft-launch step — and since Actions now actually deploys on push to `main`, that would happen automatically.
+
+Per the user's explicit direction ("production should show Coming Soon since we're not in production yet"), fixed by:
+- Adding a new, self-contained `packages/web/client-src/pages/ComingSoon.tsx` (no dead API calls to the old `/api/coming-soon/*` endpoints, which don't exist in the current functions backend; "Personalized" framing per [[project_deferred_services]]'s AI-wording decision, not "AI-Powered").
+- Wiring it unconditionally into `AppRouter.tsx`: when `resolveRuntimeEnvironment() === 'production'`, the whole app renders `<ComingSoon />` and nothing else — no env var toggle, a deliberate code-level gate matching how `main`'s old `App.tsx` behaved.
+- Removing `release-readiness-check.sh`'s "no coming-soon copy" step entirely — its premise is now inverted (production is *supposed* to show coming-soon content until real launch), so the check no longer makes sense in either direction.
+- Correcting the stale `VITE_SHOW_COMING_SOON_*` line in §2.2 — that env var doesn't exist in the current codebase; the gate is now hardcoded, not env-driven.
+
+- [x] **Diagnose and fix GitHub Actions never running** (org-level policy) — Completed 2026-07-20, user fixed via org settings, verified via a real completed run
+- [x] **Find and fix the root `package-lock.json` drift blocking `npm ci` in CI** — Completed 2026-07-20
+- [x] **Add a real production launch gate** (`ComingSoon.tsx` wired unconditionally for the `production` environment in `AppRouter.tsx`) — Completed 2026-07-20
+- [x] **Remove the now-obsolete "no coming-soon copy" CI check and correct the stale `VITE_SHOW_COMING_SOON_*` doc reference** — Completed 2026-07-20
+- [ ] **Before real launch: deliberately remove/flip the `environment === 'production'` check in `AppRouter.tsx`** — Owner: _______ (this is now the actual "go live" code change — there's no env var to toggle, it's a direct code edit)
+- [ ] **Live-verify staging App Check** — still open, carried over from §1.16 (this investigation started as an attempt to do this and got diverted by the CI findings above)
+
+---
+
 ## Part 2 — Pre-Launch Checklist
 
 ### 2.1 Firebase Infrastructure
@@ -369,7 +392,7 @@ All secrets must be in GitHub Secrets or Firebase Secret Manager — never in so
 - [x] Production VITE_ vars — set as `VITE_FIREBASE_*_PRODUCTION` in GitHub Secrets; `firebase-hosting-merge.yml` maps them correctly
 - [x] Dev VITE_ vars — set as `DEV_VITE_FIREBASE_*`; `firebase-hosting-dev.yml` maps them correctly
 - [x] Staging VITE_ vars — set as `VITE_FIREBASE_*_STAGING`
-- [x] `VITE_SHOW_COMING_SOON_*` — set for all three environments
+- [x] ~~`VITE_SHOW_COMING_SOON_*`~~ — **stale, this env var doesn't exist in the current codebase.** Superseded 2026-07-20 by a hardcoded check in `AppRouter.tsx` (see §1.17) — no env var to set.
 - [ ] `VITE_GA_MEASUREMENT_ID` — Google Analytics ID separate from Firebase — Owner: _______
 
 ---

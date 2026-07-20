@@ -23,22 +23,7 @@ else
   fi
 fi
 
-echo "2) Ensure web production UI contains no coming-soon copy"
-if [ "$HAS_RG" = true ]; then
-  if rg -n -i 'coming[ -]soon' packages/web/client-src packages/web/index.html >/dev/null; then
-    echo "❌ Found 'coming soon' content in web production paths."
-    rg -n -i 'coming[ -]soon' packages/web/client-src packages/web/index.html
-    exit 1
-  fi
-else
-  if grep -RInE 'coming[ -]soon' packages/web/client-src packages/web/index.html >/dev/null; then
-    echo "❌ Found 'coming soon' content in web production paths."
-    grep -RInE 'coming[ -]soon' packages/web/client-src packages/web/index.html
-    exit 1
-  fi
-fi
-
-echo "3) Ensure no invalid nested interactive/link markup in web client"
+echo "2) Ensure no invalid nested interactive/link markup in web client"
 if [ "$HAS_RG" = true ]; then
   if rg -nUP '<Link[^>]*>\s*<(a|button|Button)\b' packages/web/client-src >/dev/null; then
     echo "❌ Found nested interactive/link markup patterns in web client."
@@ -53,16 +38,16 @@ else
   fi
 fi
 
-echo "4) Generate extension release artifacts"
+echo "3) Generate extension release artifacts"
 npm run package:extension:release
 
-echo "5) Run extension release preflight"
+echo "4) Run extension release preflight"
 ./scripts/extension-release-preflight.sh
 
-echo "6) Run mobile release preflight"
+echo "5) Run mobile release preflight"
 ./scripts/mobile-release-preflight.sh
 
-echo "7) Run browser extension automated tests"
+echo "6) Run browser extension automated tests"
 npm run test --workspace=@wishlist-wizard/browser-extension -- --run
 
 echo "✅ Release-readiness checks passed."
