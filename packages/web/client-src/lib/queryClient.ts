@@ -59,7 +59,9 @@ function shouldUseFirebaseFunctions(url: string): boolean {
     '/api/items',
     '/api/price-intelligence',
     '/api/mobile',
-    '/api/devices'
+    '/api/devices',
+    '/api/creator',
+    '/api/admin/affiliate'
   ];
   
   return firebaseFunctionEndpoints.some(endpoint => url.startsWith(endpoint));
@@ -184,6 +186,26 @@ function getFirebaseFunctionRoute(url: string, method: string, body?: unknown): 
     { pattern: /^\/api\/affiliate\/programs$/, resolve: () => ({ functionName: 'linkPrograms', data }) },
     { pattern: /^\/api\/affiliate\/stats$/, resolve: () => ({ functionName: 'linkStats', data }) },
     { pattern: /^\/api\/affiliate\/disclosure$/, resolve: () => ({ functionName: 'linkDisclosure', data }) },
+    { pattern: /^\/api\/creator\/commission-summary$/, resolve: () => ({ functionName: 'creatorCommissionDashboardSummary', data }) },
+    { pattern: /^\/api\/creator\/commission-ledger$/, resolve: () => ({ functionName: 'creatorCommissionLedgerList', data }) },
+    { pattern: /^\/api\/creator\/adjustments$/, resolve: () => ({ functionName: 'creatorAdjustmentsList', data }) },
+    { pattern: /^\/api\/creator\/payout-history$/, resolve: () => ({ functionName: 'creatorPayoutHistory', data }) },
+    { pattern: /^\/api\/creator\/connect\/create$/, resolve: () => ({ functionName: 'creatorConnectAccountCreate', data }) },
+    { pattern: /^\/api\/creator\/connect\/onboarding-link$/, resolve: () => ({ functionName: 'creatorConnectOnboardingLink', data }) },
+    { pattern: /^\/api\/creator\/connect\/status$/, resolve: () => ({ functionName: 'creatorConnectAccountStatus', data }) },
+    { pattern: /^\/api\/creator\/tracking-tags$/, resolve: () => ({ functionName: 'creatorAffiliateTrackingTagList', data }) },
+    { pattern: /^\/api\/creator\/tracking-tags\/request$/, resolve: () => ({ functionName: 'creatorAffiliateTrackingTagRequest', data }) },
+    { pattern: /^\/api\/admin\/affiliate\/tracking-pool\/add$/, resolve: () => ({ functionName: 'affiliateTrackingIdPoolAdd', data }) },
+    { pattern: /^\/api\/admin\/affiliate\/tracking-pool\/list$/, resolve: () => ({ functionName: 'affiliateTrackingIdPoolList', data }) },
+    { pattern: /^\/api\/admin\/affiliate\/commission\/approve$/, resolve: () => ({ functionName: 'commissionApprove', data }) },
+    { pattern: /^\/api\/admin\/affiliate\/commission\/flag-fraud$/, resolve: () => ({ functionName: 'commissionFlagFraud', data }) },
+    { pattern: /^\/api\/admin\/affiliate\/commission\/adjustment$/, resolve: () => ({ functionName: 'commissionAdjustmentCreate', data }) },
+    { pattern: /^\/api\/admin\/affiliate\/imports\/request-upload-url$/, resolve: () => ({ functionName: 'affiliateReportImportRequestUploadUrl', data }) },
+    { pattern: /^\/api\/admin\/affiliate\/imports\/status$/, resolve: () => ({ functionName: 'affiliateReportImportStatus', data }) },
+    { pattern: /^\/api\/admin\/affiliate\/imports\/list$/, resolve: () => ({ functionName: 'affiliateReportImportList', data }) },
+    { pattern: /^\/api\/admin\/affiliate\/imports\/retry$/, resolve: () => ({ functionName: 'affiliateReportImportRetry', data }) },
+    { pattern: /^\/api\/admin\/affiliate\/payout-batches$/, resolve: () => ({ functionName: 'adminPayoutBatchList', data }) },
+    { pattern: /^\/api\/admin\/affiliate\/payout-batches\/process$/, resolve: () => ({ functionName: 'processPayoutBatch', data }) },
     { pattern: /^\/api\/group-payments\/payment-intent$/, resolve: () => ({ functionName: 'groupPaymentCreateIntent', data }) },
     { pattern: /^\/api\/group-payments\/confirm$/, resolve: () => ({ functionName: 'groupPaymentConfirm', data }) },
     { pattern: /^\/api\/group-payments\/item\/([^/]+)$/, resolve: (match) => ({ functionName: 'groupGiftSummary', data: { ...data, itemId: match[1] } }) },
