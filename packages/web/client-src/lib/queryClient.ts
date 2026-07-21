@@ -1,7 +1,8 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
 import { getAuth } from "firebase/auth";
 import { connectFunctionsEmulator, getFunctions, httpsCallable } from "firebase/functions";
-import { firebaseApp, initFirebase } from "@/lib/firebase";
+import { getToken as getAppCheckToken } from "firebase/app-check";
+import { firebaseApp, getFirebaseAppCheck, initFirebase } from "@/lib/firebase";
 
 // API Base URL
 // - Uses explicit env override when provided
@@ -32,6 +33,27 @@ async function getAuthToken(): Promise<string | null> {
     return null;
   } catch (error) {
     console.warn('Failed to get Firebase auth token:', error);
+    return null;
+  }
+}
+
+/**
+ * Get an App Check token for raw fetch() requests to the api router.
+ * httpsCallable() attaches this automatically for callable-path requests;
+ * a plain fetch() does not, so router endpoints that call
+ * requireAppCheck()/requireAppCheckHTTP() internally need it attached here.
+ * Returns null (silently) if App Check isn't configured for this environment.
+ */
+async function getAppCheckHeaderToken(): Promise<string | null> {
+  try {
+    const appCheck = getFirebaseAppCheck();
+    if (!appCheck) {
+      return null;
+    }
+    const result = await getAppCheckToken(appCheck, false);
+    return result.token;
+  } catch (error) {
+    console.warn('Failed to get App Check token:', error);
     return null;
   }
 }
@@ -331,6 +353,11 @@ export async function apiRequest(
     const token = await getAuthToken();
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    const appCheckToken = await getAppCheckHeaderToken();
+    if (appCheckToken) {
+      headers['X-Firebase-AppCheck'] = appCheckToken;
     }
 
     fullUrl = buildFirebaseApiRouterUrl(url);

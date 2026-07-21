@@ -267,6 +267,16 @@ export let firebaseFirestore: Firestore | null = null;
 let analyticsInitialized = false;
 let remoteConfigInitialized = false;
 
+/**
+ * The initialized App Check instance, if App Check is configured — needed by
+ * callers that make raw fetch() requests (e.g. the api router) instead of
+ * going through the Firebase Functions SDK, since httpsCallable() attaches
+ * the App Check token automatically but a plain fetch() does not.
+ */
+export function getFirebaseAppCheck() {
+  return firebaseClient?.appCheck ?? null;
+}
+
 function ensureFirebaseCoreInitialized(): boolean {
   if (firebaseClient) {
     firebaseApp = firebaseClient.app;
