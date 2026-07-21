@@ -83,6 +83,7 @@ function shouldUseFirebaseApiRouter(url: string): boolean {
     '/api/products/preview',
     '/api/creator',
     '/api/admin/affiliate',
+    '/api/billing',
   ];
 
   return routerEndpoints.some(endpoint => url.startsWith(endpoint));

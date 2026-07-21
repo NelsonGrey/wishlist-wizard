@@ -1,6 +1,6 @@
-import { getFunctions, httpsCallable } from 'firebase/functions';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
+import { apiRequest } from '@/lib/queryClient';
 import type { SubscriptionTier, TierLimits, TierPricing } from '@wishlist-wizard/shared';
 
 export interface SubscriptionStatus {
@@ -16,18 +16,15 @@ export interface SubscriptionStatus {
   availableUpgrades: Array<{ tier: SubscriptionTier; pricing: TierPricing }>;
 }
 
-/** Fetches the current user's subscription tier/status via the billingStatus callable. */
+/** Fetches the current user's subscription tier/status via GET /api/billing/status. */
 export function useSubscriptionStatus() {
   const { user } = useAuth();
-  const functions = getFunctions();
 
   return useQuery<SubscriptionStatus>({
     queryKey: ['subscription-status', user?.uid],
     queryFn: async () => {
       if (!user) throw new Error('Not authenticated');
-      const fn = httpsCallable<object, SubscriptionStatus>(functions, 'billingStatus');
-      const { data } = await fn();
-      return data;
+      return apiRequest('/api/billing/status') as Promise<SubscriptionStatus>;
     },
     enabled: !!user,
     // Tier rarely changes mid-session; this now also runs on every

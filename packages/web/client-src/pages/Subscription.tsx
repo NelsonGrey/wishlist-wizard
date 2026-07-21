@@ -4,9 +4,9 @@
  * Shows current subscription tier, usage metrics, billing portal, and upgrade options.
  */
 import { useState, useEffect } from 'react';
-import { getFunctions, httpsCallable } from 'firebase/functions';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSubscriptionStatus } from '@/hooks/use-subscription-status';
+import { apiRequest } from '@/lib/queryClient';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -53,7 +53,6 @@ function getUsagePercent(current: number, limit: number): number {
 export default function Subscription() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const functions = getFunctions();
   const [redirecting, setRedirecting] = useState(false);
 
   const { data: subStatus, isLoading } = useSubscriptionStatus();
@@ -61,11 +60,10 @@ export default function Subscription() {
   async function handleUpgrade(tier: SubscriptionTier, billingCycle: 'monthly' | 'annual') {
     setRedirecting(true);
     try {
-      const fn = httpsCallable<object, { url: string; sessionId: string }>(
-        functions,
-        'billingCheckout',
-      );
-      const { data } = await fn({ tier, billingCycle });
+      const data = await apiRequest('/api/billing/checkout', {
+        method: 'POST',
+        body: { tier, billingCycle },
+      }) as { url: string; sessionId: string };
       window.location.href = data.url;
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred';
@@ -77,8 +75,7 @@ export default function Subscription() {
   async function handleManageBilling() {
     setRedirecting(true);
     try {
-      const fn = httpsCallable<object, { url: string }>(functions, 'billingPortal');
-      const { data } = await fn();
+      const data = await apiRequest('/api/billing/portal', { method: 'POST' }) as { url: string };
       window.location.href = data.url;
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred';
