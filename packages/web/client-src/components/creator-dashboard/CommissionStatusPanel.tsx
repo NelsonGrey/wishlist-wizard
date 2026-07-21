@@ -37,7 +37,7 @@ export default function CommissionStatusPanel() {
 
   const { data: ledgerData, isLoading: isLoadingLedger } = useQuery<{ entries: LedgerEntry[] }>({
     queryKey: ["/api/creator/commission-ledger"],
-    queryFn: () => apiRequest("/api/creator/commission-ledger", { body: { limit: 100 } }) as Promise<{ entries: LedgerEntry[] }>,
+    queryFn: () => apiRequest("/api/creator/commission-ledger", { method: "POST", body: { limit: 100 } }) as Promise<{ entries: LedgerEntry[] }>,
     staleTime: 5 * 60 * 1000,
   });
 
