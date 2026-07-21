@@ -12,6 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Wishlist as DbWishlist } from "@wishlist-wizard/shared";
 
 // Extended type for UI purposes that includes computed fields
@@ -159,15 +160,20 @@ export default function Dashboard() {
               <CardHeader className="flex flex-row items-center justify-between space-y-0">
                 <CardTitle className="text-lg">Getting Started</CardTitle>
                 {(wishlists?.length ?? 0) > 0 && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={handleDismissGettingStarted}
-                    aria-label="Dismiss getting started tips"
-                    data-testid="dashboard-getting-started-dismiss"
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={handleDismissGettingStarted}
+                        aria-label="Dismiss getting started tips"
+                        data-testid="dashboard-getting-started-dismiss"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Dismiss getting started tips</TooltipContent>
+                  </Tooltip>
                 )}
               </CardHeader>
               <CardContent>

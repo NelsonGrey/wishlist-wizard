@@ -1085,150 +1085,6 @@ export default function WishlistDetail() {
           </Card>
 
           <Card className="mb-6">
-            <CardContent className="p-6">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
-                <div>
-                  <h2 className="text-lg font-semibold">Item Details</h2>
-                  <p className="text-sm text-gray-500">List and manage all items in this wishlist.</p>
-                </div>
-                <Button
-                  data-testid="wishlist-detail-add-item"
-                  className="w-full sm:w-auto flex items-center justify-center gap-2"
-                  onClick={openCreateItemDialog}
-                >
-                  <Plus className="h-4 w-4" />
-                  Add Item
-                </Button>
-              </div>
-
-              <div className="text-sm text-gray-500 mb-4">
-                <div className="flex flex-col gap-2 sm:gap-3">
-                  <span>
-                    Total items: <span className="font-medium text-gray-900">{items?.length ?? 0}</span>
-                  </span>
-                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-3">
-                    <div className="flex gap-2">
-                      <Input
-                        ref={itemSearchInputRef}
-                        data-testid="wishlist-detail-search-input"
-                        value={itemSearch}
-                        onKeyDown={handleSearchInputKeyDown}
-                        onChange={(event) => setItemSearch(event.target.value)}
-                        placeholder="Search title, store, price, or link"
-                      />
-                      {itemSearch.trim() && (
-                        <Button
-                          type="button"
-                          variant="outline"
-                          data-testid="wishlist-detail-search-clear"
-                          onClick={() => setItemSearch('')}
-                        >
-                          Clear
-                        </Button>
-                      )}
-                    </div>
-                    <Select value={itemSort} onValueChange={(value) => setItemSort(value as typeof itemSort)}>
-                      <SelectTrigger data-testid="wishlist-detail-sort-trigger">
-                        <SelectValue placeholder="Sort items" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="newest">Newest</SelectItem>
-                        <SelectItem value="price-low">Price: Low to High</SelectItem>
-                        <SelectItem value="price-high">Price: High to Low</SelectItem>
-                        <SelectItem value="title-az">Title: A to Z</SelectItem>
-                        <SelectItem value="store-az">Store: A to Z</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-              </div>
-
-              {isLoadingItems ? (
-                <div className="space-y-4">
-                  {[1, 2, 3].map((i) => (
-                    <Card key={i}>
-                      <CardContent className="p-4 flex space-x-4">
-                        <Skeleton className="h-16 w-16 rounded-md" />
-                        <div className="flex-1 space-y-2">
-                          <Skeleton className="h-4 w-full" />
-                          <Skeleton className="h-4 w-2/3" />
-                          <div className="flex justify-between">
-                            <Skeleton className="h-4 w-20" />
-                            <Skeleton className="h-4 w-8" />
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              ) : error ? (
-                <Card>
-                  <CardContent className="p-8 text-center">
-                    <p className="text-red-500 mb-4">Failed to load wishlist items</p>
-                    <Button
-                      variant="outline"
-                      onClick={() => queryClient.invalidateQueries({ queryKey: [`/api/wishlists/${wishlistId}/items`] })}
-                    >
-                      Retry
-                    </Button>
-                  </CardContent>
-                </Card>
-              ) : filteredItems && filteredItems.length > 0 ? (
-                <div data-testid="wishlist-detail-items-list" className="space-y-4">
-                  {filteredItems.map((item) => {
-                    const isReservePendingForItem = reservePendingItemId === item.id && reserveItemMutation.isPending;
-                    const isPurchasePendingForItem = purchasePendingItemId === item.id && purchaseItemMutation.isPending;
-                    const disableItemActions = isReservePendingForItem || isPurchasePendingForItem;
-
-                    return (
-                    <WishlistItem
-                      key={item.id}
-                      item={item}
-                      searchQuery={itemSearch}
-                      onEdit={() => openEditItemDialog(item)}
-                      onDelete={() => handleDeleteItem(item.id)}
-                      onReserve={() => handleReserveItem(item.id)}
-                      onPurchase={() => handlePurchaseItem(item.id)}
-                      reserveLabel={isReservePendingForItem ? 'Reserving...' : 'Reserve'}
-                      purchaseLabel={isPurchasePendingForItem ? 'Marking...' : 'Mark Purchased'}
-                      currentUserId={user?.uid}
-                      reserveDisabled={disableItemActions}
-                      purchaseDisabled={disableItemActions}
-                    />
-                    );
-                  })}
-                </div>
-              ) : items && items.length > 0 ? (
-                <Card>
-                  <CardContent className="p-8 text-center">
-                    <h3 className="text-lg font-medium mb-2">No items match your search</h3>
-                    <p className="text-gray-500 mb-4">
-                      Try a different keyword.
-                    </p>
-                  </CardContent>
-                </Card>
-              ) : (
-                <Card>
-                  <CardContent className="p-8 text-center">
-                    <h3 className="text-lg font-medium mb-2">No items in this wishlist yet</h3>
-                    <p className="text-gray-500 mb-4">
-                      Paste a product link to add your first item, or{" "}
-                      <Link href="/extension" className="text-emerald-700 underline underline-offset-2 hover:text-emerald-800">
-                        install the browser extension
-                      </Link>{" "}
-                      to add items as you browse.
-                    </p>
-                    <Button onClick={openCreateItemDialog}>
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add Item
-                    </Button>
-                  </CardContent>
-                </Card>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card className="mb-6">
             <CardContent className="p-6 space-y-4">
               <div className="flex items-center justify-between">
                 <button
@@ -1421,6 +1277,150 @@ export default function WishlistDetail() {
                 Purchase completion: {coordinationSummary.completionPercent}%
               </p>
               </>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card className="mb-6">
+            <CardContent className="p-6">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
+                <div>
+                  <h2 className="text-lg font-semibold">Item Details</h2>
+                  <p className="text-sm text-gray-500">List and manage all items in this wishlist.</p>
+                </div>
+                <Button
+                  data-testid="wishlist-detail-add-item"
+                  className="w-full sm:w-auto flex items-center justify-center gap-2"
+                  onClick={openCreateItemDialog}
+                >
+                  <Plus className="h-4 w-4" />
+                  Add Item
+                </Button>
+              </div>
+
+              <div className="text-sm text-gray-500 mb-4">
+                <div className="flex flex-col gap-2 sm:gap-3">
+                  <span>
+                    Total items: <span className="font-medium text-gray-900">{items?.length ?? 0}</span>
+                  </span>
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-3">
+                    <div className="flex gap-2">
+                      <Input
+                        ref={itemSearchInputRef}
+                        data-testid="wishlist-detail-search-input"
+                        value={itemSearch}
+                        onKeyDown={handleSearchInputKeyDown}
+                        onChange={(event) => setItemSearch(event.target.value)}
+                        placeholder="Search title, store, price, or link"
+                      />
+                      {itemSearch.trim() && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          data-testid="wishlist-detail-search-clear"
+                          onClick={() => setItemSearch('')}
+                        >
+                          Clear
+                        </Button>
+                      )}
+                    </div>
+                    <Select value={itemSort} onValueChange={(value) => setItemSort(value as typeof itemSort)}>
+                      <SelectTrigger data-testid="wishlist-detail-sort-trigger">
+                        <SelectValue placeholder="Sort items" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="newest">Newest</SelectItem>
+                        <SelectItem value="price-low">Price: Low to High</SelectItem>
+                        <SelectItem value="price-high">Price: High to Low</SelectItem>
+                        <SelectItem value="title-az">Title: A to Z</SelectItem>
+                        <SelectItem value="store-az">Store: A to Z</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </div>
+
+              {isLoadingItems ? (
+                <div className="space-y-4">
+                  {[1, 2, 3].map((i) => (
+                    <Card key={i}>
+                      <CardContent className="p-4 flex space-x-4">
+                        <Skeleton className="h-16 w-16 rounded-md" />
+                        <div className="flex-1 space-y-2">
+                          <Skeleton className="h-4 w-full" />
+                          <Skeleton className="h-4 w-2/3" />
+                          <div className="flex justify-between">
+                            <Skeleton className="h-4 w-20" />
+                            <Skeleton className="h-4 w-8" />
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              ) : error ? (
+                <Card>
+                  <CardContent className="p-8 text-center">
+                    <p className="text-red-500 mb-4">Failed to load wishlist items</p>
+                    <Button
+                      variant="outline"
+                      onClick={() => queryClient.invalidateQueries({ queryKey: [`/api/wishlists/${wishlistId}/items`] })}
+                    >
+                      Retry
+                    </Button>
+                  </CardContent>
+                </Card>
+              ) : filteredItems && filteredItems.length > 0 ? (
+                <div data-testid="wishlist-detail-items-list" className="space-y-4">
+                  {filteredItems.map((item) => {
+                    const isReservePendingForItem = reservePendingItemId === item.id && reserveItemMutation.isPending;
+                    const isPurchasePendingForItem = purchasePendingItemId === item.id && purchaseItemMutation.isPending;
+                    const disableItemActions = isReservePendingForItem || isPurchasePendingForItem;
+
+                    return (
+                    <WishlistItem
+                      key={item.id}
+                      item={item}
+                      searchQuery={itemSearch}
+                      onEdit={() => openEditItemDialog(item)}
+                      onDelete={() => handleDeleteItem(item.id)}
+                      onReserve={() => handleReserveItem(item.id)}
+                      onPurchase={() => handlePurchaseItem(item.id)}
+                      reserveLabel={isReservePendingForItem ? 'Reserving...' : 'Reserve'}
+                      purchaseLabel={isPurchasePendingForItem ? 'Marking...' : 'Mark Purchased'}
+                      currentUserId={user?.uid}
+                      reserveDisabled={disableItemActions}
+                      purchaseDisabled={disableItemActions}
+                    />
+                    );
+                  })}
+                </div>
+              ) : items && items.length > 0 ? (
+                <Card>
+                  <CardContent className="p-8 text-center">
+                    <h3 className="text-lg font-medium mb-2">No items match your search</h3>
+                    <p className="text-gray-500 mb-4">
+                      Try a different keyword.
+                    </p>
+                  </CardContent>
+                </Card>
+              ) : (
+                <Card>
+                  <CardContent className="p-8 text-center">
+                    <h3 className="text-lg font-medium mb-2">No items in this wishlist yet</h3>
+                    <p className="text-gray-500 mb-4">
+                      Paste a product link to add your first item, or{" "}
+                      <Link href="/extension" className="text-emerald-700 underline underline-offset-2 hover:text-emerald-800">
+                        install the browser extension
+                      </Link>{" "}
+                      to add items as you browse.
+                    </p>
+                    <Button onClick={openCreateItemDialog}>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Item
+                    </Button>
+                  </CardContent>
+                </Card>
               )}
             </CardContent>
           </Card>

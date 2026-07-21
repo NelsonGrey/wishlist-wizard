@@ -28,6 +28,8 @@ import {
 } from "@/components/ui/sheet";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSubscriptionStatus } from "@/hooks/use-subscription-status";
 import { useLockShellHeight } from "@/hooks/use-lock-shell-height";
@@ -72,8 +74,10 @@ export default function AppLayout({ children }: AppLayoutProps) {
   });
   const unreadCount = notificationData?.unreadCount ?? 0;
 
-  // Creator Dashboard is only relevant to tiers with creator/affiliate features
-  // enabled — default to hidden while loading to avoid a flash-then-remove.
+  // Creator Dashboard is a Creator Pro feature — the nav item itself always
+  // shows (access is gated on the page, not by hiding navigation), but tiers
+  // without the entitlement see a "Pro" badge as an upfront cue. Default to
+  // not-yet-entitled while loading to avoid a flash of the badge disappearing.
   const { data: subStatus } = useSubscriptionStatus();
   const showCreatorDashboard = subStatus?.limits?.creatorDashboardEnabled ?? false;
 
@@ -83,9 +87,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
     { name: 'Dashboard', href: '/app/dashboard', icon: <LayoutDashboard className="h-5 w-5" />, activePaths: ['/app/dashboard', '/app/wishlists', '/app/wishlist', '/dashboard', '/wishlists', '/wishlist'] },
     { name: 'Calendar', href: '/app/calendar', icon: <Calendar className="h-5 w-5" />, activePaths: ['/app/calendar', '/calendar'] },
     { name: 'Extension', href: '/extension', icon: <Puzzle className="h-5 w-5" />, activePaths: ['/extension'] },
-    ...(showCreatorDashboard
-      ? [{ name: 'Creator Dashboard', href: '/app/creator-dashboard', icon: <WalletCards className="h-5 w-5" />, activePaths: ['/app/creator-dashboard'] }]
-      : []),
+    { name: 'Creator Dashboard', href: '/app/creator-dashboard', icon: <WalletCards className="h-5 w-5" />, activePaths: ['/app/creator-dashboard'], proOnly: !showCreatorDashboard },
   ];
 
   return (
@@ -113,6 +115,11 @@ export default function AppLayout({ children }: AppLayoutProps) {
               >
                 {item.icon}
                 <span className="ml-2">{item.name}</span>
+                {item.proOnly && (
+                  <Badge variant="outline" className="ml-1.5 text-[10px] px-1.5 py-0 h-4 border-emerald-300 text-emerald-800">
+                    Pro
+                  </Badge>
+                )}
               </Link>
             ))}
           </nav>
@@ -122,14 +129,19 @@ export default function AppLayout({ children }: AppLayoutProps) {
             {currentUser ? (
               <>
                 {/* Notifications */}
-                <Link href="/app/notifications" aria-label={`Notifications${unreadCount > 0 ? `, ${unreadCount} unread` : ''}`} className="relative p-2 rounded-full hover:bg-gray-100 transition-colors">
-                  <Bell className="h-5 w-5 text-gray-700" aria-hidden="true" />
-                  {unreadCount > 0 && (
-                    <span className="absolute -top-0.5 -right-0.5 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                      {unreadCount > 9 ? '9+' : unreadCount}
-                    </span>
-                  )}
-                </Link>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Link href="/app/notifications" aria-label={`Notifications${unreadCount > 0 ? `, ${unreadCount} unread` : ''}`} className="relative p-2 rounded-full hover:bg-gray-100 transition-colors">
+                      <Bell className="h-5 w-5 text-gray-700" aria-hidden="true" />
+                      {unreadCount > 0 && (
+                        <span className="absolute -top-0.5 -right-0.5 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                          {unreadCount > 9 ? '9+' : unreadCount}
+                        </span>
+                      )}
+                    </Link>
+                  </TooltipTrigger>
+                  <TooltipContent>Notifications</TooltipContent>
+                </Tooltip>
 
                 {/* User dropdown */}
                 <DropdownMenu>
@@ -185,11 +197,16 @@ export default function AppLayout({ children }: AppLayoutProps) {
           {/* Mobile menu button */}
           <div className="md:hidden ml-4">
             <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
-              <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" aria-label="Open navigation menu">
-                  <Menu className="h-6 w-6" aria-hidden="true" />
-                </Button>
-              </SheetTrigger>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <SheetTrigger asChild>
+                    <Button variant="ghost" size="icon" aria-label="Open navigation menu">
+                      <Menu className="h-6 w-6" aria-hidden="true" />
+                    </Button>
+                  </SheetTrigger>
+                </TooltipTrigger>
+                <TooltipContent>Open navigation menu</TooltipContent>
+              </Tooltip>
               <SheetContent side="right">
                 <nav className="flex flex-col gap-4 mt-8">
                   {primaryNavItems.map((item) => (
@@ -201,6 +218,11 @@ export default function AppLayout({ children }: AppLayoutProps) {
                     >
                       {item.icon}
                       {item.name}
+                      {item.proOnly && (
+                        <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 border-emerald-300 text-emerald-800">
+                          Pro
+                        </Badge>
+                      )}
                     </Link>
                   ))}
                 </nav>

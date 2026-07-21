@@ -249,7 +249,7 @@ describe('WishlistItem Component', () => {
     expect(screen.getByText('Wireless Headphones')).toBeInTheDocument();
   });
 
-  it('should open details dialog when details button is clicked', async () => {
+  it('should expand item details inline when details button is clicked', async () => {
     render(
       <WishlistItem
         item={mockItem}
@@ -258,11 +258,16 @@ describe('WishlistItem Component', () => {
     );
 
     const user = userEvent.setup();
+    expect(screen.queryByTestId('wishlist-item-expanded-1')).not.toBeInTheDocument();
+
     await user.click(screen.getByRole('button', { name: /details/i }));
 
-    expect(screen.getByText('Detailed item information and actions.')).toBeInTheDocument();
+    expect(screen.getByTestId('wishlist-item-expanded-1')).toBeInTheDocument();
     expect(screen.getByText('Product URL')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /view .*product page/i })).toBeInTheDocument();
+    expect(screen.getByText('Sony')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /details/i }));
+    expect(screen.queryByTestId('wishlist-item-expanded-1')).not.toBeInTheDocument();
   });
 
   it('should render copy product link action in overflow menu', async () => {
@@ -414,6 +419,7 @@ describe('WishlistItem Component', () => {
     await user.keyboard('{Escape}');
     await user.click(screen.getByRole('button', { name: /details/i }));
 
+    expect(screen.getByTestId('wishlist-item-expanded-1')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Alert' })).not.toBeInTheDocument();
   });
 });

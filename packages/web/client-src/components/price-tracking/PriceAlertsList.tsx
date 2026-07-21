@@ -21,6 +21,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { BellRing, Trash2, AlertCircle } from "lucide-react";
 
 // Type for price alerts
@@ -277,15 +278,20 @@ export default function PriceAlertsList({ limit }: PriceAlertsListProps) {
                           >
                             View Intelligence
                           </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            aria-label={`Delete price alert for ${alert.item.title}`}
-                            onClick={() => handleDeleteAlert(alert.id)}
-                            disabled={deletePriceAlertMutation.isPending}
-                          >
-                            <Trash2 className="h-4 w-4" aria-hidden="true" />
-                          </Button>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                aria-label={`Delete price alert for ${alert.item.title}`}
+                                onClick={() => handleDeleteAlert(alert.id)}
+                                disabled={deletePriceAlertMutation.isPending}
+                              >
+                                <Trash2 className="h-4 w-4" aria-hidden="true" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Delete price alert</TooltipContent>
+                          </Tooltip>
                         </div>
                       </TableCell>
                     </>
