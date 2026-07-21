@@ -203,7 +203,7 @@ function TrackingPoolTab() {
 
   const { data, isLoading } = useQuery<{ ids: PoolId[] }>({
     queryKey: ["/api/admin/affiliate/tracking-pool/list", network],
-    queryFn: () => apiRequest("/api/admin/affiliate/tracking-pool/list", { body: { network } }) as Promise<{ ids: PoolId[] }>,
+    queryFn: () => apiRequest("/api/admin/affiliate/tracking-pool/list", { method: "POST", body: { network } }) as Promise<{ ids: PoolId[] }>,
   });
 
   const addMutation = useMutation({
