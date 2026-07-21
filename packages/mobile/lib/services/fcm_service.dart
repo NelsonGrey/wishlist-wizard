@@ -233,7 +233,7 @@ class FCMManager {
     );
 
     await _localNotifications.initialize(
-      initSettings,
+      settings: initSettings,
       onDidReceiveNotificationResponse: _onNotificationTapped,
     );
 
@@ -378,10 +378,10 @@ class FCMManager {
     );
 
     await _localNotifications.show(
-      notification.id.hashCode,
-      notification.title,
-      notification.body,
-      notificationDetails,
+      id: notification.id.hashCode,
+      title: notification.title,
+      body: notification.body,
+      notificationDetails: notificationDetails,
       payload: notification.data.toString(),
     );
   }
