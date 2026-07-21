@@ -30,6 +30,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSubscriptionStatus } from "@/hooks/use-subscription-status";
+import { useLockShellHeight } from "@/hooks/use-lock-shell-height";
 import Footer from "@/components/Footer";
 import { GlobalAdSlot } from "@/components/ads";
 
@@ -42,6 +43,8 @@ export default function AppLayout({ children }: AppLayoutProps) {
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
   const { user, signOut } = useAuth();
   const mainRef = useRef<HTMLElement>(null);
+  const shellRef = useRef<HTMLDivElement>(null);
+  useLockShellHeight(shellRef);
 
   // Scroll to top when location changes
   useEffect(() => {
@@ -86,7 +89,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
   ];
 
   return (
-    <div className="h-screen flex flex-col overflow-hidden bg-gray-50">
+    <div ref={shellRef} className="h-screen flex flex-col overflow-hidden bg-gray-50">
       {/* App Header */}
       <header className="bg-white border-b border-emerald-100 sticky top-0 z-10 shadow-sm">
         <div className="site-container flex items-center justify-between py-2.5 2xl:py-3">
