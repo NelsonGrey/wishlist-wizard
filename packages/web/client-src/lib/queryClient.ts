@@ -36,11 +36,36 @@ async function getAuthToken(): Promise<string | null> {
   }
 }
 
+// updateWishlist/deleteWishlist/addWishlistItem/updateWishlistItem/
+// deleteWishlistItem moved to the `api` HTTP router — their standalone
+// Cloud Run services never had a working allUsers invoker binding. The
+// other /api/wishlists and /api/items methods (get/create/reserve/purchase)
+// still work as callables and are intentionally left alone.
+function isRouterOnlyWishlistMutation(url: string, method: string): boolean {
+  const normalizedMethod = method.toUpperCase();
+  if ((normalizedMethod === 'PATCH' || normalizedMethod === 'PUT' || normalizedMethod === 'DELETE')
+    && /^\/api\/wishlists\/[^/]+$/.test(url)) {
+    return true;
+  }
+  if (normalizedMethod === 'POST' && url === '/api/items') {
+    return true;
+  }
+  if ((normalizedMethod === 'PATCH' || normalizedMethod === 'PUT' || normalizedMethod === 'DELETE')
+    && /^\/api\/items\/[^/]+$/.test(url)) {
+    return true;
+  }
+  return false;
+}
+
 /**
  * Determine if we should use Firebase Functions instead of Express API
  */
-function shouldUseFirebaseFunctions(url: string): boolean {
+function shouldUseFirebaseFunctions(url: string, method: string): boolean {
   if (/^\/api\/items\/[^/]+\/price-intelligence$/.test(url)) {
+    return false;
+  }
+
+  if (isRouterOnlyWishlistMutation(url, method)) {
     return false;
   }
 
@@ -61,15 +86,19 @@ function shouldUseFirebaseFunctions(url: string): boolean {
     '/api/mobile',
     '/api/devices'
   ];
-  
+
   return firebaseFunctionEndpoints.some(endpoint => url.startsWith(endpoint));
 }
 
 /**
  * Endpoints served by the HTTP `api` Firebase function router (non-callable).
  */
-function shouldUseFirebaseApiRouter(url: string): boolean {
+function shouldUseFirebaseApiRouter(url: string, method: string): boolean {
   if (/^\/api\/items\/[^/]+\/price-intelligence$/.test(url)) {
+    return true;
+  }
+
+  if (isRouterOnlyWishlistMutation(url, method)) {
     return true;
   }
 
@@ -271,8 +300,8 @@ export async function apiRequest(
   const normalizedBody = normalizeBody(body);
   
   // Determine if we should use Firebase Functions
-  const useFunctions = useFirebaseFunctions ?? shouldUseFirebaseFunctions(url);
-  const useApiRouter = shouldUseFirebaseApiRouter(url);
+  const useFunctions = useFirebaseFunctions ?? shouldUseFirebaseFunctions(url, method);
+  const useApiRouter = shouldUseFirebaseApiRouter(url, method);
   
   let fullUrl: string;
   const headers: Record<string, string> = {};
