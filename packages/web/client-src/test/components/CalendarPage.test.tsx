@@ -14,10 +14,6 @@ vi.mock('react-big-calendar', () => ({
   }),
 }));
 
-vi.mock('@/components/calendar/CalendarSettings', () => ({
-  CalendarSettings: () => <div data-testid="calendar-settings">Calendar Settings</div>,
-}));
-
 vi.mock('@tanstack/react-query', async () => {
   const actual = await vi.importActual('@tanstack/react-query');
   return {
@@ -163,14 +159,13 @@ describe('Calendar Page', () => {
     expect(refetch).toHaveBeenCalledTimes(1);
   });
 
-  it('opens settings panel from toolbar button', async () => {
+  it('navigates to app settings calendar tab from toolbar button', async () => {
     render(<Calendar />, { pathname: '/calendar' });
-
-    expect(screen.queryByTestId('calendar-settings')).not.toBeInTheDocument();
 
     const user = userEvent.setup();
     await user.click(screen.getByRole('button', { name: 'Settings' }));
 
-    expect(screen.getByTestId('calendar-settings')).toBeInTheDocument();
+    expect(window.location.pathname).toBe('/app/settings');
+    expect(window.location.search).toContain('tab=calendar');
   });
 });

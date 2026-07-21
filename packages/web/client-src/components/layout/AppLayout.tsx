@@ -32,6 +32,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
+import { useSubscriptionStatus } from "@/hooks/use-subscription-status";
 import Footer from "@/components/Footer";
 import { GlobalAdSlot } from "@/components/ads";
 
@@ -71,13 +72,20 @@ export default function AppLayout({ children }: AppLayoutProps) {
   });
   const unreadCount = notificationData?.unreadCount ?? 0;
 
+  // Creator Dashboard is only relevant to tiers with creator/affiliate features
+  // enabled — default to hidden while loading to avoid a flash-then-remove.
+  const { data: subStatus } = useSubscriptionStatus();
+  const showCreatorDashboard = subStatus?.limits?.creatorDashboardEnabled ?? false;
+
   const isActivePath = (paths: string[]) => paths.some((path) => location === path || location.startsWith(`${path}/`));
 
   const primaryNavItems = [
     { name: 'Dashboard', href: '/app/dashboard', icon: <LayoutDashboard className="h-5 w-5" />, activePaths: ['/app/dashboard', '/app/wishlists', '/app/wishlist', '/dashboard', '/wishlists', '/wishlist'] },
     { name: 'Calendar', href: '/app/calendar', icon: <Calendar className="h-5 w-5" />, activePaths: ['/app/calendar', '/calendar'] },
     { name: 'Analytics', href: '/app/analytics', icon: <BarChart3 className="h-5 w-5" />, activePaths: ['/app/analytics', '/analytics'] },
-    { name: 'Creator Dashboard', href: '/app/creator-dashboard', icon: <WalletCards className="h-5 w-5" />, activePaths: ['/app/creator-dashboard'] },
+    ...(showCreatorDashboard
+      ? [{ name: 'Creator Dashboard', href: '/app/creator-dashboard', icon: <WalletCards className="h-5 w-5" />, activePaths: ['/app/creator-dashboard'] }]
+      : []),
   ];
 
   const featureNavItems = [
@@ -180,7 +188,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
-                      <Link href="/app/privacy-settings" className="flex w-full cursor-pointer items-center">
+                      <Link href="/app/settings" className="flex w-full cursor-pointer items-center">
                         <Settings className="h-4 w-4 mr-2" />
                         Settings
                       </Link>

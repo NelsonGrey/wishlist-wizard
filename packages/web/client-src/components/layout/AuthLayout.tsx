@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import { Link, useLocation } from "wouter";
 import { GlobalAdSlot } from "@/components/ads";
 import Footer from "@/components/Footer";
@@ -9,16 +9,17 @@ interface AuthLayoutProps {
 
 export default function AuthLayout({ children }: AuthLayoutProps) {
   const [location] = useLocation();
+  const mainRef = useRef<HTMLElement>(null);
 
-  // Scroll to top when location changes
+  // Scroll the main content area to top on route change.
   useEffect(() => {
-    window.scrollTo(0, 0);
+    mainRef.current?.scrollTo(0, 0);
   }, [location]);
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-br from-emerald-50 via-white to-green-50">
+    <div className="h-screen flex flex-col overflow-hidden bg-gradient-to-br from-emerald-50 via-white to-green-50">
       {/* Minimal Auth Header */}
-      <header className="bg-white/95 backdrop-blur-sm border-b border-emerald-100 sticky top-0 z-10 shadow-sm">
+      <header className="flex-none bg-white/95 backdrop-blur-sm border-b border-emerald-100 shadow-sm">
         <div className="site-container flex items-center justify-between py-3 2xl:py-4">
           {/* Logo - links back to public site */}
           <Link href="/" className="flex items-center hover:scale-105 transition-transform duration-200">
@@ -36,8 +37,10 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
         </div>
       </header>
 
-      {/* Main content - aligned closer to top */}
-      <main className="flex-1 flex items-start justify-center pt-3 pb-12 px-4">
+      <GlobalAdSlot placement="top" />
+
+      {/* Main content - aligned closer to top, scrolls within viewport so footer stays pinned */}
+      <main ref={mainRef} className="flex-1 overflow-y-auto flex items-start justify-center pt-3 pb-12 px-4">
         <div className="w-full max-w-md">
           {children}
         </div>

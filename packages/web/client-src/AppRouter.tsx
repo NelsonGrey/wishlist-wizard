@@ -23,6 +23,7 @@ const Dashboard = lazy(() => import("./pages/Dashboard"));
 const Login = lazy(() => import("./pages/Login"));
 const Register = lazy(() => import("./pages/Register"));
 const UserProfile = lazy(() => import("./pages/UserProfile"));
+const Settings = lazy(() => import("./pages/Settings"));
 const Subscription = lazy(() => import("./pages/Subscription"));
 const WishlistDetail = lazy(() => import("./pages/WishlistDetail"));
 const Recommendations = lazy(() => import("./pages/Recommendations"));
@@ -311,6 +312,14 @@ function AppRouter() {
                     component={() => (
                       <ProtectedRoute requireAuth>
                         <PrivacySettings />
+                      </ProtectedRoute>
+                    )}
+                  />
+                  <Route
+                    path="/app/settings"
+                    component={() => (
+                      <ProtectedRoute requireAuth>
+                        <Settings />
                       </ProtectedRoute>
                     )}
                   />
