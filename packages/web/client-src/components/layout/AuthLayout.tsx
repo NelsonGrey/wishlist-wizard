@@ -40,7 +40,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
       <GlobalAdSlot placement="top" />
 
       {/* Main content - aligned closer to top, scrolls within viewport so footer stays pinned */}
-      <main ref={mainRef} className="flex-1 overflow-y-auto flex items-start justify-center pt-3 pb-12 px-4">
+      <main ref={mainRef} className="min-h-0 flex-1 overflow-y-auto flex items-start justify-center pt-3 pb-12 px-4">
         <div className="w-full max-w-md">
           {children}
         </div>

@@ -1,7 +1,6 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { LayoutGrid, List, CalendarDays, Plus, Share2, X } from "lucide-react";
-import { useLocation } from "wouter";
+import { LayoutGrid, List, CalendarDays, Plus, X } from "lucide-react";
 import WishlistCard from "@/components/WishlistCard";
 import WishlistListView from "@/components/WishlistListView";
 import WishlistCalendarView from "@/components/WishlistCalendarView";
@@ -31,7 +30,6 @@ type Wishlist = Omit<DbWishlist, 'id' | 'userId' | 'beneficiaryId'> & {
 
 type ViewMode = 'card' | 'list' | 'calendar';
 
-const SELECTED_WISHLIST_STORAGE_KEY = 'dashboard.selectedWishlistId';
 const VIEW_MODE_STORAGE_KEY = 'dashboard.viewMode';
 const GETTING_STARTED_DISMISSED_KEY = 'dashboard.gettingStartedDismissed';
 
@@ -56,27 +54,10 @@ function getInitialGettingStartedDismissed(): boolean {
 }
 
 export default function Dashboard() {
-  const [location, setLocation] = useLocation();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [selectedWishlistId, setSelectedWishlistId] = useState<string | number | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>(getInitialViewMode);
   const [gettingStartedDismissed, setGettingStartedDismissed] = useState(getInitialGettingStartedDismissed);
   const { toast } = useToast();
-
-  const toSelectionKey = (id: string | number) => String(id);
-
-  const updateSelectionInUrl = (selectionId: string | number | null) => {
-    const params = new URLSearchParams(window.location.search);
-    if (selectionId === null) {
-      params.delete('wishlist');
-    } else {
-      params.set('wishlist', toSelectionKey(selectionId));
-    }
-
-    const nextQuery = params.toString();
-    const nextUrl = `${window.location.pathname}${nextQuery ? `?${nextQuery}` : ''}`;
-    window.history.replaceState(null, '', nextUrl);
-  };
 
   // Fetch wishlists
   const { data: wishlists, isLoading, error } = useQuery<Wishlist[]>({
@@ -154,109 +135,6 @@ export default function Dashboard() {
     }
   };
 
-  useEffect(() => {
-    if (!wishlists || wishlists.length === 0) {
-      setSelectedWishlistId(null);
-      updateSelectionInUrl(null);
-      try {
-        localStorage.removeItem(SELECTED_WISHLIST_STORAGE_KEY);
-      } catch {
-        // Ignore localStorage errors in restricted environments
-      }
-      return;
-    }
-
-    const hasCurrentSelection =
-      selectedWishlistId !== null &&
-      wishlists.some((wishlist) => toSelectionKey(wishlist.id) === toSelectionKey(selectedWishlistId));
-    if (hasCurrentSelection) {
-      return;
-    }
-
-    let nextSelectedId: string | number = wishlists[0].id;
-    const wishlistFromUrl = new URLSearchParams(window.location.search).get('wishlist');
-    if (wishlistFromUrl) {
-      const matchedFromUrl = wishlists.find((wishlist) => toSelectionKey(wishlist.id) === wishlistFromUrl);
-      if (matchedFromUrl) {
-        nextSelectedId = matchedFromUrl.id;
-      }
-    }
-
-    try {
-      const storedId = localStorage.getItem(SELECTED_WISHLIST_STORAGE_KEY);
-      if (!wishlistFromUrl && storedId) {
-        const matchedWishlist = wishlists.find((wishlist) => toSelectionKey(wishlist.id) === storedId);
-        if (matchedWishlist) {
-          nextSelectedId = matchedWishlist.id;
-        }
-      }
-    } catch {
-      // Ignore localStorage errors in restricted environments
-    }
-
-    setSelectedWishlistId(nextSelectedId);
-    updateSelectionInUrl(nextSelectedId);
-  }, [wishlists, selectedWishlistId]);
-
-  useEffect(() => {
-    if (!wishlists || wishlists.length === 0) {
-      return;
-    }
-
-    const wishlistFromUrl = new URLSearchParams(window.location.search).get('wishlist');
-    if (!wishlistFromUrl) {
-      return;
-    }
-
-    const matchedWishlist = wishlists.find((wishlist) => toSelectionKey(wishlist.id) === wishlistFromUrl);
-    if (matchedWishlist && toSelectionKey(matchedWishlist.id) !== toSelectionKey(selectedWishlistId ?? '')) {
-      setSelectedWishlistId(matchedWishlist.id);
-    }
-  }, [location, wishlists, selectedWishlistId]);
-
-  useEffect(() => {
-    if (selectedWishlistId === null) {
-      return;
-    }
-
-    try {
-      localStorage.setItem(SELECTED_WISHLIST_STORAGE_KEY, toSelectionKey(selectedWishlistId));
-    } catch {
-      // Ignore localStorage errors in restricted environments
-    }
-
-    updateSelectionInUrl(selectedWishlistId);
-  }, [selectedWishlistId]);
-
-  const selectedWishlist = wishlists?.find((wishlist) => wishlist.id === selectedWishlistId) ?? null;
-
-  const handleShareSelectedWishlist = async () => {
-    if (!selectedWishlist?.shareId) {
-      return;
-    }
-
-    const shareUrl = `${window.location.origin}/shared/${selectedWishlist.shareId}`;
-
-    try {
-      await navigator.clipboard.writeText(shareUrl);
-      toast({
-        title: "Link copied",
-        description: "Shared wishlist link copied to clipboard.",
-      });
-    } catch {
-      toast({
-        title: "Copy failed",
-        description: "Unable to copy link right now. Try again.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleSelectWishlist = (wishlist: Wishlist) => {
-    setSelectedWishlistId(wishlist.id);
-    updateSelectionInUrl(wishlist.id);
-  };
-
   const isGettingStartedExpanded = (wishlists?.length ?? 0) === 0 ? true : !gettingStartedDismissed;
 
   return (
@@ -265,33 +143,15 @@ export default function Dashboard() {
         <div data-testid="dashboard-page" className="container mx-auto px-4 py-6 2xl:py-8 max-w-7xl">
           <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <h1 data-testid="dashboard-title" className="text-4xl font-bold bg-gradient-to-r from-emerald-800 to-green-800 bg-clip-text text-transparent">My Wishlists</h1>
-            <div className="flex flex-wrap items-center gap-2">
-              <Button
-                data-testid="dashboard-create-wishlist"
-                onClick={() => setIsCreateDialogOpen(true)}
-                disabled={createWishlistMutation.isPending}
-                className="flex items-center space-x-2 bg-gradient-to-r from-emerald-700 to-green-700 text-white hover:from-emerald-800 hover:to-green-800"
-              >
-                <Plus className="h-5 w-5" />
-                <span>Create New List</span>
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => selectedWishlist && setLocation(`/app/wishlist/${selectedWishlist.id}`)}
-                disabled={!selectedWishlist}
-              >
-                Open Active Wishlist
-              </Button>
-              <Button
-                variant="outline"
-                className="flex items-center gap-2"
-                onClick={handleShareSelectedWishlist}
-                disabled={!selectedWishlist?.shareId}
-              >
-                <Share2 className="h-4 w-4" />
-                Copy Share Link
-              </Button>
-            </div>
+            <Button
+              data-testid="dashboard-create-wishlist"
+              onClick={() => setIsCreateDialogOpen(true)}
+              disabled={createWishlistMutation.isPending}
+              className="flex items-center space-x-2 bg-gradient-to-r from-emerald-700 to-green-700 text-white hover:from-emerald-800 hover:to-green-800"
+            >
+              <Plus className="h-5 w-5" />
+              <span>Create New List</span>
+            </Button>
           </div>
 
           {isGettingStartedExpanded && (
@@ -370,23 +230,14 @@ export default function Dashboard() {
                   <WishlistCard
                     key={wishlist.id}
                     wishlist={wishlist}
-                    selected={wishlist.id === selectedWishlistId}
-                    onSelect={handleSelectWishlist}
                     onRefresh={() => queryClient.invalidateQueries({ queryKey: ['/api/wishlists'] })}
                   />
                 ))}
               </div>
             ) : viewMode === 'list' ? (
-              <WishlistListView
-                wishlists={wishlists}
-                selectedWishlistId={selectedWishlistId}
-                onSelect={handleSelectWishlist}
-              />
+              <WishlistListView wishlists={wishlists} />
             ) : (
-              <WishlistCalendarView
-                wishlists={wishlists}
-                onSelect={handleSelectWishlist}
-              />
+              <WishlistCalendarView wishlists={wishlists} />
             )
           ) : (
             <div className="text-center py-16 bg-white rounded-lg shadow-sm border">

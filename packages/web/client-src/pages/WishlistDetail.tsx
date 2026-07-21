@@ -1,7 +1,7 @@
 import { KeyboardEvent as ReactKeyboardEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useRoute, useLocation, Link } from "wouter";
-import { ArrowLeft, Check, ChevronUp, Download, ExternalLink, Plus, Share2 } from "lucide-react";
+import { ArrowLeft, Check, ChevronDown, ChevronUp, Download, ExternalLink, Plus, Share2 } from "lucide-react";
 import WishlistItem from "@/components/WishlistItem";
 import PrivacyControls from "@/components/privacy/PrivacyControls";
 import { getApiErrorMessage } from "@/lib/api-errors";
@@ -64,6 +64,8 @@ export default function WishlistDetail() {
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [isItemDialogOpen, setIsItemDialogOpen] = useState(false);
   const [isEditingWishlist, setIsEditingWishlist] = useState(false);
+  const [isDetailsExpanded, setIsDetailsExpanded] = useState(false);
+  const [isCoordinationExpanded, setIsCoordinationExpanded] = useState(false);
   const [itemSort, setItemSort] = useState<ItemSortOption>(() => getInitialItemSort());
   const [itemSearch, setItemSearch] = useState(() => getInitialItemSearch());
   const itemSearchInputRef = useRef<HTMLInputElement | null>(null);
@@ -1083,170 +1085,6 @@ export default function WishlistDetail() {
           </Card>
 
           <Card className="mb-6">
-            <CardContent className="p-6 space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-lg font-semibold">Wishlist Details</h2>
-                  <p className="text-sm text-gray-500">Manage this wishlist&apos;s core details and schedule.</p>
-                </div>
-                <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
-                  {isEditingWishlist && (
-                    <Button
-                      className="w-full sm:w-auto"
-                      variant="outline"
-                      onClick={() => setIsEditingWishlist(false)}
-                      disabled={updateWishlistMutation.isPending}
-                    >
-                      Cancel
-                    </Button>
-                  )}
-                  <Button
-                    className="w-full sm:w-auto"
-                    onClick={() => {
-                      if (isEditingWishlist) {
-                        handleSaveWishlist();
-                        return;
-                      }
-
-                      setIsEditingWishlist(true);
-                    }}
-                    disabled={updateWishlistMutation.isPending}
-                  >
-                    {updateWishlistMutation.isPending ? "Saving..." : isEditingWishlist ? "Save Details" : "Edit Details"}
-                  </Button>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="wishlist-name">Wishlist Name</Label>
-                  <Input
-                    id="wishlist-name"
-                    value={wishlistForm.name}
-                    onChange={(e) => setWishlistForm((prev) => ({ ...prev, name: e.target.value }))}
-                    disabled={!isEditingWishlist}
-                  />
-                </div>
-
-                <div className="grid gap-2">
-                  <Label htmlFor="wishlist-event">Event</Label>
-                  <Input
-                    id="wishlist-event"
-                    placeholder="e.g., Birthday"
-                    value={wishlistForm.event}
-                    onChange={(e) => setWishlistForm((prev) => ({ ...prev, event: e.target.value }))}
-                    disabled={!isEditingWishlist}
-                  />
-                </div>
-
-                <div className="grid gap-2">
-                  <Label htmlFor="wishlist-event-date">Event Date</Label>
-                  <Input
-                    id="wishlist-event-date"
-                    type="date"
-                    value={wishlistForm.eventDate}
-                    onChange={(e) => setWishlistForm((prev) => ({ ...prev, eventDate: e.target.value }))}
-                    disabled={!isEditingWishlist}
-                  />
-                </div>
-
-                <div className="grid gap-2">
-                  <Label>Recurrence</Label>
-                  <Select
-                    value={wishlistForm.recurrence || 'none'}
-                    onValueChange={(value) => setWishlistForm((prev) => ({ ...prev, recurrence: value }))}
-                    disabled={!isEditingWishlist}
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Recurrence" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">Does not repeat</SelectItem>
-                      <SelectItem value="yearly">Repeats yearly</SelectItem>
-                      <SelectItem value="monthly">Repeats monthly</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="grid gap-2">
-                  <Label htmlFor="wishlist-reminder-days">Reminder Days</Label>
-                  <Input
-                    id="wishlist-reminder-days"
-                    type="number"
-                    inputMode="numeric"
-                    min={0}
-                    max={365}
-                    placeholder="e.g., 7"
-                    value={wishlistForm.reminderDays}
-                    onChange={(e) => setWishlistForm((prev) => ({ ...prev, reminderDays: e.target.value }))}
-                    disabled={!isEditingWishlist || wishlistForm.recurrence === 'none'}
-                  />
-                </div>
-
-                <div className="grid gap-2 md:col-span-2">
-                  <Label htmlFor="wishlist-description">Description</Label>
-                  <Textarea
-                    id="wishlist-description"
-                    rows={3}
-                    value={wishlistForm.description}
-                    onChange={(e) => setWishlistForm((prev) => ({ ...prev, description: e.target.value }))}
-                    disabled={!isEditingWishlist}
-                  />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="mb-6">
-            <CardContent className="p-6 space-y-4">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <h2 className="text-lg font-semibold">Coordination Status</h2>
-                  <p className="text-sm text-gray-500">Track purchase commitments and export current status.</p>
-                </div>
-                <Button
-                  variant="outline"
-                  className="w-full sm:w-auto flex items-center gap-2"
-                  onClick={handleExportCoordinationCsv}
-                  disabled={!items || items.length === 0}
-                >
-                  <Download className="h-4 w-4" />
-                  Export CSV
-                </Button>
-              </div>
-
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
-                <div className="rounded-lg border p-3">
-                  <p className="text-gray-500">Total</p>
-                  <p className="text-lg font-semibold">{coordinationSummary.total}</p>
-                </div>
-                <div className="rounded-lg border p-3">
-                  <p className="text-gray-500">Available</p>
-                  <p className="text-lg font-semibold">{coordinationSummary.available}</p>
-                </div>
-                <div className="rounded-lg border p-3">
-                  <p className="text-gray-500">Reserved</p>
-                  <p className="text-lg font-semibold">{coordinationSummary.reserved}</p>
-                </div>
-                <div className="rounded-lg border p-3">
-                  <p className="text-gray-500">Purchased</p>
-                  <p className="text-lg font-semibold">{coordinationSummary.purchased}</p>
-                </div>
-              </div>
-
-              <div className="h-2 w-full rounded bg-gray-100 overflow-hidden">
-                <div
-                  className="h-full bg-gradient-to-r from-emerald-600 to-green-600"
-                  style={{ width: `${coordinationSummary.completionPercent}%` }}
-                />
-              </div>
-              <p className="text-xs text-gray-500">
-                Purchase completion: {coordinationSummary.completionPercent}%
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
             <CardContent className="p-6">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
                 <div>
@@ -1327,7 +1165,7 @@ export default function WishlistDetail() {
                 <Card>
                   <CardContent className="p-8 text-center">
                     <p className="text-red-500 mb-4">Failed to load wishlist items</p>
-                    <Button 
+                    <Button
                       variant="outline"
                       onClick={() => queryClient.invalidateQueries({ queryKey: [`/api/wishlists/${wishlistId}/items`] })}
                     >
@@ -1343,9 +1181,9 @@ export default function WishlistDetail() {
                     const disableItemActions = isReservePendingForItem || isPurchasePendingForItem;
 
                     return (
-                    <WishlistItem 
-                      key={item.id} 
-                      item={item} 
+                    <WishlistItem
+                      key={item.id}
+                      item={item}
                       searchQuery={itemSearch}
                       onEdit={() => openEditItemDialog(item)}
                       onDelete={() => handleDeleteItem(item.id)}
@@ -1389,6 +1227,204 @@ export default function WishlistDetail() {
               )}
             </CardContent>
           </Card>
+
+          <Card className="mb-6">
+            <CardContent className="p-6 space-y-4">
+              <div className="flex items-center justify-between">
+                <button
+                  type="button"
+                  className="flex items-center gap-2 text-left"
+                  onClick={() => setIsDetailsExpanded((prev) => !prev)}
+                  aria-expanded={isEditingWishlist || isDetailsExpanded}
+                  data-testid="wishlist-detail-toggle-details"
+                >
+                  <ChevronDown className={`h-4 w-4 shrink-0 transition-transform ${isEditingWishlist || isDetailsExpanded ? 'rotate-180' : ''}`} />
+                  <div>
+                    <h2 className="text-lg font-semibold">Wishlist Details</h2>
+                    {!(isEditingWishlist || isDetailsExpanded) && (
+                      <p className="text-sm text-gray-500">
+                        {[wishlistForm.event, wishlistForm.recurrence && wishlistForm.recurrence !== 'none' ? `Repeats ${wishlistForm.recurrence}` : null]
+                          .filter(Boolean)
+                          .join(' • ') || 'No event or schedule set'}
+                      </p>
+                    )}
+                  </div>
+                </button>
+                <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
+                  {isEditingWishlist && (
+                    <Button
+                      className="w-full sm:w-auto"
+                      variant="outline"
+                      onClick={() => setIsEditingWishlist(false)}
+                      disabled={updateWishlistMutation.isPending}
+                    >
+                      Cancel
+                    </Button>
+                  )}
+                  <Button
+                    className="w-full sm:w-auto"
+                    onClick={() => {
+                      if (isEditingWishlist) {
+                        handleSaveWishlist();
+                        return;
+                      }
+
+                      setIsDetailsExpanded(true);
+                      setIsEditingWishlist(true);
+                    }}
+                    disabled={updateWishlistMutation.isPending}
+                  >
+                    {updateWishlistMutation.isPending ? "Saving..." : isEditingWishlist ? "Save Details" : "Edit Details"}
+                  </Button>
+                </div>
+              </div>
+
+              {(isEditingWishlist || isDetailsExpanded) && (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="wishlist-name">Wishlist Name</Label>
+                  <Input
+                    id="wishlist-name"
+                    value={wishlistForm.name}
+                    onChange={(e) => setWishlistForm((prev) => ({ ...prev, name: e.target.value }))}
+                    disabled={!isEditingWishlist}
+                  />
+                </div>
+
+                <div className="grid gap-2">
+                  <Label htmlFor="wishlist-event">Event</Label>
+                  <Input
+                    id="wishlist-event"
+                    placeholder="e.g., Birthday"
+                    value={wishlistForm.event}
+                    onChange={(e) => setWishlistForm((prev) => ({ ...prev, event: e.target.value }))}
+                    disabled={!isEditingWishlist}
+                  />
+                </div>
+
+                <div className="grid gap-2">
+                  <Label htmlFor="wishlist-event-date">Event Date</Label>
+                  <Input
+                    id="wishlist-event-date"
+                    type="date"
+                    value={wishlistForm.eventDate}
+                    onChange={(e) => setWishlistForm((prev) => ({ ...prev, eventDate: e.target.value }))}
+                    disabled={!isEditingWishlist}
+                  />
+                </div>
+
+                <div className="grid gap-2">
+                  <Label>Recurrence</Label>
+                  <Select
+                    value={wishlistForm.recurrence || 'none'}
+                    onValueChange={(value) => setWishlistForm((prev) => ({ ...prev, recurrence: value }))}
+                    disabled={!isEditingWishlist}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Recurrence" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Does not repeat</SelectItem>
+                      <SelectItem value="yearly">Repeats yearly</SelectItem>
+                      <SelectItem value="monthly">Repeats monthly</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="grid gap-2">
+                  <Label htmlFor="wishlist-reminder-days">Reminder Days</Label>
+                  <Input
+                    id="wishlist-reminder-days"
+                    type="number"
+                    inputMode="numeric"
+                    min={0}
+                    max={365}
+                    placeholder="e.g., 7"
+                    value={wishlistForm.reminderDays}
+                    onChange={(e) => setWishlistForm((prev) => ({ ...prev, reminderDays: e.target.value }))}
+                    disabled={!isEditingWishlist || wishlistForm.recurrence === 'none'}
+                  />
+                </div>
+
+                <div className="grid gap-2 md:col-span-2">
+                  <Label htmlFor="wishlist-description">Description</Label>
+                  <Textarea
+                    id="wishlist-description"
+                    rows={3}
+                    value={wishlistForm.description}
+                    onChange={(e) => setWishlistForm((prev) => ({ ...prev, description: e.target.value }))}
+                    disabled={!isEditingWishlist}
+                  />
+                </div>
+              </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card className="mb-6">
+            <CardContent className="p-6 space-y-4">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <button
+                  type="button"
+                  className="flex items-center gap-2 text-left"
+                  onClick={() => setIsCoordinationExpanded((prev) => !prev)}
+                  aria-expanded={isCoordinationExpanded}
+                  data-testid="wishlist-detail-toggle-coordination"
+                >
+                  <ChevronDown className={`h-4 w-4 shrink-0 transition-transform ${isCoordinationExpanded ? 'rotate-180' : ''}`} />
+                  <div>
+                    <h2 className="text-lg font-semibold">Coordination Status</h2>
+                    <p className="text-sm text-gray-500">
+                      {coordinationSummary.total} items • {coordinationSummary.completionPercent}% purchased
+                    </p>
+                  </div>
+                </button>
+                <Button
+                  variant="outline"
+                  className="w-full sm:w-auto flex items-center gap-2"
+                  onClick={handleExportCoordinationCsv}
+                  disabled={!items || items.length === 0}
+                >
+                  <Download className="h-4 w-4" />
+                  Export CSV
+                </Button>
+              </div>
+
+              {isCoordinationExpanded && (
+              <>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                <div className="rounded-lg border p-3">
+                  <p className="text-gray-500">Total</p>
+                  <p className="text-lg font-semibold">{coordinationSummary.total}</p>
+                </div>
+                <div className="rounded-lg border p-3">
+                  <p className="text-gray-500">Available</p>
+                  <p className="text-lg font-semibold">{coordinationSummary.available}</p>
+                </div>
+                <div className="rounded-lg border p-3">
+                  <p className="text-gray-500">Reserved</p>
+                  <p className="text-lg font-semibold">{coordinationSummary.reserved}</p>
+                </div>
+                <div className="rounded-lg border p-3">
+                  <p className="text-gray-500">Purchased</p>
+                  <p className="text-lg font-semibold">{coordinationSummary.purchased}</p>
+                </div>
+              </div>
+
+              <div className="h-2 w-full rounded bg-gray-100 overflow-hidden">
+                <div
+                  className="h-full bg-gradient-to-r from-emerald-600 to-green-600"
+                  style={{ width: `${coordinationSummary.completionPercent}%` }}
+                />
+              </div>
+              <p className="text-xs text-gray-500">
+                Purchase completion: {coordinationSummary.completionPercent}%
+              </p>
+              </>
+              )}
+            </CardContent>
+          </Card>
+
         </div>
       </main>
 

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { fireEvent, screen, waitFor } from '@testing-library/react';
+import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { render } from '../utils';
 import WishlistDetail from '@/pages/WishlistDetail';
@@ -203,15 +203,20 @@ describe('WishlistDetail Item CRUD', () => {
     ]);
 
     render(<WishlistDetail />, { queryClient });
+    const user = userEvent.setup();
 
     expect(await screen.findByTestId('wishlist-detail-title')).toBeInTheDocument();
     expect(await screen.findByText('Coordination Status')).toBeInTheDocument();
+
+    await user.click(screen.getByTestId('wishlist-detail-toggle-coordination'));
+
     expect(screen.getByText('Purchase completion: 33%')).toBeInTheDocument();
 
-    const totalLabel = screen.getByText('Total');
-    const availableLabel = screen.getByText('Available');
-    const reservedLabel = screen.getAllByText('Reserved')[0];
-    const purchasedLabel = screen.getAllByText('Purchased')[0];
+    const coordinationSection = screen.getByText('Coordination Status').closest('.space-y-4') as HTMLElement;
+    const totalLabel = within(coordinationSection).getByText('Total');
+    const availableLabel = within(coordinationSection).getByText('Available');
+    const reservedLabel = within(coordinationSection).getAllByText('Reserved')[0];
+    const purchasedLabel = within(coordinationSection).getAllByText('Purchased')[0];
 
     expect(totalLabel.parentElement).toHaveTextContent('3');
     expect(availableLabel.parentElement).toHaveTextContent('1');

@@ -50,11 +50,9 @@ type Wishlist = Omit<DbWishlist, 'id' | 'userId' | 'beneficiaryId'> & {
 interface WishlistCardProps {
   wishlist: Wishlist;
   onRefresh: () => void;
-  onSelect?: (wishlist: Wishlist) => void;
-  selected?: boolean;
 }
 
-export default function WishlistCard({ wishlist, onRefresh, onSelect, selected = false }: WishlistCardProps) {
+export default function WishlistCard({ wishlist, onRefresh }: WishlistCardProps) {
   const [, setLocation] = useLocation();
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -234,7 +232,7 @@ export default function WishlistCard({ wishlist, onRefresh, onSelect, selected =
 
   return (
     <>
-      <Card data-testid={`wishlist-card-${wishlist.id}`} className={`hover:shadow-md transition ${selected ? 'ring-2 ring-primary/40' : ''}`}>
+      <Card data-testid={`wishlist-card-${wishlist.id}`} className="hover:shadow-md transition">
         <CardContent className="p-0">
           <div className="p-5 border-b">
             <div className="flex justify-between items-center">
@@ -325,19 +323,9 @@ export default function WishlistCard({ wishlist, onRefresh, onSelect, selected =
           </div>
         </CardContent>
         <CardFooter className="p-4 border-t flex items-center gap-2">
-          {onSelect && (
-            <Button
-              variant={selected ? 'default' : 'outline'}
-              className="flex-1"
-              disabled={isMutating}
-              onClick={() => onSelect(wishlist)}
-            >
-              {selected ? 'Selected' : 'Select'}
-            </Button>
-          )}
-          <Button 
+          <Button
             data-testid={`wishlist-view-${wishlist.id}`}
-            variant="link" 
+            variant="link"
             className="text-emerald-700 hover:text-emerald-800 flex-1"
             disabled={isMutating}
             onClick={() => setLocation(`/app/wishlist/${wishlist.id}`)}

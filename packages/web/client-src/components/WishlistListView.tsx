@@ -16,15 +16,9 @@ type Wishlist = Omit<DbWishlist, 'id' | 'userId' | 'beneficiaryId'> & {
 
 interface WishlistListViewProps {
   wishlists: Wishlist[];
-  selectedWishlistId?: string | number | null;
-  onSelect?: (wishlist: Wishlist) => void;
 }
 
-function WishlistListRow({ wishlist, selected, onSelect }: {
-  wishlist: Wishlist;
-  selected: boolean;
-  onSelect?: (wishlist: Wishlist) => void;
-}) {
+function WishlistListRow({ wishlist }: { wishlist: Wishlist }) {
   const [, setLocation] = useLocation();
   const [isSharing, setIsSharing] = useState(false);
   const { toast } = useToast();
@@ -66,8 +60,8 @@ function WishlistListRow({ wishlist, selected, onSelect }: {
   return (
     <div
       data-testid={`wishlist-row-${wishlist.id}`}
-      className={`flex items-center gap-4 px-4 py-3 bg-white border rounded-lg hover:shadow-sm transition cursor-pointer ${selected ? 'ring-2 ring-primary/40' : ''}`}
-      onClick={() => onSelect?.(wishlist)}
+      className="flex items-center gap-4 px-4 py-3 bg-white border rounded-lg hover:shadow-sm transition cursor-pointer"
+      onClick={() => setLocation(`/app/wishlist/${wishlist.id}`)}
     >
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
@@ -98,30 +92,16 @@ function WishlistListRow({ wishlist, selected, onSelect }: {
       >
         <Share2 className="h-5 w-5" aria-hidden="true" />
       </Button>
-      <Button
-        data-testid={`wishlist-row-view-${wishlist.id}`}
-        variant="ghost"
-        size="icon"
-        onClick={(e) => { e.stopPropagation(); setLocation(`/app/wishlist/${wishlist.id}`); }}
-        className="text-emerald-700 hover:text-emerald-800 shrink-0"
-        aria-label="View wishlist details"
-      >
-        <ChevronRight className="h-5 w-5" aria-hidden="true" />
-      </Button>
+      <ChevronRight className="h-5 w-5 text-emerald-700 shrink-0" aria-hidden="true" />
     </div>
   );
 }
 
-export default function WishlistListView({ wishlists, selectedWishlistId, onSelect }: WishlistListViewProps) {
+export default function WishlistListView({ wishlists }: WishlistListViewProps) {
   return (
     <div className="flex flex-col gap-2" data-testid="wishlist-list-view">
       {wishlists.map((wishlist) => (
-        <WishlistListRow
-          key={wishlist.id}
-          wishlist={wishlist}
-          selected={wishlist.id === selectedWishlistId}
-          onSelect={onSelect}
-        />
+        <WishlistListRow key={wishlist.id} wishlist={wishlist} />
       ))}
     </div>
   );
