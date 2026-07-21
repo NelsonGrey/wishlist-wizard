@@ -3,6 +3,7 @@ import { Link, useLocation } from "wouter";
 import Footer from "@/components/Footer";
 import { GlobalAdSlot } from "@/components/ads";
 import { useAuth } from "@/contexts/AuthContext";
+import { useLockShellHeight } from "@/hooks/use-lock-shell-height";
 
 interface PublicLayoutProps {
   children: React.ReactNode;
@@ -12,6 +13,8 @@ export default function PublicLayout({ children }: PublicLayoutProps) {
   const [location] = useLocation();
   const { isAuthenticated } = useAuth();
   const mainRef = useRef<HTMLElement>(null);
+  const shellRef = useRef<HTMLDivElement>(null);
+  useLockShellHeight(shellRef);
   const adFreeMarketingRoutes = [
     '/',
     '/subscriptions',
@@ -42,7 +45,7 @@ export default function PublicLayout({ children }: PublicLayoutProps) {
   }, [location]);
 
   return (
-    <div className="h-screen flex flex-col overflow-hidden bg-white">
+    <div ref={shellRef} className="h-screen flex flex-col overflow-hidden bg-white">
       <header className="flex-none bg-white border-b border-gray-200 shadow-sm z-50">
         <div className="site-container flex items-center justify-between py-2.5 2xl:py-3.5">
           <Link href="/">

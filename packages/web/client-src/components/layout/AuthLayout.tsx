@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from "react";
 import { Link, useLocation } from "wouter";
 import { GlobalAdSlot } from "@/components/ads";
 import Footer from "@/components/Footer";
+import { useLockShellHeight } from "@/hooks/use-lock-shell-height";
 
 interface AuthLayoutProps {
   children: React.ReactNode;
@@ -10,6 +11,8 @@ interface AuthLayoutProps {
 export default function AuthLayout({ children }: AuthLayoutProps) {
   const [location] = useLocation();
   const mainRef = useRef<HTMLElement>(null);
+  const shellRef = useRef<HTMLDivElement>(null);
+  useLockShellHeight(shellRef);
 
   // Scroll the main content area to top on route change.
   useEffect(() => {
@@ -17,7 +20,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
   }, [location]);
 
   return (
-    <div className="h-screen flex flex-col overflow-hidden bg-gradient-to-br from-emerald-50 via-white to-green-50">
+    <div ref={shellRef} className="h-screen flex flex-col overflow-hidden bg-gradient-to-br from-emerald-50 via-white to-green-50">
       {/* Minimal Auth Header */}
       <header className="flex-none bg-white/95 backdrop-blur-sm border-b border-emerald-100 shadow-sm">
         <div className="site-container flex items-center justify-between py-3 2xl:py-4">
