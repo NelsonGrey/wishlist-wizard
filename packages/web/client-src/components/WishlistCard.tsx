@@ -24,6 +24,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useMutation } from "@tanstack/react-query";
 import {
   Select,
@@ -268,30 +269,40 @@ export default function WishlistCard({ wishlist, onRefresh }: WishlistCardProps)
                 )}
               </div>
               <div className="flex space-x-2">
-                <Button
-                  data-testid={`wishlist-share-${wishlist.id}`}
-                  variant="ghost"
-                  size="icon"
-                  onClick={handleShare}
-                  disabled={isMutating || isSharing}
-                  className="text-gray-500 hover:text-gray-700"
-                  aria-label="Share wishlist"
-                >
-                  <Share2 className="h-5 w-5" aria-hidden="true" />
-                </Button>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
+                <Tooltip>
+                  <TooltipTrigger asChild>
                     <Button
-                      data-testid={`wishlist-menu-${wishlist.id}`}
+                      data-testid={`wishlist-share-${wishlist.id}`}
                       variant="ghost"
                       size="icon"
-                      disabled={isMutating}
+                      onClick={handleShare}
+                      disabled={isMutating || isSharing}
                       className="text-gray-500 hover:text-gray-700"
-                      aria-label="More options"
+                      aria-label="Share wishlist"
                     >
-                      <MoreVertical className="h-5 w-5" aria-hidden="true" />
+                      <Share2 className="h-5 w-5" aria-hidden="true" />
                     </Button>
-                  </DropdownMenuTrigger>
+                  </TooltipTrigger>
+                  <TooltipContent>Share wishlist</TooltipContent>
+                </Tooltip>
+                <DropdownMenu>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          data-testid={`wishlist-menu-${wishlist.id}`}
+                          variant="ghost"
+                          size="icon"
+                          disabled={isMutating}
+                          className="text-gray-500 hover:text-gray-700"
+                          aria-label="More options"
+                        >
+                          <MoreVertical className="h-5 w-5" aria-hidden="true" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                    </TooltipTrigger>
+                    <TooltipContent>More options</TooltipContent>
+                  </Tooltip>
                   <DropdownMenuContent align="end">
                     <DropdownMenuItem data-testid={`wishlist-edit-action-${wishlist.id}`} onClick={handleEditClick}>
                       <Edit className="h-4 w-4 mr-2" />

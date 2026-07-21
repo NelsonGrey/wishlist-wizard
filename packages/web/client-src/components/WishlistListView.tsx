@@ -3,6 +3,7 @@ import { useLocation } from "wouter";
 import { Share2, ChevronRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Wishlist as DbWishlist } from "@wishlist-wizard/shared";
 import PrivacyControls from "@/components/privacy/PrivacyControls";
 import { getNextOccurrenceDate, parseOccasionDate } from "@/lib/wishlist-dates";
@@ -81,17 +82,22 @@ function WishlistListRow({ wishlist }: { wishlist: Wishlist }) {
           {displayDate ? ` • ${displayDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}` : ''}
         </p>
       </div>
-      <Button
-        data-testid={`wishlist-row-share-${wishlist.id}`}
-        variant="ghost"
-        size="icon"
-        onClick={(e) => { e.stopPropagation(); handleShare(); }}
-        disabled={isSharing}
-        className="text-gray-500 hover:text-gray-700 shrink-0"
-        aria-label="Share wishlist"
-      >
-        <Share2 className="h-5 w-5" aria-hidden="true" />
-      </Button>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            data-testid={`wishlist-row-share-${wishlist.id}`}
+            variant="ghost"
+            size="icon"
+            onClick={(e) => { e.stopPropagation(); handleShare(); }}
+            disabled={isSharing}
+            className="text-gray-500 hover:text-gray-700 shrink-0"
+            aria-label="Share wishlist"
+          >
+            <Share2 className="h-5 w-5" aria-hidden="true" />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>Share wishlist</TooltipContent>
+      </Tooltip>
       <ChevronRight className="h-5 w-5 text-emerald-700 shrink-0" aria-hidden="true" />
     </div>
   );

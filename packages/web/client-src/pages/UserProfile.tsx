@@ -31,6 +31,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { useMutation } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
+import { ACHIEVEMENTS } from '@/lib/achievements';
 
 const createInitialProfile = (user?: {
   uid?: string;
@@ -108,15 +109,6 @@ const CLOTHING_SIZES = ["XS", "S", "M", "L", "XL", "XXL"];
 
 // Common shoe sizes (US)
 const SHOE_SIZES = ["US 5", "US 6", "US 7", "US 8", "US 9", "US 10", "US 11", "US 12", "US 13"];
-
-// Achievement badges data
-const ACHIEVEMENTS = [
-  { id: 1, name: "Wishlist Wizard", description: "Created 10+ wishlists", earned: true, icon: "🌟" },
-  { id: 2, name: "Gifting Guru", description: "Purchased 25+ gifts", earned: true, icon: "🎁" },
-  { id: 3, name: "Savings Expert", description: "Saved over $250 with smart wishlist planning", earned: true, icon: "💰" },
-  { id: 4, name: "Social Butterfly", description: "Connected with 20+ friends", earned: false, icon: "🦋" },
-  { id: 5, name: "Review Enthusiast", description: "Wrote 15+ product reviews", earned: false, icon: "✍️" }
-];
 
 const CONNECTIONS: Array<{ id: number; name: string; avatar: string; mutualFriends: number }> = [];
 
@@ -974,30 +966,48 @@ const UserProfile = () => {
                 
                 {/* Achievement Badges */}
                 <div>
-                  <h3 className="text-lg font-medium mb-3">Achievement Badges</h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                    {ACHIEVEMENTS.map(achievement => (
-                      <div 
-                        key={achievement.id} 
-                        className={`border rounded-lg p-4 transition-colors ${achievement.earned ? 'bg-primary/5 border-primary/20' : 'bg-gray-50 opacity-60'}`}
-                      >
-                        <div className="flex items-start gap-3">
-                          <div className={`text-2xl ${achievement.earned ? '' : 'grayscale'}`}>
-                            {achievement.icon}
-                          </div>
-                          <div>
-                            <h4 className="font-medium flex items-center">
-                              {achievement.name}
-                              {achievement.earned && (
-                                <Check size={14} className="ml-1 text-green-500" />
-                              )}
-                            </h4>
-                            <p className="text-sm text-muted-foreground">{achievement.description}</p>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-lg font-medium">Achievement Badges</h3>
+                    <Link href="/app/achievements" className="text-sm text-primary hover:underline">
+                      How are achievements earned?
+                    </Link>
                   </div>
+                  {(() => {
+                    const earnedAchievements = ACHIEVEMENTS.filter(achievement => achievement.earned);
+                    if (earnedAchievements.length === 0) {
+                      return (
+                        <p className="text-sm text-muted-foreground">
+                          No achievements earned yet —{' '}
+                          <Link href="/app/achievements" className="text-primary hover:underline">
+                            see how to earn your first one
+                          </Link>.
+                        </p>
+                      );
+                    }
+                    return (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                        {earnedAchievements.map(achievement => (
+                          <div
+                            key={achievement.id}
+                            className="border rounded-lg p-4 transition-colors bg-primary/5 border-primary/20"
+                          >
+                            <div className="flex items-start gap-3">
+                              <div className="text-2xl">
+                                {achievement.icon}
+                              </div>
+                              <div>
+                                <h4 className="font-medium flex items-center">
+                                  {achievement.name}
+                                  <Check size={14} className="ml-1 text-green-500" />
+                                </h4>
+                                <p className="text-sm text-muted-foreground">{achievement.description}</p>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })()}
                 </div>
                 
                 {/* Recent Gift Exchanges */}

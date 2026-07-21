@@ -24,6 +24,7 @@ const Login = lazy(() => import("./pages/Login"));
 const Register = lazy(() => import("./pages/Register"));
 const UserProfile = lazy(() => import("./pages/UserProfile"));
 const Settings = lazy(() => import("./pages/Settings"));
+const AchievementsGuide = lazy(() => import("./pages/AchievementsGuide"));
 const Subscription = lazy(() => import("./pages/Subscription"));
 const WishlistDetail = lazy(() => import("./pages/WishlistDetail"));
 const Recommendations = lazy(() => import("./pages/Recommendations"));
@@ -137,9 +138,12 @@ function LayoutRouter({ children }: { children: React.ReactNode }) {
   }
 
   // Authenticated app pages (/app/* and /admin/*) use AppLayout (app-shell scroll).
-  // All other pages — marketing, demos, legal — always use PublicLayout (traditional
-  // browser-window scroll) regardless of auth state.
-  const isAppShellPage = location.startsWith('/app/') || location.startsWith('/admin');
+  // /extension is also in-app nav item — an authenticated user clicking it from
+  // AppLayout should keep the app shell rather than dropping into the marketing
+  // site's PublicLayout. Anonymous visitors (e.g. from marketing links) still
+  // get PublicLayout. All other pages — marketing, demos, legal — always use
+  // PublicLayout regardless of auth state.
+  const isAppShellPage = location.startsWith('/app/') || location.startsWith('/admin') || location === '/extension';
   if (!authLoading && isAuthenticated && isAppShellPage) {
     return <AppLayout>{children}</AppLayout>;
   }
@@ -320,6 +324,14 @@ function AppRouter() {
                     component={() => (
                       <ProtectedRoute requireAuth>
                         <Settings />
+                      </ProtectedRoute>
+                    )}
+                  />
+                  <Route
+                    path="/app/achievements"
+                    component={() => (
+                      <ProtectedRoute requireAuth>
+                        <AchievementsGuide />
                       </ProtectedRoute>
                     )}
                   />
