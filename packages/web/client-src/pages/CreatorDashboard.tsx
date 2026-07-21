@@ -63,7 +63,11 @@ export default function CreatorDashboard() {
   }
 
   if (isError) {
-    const isPermissionDenied = (error as any)?.code === "functions/permission-denied";
+    // commission-summary is served by the api HTTP router (not a Firebase
+    // callable — see queryClient.ts), so a tier-gate rejection surfaces as
+    // an Error thrown by throwIfResNotOk with a "403: ..." message, not a
+    // callable SDK error with a functions/permission-denied code.
+    const isPermissionDenied = (error as Error)?.message?.startsWith("403:");
     if (isPermissionDenied) {
       return <UpgradePrompt />;
     }
