@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { useLocation } from "wouter";
 import { Calendar as CalendarComponent, dateFnsLocalizer } from 'react-big-calendar';
 import { format, parse, startOfWeek, getDay } from 'date-fns';
 import { enUS } from 'date-fns/locale';
@@ -16,7 +17,6 @@ type Wishlist = Omit<DbWishlist, 'id' | 'userId' | 'beneficiaryId'> & {
 
 interface WishlistCalendarViewProps {
   wishlists: Wishlist[];
-  onSelect?: (wishlist: Wishlist) => void;
 }
 
 const locales = { 'en-US': enUS };
@@ -36,7 +36,8 @@ interface WishlistCalendarEvent {
   wishlist: Wishlist;
 }
 
-export default function WishlistCalendarView({ wishlists, onSelect }: WishlistCalendarViewProps) {
+export default function WishlistCalendarView({ wishlists }: WishlistCalendarViewProps) {
+  const [, setLocation] = useLocation();
   const events: WishlistCalendarEvent[] = useMemo(() => {
     return wishlists
       .map((wishlist) => {
@@ -66,7 +67,7 @@ export default function WishlistCalendarView({ wishlists, onSelect }: WishlistCa
         endAccessor="end"
         className="calendar-container"
         style={{ height: 600 }}
-        onSelectEvent={(event: WishlistCalendarEvent) => onSelect?.(event.wishlist)}
+        onSelectEvent={(event: WishlistCalendarEvent) => setLocation(`/app/wishlist/${event.wishlist.id}`)}
       />
     </div>
   );

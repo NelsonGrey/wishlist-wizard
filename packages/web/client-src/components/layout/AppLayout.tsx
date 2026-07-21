@@ -10,10 +10,7 @@ import {
   User,
   Menu,
   LayoutDashboard,
-  Users,
-  Smartphone,
   Puzzle,
-  BarChart3,
   WalletCards
 } from "lucide-react";
 
@@ -82,18 +79,10 @@ export default function AppLayout({ children }: AppLayoutProps) {
   const primaryNavItems = [
     { name: 'Dashboard', href: '/app/dashboard', icon: <LayoutDashboard className="h-5 w-5" />, activePaths: ['/app/dashboard', '/app/wishlists', '/app/wishlist', '/dashboard', '/wishlists', '/wishlist'] },
     { name: 'Calendar', href: '/app/calendar', icon: <Calendar className="h-5 w-5" />, activePaths: ['/app/calendar', '/calendar'] },
-    { name: 'Analytics', href: '/app/analytics', icon: <BarChart3 className="h-5 w-5" />, activePaths: ['/app/analytics', '/analytics'] },
+    { name: 'Extension', href: '/extension', icon: <Puzzle className="h-5 w-5" />, activePaths: ['/extension'] },
     ...(showCreatorDashboard
       ? [{ name: 'Creator Dashboard', href: '/app/creator-dashboard', icon: <WalletCards className="h-5 w-5" />, activePaths: ['/app/creator-dashboard'] }]
       : []),
-  ];
-
-  const featureNavItems = [
-    { name: 'Mobile App', href: '/app/dashboard', icon: <Smartphone className="h-4 w-4" />, description: 'Synced wishlists across devices' },
-    { name: 'Social Network & Discovery', href: '/app/dashboard', icon: <Users className="h-4 w-4" />, description: 'Discover and collaborate with trusted contacts' },
-    { name: 'Calendar Integration', href: '/app/calendar', icon: <Calendar className="h-4 w-4" />, description: 'Event reminders and planning' },
-    { name: 'Browser Extension', href: '/extension', icon: <Puzzle className="h-4 w-4" />, description: 'Capture products from any website' },
-    { name: 'Advanced User Profiles', href: '/app/user-profile', icon: <User className="h-4 w-4" />, description: 'Personalized gifting preferences' },
   ];
 
   return (
@@ -123,29 +112,6 @@ export default function AppLayout({ children }: AppLayoutProps) {
                 <span className="ml-2">{item.name}</span>
               </Link>
             ))}
-
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="px-3 py-2 rounded-lg text-sm flex items-center font-medium text-gray-700 hover:bg-emerald-50 hover:text-emerald-800" aria-label="Open features menu">
-                  <Puzzle className="h-5 w-5" />
-                  <span className="ml-2">Features</span>
-                  <ChevronDown className="h-4 w-4 ml-2 opacity-70" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-80">
-                {featureNavItems.map((item) => (
-                  <DropdownMenuItem key={item.name} asChild>
-                    <Link href={item.href} className="flex w-full cursor-pointer items-start gap-3 py-2">
-                      <span className="mt-0.5 text-emerald-700">{item.icon}</span>
-                      <span>
-                        <span className="block font-medium text-slate-900">{item.name}</span>
-                        <span className="block text-xs text-slate-500">{item.description}</span>
-                      </span>
-                    </Link>
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
           </nav>
 
           {/* User menu */}
@@ -234,23 +200,6 @@ export default function AppLayout({ children }: AppLayoutProps) {
                       {item.name}
                     </Link>
                   ))}
-
-                  <div className="mt-4 border-t pt-4">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-3">Features</p>
-                    <div className="flex flex-col gap-3">
-                      {featureNavItems.map((item) => (
-                        <Link
-                          key={item.name}
-                          href={item.href}
-                          onClick={() => setIsMenuOpen(false)}
-                          className="flex items-start gap-2 text-sm font-medium hover:text-emerald-700"
-                        >
-                          <span className="mt-0.5">{item.icon}</span>
-                          <span>{item.name}</span>
-                        </Link>
-                      ))}
-                    </div>
-                  </div>
                 </nav>
               </SheetContent>
             </Sheet>
@@ -261,7 +210,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
       <GlobalAdSlot placement="top" />
 
       {/* Main content — scrolls within viewport so footer stays pinned */}
-      <main ref={mainRef} className="flex-1 overflow-y-auto bg-gray-50">
+      <main ref={mainRef} className="min-h-0 flex-1 overflow-y-auto bg-gray-50">
         {children}
       </main>
 

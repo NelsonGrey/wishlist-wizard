@@ -9,6 +9,12 @@ import {
   Globe,
   Users,
   UserCheck,
+  UserCog,
+  CreditCard,
+  ShieldCheck,
+  History,
+  LogOut,
+  Receipt,
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -16,13 +22,23 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 import { apiRequest } from '@/lib/queryClient';
 import { NotificationSettings } from '@/components/notifications/NotificationSettings';
 import { CalendarSettings } from '@/components/calendar/CalendarSettings';
 
-type SettingsTab = 'notifications' | 'privacy' | 'calendar' | 'preferences';
+type SettingsTab = 'account' | 'notifications' | 'privacy' | 'calendar' | 'preferences';
 
-const VALID_TABS: SettingsTab[] = ['notifications', 'privacy', 'calendar', 'preferences'];
+const VALID_TABS: SettingsTab[] = ['account', 'notifications', 'privacy', 'calendar', 'preferences'];
 
 interface UserDefaultPrivacy {
   defaultWishlistVisibility: string;
@@ -69,6 +85,7 @@ function getTabFromUrl(): SettingsTab {
 }
 
 export default function Settings() {
+  const isStripeReady = Boolean(String(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '').trim());
   const [selectedTab, setSelectedTab] = useState<SettingsTab>(getTabFromUrl);
   const [theme, setTheme] = useState('system');
   const [language, setLanguage] = useState('en');
@@ -93,6 +110,7 @@ export default function Settings() {
   }, []);
 
   const tabs: Array<{ id: SettingsTab; label: string; icon: React.ReactNode }> = [
+    { id: 'account', label: 'Account', icon: <UserCog size={18} aria-hidden="true" /> },
     { id: 'notifications', label: 'Notifications', icon: <Bell size={18} aria-hidden="true" /> },
     { id: 'privacy', label: 'Privacy', icon: <Lock size={18} aria-hidden="true" /> },
     { id: 'calendar', label: 'Calendar Connections', icon: <CalendarIcon size={18} aria-hidden="true" /> },
@@ -136,6 +154,103 @@ export default function Settings() {
 
           {/* Content */}
           <div className="lg:col-span-3">
+            {selectedTab === 'account' && (
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle>Account Settings</CardTitle>
+                  <CardDescription>Manage billing, security, and account-level actions.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {isStripeReady ? (
+                    <>
+                      <div className="space-y-3">
+                        <h3 className="text-base font-medium">Payment Methods</h3>
+                        <div className="space-y-2">
+                          <Button variant="outline" size="sm">
+                            <CreditCard size={16} className="mr-2" />
+                            Add Payment Method
+                          </Button>
+                        </div>
+                      </div>
+
+                      <div className="space-y-3">
+                        <h3 className="text-base font-medium">Payment History</h3>
+                        <div className="text-center py-8 text-muted-foreground">
+                          <Receipt className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                          <p className="text-sm">No payment history available</p>
+                          <p className="text-xs mt-1">Your contribution and purchase history will appear here</p>
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="rounded-lg border p-4 text-sm text-muted-foreground" data-testid="profile-payments-deferred">
+                      Payments and checkout features are coming in v1.1.
+                    </div>
+                  )}
+
+                  <div className="space-y-3">
+                    <h3 className="text-base font-medium">Security</h3>
+                    <div className="flex justify-between border rounded-lg p-3">
+                      <div>
+                        <p className="font-medium">Password</p>
+                        <p className="text-sm text-muted-foreground">Last updated 3 months ago</p>
+                      </div>
+                      <Button variant="outline" size="sm">Change Password</Button>
+                    </div>
+                    <div className="flex justify-between border rounded-lg p-3">
+                      <div>
+                        <p className="font-medium flex items-center">
+                          Two-Factor Authentication
+                          <ShieldCheck size={16} className="ml-2 text-green-600" />
+                        </p>
+                        <p className="text-sm text-muted-foreground">Enabled via Authenticator App</p>
+                      </div>
+                      <Button variant="outline" size="sm">Manage</Button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3 pt-4">
+                    <h3 className="text-base font-medium">Account Actions</h3>
+                    <div className="flex flex-wrap gap-2">
+                      <Button variant="outline" size="sm">
+                        <History size={16} className="mr-2" />
+                        Download Your Data
+                      </Button>
+                      <Button variant="outline" size="sm">
+                        <LogOut size={16} className="mr-2" />
+                        Log Out of All Devices
+                      </Button>
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <Button variant="outline" size="sm" className="text-red-600 hover:bg-red-50">
+                            Delete Account
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                          <DialogHeader>
+                            <DialogTitle>Delete Your Account?</DialogTitle>
+                            <DialogDescription>
+                              This action cannot be undone. All your wishlists, preferences, and data will be permanently deleted.
+                            </DialogDescription>
+                          </DialogHeader>
+                          <div className="space-y-2 py-4">
+                            <p className="text-sm text-muted-foreground">
+                              Please type &quot;delete my account&quot; to confirm:
+                            </p>
+                            <Input placeholder="delete my account" />
+                          </div>
+                          <DialogFooter>
+                            <Button variant="outline">Cancel</Button>
+                            <Button variant="destructive">Delete Account</Button>
+                          </DialogFooter>
+                        </DialogContent>
+                      </Dialog>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             {selectedTab === 'notifications' && <NotificationSettings />}
 
             {selectedTab === 'privacy' && (

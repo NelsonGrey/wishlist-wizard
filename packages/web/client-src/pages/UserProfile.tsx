@@ -14,27 +14,19 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import {
   User,
-  Settings,
   Gift,
   HeartHandshake,
   Mail,
   Check,
-  ShieldCheck,
-  History,
-  LogOut,
   ChevronDown,
-  BadgeDollarSign,
   Edit3,
   Save,
-  CreditCard,
   BarChart3,
   Loader2,
   X,
-  UserPlus,
-  Receipt
+  UserPlus
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useMutation } from '@tanstack/react-query';
@@ -130,7 +122,6 @@ const CONNECTIONS: Array<{ id: number; name: string; avatar: string; mutualFrien
 
 const UserProfile = () => {
   const { user } = useAuth();
-  const isStripeReady = Boolean(String(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '').trim());
   const [profile, setProfile] = useState(() => createInitialProfile(user || undefined));
   const [selectedTab, setSelectedTab] = useState("profile");
   const [editMode, setEditMode] = useState(false);
@@ -306,7 +297,7 @@ const UserProfile = () => {
                   <HeartHandshake size={18} aria-hidden="true" />
                   <span>Connections</span>
                 </button>
-                <button 
+                <button
                   type="button"
                   className={`flex items-center gap-3 p-4 text-left transition-colors hover:bg-muted ${selectedTab === 'stats' ? 'bg-muted font-medium' : ''}`}
                   onClick={() => setSelectedTab('stats')}
@@ -315,16 +306,6 @@ const UserProfile = () => {
                 >
                   <BarChart3 size={18} aria-hidden="true" />
                   <span>Stats & Achievements</span>
-                </button>
-                <button 
-                  type="button"
-                  className={`flex items-center gap-3 p-4 text-left transition-colors hover:bg-muted ${selectedTab === 'settings' ? 'bg-muted font-medium' : ''}`}
-                  onClick={() => setSelectedTab('settings')}
-                  aria-pressed={selectedTab === 'settings'}
-                  aria-label="Open Account Settings section"
-                >
-                  <Settings size={18} aria-hidden="true" />
-                  <span>Account Settings</span>
                 </button>
               </nav>
             </CardContent>
@@ -1047,173 +1028,6 @@ const UserProfile = () => {
             </Card>
           )}
           
-          {/* Account Settings Tab */}
-          {selectedTab === 'settings' && (
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle>Account Settings</CardTitle>
-                <CardDescription>Manage your account preferences</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                {/* App settings shortcut */}
-                <div className="rounded-lg border p-4 flex items-center justify-between gap-4">
-                  <div>
-                    <h3 className="text-base font-medium">App Settings</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Notifications, privacy defaults, calendar connections, and theme/regional preferences have moved to Settings.
-                    </p>
-                  </div>
-                  <Button asChild variant="outline">
-                    <Link href="/app/settings">
-                      <Settings className="h-4 w-4 mr-2" />
-                      Open Settings
-                    </Link>
-                  </Button>
-                </div>
-
-                {isStripeReady ? (
-                  <>
-                    {/* Payment Methods */}
-                    <div className="space-y-3">
-                      <h3 className="text-base font-medium">Payment Methods</h3>
-                      
-                      <div className="space-y-2">
-                        {profile.paymentMethods.map(method => (
-                          <div key={method.id} className="flex items-center justify-between border rounded-lg p-3">
-                            <div className="flex items-center gap-3">
-                              <div>
-                                {method.type === 'credit_card' ? (
-                                  <CreditCard className="text-primary" />
-                                ) : (
-                                  <BadgeDollarSign className="text-emerald-800" />
-                                )}
-                              </div>
-                              <div>
-                                {method.type === 'credit_card' ? (
-                                  <div>
-                                    <p className="font-medium">{method.brand} ••••{method.lastFour}</p>
-                                  </div>
-                                ) : (
-                                  <div>
-                                    <p className="font-medium">PayPal</p>
-                                    <p className="text-sm text-muted-foreground">{method.email}</p>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                            <div>
-                              {method.default && (
-                                <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">
-                                  Default
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        ))}
-                        
-                        <Button variant="outline" size="sm">
-                          <CreditCard size={16} className="mr-2" />
-                          Add Payment Method
-                        </Button>
-                      </div>
-                    </div>
-
-                    {/* Payment History */}
-                    <div className="space-y-3">
-                      <h3 className="text-base font-medium">Payment History</h3>
-
-                      <div className="space-y-2">
-                        {/* This would be populated with actual payment history data */}
-                        <div className="text-center py-8 text-muted-foreground">
-                          <Receipt className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                          <p className="text-sm">No payment history available</p>
-                          <p className="text-xs mt-1">Your contribution and purchase history will appear here</p>
-                        </div>
-                      </div>
-                    </div>
-                  </>
-                ) : (
-                  <div className="rounded-lg border p-4 text-sm text-muted-foreground" data-testid="profile-payments-deferred">
-                    Payments and checkout features are coming in v1.1.
-                  </div>
-                )}
-                
-                {/* Security */}
-                <div className="space-y-3">
-                  <h3 className="text-base font-medium">Security</h3>
-                  
-                  <div className="flex justify-between border rounded-lg p-3">
-                    <div>
-                      <p className="font-medium">Password</p>
-                      <p className="text-sm text-muted-foreground">Last updated 3 months ago</p>
-                    </div>
-                    <Button variant="outline" size="sm">Change Password</Button>
-                  </div>
-                  
-                  <div className="flex justify-between border rounded-lg p-3">
-                    <div>
-                      <p className="font-medium flex items-center">
-                        Two-Factor Authentication 
-                        <ShieldCheck size={16} className="ml-2 text-green-600" />
-                      </p>
-                      <p className="text-sm text-muted-foreground">Enabled via Authenticator App</p>
-                    </div>
-                    <Button variant="outline" size="sm">Manage</Button>
-                  </div>
-                </div>
-
-                {/* Account Actions */}
-                <div className="space-y-3 pt-4">
-                  <h3 className="text-base font-medium">Account Actions</h3>
-                  
-                  <div className="flex flex-wrap gap-2">
-                    <Button variant="outline" size="sm">
-                      <History size={16} className="mr-2" />
-                      Download Your Data
-                    </Button>
-                    
-                    <Button variant="outline" size="sm">
-                      <LogOut size={16} className="mr-2" />
-                      Log Out of All Devices
-                    </Button>
-                    
-                    <Dialog>
-                      <DialogTrigger asChild>
-                        <Button variant="outline" size="sm" className="text-red-600 hover:bg-red-50">
-                          Delete Account
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent>
-                        <DialogHeader>
-                          <DialogTitle>Delete Your Account?</DialogTitle>
-                          <DialogDescription>
-                            This action cannot be undone. All your wishlists, preferences, and data will be permanently deleted.
-                          </DialogDescription>
-                        </DialogHeader>
-                        <div className="space-y-2 py-4">
-                          <p className="text-sm text-muted-foreground">
-                            Please type &quot;delete my account&quot; to confirm:
-                          </p>
-                          <Input placeholder="delete my account" />
-                        </div>
-                        <DialogFooter>
-                          <Button variant="outline">Cancel</Button>
-                          <Button variant="destructive">Delete Account</Button>
-                        </DialogFooter>
-                      </DialogContent>
-                    </Dialog>
-                  </div>
-                </div>
-                
-                <div className="pt-4">
-                  <Button onClick={handleSaveProfile} disabled={savingProfile}>
-                    {savingProfile && <Loader2 size={16} className="mr-2 animate-spin" />}
-                    Save Account Settings
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          )}
         </div>
       </div>
       </div>
