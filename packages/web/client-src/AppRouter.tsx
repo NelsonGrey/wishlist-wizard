@@ -44,6 +44,9 @@ const CookiePolicy = lazy(() => import("./pages/CookiePolicy"));
 const About = lazy(() => import("./pages/About"));
 const Support = lazy(() => import("./pages/Support"));
 const Subscriptions = lazy(() => import("./pages/Subscriptions"));
+const HowItWorks = lazy(() => import("./pages/HowItWorks"));
+const AffiliateCommissions = lazy(() => import("./pages/AffiliateCommissions"));
+const CreatorProgram = lazy(() => import("./pages/CreatorProgram"));
 const Download = lazy(() => import("./pages/Download"));
 const MobileAppDemo = lazy(() => import("./pages/demos/MobileAppDemo"));
 const BrowserExtensionDemo = lazy(() => import("./pages/demos/BrowserExtensionDemo"));
@@ -182,6 +185,9 @@ function AppRouter() {
                   <Route path="/extension" component={ExtensionPage} />
                   <Route path="/download" component={Download} />
                   <Route path="/subscriptions" component={Subscriptions} />
+                  <Route path="/how-it-works" component={HowItWorks} />
+                  <Route path="/affiliate-commissions" component={AffiliateCommissions} />
+                  <Route path="/creator-program" component={CreatorProgram} />
                   {/* Legacy redirect — keep for existing links and search indexing */}
                   <Route path="/plans" component={() => <Redirect to="/subscriptions" />} />
                     <Route path="/about" component={About} />

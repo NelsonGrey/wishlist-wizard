@@ -296,7 +296,7 @@ export const TIER_PRICING: Record<SubscriptionTier, TierPricing> = {
     annualMonthlyEquivalent: 12.42,
     annualSavingPercent: 17,
     displayName: 'Creator Pro',
-    tagline: 'Earn commission share. Full creator analytics.',
+    tagline: 'Full creator analytics. Commission sharing planned.',
     trialDays: 14,
   },
   business: {

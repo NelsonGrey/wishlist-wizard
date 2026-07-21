@@ -16,6 +16,9 @@ export default function PublicLayout({ children }: PublicLayoutProps) {
     '/',
     '/subscriptions',
     '/plans',
+    '/how-it-works',
+    '/affiliate-commissions',
+    '/creator-program',
     '/extension',
     '/download',
     '/about',
@@ -45,11 +48,14 @@ export default function PublicLayout({ children }: PublicLayoutProps) {
           <Link href="/">
             <span className="flex items-center hover:scale-105 transition-transform duration-200">
               <img src="/logo.svg" alt="Wishlist Wizard" className="h-9 w-9 mr-2.5" />
-              <span className="font-bold text-xl tracking-tight text-emerald-800">Wishlist Wizard</span>
+              <span className="hidden font-bold text-xl tracking-tight text-emerald-800 sm:inline">Wishlist Wizard</span>
             </span>
           </Link>
 
           <nav className="hidden md:flex items-center space-x-6">
+            <Link href="/how-it-works" className="text-gray-700 hover:text-emerald-700 font-medium transition-colors">
+              How It Works
+            </Link>
             <Link href="/about" className="text-gray-700 hover:text-emerald-700 font-medium transition-colors">
               About
             </Link>
@@ -79,8 +85,8 @@ export default function PublicLayout({ children }: PublicLayoutProps) {
           </nav>
 
           <div className="md:hidden flex items-center gap-3">
-            <Link href="/subscriptions" className="text-gray-700 hover:text-emerald-800 font-medium">
-              Subscriptions
+            <Link href="/how-it-works" className="text-gray-700 hover:text-emerald-800 font-medium">
+              How It Works
             </Link>
             {isAuthenticated ? (
               <Link href="/app/dashboard" className="px-4 py-2 bg-emerald-800 text-white rounded-lg shadow-md">

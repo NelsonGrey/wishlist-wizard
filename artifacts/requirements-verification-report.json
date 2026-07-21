@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-07-18T17:27:26.144Z",
+  "timestamp": "2026-07-20T21:45:03.908Z",
   "strictAll": false,
   "source": {
     "requirementsPath": "docs/REQUIREMENTS.md",
@@ -9,16 +9,18 @@
     "completedRequirements": 30,
     "matrixEntries": 30,
     "unmappedCompleted": 0,
-    "enforcedUnverified": 0,
+    "enforcedUnverified": 1,
     "enforcedMissingFromCompleted": 0,
     "malformedEnforced": 0,
     "designUnlinkedEnforced": 0,
     "duplicateKeys": 0,
-    "blockingFailures": 0
+    "blockingFailures": 1
   },
   "details": {
     "unmappedCompleted": [],
-    "enforcedUnverified": [],
+    "enforcedUnverified": [
+      "2. Advanced Features → Track price history, manual update, price alerts, price drop query (status=partial)"
+    ],
     "enforcedMissingFromCompleted": [],
     "malformedEnforced": [],
     "designUnlinkedEnforced": [],
