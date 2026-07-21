@@ -35,7 +35,6 @@ import { Badge } from '@/components/ui/badge';
 import { apiRequest } from '@/lib/queryClient';
 import { getApiErrorMessage } from '@/lib/api-errors';
 import { useToast } from '@/hooks/use-toast';
-import { CalendarSettings } from '@/components/calendar/CalendarSettings';
 
 // Define interfaces for API responses
 interface CalendarEventResponse {
@@ -597,7 +596,7 @@ const Calendar: React.FC = () => {
           <Button variant="outline" onClick={() => setLocation('/app/dashboard')}>
             Open Wishlists
           </Button>
-          <Button variant="outline" onClick={() => setActiveTab('connections')}>
+          <Button variant="outline" onClick={() => setLocation('/app/settings?tab=calendar')}>
             Settings
           </Button>
         </div>
@@ -635,11 +634,10 @@ const Calendar: React.FC = () => {
         <div>
           <div className="bg-white p-4 rounded-lg shadow">
             <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="grid w-full grid-cols-4">
+              <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="upcoming">Upcoming</TabsTrigger>
                 <TabsTrigger value="birthdays">Birthdays</TabsTrigger>
                 <TabsTrigger value="wishlists">Deadlines</TabsTrigger>
-                <TabsTrigger value="connections">Connections</TabsTrigger>
               </TabsList>
               <TabsContent value="upcoming" className="pt-4">
                 {renderUpcomingEvents()}
@@ -649,9 +647,6 @@ const Calendar: React.FC = () => {
               </TabsContent>
               <TabsContent value="wishlists" className="pt-4">
                 {renderWishlistDeadlines()}
-              </TabsContent>
-              <TabsContent value="connections" className="pt-4">
-                <CalendarSettings />
               </TabsContent>
             </Tabs>
           </div>

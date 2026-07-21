@@ -12,18 +12,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
-import { Separator } from "@/components/ui/separator";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { 
+import {
   User,
   Settings,
-  Bell,
   Gift,
   HeartHandshake,
-  Lock,
   Mail,
   Check,
   ShieldCheck,
@@ -43,8 +39,6 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { useMutation } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
-import { CalendarSettings } from '@/components/calendar/CalendarSettings';
-import { FeatureFlags, getRemoteConfig } from '@shared/firebase-utils';
 
 const createInitialProfile = (user?: {
   uid?: string;
@@ -117,32 +111,6 @@ const createInitialProfile = (user?: {
   favoriteStores: [] as string[]
 });
 
-// Theme options
-const THEME_OPTIONS = [
-  { value: "light", label: "Light" },
-  { value: "dark", label: "Dark" },
-  { value: "system", label: "System Default" }
-];
-
-// Language options
-const LANGUAGE_OPTIONS = [
-  { value: "en", label: "English (US)" },
-  { value: "es", label: "Spanish" },
-  { value: "fr", label: "French" },
-  { value: "de", label: "German" },
-  { value: "it", label: "Italian" },
-  { value: "ja", label: "Japanese" }
-];
-
-// Currency options
-const CURRENCY_OPTIONS = [
-  { value: "USD", label: "USD ($)" },
-  { value: "EUR", label: "EUR (€)" },
-  { value: "GBP", label: "GBP (£)" },
-  { value: "JPY", label: "JPY (¥)" },
-  { value: "CAD", label: "CAD ($)" }
-];
-
 // Common clothing sizes
 const CLOTHING_SIZES = ["XS", "S", "M", "L", "XL", "XXL"];
 
@@ -163,7 +131,6 @@ const CONNECTIONS: Array<{ id: number; name: string; avatar: string; mutualFrien
 const UserProfile = () => {
   const { user } = useAuth();
   const isStripeReady = Boolean(String(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '').trim());
-  const priceAlertsEnabled = getRemoteConfig().isFeatureEnabled(FeatureFlags.PRICE_ALERTS_ENABLED);
   const [profile, setProfile] = useState(() => createInitialProfile(user || undefined));
   const [selectedTab, setSelectedTab] = useState("profile");
   const [editMode, setEditMode] = useState(false);
@@ -238,17 +205,6 @@ const UserProfile = () => {
   const handleCancelEdit = () => {
     setEditedProfile(profile);
     setEditMode(false);
-  };
-
-  // Toggle notification settings
-  const toggleNotification = (key: keyof typeof profile.notifications) => {
-    setEditedProfile({
-      ...editedProfile,
-      notifications: {
-        ...editedProfile.notifications,
-        [key]: !editedProfile.notifications[key]
-      }
-    });
   };
 
   // Add favorite store
@@ -340,27 +296,7 @@ const UserProfile = () => {
                   <Gift size={18} aria-hidden="true" />
                   <span>Gift Preferences</span>
                 </button>
-                <button 
-                  type="button"
-                  className={`flex items-center gap-3 p-4 text-left transition-colors hover:bg-muted ${selectedTab === 'notifications' ? 'bg-muted font-medium' : ''}`}
-                  onClick={() => setSelectedTab('notifications')}
-                  aria-pressed={selectedTab === 'notifications'}
-                  aria-label="Open Notifications section"
-                >
-                  <Bell size={18} aria-hidden="true" />
-                  <span>Notifications</span>
-                </button>
-                <button 
-                  type="button"
-                  className={`flex items-center gap-3 p-4 text-left transition-colors hover:bg-muted ${selectedTab === 'privacy' ? 'bg-muted font-medium' : ''}`}
-                  onClick={() => setSelectedTab('privacy')}
-                  aria-pressed={selectedTab === 'privacy'}
-                  aria-label="Open Privacy section"
-                >
-                  <Lock size={18} aria-hidden="true" />
-                  <span>Privacy</span>
-                </button>
-                <button 
+                <button
                   type="button"
                   className={`flex items-center gap-3 p-4 text-left transition-colors hover:bg-muted ${selectedTab === 'connections' ? 'bg-muted font-medium' : ''}`}
                   onClick={() => setSelectedTab('connections')}
@@ -875,130 +811,6 @@ const UserProfile = () => {
             </Card>
           )}
           
-          {/* Notifications Tab */}
-          {selectedTab === 'notifications' && (
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle>Notification Preferences</CardTitle>
-                <CardDescription>Manage how and when we contact you</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-6">
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-0.5">
-                        <Label htmlFor="email-notifications">Email Notifications</Label>
-                        <p className="text-sm text-muted-foreground">Receive updates via email</p>
-                      </div>
-                      <Switch 
-                        id="email-notifications" 
-                        checked={editedProfile.notifications.email}
-                        onCheckedChange={() => toggleNotification('email')}
-                      />
-                    </div>
-                    
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-0.5">
-                        <Label htmlFor="push-notifications">Push Notifications</Label>
-                        <p className="text-sm text-muted-foreground">Receive notifications on your device</p>
-                      </div>
-                      <Switch 
-                        id="push-notifications" 
-                        checked={editedProfile.notifications.push}
-                        onCheckedChange={() => toggleNotification('push')}
-                      />
-                    </div>
-                    
-                    <Separator />
-                    
-                    {priceAlertsEnabled && (
-                      <div className="flex items-center justify-between">
-                        <div className="space-y-0.5">
-                          <Label htmlFor="price-alerts">Price Drop Alerts</Label>
-                          <p className="text-sm text-muted-foreground">Get notified when item prices drop</p>
-                        </div>
-                        <Switch 
-                          id="price-alerts" 
-                          checked={editedProfile.notifications.priceAlerts}
-                          onCheckedChange={() => toggleNotification('priceAlerts')}
-                        />
-                      </div>
-                    )}
-                    
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-0.5">
-                        <Label htmlFor="gift-reminders">Gift Reminders</Label>
-                        <p className="text-sm text-muted-foreground">Receive reminders for upcoming gift events</p>
-                      </div>
-                      <Switch 
-                        id="gift-reminders" 
-                        checked={editedProfile.notifications.giftReminders}
-                        onCheckedChange={() => toggleNotification('giftReminders')}
-                      />
-                    </div>
-                    
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-0.5">
-                        <Label htmlFor="wishlist-updates">Wishlist Updates</Label>
-                        <p className="text-sm text-muted-foreground">Notifications when your wishlists are viewed or items are purchased</p>
-                      </div>
-                      <Switch 
-                        id="wishlist-updates" 
-                        checked={editedProfile.notifications.wishlistUpdates}
-                        onCheckedChange={() => toggleNotification('wishlistUpdates')}
-                      />
-                    </div>
-                    
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-0.5">
-                        <Label htmlFor="special-offers">Special Offers & Tips</Label>
-                        <p className="text-sm text-muted-foreground">Receive exclusive deals and gifting advice</p>
-                      </div>
-                      <Switch 
-                        id="special-offers" 
-                        checked={editedProfile.notifications.specialOffers}
-                        onCheckedChange={() => toggleNotification('specialOffers')}
-                      />
-                    </div>
-                  </div>
-                  
-                  <div className="pt-4">
-                    <Button onClick={handleSaveProfile} disabled={savingProfile}>
-                      {savingProfile && <Loader2 size={16} className="mr-2 animate-spin" />}
-                      Save Notification Preferences
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-          
-          {/* Privacy Tab */}
-          {selectedTab === 'privacy' && (
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle>Privacy Settings</CardTitle>
-                <CardDescription>Manage who can see your wishlists and activity</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center py-12">
-                  <Lock className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
-                  <h3 className="text-lg font-medium mb-2">Advanced Privacy Controls</h3>
-                  <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-                    Manage detailed privacy settings for individual wishlists, items, and your profile.
-                    Control visibility, custom access lists, and interaction permissions.
-                  </p>
-                  <Button asChild size="lg">
-                    <Link href="/app/privacy-settings">
-                      <Settings className="h-4 w-4 mr-2" />
-                      Open Privacy Settings
-                    </Link>
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-          
           {/* Connections Tab */}
           {selectedTab === 'connections' && (
             <Card>
@@ -1243,60 +1055,22 @@ const UserProfile = () => {
                 <CardDescription>Manage your account preferences</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                {/* Appearance */}
-                <div className="space-y-2">
-                  <h3 className="text-base font-medium">Appearance</h3>
-                  <div className="flex flex-col space-y-1">
-                    <Label htmlFor="theme-select">Theme</Label>
-                    <select 
-                      id="theme-select" 
-                      className="border rounded-md p-2"
-                      value={editedProfile.theme}
-                      onChange={e => setEditedProfile({...editedProfile, theme: e.target.value})}
-                      title="Select your preferred theme"
-                    >
-                      {THEME_OPTIONS.map(option => (
-                        <option key={option.value} value={option.value}>{option.label}</option>
-                      ))}
-                    </select>
+                {/* App settings shortcut */}
+                <div className="rounded-lg border p-4 flex items-center justify-between gap-4">
+                  <div>
+                    <h3 className="text-base font-medium">App Settings</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Notifications, privacy defaults, calendar connections, and theme/regional preferences have moved to Settings.
+                    </p>
                   </div>
+                  <Button asChild variant="outline">
+                    <Link href="/app/settings">
+                      <Settings className="h-4 w-4 mr-2" />
+                      Open Settings
+                    </Link>
+                  </Button>
                 </div>
-                
-                {/* Regional Settings */}
-                <div className="space-y-4">
-                  <h3 className="text-base font-medium">Regional Settings</h3>
-                  
-                  <div className="flex flex-col space-y-1">
-                    <Label htmlFor="language-select">Language</Label>
-                    <select 
-                      id="language-select" 
-                      className="border rounded-md p-2"
-                      value={editedProfile.language}
-                      onChange={e => setEditedProfile({...editedProfile, language: e.target.value})}
-                      title="Select your preferred language"
-                    >
-                      {LANGUAGE_OPTIONS.map(option => (
-                        <option key={option.value} value={option.value}>{option.label}</option>
-                      ))}
-                    </select>
-                  </div>
-                  
-                  <div className="flex flex-col space-y-1">
-                    <Label htmlFor="currency-select">Currency</Label>
-                    <select 
-                      id="currency-select" 
-                      className="border rounded-md p-2"
-                      value={editedProfile.currency}
-                      onChange={e => setEditedProfile({...editedProfile, currency: e.target.value})}
-                      title="Select your preferred currency"
-                    >
-                      {CURRENCY_OPTIONS.map(option => (
-                        <option key={option.value} value={option.value}>{option.label}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-                
+
                 {isStripeReady ? (
                   <>
                     {/* Payment Methods */}
@@ -1388,17 +1162,6 @@ const UserProfile = () => {
                   </div>
                 </div>
 
-                {/* Contact Sources */}
-                <div className="space-y-3">
-                  <h3 className="text-base font-medium">Contact Sources</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Manage contact providers here. Recipient selection reads from these sources so setup stays in Profile & Settings.
-                  </p>
-                  <div className="rounded-lg border p-4">
-                    <CalendarSettings />
-                  </div>
-                </div>
-                
                 {/* Account Actions */}
                 <div className="space-y-3 pt-4">
                   <h3 className="text-base font-medium">Account Actions</h3>

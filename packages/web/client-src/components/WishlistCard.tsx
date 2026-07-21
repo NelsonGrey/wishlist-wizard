@@ -8,6 +8,7 @@ import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Wishlist as DbWishlist } from "@wishlist-wizard/shared";
 import PrivacyControls from "@/components/privacy/PrivacyControls";
+import { getNextOccurrenceDate, parseOccasionDate } from "@/lib/wishlist-dates";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -69,8 +70,7 @@ export default function WishlistCard({ wishlist, onRefresh, onSelect, selected =
   const [isSharing, setIsSharing] = useState(false);
   const { toast } = useToast();
 
-  const parsedOccasionDate = wishlist.occasionDate ? new Date(wishlist.occasionDate) : null;
-  const occasionDate = parsedOccasionDate && !Number.isNaN(parsedOccasionDate.getTime()) ? parsedOccasionDate : null;
+  const occasionDate = parseOccasionDate(wishlist.occasionDate);
   const eventDateDisplay = occasionDate
     ? occasionDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
     : null;
@@ -79,27 +79,7 @@ export default function WishlistCard({ wishlist, onRefresh, onSelect, selected =
   const recipientType = wishlist.recipient?.type || 'self';
   const recipientMembers = Array.isArray(wishlist.recipient?.members) ? wishlist.recipient?.members : [];
 
-  const getNextOccurrenceDate = () => {
-    if (!occasionDate || !wishlist.recurrence || wishlist.recurrence === 'none') return null;
-    const now = new Date();
-    const next = new Date(occasionDate);
-
-    if (wishlist.recurrence === 'yearly') {
-      next.setFullYear(now.getFullYear());
-      if (next < now) next.setFullYear(now.getFullYear() + 1);
-      return next;
-    }
-
-    if (wishlist.recurrence === 'monthly') {
-      next.setFullYear(now.getFullYear(), now.getMonth());
-      if (next < now) next.setMonth(now.getMonth() + 1);
-      return next;
-    }
-
-    return next;
-  };
-
-  const nextOccurrenceDate = getNextOccurrenceDate();
+  const nextOccurrenceDate = getNextOccurrenceDate(occasionDate, wishlist.recurrence);
 
   // Update wishlist mutation
   const updateWishlistMutation = useMutation({

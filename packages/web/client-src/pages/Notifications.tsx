@@ -5,12 +5,11 @@ import { apiRequest } from '@/lib/queryClient';
 import { getApiErrorMessage } from '@/lib/api-errors';
 import { useToast } from '@/hooks/use-toast';
 import { Notification } from '@wishlist-wizard/shared';
-import { Bell, Trash2, ArrowLeft } from 'lucide-react';
+import { Bell, Trash2, ArrowLeft, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Link } from 'wouter';
 import { format } from 'date-fns';
-import { NotificationSettings } from '@/components/notifications/NotificationSettings';
 
 type NotificationFilter = 'all' | 'unread' | 'read';
 
@@ -28,8 +27,7 @@ export default function Notifications() {
   const [markingNotificationId, setMarkingNotificationId] = useState<number | null>(null);
   const [deletingNotificationId, setDeletingNotificationId] = useState<number | null>(null);
   const [filter, setFilter] = useState<NotificationFilter>('all');
-  const [showSettings, setShowSettings] = useState(false);
-  
+
   // Query for notifications
   const { data, isLoading, isError, error, refetch } = useQuery<{
     notifications: Notification[],
@@ -219,14 +217,11 @@ export default function Notifications() {
         </div>
 
         <div className="flex items-center gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            aria-expanded={showSettings}
-            aria-controls="notification-preferences-panel"
-            onClick={() => setShowSettings((prev) => !prev)}
-          >
-            {showSettings ? 'Hide preferences' : 'Manage preferences'}
+          <Button type="button" variant="outline" asChild>
+            <Link href="/app/settings?tab=notifications">
+              <Settings className="h-4 w-4 mr-2" />
+              Notification preferences
+            </Link>
           </Button>
 
           {notifications.length > 0 && unreadCount > 0 && (
@@ -242,12 +237,6 @@ export default function Notifications() {
         </div>
       </div>
 
-      {showSettings && (
-        <section id="notification-preferences-panel" className="mb-8" aria-label="Notification preferences">
-          <NotificationSettings />
-        </section>
-      )}
-      
       <Separator className="mb-6" />
       
       {isLoading ? (

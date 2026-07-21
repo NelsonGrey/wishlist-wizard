@@ -1,5 +1,6 @@
 import { ReactNode, useState } from "react";
-import { Check, Copy, ExternalLink, MoreHorizontal, Trash2, Heart, Bell, Pencil, Info } from "lucide-react";
+import { Link } from "wouter";
+import { Check, Copy, ExternalLink, MoreHorizontal, Trash2, Heart, Bell, Pencil, Info, TrendingUp } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { WishlistItem as DbWishlistItem } from "@wishlist-wizard/shared";
@@ -493,6 +494,16 @@ export default function WishlistItem({
                 Alert
               </Button>
             )}
+            <Button className="w-full sm:w-auto" variant="outline" asChild>
+              <Link
+                href={`/app/price-tracking?itemId=${encodeURIComponent(String(item.id))}`}
+                onClick={() => setIsDetailsDialogOpen(false)}
+                data-testid={`wishlist-item-price-history-${normalizedItemId}`}
+              >
+                <TrendingUp className="h-4 w-4 mr-2" />
+                Price History
+              </Link>
+            </Button>
             {onReserve && (
               <Button
                 className="w-full sm:w-auto"

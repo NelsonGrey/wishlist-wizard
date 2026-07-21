@@ -6,7 +6,7 @@
 import { useState, useEffect } from 'react';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { useAuth } from '@/contexts/AuthContext';
-import { useQuery } from '@tanstack/react-query';
+import { useSubscriptionStatus } from '@/hooks/use-subscription-status';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -16,20 +16,7 @@ import { useToast } from '@/hooks/use-toast';
 import {
   CreditCard, TrendingUp, AlertTriangle, Check, Zap, Users, BarChart3, Code,
 } from 'lucide-react';
-import type { SubscriptionTier, TierLimits, TierPricing } from '@wishlist-wizard/shared';
-
-interface SubscriptionStatus {
-  tier: SubscriptionTier;
-  status: string;
-  currentPeriodStart?: { _seconds: number };
-  currentPeriodEnd?: { _seconds: number };
-  stripeCustomerId?: string;
-  stripeSubscriptionId?: string;
-  usage: Record<string, number>;
-  limits: TierLimits;
-  pricing: TierPricing;
-  availableUpgrades: Array<{ tier: SubscriptionTier; pricing: TierPricing }>;
-}
+import type { SubscriptionTier, TierPricing } from '@wishlist-wizard/shared';
 
 interface UpgradeOptionsResponse {
   upgradeTiers: Array<{ tier: SubscriptionTier; pricing: TierPricing }>;
@@ -69,16 +56,7 @@ export default function Subscription() {
   const functions = getFunctions();
   const [redirecting, setRedirecting] = useState(false);
 
-  const { data: subStatus, isLoading } = useQuery<SubscriptionStatus>({
-    queryKey: ['subscription-status', user?.uid],
-    queryFn: async () => {
-      if (!user) throw new Error('Not authenticated');
-      const fn = httpsCallable<object, SubscriptionStatus>(functions, 'billingStatus');
-      const { data } = await fn();
-      return data;
-    },
-    enabled: !!user,
-  });
+  const { data: subStatus, isLoading } = useSubscriptionStatus();
 
   async function handleUpgrade(tier: SubscriptionTier, billingCycle: 'monthly' | 'annual') {
     setRedirecting(true);
