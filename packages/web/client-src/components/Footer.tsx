@@ -43,6 +43,9 @@ export default function Footer() {
 
           {/* Main nav */}
           <nav className="flex flex-wrap gap-x-5 gap-y-1 text-sm text-emerald-200">
+            <Link href="/how-it-works" className="hover:text-white transition-colors">How It Works</Link>
+            <Link href="/affiliate-commissions" className="hover:text-white transition-colors">Commissions</Link>
+            <Link href="/creator-program" className="hover:text-white transition-colors">Creators</Link>
             <Link href="/about" className="hover:text-white transition-colors">About</Link>
             <Link href="/subscriptions" className="hover:text-white transition-colors">Subscriptions</Link>
             <Link href="/download" className="hover:text-white transition-colors">Download</Link>

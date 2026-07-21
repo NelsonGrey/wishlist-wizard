@@ -113,7 +113,7 @@ const rows: MatrixRow[] = [
     description: 'Share of platform-earned affiliate commission',
     renderValue: (tier) => {
       const share = TIER_LIMITS[tier].affiliateCommissionShare;
-      return share > 0 ? `${Math.round(share * 100)}%` : null;
+      return share > 0 ? `${Math.round(share * 100)}% proposed` : null;
     },
   },
   {
