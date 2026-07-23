@@ -101,7 +101,6 @@ function shouldUseFirebaseFunctions(url: string, method: string): boolean {
     '/api/analytics',
     '/api/notifications',
     '/api/fcm',
-    '/api/contacts',
     '/api/affiliate',
     '/api/items',
     '/api/price-intelligence',
@@ -135,6 +134,7 @@ function shouldUseFirebaseApiRouter(url: string, method: string): boolean {
     '/api/creator',
     '/api/admin',
     '/api/billing',
+    '/api/contacts',
   ];
 
   return routerEndpoints.some(endpoint => url.startsWith(endpoint));
@@ -226,11 +226,6 @@ function getFirebaseFunctionRoute(url: string, method: string, body?: unknown): 
     { pattern: /^\/api\/calendar\/connections\/([^/]+)$/, resolve: (match) => ({ functionName: 'calendarDisconnect', data: { ...data, connectionId: match[1] } }) },
     { pattern: /^\/api\/calendar\/sync$/, resolve: () => ({ functionName: 'calendarSync', data }) },
     { pattern: /^\/api\/calendar\/sync-settings$/, resolve: () => ({ functionName: 'calendarSyncSettings', data }) },
-    { pattern: /^\/api\/contacts$/, resolve: () => ({ functionName: 'getContacts', data }) },
-    { pattern: /^\/api\/contacts\/external$/, resolve: () => ({ functionName: 'getExternalContacts', data }) },
-    { pattern: /^\/api\/contacts\/import$/, resolve: () => ({ functionName: 'importContacts', data }) },
-    { pattern: /^\/api\/contacts\/([^/]+)\/hide$/, resolve: (match) => ({ functionName: 'hideContact', data: { ...data, contactId: match[1] } }) },
-    { pattern: /^\/api\/contacts\/([^/]+)$/, resolve: (match) => ({ functionName: 'deleteContact', data: { ...data, contactId: match[1] } }) },
     { pattern: /^\/api\/affiliate\/convert$/, resolve: () => ({ functionName: 'linkConvert', data }) },
     { pattern: /^\/api\/affiliate\/batch-convert$/, resolve: () => ({ functionName: 'linkConvertBatch', data }) },
     { pattern: /^\/api\/affiliate\/track-click$/, resolve: () => ({ functionName: 'linkTrackClick', data }) },
