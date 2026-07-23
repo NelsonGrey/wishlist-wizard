@@ -100,7 +100,6 @@ function shouldUseFirebaseFunctions(url: string, method: string): boolean {
     '/api/calendar',
     '/api/notifications',
     '/api/fcm',
-    '/api/affiliate',
     '/api/items',
     '/api/price-intelligence'
   ];
@@ -135,6 +134,7 @@ function shouldUseFirebaseApiRouter(url: string, method: string): boolean {
     '/api/devices',
     '/api/analytics',
     '/api/mobile',
+    '/api/affiliate',
   ];
 
   return routerEndpoints.some(endpoint => url.startsWith(endpoint));
@@ -226,13 +226,6 @@ function getFirebaseFunctionRoute(url: string, method: string, body?: unknown): 
     { pattern: /^\/api\/calendar\/connections\/([^/]+)$/, resolve: (match) => ({ functionName: 'calendarDisconnect', data: { ...data, connectionId: match[1] } }) },
     { pattern: /^\/api\/calendar\/sync$/, resolve: () => ({ functionName: 'calendarSync', data }) },
     { pattern: /^\/api\/calendar\/sync-settings$/, resolve: () => ({ functionName: 'calendarSyncSettings', data }) },
-    { pattern: /^\/api\/affiliate\/convert$/, resolve: () => ({ functionName: 'linkConvert', data }) },
-    { pattern: /^\/api\/affiliate\/batch-convert$/, resolve: () => ({ functionName: 'linkConvertBatch', data }) },
-    { pattern: /^\/api\/affiliate\/track-click$/, resolve: () => ({ functionName: 'linkTrackClick', data }) },
-    { pattern: /^\/api\/affiliate\/convert-wishlist$/, resolve: () => ({ functionName: 'linkConvertWishlist', data }) },
-    { pattern: /^\/api\/affiliate\/programs$/, resolve: () => ({ functionName: 'linkPrograms', data }) },
-    { pattern: /^\/api\/affiliate\/stats$/, resolve: () => ({ functionName: 'linkStats', data }) },
-    { pattern: /^\/api\/affiliate\/disclosure$/, resolve: () => ({ functionName: 'linkDisclosure', data }) },
     { pattern: /^\/api\/group-payments\/payment-intent$/, resolve: () => ({ functionName: 'groupPaymentCreateIntent', data }) },
     { pattern: /^\/api\/group-payments\/confirm$/, resolve: () => ({ functionName: 'groupPaymentConfirm', data }) },
     { pattern: /^\/api\/group-payments\/item\/([^/]+)$/, resolve: (match) => ({ functionName: 'groupGiftSummary', data: { ...data, itemId: match[1] } }) },
