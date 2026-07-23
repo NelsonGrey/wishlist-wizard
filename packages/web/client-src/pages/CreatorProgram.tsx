@@ -44,8 +44,8 @@ export default function CreatorProgram() {
 
       <EducationNav current="/creator-program" />
 
-      <section className="overflow-hidden bg-gradient-to-br from-emerald-950 via-emerald-900 to-slate-950 text-white">
-        <div className="site-container grid gap-10 py-12 lg:grid-cols-[1.1fr_0.9fr] lg:items-center lg:py-16">
+      <section className="overflow-hidden">
+        <div className="site-container grid gap-10 rounded-2xl bg-gradient-to-br from-emerald-950 via-emerald-900 to-slate-950 py-12 text-white lg:grid-cols-[1.1fr_0.9fr] lg:items-center lg:py-16">
           <div>
             <p className="text-sm font-semibold uppercase tracking-[0.24em] text-emerald-200">Creator program</p>
             <h1 className="mt-4 text-4xl font-extrabold tracking-tight sm:text-5xl">Turn trusted recommendations into organized, measurable creator lists.</h1>

@@ -28,8 +28,8 @@ const educationLinks = [
 
 export function EducationNav({ current }: { current: (typeof educationLinks)[number]["href"] }) {
   return (
-    <nav aria-label="How Wishlist Wizard works" className="border-b border-emerald-100 bg-emerald-50/70">
-      <div className="site-container grid grid-cols-3 gap-2 py-3 sm:flex sm:overflow-x-auto">
+    <nav aria-label="How Wishlist Wizard works">
+      <div className="site-container grid grid-cols-3 gap-2 border-b border-emerald-100 bg-emerald-50/70 py-3 sm:flex sm:overflow-x-auto">
         {educationLinks.map(link => (
           <Link
             key={link.href}
@@ -51,8 +51,8 @@ export function EducationNav({ current }: { current: (typeof educationLinks)[num
 
 export function ProgramStatus() {
   return (
-    <aside className="border-y border-amber-200 bg-amber-50" aria-label="Creator commission program status">
-      <div className="site-container flex flex-col gap-3 py-5 sm:flex-row sm:items-start">
+    <aside aria-label="Creator commission program status">
+      <div className="site-container flex flex-col gap-3 border-y border-amber-200 bg-amber-50 py-5 sm:flex-row sm:items-start">
         <Clock3 className="h-6 w-6 flex-none text-amber-700" aria-hidden="true" />
         <div>
           <p className="font-bold text-amber-950">Creator commission sharing is a planned program.</p>

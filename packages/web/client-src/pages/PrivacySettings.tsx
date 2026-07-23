@@ -686,7 +686,7 @@ const PrivacySettingsPage = () => {
                 Reset to Default
               </Button>
               <Button onClick={() => setSelectedEntity(null)}>
-                Done
+                Close
               </Button>
             </DialogFooter>
           </DialogContent>

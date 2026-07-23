@@ -91,7 +91,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
   ];
 
   return (
-    <div ref={shellRef} className="h-screen flex flex-col overflow-hidden bg-gray-50">
+    <div ref={shellRef} className="h-screen flex flex-col overflow-hidden bg-white">
       {/* App Header */}
       <header className="bg-white border-b border-emerald-100 sticky top-0 z-10 shadow-sm">
         <div className="site-container flex items-center justify-between py-2.5 2xl:py-3">
@@ -235,8 +235,10 @@ export default function AppLayout({ children }: AppLayoutProps) {
       <GlobalAdSlot placement="top" />
 
       {/* Main content — scrolls within viewport so footer stays pinned */}
-      <main ref={mainRef} className="min-h-0 flex-1 overflow-y-auto bg-gray-50">
-        {children}
+      <main ref={mainRef} className="min-h-0 flex-1 overflow-y-auto bg-white">
+        <div className="mx-auto min-h-full w-full max-w-[var(--site-content-width)] bg-gray-50">
+          {children}
+        </div>
       </main>
 
       <GlobalAdSlot placement="bottom" />

@@ -658,7 +658,7 @@ const Calendar: React.FC = () => {
       <Dialog open={isEventDialogOpen} onOpenChange={setIsEventDialogOpen}>
         <DialogContent className="sm:max-w-[525px]">
           <DialogHeader>
-            <DialogTitle>{selectedEvent ? 'Edit Event' : 'Create New Event'}</DialogTitle>
+            <DialogTitle>{selectedEvent ? 'Edit Event' : 'Add Event'}</DialogTitle>
             <DialogDescription>
               {selectedEvent ? 'Update the event details below.' : 'Add a new event to your calendar.'}
             </DialogDescription>
@@ -892,7 +892,7 @@ const Calendar: React.FC = () => {
                 Cancel
               </Button>
               <Button type="submit">
-                {selectedEvent ? 'Update Event' : 'Create Event'}
+                Save
               </Button>
             </DialogFooter>
           </form>

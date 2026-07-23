@@ -46,8 +46,8 @@ export default function HowItWorks() {
 
       <EducationNav current="/how-it-works" />
 
-      <section className="border-b border-emerald-100 bg-gradient-to-b from-emerald-50 to-white">
-        <div className="site-container grid gap-10 py-12 lg:grid-cols-[1.05fr_0.95fr] lg:items-center lg:py-16">
+      <section>
+        <div className="site-container grid gap-10 rounded-2xl border border-emerald-100 bg-gradient-to-b from-emerald-50 to-white py-12 lg:grid-cols-[1.05fr_0.95fr] lg:items-center lg:py-16">
           <div>
             <p className="text-sm font-semibold uppercase tracking-[0.24em] text-emerald-700">How the business works</p>
             <h1 className="mt-4 max-w-3xl text-4xl font-extrabold tracking-tight text-slate-950 sm:text-5xl">

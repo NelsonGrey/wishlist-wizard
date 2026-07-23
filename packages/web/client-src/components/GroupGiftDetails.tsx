@@ -320,6 +320,7 @@ export default function GroupGiftDetails({ itemId, item }: GroupGiftDetailsProps
                         onClick={() => handleRemoveParticipant(participant.userId)}
                         disabled={removeParticipantMutation.isPending}
                         className="text-red-500 hover:text-red-700"
+                        aria-label={`Remove ${participant.isAnonymous ? "anonymous contributor" : (participant.user?.displayName || participant.user?.username || "participant")}`}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>

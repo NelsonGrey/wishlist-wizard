@@ -22,7 +22,6 @@ import {
   Check,
   ChevronDown,
   Edit3,
-  Save,
   BarChart3,
   Loader2,
   X,
@@ -349,24 +348,26 @@ const UserProfile = () => {
                   <CardTitle>My Profile</CardTitle>
                   <CardDescription>Manage your personal information</CardDescription>
                 </div>
-                <Button 
-                  data-testid="user-profile-edit-toggle"
-                  variant={editMode ? "default" : "outline"} 
-                  onClick={() => setEditMode(!editMode)}
-                  disabled={savingProfile}
-                >
-                  {editMode ? (
-                    <>
-                      <Save size={16} className="mr-2" />
-                      Done Editing
-                    </>
-                  ) : (
-                    <>
-                      <Edit3 size={16} className="mr-2" />
-                      Edit Profile
-                    </>
-                  )}
-                </Button>
+                {editMode ? (
+                  <div className="flex gap-2">
+                    <Button variant="outline" onClick={handleCancelEdit} disabled={savingProfile}>
+                      Cancel
+                    </Button>
+                    <Button data-testid="user-profile-save" onClick={handleSaveProfile} disabled={savingProfile}>
+                      {savingProfile && <Loader2 size={16} className="mr-2 animate-spin" />}
+                      Save
+                    </Button>
+                  </div>
+                ) : (
+                  <Button
+                    data-testid="user-profile-edit-toggle"
+                    variant="outline"
+                    onClick={() => setEditMode(true)}
+                  >
+                    <Edit3 size={16} className="mr-2" />
+                    Edit
+                  </Button>
+                )}
               </CardHeader>
               <CardContent>
                 <div className="flex flex-col md:flex-row gap-6">
@@ -470,15 +471,6 @@ const UserProfile = () => {
                           </div>
                         </div>
                         
-                        <div className="pt-4 flex gap-2">
-                          <Button data-testid="user-profile-save" onClick={handleSaveProfile} disabled={savingProfile}>
-                            {savingProfile && <Loader2 size={16} className="mr-2 animate-spin" />}
-                            Save Changes
-                          </Button>
-                          <Button variant="outline" onClick={handleCancelEdit} disabled={savingProfile}>
-                            Cancel
-                          </Button>
-                        </div>
                       </>
                     ) : (
                       <>
@@ -524,23 +516,22 @@ const UserProfile = () => {
                     <CardTitle>Gift Preferences</CardTitle>
                     <CardDescription>Customize your gifting experience</CardDescription>
                   </div>
-                  <Button 
-                    variant={editMode ? "default" : "outline"} 
-                    onClick={() => setEditMode(!editMode)}
-                    disabled={savingProfile}
-                  >
-                    {editMode ? (
-                      <>
-                        <Save size={16} className="mr-2" />
-                        Done
-                      </>
-                    ) : (
-                      <>
-                        <Edit3 size={16} className="mr-2" />
-                        Edit
-                      </>
-                    )}
-                  </Button>
+                  {editMode ? (
+                    <div className="flex gap-2">
+                      <Button variant="outline" onClick={handleCancelEdit} disabled={savingProfile}>
+                        Cancel
+                      </Button>
+                      <Button onClick={handleSaveProfile} disabled={savingProfile}>
+                        {savingProfile && <Loader2 size={16} className="mr-2 animate-spin" />}
+                        Save
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button variant="outline" onClick={() => setEditMode(true)}>
+                      <Edit3 size={16} className="mr-2" />
+                      Edit
+                    </Button>
+                  )}
                 </div>
               </CardHeader>
               <CardContent>
@@ -768,22 +759,11 @@ const UserProfile = () => {
                     )}
                   </div>
                   
-                  {editMode && (
-                    <div className="pt-4 flex gap-2">
-                      <Button onClick={handleSaveProfile} disabled={savingProfile}>
-                        {savingProfile && <Loader2 size={16} className="mr-2 animate-spin" />}
-                        Save Changes
-                      </Button>
-                      <Button variant="outline" onClick={handleCancelEdit} disabled={savingProfile}>
-                        Cancel
-                      </Button>
-                    </div>
-                  )}
                 </div>
               </CardContent>
             </Card>
           )}
-          
+
           {/* Connections Tab */}
           {selectedTab === 'connections' && (
             <Card>

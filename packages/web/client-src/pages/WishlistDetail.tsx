@@ -1130,7 +1130,7 @@ export default function WishlistDetail() {
                     }}
                     disabled={updateWishlistMutation.isPending}
                   >
-                    {updateWishlistMutation.isPending ? "Saving..." : isEditingWishlist ? "Save Details" : "Edit Details"}
+                    {updateWishlistMutation.isPending ? "Saving..." : isEditingWishlist ? "Save" : "Edit"}
                   </Button>
                 </div>
               </div>
@@ -1437,7 +1437,7 @@ export default function WishlistDetail() {
               onClick={openCreateItemDialog}
             >
               <Plus className="h-4 w-4 mr-2" />
-              Quick Add
+              Add Item
             </Button>
             <Button
               data-testid="wishlist-detail-mobile-sticky-share"
@@ -1549,9 +1549,7 @@ export default function WishlistDetail() {
               Cancel
             </Button>
             <Button data-testid="wishlist-item-save" onClick={handleSaveItem} disabled={isItemMutationPending}>
-              {isItemMutationPending
-                ? (editingItem ? "Saving..." : "Adding...")
-                : (editingItem ? "Save Changes" : "Add Item")}
+              {isItemMutationPending ? "Saving..." : "Save"}
             </Button>
           </DialogFooter>
         </DialogContent>
