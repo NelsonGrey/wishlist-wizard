@@ -104,8 +104,7 @@ function shouldUseFirebaseFunctions(url: string, method: string): boolean {
     '/api/affiliate',
     '/api/items',
     '/api/price-intelligence',
-    '/api/mobile',
-    '/api/devices'
+    '/api/mobile'
   ];
 
   return firebaseFunctionEndpoints.some(endpoint => url.startsWith(endpoint));
@@ -135,6 +134,7 @@ function shouldUseFirebaseApiRouter(url: string, method: string): boolean {
     '/api/admin',
     '/api/billing',
     '/api/contacts',
+    '/api/devices',
   ];
 
   return routerEndpoints.some(endpoint => url.startsWith(endpoint));
@@ -238,11 +238,6 @@ function getFirebaseFunctionRoute(url: string, method: string, body?: unknown): 
     { pattern: /^\/api\/group-payments\/item\/([^/]+)$/, resolve: (match) => ({ functionName: 'groupGiftSummary', data: { ...data, itemId: match[1] } }) },
     { pattern: /^\/api\/mobile\/barcode\/([^/]+)$/, resolve: (match) => ({ functionName: 'barcodeLookup', data: { ...data, barcode: match[1] } }) },
     { pattern: /^\/api\/mobile\/sync$/, resolve: () => ({ functionName: 'mobileSyncActions', data }) },
-    { pattern: /^\/api\/devices\/register$/, resolve: () => ({ functionName: 'deviceRegister', data }) },
-    { pattern: /^\/api\/devices$/, resolve: () => ({ functionName: 'deviceList', data }) },
-    { pattern: /^\/api\/devices\/update$/, resolve: () => ({ functionName: 'deviceUpdate', data }) },
-    { pattern: /^\/api\/devices\/sync-log$/, resolve: () => ({ functionName: 'deviceSyncLog', data }) },
-    { pattern: /^\/api\/devices\/sync-logs$/, resolve: () => ({ functionName: 'deviceSyncLogs', data }) },
     { pattern: /^\/api\/analytics\/track$/, resolve: () => ({ functionName: 'metricsTrackEvent', data }) },
     { pattern: /^\/api\/analytics\/events$/, resolve: () => ({ functionName: 'metricsEvents', data }) },
     { pattern: /^\/api\/analytics\/summary$/, resolve: () => ({ functionName: 'metricsSummary', data }) },
