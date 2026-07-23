@@ -102,8 +102,7 @@ function shouldUseFirebaseFunctions(url: string, method: string): boolean {
     '/api/fcm',
     '/api/affiliate',
     '/api/items',
-    '/api/price-intelligence',
-    '/api/mobile'
+    '/api/price-intelligence'
   ];
 
   return firebaseFunctionEndpoints.some(endpoint => url.startsWith(endpoint));
@@ -135,6 +134,7 @@ function shouldUseFirebaseApiRouter(url: string, method: string): boolean {
     '/api/contacts',
     '/api/devices',
     '/api/analytics',
+    '/api/mobile',
   ];
 
   return routerEndpoints.some(endpoint => url.startsWith(endpoint));
@@ -236,8 +236,6 @@ function getFirebaseFunctionRoute(url: string, method: string, body?: unknown): 
     { pattern: /^\/api\/group-payments\/payment-intent$/, resolve: () => ({ functionName: 'groupPaymentCreateIntent', data }) },
     { pattern: /^\/api\/group-payments\/confirm$/, resolve: () => ({ functionName: 'groupPaymentConfirm', data }) },
     { pattern: /^\/api\/group-payments\/item\/([^/]+)$/, resolve: (match) => ({ functionName: 'groupGiftSummary', data: { ...data, itemId: match[1] } }) },
-    { pattern: /^\/api\/mobile\/barcode\/([^/]+)$/, resolve: (match) => ({ functionName: 'barcodeLookup', data: { ...data, barcode: match[1] } }) },
-    { pattern: /^\/api\/mobile\/sync$/, resolve: () => ({ functionName: 'mobileSyncActions', data }) },
     { pattern: /^\/api\/fcm\/token$/, resolve: () => ({ functionName: normalizedMethod === 'DELETE' ? 'removeFCMToken' : 'saveFCMToken', data }) },
     { pattern: /^\/api\/fcm\/subscribe-topic$/, resolve: () => ({ functionName: 'subscribeToTopic', data }) },
     { pattern: /^\/api\/fcm\/unsubscribe-topic$/, resolve: () => ({ functionName: 'unsubscribeFromTopic', data }) },
