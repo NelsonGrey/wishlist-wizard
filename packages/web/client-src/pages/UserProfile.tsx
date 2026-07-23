@@ -30,7 +30,9 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { useMutation } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
-import { ACHIEVEMENTS } from '@/lib/achievements';
+import { ACHIEVEMENT_DEFINITIONS, ACHIEVEMENT_TIER_NAMES } from '@/lib/achievements';
+import { useAchievements } from '@/hooks/use-achievements';
+import { useSubscriptionStatus } from '@/hooks/use-subscription-status';
 
 const createInitialProfile = (user?: {
   uid?: string;
@@ -83,14 +85,6 @@ const createInitialProfile = (user?: {
     doNotWant: [] as string[],
     giftCards: [] as string[]
   },
-  stats: {
-    itemsTracked: 0,
-    wishlistsCreated: 0,
-    giftsPurchased: 0,
-    totalSavings: 0,
-    averageRating: 0,
-    daysActive: 0
-  },
   exchangeHistory: [] as Array<{
     id: number;
     date: string;
@@ -120,6 +114,13 @@ const UserProfile = () => {
   const [savingProfile, setSavingProfile] = useState(false);
   const [showConnections, setShowConnections] = useState(false);
   const { toast } = useToast();
+  const { data: achievementsData } = useAchievements();
+  const { data: subscriptionStatus } = useSubscriptionStatus();
+  const stats = {
+    itemsTracked: achievementsData?.achievements?.tracker?.count ?? 0,
+    wishlistsCreated: subscriptionStatus?.usage?.wishlistsOwned ?? 0,
+    giftsPurchased: achievementsData?.achievements?.['gift-giver']?.count ?? 0,
+  };
 
   useEffect(() => {
     if (!user || editMode) {
@@ -311,23 +312,15 @@ const UserProfile = () => {
               <div className="space-y-1">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Items Tracked:</span>
-                  <span className="font-medium">{profile.stats.itemsTracked}</span>
+                  <span className="font-medium">{stats.itemsTracked}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Wishlists Created:</span>
-                  <span className="font-medium">{profile.stats.wishlistsCreated}</span>
+                  <span className="font-medium">{stats.wishlistsCreated}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Gifts Purchased:</span>
-                  <span className="font-medium">{profile.stats.giftsPurchased}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Total Savings:</span>
-                  <span className="font-medium text-green-600">${profile.stats.totalSavings.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Average Rating:</span>
-                  <span className="font-medium">{profile.stats.averageRating} / 5</span>
+                  <span className="font-medium">{stats.giftsPurchased}</span>
                 </div>
               </div>
               
@@ -891,53 +884,26 @@ const UserProfile = () => {
                     <Card className="bg-emerald-50">
                       <CardContent className="pt-6">
                         <div className="text-center">
-                          <span className="text-3xl font-bold">{profile.stats.itemsTracked}</span>
+                          <span className="text-3xl font-bold">{stats.itemsTracked}</span>
                           <p className="text-sm text-muted-foreground">Items Tracked</p>
                         </div>
                       </CardContent>
                     </Card>
-                    
+
                     <Card className="bg-emerald-50">
                       <CardContent className="pt-6">
                         <div className="text-center">
-                          <span className="text-3xl font-bold">{profile.stats.wishlistsCreated}</span>
+                          <span className="text-3xl font-bold">{stats.wishlistsCreated}</span>
                           <p className="text-sm text-muted-foreground">Wishlists Created</p>
                         </div>
                       </CardContent>
                     </Card>
-                    
+
                     <Card className="bg-emerald-50">
                       <CardContent className="pt-6">
                         <div className="text-center">
-                          <span className="text-3xl font-bold">{profile.stats.giftsPurchased}</span>
+                          <span className="text-3xl font-bold">{stats.giftsPurchased}</span>
                           <p className="text-sm text-muted-foreground">Gifts Purchased</p>
-                        </div>
-                      </CardContent>
-                    </Card>
-                    
-                    <Card className="bg-green-50">
-                      <CardContent className="pt-6">
-                        <div className="text-center">
-                          <span className="text-3xl font-bold text-green-600">${profile.stats.totalSavings.toFixed(2)}</span>
-                          <p className="text-sm text-muted-foreground">Total Savings</p>
-                        </div>
-                      </CardContent>
-                    </Card>
-                    
-                    <Card className="bg-primary/5">
-                      <CardContent className="pt-6">
-                        <div className="text-center">
-                          <span className="text-3xl font-bold">{profile.stats.averageRating}</span>
-                          <p className="text-sm text-muted-foreground">Average Rating</p>
-                        </div>
-                      </CardContent>
-                    </Card>
-                    
-                    <Card className="bg-primary/5">
-                      <CardContent className="pt-6">
-                        <div className="text-center">
-                          <span className="text-3xl font-bold">{profile.stats.daysActive}</span>
-                          <p className="text-sm text-muted-foreground">Days Active</p>
                         </div>
                       </CardContent>
                     </Card>
@@ -953,7 +919,9 @@ const UserProfile = () => {
                     </Link>
                   </div>
                   {(() => {
-                    const earnedAchievements = ACHIEVEMENTS.filter(achievement => achievement.earned);
+                    const earnedAchievements = ACHIEVEMENT_DEFINITIONS.filter(
+                      achievement => achievementsData?.achievements?.[achievement.id]?.earned
+                    );
                     if (earnedAchievements.length === 0) {
                       return (
                         <p className="text-sm text-muted-foreground">
@@ -966,25 +934,32 @@ const UserProfile = () => {
                     }
                     return (
                       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                        {earnedAchievements.map(achievement => (
-                          <div
-                            key={achievement.id}
-                            className="border rounded-lg p-4 transition-colors bg-primary/5 border-primary/20"
-                          >
-                            <div className="flex items-start gap-3">
-                              <div className="text-2xl">
-                                {achievement.icon}
-                              </div>
-                              <div>
-                                <h4 className="font-medium flex items-center">
-                                  {achievement.name}
-                                  <Check size={14} className="ml-1 text-green-500" />
-                                </h4>
-                                <p className="text-sm text-muted-foreground">{achievement.description}</p>
+                        {earnedAchievements.map(achievement => {
+                          const state = achievementsData?.achievements?.[achievement.id];
+                          const tierName = state && state.tier > 0 ? ACHIEVEMENT_TIER_NAMES[state.tier - 1] : null;
+                          return (
+                            <div
+                              key={achievement.id}
+                              className="border rounded-lg p-4 transition-colors bg-primary/5 border-primary/20"
+                            >
+                              <div className="flex items-start gap-3">
+                                <div className="text-2xl">
+                                  {achievement.icon}
+                                </div>
+                                <div>
+                                  <h4 className="font-medium flex items-center">
+                                    {achievement.name}
+                                    <Check size={14} className="ml-1 text-green-500" />
+                                  </h4>
+                                  <p className="text-sm text-muted-foreground">
+                                    {achievement.description}
+                                    {tierName && achievement.tiered ? ` — ${tierName}` : ''}
+                                  </p>
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     );
                   })()}
