@@ -58,47 +58,18 @@ async function getAppCheckHeaderToken(): Promise<string | null> {
   }
 }
 
-// updateWishlist/deleteWishlist/addWishlistItem/updateWishlistItem/
-// deleteWishlistItem moved to the `api` HTTP router — their standalone
-// Cloud Run services never had a working allUsers invoker binding. The
-// other /api/wishlists and /api/items methods (get/create/reserve/purchase)
-// still work as callables and are intentionally left alone.
-function isRouterOnlyWishlistMutation(url: string, method: string): boolean {
-  const normalizedMethod = method.toUpperCase();
-  if ((normalizedMethod === 'PATCH' || normalizedMethod === 'PUT' || normalizedMethod === 'DELETE')
-    && /^\/api\/wishlists\/[^/]+$/.test(url)) {
-    return true;
-  }
-  if (normalizedMethod === 'POST' && url === '/api/items') {
-    return true;
-  }
-  if ((normalizedMethod === 'PATCH' || normalizedMethod === 'PUT' || normalizedMethod === 'DELETE')
-    && /^\/api\/items\/[^/]+$/.test(url)) {
-    return true;
-  }
-  return false;
-}
-
 /**
  * Determine if we should use Firebase Functions instead of Express API
  */
-function shouldUseFirebaseFunctions(url: string, method: string): boolean {
+function shouldUseFirebaseFunctions(url: string, _method: string): boolean {
   if (/^\/api\/items\/[^/]+\/price-intelligence$/.test(url)) {
-    return false;
-  }
-
-  if (isRouterOnlyWishlistMutation(url, method)) {
     return false;
   }
 
   // List of API endpoints that are backed by callable Firebase Functions
   const firebaseFunctionEndpoints = [
     '/api/auth/me',
-    '/api/wishlists',
-    '/api/shared',
-    '/api/users/search',
-    '/api/items',
-    '/api/price-intelligence'
+    '/api/users/search'
   ];
 
   return firebaseFunctionEndpoints.some(endpoint => url.startsWith(endpoint));
@@ -107,12 +78,8 @@ function shouldUseFirebaseFunctions(url: string, method: string): boolean {
 /**
  * Endpoints served by the HTTP `api` Firebase function router (non-callable).
  */
-function shouldUseFirebaseApiRouter(url: string, method: string): boolean {
+function shouldUseFirebaseApiRouter(url: string, _method: string): boolean {
   if (/^\/api\/items\/[^/]+\/price-intelligence$/.test(url)) {
-    return true;
-  }
-
-  if (isRouterOnlyWishlistMutation(url, method)) {
     return true;
   }
 
@@ -135,6 +102,10 @@ function shouldUseFirebaseApiRouter(url: string, method: string): boolean {
     '/api/fcm',
     '/api/notifications',
     '/api/calendar',
+    '/api/wishlists',
+    '/api/shared',
+    '/api/items',
+    '/api/price-intelligence',
   ];
 
   return routerEndpoints.some(endpoint => url.startsWith(endpoint));
@@ -205,8 +176,7 @@ type FunctionRouteMatch = {
   data: Record<string, unknown>;
 };
 
-function getFirebaseFunctionRoute(url: string, method: string, body?: unknown): FunctionRouteMatch {
-  const normalizedMethod = method.toUpperCase();
+function getFirebaseFunctionRoute(url: string, _method: string, body?: unknown): FunctionRouteMatch {
   const data = (typeof body === 'object' && body !== null && !Array.isArray(body))
     ? { ...(body as Record<string, unknown>) }
     : {};
@@ -215,24 +185,6 @@ function getFirebaseFunctionRoute(url: string, method: string, body?: unknown): 
     { pattern: /^\/api\/group-payments\/payment-intent$/, resolve: () => ({ functionName: 'groupPaymentCreateIntent', data }) },
     { pattern: /^\/api\/group-payments\/confirm$/, resolve: () => ({ functionName: 'groupPaymentConfirm', data }) },
     { pattern: /^\/api\/group-payments\/item\/([^/]+)$/, resolve: (match) => ({ functionName: 'groupGiftSummary', data: { ...data, itemId: match[1] } }) },
-    { pattern: /^\/api\/wishlists$/, resolve: () => ({ functionName: normalizedMethod === 'POST' ? 'createWishlist' : 'getUserWishlists', data }) },
-    { pattern: /^\/api\/wishlists\/([^/]+)$/, resolve: (match) => ({
-        functionName: normalizedMethod === 'DELETE'
-          ? 'deleteWishlist'
-          : normalizedMethod === 'PATCH' || normalizedMethod === 'PUT'
-            ? 'updateWishlist'
-            : 'getWishlistById',
-        data: { ...data, wishlistId: match[1] }
-      })
-    },
-    { pattern: /^\/api\/wishlists\/([^/]+)\/items$/, resolve: (match) => ({ functionName: 'getWishlistItems', data: { ...data, wishlistId: match[1] } }) },
-    { pattern: /^\/api\/items$/, resolve: () => ({ functionName: 'addWishlistItem', data }) },
-    { pattern: /^\/api\/price-intelligence\/refresh$/, resolve: () => ({ functionName: 'priceIntelRefresh', data }) },
-    { pattern: /^\/api\/items\/([^/]+)\/reserve$/, resolve: (match) => ({ functionName: 'reserveWishlistItem', data: { ...data, itemId: match[1] } }) },
-    { pattern: /^\/api\/items\/([^/]+)\/purchase$/, resolve: (match) => ({ functionName: 'purchaseWishlistItem', data: { ...data, itemId: match[1] } }) },
-    { pattern: /^\/api\/items\/([^/]+)$/, resolve: (match) => ({ functionName: normalizedMethod === 'DELETE' ? 'deleteWishlistItem' : 'updateWishlistItem', data: { ...data, itemId: match[1] } }) },
-    { pattern: /^\/api\/items\/([^/]+)\/price-history$/, resolve: (match) => ({ functionName: 'priceHistoryGetItem', data: { ...data, itemId: match[1] } }) },
-    { pattern: /^\/api\/shared\/([^/]+)$/, resolve: (match) => ({ functionName: 'getSharedWishlist', data: { ...data, shareId: match[1] } }) },
   ];
 
   for (const entry of patterns) {
