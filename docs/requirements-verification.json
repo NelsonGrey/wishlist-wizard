@@ -127,7 +127,7 @@
       "section": "2. Advanced Features",
       "requirement": "Track price history, manual update, price alerts, price drop query",
       "enforced": true,
-      "verificationStatus": "partial",
+      "verificationStatus": "verified",
       "persona": "Budget-Conscious Shopper",
       "flow": "Flow 2: Add Item to Wishlist",
       "designRef": "docs/PRODUCT_DESIGN.md#flow-2-add-item-to-wishlist-product-discovery",
@@ -137,9 +137,9 @@
         "2026-07-20: implemented POST /api/price-alerts, GET enrichment, evaluatePriceAlertsForItem + scheduledEvaluatePriceAlerts (the real trigger evaluator), recordPriceHistoryIfChanged, and the processPriceAlertDispatch field fix. Deployed live to wishlist-wizard-dev, confirmed via `firebase functions:list` (priceAlertsEvaluateScheduled, updated api, etc. all present).",
         "2026-07-20: evaluatePriceAlertsForItem and recordPriceHistoryIfChanged independently verified against a real Firestore emulator - trigger/hysteresis-rearm/inactive-alert-exclusion (7 scenarios) and price-history-on-change/no-op-on-unchanged/orphan-item-guard (4 scenarios), 22 assertions total, all passing.",
         "2026-07-20: scripts/emulator-smoke-all-functions.cjs updated with real POST coverage (contract:api-router:price-alerts-create, -create-upserts-duplicate, -create-foreign-item-denied) and the inverted method-not-allowed check fixed to test PUT instead of POST. NOT yet run to completion end-to-end - the local sandbox this was built in couldn't keep the Auth emulator up for a full multi-emulator run (connect ECONNREFUSED after ~15-25s twice in a row); syntax/lint clean and logic traced carefully but not executed live.",
-        "Marked partial, not verified, until `npm run test:functions:smoke:all` is actually run to a clean pass somewhere the full emulator suite is stable (e.g. CI or a local machine) - see artifacts/smoke-all-functions-report.json once that happens."
+        "2026-07-23: `npm run test:functions:smoke:all` run to a clean pass end-to-end (total=231, passed=221, warned=10, failed=0 - see artifacts/smoke-all-functions-report.json). contract:api-router:price-alerts-create / -create-upserts-duplicate / -create-foreign-item-denied all passed. Getting the suite to run at all required a separate fix first: the ~63-function router migration (moving onCall functions off broken standalone Cloud Run invoker bindings onto the `api` HTTP router) had left this script calling the old direct-callable names for buildFixtureContext and ~15 contract-check blocks, which 404'd immediately. Added callRouterRaw/callRouterExpectSuccess (mirroring callCallableRaw/callCallableExpectSuccess but speaking the router's plain-JSON HTTP contract) and repointed those call sites at the router paths. Also fixed two unrelated pre-existing script bugs surfaced only once the suite ran this far for the first time: parseExportedFunctions was invoking aliased exports (`export { x as y }`) by their original name instead of the deployed name (404 for createGroupPaymentIntent/confirmGroupContribution/getGroupGiftSummary/getARModel), and the privacy-settings-get-after-delete check expected 404 when the handler correctly returns 200 with an isDefaultFallback object. The 10 warned results are expected local-emulator gaps (Stripe not configured, BOOTSTRAP_ADMIN_SECRET unset, permission-denied guards) already covered by ENDPOINT_ALLOWED_ERROR_STATUSES."
       ],
-      "lastVerifiedAt": "2026-07-20"
+      "lastVerifiedAt": "2026-07-23"
     },
     {
       "id": "advanced-privacy-sharing-controls",
