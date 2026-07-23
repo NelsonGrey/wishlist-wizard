@@ -5,12 +5,14 @@ import { z } from "zod";
 import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
-import { getFirebaseAuthErrorMessage } from "@/lib/firebase-auth-errors";
+import { getFirebaseAuthErrorMessage, isAccountExistsWithDifferentCredentialError } from "@/lib/firebase-auth-errors";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { GoogleIcon, AppleIcon } from "@/components/auth/OAuthIcons";
 
 // Define form validation schema - Updated for Firebase Auth (email instead of username)
 const loginSchema = z.object({
@@ -20,11 +22,21 @@ const loginSchema = z.object({
 
 type LoginFormValues = z.infer<typeof loginSchema>;
 
+type OAuthProviderId = 'google.com' | 'apple.com';
+
+type PendingLink = {
+  providerId: OAuthProviderId;
+  error: unknown;
+  email: string;
+};
+
 export default function Login() {
   const [isLoading, setIsLoading] = useState(false);
+  const [oauthLoading, setOauthLoading] = useState<OAuthProviderId | null>(null);
+  const [pendingLink, setPendingLink] = useState<PendingLink | null>(null);
   const [, setLocation] = useLocation();
   const { toast } = useToast();
-  const { signIn } = useAuth();
+  const { signIn, signInWithGoogle, signInWithApple, getSignInMethodsForEmail, linkPendingOAuthCredential } = useAuth();
 
   // Initialize form with react-hook-form
   const form = useForm<LoginFormValues>({
@@ -35,6 +47,19 @@ export default function Login() {
     },
   });
 
+  const completeSignIn = () => {
+    const storedRedirect = sessionStorage.getItem('redirectAfterAuth');
+    const redirectTo = storedRedirect || '/app/dashboard';
+    sessionStorage.removeItem('redirectAfterAuth');
+
+    toast({
+      title: "Login successful",
+      description: "You are now logged in.",
+    });
+
+    setLocation(redirectTo);
+  };
+
   // Handle form submission with Firebase Auth
   const onSubmit = async (data: LoginFormValues) => {
     if (isLoading) {
@@ -43,18 +68,19 @@ export default function Login() {
 
     setIsLoading(true);
     try {
+      if (pendingLink) {
+        await linkPendingOAuthCredential(pendingLink.providerId, pendingLink.error, data.email.trim(), data.password);
+        setPendingLink(null);
+        toast({
+          title: "Account linked",
+          description: "Your accounts are now linked — sign in with either method going forward.",
+        });
+        completeSignIn();
+        return;
+      }
+
       await signIn(data.email.trim(), data.password);
-
-      const storedRedirect = sessionStorage.getItem('redirectAfterAuth');
-      const redirectTo = storedRedirect || '/app/dashboard';
-      sessionStorage.removeItem('redirectAfterAuth');
-      
-      toast({
-        title: "Login successful",
-        description: "You are now logged in.",
-      });
-
-      setLocation(redirectTo);
+      completeSignIn();
     } catch (error: unknown) {
       console.error("Login error:", error);
 
@@ -68,6 +94,47 @@ export default function Login() {
     }
   };
 
+  const handleOAuthSignIn = async (providerId: OAuthProviderId) => {
+    if (oauthLoading) {
+      return;
+    }
+
+    setOauthLoading(providerId);
+    try {
+      if (providerId === 'google.com') {
+        await signInWithGoogle();
+      } else {
+        await signInWithApple();
+      }
+      completeSignIn();
+    } catch (error: unknown) {
+      console.error("OAuth sign-in error:", error);
+
+      if (isAccountExistsWithDifferentCredentialError(error)) {
+        const email = (error as { customData?: { email?: string } })?.customData?.email;
+        const methods = email ? await getSignInMethodsForEmail(email).catch(() => []) : [];
+
+        if (email && methods.includes('password')) {
+          setPendingLink({ providerId, error, email });
+          form.setValue('email', email);
+          toast({
+            title: "Account already exists",
+            description: "Sign in with your password below to link this to your existing account.",
+          });
+          return;
+        }
+      }
+
+      toast({
+        title: "Sign-in failed",
+        description: getFirebaseAuthErrorMessage(error, "login"),
+        variant: "destructive",
+      });
+    } finally {
+      setOauthLoading(null);
+    }
+  };
+
   return (
     <div className="container flex justify-center py-1">
       <Card className="w-full max-w-md border-emerald-200/70">
@@ -78,6 +145,14 @@ export default function Login() {
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {pendingLink && (
+            <Alert className="mb-4" data-testid="oauth-link-banner">
+              <AlertDescription>
+                An account already exists for <strong>{pendingLink.email}</strong> using a password.
+                Sign in below to link it to {pendingLink.providerId === 'google.com' ? 'Google' : 'Apple'}.
+              </AlertDescription>
+            </Alert>
+          )}
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <FormField
@@ -128,10 +203,48 @@ export default function Login() {
                 className="w-full bg-gradient-to-r from-emerald-700 to-green-700 text-white hover:from-emerald-800 hover:to-green-800"
                 disabled={isLoading}
               >
-                {isLoading ? "Signing in..." : "Sign in"}
+                {isLoading ? "Signing in..." : pendingLink ? "Sign in & link account" : "Sign in"}
               </Button>
             </form>
           </Form>
+
+          {!pendingLink && (
+            <>
+              <div className="relative my-4">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-card px-2 text-muted-foreground">Or continue with</span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  data-testid="login-google"
+                  disabled={oauthLoading !== null}
+                  onClick={() => handleOAuthSignIn('google.com')}
+                  className="flex items-center gap-2"
+                >
+                  <GoogleIcon />
+                  {oauthLoading === 'google.com' ? "Signing in..." : "Google"}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  data-testid="login-apple"
+                  disabled={oauthLoading !== null}
+                  onClick={() => handleOAuthSignIn('apple.com')}
+                  className="flex items-center gap-2"
+                >
+                  <AppleIcon />
+                  {oauthLoading === 'apple.com' ? "Signing in..." : "Apple"}
+                </Button>
+              </div>
+            </>
+          )}
         </CardContent>
         <CardFooter className="flex flex-col space-y-4">
           <div className="text-center text-sm">

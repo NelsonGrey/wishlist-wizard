@@ -9,7 +9,7 @@ import {
   initializeAnalytics,
   initializeRemoteConfig,
 } from '@shared/firebase-utils';
-import type { User, Auth } from 'firebase/auth';
+import type { User, Auth, AuthCredential } from 'firebase/auth';
 import type { FirebaseApp } from 'firebase/app';
 import type { Firestore } from 'firebase/firestore';
 import {
@@ -22,7 +22,12 @@ import {
   updatePassword,
   onAuthStateChanged,
   setPersistence,
-  browserLocalPersistence
+  browserLocalPersistence,
+  GoogleAuthProvider,
+  OAuthProvider,
+  signInWithPopup,
+  fetchSignInMethodsForEmail,
+  linkWithCredential
 } from 'firebase/auth';
 import { getToken, isSupported as messagingIsSupported } from 'firebase/messaging';
 
@@ -433,6 +438,44 @@ export async function signUp(email: string, password: string, displayName?: stri
   }
 
   return userCredential;
+}
+
+export async function signInWithGoogle() {
+  if (!firebaseClient) {
+    await initFirebase({ enableAuth: true, enableFirestore: true });
+  }
+  if (!firebaseClient) throw createFirebaseNotConfiguredError();
+  return await signInWithPopup(firebaseClient.auth, new GoogleAuthProvider());
+}
+
+export async function signInWithApple() {
+  if (!firebaseClient) {
+    await initFirebase({ enableAuth: true, enableFirestore: true });
+  }
+  if (!firebaseClient) throw createFirebaseNotConfiguredError();
+  const provider = new OAuthProvider('apple.com');
+  provider.addScope('email');
+  provider.addScope('name');
+  return await signInWithPopup(firebaseClient.auth, provider);
+}
+
+/** Parses the pending credential off an `auth/account-exists-with-different-credential` error. */
+export function credentialFromOAuthError(error: unknown, providerId: 'google.com' | 'apple.com'): AuthCredential | null {
+  return providerId === 'google.com'
+    ? GoogleAuthProvider.credentialFromError(error as Parameters<typeof GoogleAuthProvider.credentialFromError>[0])
+    : OAuthProvider.credentialFromError(error as Parameters<typeof OAuthProvider.credentialFromError>[0]);
+}
+
+export async function getSignInMethodsForEmail(email: string): Promise<string[]> {
+  if (!firebaseClient) {
+    await initFirebase({ enableAuth: true, enableFirestore: true });
+  }
+  if (!firebaseClient) throw createFirebaseNotConfiguredError();
+  return await fetchSignInMethodsForEmail(firebaseClient.auth, email);
+}
+
+export async function linkPendingCredential(user: User, credential: AuthCredential) {
+  return await linkWithCredential(user, credential);
 }
 
 export async function signOutUser() {

@@ -4,22 +4,38 @@ import {
   FeatureFlags,
   getAnalyticsTracker,
 } from '@shared/firebase-utils';
-import { 
-  initFirebase, 
-  onAuthStateChange, 
+import {
+  initFirebase,
+  onAuthStateChange,
   signIn as firebaseSignIn,
   signUp as firebaseSignUp,
   signOutUser,
   resetPassword,
   verifyEmail,
-  changePassword
+  changePassword,
+  signInWithGoogle as firebaseSignInWithGoogle,
+  signInWithApple as firebaseSignInWithApple,
+  credentialFromOAuthError,
+  getSignInMethodsForEmail as firebaseGetSignInMethodsForEmail,
+  linkPendingCredential
 } from '../lib/firebase';
+
+type OAuthProviderId = 'google.com' | 'apple.com';
 
 interface AuthContextType {
   user: User | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, displayName?: string) => Promise<void>;
+  signInWithGoogle: () => Promise<void>;
+  signInWithApple: () => Promise<void>;
+  getSignInMethodsForEmail: (email: string) => Promise<string[]>;
+  linkPendingOAuthCredential: (
+    providerId: OAuthProviderId,
+    pendingError: unknown,
+    email: string,
+    password: string
+  ) => Promise<void>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   sendEmailVerification: () => Promise<void>;
@@ -201,6 +217,50 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  const signInWithGoogle = async (): Promise<void> => {
+    try {
+      await firebaseSignInWithGoogle();
+      getAnalyticsTracker().logUserLogin('social');
+      // User state will be updated through onAuthStateChanged
+    } catch (error) {
+      console.error('[AuthContext] Google sign-in failed:', error);
+      throw error;
+    }
+  };
+
+  const signInWithApple = async (): Promise<void> => {
+    try {
+      await firebaseSignInWithApple();
+      getAnalyticsTracker().logUserLogin('social');
+      // User state will be updated through onAuthStateChanged
+    } catch (error) {
+      console.error('[AuthContext] Apple sign-in failed:', error);
+      throw error;
+    }
+  };
+
+  const getSignInMethodsForEmail = async (email: string): Promise<string[]> => {
+    return await firebaseGetSignInMethodsForEmail(email);
+  };
+
+  // Recovers from `auth/account-exists-with-different-credential`: signs the
+  // user in with the password-based account they already have, then attaches
+  // the OAuth credential from the failed Google/Apple attempt to that same
+  // account so both sign-in methods work going forward.
+  const linkPendingOAuthCredential = async (
+    providerId: OAuthProviderId,
+    pendingError: unknown,
+    email: string,
+    password: string
+  ): Promise<void> => {
+    const credential = credentialFromOAuthError(pendingError, providerId);
+    if (!credential) {
+      throw new Error('No pending OAuth credential to link');
+    }
+    const userCredential = await firebaseSignIn(email, password);
+    await linkPendingCredential(userCredential.user, credential);
+  };
+
   const signOut = async (): Promise<void> => {
     try {
       await signOutUser();
@@ -249,6 +309,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     loading,
     signIn,
     signUp,
+    signInWithGoogle,
+    signInWithApple,
+    getSignInMethodsForEmail,
+    linkPendingOAuthCredential,
     signOut,
     resetPassword: resetPasswordHandler,
     sendEmailVerification,
