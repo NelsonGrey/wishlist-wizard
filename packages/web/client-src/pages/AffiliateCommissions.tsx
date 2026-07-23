@@ -48,8 +48,8 @@ export default function AffiliateCommissions() {
 
       <EducationNav current="/affiliate-commissions" />
 
-      <section className="bg-slate-950 text-white">
-        <div className="site-container grid gap-10 py-12 lg:grid-cols-[1.1fr_0.9fr] lg:items-center lg:py-16">
+      <section>
+        <div className="site-container grid gap-10 rounded-2xl bg-slate-950 py-12 text-white lg:grid-cols-[1.1fr_0.9fr] lg:items-center lg:py-16">
           <div>
             <p className="text-sm font-semibold uppercase tracking-[0.24em] text-emerald-300">Affiliate commissions explained</p>
             <h1 className="mt-4 text-4xl font-extrabold tracking-tight sm:text-5xl">The retailer funds it. Wishlist Wizard receives it. Eligible creators may share it.</h1>

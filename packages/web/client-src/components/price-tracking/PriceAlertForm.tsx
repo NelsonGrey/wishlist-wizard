@@ -120,7 +120,7 @@ export default function PriceAlertForm({
             className="w-full" 
             onClick={() => setShowForm(true)}
           >
-            Set up price alert
+            Add Price Alert
           </Button>
         ) : (
           <Form {...form}>
@@ -156,7 +156,7 @@ export default function PriceAlertForm({
                   className="flex-1"
                   disabled={createPriceAlertMutation.isPending}
                 >
-                  {createPriceAlertMutation.isPending ? "Creating..." : "Create Alert"}
+                  {createPriceAlertMutation.isPending ? "Saving..." : "Save"}
                 </Button>
                 <Button
                   type="button"

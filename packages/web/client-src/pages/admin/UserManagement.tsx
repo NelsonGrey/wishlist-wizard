@@ -177,7 +177,7 @@ export default function UserManagement() {
                     size="sm"
                     onClick={() => setLocation(`/admin/users/${user.uid}`)}
                   >
-                    View
+                    View Details
                   </Button>
                   {user.isSuspended ? (
                     <Button

@@ -12,8 +12,8 @@ interface GlobalAdSlotProps {
 
 export function GlobalAdSlot({ placement }: GlobalAdSlotProps) {
   return (
-    <section aria-label="Sponsored" className="bg-white/80">
-      <div className="site-container py-2">
+    <section aria-label="Sponsored">
+      <div className="site-container bg-white/80 py-2">
         <div className="mx-auto w-full max-w-[970px]">
           <AdUnit
             slot={SLOT_IDS[placement]}

@@ -306,7 +306,7 @@ export default function WishlistCard({ wishlist, onRefresh }: WishlistCardProps)
                   <DropdownMenuContent align="end">
                     <DropdownMenuItem data-testid={`wishlist-edit-action-${wishlist.id}`} onClick={handleEditClick}>
                       <Edit className="h-4 w-4 mr-2" />
-                      Rename
+                      Edit
                     </DropdownMenuItem>
                     <DropdownMenuItem data-testid={`wishlist-delete-action-${wishlist.id}`} onClick={handleDeleteClick} className="text-red-600">
                       <Trash2 className="h-4 w-4 mr-2" />

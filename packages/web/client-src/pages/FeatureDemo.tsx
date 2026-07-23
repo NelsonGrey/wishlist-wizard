@@ -144,8 +144,8 @@ export default function FeatureDemo({ feature }: FeatureDemoProps) {
   const config = featureConfigs[feature];
 
   return (
-    <main className="py-16 bg-slate-50 min-h-[calc(100vh-8rem)]">
-      <div className="container mx-auto px-4 max-w-4xl">
+    <main className="mx-auto w-full max-w-[var(--site-content-width)] bg-slate-50 py-16 min-h-[calc(100vh-8rem)]">
+      <div className="mx-auto px-4 max-w-4xl">
         <div className="bg-white border border-slate-200 rounded-2xl p-8 md:p-10 shadow-sm">
           <p className="text-sm font-semibold text-emerald-700 uppercase tracking-wide mb-3">Feature Demonstration</p>
           <h1 className="text-3xl md:text-4xl font-bold text-slate-900 mb-3">{config.title}</h1>

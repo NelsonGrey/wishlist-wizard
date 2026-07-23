@@ -170,6 +170,7 @@ export default function PrivacyControls({
             onUpdate={handlePrivacyUpdate}
             onAccessListUpdate={handleAccessListUpdate}
             onReset={handleResetToDefault}
+            onClose={() => setIsDialogOpen(false)}
             isLoading={updatePrivacyMutation.isPending || updateAccessListMutation.isPending || deletePrivacyMutation.isPending}
           />
         </DialogContent>
@@ -204,6 +205,7 @@ export default function PrivacyControls({
           onUpdate={handlePrivacyUpdate}
           onAccessListUpdate={handleAccessListUpdate}
           onReset={handleResetToDefault}
+          onClose={() => setIsDialogOpen(false)}
           isLoading={updatePrivacyMutation.isPending || updateAccessListMutation.isPending || deletePrivacyMutation.isPending}
         />
       </DialogContent>
@@ -218,6 +220,7 @@ interface PrivacySettingsFormProps {
   onUpdate: (updates: Partial<PrivacySettings>) => void;
   onAccessListUpdate: (userIds: number[]) => void;
   onReset: () => void;
+  onClose: () => void;
   isLoading: boolean;
 }
 
@@ -226,6 +229,7 @@ function PrivacySettingsForm({
   onUpdate,
   onAccessListUpdate,
   onReset,
+  onClose,
   isLoading
 }: PrivacySettingsFormProps) {
   const [customAccessList, setCustomAccessList] = useState<number[]>(
@@ -380,8 +384,8 @@ function PrivacySettingsForm({
         >
           Reset to Default
         </Button>
-        <Button onClick={() => {}} disabled={isLoading}>
-          Done
+        <Button onClick={onClose} disabled={isLoading}>
+          Close
         </Button>
       </div>
     </div>

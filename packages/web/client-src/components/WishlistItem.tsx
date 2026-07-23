@@ -330,7 +330,7 @@ export default function WishlistItem({
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>
-                      Remove item from wishlist
+                      Delete item
                     </TooltipContent>
                   </Tooltip>
                 </div>
@@ -437,15 +437,15 @@ export default function WishlistItem({
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent data-testid={`wishlist-item-delete-dialog-${normalizedItemId}`}>
           <AlertDialogHeader>
-            <AlertDialogTitle>Remove Item</AlertDialogTitle>
+            <AlertDialogTitle>Delete Item</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to remove this item from your wishlist? This action cannot be undone.
+              Are you sure you want to delete this item from your wishlist? This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel data-testid={`wishlist-item-delete-cancel-${normalizedItemId}`}>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={confirmDelete} className="bg-red-500 hover:bg-red-600" data-testid={`wishlist-item-delete-confirm-${normalizedItemId}`}>
-              Remove
+              Delete
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

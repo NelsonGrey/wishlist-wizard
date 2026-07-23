@@ -141,7 +141,7 @@ const rows: MatrixRow[] = [
 export default function SubscriptionsComparisonMatrix() {
   return (
     <section className="py-12 bg-white">
-      <div className="container mx-auto px-4">
+      <div className="site-container">
         <div className="text-center mb-8">
           <p className="uppercase tracking-[0.24em] text-emerald-700 text-sm font-semibold mb-3">
             Compare subscriptions

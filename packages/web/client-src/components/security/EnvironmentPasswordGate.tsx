@@ -48,7 +48,7 @@ export default function EnvironmentPasswordGate({
 
   if (!trimmedRequiredPassword) {
     return (
-      <main className="min-h-screen flex items-center justify-center bg-gray-100 px-4">
+      <main className="mx-auto min-h-screen w-full max-w-[var(--site-content-width)] flex items-center justify-center bg-gray-100 px-4">
         <section className="w-full max-w-lg rounded-lg border bg-white p-6 shadow-sm" data-testid="env-password-misconfigured">
           <h1 className="text-xl font-semibold text-gray-900">Environment Is Locked</h1>
           <p className="mt-3 text-sm text-gray-600">
@@ -85,7 +85,7 @@ export default function EnvironmentPasswordGate({
   };
 
   return (
-    <main className="min-h-screen flex items-center justify-center bg-gray-100 px-4">
+    <main className="mx-auto min-h-screen w-full max-w-[var(--site-content-width)] flex items-center justify-center bg-gray-100 px-4">
       <section className="w-full max-w-lg rounded-lg border bg-white p-6 shadow-sm" data-testid="env-password-gate">
         <h1 className="text-xl font-semibold text-gray-900">Protected Environment</h1>
         <p className="mt-2 text-sm text-gray-600">

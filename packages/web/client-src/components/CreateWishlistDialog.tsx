@@ -205,7 +205,7 @@ export default function CreateWishlistDialog({
     <Dialog open={open} onOpenChange={handleDialogChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Create New Wishlist</DialogTitle>
+          <DialogTitle>Add Wishlist</DialogTitle>
           <DialogDescription>
             Give your wishlist a name to help you organize your items.
           </DialogDescription>
@@ -515,7 +515,7 @@ export default function CreateWishlistDialog({
                 type="submit" 
                 disabled={isPending}
               >
-                {isPending ? "Creating..." : "Create Wishlist"}
+                {isPending ? "Saving..." : "Save"}
               </Button>
             </DialogFooter>
           </form>

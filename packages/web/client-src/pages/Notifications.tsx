@@ -130,19 +130,6 @@ export default function Notifications() {
     deleteNotificationMutation.mutate(id);
   };
 
-  const getActionLabel = (notification: Notification) => {
-    if (!notification.actionUrl) {
-      return 'View';
-    }
-
-    const type = String(notification.type || '').toLowerCase();
-    if (type.includes('price')) return 'View Details';
-    if (type.includes('wishlist')) return 'Open Wishlist';
-    if (type.includes('item')) return 'View Item';
-    if (type.includes('collab')) return 'View Collaboration';
-    return 'Open';
-  };
-
   const isExternalUrl = (url: string) => /^https?:\/\//i.test(url);
 
   const handleActionClick = (notification: Notification) => {
@@ -290,7 +277,7 @@ export default function Notifications() {
                       onClick={() => handleActionClick(notification)}
                       disabled={markAsReadMutation.isPending && markingNotificationId === notification.id}
                     >
-                      {markAsReadMutation.isPending && markingNotificationId === notification.id ? 'Opening...' : getActionLabel(notification)}
+                      {markAsReadMutation.isPending && markingNotificationId === notification.id ? 'Opening...' : 'View Details'}
                     </Button>
                   ) : (
                     <Button
@@ -301,7 +288,7 @@ export default function Notifications() {
                       disabled={markAsReadMutation.isPending && markingNotificationId === notification.id}
                     >
                       <Link href={notification.actionUrl}>
-                        {markAsReadMutation.isPending && markingNotificationId === notification.id ? 'Opening...' : getActionLabel(notification)}
+                        {markAsReadMutation.isPending && markingNotificationId === notification.id ? 'Opening...' : 'View Details'}
                       </Link>
                     </Button>
                   )

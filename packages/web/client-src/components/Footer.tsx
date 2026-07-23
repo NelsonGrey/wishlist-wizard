@@ -62,7 +62,7 @@ export default function Footer() {
         </div>
 
         <div className="mt-3 pt-3 border-t border-emerald-800 flex items-center justify-between">
-          <p className="text-xs text-emerald-400">© {new Date().getFullYear()} Wishlist Wizard. All rights reserved.</p>
+          <p className="text-xs text-emerald-400">© {new Date().getFullYear()} Wishlist Wizard, a product of Nelson Grey LLC. All rights reserved.</p>
           <div className="flex items-center gap-3">
             {SOCIAL_LINKS.map(({ label, href, icon }) => (
               <a
