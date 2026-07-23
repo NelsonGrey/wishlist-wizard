@@ -98,7 +98,6 @@ function shouldUseFirebaseFunctions(url: string, method: string): boolean {
     '/api/shared',
     '/api/users/search',
     '/api/calendar',
-    '/api/analytics',
     '/api/notifications',
     '/api/fcm',
     '/api/affiliate',
@@ -135,6 +134,7 @@ function shouldUseFirebaseApiRouter(url: string, method: string): boolean {
     '/api/billing',
     '/api/contacts',
     '/api/devices',
+    '/api/analytics',
   ];
 
   return routerEndpoints.some(endpoint => url.startsWith(endpoint));
@@ -238,12 +238,6 @@ function getFirebaseFunctionRoute(url: string, method: string, body?: unknown): 
     { pattern: /^\/api\/group-payments\/item\/([^/]+)$/, resolve: (match) => ({ functionName: 'groupGiftSummary', data: { ...data, itemId: match[1] } }) },
     { pattern: /^\/api\/mobile\/barcode\/([^/]+)$/, resolve: (match) => ({ functionName: 'barcodeLookup', data: { ...data, barcode: match[1] } }) },
     { pattern: /^\/api\/mobile\/sync$/, resolve: () => ({ functionName: 'mobileSyncActions', data }) },
-    { pattern: /^\/api\/analytics\/track$/, resolve: () => ({ functionName: 'metricsTrackEvent', data }) },
-    { pattern: /^\/api\/analytics\/events$/, resolve: () => ({ functionName: 'metricsEvents', data }) },
-    { pattern: /^\/api\/analytics\/summary$/, resolve: () => ({ functionName: 'metricsSummary', data }) },
-    { pattern: /^\/api\/analytics\/ad-revenue-summary$/, resolve: () => ({ functionName: 'metricsRevenueSummary', data }) },
-    { pattern: /^\/api\/analytics\/ad-kpi-snapshot$/, resolve: () => ({ functionName: 'metricsSnapshotCreate', data }) },
-    { pattern: /^\/api\/analytics\/ad-kpi-snapshots$/, resolve: () => ({ functionName: 'metricsSnapshots', data }) },
     { pattern: /^\/api\/fcm\/token$/, resolve: () => ({ functionName: normalizedMethod === 'DELETE' ? 'removeFCMToken' : 'saveFCMToken', data }) },
     { pattern: /^\/api\/fcm\/subscribe-topic$/, resolve: () => ({ functionName: 'subscribeToTopic', data }) },
     { pattern: /^\/api\/fcm\/unsubscribe-topic$/, resolve: () => ({ functionName: 'unsubscribeFromTopic', data }) },
