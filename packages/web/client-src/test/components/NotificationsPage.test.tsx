@@ -158,8 +158,7 @@ describe('Notifications Page', () => {
     render(<Notifications />, { pathname: '/notifications' });
     
     // Assert
-    expect(screen.getByRole('link', { name: 'Open Wishlist' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'View Item' })).toBeInTheDocument();
+    expect(screen.getAllByRole('link', { name: 'View Details' })).toHaveLength(2);
   });
 
   it('should show the "Mark as read" button for unread notifications without action URLs', () => {

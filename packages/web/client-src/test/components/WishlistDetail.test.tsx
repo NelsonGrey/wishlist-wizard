@@ -421,7 +421,7 @@ describe('WishlistDetail Item CRUD', () => {
     render(<WishlistDetail />);
     const user = userEvent.setup();
 
-    await user.click(screen.getByRole('button', { name: /add item/i }));
+    await user.click(screen.getByTestId('wishlist-detail-add-item'));
 
     await user.type(screen.getByLabelText('Item name'), 'New Test Item');
     await user.type(screen.getByLabelText('Price'), '$19.99');
@@ -430,7 +430,7 @@ describe('WishlistDetail Item CRUD', () => {
     await user.type(screen.getByLabelText('Image URL'), 'https://example.com/new-item.png');
     await user.type(screen.getByLabelText('Description (optional)'), 'test note');
 
-    await user.click(screen.getByRole('button', { name: 'Add Item' }));
+    await user.click(screen.getByTestId('wishlist-item-save'));
 
     await waitFor(() => {
       expect(apiRequest).toHaveBeenCalledWith('/api/items', expect.objectContaining({ method: 'POST' }));
@@ -453,7 +453,7 @@ describe('WishlistDetail Item CRUD', () => {
     render(<WishlistDetail />);
     const user = userEvent.setup();
 
-    await user.click(screen.getByRole('button', { name: /add item/i }));
+    await user.click(screen.getByTestId('wishlist-detail-add-item'));
     await user.type(screen.getByLabelText('Paste a product link'), 'https://www.example.com/some-product');
     await user.click(screen.getByRole('button', { name: 'Fetch details' }));
 
@@ -483,7 +483,7 @@ describe('WishlistDetail Item CRUD', () => {
     render(<WishlistDetail />);
     const user = userEvent.setup();
 
-    await user.click(screen.getByRole('button', { name: /add item/i }));
+    await user.click(screen.getByTestId('wishlist-detail-add-item'));
     await user.type(screen.getByLabelText('Paste a product link'), 'https://www.example.com/unrecognized-page');
     await user.click(screen.getByRole('button', { name: 'Fetch details' }));
 
@@ -504,7 +504,7 @@ describe('WishlistDetail Item CRUD', () => {
     render(<WishlistDetail />);
     const user = userEvent.setup();
 
-    await user.click(screen.getByRole('button', { name: /add item/i }));
+    await user.click(screen.getByTestId('wishlist-detail-add-item'));
 
     await user.type(screen.getByLabelText('Item name'), '  Trimmed Title  ');
     await user.type(screen.getByLabelText('Price'), '  $20.00  ');
@@ -513,7 +513,7 @@ describe('WishlistDetail Item CRUD', () => {
     await user.type(screen.getByLabelText('Image URL'), '  https://example.com/trimmed-item.png  ');
     await user.type(screen.getByLabelText('Description (optional)'), '  keep note  ');
 
-    await user.click(screen.getByRole('button', { name: 'Add Item' }));
+    await user.click(screen.getByTestId('wishlist-item-save'));
 
     await waitFor(() => {
       expect(apiRequest).toHaveBeenCalledWith(
@@ -537,8 +537,8 @@ describe('WishlistDetail Item CRUD', () => {
     render(<WishlistDetail />);
     const user = userEvent.setup();
 
-    await user.click(screen.getByRole('button', { name: /add item/i }));
-    await user.click(screen.getByRole('button', { name: 'Add Item' }));
+    await user.click(screen.getByTestId('wishlist-detail-add-item'));
+    await user.click(screen.getByTestId('wishlist-item-save'));
 
     // Price/store/product URL/image URL are optional — only item name blocks submission.
     expect(screen.getByText('Item name is required.')).toBeInTheDocument();
@@ -552,9 +552,9 @@ describe('WishlistDetail Item CRUD', () => {
     render(<WishlistDetail />);
     const user = userEvent.setup();
 
-    await user.click(screen.getByRole('button', { name: /add item/i }));
+    await user.click(screen.getByTestId('wishlist-detail-add-item'));
     await user.type(screen.getByLabelText('Item name'), 'Bare Minimum Item');
-    await user.click(screen.getByRole('button', { name: 'Add Item' }));
+    await user.click(screen.getByTestId('wishlist-item-save'));
 
     await waitFor(() => {
       expect(apiRequest).toHaveBeenCalledWith(
@@ -571,7 +571,7 @@ describe('WishlistDetail Item CRUD', () => {
     render(<WishlistDetail />);
     const user = userEvent.setup();
 
-    await user.click(screen.getByRole('button', { name: /add item/i }));
+    await user.click(screen.getByTestId('wishlist-detail-add-item'));
 
     await user.type(screen.getByLabelText('Item name'), 'Bad Formats Item');
     await user.type(screen.getByLabelText('Price'), 'abc');
@@ -579,13 +579,13 @@ describe('WishlistDetail Item CRUD', () => {
     await user.type(screen.getByLabelText('Product URL'), 'not-a-url');
     await user.type(screen.getByLabelText('Image URL'), 'still-not-a-url');
 
-    await user.click(screen.getByRole('button', { name: 'Add Item' }));
+    await user.click(screen.getByTestId('wishlist-item-save'));
     expect(screen.getByText('Use 99.99 or $99.99.')).toBeInTheDocument();
     expect(screen.getAllByText('Enter a valid URL.')).toHaveLength(2);
 
     await user.clear(screen.getByLabelText('Price'));
     await user.type(screen.getByLabelText('Price'), '$12.34');
-    await user.click(screen.getByRole('button', { name: 'Add Item' }));
+    await user.click(screen.getByTestId('wishlist-item-save'));
     expect(screen.getAllByText('Enter a valid URL.')).toHaveLength(2);
   });
 
@@ -600,7 +600,7 @@ describe('WishlistDetail Item CRUD', () => {
     await user.clear(titleInput);
     await user.type(titleInput, 'Updated Item Title');
 
-    await user.click(screen.getByRole('button', { name: 'Save Changes' }));
+    await user.click(screen.getByRole('button', { name: 'Save' }));
 
     await waitFor(() => {
       expect(apiRequest).toHaveBeenCalledWith(
