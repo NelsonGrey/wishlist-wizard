@@ -106,6 +106,7 @@ function shouldUseFirebaseApiRouter(url: string, _method: string): boolean {
     '/api/shared',
     '/api/items',
     '/api/price-intelligence',
+    '/api/achievements',
   ];
 
   return routerEndpoints.some(endpoint => url.startsWith(endpoint));
