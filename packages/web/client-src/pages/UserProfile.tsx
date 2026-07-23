@@ -30,7 +30,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { useMutation } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
-import { ACHIEVEMENT_DEFINITIONS, ACHIEVEMENT_TIER_NAMES } from '@/lib/achievements';
+import { ACHIEVEMENT_DEFINITIONS, ACHIEVEMENT_TIER_NAMES, ACHIEVEMENT_TIER_BADGE_CLASSES, WIZARD_TIER } from '@/lib/achievements';
 import { useAchievements } from '@/hooks/use-achievements';
 import { useSubscriptionStatus } from '@/hooks/use-subscription-status';
 
@@ -910,10 +910,10 @@ const UserProfile = () => {
                   </div>
                 </div>
                 
-                {/* Achievement Badges */}
+                {/* Trophy Case */}
                 <div>
                   <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-lg font-medium">Achievement Badges</h3>
+                    <h3 className="text-lg font-medium">Trophy Case</h3>
                     <Link href="/app/achievements" className="text-sm text-primary hover:underline">
                       How are achievements earned?
                     </Link>
@@ -936,25 +936,35 @@ const UserProfile = () => {
                       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                         {earnedAchievements.map(achievement => {
                           const state = achievementsData?.achievements?.[achievement.id];
-                          const tierName = state && state.tier > 0 ? ACHIEVEMENT_TIER_NAMES[state.tier - 1] : null;
+                          const tier = state?.tier ?? 0;
+                          const tierName = tier > 0 ? ACHIEVEMENT_TIER_NAMES[tier - 1] : null;
+                          const isWizard = achievement.tiered && tier === WIZARD_TIER;
                           return (
                             <div
                               key={achievement.id}
-                              className="border rounded-lg p-4 transition-colors bg-primary/5 border-primary/20"
+                              className={`border rounded-lg p-4 transition-colors ${
+                                isWizard
+                                  ? "bg-gradient-to-br from-amber-50 to-yellow-50 border-amber-300 ring-1 ring-amber-300 shadow-sm"
+                                  : "bg-primary/5 border-primary/20"
+                              }`}
                             >
                               <div className="flex items-start gap-3">
                                 <div className="text-2xl">
-                                  {achievement.icon}
+                                  {isWizard ? "🧙" : achievement.icon}
                                 </div>
                                 <div>
-                                  <h4 className="font-medium flex items-center">
+                                  <h4 className="font-medium flex items-center gap-1.5">
                                     {achievement.name}
-                                    <Check size={14} className="ml-1 text-green-500" />
+                                    <Check size={14} className="text-green-500" />
                                   </h4>
-                                  <p className="text-sm text-muted-foreground">
-                                    {achievement.description}
-                                    {tierName && achievement.tiered ? ` — ${tierName}` : ''}
-                                  </p>
+                                  <p className="text-sm text-muted-foreground">{achievement.description}</p>
+                                  {tierName && achievement.tiered && (
+                                    <span
+                                      className={`inline-block mt-1.5 px-2 py-0.5 rounded-full text-xs font-medium border ${ACHIEVEMENT_TIER_BADGE_CLASSES[tier]}`}
+                                    >
+                                      {isWizard ? "✨ " : ""}{tierName}
+                                    </span>
+                                  )}
                                 </div>
                               </div>
                             </div>
@@ -964,7 +974,7 @@ const UserProfile = () => {
                     );
                   })()}
                 </div>
-                
+
                 {/* Recent Gift Exchanges */}
                 <div>
                   <h3 className="text-lg font-medium mb-3">Recent Gift Exchanges</h3>
