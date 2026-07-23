@@ -1,18 +1,18 @@
 {
   "meta": {
-    "startedAt": "2026-03-03T00:20:10.119Z",
+    "startedAt": "2026-07-23T18:52:22.697Z",
     "projectId": "wishlist-wizard",
     "authHost": "127.0.0.1:9099",
     "functionsHost": "127.0.0.1:5001",
     "region": "us-central1",
-    "endedAt": "2026-03-03T00:21:05.064Z",
-    "durationMs": 54945,
+    "endedAt": "2026-07-23T18:53:08.691Z",
+    "durationMs": 45994,
     "treatExpectedDependencyGapsAsPass": false
   },
   "summary": {
-    "total": 200,
-    "passed": 193,
-    "warned": 7,
+    "total": 231,
+    "passed": 221,
+    "warned": 10,
     "failed": 0
   },
   "results": [
@@ -41,6 +41,18 @@
       "message": "Admin global analytics summary access allowed"
     },
     {
+      "endpoint": "contract:trackAnalyticsEvent:missing-action-rejected",
+      "type": "contract",
+      "status": "passed",
+      "message": "Analytics tracking requires action and rejects invalid payloads"
+    },
+    {
+      "endpoint": "contract:trackAnalyticsEvent:valid-payload-accepted",
+      "type": "contract",
+      "status": "passed",
+      "message": "Analytics tracking accepts valid payload and returns success=true"
+    },
+    {
       "endpoint": "contract:getAnalyticsSummary:window-max-clamped",
       "type": "contract",
       "status": "passed",
@@ -63,6 +75,18 @@
       "type": "contract",
       "status": "passed",
       "message": "Analytics events high limit is accepted and normalized without failure"
+    },
+    {
+      "endpoint": "contract:getAnalyticsEvents:response-shape",
+      "type": "contract",
+      "status": "passed",
+      "message": "Analytics events response includes typed event records (id, action)"
+    },
+    {
+      "endpoint": "contract:getAnalyticsSummary:response-shape",
+      "type": "contract",
+      "status": "passed",
+      "message": "Analytics summary response exposes expected summary fields"
     },
     {
       "endpoint": "contract:createSystemNotification:unauthenticated",
@@ -251,16 +275,16 @@
       "message": "extensionDeleteItem missing ID correctly rejected"
     },
     {
-      "endpoint": "contract:getItemPriceHistory:malformed-id-type",
+      "endpoint": "contract:getItemPriceHistory:nonexistent-item",
       "type": "contract",
       "status": "passed",
-      "message": "getItemPriceHistory rejects malformed non-text itemId values"
+      "message": "getItemPriceHistory rejects a nonexistent itemId"
     },
     {
       "endpoint": "contract:getItemPriceHistory:missing-id",
       "type": "contract",
       "status": "passed",
-      "message": "getItemPriceHistory missing itemId correctly rejected"
+      "message": "getItemPriceHistory missing itemId correctly rejected (router: no matching route)"
     },
     {
       "endpoint": "contract:extensionAddItem:tab-bearer-rejected",
@@ -302,7 +326,7 @@
       "endpoint": "contract:getItemPriceHistory:method-not-allowed",
       "type": "contract",
       "status": "passed",
-      "message": "getItemPriceHistory rejects unsupported HTTP methods"
+      "message": "getItemPriceHistory rejects unsupported HTTP methods (router: no matching route)"
     },
     {
       "endpoint": "contract:extensionShareWishlist:missing-id",
@@ -401,6 +425,354 @@
       "message": "API router create wishlist missing name correctly rejected"
     },
     {
+      "endpoint": "contract:api-router:beneficiaries-reachable",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router beneficiaries route is reachable with authenticated Bearer token"
+    },
+    {
+      "endpoint": "contract:api-router:beneficiaries-shape-and-filtering",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router beneficiaries returns shaped owner records and filters hidden/foreign entries"
+    },
+    {
+      "endpoint": "contract:api-router:recommendations-reachable",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router recommendations route is reachable with authenticated Bearer token"
+    },
+    {
+      "endpoint": "contract:api-router:recommendations-shape-and-filtering",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router recommendations returns shaped owner records and excludes foreign recommendations"
+    },
+    {
+      "endpoint": "contract:api-router:recommendations-by-beneficiary-reachable",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router beneficiary recommendations route is reachable with authenticated Bearer token"
+    },
+    {
+      "endpoint": "contract:api-router:recommendations-by-beneficiary-filtering",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router beneficiary recommendations are scoped to requested beneficiary and owner"
+    },
+    {
+      "endpoint": "contract:api-router:recommendation-status-update-owner",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router recommendation status update allows owner updates"
+    },
+    {
+      "endpoint": "contract:api-router:recommendation-status-response-shape",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router recommendation status update returns expected response shape"
+    },
+    {
+      "endpoint": "contract:api-router:recommendation-status-update-foreign-denied",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router recommendation status update denies non-owner updates"
+    },
+    {
+      "endpoint": "contract:api-router:recommendation-status-update-missing-id",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router recommendation status update returns not found for missing IDs"
+    },
+    {
+      "endpoint": "contract:api-router:recommendation-status-method-not-allowed",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router recommendation status route rejects unsupported HTTP methods"
+    },
+    {
+      "endpoint": "contract:api-router:recommendations-by-beneficiary-method-not-allowed",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router beneficiary recommendations route rejects unsupported HTTP methods"
+    },
+    {
+      "endpoint": "contract:api-router:recommendations-method-not-allowed",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router recommendations route rejects unsupported HTTP methods"
+    },
+    {
+      "endpoint": "contract:api-router:privacy-defaults-reachable",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router privacy defaults route is reachable with authenticated Bearer token"
+    },
+    {
+      "endpoint": "contract:api-router:privacy-settings-invalid-body",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router privacy settings rejects missing entity fields"
+    },
+    {
+      "endpoint": "contract:api-router:privacy-settings-create",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router privacy settings create accepts valid payloads"
+    },
+    {
+      "endpoint": "contract:api-router:privacy-settings-get-owner",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router privacy settings get returns owner settings"
+    },
+    {
+      "endpoint": "contract:api-router:privacy-settings-get-foreign-denied",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router privacy settings get denies non-owner access"
+    },
+    {
+      "endpoint": "contract:api-router:privacy-check-access-owner",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router privacy access check responds for owner requests"
+    },
+    {
+      "endpoint": "contract:api-router:privacy-check-access-foreign-semantics",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router privacy check-access returns expected non-owner/private semantics"
+    },
+    {
+      "endpoint": "contract:api-router:privacy-check-access-missing-default-open",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router privacy check-access returns default-open semantics for missing settings"
+    },
+    {
+      "endpoint": "contract:api-router:privacy-settings-create-public",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router privacy settings create accepts public visibility payloads"
+    },
+    {
+      "endpoint": "contract:api-router:privacy-check-access-public-semantics",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router privacy check-access returns expected semantics for public visibility"
+    },
+    {
+      "endpoint": "contract:api-router:privacy-settings-create-custom-with-allowlist",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router privacy settings create accepts custom allowlist payloads"
+    },
+    {
+      "endpoint": "contract:api-router:privacy-check-access-custom-allowlist-semantics",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router privacy check-access returns allowlisted custom-visibility semantics"
+    },
+    {
+      "endpoint": "contract:api-router:privacy-access-list-update-owner",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router privacy access list update allows owner updates"
+    },
+    {
+      "endpoint": "contract:api-router:privacy-access-list-update-foreign-denied",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router privacy access list update denies non-owner updates"
+    },
+    {
+      "endpoint": "contract:api-router:privacy-settings-delete-foreign-denied",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router privacy settings delete denies non-owner deletes"
+    },
+    {
+      "endpoint": "contract:api-router:privacy-settings-delete-owner",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router privacy settings delete allows owner deletes"
+    },
+    {
+      "endpoint": "contract:api-router:privacy-settings-get-after-delete",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router privacy settings get returns default-fallback settings after delete"
+    },
+    {
+      "endpoint": "contract:api-router:price-alerts-reachable",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router price alerts route is reachable with authenticated Bearer token"
+    },
+    {
+      "endpoint": "contract:api-router:price-alerts-policy-shape",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router price alerts includes normalized policy fields for alert rows"
+    },
+    {
+      "endpoint": "contract:api-router:price-alert-replay-status-non-admin-denied",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router replay-status route denies non-admin users"
+    },
+    {
+      "endpoint": "contract:api-router:price-alert-replay-status-reachable",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router replay-status route is reachable for admin users"
+    },
+    {
+      "endpoint": "contract:api-router:price-alert-replay-status-shape",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router replay-status returns expected scheduler state payload shape"
+    },
+    {
+      "endpoint": "contract:api-router:price-alert-replay-status-method-not-allowed",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router replay-status route rejects unsupported HTTP methods"
+    },
+    {
+      "endpoint": "contract:api-router:price-alert-policy-update-owner",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router price alert policy update allows owner updates"
+    },
+    {
+      "endpoint": "contract:api-router:price-alert-policy-update-shape",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router price alert policy update returns expected normalized fields"
+    },
+    {
+      "endpoint": "contract:api-router:price-alert-policy-update-invalid-cooldown",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router price alert policy update validates cooldown bounds"
+    },
+    {
+      "endpoint": "contract:api-router:price-alert-policy-update-foreign-denied",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router price alert policy update denies non-owner updates"
+    },
+    {
+      "endpoint": "contract:api-router:price-alert-policy-update-missing",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router price alert policy update returns not found for missing IDs"
+    },
+    {
+      "endpoint": "contract:api-router:price-alert-delete-owner",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router price alert delete allows owner deletes"
+    },
+    {
+      "endpoint": "contract:api-router:price-alert-delete-foreign-denied",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router price alert delete denies non-owner deletes"
+    },
+    {
+      "endpoint": "contract:api-router:price-alert-delete-missing",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router price alert delete returns not found for missing IDs"
+    },
+    {
+      "endpoint": "contract:api-router:price-alerts-method-not-allowed",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router price alerts route rejects unsupported HTTP methods"
+    },
+    {
+      "endpoint": "contract:api-router:price-alerts-create",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router creates a real price alert via POST with expected fields"
+    },
+    {
+      "endpoint": "contract:api-router:price-alerts-create-upserts-duplicate",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router upserts a duplicate create onto the same alert instead of creating a second one"
+    },
+    {
+      "endpoint": "contract:api-router:price-alerts-create-foreign-item-denied",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router denies creating a price alert on an item the caller cannot access"
+    },
+    {
+      "endpoint": "contract:api-router:price-drops-shape",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router price drops returns mapped response shape (title, percentDrop)"
+    },
+    {
+      "endpoint": "contract:api-router:price-drops-method-not-allowed",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router price drops route rejects unsupported HTTP methods"
+    },
+    {
+      "endpoint": "contract:api-router:price-intelligence-shape",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router price-intelligence returns expected sectioned payload shape"
+    },
+    {
+      "endpoint": "contract:api-router:price-intelligence-best-identical",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router price-intelligence includes a best identical offer candidate"
+    },
+    {
+      "endpoint": "contract:api-router:price-intelligence-missing-item",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router price-intelligence returns not found for missing items"
+    },
+    {
+      "endpoint": "contract:api-router:price-intelligence-method-not-allowed",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router price-intelligence route rejects unsupported HTTP methods"
+    },
+    {
+      "endpoint": "contract:api-router:wishlist-items-shape-and-ownership",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router wishlist-items returns shaped records and excludes foreign wishlist items"
+    },
+    {
+      "endpoint": "contract:api-router:wishlist-items-method-not-allowed",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router wishlist-items route rejects unsupported HTTP methods"
+    },
+    {
+      "endpoint": "contract:api-router:wishlist-items-malformed-path-id",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router wishlist-items malformed path correctly returns not found"
+    },
+    {
+      "endpoint": "contract:api-router:analytics-path-not-routed",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router does not shadow callable analytics routes (returns 404)"
+    },
+    {
       "endpoint": "contract:api-router:unknown-path",
       "type": "contract",
       "status": "passed",
@@ -450,6 +822,90 @@
     },
     {
       "endpoint": "contract:api-router:share-options-preflight",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router OPTIONS preflight returns expected CORS headers"
+    },
+    {
+      "endpoint": "contract:api-router:beneficiaries-options-preflight",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router OPTIONS preflight returns expected CORS headers"
+    },
+    {
+      "endpoint": "contract:api-router:recommendations-options-preflight",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router OPTIONS preflight returns expected CORS headers"
+    },
+    {
+      "endpoint": "contract:api-router:recommendations-beneficiary-options-preflight",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router OPTIONS preflight returns expected CORS headers"
+    },
+    {
+      "endpoint": "contract:api-router:recommendation-status-options-preflight",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router OPTIONS preflight returns expected CORS headers"
+    },
+    {
+      "endpoint": "contract:api-router:privacy-defaults-options-preflight",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router OPTIONS preflight returns expected CORS headers"
+    },
+    {
+      "endpoint": "contract:api-router:privacy-settings-options-preflight",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router OPTIONS preflight returns expected CORS headers"
+    },
+    {
+      "endpoint": "contract:api-router:privacy-check-access-options-preflight",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router OPTIONS preflight returns expected CORS headers"
+    },
+    {
+      "endpoint": "contract:api-router:price-alerts-options-preflight",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router OPTIONS preflight returns expected CORS headers"
+    },
+    {
+      "endpoint": "contract:api-router:price-alert-replay-status-options-preflight",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router OPTIONS preflight returns expected CORS headers"
+    },
+    {
+      "endpoint": "contract:api-router:price-alert-delete-options-preflight",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router OPTIONS preflight returns expected CORS headers"
+    },
+    {
+      "endpoint": "contract:api-router:price-alert-update-options-preflight",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router OPTIONS preflight returns expected CORS headers"
+    },
+    {
+      "endpoint": "contract:api-router:price-drops-options-preflight",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router OPTIONS preflight returns expected CORS headers"
+    },
+    {
+      "endpoint": "contract:api-router:wishlist-items-list-options-preflight",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router OPTIONS preflight returns expected CORS headers"
+    },
+    {
+      "endpoint": "contract:api-router:price-intelligence-options-preflight",
       "type": "contract",
       "status": "passed",
       "message": "API router OPTIONS preflight returns expected CORS headers"
@@ -632,7 +1088,7 @@
       "endpoint": "createUserProfile",
       "type": "onCall",
       "status": "passed",
-      "durationMs": 19,
+      "durationMs": 7,
       "httpStatus": 200,
       "message": "Callable reachable"
     },
@@ -640,7 +1096,7 @@
       "endpoint": "getUserProfile",
       "type": "onCall",
       "status": "passed",
-      "durationMs": 620,
+      "durationMs": 948,
       "httpStatus": 200,
       "message": "Callable reachable"
     },
@@ -648,7 +1104,7 @@
       "endpoint": "updateUserProfile",
       "type": "onCall",
       "status": "passed",
-      "durationMs": 515,
+      "durationMs": 1042,
       "httpStatus": 200,
       "message": "Callable reachable"
     },
@@ -656,7 +1112,7 @@
       "endpoint": "createDocument",
       "type": "onCall",
       "status": "passed",
-      "durationMs": 7,
+      "durationMs": 4,
       "httpStatus": 200,
       "message": "Callable reachable"
     },
@@ -664,7 +1120,7 @@
       "endpoint": "getDocument",
       "type": "onCall",
       "status": "passed",
-      "durationMs": 516,
+      "durationMs": 1063,
       "httpStatus": 200,
       "message": "Callable reachable"
     },
@@ -672,7 +1128,7 @@
       "endpoint": "updateDocument",
       "type": "onCall",
       "status": "passed",
-      "durationMs": 512,
+      "durationMs": 1022,
       "httpStatus": 200,
       "message": "Callable reachable"
     },
@@ -680,7 +1136,7 @@
       "endpoint": "deleteDocument",
       "type": "onCall",
       "status": "passed",
-      "durationMs": 512,
+      "durationMs": 938,
       "httpStatus": 200,
       "message": "Callable reachable"
     },
@@ -688,7 +1144,7 @@
       "endpoint": "listDocuments",
       "type": "onCall",
       "status": "passed",
-      "durationMs": 519,
+      "durationMs": 1050,
       "httpStatus": 200,
       "message": "Callable reachable"
     },
@@ -704,39 +1160,7 @@
       "endpoint": "batchUpdateDocuments",
       "type": "onCall",
       "status": "passed",
-      "durationMs": 525,
-      "httpStatus": 200,
-      "message": "Callable reachable"
-    },
-    {
-      "endpoint": "getUserNotifications",
-      "type": "onCall",
-      "status": "passed",
-      "durationMs": 559,
-      "httpStatus": 200,
-      "message": "Callable reachable"
-    },
-    {
-      "endpoint": "markNotificationAsRead",
-      "type": "onCall",
-      "status": "passed",
-      "durationMs": 643,
-      "httpStatus": 200,
-      "message": "Callable reachable"
-    },
-    {
-      "endpoint": "markAllNotificationsAsRead",
-      "type": "onCall",
-      "status": "passed",
-      "durationMs": 539,
-      "httpStatus": 200,
-      "message": "Callable reachable"
-    },
-    {
-      "endpoint": "deleteNotification",
-      "type": "onCall",
-      "status": "passed",
-      "durationMs": 623,
+      "durationMs": 1072,
       "httpStatus": 200,
       "message": "Callable reachable"
     },
@@ -749,26 +1173,10 @@
       "message": "Callable reachable"
     },
     {
-      "endpoint": "getNotificationSettings",
-      "type": "onCall",
-      "status": "passed",
-      "durationMs": 520,
-      "httpStatus": 200,
-      "message": "Callable reachable"
-    },
-    {
-      "endpoint": "updateNotificationSettings",
-      "type": "onCall",
-      "status": "passed",
-      "durationMs": 529,
-      "httpStatus": 200,
-      "message": "Callable reachable"
-    },
-    {
       "endpoint": "cleanOldNotifications",
       "type": "onCall",
       "status": "passed",
-      "durationMs": 9,
+      "durationMs": 5,
       "httpStatus": 200,
       "message": "Callable reachable"
     },
@@ -776,7 +1184,7 @@
       "endpoint": "authenticateExtension",
       "type": "onCall",
       "status": "passed",
-      "durationMs": 518,
+      "durationMs": 1141,
       "httpStatus": 200,
       "message": "Callable reachable"
     },
@@ -784,7 +1192,7 @@
       "endpoint": "getExtensionWishlists",
       "type": "onCall",
       "status": "passed",
-      "durationMs": 516,
+      "durationMs": 962,
       "httpStatus": 200,
       "message": "Callable reachable"
     },
@@ -792,7 +1200,7 @@
       "endpoint": "addItemFromExtension",
       "type": "onCall",
       "status": "passed",
-      "durationMs": 531,
+      "durationMs": 1194,
       "httpStatus": 200,
       "message": "Callable reachable"
     },
@@ -800,7 +1208,7 @@
       "endpoint": "getExtensionRecentItems",
       "type": "onCall",
       "status": "passed",
-      "durationMs": 526,
+      "durationMs": 1035,
       "httpStatus": 200,
       "message": "Callable reachable"
     },
@@ -808,7 +1216,7 @@
       "endpoint": "createExtensionWishlist",
       "type": "onCall",
       "status": "passed",
-      "durationMs": 519,
+      "durationMs": 1125,
       "httpStatus": 200,
       "message": "Callable reachable"
     },
@@ -816,7 +1224,7 @@
       "endpoint": "deleteExtensionItem",
       "type": "onCall",
       "status": "passed",
-      "durationMs": 528,
+      "durationMs": 983,
       "httpStatus": 200,
       "message": "Callable reachable"
     },
@@ -824,7 +1232,7 @@
       "endpoint": "shareExtensionWishlist",
       "type": "onCall",
       "status": "passed",
-      "durationMs": 523,
+      "durationMs": 937,
       "httpStatus": 200,
       "message": "Callable reachable"
     },
@@ -832,7 +1240,7 @@
       "endpoint": "getExtensionAnalytics",
       "type": "onCall",
       "status": "passed",
-      "durationMs": 531,
+      "durationMs": 1116,
       "httpStatus": 200,
       "message": "Callable reachable"
     },
@@ -840,151 +1248,15 @@
       "endpoint": "trackExtensionEvent",
       "type": "onCall",
       "status": "passed",
-      "durationMs": 618,
+      "durationMs": 1128,
       "httpStatus": 200,
       "message": "Callable reachable"
-    },
-    {
-      "endpoint": "getUserWishlists",
-      "type": "onCall",
-      "status": "passed",
-      "durationMs": 528,
-      "httpStatus": 200,
-      "message": "Callable reachable"
-    },
-    {
-      "endpoint": "getWishlistById",
-      "type": "onCall",
-      "status": "passed",
-      "durationMs": 531,
-      "httpStatus": 200,
-      "message": "Callable reachable"
-    },
-    {
-      "endpoint": "getSharedWishlist",
-      "type": "onCall",
-      "status": "passed",
-      "durationMs": 544,
-      "httpStatus": 200,
-      "message": "Callable reachable"
-    },
-    {
-      "endpoint": "createWishlist",
-      "type": "onCall",
-      "status": "passed",
-      "durationMs": 15,
-      "httpStatus": 200,
-      "message": "Callable reachable"
-    },
-    {
-      "endpoint": "updateWishlist",
-      "type": "onCall",
-      "status": "passed",
-      "durationMs": 532,
-      "httpStatus": 200,
-      "message": "Callable reachable"
-    },
-    {
-      "endpoint": "deleteWishlist",
-      "type": "onCall",
-      "status": "passed",
-      "durationMs": 533,
-      "httpStatus": 200,
-      "message": "Callable reachable"
-    },
-    {
-      "endpoint": "getWishlistItems",
-      "type": "onCall",
-      "status": "passed",
-      "durationMs": 542,
-      "httpStatus": 200,
-      "message": "Callable reachable"
-    },
-    {
-      "endpoint": "addWishlistItem",
-      "type": "onCall",
-      "status": "passed",
-      "durationMs": 23,
-      "httpStatus": 200,
-      "message": "Callable reachable"
-    },
-    {
-      "endpoint": "reserveWishlistItem",
-      "type": "onCall",
-      "status": "passed",
-      "durationMs": 552,
-      "httpStatus": 200,
-      "message": "Callable reachable"
-    },
-    {
-      "endpoint": "purchaseWishlistItem",
-      "type": "onCall",
-      "status": "passed",
-      "durationMs": 876,
-      "httpStatus": 200,
-      "message": "Callable reachable"
-    },
-    {
-      "endpoint": "updateWishlistItem",
-      "type": "onCall",
-      "status": "passed",
-      "durationMs": 1385,
-      "httpStatus": 200,
-      "message": "Callable reachable"
-    },
-    {
-      "endpoint": "deleteWishlistItem",
-      "type": "onCall",
-      "status": "passed",
-      "durationMs": 639,
-      "httpStatus": 200,
-      "message": "Callable reachable"
-    },
-    {
-      "endpoint": "saveFCMToken",
-      "type": "onCall",
-      "status": "passed",
-      "durationMs": 127,
-      "httpStatus": 200,
-      "message": "Callable reachable"
-    },
-    {
-      "endpoint": "removeFCMToken",
-      "type": "onCall",
-      "status": "passed",
-      "durationMs": 1172,
-      "httpStatus": 200,
-      "message": "Callable reachable"
-    },
-    {
-      "endpoint": "subscribeToTopic",
-      "type": "onCall",
-      "status": "warned",
-      "durationMs": 130,
-      "httpStatus": 500,
-      "message": "INTERNAL: Failed to subscribe to topic"
-    },
-    {
-      "endpoint": "unsubscribeFromTopic",
-      "type": "onCall",
-      "status": "warned",
-      "durationMs": 135,
-      "httpStatus": 500,
-      "message": "INTERNAL: Failed to unsubscribe from topic"
-    },
-    {
-      "endpoint": "sendTestPushNotification",
-      "type": "onCall",
-      "status": "warned",
-      "durationMs": 453,
-      "httpStatus": 500,
-      "message": "INTERNAL: Failed to send test notification"
     },
     {
       "endpoint": "sendTestNotification",
       "type": "onCall",
       "status": "passed",
-      "durationMs": 191,
+      "durationMs": 188,
       "httpStatus": 200,
       "message": "Callable reachable"
     },
@@ -992,311 +1264,79 @@
       "endpoint": "sendBatchNotification",
       "type": "onCall",
       "status": "passed",
-      "durationMs": 206,
+      "durationMs": 194,
       "httpStatus": 200,
       "message": "Callable reachable"
     },
     {
-      "endpoint": "linkConvert",
-      "type": "onCall",
-      "status": "passed",
-      "durationMs": 418,
-      "httpStatus": 200,
-      "message": "Callable reachable"
-    },
-    {
-      "endpoint": "linkConvertBatch",
-      "type": "onCall",
-      "status": "passed",
-      "durationMs": 517,
-      "httpStatus": 200,
-      "message": "Callable reachable"
-    },
-    {
-      "endpoint": "linkConvertWishlist",
-      "type": "onCall",
-      "status": "passed",
-      "durationMs": 536,
-      "httpStatus": 200,
-      "message": "Callable reachable"
-    },
-    {
-      "endpoint": "linkTrackClick",
-      "type": "onCall",
-      "status": "passed",
-      "durationMs": 532,
-      "httpStatus": 200,
-      "message": "Callable reachable"
-    },
-    {
-      "endpoint": "linkPrograms",
-      "type": "onCall",
-      "status": "passed",
-      "durationMs": 415,
-      "httpStatus": 200,
-      "message": "Callable reachable"
-    },
-    {
-      "endpoint": "linkStats",
-      "type": "onCall",
-      "status": "passed",
-      "durationMs": 518,
-      "httpStatus": 200,
-      "message": "Callable reachable"
-    },
-    {
-      "endpoint": "linkDisclosure",
-      "type": "onCall",
-      "status": "passed",
-      "durationMs": 413,
-      "httpStatus": 200,
-      "message": "Callable reachable"
-    },
-    {
-      "endpoint": "createGroupPaymentIntent",
+      "endpoint": "groupPaymentCreateIntent",
       "type": "onCall",
       "status": "warned",
-      "durationMs": 415,
+      "durationMs": 1028,
       "httpStatus": 400,
       "message": "FAILED_PRECONDITION: Stripe is not configured"
     },
     {
-      "endpoint": "confirmGroupContribution",
+      "endpoint": "groupPaymentConfirm",
       "type": "onCall",
       "status": "warned",
-      "durationMs": 414,
+      "durationMs": 823,
       "httpStatus": 400,
       "message": "FAILED_PRECONDITION: Stripe is not configured"
     },
     {
-      "endpoint": "getGroupGiftSummary",
+      "endpoint": "groupGiftSummary",
       "type": "onCall",
       "status": "passed",
-      "durationMs": 521,
+      "durationMs": 1081,
       "httpStatus": 200,
       "message": "Callable reachable"
     },
     {
-      "endpoint": "getCalendarEvents",
+      "endpoint": "arModelLookup",
       "type": "onCall",
       "status": "passed",
-      "durationMs": 518,
+      "durationMs": 923,
       "httpStatus": 200,
       "message": "Callable reachable"
     },
     {
-      "endpoint": "createCalendarEvent",
+      "endpoint": "bootstrapSuperAdmin",
       "type": "onCall",
-      "status": "passed",
-      "durationMs": 14,
-      "httpStatus": 200,
-      "message": "Callable reachable"
+      "status": "warned",
+      "durationMs": 926,
+      "httpStatus": 501,
+      "message": "UNIMPLEMENTED: Bootstrap secret not configured"
     },
     {
-      "endpoint": "updateCalendarEvent",
+      "endpoint": "grantAdminRole",
       "type": "onCall",
-      "status": "passed",
-      "durationMs": 527,
-      "httpStatus": 200,
-      "message": "Callable reachable"
+      "status": "warned",
+      "durationMs": 1087,
+      "httpStatus": 403,
+      "message": "PERMISSION_DENIED: Only super_admin can grant admin roles"
     },
     {
-      "endpoint": "deleteCalendarEvent",
+      "endpoint": "revokeAdminRole",
       "type": "onCall",
-      "status": "passed",
-      "durationMs": 522,
-      "httpStatus": 200,
-      "message": "Callable reachable"
+      "status": "warned",
+      "durationMs": 1057,
+      "httpStatus": 403,
+      "message": "PERMISSION_DENIED: Super-admin role required"
     },
     {
-      "endpoint": "getCalendarAuthUrl",
+      "endpoint": "createSupportTicket",
       "type": "onCall",
-      "status": "passed",
-      "durationMs": 516,
-      "httpStatus": 200,
-      "message": "Callable reachable"
-    },
-    {
-      "endpoint": "connectCalendar",
-      "type": "onCall",
-      "status": "passed",
-      "durationMs": 538,
-      "httpStatus": 200,
-      "message": "Callable reachable"
-    },
-    {
-      "endpoint": "getCalendarConnections",
-      "type": "onCall",
-      "status": "passed",
-      "durationMs": 846,
-      "httpStatus": 200,
-      "message": "Callable reachable"
-    },
-    {
-      "endpoint": "updateCalendarConnectionSettings",
-      "type": "onCall",
-      "status": "passed",
-      "durationMs": 523,
-      "httpStatus": 200,
-      "message": "Callable reachable"
-    },
-    {
-      "endpoint": "disconnectCalendar",
-      "type": "onCall",
-      "status": "passed",
-      "durationMs": 526,
-      "httpStatus": 200,
-      "message": "Callable reachable"
-    },
-    {
-      "endpoint": "syncCalendarConnection",
-      "type": "onCall",
-      "status": "passed",
-      "durationMs": 522,
-      "httpStatus": 200,
-      "message": "Callable reachable"
-    },
-    {
-      "endpoint": "syncCalendar",
-      "type": "onCall",
-      "status": "passed",
-      "durationMs": 529,
-      "httpStatus": 200,
-      "message": "Callable reachable"
-    },
-    {
-      "endpoint": "getCalendarSyncSettings",
-      "type": "onCall",
-      "status": "passed",
-      "durationMs": 518,
-      "httpStatus": 200,
-      "message": "Callable reachable"
-    },
-    {
-      "endpoint": "getContacts",
-      "type": "onCall",
-      "status": "passed",
-      "durationMs": 522,
-      "httpStatus": 200,
-      "message": "Callable reachable"
-    },
-    {
-      "endpoint": "importContacts",
-      "type": "onCall",
-      "status": "passed",
-      "durationMs": 521,
-      "httpStatus": 200,
-      "message": "Callable reachable"
-    },
-    {
-      "endpoint": "hideContact",
-      "type": "onCall",
-      "status": "passed",
-      "durationMs": 519,
-      "httpStatus": 200,
-      "message": "Callable reachable"
-    },
-    {
-      "endpoint": "deleteContact",
-      "type": "onCall",
-      "status": "passed",
-      "durationMs": 518,
-      "httpStatus": 200,
-      "message": "Callable reachable"
-    },
-    {
-      "endpoint": "registerDevice",
-      "type": "onCall",
-      "status": "passed",
-      "durationMs": 22,
-      "httpStatus": 200,
-      "message": "Callable reachable"
-    },
-    {
-      "endpoint": "listDevices",
-      "type": "onCall",
-      "status": "passed",
-      "durationMs": 514,
-      "httpStatus": 200,
-      "message": "Callable reachable"
-    },
-    {
-      "endpoint": "updateDevice",
-      "type": "onCall",
-      "status": "passed",
-      "durationMs": 522,
-      "httpStatus": 200,
-      "message": "Callable reachable"
-    },
-    {
-      "endpoint": "logSyncEvent",
-      "type": "onCall",
-      "status": "passed",
-      "durationMs": 514,
-      "httpStatus": 200,
-      "message": "Callable reachable"
-    },
-    {
-      "endpoint": "getSyncLogs",
-      "type": "onCall",
-      "status": "passed",
-      "durationMs": 515,
-      "httpStatus": 200,
-      "message": "Callable reachable"
-    },
-    {
-      "endpoint": "syncMobileActions",
-      "type": "onCall",
-      "status": "passed",
-      "durationMs": 534,
-      "httpStatus": 200,
-      "message": "Callable reachable"
-    },
-    {
-      "endpoint": "lookupBarcode",
-      "type": "onCall",
-      "status": "passed",
-      "durationMs": 1102,
-      "httpStatus": 200,
-      "message": "Callable reachable"
-    },
-    {
-      "endpoint": "getARModel",
-      "type": "onCall",
-      "status": "passed",
-      "durationMs": 417,
-      "httpStatus": 200,
-      "message": "Callable reachable"
-    },
-    {
-      "endpoint": "trackAnalyticsEvent",
-      "type": "onCall",
-      "status": "passed",
-      "durationMs": 512,
-      "httpStatus": 200,
-      "message": "Callable reachable"
-    },
-    {
-      "endpoint": "getAnalyticsEvents",
-      "type": "onCall",
-      "status": "passed",
-      "durationMs": 39,
-      "httpStatus": 200,
-      "message": "Callable reachable"
-    },
-    {
-      "endpoint": "getAnalyticsSummary",
-      "type": "onCall",
-      "status": "passed",
-      "durationMs": 48,
-      "httpStatus": 200,
-      "message": "Callable reachable"
+      "status": "warned",
+      "durationMs": 921,
+      "httpStatus": 400,
+      "message": "INVALID_ARGUMENT: category, subject, and description are required"
     },
     {
       "endpoint": "extensionGetWishlists",
       "type": "onRequest",
       "status": "passed",
-      "durationMs": 23,
+      "durationMs": 19,
       "httpStatus": 200,
       "message": "HTTP endpoint reachable"
     },
@@ -1304,7 +1344,7 @@
       "endpoint": "extensionCreateWishlist",
       "type": "onRequest",
       "status": "passed",
-      "durationMs": 521,
+      "durationMs": 961,
       "httpStatus": 200,
       "message": "HTTP endpoint reachable"
     },
@@ -1312,7 +1352,7 @@
       "endpoint": "extensionAddItem",
       "type": "onRequest",
       "status": "passed",
-      "durationMs": 148,
+      "durationMs": 133,
       "httpStatus": 200,
       "message": "HTTP endpoint reachable"
     },
@@ -1320,7 +1360,7 @@
       "endpoint": "extensionGetRecentItems",
       "type": "onRequest",
       "status": "passed",
-      "durationMs": 534,
+      "durationMs": 1216,
       "httpStatus": 200,
       "message": "HTTP endpoint reachable"
     },
@@ -1328,7 +1368,7 @@
       "endpoint": "extensionGetWishlistItems",
       "type": "onRequest",
       "status": "passed",
-      "durationMs": 126,
+      "durationMs": 120,
       "httpStatus": 200,
       "message": "HTTP endpoint reachable"
     },
@@ -1336,7 +1376,7 @@
       "endpoint": "extensionDeleteItem",
       "type": "onRequest",
       "status": "passed",
-      "durationMs": 145,
+      "durationMs": 171,
       "httpStatus": 200,
       "message": "HTTP endpoint reachable"
     },
@@ -1344,7 +1384,7 @@
       "endpoint": "extensionShareWishlist",
       "type": "onRequest",
       "status": "passed",
-      "durationMs": 168,
+      "durationMs": 173,
       "httpStatus": 200,
       "message": "HTTP endpoint reachable"
     },
@@ -1352,15 +1392,7 @@
       "endpoint": "api",
       "type": "onRequest",
       "status": "passed",
-      "durationMs": 17,
-      "httpStatus": 200,
-      "message": "HTTP endpoint reachable"
-    },
-    {
-      "endpoint": "getItemPriceHistory",
-      "type": "onRequest",
-      "status": "passed",
-      "durationMs": 160,
+      "durationMs": 22,
       "httpStatus": 200,
       "message": "HTTP endpoint reachable"
     },
@@ -1368,7 +1400,7 @@
       "endpoint": "checkoutSessionCreate",
       "type": "onRequest",
       "status": "warned",
-      "durationMs": 415,
+      "durationMs": 925,
       "httpStatus": 501,
       "message": "HTTP 501 (reachable but not fully configured for this payload)"
     },
@@ -1376,7 +1408,15 @@
       "endpoint": "stripeWebhook",
       "type": "onRequest",
       "status": "warned",
-      "durationMs": 414,
+      "durationMs": 922,
+      "httpStatus": 501,
+      "message": "HTTP 501 (reachable but not fully configured for this payload)"
+    },
+    {
+      "endpoint": "billingWebhook",
+      "type": "onRequest",
+      "status": "warned",
+      "durationMs": 926,
       "httpStatus": 501,
       "message": "HTTP 501 (reachable but not fully configured for this payload)"
     },
@@ -1403,6 +1443,48 @@
       "type": "eventTrigger",
       "status": "passed",
       "message": "Event trigger export detected (non-invocable in direct smoke runner)"
+    },
+    {
+      "endpoint": "replayDeferredPriceAlerts",
+      "type": "eventTrigger",
+      "status": "passed",
+      "message": "Event trigger export detected (non-invocable in direct smoke runner)"
+    },
+    {
+      "endpoint": "advanceCommissionsPastHold",
+      "type": "eventTrigger",
+      "status": "passed",
+      "message": "Event trigger export detected (non-invocable in direct smoke runner)"
+    },
+    {
+      "endpoint": "scheduledPayoutBatchRun",
+      "type": "eventTrigger",
+      "status": "passed",
+      "message": "Event trigger export detected (non-invocable in direct smoke runner)"
+    },
+    {
+      "endpoint": "scheduledAdKpiSnapshot",
+      "type": "eventTrigger",
+      "status": "passed",
+      "message": "Event trigger export detected (non-invocable in direct smoke runner)"
+    },
+    {
+      "endpoint": "scheduledRefreshPriceIntelligenceOffers",
+      "type": "eventTrigger",
+      "status": "passed",
+      "message": "Event trigger export detected (non-invocable in direct smoke runner)"
+    },
+    {
+      "endpoint": "scheduledEvaluatePriceAlerts",
+      "type": "eventTrigger",
+      "status": "passed",
+      "message": "Event trigger export detected (non-invocable in direct smoke runner)"
+    },
+    {
+      "endpoint": "affiliateReportImportProcess",
+      "type": "unknown",
+      "status": "warned",
+      "message": "Could not classify export from ./api/affiliateReconciliation"
     }
   ]
 }
