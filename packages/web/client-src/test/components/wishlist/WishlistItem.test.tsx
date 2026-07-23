@@ -171,8 +171,8 @@ describe('WishlistItem Component', () => {
     await user.click(deleteButton);
     
     // Assert - Dialog should appear
-    expect(screen.getByText('Remove Item')).toBeInTheDocument();
-    expect(screen.getByText(/Are you sure you want to remove this item/)).toBeInTheDocument();
+    expect(screen.getByText('Delete Item')).toBeInTheDocument();
+    expect(screen.getByText(/Are you sure you want to delete this item/)).toBeInTheDocument();
   });
   
   it('should call onDelete when confirming deletion', async () => {
@@ -190,7 +190,7 @@ describe('WishlistItem Component', () => {
     const deleteButton = screen.getByRole('button', { name: /delete/i });
     await user.click(deleteButton);
     
-    const confirmButton = screen.getByText('Remove');
+    const confirmButton = screen.getByText('Delete');
     await user.click(confirmButton);
     
     // Assert
