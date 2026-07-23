@@ -97,7 +97,6 @@ function shouldUseFirebaseFunctions(url: string, method: string): boolean {
     '/api/wishlists',
     '/api/shared',
     '/api/users/search',
-    '/api/calendar',
     '/api/items',
     '/api/price-intelligence'
   ];
@@ -135,6 +134,7 @@ function shouldUseFirebaseApiRouter(url: string, method: string): boolean {
     '/api/affiliate',
     '/api/fcm',
     '/api/notifications',
+    '/api/calendar',
   ];
 
   return routerEndpoints.some(endpoint => url.startsWith(endpoint));
@@ -212,20 +212,6 @@ function getFirebaseFunctionRoute(url: string, method: string, body?: unknown): 
     : {};
 
   const patterns: Array<{ pattern: RegExp; resolve: (match: RegExpExecArray) => FunctionRouteMatch }> = [
-    { pattern: /^\/api\/calendar\/events$/, resolve: () => ({ functionName: normalizedMethod === 'POST' ? 'calendarEventCreate' : 'calendarEventsList', data }) },
-    { pattern: /^\/api\/calendar\/events\/([^/]+)$/, resolve: (match) => ({
-        functionName: normalizedMethod === 'DELETE' ? 'calendarEventDelete' : 'calendarEventUpdate',
-        data: { ...data, eventId: match[1] }
-      })
-    },
-    { pattern: /^\/api\/calendar\/auth\/([^/]+)$/, resolve: (match) => ({ functionName: 'calendarAuthUrl', data: { ...data, provider: match[1] } }) },
-    { pattern: /^\/api\/calendar\/connections$/, resolve: () => ({ functionName: 'calendarConnections', data }) },
-    { pattern: /^\/api\/calendar\/connect$/, resolve: () => ({ functionName: 'calendarConnect', data }) },
-    { pattern: /^\/api\/calendar\/connections\/([^/]+)\/sync$/, resolve: (match) => ({ functionName: 'calendarConnectionSync', data: { ...data, connectionId: match[1] } }) },
-    { pattern: /^\/api\/calendar\/connections\/([^/]+)\/settings$/, resolve: (match) => ({ functionName: 'calendarConnectionUpdate', data: { ...data, connectionId: match[1] } }) },
-    { pattern: /^\/api\/calendar\/connections\/([^/]+)$/, resolve: (match) => ({ functionName: 'calendarDisconnect', data: { ...data, connectionId: match[1] } }) },
-    { pattern: /^\/api\/calendar\/sync$/, resolve: () => ({ functionName: 'calendarSync', data }) },
-    { pattern: /^\/api\/calendar\/sync-settings$/, resolve: () => ({ functionName: 'calendarSyncSettings', data }) },
     { pattern: /^\/api\/group-payments\/payment-intent$/, resolve: () => ({ functionName: 'groupPaymentCreateIntent', data }) },
     { pattern: /^\/api\/group-payments\/confirm$/, resolve: () => ({ functionName: 'groupPaymentConfirm', data }) },
     { pattern: /^\/api\/group-payments\/item\/([^/]+)$/, resolve: (match) => ({ functionName: 'groupGiftSummary', data: { ...data, itemId: match[1] } }) },
