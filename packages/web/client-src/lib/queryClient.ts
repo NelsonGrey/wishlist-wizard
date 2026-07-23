@@ -133,7 +133,7 @@ function shouldUseFirebaseApiRouter(url: string, method: string): boolean {
     '/api/wishlist-items',
     '/api/products/preview',
     '/api/creator',
-    '/api/admin/affiliate',
+    '/api/admin',
     '/api/billing',
   ];
 

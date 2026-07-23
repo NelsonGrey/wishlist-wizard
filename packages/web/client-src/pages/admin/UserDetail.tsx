@@ -5,7 +5,7 @@
  */
 import { useState, useEffect } from 'react';
 import { useLocation, useParams } from 'wouter';
-import { getFunctions, httpsCallable } from 'firebase/functions';
+import { apiRequest } from '@/lib/queryClient';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -73,16 +73,13 @@ export default function UserDetail() {
   const [tierReason, setTierReason] = useState('');
   const [acting, setActing] = useState(false);
 
-  const functions = getFunctions();
-
   useEffect(() => {
     if (isSuperAdmin === false) { setLocation('/app/dashboard'); return; }
     if (isSuperAdmin !== true) return;
 
     setLoading(true);
-    const fn = httpsCallable<object, UserDetail>(functions, 'adminGetUser');
-    fn({ targetUid: uid })
-      .then(({ data }) => setUser(data))
+    apiRequest(`/api/admin/users/${uid}`)
+      .then((data) => setUser(data as UserDetail))
       .catch((err) => {
         toast({ title: 'Error', description: err?.message, variant: 'destructive' });
         setLocation('/admin/users');
@@ -94,8 +91,7 @@ export default function UserDetail() {
     if (!user || !suspendReason.trim()) return;
     setActing(true);
     try {
-      const fn = httpsCallable(functions, 'adminSuspendUser');
-      await fn({ targetUid: uid, reason: suspendReason });
+      await apiRequest(`/api/admin/users/${uid}/suspend`, { method: 'POST', body: { reason: suspendReason } });
       setUser({ ...user, isSuspended: true });
       toast({ title: 'User suspended' });
       setSuspendDialog(false);
@@ -112,8 +108,7 @@ export default function UserDetail() {
     if (!user) return;
     setActing(true);
     try {
-      const fn = httpsCallable(functions, 'adminUnsuspendUser');
-      await fn({ targetUid: uid, reason: 'Admin reinstatement' });
+      await apiRequest(`/api/admin/users/${uid}/unsuspend`, { method: 'POST', body: { reason: 'Admin reinstatement' } });
       setUser({ ...user, isSuspended: false });
       toast({ title: 'User reinstated' });
     } catch (err: unknown) {
@@ -128,8 +123,10 @@ export default function UserDetail() {
     if (!user || !newTier || !tierReason.trim()) return;
     setActing(true);
     try {
-      const fn = httpsCallable(functions, 'adminModifySubscription');
-      await fn({ targetUid: uid, newTier, reason: tierReason });
+      await apiRequest(`/api/admin/users/${uid}/subscription`, {
+        method: 'POST',
+        body: { newTier, reason: tierReason },
+      });
       setUser({ ...user, subscriptionTier: newTier });
       toast({ title: 'Subscription tier updated' });
       setTierDialog(false);

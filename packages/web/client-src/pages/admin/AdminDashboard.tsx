@@ -6,7 +6,7 @@
  */
 import { useEffect, useState } from 'react';
 import { useLocation } from 'wouter';
-import { getFunctions, httpsCallable } from 'firebase/functions';
+import { apiRequest } from '@/lib/queryClient';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -50,11 +50,9 @@ export default function AdminDashboard() {
     }
     if (isSuperAdmin !== true) return;
 
-    const functions = getFunctions();
-    const adminGetUsers = httpsCallable<object, UserStats>(functions, 'adminGetUsers');
-
-    adminGetUsers({ pageSize: 100 })
-      .then(({ data }) => {
+    apiRequest('/api/admin/users', { method: 'POST', body: { pageSize: 100 } })
+      .then((result) => {
+        const data = result as UserStats;
         const byTier: Record<string, number> = {};
         let suspended = 0;
         for (const u of data.users) {
