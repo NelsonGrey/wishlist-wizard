@@ -6,7 +6,7 @@
  */
 import { useState, useEffect } from 'react';
 import { useLocation } from 'wouter';
-import { getFunctions, httpsCallable } from 'firebase/functions';
+import { apiRequest } from '@/lib/queryClient';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -61,15 +61,12 @@ export default function UserManagement() {
   const [suspendReason, setSuspendReason] = useState('');
   const [acting, setActing] = useState(false);
 
-  const functions = getFunctions();
-
   useEffect(() => {
     if (isSuperAdmin === false) { setLocation('/app/dashboard'); return; }
     if (isSuperAdmin !== true) return;
 
-    const adminGetUsers = httpsCallable<object, { users: UserRow[] }>(functions, 'adminGetUsers');
-    adminGetUsers({ pageSize: 100 })
-      .then(({ data }) => setUsers(data.users))
+    apiRequest('/api/admin/users', { method: 'POST', body: { pageSize: 100 } })
+      .then((data) => setUsers((data as { users: UserRow[] }).users))
       .finally(() => setLoading(false));
   }, [isSuperAdmin, setLocation]);
 
@@ -82,8 +79,10 @@ export default function UserManagement() {
     if (!suspendTarget || !suspendReason.trim()) return;
     setActing(true);
     try {
-      const fn = httpsCallable(functions, 'adminSuspendUser');
-      await fn({ targetUid: suspendTarget.uid, reason: suspendReason });
+      await apiRequest(`/api/admin/users/${suspendTarget.uid}/suspend`, {
+        method: 'POST',
+        body: { reason: suspendReason },
+      });
       setUsers((prev) =>
         prev.map((u) => u.uid === suspendTarget.uid ? { ...u, isSuspended: true } : u),
       );
@@ -101,8 +100,7 @@ export default function UserManagement() {
   async function handleUnsuspend(user: UserRow) {
     setActing(true);
     try {
-      const fn = httpsCallable(functions, 'adminUnsuspendUser');
-      await fn({ targetUid: user.uid });
+      await apiRequest(`/api/admin/users/${user.uid}/unsuspend`, { method: 'POST' });
       setUsers((prev) =>
         prev.map((u) => u.uid === user.uid ? { ...u, isSuspended: false } : u),
       );
