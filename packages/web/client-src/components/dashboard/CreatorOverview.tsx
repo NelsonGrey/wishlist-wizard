@@ -1,4 +1,3 @@
-import { Helmet } from "react-helmet";
 import { useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -12,7 +11,7 @@ import UpgradePrompt from "@/components/UpgradePrompt";
 
 type DashboardSummary = { byState: Record<string, { count: number; totalUsd: number }> };
 
-export default function CreatorDashboard() {
+export default function CreatorOverview() {
   // The summary call doubles as the tier-gate check — assertFeatureEnabled
   // server-side throws permission-denied for non-creator tiers, which we
   // handle here as "show the upgrade prompt" rather than a broken page.
@@ -24,7 +23,7 @@ export default function CreatorDashboard() {
 
   if (isLoading) {
     return (
-      <div className="site-container space-y-4 py-8">
+      <div className="space-y-4">
         <Skeleton className="h-10 w-64" />
         <Skeleton className="h-64 w-full" />
       </div>
@@ -43,11 +42,12 @@ export default function CreatorDashboard() {
           title="The creator dashboard is a Creator Pro feature"
           description="Upgrade to track performance, commission status, payout readiness, and adjustments for the retail links you share."
           secondaryCta={{ label: "Learn about the creator program", href: "/creator-program" }}
+          className=""
         />
       );
     }
     return (
-      <div className="site-container py-16 text-center">
+      <div className="py-16 text-center">
         <p className="text-sm text-destructive">
           Something went wrong loading the creator dashboard. Please try again shortly.
         </p>
@@ -58,51 +58,45 @@ export default function CreatorDashboard() {
   void data;
 
   return (
-    <>
-      <Helmet>
-        <title>Creator Dashboard | Wishlist Wizard</title>
-      </Helmet>
-
-      <div className="site-container space-y-6 py-8">
-        <div>
-          <h1 className="text-3xl font-bold text-slate-950" data-testid="creator-dashboard-title">
-            Creator Dashboard
-          </h1>
-          <p className="mt-1 text-muted-foreground">
-            Performance, commission status, payout readiness, and adjustments — kept visibly separate.
-          </p>
-        </div>
-
-        <Tabs defaultValue="performance">
-          <TabsList>
-            <TabsTrigger value="performance">
-              <BarChart3 className="mr-2 h-4 w-4" /> Performance
-            </TabsTrigger>
-            <TabsTrigger value="commissions">
-              <Landmark className="mr-2 h-4 w-4" /> Commission status
-            </TabsTrigger>
-            <TabsTrigger value="payouts">
-              <WalletCards className="mr-2 h-4 w-4" /> Payout readiness
-            </TabsTrigger>
-            <TabsTrigger value="adjustments">
-              <SlidersHorizontal className="mr-2 h-4 w-4" /> Adjustments
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="performance" className="mt-6">
-            <PerformancePanel />
-          </TabsContent>
-          <TabsContent value="commissions" className="mt-6">
-            <CommissionStatusPanel />
-          </TabsContent>
-          <TabsContent value="payouts" className="mt-6">
-            <PayoutReadinessPanel />
-          </TabsContent>
-          <TabsContent value="adjustments" className="mt-6">
-            <AdjustmentsPanel />
-          </TabsContent>
-        </Tabs>
+    <div className="space-y-6" data-testid="creator-overview">
+      <div>
+        <h2 className="text-2xl font-bold" data-testid="creator-overview-title">
+          Creator Tools
+        </h2>
+        <p className="mt-1 text-muted-foreground">
+          Performance, commission status, payout readiness, and adjustments — kept visibly separate.
+        </p>
       </div>
-    </>
+
+      <Tabs defaultValue="performance">
+        <TabsList>
+          <TabsTrigger value="performance">
+            <BarChart3 className="mr-2 h-4 w-4" /> Performance
+          </TabsTrigger>
+          <TabsTrigger value="commissions">
+            <Landmark className="mr-2 h-4 w-4" /> Commission status
+          </TabsTrigger>
+          <TabsTrigger value="payouts">
+            <WalletCards className="mr-2 h-4 w-4" /> Payout readiness
+          </TabsTrigger>
+          <TabsTrigger value="adjustments">
+            <SlidersHorizontal className="mr-2 h-4 w-4" /> Adjustments
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="performance" className="mt-6">
+          <PerformancePanel />
+        </TabsContent>
+        <TabsContent value="commissions" className="mt-6">
+          <CommissionStatusPanel />
+        </TabsContent>
+        <TabsContent value="payouts" className="mt-6">
+          <PayoutReadinessPanel />
+        </TabsContent>
+        <TabsContent value="adjustments" className="mt-6">
+          <AdjustmentsPanel />
+        </TabsContent>
+      </Tabs>
+    </div>
   );
 }

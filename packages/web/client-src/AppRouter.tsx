@@ -20,6 +20,7 @@ import AuthLayout from "./components/layout/AuthLayout";
 
 const Home = lazy(() => import("./pages/Home"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
+const Wishlists = lazy(() => import("./pages/Wishlists"));
 const Login = lazy(() => import("./pages/Login"));
 const Register = lazy(() => import("./pages/Register"));
 const UserProfile = lazy(() => import("./pages/UserProfile"));
@@ -29,7 +30,6 @@ const Subscription = lazy(() => import("./pages/Subscription"));
 const WishlistDetail = lazy(() => import("./pages/WishlistDetail"));
 const Recommendations = lazy(() => import("./pages/Recommendations"));
 const PriceTracking = lazy(() => import("./pages/PriceTracking"));
-const CreatorDashboard = lazy(() => import("./pages/CreatorDashboard"));
 const Calendar = lazy(() => import("./pages/Calendar"));
 const Notifications = lazy(() => import("./pages/Notifications"));
 const ExtensionPage = lazy(() => import("./pages/ExtensionPage"));
@@ -38,7 +38,6 @@ const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const VerifyEmail = lazy(() => import("./pages/VerifyEmail"));
 const SharedWishlist = lazy(() => import("./pages/SharedWishlist"));
-const Analytics = lazy(() => import("./pages/Analytics"));
 const NotFound = lazy(() => import("./pages/not-found"));
 const TermsOfService = lazy(() => import("./pages/TermsOfService"));
 const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
@@ -59,7 +58,6 @@ const ActivityInsightsDemo = lazy(() => import("./pages/demos/ActivityInsightsDe
 const AdvancedUserProfilesDemo = lazy(() => import("./pages/demos/AdvancedUserProfilesDemo"));
 
 // Super-admin pages
-const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
 const UserManagement = lazy(() => import("./pages/admin/UserManagement"));
 const UserDetail = lazy(() => import("./pages/admin/UserDetail"));
 const SupportTickets = lazy(() => import("./pages/admin/SupportTickets"));
@@ -235,7 +233,7 @@ function AppRouter() {
                     path="/app/wishlists"
                     component={() => (
                       <ProtectedRoute requireAuth>
-                        <Dashboard />
+                        <Wishlists />
                       </ProtectedRoute>
                     )}
                   />
@@ -287,14 +285,8 @@ function AppRouter() {
                       </ProtectedRoute>
                     )}
                   />
-                  <Route
-                    path="/app/creator-dashboard"
-                    component={() => (
-                      <ProtectedRoute requireAuth>
-                        <CreatorDashboard />
-                      </ProtectedRoute>
-                    )}
-                  />
+                  {/* Creator Dashboard folded into the unified Dashboard's Creator tab */}
+                  <Route path="/app/creator-dashboard" component={() => <Redirect to="/app/dashboard?tab=creator" />} />
                   <Route
                     path="/app/calendar"
                     component={() => (
@@ -336,19 +328,13 @@ function AppRouter() {
                     )}
                   />
                   <Route path="/shared/:shareId" component={SharedWishlist} />
-                  <Route
-                    path="/app/analytics"
-                    component={() => (
-                      <ProtectedRoute requireAuth>
-                        <Analytics />
-                      </ProtectedRoute>
-                    )}
-                  />
+                  {/* Analytics folded into the unified Dashboard's Analytics tab */}
+                  <Route path="/app/analytics" component={() => <Redirect to="/app/dashboard?tab=analytics" />} />
 
                   {/* Legacy Authenticated Routes -> canonical /app namespace */}
-                  <Route path="/dashboard" component={() => <Redirect to="/app/dashboard" />} />
+                  <Route path="/dashboard" component={() => <Redirect to="/app/wishlists" />} />
                   <Route path="/wishlists" component={() => <Redirect to="/app/wishlists" />} />
-                  <Route path="/dashboard-firebase" component={() => <Redirect to="/app/dashboard" />} />
+                  <Route path="/dashboard-firebase" component={() => <Redirect to="/app/wishlists" />} />
                   <Route path="/user-profile" component={() => <Redirect to="/app/user-profile" />} />
                   <Route
                     path="/wishlist/:id"
@@ -370,13 +356,15 @@ function AppRouter() {
                   <Route path="/calendar" component={() => <Redirect to="/app/calendar" />} />
                   <Route path="/notifications" component={() => <Redirect to="/app/notifications" />} />
                   <Route path="/privacy-settings" component={() => <Redirect to="/app/privacy-settings" />} />
-                  <Route path="/analytics" component={() => <Redirect to="/app/analytics" />} />
+                  <Route path="/analytics" component={() => <Redirect to="/app/dashboard?tab=analytics" />} />
 
                   {/* ──────────────────────────────────────── */}
-                  {/* Super-Admin Routes (always registered;   */}
-                  {/* pages self-guard via token claim check)  */}
+                  {/* Super-Admin Routes (deeper pages always  */}
+                  {/* registered; self-guard via token claim   */}
+                  {/* check. The overview folded into the      */}
+                  {/* unified Dashboard's Admin tab.)          */}
                   {/* ──────────────────────────────────────── */}
-                  <Route path="/admin" component={AdminDashboard} />
+                  <Route path="/admin" component={() => <Redirect to="/app/dashboard?tab=admin" />} />
                   <Route path="/admin/users" component={UserManagement} />
                   <Route path="/admin/users/:uid" component={UserDetail} />
                   <Route path="/admin/tickets" component={SupportTickets} />

@@ -129,7 +129,7 @@ export default function MobileAppDemo() {
 
         {/* CTA */}
         <div className="flex flex-wrap gap-4 justify-center">
-          <Link href="/app/dashboard" className="inline-flex items-center justify-center rounded-lg bg-emerald-700 px-8 py-3 text-white font-semibold hover:bg-emerald-800 transition-colors">
+          <Link href="/app/wishlists" className="inline-flex items-center justify-center rounded-lg bg-emerald-700 px-8 py-3 text-white font-semibold hover:bg-emerald-800 transition-colors">
             Try App Dashboard
           </Link>
           <Link href="/register" className="inline-flex items-center justify-center rounded-lg border-2 border-emerald-700 px-8 py-3 text-emerald-700 font-semibold hover:bg-emerald-50 transition-colors">

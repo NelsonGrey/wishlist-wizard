@@ -1,267 +1,159 @@
-import { useState } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { LayoutGrid, List, Plus, X } from "lucide-react";
-import WishlistCard from "@/components/WishlistCard";
-import WishlistListView from "@/components/WishlistListView";
-import CreateWishlistDialog from "@/components/CreateWishlistDialog";
-import type { CreateWishlistFormValues } from "@/components/CreateWishlistDialog";
-import { apiRequest, queryClient } from "@/lib/queryClient";
-import { getApiErrorMessage } from "@/lib/api-errors";
-import { useToast } from "@/hooks/use-toast";
+import { useEffect, useState } from "react";
+import { Helmet } from "react-helmet";
+import { Link } from "wouter";
+import { LayoutDashboard, BarChart3, WalletCards, Shield, Gift, Trophy, CalendarDays, List } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { Wishlist as DbWishlist } from "@wishlist-wizard/shared";
+import StatCard from "@/components/StatCard";
+import AnalyticsOverview from "@/components/dashboard/AnalyticsOverview";
+import CreatorOverview from "@/components/dashboard/CreatorOverview";
+import AdminOverview from "@/components/dashboard/AdminOverview";
+import { useSubscriptionStatus } from "@/hooks/use-subscription-status";
+import { useAchievements } from "@/hooks/use-achievements";
+import { useIsAdmin } from "@/hooks/use-is-admin";
+import { ACHIEVEMENT_DEFINITIONS } from "@/lib/achievements";
 
-// Extended type for UI purposes that includes computed fields
-type Wishlist = Omit<DbWishlist, 'id' | 'userId' | 'beneficiaryId'> & {
-  id: string | number;
-  userId: string | number;
-  beneficiaryId?: string | number | null;
-  recipient?: {
-    type?: 'self' | 'person' | 'group';
-    name?: string;
-    members?: string[];
-  } | null;
-  recipientName?: string | null;
-  itemCount: number;
-};
+type DashboardTab = 'overview' | 'analytics' | 'creator' | 'admin';
+const BASE_VALID_TABS: DashboardTab[] = ['overview', 'analytics', 'creator', 'admin'];
 
-type ViewMode = 'card' | 'list';
-
-const VIEW_MODE_STORAGE_KEY = 'dashboard.viewMode';
-const GETTING_STARTED_DISMISSED_KEY = 'dashboard.gettingStartedDismissed';
-
-function getInitialViewMode(): ViewMode {
-  try {
-    const stored = localStorage.getItem(VIEW_MODE_STORAGE_KEY);
-    if (stored === 'card' || stored === 'list') {
-      return stored;
-    }
-  } catch {
-    // Ignore localStorage errors in restricted environments
-  }
-  return 'card';
-}
-
-function getInitialGettingStartedDismissed(): boolean {
-  try {
-    return localStorage.getItem(GETTING_STARTED_DISMISSED_KEY) === 'true';
-  } catch {
-    return false;
-  }
+function getTabFromUrl(): DashboardTab {
+  const params = new URLSearchParams(window.location.search);
+  const tab = params.get('tab');
+  return BASE_VALID_TABS.includes(tab as DashboardTab) ? (tab as DashboardTab) : 'overview';
 }
 
 export default function Dashboard() {
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [viewMode, setViewMode] = useState<ViewMode>(getInitialViewMode);
-  const [gettingStartedDismissed, setGettingStartedDismissed] = useState(getInitialGettingStartedDismissed);
-  const { toast } = useToast();
+  const [selectedTab, setSelectedTab] = useState<DashboardTab>(getTabFromUrl);
+  const { data: subStatus } = useSubscriptionStatus();
+  const { data: achievementsData } = useAchievements();
+  const isAdmin = useIsAdmin();
 
-  // Fetch wishlists
-  const { data: wishlists, isLoading, error } = useQuery<Wishlist[]>({
-    queryKey: ['/api/wishlists'],
-  });
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    params.set('tab', selectedTab);
+    const nextUrl = `${window.location.pathname}?${params.toString()}`;
+    window.history.replaceState(null, '', nextUrl);
+  }, [selectedTab]);
 
-  // Create wishlist mutation
-  const createWishlistMutation = useMutation({
-    mutationFn: async (wishlistData: CreateWishlistFormValues) => {
-      const normalizedName = wishlistData.name.trim();
-      if (!normalizedName) {
-        throw new Error('Wishlist name is required');
-      }
+  useEffect(() => {
+    const onPopState = () => setSelectedTab(getTabFromUrl());
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, []);
 
-      const occasionDateIso = wishlistData.occasionDate
-        ? new Date(`${wishlistData.occasionDate}T12:00:00`).toISOString()
-        : null;
+  // Land back on Overview if a stale ?tab=admin URL is opened by a non-admin.
+  useEffect(() => {
+    if (selectedTab === 'admin' && isAdmin === false) {
+      setSelectedTab('overview');
+    }
+  }, [selectedTab, isAdmin]);
 
-      const res = await apiRequest('/api/wishlists', {
-        method: 'POST',
-        body: {
-          name: normalizedName,
-          recipientType: wishlistData.recipientType,
-          recipientName: wishlistData.recipientName?.trim() || null,
-          recipientMembers: wishlistData.recipientType === 'group'
-            ? (wishlistData.recipientMembers || '').split(',').map((value) => value.trim()).filter(Boolean)
-            : [],
-          description: wishlistData.description?.trim() || '',
-          isPublic: !!wishlistData.isPublic,
-          occasion: wishlistData.occasion?.trim() || null,
-          occasionDate: occasionDateIso,
-          recurrence: wishlistData.isRecurring ? wishlistData.recurrence : 'none',
-          reminderDays: wishlistData.isRecurring ? wishlistData.reminderDays : null,
-        }
-      });
-      return res;
+  const showCreatorTab = subStatus?.limits?.creatorDashboardEnabled ?? false;
+  const earnedAchievementCount = ACHIEVEMENT_DEFINITIONS.filter(
+    (achievement) => achievementsData?.achievements?.[achievement.id]?.earned
+  ).length;
+
+  const tabs: Array<{ id: DashboardTab; label: string; icon: React.ReactNode; badge?: string }> = [
+    { id: 'overview', label: 'Overview', icon: <LayoutDashboard size={18} aria-hidden="true" /> },
+    { id: 'analytics', label: 'Analytics', icon: <BarChart3 size={18} aria-hidden="true" /> },
+    {
+      id: 'creator',
+      label: 'Creator',
+      icon: <WalletCards size={18} aria-hidden="true" />,
+      badge: showCreatorTab ? undefined : 'Pro',
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/wishlists'] });
-      setIsCreateDialogOpen(false);
-      toast({
-        title: "Success!",
-        description: "Wishlist created successfully",
-      });
-    },
-    onError: (error) => {
-      toast({
-        title: "Error",
-        description: getApiErrorMessage(error, "Failed to create wishlist"),
-        variant: "destructive",
-      });
-    }
-  });
-
-  const handleCreateWishlist = (wishlistData: CreateWishlistFormValues) => {
-    createWishlistMutation.mutate(wishlistData);
-  };
-
-  const handleViewModeChange = (nextMode: string) => {
-    const mode = nextMode as ViewMode;
-    setViewMode(mode);
-    try {
-      localStorage.setItem(VIEW_MODE_STORAGE_KEY, mode);
-    } catch {
-      // Ignore localStorage errors in restricted environments
-    }
-  };
-
-  const handleDismissGettingStarted = () => {
-    setGettingStartedDismissed(true);
-    try {
-      localStorage.setItem(GETTING_STARTED_DISMISSED_KEY, 'true');
-    } catch {
-      // Ignore localStorage errors in restricted environments
-    }
-  };
-
-  const isGettingStartedExpanded = (wishlists?.length ?? 0) === 0 ? true : !gettingStartedDismissed;
+    ...(isAdmin ? [{ id: 'admin' as DashboardTab, label: 'Admin', icon: <Shield size={18} aria-hidden="true" /> }] : []),
+  ];
 
   return (
     <>
-      <main className="flex-1">
-        <div data-testid="dashboard-page" className="container mx-auto px-4 py-6 2xl:py-8 max-w-7xl">
-          <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <h1 data-testid="dashboard-title" className="text-4xl font-bold bg-gradient-to-r from-emerald-800 to-green-800 bg-clip-text text-transparent">My Wishlists</h1>
-            <Button
-              data-testid="dashboard-create-wishlist"
-              onClick={() => setIsCreateDialogOpen(true)}
-              disabled={createWishlistMutation.isPending}
-              className="flex items-center space-x-2 bg-gradient-to-r from-emerald-700 to-green-700 text-white hover:from-emerald-800 hover:to-green-800"
-            >
-              <Plus className="h-5 w-5" />
-              <span>Add Wishlist</span>
-            </Button>
-          </div>
+      <Helmet>
+        <title>Dashboard | Wishlist Wizard</title>
+        <meta name="description" content="Your account overview, analytics, and creator tools in one place." />
+      </Helmet>
+      <div data-testid="dashboard-page" className="container mx-auto px-4 py-6 2xl:py-8 max-w-7xl">
+        <h1 data-testid="dashboard-title" className="text-4xl font-bold bg-gradient-to-r from-emerald-800 to-green-800 bg-clip-text text-transparent mb-8">
+          Dashboard
+        </h1>
 
-          {isGettingStartedExpanded && (
-            <Card className="mb-6 border-emerald-100" data-testid="dashboard-getting-started">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0">
-                <CardTitle className="text-lg">Getting Started</CardTitle>
-                {(wishlists?.length ?? 0) > 0 && (
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={handleDismissGettingStarted}
-                        aria-label="Dismiss getting started tips"
-                        data-testid="dashboard-getting-started-dismiss"
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>Dismiss getting started tips</TooltipContent>
-                  </Tooltip>
-                )}
-              </CardHeader>
-              <CardContent>
-                <ul className="text-sm text-gray-600 space-y-2">
-                  <li>• Share wishlists with friends and family to coordinate gifts</li>
-                  <li>• Add items from any online store using the browser extension</li>
-                  <li>• Add an occasion date and connect your calendar to stay ahead of birthdays and events</li>
-                  <li>• Collaborate on gift ideas together</li>
-                </ul>
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+          {/* Sidebar */}
+          <div className="lg:col-span-1">
+            <Card>
+              <CardContent className="p-0">
+                <nav className="flex flex-col" aria-label="Dashboard sections">
+                  {tabs.map((tab) => (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      data-testid={`dashboard-tab-${tab.id}`}
+                      className={`flex items-center gap-3 p-4 text-left transition-colors hover:bg-muted ${selectedTab === tab.id ? 'bg-muted font-medium' : ''}`}
+                      onClick={() => setSelectedTab(tab.id)}
+                      aria-pressed={selectedTab === tab.id}
+                      aria-label={`Open ${tab.label} section`}
+                    >
+                      {tab.icon}
+                      <span className="flex-1">{tab.label}</span>
+                      {tab.badge && (
+                        <Badge variant="outline" className="text-xs">{tab.badge}</Badge>
+                      )}
+                    </button>
+                  ))}
+                </nav>
               </CardContent>
             </Card>
-          )}
+          </div>
 
-          <Tabs value={viewMode} onValueChange={handleViewModeChange} className="mb-6">
-            <TabsList data-testid="dashboard-view-mode-tabs">
-              <TabsTrigger value="card" className="flex items-center gap-2" data-testid="dashboard-view-mode-card">
-                <LayoutGrid className="h-4 w-4" />
-                Card
-              </TabsTrigger>
-              <TabsTrigger value="list" className="flex items-center gap-2" data-testid="dashboard-view-mode-list">
-                <List className="h-4 w-4" />
-                List
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
-
-          {isLoading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="bg-white rounded-lg shadow-sm border p-5 h-64 animate-pulse">
-                  <div className="h-6 bg-gray-200 rounded w-1/2 mb-4"></div>
-                  <div className="h-4 bg-gray-200 rounded w-1/4 mb-8"></div>
-                  <div className="space-y-3">
-                    <div className="h-12 bg-gray-200 rounded"></div>
-                    <div className="h-12 bg-gray-200 rounded"></div>
-                    <div className="h-12 bg-gray-200 rounded"></div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : error ? (
-            <div className="text-center py-8">
-              <p className="text-red-500">Failed to load wishlists. Please try again.</p>
-              <Button
-                variant="outline"
-                className="mt-4"
-                onClick={() => queryClient.invalidateQueries({ queryKey: ['/api/wishlists'] })}
-              >
-                Retry
-              </Button>
-            </div>
-          ) : wishlists && wishlists.length > 0 ? (
-            viewMode === 'card' ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {wishlists.map((wishlist) => (
-                  <WishlistCard
-                    key={wishlist.id}
-                    wishlist={wishlist}
-                    onRefresh={() => queryClient.invalidateQueries({ queryKey: ['/api/wishlists'] })}
+          {/* Content */}
+          <div className="lg:col-span-3">
+            {selectedTab === 'overview' && (
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <StatCard
+                    label="Wishlists"
+                    value={subStatus?.usage?.wishlistsOwned ?? 0}
+                    icon={<Gift className="h-4 w-4" />}
                   />
-                ))}
+                  <StatCard
+                    label="Achievements Earned"
+                    value={`${earnedAchievementCount} of ${ACHIEVEMENT_DEFINITIONS.length}`}
+                    icon={<Trophy className="h-4 w-4" />}
+                  />
+                </div>
+                <Card>
+                  <CardContent className="pt-6 flex flex-wrap gap-3">
+                    <Button asChild>
+                      <Link href="/app/wishlists">
+                        <List className="h-4 w-4 mr-2" />
+                        Open Wishlists
+                      </Link>
+                    </Button>
+                    <Button variant="outline" asChild>
+                      <Link href="/app/calendar">
+                        <CalendarDays className="h-4 w-4 mr-2" />
+                        Open Calendar
+                      </Link>
+                    </Button>
+                    <Button variant="outline" asChild>
+                      <Link href="/app/achievements">
+                        <Trophy className="h-4 w-4 mr-2" />
+                        View Achievements
+                      </Link>
+                    </Button>
+                  </CardContent>
+                </Card>
               </div>
-            ) : (
-              <WishlistListView wishlists={wishlists} />
-            )
-          ) : (
-            <div className="text-center py-16 bg-white rounded-lg shadow-sm border">
-              <h3 className="text-lg font-medium text-gray-900 mb-2">No wishlists yet</h3>
-              <p className="text-gray-500 mb-6">Create your first wishlist to get started</p>
-              <Button
-                data-testid="dashboard-empty-create-wishlist"
-                onClick={() => setIsCreateDialogOpen(true)}
-                disabled={createWishlistMutation.isPending}
-                className="bg-gradient-to-r from-emerald-700 to-green-700 text-white hover:from-emerald-800 hover:to-green-800"
-              >
-                Add Wishlist
-              </Button>
-            </div>
-          )}
+            )}
+
+            {selectedTab === 'analytics' && <AnalyticsOverview />}
+
+            {selectedTab === 'creator' && <CreatorOverview />}
+
+            {selectedTab === 'admin' && isAdmin && <AdminOverview />}
+          </div>
         </div>
-      </main>
-
-      <CreateWishlistDialog
-        open={isCreateDialogOpen}
-        onClose={() => setIsCreateDialogOpen(false)}
-        onCreateWishlist={handleCreateWishlist}
-        isPending={createWishlistMutation.isPending}
-      />
-
+      </div>
     </>
   );
 }

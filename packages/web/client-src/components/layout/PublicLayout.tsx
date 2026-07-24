@@ -72,7 +72,7 @@ export default function PublicLayout({ children }: PublicLayoutProps) {
               Browser Extension
             </Link>
             {isAuthenticated ? (
-              <Link href="/app/dashboard" className="px-6 py-2.5 bg-emerald-800 text-white hover:bg-emerald-900 rounded-lg font-medium shadow-md hover:shadow-lg transition-all">
+              <Link href="/app/wishlists" className="px-6 py-2.5 bg-emerald-800 text-white hover:bg-emerald-900 rounded-lg font-medium shadow-md hover:shadow-lg transition-all">
                 Go to App
               </Link>
             ) : (
@@ -92,7 +92,7 @@ export default function PublicLayout({ children }: PublicLayoutProps) {
               How It Works
             </Link>
             {isAuthenticated ? (
-              <Link href="/app/dashboard" className="px-4 py-2 bg-emerald-800 text-white rounded-lg shadow-md">
+              <Link href="/app/wishlists" className="px-4 py-2 bg-emerald-800 text-white rounded-lg shadow-md">
                 Go to App
               </Link>
             ) : (

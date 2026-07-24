@@ -679,7 +679,7 @@ const Calendar: React.FC = () => {
               <Button variant="outline" onClick={() => openCreateEventDialog('birthday')}>
                 Add Birthday
               </Button>
-              <Button variant="outline" onClick={() => setLocation('/app/dashboard')}>
+              <Button variant="outline" onClick={() => setLocation('/app/wishlists')}>
                 Open Wishlists
               </Button>
             </div>

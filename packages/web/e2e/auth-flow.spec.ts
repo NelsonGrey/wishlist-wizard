@@ -33,7 +33,7 @@ test.describe('Auth Flow Reliability', () => {
     await page.goto('/dashboard');
 
     await expect(page).not.toHaveURL(/\/login/);
-    await expect(page.getByTestId('dashboard-page')).toBeVisible({ timeout: 10000 });
-    await expect(page.getByTestId('dashboard-title')).toContainText('My Wishlists');
+    await expect(page.getByTestId('wishlists-page')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByTestId('wishlists-title')).toContainText('My Wishlists');
   });
 });

@@ -10,7 +10,7 @@ vi.mock('@tanstack/react-query', async () => {
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { screen } from '@testing-library/react';
 import { render } from '../utils';
-import Analytics from '@/pages/Analytics';
+import Analytics from '@/components/dashboard/AnalyticsOverview';
 import { useQuery } from '@tanstack/react-query';
 
 vi.mock('@/lib/queryClient', () => ({

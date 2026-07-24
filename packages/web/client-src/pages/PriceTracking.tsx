@@ -410,7 +410,7 @@ export default function PriceTracking() {
             <Button variant="outline" onClick={() => setActiveTab("intelligence")}>
               Open Intelligence
             </Button>
-            <Button variant="outline" onClick={() => setLocation("/app/dashboard")}>
+            <Button variant="outline" onClick={() => setLocation("/app/wishlists")}>
               Open Wishlists
             </Button>
             <Button onClick={() => setLocation("/app/analytics")}>Open Analytics</Button>
