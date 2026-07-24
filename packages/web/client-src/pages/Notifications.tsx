@@ -196,7 +196,7 @@ export default function Notifications() {
         <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-2">
           <Button asChild variant="ghost" size="icon" className="mr-2">
-            <Link href="/app/dashboard" aria-label="Back to dashboard">
+            <Link href="/app/wishlists" aria-label="Back to dashboard">
               <ArrowLeft className="h-5 w-5" />
             </Link>
           </Button>

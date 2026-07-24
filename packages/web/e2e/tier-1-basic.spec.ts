@@ -159,8 +159,8 @@ test.describe('Tier 1: Basic Features', () => {
     await page.goto('/dashboard');
     if (await shouldBypassAuthGatedFlow()) return;
     await expect(page).not.toHaveURL(/\/login/);
-    await expect(page.getByTestId('dashboard-page')).toBeVisible({ timeout: 10000 });
-    await expect(page.getByTestId('dashboard-title')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByTestId('wishlists-page')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByTestId('wishlists-title')).toBeVisible({ timeout: 10000 });
   });
 
   test('T1.2: Get User Profile', async () => {
@@ -206,7 +206,7 @@ test.describe('Tier 1: Basic Features', () => {
     if (await shouldBypassAuthGatedFlow()) return;
 
     const wishlistName = `Tier1 Create Wishlist ${Date.now()}`;
-    const createButton = page.getByTestId('dashboard-create-wishlist').first();
+    const createButton = page.getByTestId('wishlists-create-wishlist').first();
     await expect(createButton).toBeVisible({ timeout: 5000 });
     await createButton.click();
 
@@ -264,7 +264,7 @@ test.describe('Tier 1: Basic Features', () => {
       return;
     }
 
-    await expect(page.getByTestId('dashboard-page')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByTestId('wishlists-page')).toBeVisible({ timeout: 10000 });
   });
 
   test('T1.7: Add Item to Wishlist', async () => {

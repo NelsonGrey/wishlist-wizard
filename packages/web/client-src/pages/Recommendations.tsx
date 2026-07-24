@@ -80,7 +80,7 @@ export default function Recommendations() {
               <RecommendationsHelp />
             </div>
             <div className="flex flex-wrap gap-2">
-              <Button variant="outline" onClick={() => setLocation('/app/dashboard')}>
+              <Button variant="outline" onClick={() => setLocation('/app/wishlists')}>
                 Open Wishlists
               </Button>
               <Button variant="outline" onClick={() => setLocation('/app/calendar')}>

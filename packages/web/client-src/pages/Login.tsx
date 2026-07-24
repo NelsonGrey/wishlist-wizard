@@ -48,7 +48,7 @@ export default function Login() {
 
   const completeSignIn = () => {
     const storedRedirect = sessionStorage.getItem('redirectAfterAuth');
-    const redirectTo = storedRedirect || '/app/dashboard';
+    const redirectTo = storedRedirect || '/app/wishlists';
     sessionStorage.removeItem('redirectAfterAuth');
 
     toast({

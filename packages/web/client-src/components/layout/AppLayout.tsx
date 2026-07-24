@@ -11,7 +11,7 @@ import {
   Menu,
   LayoutDashboard,
   Puzzle,
-  WalletCards
+  Gift
 } from "lucide-react";
 
 import {
@@ -28,10 +28,8 @@ import {
 } from "@/components/ui/sheet";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useAuth } from "@/contexts/AuthContext";
-import { useSubscriptionStatus } from "@/hooks/use-subscription-status";
 import { useLockShellHeight } from "@/hooks/use-lock-shell-height";
 import Footer from "@/components/Footer";
 import { GlobalAdSlot } from "@/components/ads";
@@ -74,20 +72,13 @@ export default function AppLayout({ children }: AppLayoutProps) {
   });
   const unreadCount = notificationData?.unreadCount ?? 0;
 
-  // Creator Dashboard is a Creator Pro feature — the nav item itself always
-  // shows (access is gated on the page, not by hiding navigation), but tiers
-  // without the entitlement see a "Pro" badge as an upfront cue. Default to
-  // not-yet-entitled while loading to avoid a flash of the badge disappearing.
-  const { data: subStatus } = useSubscriptionStatus();
-  const showCreatorDashboard = subStatus?.limits?.creatorDashboardEnabled ?? false;
-
   const isActivePath = (paths: string[]) => paths.some((path) => location === path || location.startsWith(`${path}/`));
 
   const primaryNavItems = [
-    { name: 'Dashboard', href: '/app/dashboard', icon: <LayoutDashboard className="h-5 w-5" />, activePaths: ['/app/dashboard', '/app/wishlists', '/app/wishlist', '/dashboard', '/wishlists', '/wishlist'] },
+    { name: 'Wishlists', href: '/app/wishlists', icon: <Gift className="h-5 w-5" />, activePaths: ['/app/wishlists', '/app/wishlist', '/dashboard', '/wishlists', '/wishlist'] },
+    { name: 'Dashboard', href: '/app/dashboard', icon: <LayoutDashboard className="h-5 w-5" />, activePaths: ['/app/dashboard'] },
     { name: 'Calendar', href: '/app/calendar', icon: <Calendar className="h-5 w-5" />, activePaths: ['/app/calendar', '/calendar'] },
     { name: 'Extension', href: '/extension', icon: <Puzzle className="h-5 w-5" />, activePaths: ['/extension'] },
-    { name: 'Creator Dashboard', href: '/app/creator-dashboard', icon: <WalletCards className="h-5 w-5" />, activePaths: ['/app/creator-dashboard'], proOnly: !showCreatorDashboard },
   ];
 
   return (
@@ -96,7 +87,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
       <header className="bg-white border-b border-emerald-100 sticky top-0 z-10 shadow-sm">
         <div className="site-container flex items-center justify-between py-2.5 2xl:py-3">
           {/* Logo */}
-          <Link href="/app/dashboard" className="flex items-center hover:scale-105 transition-transform duration-200">
+          <Link href="/app/wishlists" className="flex items-center hover:scale-105 transition-transform duration-200">
             <img src="/logo.svg" alt="Wishlist Wizard" className="h-8 w-8 mr-2.5" />
             <span className="font-bold text-xl tracking-tight bg-gradient-to-r from-emerald-800 to-green-800 bg-clip-text text-transparent">Wishlist Wizard</span>
           </Link>
@@ -115,11 +106,6 @@ export default function AppLayout({ children }: AppLayoutProps) {
               >
                 {item.icon}
                 <span className="ml-2">{item.name}</span>
-                {item.proOnly && (
-                  <Badge variant="outline" className="ml-1.5 text-[10px] px-1.5 py-0 h-4 border-emerald-300 text-emerald-800">
-                    Pro
-                  </Badge>
-                )}
               </Link>
             ))}
           </nav>
@@ -218,11 +204,6 @@ export default function AppLayout({ children }: AppLayoutProps) {
                     >
                       {item.icon}
                       {item.name}
-                      {item.proOnly && (
-                        <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 border-emerald-300 text-emerald-800">
-                          Pro
-                        </Badge>
-                      )}
                     </Link>
                   ))}
                 </nav>

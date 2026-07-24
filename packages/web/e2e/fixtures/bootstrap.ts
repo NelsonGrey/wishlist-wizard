@@ -3,12 +3,13 @@ import { expect, Page } from '@playwright/test';
 async function waitForDashboardIndicator(page: Page, timeout: number): Promise<boolean> {
   // A one-shot .isVisible() check races the async chain that gets a user
   // from "just navigated"/"just registered" to an actually-rendered
-  // dashboard (Firebase auth-state resolution, then a client-side wouter
-  // <Redirect> from /dashboard to /app/dashboard, then the dashboard's own
-  // data fetch). .waitFor() polls instead of sampling once, so it doesn't
-  // flag a real success as a failure just because it hasn't rendered yet.
+  // wishlists page (Firebase auth-state resolution, then a client-side
+  // wouter <Redirect> from /dashboard to /app/wishlists, then the page's
+  // own data fetch). .waitFor() polls instead of sampling once, so it
+  // doesn't flag a real success as a failure just because it hasn't
+  // rendered yet.
   return page
-    .locator('[data-testid="dashboard-page"], [data-testid="dashboard-create-wishlist"], [data-testid="dashboard-empty-create-wishlist"]')
+    .locator('[data-testid="wishlists-page"], [data-testid="wishlists-create-wishlist"], [data-testid="wishlists-empty-create-wishlist"]')
     .first()
     .waitFor({ state: 'visible', timeout })
     .then(() => true)
@@ -81,9 +82,9 @@ export async function ensureWishlistExists(page: Page, wishlistName: string): Pr
   await expect
     .poll(
       async () => {
-        const headerVisible = await page.getByTestId('dashboard-title').isVisible().catch(() => false);
+        const headerVisible = await page.getByTestId('wishlists-title').isVisible().catch(() => false);
         const createButtonVisible = await page
-          .locator('[data-testid="dashboard-create-wishlist"], [data-testid="dashboard-empty-create-wishlist"]')
+          .locator('[data-testid="wishlists-create-wishlist"], [data-testid="wishlists-empty-create-wishlist"]')
           .first()
           .isVisible()
           .catch(() => false);
@@ -100,7 +101,7 @@ export async function ensureWishlistExists(page: Page, wishlistName: string): Pr
   }
 
   const createButton = page
-    .locator('[data-testid="dashboard-create-wishlist"], [data-testid="dashboard-empty-create-wishlist"]')
+    .locator('[data-testid="wishlists-create-wishlist"], [data-testid="wishlists-empty-create-wishlist"]')
     .first();
   await expect(createButton).toBeVisible({ timeout: 10000 });
   await createButton.click();

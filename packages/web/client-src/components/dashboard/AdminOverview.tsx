@@ -1,17 +1,11 @@
-/**
- * Admin Dashboard — Overview
- *
- * Displays platform-wide statistics for super-admins: user counts by tier,
- * estimated MRR, open support tickets, and suspended accounts.
- */
 import { useEffect, useState } from 'react';
 import { useLocation } from 'wouter';
 import { apiRequest } from '@/lib/queryClient';
-import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Users, CreditCard, AlertTriangle, TicketCheck, Shield } from 'lucide-react';
+import { Users, CreditCard, AlertTriangle, TicketCheck } from 'lucide-react';
+import StatCard from '@/components/StatCard';
 
 interface UserStats {
   users: {
@@ -23,33 +17,14 @@ interface UserStats {
   }[];
 }
 
-function useSuperAdmin() {
-  const { user } = useAuth();
-  const [isSuperAdmin, setIsSuperAdmin] = useState<boolean | null>(null);
-
-  useEffect(() => {
-    if (!user) { setIsSuperAdmin(false); return; }
-    user.getIdTokenResult().then((result) => {
-      setIsSuperAdmin(result.claims['role'] === 'super_admin');
-    });
-  }, [user]);
-
-  return isSuperAdmin;
-}
-
-export default function AdminDashboard() {
+// Only rendered once the caller has already confirmed super-admin access
+// (see Dashboard.tsx's useIsAdmin gate) — no client-side re-check here.
+export default function AdminOverview() {
   const [, setLocation] = useLocation();
-  const isSuperAdmin = useSuperAdmin();
   const [stats, setStats] = useState<{ byTier: Record<string, number>; suspended: number; total: number } | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (isSuperAdmin === false) {
-      setLocation('/app/dashboard');
-      return;
-    }
-    if (isSuperAdmin !== true) return;
-
     apiRequest('/api/admin/users', { method: 'POST', body: { pageSize: 100 } })
       .then((result) => {
         const data = result as UserStats;
@@ -62,12 +37,12 @@ export default function AdminDashboard() {
         setStats({ byTier, suspended, total: data.users.length });
       })
       .finally(() => setLoading(false));
-  }, [isSuperAdmin, setLocation]);
+  }, []);
 
-  if (isSuperAdmin === null || loading) {
+  if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-muted-foreground">Loading admin dashboard…</div>
+        <div className="text-muted-foreground">Loading admin overview…</div>
       </div>
     );
   }
@@ -83,41 +58,15 @@ export default function AdminDashboard() {
     : 0;
 
   return (
-    <div className="container mx-auto py-8 space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-3">
-        <Shield className="h-7 w-7 text-primary" />
-        <div>
-          <h1 className="text-2xl font-bold">Super-Admin Dashboard</h1>
-          <p className="text-muted-foreground text-sm">Platform operations overview</p>
-        </div>
-      </div>
-
+    <div className="space-y-6" data-testid="admin-overview">
       {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-              <Users className="h-4 w-4" /> Total Users
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-bold">{stats?.total ?? '—'}</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-              <CreditCard className="h-4 w-4" /> Est. MRR
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-bold">${estimatedMRR.toFixed(0)}</p>
-            <p className="text-xs text-muted-foreground">Monthly recurring (approx.)</p>
-          </CardContent>
-        </Card>
-
+        <StatCard label="Total Users" value={stats?.total ?? '—'} icon={<Users className="h-4 w-4" />} />
+        <StatCard
+          label="Est. MRR"
+          value={`$${estimatedMRR.toFixed(0)}`}
+          icon={<CreditCard className="h-4 w-4" />}
+        />
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
@@ -128,18 +77,7 @@ export default function AdminDashboard() {
             <p className="text-3xl font-bold text-destructive">{stats?.suspended ?? '—'}</p>
           </CardContent>
         </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-              <TicketCheck className="h-4 w-4" /> Support Tickets
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-bold">—</p>
-            <p className="text-xs text-muted-foreground">View in Tickets tab</p>
-          </CardContent>
-        </Card>
+        <StatCard label="Support Tickets" value="—" icon={<TicketCheck className="h-4 w-4" />} />
       </div>
 
       {/* Users by tier */}

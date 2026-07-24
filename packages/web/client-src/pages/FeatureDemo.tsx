@@ -36,7 +36,7 @@ const featureConfigs: Record<FeatureKey, FeatureConfig> = {
     screenshotAlt: "Mobile app feature screenshot",
     demoCtaLabel: "Explore Mobile Demo",
     appCtaLabel: "Open App Dashboard",
-    appHref: "/app/dashboard"
+    appHref: "/app/wishlists"
   },
   "browser-extension": {
     title: "Browser Extension",
@@ -68,7 +68,7 @@ const featureConfigs: Record<FeatureKey, FeatureConfig> = {
     screenshotAlt: "Social integration feature screenshot",
     demoCtaLabel: "View Social Demo",
     appCtaLabel: "Open Dashboard",
-    appHref: "/app/dashboard"
+    appHref: "/app/wishlists"
   },
   "calendar-integration": {
     title: "Calendar Integration",
@@ -100,7 +100,7 @@ const featureConfigs: Record<FeatureKey, FeatureConfig> = {
     screenshotAlt: "Wishlist management feature screenshot",
     demoCtaLabel: "View Wishlist Demo",
     appCtaLabel: "Open Dashboard",
-    appHref: "/app/dashboard"
+    appHref: "/app/wishlists"
   },
   "basic-activity-insights": {
     title: "Basic Activity Insights",

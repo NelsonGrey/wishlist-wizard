@@ -43,7 +43,7 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
       if (onSuccess) {
         onSuccess();
       } else {
-        setLocation('/app/dashboard');
+        setLocation('/app/wishlists');
       }
     } catch (err: unknown) {
       const error = err as FirebaseAuthError;
@@ -195,7 +195,7 @@ export function RegisterForm({ onSuccess }: RegisterFormProps) {
       if (onSuccess) {
         onSuccess();
       } else {
-        setLocation('/app/dashboard');
+        setLocation('/app/wishlists');
       }
     } catch (err: unknown) {
       const error = err as FirebaseAuthError;
