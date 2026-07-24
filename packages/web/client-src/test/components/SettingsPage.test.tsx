@@ -45,10 +45,6 @@ vi.mock('@/hooks/useFCM', () => ({
   }),
 }));
 
-vi.mock('@/components/calendar/CalendarSettings', () => ({
-  CalendarSettings: () => <div data-testid="calendar-settings">Calendar Settings</div>,
-}));
-
 describe('Settings page (App Settings hub)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -67,15 +63,6 @@ describe('Settings page (App Settings hub)', () => {
     await user.click(screen.getByTestId('settings-tab-privacy'));
 
     expect(await screen.findByText('Default Privacy Preferences')).toBeInTheDocument();
-  });
-
-  it('shows Calendar Connections settings on the Calendar tab', async () => {
-    render(<Settings />, { pathname: '/app/settings' });
-    const user = userEvent.setup();
-
-    await user.click(screen.getByTestId('settings-tab-calendar'));
-
-    expect(await screen.findByTestId('calendar-settings')).toBeInTheDocument();
   });
 
   it('shows theme/regional Preferences on the Preferences tab', async () => {

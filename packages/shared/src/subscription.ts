@@ -348,6 +348,12 @@ export function canAddCollaborator(tier: SubscriptionTier, currentCollaborators:
   return currentCollaborators < getTierLimits(tier).maxCollaboratorsPerWishlist;
 }
 
+/** Whether a user at `tier` may connect one more external calendar given `currentConnections` */
+export function canConnectCalendar(tier: SubscriptionTier, currentConnections: number): boolean {
+  const limits = getTierLimits(tier);
+  return limits.calendarEnabled && currentConnections < limits.maxCalendars;
+}
+
 /**
  * Returns the tier a user should be prompted to upgrade to in order to unlock
  * a feature. Returns null if the current tier already supports it.

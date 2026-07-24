@@ -13,6 +13,8 @@ import { LuCalendarClock, LuCloudSun, LuTrash2 } from 'react-icons/lu';
 import { SiGoogle, SiApple } from 'react-icons/si';
 import { FaMicrosoft } from 'react-icons/fa';
 import { format } from 'date-fns';
+import { useSubscriptionStatus } from '@/hooks/use-subscription-status';
+import { UNLIMITED } from '@wishlist-wizard/shared';
 
 // Calendar interface matching the backend structure
 interface ConnectedCalendar {
@@ -65,7 +67,8 @@ interface ExternalContactsResponse {
 export function CalendarSettings() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  
+  const { data: subStatus, isLoading: isLoadingSubStatus } = useSubscriptionStatus();
+
   // Fetch connected calendars
   const { 
     data: connectedCalendars = [], 
@@ -107,7 +110,11 @@ export function CalendarSettings() {
     ? externalContactsResponse.contacts.length
     : 0;
   const storageMode = externalContactsResponse?.metadata?.storageMode || 'ephemeral';
-  
+
+  const maxCalendars = subStatus?.limits?.maxCalendars ?? Infinity;
+  const atConnectionCap = !isLoadingSubStatus && connectedCalendarsList.length >= maxCalendars;
+  const maxCalendarsLabel = maxCalendars >= UNLIMITED ? '∞' : String(maxCalendars);
+
   // Disconnect calendar mutation
   const disconnectMutation = useMutation({
     mutationFn: (calendarId: number) => {
@@ -237,12 +244,32 @@ export function CalendarSettings() {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">Calendar Connections</h2>
-        <ConnectCalendarDialog onConnect={handleCalendarConnected} />
+        <div>
+          <h2 className="text-2xl font-bold">Calendar Connections</h2>
+          {!isLoadingSubStatus && (
+            <p className="text-sm text-gray-500 mt-1">
+              {connectedCalendarsList.length} of {maxCalendarsLabel} calendars connected
+            </p>
+          )}
+        </div>
+        {atConnectionCap ? (
+          <Button variant="outline" disabled title={`You've reached your plan's ${maxCalendarsLabel}-calendar limit`}>
+            Connect Calendar
+          </Button>
+        ) : (
+          <ConnectCalendarDialog onConnect={handleCalendarConnected} />
+        )}
       </div>
-      
+
+      {atConnectionCap && (
+        <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+          You've reached your plan's {maxCalendarsLabel}-calendar limit.{' '}
+          <a href="/subscriptions" className="underline font-medium">Upgrade</a> to connect more.
+        </div>
+      )}
+
       <Separator />
-      
+
       {isLoadingCalendars ? (
         <div className="py-8 text-center text-gray-500">Loading calendars...</div>
       ) : connectedCalendarsList.length === 0 ? (
@@ -255,7 +282,7 @@ export function CalendarSettings() {
             deadlines in your preferred calendar app.
           </p>
           <div className="mt-6">
-            <ConnectCalendarDialog onConnect={handleCalendarConnected} />
+            {!atConnectionCap && <ConnectCalendarDialog onConnect={handleCalendarConnected} />}
           </div>
         </div>
       ) : (

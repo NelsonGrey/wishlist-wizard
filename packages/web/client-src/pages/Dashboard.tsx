@@ -1,9 +1,8 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { LayoutGrid, List, CalendarDays, Plus, X } from "lucide-react";
+import { LayoutGrid, List, Plus, X } from "lucide-react";
 import WishlistCard from "@/components/WishlistCard";
 import WishlistListView from "@/components/WishlistListView";
-import WishlistCalendarView from "@/components/WishlistCalendarView";
 import CreateWishlistDialog from "@/components/CreateWishlistDialog";
 import type { CreateWishlistFormValues } from "@/components/CreateWishlistDialog";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -29,7 +28,7 @@ type Wishlist = Omit<DbWishlist, 'id' | 'userId' | 'beneficiaryId'> & {
   itemCount: number;
 };
 
-type ViewMode = 'card' | 'list' | 'calendar';
+type ViewMode = 'card' | 'list';
 
 const VIEW_MODE_STORAGE_KEY = 'dashboard.viewMode';
 const GETTING_STARTED_DISMISSED_KEY = 'dashboard.gettingStartedDismissed';
@@ -37,7 +36,7 @@ const GETTING_STARTED_DISMISSED_KEY = 'dashboard.gettingStartedDismissed';
 function getInitialViewMode(): ViewMode {
   try {
     const stored = localStorage.getItem(VIEW_MODE_STORAGE_KEY);
-    if (stored === 'card' || stored === 'list' || stored === 'calendar') {
+    if (stored === 'card' || stored === 'list') {
       return stored;
     }
   } catch {
@@ -197,10 +196,6 @@ export default function Dashboard() {
                 <List className="h-4 w-4" />
                 List
               </TabsTrigger>
-              <TabsTrigger value="calendar" className="flex items-center gap-2" data-testid="dashboard-view-mode-calendar">
-                <CalendarDays className="h-4 w-4" />
-                Calendar
-              </TabsTrigger>
             </TabsList>
           </Tabs>
 
@@ -240,10 +235,8 @@ export default function Dashboard() {
                   />
                 ))}
               </div>
-            ) : viewMode === 'list' ? (
-              <WishlistListView wishlists={wishlists} />
             ) : (
-              <WishlistCalendarView wishlists={wishlists} />
+              <WishlistListView wishlists={wishlists} />
             )
           ) : (
             <div className="text-center py-16 bg-white rounded-lg shadow-sm border">

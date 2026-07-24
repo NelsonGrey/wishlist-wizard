@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
 import { Helmet } from 'react-helmet';
+import { useLocation } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
 import {
   Bell,
   Lock,
-  Calendar as CalendarIcon,
   Palette,
   Globe,
   Users,
@@ -34,11 +34,10 @@ import {
 } from '@/components/ui/dialog';
 import { apiRequest } from '@/lib/queryClient';
 import { NotificationSettings } from '@/components/notifications/NotificationSettings';
-import { CalendarSettings } from '@/components/calendar/CalendarSettings';
 
-type SettingsTab = 'account' | 'notifications' | 'privacy' | 'calendar' | 'preferences';
+type SettingsTab = 'account' | 'notifications' | 'privacy' | 'preferences';
 
-const VALID_TABS: SettingsTab[] = ['account', 'notifications', 'privacy', 'calendar', 'preferences'];
+const VALID_TABS: SettingsTab[] = ['account', 'notifications', 'privacy', 'preferences'];
 
 interface UserDefaultPrivacy {
   defaultWishlistVisibility: string;
@@ -86,6 +85,7 @@ function getTabFromUrl(): SettingsTab {
 
 export default function Settings() {
   const isStripeReady = Boolean(String(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '').trim());
+  const [, setLocation] = useLocation();
   const [selectedTab, setSelectedTab] = useState<SettingsTab>(getTabFromUrl);
   const [theme, setTheme] = useState('system');
   const [language, setLanguage] = useState('en');
@@ -95,6 +95,16 @@ export default function Settings() {
     queryKey: ['user-default-privacy'],
     queryFn: () => apiRequest('/api/privacy/defaults') as Promise<UserDefaultPrivacy>,
   });
+
+  // Calendar Connections moved to the unified Calendar page — send anyone
+  // hitting the old bookmark somewhere sane instead of silently falling
+  // back to the notifications tab.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('tab') === 'calendar') {
+      setLocation('/app/calendar?tab=connections');
+    }
+  }, [setLocation]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -113,7 +123,6 @@ export default function Settings() {
     { id: 'account', label: 'Account', icon: <UserCog size={18} aria-hidden="true" /> },
     { id: 'notifications', label: 'Notifications', icon: <Bell size={18} aria-hidden="true" /> },
     { id: 'privacy', label: 'Privacy', icon: <Lock size={18} aria-hidden="true" /> },
-    { id: 'calendar', label: 'Calendar Connections', icon: <CalendarIcon size={18} aria-hidden="true" /> },
     { id: 'preferences', label: 'Preferences', icon: <Palette size={18} aria-hidden="true" /> },
   ];
 
@@ -338,15 +347,6 @@ export default function Settings() {
                   </p>
                 </CardContent>
               </Card>
-            )}
-
-            {selectedTab === 'calendar' && (
-              <div className="space-y-3">
-                <p className="text-sm text-muted-foreground">
-                  Connect external calendars to sync events and import contacts for recipient selection.
-                </p>
-                <CalendarSettings />
-              </div>
             )}
 
             {selectedTab === 'preferences' && (

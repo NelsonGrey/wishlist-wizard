@@ -17,6 +17,12 @@ vi.mock('@/hooks/use-toast', () => ({
   useToast: () => ({ toast: vi.fn() }),
 }));
 
+vi.mock('@/contexts/AuthContext', () => ({
+  useAuth: () => ({
+    user: { uid: '100', email: 'mark@example.com', displayName: 'Mark Nelson', photoURL: null },
+  }),
+}));
+
 describe('CalendarSettings external source redesign', () => {
   beforeEach(() => {
     vi.clearAllMocks();

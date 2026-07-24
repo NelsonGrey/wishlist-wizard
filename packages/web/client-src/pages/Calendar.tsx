@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Helmet } from 'react-helmet';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useLocation } from 'wouter';
@@ -21,20 +21,26 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
 } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
+import { Card, CardContent } from '@/components/ui/card';
+import { CalendarDays, Link2 } from 'lucide-react';
 import { apiRequest } from '@/lib/queryClient';
 import { getApiErrorMessage } from '@/lib/api-errors';
 import { useToast } from '@/hooks/use-toast';
+import { useSubscriptionStatus } from '@/hooks/use-subscription-status';
+import { getNextOccurrenceDate, parseOccasionDate } from '@/lib/wishlist-dates';
+import { CalendarSettings } from '@/components/calendar/CalendarSettings';
+import UpgradePrompt from '@/components/UpgradePrompt';
 
 // Define interfaces for API responses
 interface CalendarEventResponse {
@@ -63,9 +69,10 @@ const localizer = dateFnsLocalizer({
   locales,
 });
 
-// Event type definition
+// Event type definition — `source` distinguishes a real personal calendarEvents
+// doc from a wishlist occasion date merged in read-only from /api/wishlists.
 type CalendarEvent = {
-  id: number;
+  id: number | string;
   title: string;
   description?: string;
   start: Date;
@@ -78,6 +85,7 @@ type CalendarEvent = {
   beneficiaryId?: number;
   wishlistId?: number;
   color: string;
+  source: 'personal' | 'wishlist';
 };
 
 // Event form data type
@@ -103,10 +111,14 @@ type Beneficiary = {
   name: string;
 };
 
-// Wishlist type
+// Wishlist type — includes the occasion-date fields used to merge wishlist
+// dates into the calendar (same fields WishlistCalendarView used to read).
 type Wishlist = {
   id: number;
   name: string;
+  occasion?: string | null;
+  occasionDate?: unknown;
+  recurrence?: string | null;
 };
 
 const NO_BENEFICIARY_VALUE = 'none';
@@ -122,10 +134,22 @@ const eventTypeColors = {
   occasion: '#33FFF3'
 };
 
+const WISHLIST_OCCASION_COLOR = '#6D28D9';
+
+type CalendarTab = 'events' | 'connections';
+const VALID_TABS: CalendarTab[] = ['events', 'connections'];
+
+function getTabFromUrl(): CalendarTab {
+  const params = new URLSearchParams(window.location.search);
+  const tab = params.get('tab');
+  return VALID_TABS.includes(tab as CalendarTab) ? (tab as CalendarTab) : 'events';
+}
+
 const Calendar: React.FC = () => {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
+  const [selectedTab, setSelectedTab] = useState<CalendarTab>(getTabFromUrl);
   const [isEventDialogOpen, setIsEventDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('upcoming');
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
@@ -142,14 +166,29 @@ const Calendar: React.FC = () => {
     sharedWith: []
   });
 
+  const { data: subStatus } = useSubscriptionStatus();
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    params.set('tab', selectedTab);
+    const nextUrl = `${window.location.pathname}?${params.toString()}`;
+    window.history.replaceState(null, '', nextUrl);
+  }, [selectedTab]);
+
+  useEffect(() => {
+    const onPopState = () => setSelectedTab(getTabFromUrl());
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, []);
+
   // Query to fetch events
   const {
-    data: events = [],
+    data: personalEvents = [],
     isLoading: isEventsLoading,
     isError: isEventsError,
     error: eventsError,
     refetch: refetchEvents,
-  } = useQuery<CalendarEvent[]>({ 
+  } = useQuery<CalendarEvent[]>({
     queryKey: ['/api/calendar/events'],
     queryFn: async () => {
       const data = await apiRequest('/api/calendar/events') as CalendarEventResponse[];
@@ -158,12 +197,13 @@ const Calendar: React.FC = () => {
         ...event,
         start: parseISO(event.startDate),
         end: event.endDate ? parseISO(event.endDate) : parseISO(event.startDate),
+        source: 'personal' as const,
       }));
     }
   });
 
   // Query to fetch beneficiaries
-  const { data: beneficiaries = [] } = useQuery({ 
+  const { data: beneficiaries = [] } = useQuery({
     queryKey: ['/api/beneficiaries'],
     queryFn: async () => {
       const data = await apiRequest('/api/beneficiaries');
@@ -172,7 +212,7 @@ const Calendar: React.FC = () => {
   });
 
   // Query to fetch wishlists
-  const { data: wishlists = [] } = useQuery({ 
+  const { data: wishlists = [] } = useQuery({
     queryKey: ['/api/wishlists'],
     queryFn: async () => {
       const data = await apiRequest('/api/wishlists');
@@ -180,11 +220,43 @@ const Calendar: React.FC = () => {
     }
   });
 
+  // Wishlist occasion dates, merged in as read-only calendar events distinct
+  // from real calendarEvents docs — same computation WishlistCalendarView
+  // used to do on the Dashboard's now-retired calendar view mode.
+  const wishlistEvents: CalendarEvent[] = useMemo(() => {
+    return wishlists
+      .map((wishlist) => {
+        const occasionDate = parseOccasionDate(wishlist.occasionDate);
+        if (!occasionDate) return null;
+        const date = getNextOccurrenceDate(occasionDate, wishlist.recurrence) || occasionDate;
+        const title = wishlist.occasion ? `${wishlist.name} (${wishlist.occasion})` : wishlist.name;
+        const event: CalendarEvent = {
+          id: `wishlist-${wishlist.id}`,
+          title,
+          start: date,
+          end: date,
+          allDay: true,
+          type: 'occasion',
+          recurYearly: false,
+          color: WISHLIST_OCCASION_COLOR,
+          wishlistId: wishlist.id,
+          source: 'wishlist',
+        };
+        return event;
+      })
+      .filter((event): event is CalendarEvent => event !== null);
+  }, [wishlists]);
+
+  const events: CalendarEvent[] = useMemo(
+    () => [...personalEvents, ...wishlistEvents],
+    [personalEvents, wishlistEvents]
+  );
+
   // Create event mutation
   const createEventMutation = useMutation({
     mutationFn: (eventData: EventFormData) => {
-      return apiRequest('/api/calendar/events', { 
-        method: 'POST', 
+      return apiRequest('/api/calendar/events', {
+        method: 'POST',
         body: {
           title: eventData.title,
           description: eventData.description,
@@ -224,8 +296,8 @@ const Calendar: React.FC = () => {
   // Update event mutation
   const updateEventMutation = useMutation({
     mutationFn: (eventData: EventFormData & { id: number }) => {
-      return apiRequest(`/api/calendar/events/${eventData.id}`, { 
-        method: 'PATCH', 
+      return apiRequest(`/api/calendar/events/${eventData.id}`, {
+        method: 'PATCH',
         body: {
           title: eventData.title,
           description: eventData.description,
@@ -332,7 +404,7 @@ const Calendar: React.FC = () => {
   // Handle form submission
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!formData.title.trim()) {
       toast({
         title: "Error",
@@ -345,7 +417,7 @@ const Calendar: React.FC = () => {
     if (selectedEvent) {
       updateEventMutation.mutate({
         ...formData,
-        id: selectedEvent.id
+        id: selectedEvent.id as number
       });
     } else {
       createEventMutation.mutate(formData);
@@ -363,8 +435,16 @@ const Calendar: React.FC = () => {
     setIsEventDialogOpen(true);
   };
 
-  // Handle clicking on event
+  // Handle clicking on event — wishlist occasions navigate to the wishlist;
+  // real personal events open the edit dialog.
   const handleSelectEvent = (event: CalendarEvent) => {
+    if (event.source === 'wishlist') {
+      if (event.wishlistId) {
+        setLocation(`/app/wishlist/${event.wishlistId}`);
+      }
+      return;
+    }
+
     setSelectedEvent(event);
     setFormData({
       title: event.title,
@@ -393,9 +473,9 @@ const Calendar: React.FC = () => {
 
   // Handle delete event
   const handleDeleteEvent = () => {
-    if (selectedEvent) {
+    if (selectedEvent && selectedEvent.source === 'personal') {
       if (window.confirm(`Are you sure you want to delete "${selectedEvent.title}"?`)) {
-        deleteEventMutation.mutate(selectedEvent.id);
+        deleteEventMutation.mutate(selectedEvent.id as number);
       }
     }
   };
@@ -406,7 +486,7 @@ const Calendar: React.FC = () => {
       style: {
         backgroundColor: event.color,
         borderRadius: '3px',
-        opacity: 0.8,
+        opacity: event.source === 'wishlist' ? 0.65 : 0.8,
         color: 'white',
         border: '0px',
         display: 'block',
@@ -415,12 +495,12 @@ const Calendar: React.FC = () => {
     };
   };
 
-  // Render upcoming events list
+  // Render upcoming events list — includes both personal events and wishlist occasions
   const renderUpcomingEvents = () => {
     const now = new Date();
     const upcoming = events
-      .filter((event: CalendarEvent) => event.start >= now)
-      .sort((a: CalendarEvent, b: CalendarEvent) => a.start.getTime() - b.start.getTime())
+      .filter((event) => event.start >= now)
+      .sort((a, b) => a.start.getTime() - b.start.getTime())
       .slice(0, 10);
 
     return (
@@ -433,9 +513,9 @@ const Calendar: React.FC = () => {
             </Button>
           </div>
         ) : (
-          upcoming.map((event: CalendarEvent) => (
-            <div 
-              key={event.id} 
+          upcoming.map((event) => (
+            <div
+              key={event.id}
               className="p-4 border rounded-lg hover:bg-gray-50 cursor-pointer flex justify-between items-center"
               onClick={() => handleSelectEvent(event)}
               onKeyDown={(keyboardEvent) => handleEventCardKeyDown(keyboardEvent, event)}
@@ -454,11 +534,11 @@ const Calendar: React.FC = () => {
                 )}
               </div>
               <div className="flex flex-col items-end gap-2">
-                <Badge 
+                <Badge
                   style={{backgroundColor: event.color}}
                   className="text-white"
                 >
-                  {event.type}
+                  {event.source === 'wishlist' ? 'wishlist' : event.type}
                 </Badge>
                 {event.wishlistId && (
                   <Button
@@ -482,8 +562,8 @@ const Calendar: React.FC = () => {
 
   // Render birthdays list
   const renderBirthdays = () => {
-    const birthdays = events.filter((event: CalendarEvent) => event.type === 'birthday');
-    
+    const birthdays = personalEvents.filter((event) => event.type === 'birthday');
+
     return (
       <div className="space-y-4">
         {birthdays.length === 0 ? (
@@ -494,9 +574,9 @@ const Calendar: React.FC = () => {
             </Button>
           </div>
         ) : (
-          birthdays.map((event: CalendarEvent) => (
-            <div 
-              key={event.id} 
+          birthdays.map((event) => (
+            <div
+              key={event.id}
               className="p-4 border rounded-lg hover:bg-gray-50 cursor-pointer"
               onClick={() => handleSelectEvent(event)}
               onKeyDown={(keyboardEvent) => handleEventCardKeyDown(keyboardEvent, event)}
@@ -518,10 +598,10 @@ const Calendar: React.FC = () => {
 
   // Render wishlists deadlines
   const renderWishlistDeadlines = () => {
-    const deadlines = events.filter((event: CalendarEvent) => 
+    const deadlines = personalEvents.filter((event) =>
       event.type === 'deadline' && event.wishlistId
     );
-    
+
     return (
       <div className="space-y-4">
         {deadlines.length === 0 ? (
@@ -532,9 +612,9 @@ const Calendar: React.FC = () => {
             </Button>
           </div>
         ) : (
-          deadlines.map((event: CalendarEvent) => (
-            <div 
-              key={event.id} 
+          deadlines.map((event) => (
+            <div
+              key={event.id}
               className="p-4 border rounded-lg hover:bg-gray-50 cursor-pointer"
               onClick={() => handleSelectEvent(event)}
               onKeyDown={(keyboardEvent) => handleEventCardKeyDown(keyboardEvent, event)}
@@ -548,7 +628,7 @@ const Calendar: React.FC = () => {
               </div>
               <div className="mt-2 flex items-center justify-between gap-2">
                 <Badge>
-                  {wishlists.find((w: Wishlist) => w.id === event.wishlistId)?.name || 'Unknown wishlist'}
+                  {wishlists.find((w) => w.id === event.wishlistId)?.name || 'Unknown wishlist'}
                 </Badge>
                 {event.wishlistId && (
                   <Button
@@ -570,89 +650,140 @@ const Calendar: React.FC = () => {
     );
   };
 
+  const calendarConnectionsEnabled = subStatus?.limits?.calendarEnabled ?? false;
+
+  const tabs: Array<{ id: CalendarTab; label: string; icon: React.ReactNode }> = [
+    { id: 'events', label: 'My Calendar', icon: <CalendarDays size={18} aria-hidden="true" /> },
+    { id: 'connections', label: 'Connections', icon: <Link2 size={18} aria-hidden="true" /> },
+  ];
+
   return (
     <>
       <Helmet>
         <title>Calendar | Wishlist Wizard</title>
-        <meta name="description" content="Manage important dates, birthdays, and gift deadlines with our interactive calendar." />
+        <meta name="description" content="Manage important dates, birthdays, gift deadlines, and external calendar sync in one place." />
       </Helmet>
       <div className="container mx-auto px-4 py-6 2xl:py-8 max-w-7xl">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
           <div>
             <h1 className="text-4xl font-bold bg-gradient-to-r from-emerald-800 to-green-800 bg-clip-text text-transparent">Calendar</h1>
             <p className="text-gray-600 mt-2">
-              Manage important dates and track gift opportunities
+              Manage important dates, track gift opportunities, and connect external calendars.
             </p>
           </div>
-        <div className="flex gap-2">
-          <Button onClick={() => {
-            openCreateEventDialog('reminder');
-          }}>
-            Add Event
-          </Button>
-          <Button variant="outline" onClick={() => openCreateEventDialog('birthday')}>
-            Add Birthday
-          </Button>
-          <Button variant="outline" onClick={() => setLocation('/app/dashboard')}>
-            Open Wishlists
-          </Button>
-          <Button variant="outline" onClick={() => setLocation('/app/settings?tab=calendar')}>
-            Settings
-          </Button>
+          {selectedTab === 'events' && (
+            <div className="flex gap-2">
+              <Button onClick={() => openCreateEventDialog('reminder')}>
+                Add Event
+              </Button>
+              <Button variant="outline" onClick={() => openCreateEventDialog('birthday')}>
+                Add Birthday
+              </Button>
+              <Button variant="outline" onClick={() => setLocation('/app/dashboard')}>
+                Open Wishlists
+              </Button>
+            </div>
+          )}
         </div>
-      </div>
 
-      {isEventsLoading ? (
-        <div className="bg-white p-8 rounded-lg shadow text-center text-gray-500">
-          Loading calendar events…
-        </div>
-      ) : isEventsError ? (
-        <div className="bg-white p-8 rounded-lg shadow text-center">
-          <p className="text-red-500 mb-2">Unable to load calendar events.</p>
-          <p className="text-sm text-gray-500 mb-4">{getApiErrorMessage(eventsError, 'Please try again.')}</p>
-          <Button variant="outline" onClick={() => refetchEvents()}>Retry</Button>
-        </div>
-      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+          {/* Sidebar */}
+          <div className="lg:col-span-1">
+            <Card>
+              <CardContent className="p-0">
+                <nav className="flex flex-col" aria-label="Calendar sections">
+                  {tabs.map((tab) => (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      data-testid={`calendar-tab-${tab.id}`}
+                      className={`flex items-center gap-3 p-4 text-left transition-colors hover:bg-muted ${selectedTab === tab.id ? 'bg-muted font-medium' : ''}`}
+                      onClick={() => setSelectedTab(tab.id)}
+                      aria-pressed={selectedTab === tab.id}
+                      aria-label={`Open ${tab.label} section`}
+                    >
+                      {tab.icon}
+                      <span>{tab.label}</span>
+                    </button>
+                  ))}
+                </nav>
+              </CardContent>
+            </Card>
+          </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2">
-          <div className="bg-white p-4 rounded-lg shadow">
-            <CalendarComponent
-              localizer={localizer}
-              events={events}
-              startAccessor="start"
-              endAccessor="end"
-              className="calendar-container"
-              onSelectEvent={handleSelectEvent}
-              onSelectSlot={handleSelectSlot}
-              selectable
-              eventPropGetter={eventStyleGetter}
-            />
+          {/* Content */}
+          <div className="lg:col-span-3">
+            {selectedTab === 'events' && (
+              isEventsLoading ? (
+                <div className="bg-white p-8 rounded-lg shadow text-center text-gray-500">
+                  Loading calendar events…
+                </div>
+              ) : isEventsError ? (
+                <div className="bg-white p-8 rounded-lg shadow text-center">
+                  <p className="text-red-500 mb-2">Unable to load calendar events.</p>
+                  <p className="text-sm text-gray-500 mb-4">{getApiErrorMessage(eventsError, 'Please try again.')}</p>
+                  <Button variant="outline" onClick={() => refetchEvents()}>Retry</Button>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  <div className="lg:col-span-2">
+                    <div className="bg-white p-4 rounded-lg shadow">
+                      <CalendarComponent
+                        localizer={localizer}
+                        events={events}
+                        startAccessor="start"
+                        endAccessor="end"
+                        className="calendar-container"
+                        onSelectEvent={handleSelectEvent}
+                        onSelectSlot={handleSelectSlot}
+                        selectable
+                        eventPropGetter={eventStyleGetter}
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="bg-white p-4 rounded-lg shadow">
+                      <Tabs value={activeTab} onValueChange={setActiveTab}>
+                        <TabsList className="grid w-full grid-cols-3">
+                          <TabsTrigger value="upcoming">Upcoming</TabsTrigger>
+                          <TabsTrigger value="birthdays">Birthdays</TabsTrigger>
+                          <TabsTrigger value="wishlists">Deadlines</TabsTrigger>
+                        </TabsList>
+                        <TabsContent value="upcoming" className="pt-4">
+                          {renderUpcomingEvents()}
+                        </TabsContent>
+                        <TabsContent value="birthdays" className="pt-4">
+                          {renderBirthdays()}
+                        </TabsContent>
+                        <TabsContent value="wishlists" className="pt-4">
+                          {renderWishlistDeadlines()}
+                        </TabsContent>
+                      </Tabs>
+                    </div>
+                  </div>
+                </div>
+              )
+            )}
+
+            {selectedTab === 'connections' && (
+              calendarConnectionsEnabled ? (
+                <Card>
+                  <CardContent className="pt-6">
+                    <CalendarSettings />
+                  </CardContent>
+                </Card>
+              ) : (
+                <UpgradePrompt
+                  title="External calendar sync is a paid feature"
+                  description="Connect Google, Outlook, Apple, or Facebook calendars to sync events and import contacts. Upgrade your plan to connect a calendar."
+                  className=""
+                />
+              )
+            )}
           </div>
         </div>
-
-        <div>
-          <div className="bg-white p-4 rounded-lg shadow">
-            <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="upcoming">Upcoming</TabsTrigger>
-                <TabsTrigger value="birthdays">Birthdays</TabsTrigger>
-                <TabsTrigger value="wishlists">Deadlines</TabsTrigger>
-              </TabsList>
-              <TabsContent value="upcoming" className="pt-4">
-                {renderUpcomingEvents()}
-              </TabsContent>
-              <TabsContent value="birthdays" className="pt-4">
-                {renderBirthdays()}
-              </TabsContent>
-              <TabsContent value="wishlists" className="pt-4">
-                {renderWishlistDeadlines()}
-              </TabsContent>
-            </Tabs>
-          </div>
-        </div>
       </div>
-      )}
 
       {/* Create/Edit Event Dialog */}
       <Dialog open={isEventDialogOpen} onOpenChange={setIsEventDialogOpen}>
@@ -663,7 +794,7 @@ const Calendar: React.FC = () => {
               {selectedEvent ? 'Update the event details below.' : 'Add a new event to your calendar.'}
             </DialogDescription>
           </DialogHeader>
-          
+
           <form onSubmit={handleSubmit}>
             <div className="grid gap-4 py-4">
               <div className="grid grid-cols-4 items-center gap-4">
@@ -678,13 +809,13 @@ const Calendar: React.FC = () => {
                   required
                 />
               </div>
-              
+
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="type" className="text-right">
                   Type
                 </Label>
-                <Select 
-                  value={formData.type} 
+                <Select
+                  value={formData.type}
                   onValueChange={(value) => {
                     handleChange('type', value);
                     // Set default color based on type
@@ -706,7 +837,7 @@ const Calendar: React.FC = () => {
                   </SelectContent>
                 </Select>
               </div>
-              
+
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="startDate" className="text-right">
                   Date
@@ -718,14 +849,14 @@ const Calendar: React.FC = () => {
                   />
                 </div>
               </div>
-              
+
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label className="text-right" htmlFor="allDay">
                   All Day
                 </Label>
                 <div className="flex items-center space-x-2 col-span-3">
-                  <Checkbox 
-                    id="allDay" 
+                  <Checkbox
+                    id="allDay"
                     checked={formData.allDay}
                     onCheckedChange={(checked) => handleChange('allDay', !!checked)}
                   />
@@ -737,15 +868,15 @@ const Calendar: React.FC = () => {
                   </label>
                 </div>
               </div>
-              
+
               {formData.type === 'birthday' && (
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label className="text-right" htmlFor="recurYearly">
                     Yearly
                   </Label>
                   <div className="flex items-center space-x-2 col-span-3">
-                    <Checkbox 
-                      id="recurYearly" 
+                    <Checkbox
+                      id="recurYearly"
                       checked={formData.recurYearly}
                       onCheckedChange={(checked) => handleChange('recurYearly', !!checked)}
                     />
@@ -758,7 +889,7 @@ const Calendar: React.FC = () => {
                   </div>
                 </div>
               )}
-              
+
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="location" className="text-right">
                   Location
@@ -771,7 +902,7 @@ const Calendar: React.FC = () => {
                   placeholder="Optional"
                 />
               </div>
-              
+
               <div className="grid grid-cols-4 items-start gap-4">
                 <Label htmlFor="description" className="text-right pt-2">
                   Description
@@ -784,13 +915,13 @@ const Calendar: React.FC = () => {
                   placeholder="Optional"
                 />
               </div>
-              
+
               {(formData.type === 'birthday' || formData.type === 'anniversary') && (
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="beneficiary" className="text-right">
                     Person
                   </Label>
-                  <Select 
+                  <Select
                     value={formData.beneficiaryId?.toString() || NO_BENEFICIARY_VALUE}
                     onValueChange={(value) => handleChange('beneficiaryId', value === NO_BENEFICIARY_VALUE ? undefined : parseInt(value, 10))}
                   >
@@ -808,13 +939,13 @@ const Calendar: React.FC = () => {
                   </Select>
                 </div>
               )}
-              
+
               {formData.type === 'deadline' && (
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="wishlist" className="text-right">
                     Wishlist
                   </Label>
-                  <Select 
+                  <Select
                     value={formData.wishlistId?.toString() || NO_WISHLIST_VALUE}
                     onValueChange={(value) => handleChange('wishlistId', value === NO_WISHLIST_VALUE ? undefined : parseInt(value, 10))}
                   >
@@ -823,7 +954,7 @@ const Calendar: React.FC = () => {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value={NO_WISHLIST_VALUE}>None</SelectItem>
-                      {wishlists.map((wishlist: Wishlist) => (
+                      {wishlists.map((wishlist) => (
                         <SelectItem key={wishlist.id} value={wishlist.id.toString()}>
                           {wishlist.name}
                         </SelectItem>
@@ -832,13 +963,13 @@ const Calendar: React.FC = () => {
                   </Select>
                 </div>
               )}
-              
+
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="reminderDays" className="text-right">
                   Reminder
                 </Label>
-                <Select 
-                  value={formData.reminderDays.toString()} 
+                <Select
+                  value={formData.reminderDays.toString()}
                   onValueChange={(value) => handleChange('reminderDays', parseInt(value))}
                 >
                   <SelectTrigger className="col-span-3">
@@ -854,7 +985,7 @@ const Calendar: React.FC = () => {
                   </SelectContent>
                 </Select>
               </div>
-              
+
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="color" className="text-right">
                   Color
@@ -876,7 +1007,7 @@ const Calendar: React.FC = () => {
                 </div>
               </div>
             </div>
-            
+
             <DialogFooter>
               {selectedEvent && (
                 <Button
@@ -898,8 +1029,6 @@ const Calendar: React.FC = () => {
           </form>
         </DialogContent>
       </Dialog>
-
-      </div>
     </>
   );
 };
