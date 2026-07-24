@@ -26,7 +26,6 @@ import {
   GoogleAuthProvider,
   OAuthProvider,
   signInWithPopup,
-  fetchSignInMethodsForEmail,
   linkWithCredential
 } from 'firebase/auth';
 import { getToken, isSupported as messagingIsSupported } from 'firebase/messaging';
@@ -464,14 +463,6 @@ export function credentialFromOAuthError(error: unknown, providerId: 'google.com
   return providerId === 'google.com'
     ? GoogleAuthProvider.credentialFromError(error as Parameters<typeof GoogleAuthProvider.credentialFromError>[0])
     : OAuthProvider.credentialFromError(error as Parameters<typeof OAuthProvider.credentialFromError>[0]);
-}
-
-export async function getSignInMethodsForEmail(email: string): Promise<string[]> {
-  if (!firebaseClient) {
-    await initFirebase({ enableAuth: true, enableFirestore: true });
-  }
-  if (!firebaseClient) throw createFirebaseNotConfiguredError();
-  return await fetchSignInMethodsForEmail(firebaseClient.auth, email);
 }
 
 export async function linkPendingCredential(user: User, credential: AuthCredential) {

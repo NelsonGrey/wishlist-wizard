@@ -24,19 +24,18 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 
 type OAuthProviderId = 'google.com' | 'apple.com';
 
-type PendingLink = {
-  providerId: OAuthProviderId;
-  error: unknown;
-  email: string;
-};
-
 export default function Login() {
   const [isLoading, setIsLoading] = useState(false);
   const [oauthLoading, setOauthLoading] = useState<OAuthProviderId | null>(null);
-  const [pendingLink, setPendingLink] = useState<PendingLink | null>(null);
+  // Set when a Google/Apple attempt collides with an existing password
+  // account. AuthContext stashes the OAuth credential and links it
+  // automatically the moment the password sign-in below succeeds — Firebase's
+  // email enumeration protection means we can't know the email up front, so
+  // this banner stays provider-agnostic rather than naming the account.
+  const [showLinkBanner, setShowLinkBanner] = useState(false);
   const [, setLocation] = useLocation();
   const { toast } = useToast();
-  const { signIn, signInWithGoogle, signInWithApple, getSignInMethodsForEmail, linkPendingOAuthCredential } = useAuth();
+  const { signIn, signInWithGoogle, signInWithApple } = useAuth();
 
   // Initialize form with react-hook-form
   const form = useForm<LoginFormValues>({
@@ -68,18 +67,14 @@ export default function Login() {
 
     setIsLoading(true);
     try {
-      if (pendingLink) {
-        await linkPendingOAuthCredential(pendingLink.providerId, pendingLink.error, data.email.trim(), data.password);
-        setPendingLink(null);
+      await signIn(data.email.trim(), data.password);
+      if (showLinkBanner) {
+        setShowLinkBanner(false);
         toast({
           title: "Account linked",
           description: "Your accounts are now linked — sign in with either method going forward.",
         });
-        completeSignIn();
-        return;
       }
-
-      await signIn(data.email.trim(), data.password);
       completeSignIn();
     } catch (error: unknown) {
       console.error("Login error:", error);
@@ -111,18 +106,12 @@ export default function Login() {
       console.error("OAuth sign-in error:", error);
 
       if (isAccountExistsWithDifferentCredentialError(error)) {
-        const email = (error as { customData?: { email?: string } })?.customData?.email;
-        const methods = email ? await getSignInMethodsForEmail(email).catch(() => []) : [];
-
-        if (email && methods.includes('password')) {
-          setPendingLink({ providerId, error, email });
-          form.setValue('email', email);
-          toast({
-            title: "Account already exists",
-            description: "Sign in with your password below to link this to your existing account.",
-          });
-          return;
-        }
+        setShowLinkBanner(true);
+        toast({
+          title: "Account already exists",
+          description: "Sign in with your password below to link this to your existing account.",
+        });
+        return;
       }
 
       toast({
@@ -145,11 +134,11 @@ export default function Login() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {pendingLink && (
+          {showLinkBanner && (
             <Alert className="mb-4" data-testid="oauth-link-banner">
               <AlertDescription>
-                An account already exists for <strong>{pendingLink.email}</strong> using a password.
-                Sign in below to link it to {pendingLink.providerId === 'google.com' ? 'Google' : 'Apple'}.
+                An account already exists with this email using a password. Sign in below and
+                we&apos;ll link your Google/Apple sign-in to it automatically.
               </AlertDescription>
             </Alert>
           )}
@@ -203,12 +192,12 @@ export default function Login() {
                 className="w-full bg-gradient-to-r from-emerald-700 to-green-700 text-white hover:from-emerald-800 hover:to-green-800"
                 disabled={isLoading}
               >
-                {isLoading ? "Signing in..." : pendingLink ? "Sign in & link account" : "Sign in"}
+                {isLoading ? "Signing in..." : showLinkBanner ? "Sign in & link account" : "Sign in"}
               </Button>
             </form>
           </Form>
 
-          {!pendingLink && (
+          {!showLinkBanner && (
             <>
               <div className="relative my-4">
                 <div className="absolute inset-0 flex items-center">
