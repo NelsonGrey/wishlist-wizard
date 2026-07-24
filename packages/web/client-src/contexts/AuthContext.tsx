@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useRef, useState, ReactNode } from 'react';
-import type { User } from 'firebase/auth';
+import type { AuthCredential, User } from 'firebase/auth';
 import {
   FeatureFlags,
   getAnalyticsTracker,
@@ -16,11 +16,9 @@ import {
   signInWithGoogle as firebaseSignInWithGoogle,
   signInWithApple as firebaseSignInWithApple,
   credentialFromOAuthError,
-  getSignInMethodsForEmail as firebaseGetSignInMethodsForEmail,
   linkPendingCredential
 } from '../lib/firebase';
-
-type OAuthProviderId = 'google.com' | 'apple.com';
+import { isAccountExistsWithDifferentCredentialError } from '../lib/firebase-auth-errors';
 
 interface AuthContextType {
   user: User | null;
@@ -29,13 +27,6 @@ interface AuthContextType {
   signUp: (email: string, password: string, displayName?: string) => Promise<void>;
   signInWithGoogle: () => Promise<void>;
   signInWithApple: () => Promise<void>;
-  getSignInMethodsForEmail: (email: string) => Promise<string[]>;
-  linkPendingOAuthCredential: (
-    providerId: OAuthProviderId,
-    pendingError: unknown,
-    email: string,
-    password: string
-  ) => Promise<void>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   sendEmailVerification: () => Promise<void>;
@@ -62,6 +53,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const userRef = useRef<User | null>(null);
   const hasBroadcastSignedInUserRef = useRef(false);
+  // Holds an OAuth credential recovered from `auth/account-exists-with-different-credential`
+  // until the user next signs in successfully by any method — see linkPendingProviderIfNeeded.
+  const pendingLinkCredentialRef = useRef<AuthCredential | null>(null);
 
   const isFirebaseNotConfiguredError = (error: unknown): boolean => {
     if (!error || typeof error !== 'object') {
@@ -193,9 +187,34 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     };
   }, []);
 
+  // Firebase's "improved email privacy" (enumeration protection) strips the
+  // email off `auth/account-exists-with-different-credential` errors and
+  // neuters `fetchSignInMethodsForEmail`, so we can't look up which method
+  // owns a colliding email up front. Instead, a successful sign-in by *any*
+  // method is itself the proof of ownership — link the OAuth credential we
+  // stashed from the failed attempt right after this one succeeds.
+  const linkPendingProviderIfNeeded = async (signedInUser: User | null): Promise<void> => {
+    const pendingCredential = pendingLinkCredentialRef.current;
+    if (!pendingCredential || !signedInUser) {
+      return;
+    }
+
+    try {
+      await linkPendingCredential(signedInUser, pendingCredential);
+    } catch (error) {
+      const code = (error as { code?: string })?.code;
+      if (code !== 'auth/provider-already-linked' && code !== 'auth/credential-already-in-use' && code !== 'auth/requires-recent-login') {
+        throw error;
+      }
+    } finally {
+      pendingLinkCredentialRef.current = null;
+    }
+  };
+
   const signIn = async (email: string, password: string): Promise<void> => {
     try {
-      await firebaseSignIn(email, password);
+      const credential = await firebaseSignIn(email, password);
+      await linkPendingProviderIfNeeded(credential.user);
       getAnalyticsTracker().logUserLogin('email');
       // User state will be updated through onAuthStateChanged
     } catch (error) {
@@ -223,6 +242,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       getAnalyticsTracker().logUserLogin('social');
       // User state will be updated through onAuthStateChanged
     } catch (error) {
+      if (isAccountExistsWithDifferentCredentialError(error)) {
+        pendingLinkCredentialRef.current = credentialFromOAuthError(error, 'google.com');
+      }
       console.error('[AuthContext] Google sign-in failed:', error);
       throw error;
     }
@@ -234,35 +256,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       getAnalyticsTracker().logUserLogin('social');
       // User state will be updated through onAuthStateChanged
     } catch (error) {
+      if (isAccountExistsWithDifferentCredentialError(error)) {
+        pendingLinkCredentialRef.current = credentialFromOAuthError(error, 'apple.com');
+      }
       console.error('[AuthContext] Apple sign-in failed:', error);
       throw error;
     }
   };
 
-  const getSignInMethodsForEmail = async (email: string): Promise<string[]> => {
-    return await firebaseGetSignInMethodsForEmail(email);
-  };
-
-  // Recovers from `auth/account-exists-with-different-credential`: signs the
-  // user in with the password-based account they already have, then attaches
-  // the OAuth credential from the failed Google/Apple attempt to that same
-  // account so both sign-in methods work going forward.
-  const linkPendingOAuthCredential = async (
-    providerId: OAuthProviderId,
-    pendingError: unknown,
-    email: string,
-    password: string
-  ): Promise<void> => {
-    const credential = credentialFromOAuthError(pendingError, providerId);
-    if (!credential) {
-      throw new Error('No pending OAuth credential to link');
-    }
-    const userCredential = await firebaseSignIn(email, password);
-    await linkPendingCredential(userCredential.user, credential);
-  };
-
   const signOut = async (): Promise<void> => {
     try {
+      pendingLinkCredentialRef.current = null;
       await signOutUser();
       // User state will be updated through onAuthStateChanged
     } catch (error) {
@@ -311,8 +315,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     signUp,
     signInWithGoogle,
     signInWithApple,
-    getSignInMethodsForEmail,
-    linkPendingOAuthCredential,
     signOut,
     resetPassword: resetPasswordHandler,
     sendEmailVerification,
