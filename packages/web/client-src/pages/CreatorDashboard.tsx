@@ -1,47 +1,16 @@
 import { Helmet } from "react-helmet";
-import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { BarChart3, Landmark, WalletCards, SlidersHorizontal, Lock } from "lucide-react";
+import { BarChart3, Landmark, WalletCards, SlidersHorizontal } from "lucide-react";
 import PerformancePanel from "@/components/creator-dashboard/PerformancePanel";
 import CommissionStatusPanel from "@/components/creator-dashboard/CommissionStatusPanel";
 import PayoutReadinessPanel from "@/components/creator-dashboard/PayoutReadinessPanel";
 import AdjustmentsPanel from "@/components/creator-dashboard/AdjustmentsPanel";
+import UpgradePrompt from "@/components/UpgradePrompt";
 
 type DashboardSummary = { byState: Record<string, { count: number; totalUsd: number }> };
-
-function UpgradePrompt() {
-  return (
-    <div className="site-container py-16">
-      <Card className="mx-auto max-w-xl text-center">
-        <CardHeader>
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-emerald-100 text-emerald-800">
-            <Lock className="h-6 w-6" aria-hidden="true" />
-          </div>
-          <CardTitle className="mt-4">The creator dashboard is a Creator Pro feature</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <p className="text-sm text-muted-foreground">
-            Upgrade to track performance, commission status, payout readiness, and adjustments for the retail links
-            you share.
-          </p>
-          <div className="flex flex-col justify-center gap-3 sm:flex-row">
-            <Button asChild>
-              <Link href="/subscriptions">Compare plans</Link>
-            </Button>
-            <Button variant="outline" asChild>
-              <Link href="/creator-program">Learn about the creator program</Link>
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  );
-}
 
 export default function CreatorDashboard() {
   // The summary call doubles as the tier-gate check — assertFeatureEnabled
@@ -69,7 +38,13 @@ export default function CreatorDashboard() {
     // callable SDK error with a functions/permission-denied code.
     const isPermissionDenied = (error as Error)?.message?.startsWith("403:");
     if (isPermissionDenied) {
-      return <UpgradePrompt />;
+      return (
+        <UpgradePrompt
+          title="The creator dashboard is a Creator Pro feature"
+          description="Upgrade to track performance, commission status, payout readiness, and adjustments for the retail links you share."
+          secondaryCta={{ label: "Learn about the creator program", href: "/creator-program" }}
+        />
+      );
     }
     return (
       <div className="site-container py-16 text-center">
