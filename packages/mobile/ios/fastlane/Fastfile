@@ -4,6 +4,8 @@
 # Import required plugins
 # fastlane add_plugin firebase_app_distribution
 
+require 'fileutils'
+
 default_platform(:ios)
 
 platform :ios do
@@ -161,11 +163,40 @@ platform :ios do
     end
   end
 
+  # Every lane in this Fastfile that produces a distributable build (build_release,
+  # build_appstore, build_testflight) exists to ship a real artifact, so it must
+  # always point at wishlist-wizard-prod — never left to defaults. This swaps in
+  # the prod GoogleService-Info.plist (fixing native-SDK config, which the Dart
+  # FIREBASE_ENV dart-define does not touch) and fails loudly if the result
+  # doesn't actually match the prod project, rather than silently shipping wrong.
+  def ensure_prod_firebase_config!
+    prod_plist = "Runner/GoogleService-Info.prod.plist"
+    active_plist = "Runner/GoogleService-Info.plist"
+    UI.user_error!("Missing #{prod_plist}") unless File.exist?(prod_plist)
+
+    FileUtils.cp(prod_plist, active_plist)
+
+    project_id = sh(
+      "/usr/libexec/PlistBuddy -c \"Print :PROJECT_ID\" #{active_plist}",
+      log: false
+    ).to_s.strip
+
+    unless project_id == "wishlist-wizard-prod"
+      UI.user_error!(
+        "Firebase config guard failed: expected PROJECT_ID=wishlist-wizard-prod " \
+        "after swapping in #{prod_plist}, but found '#{project_id}'."
+      )
+    end
+
+    UI.message("✅ Verified iOS Firebase config points at #{project_id}")
+  end
+
   desc "Build Flutter iOS app in release mode"
   lane :build_release do
+    ensure_prod_firebase_config!
     flutter_deps
     Dir.chdir("../../") do
-      sh("flutter build ios --release --no-codesign")
+      sh("flutter build ios --release --no-codesign --dart-define=FIREBASE_ENV=production")
     end
   end
 
@@ -408,6 +439,7 @@ platform :ios do
 
   desc "Build and sign iOS app for App Store distribution"
   lane :build_appstore do
+    ensure_prod_firebase_config!
     flutter_deps
 
     # Sync signing certificates (ensures correct branch via env or Matchfile)
@@ -423,7 +455,7 @@ platform :ios do
       sh("flutter clean")
       sh("flutter pub get")
       # Use --no-codesign to avoid Flutter trying to sign with default (likely Dev) identity
-      sh("flutter build ios --release --no-codesign")
+      sh("flutter build ios --release --no-codesign --dart-define=FIREBASE_ENV=production")
 
       # Force manual signing with the identity/profile we just fetched
       app_id = "com.wishlistwizard.app.ios"
@@ -467,6 +499,7 @@ platform :ios do
 
   desc "Build and sign iOS app for TestFlight distribution"
   lane :build_testflight do
+    ensure_prod_firebase_config!
     clear_derived_data
     # Clean workspace to prevent abseil/grpc linking issues
     sh("rm -rf ../Pods")
@@ -487,7 +520,7 @@ platform :ios do
     # Build the iOS project once with Flutter so CocoaPods and generated iOS
     # metadata are refreshed before Xcode archive/signing.
     Dir.chdir("../../") do
-      sh("flutter build ios --release --no-codesign")
+      sh("flutter build ios --release --no-codesign --dart-define=FIREBASE_ENV=production")
     end
 
     # Build the iOS app using gym (standard fastlane action, handles signing better than manual flutter build)

@@ -15,9 +15,13 @@ import 'package:flutter/foundation.dart'
 /// );
 /// ```
 class DefaultFirebaseOptions {
+  // Defaults to dev, not prod: an unset FIREBASE_ENV should fail safe toward
+  // throwaway data, not real user data. Release builds set this explicitly
+  // (see ios/fastlane/Fastfile's ensure_prod_firebase_config!) rather than
+  // relying on this default.
   static const String firebaseEnv = String.fromEnvironment(
     'FIREBASE_ENV',
-    defaultValue: 'prod',
+    defaultValue: 'dev',
   );
 
   static FirebaseOptions get currentPlatform {
