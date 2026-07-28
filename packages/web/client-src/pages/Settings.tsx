@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Helmet } from 'react-helmet';
 import { useLocation } from 'wouter';
-import { useQuery } from '@tanstack/react-query';
 import {
   Bell,
   Lock,
@@ -32,20 +31,17 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { apiRequest } from '@/lib/queryClient';
 import { NotificationSettings } from '@/components/notifications/NotificationSettings';
+import { useToast } from '@/hooks/use-toast';
+import {
+  useDefaultPrivacySettings,
+  useUpdateDefaultPrivacySettings,
+  type UserDefaultPrivacy,
+} from '@/hooks/use-privacy';
 
 type SettingsTab = 'account' | 'notifications' | 'privacy' | 'preferences';
 
 const VALID_TABS: SettingsTab[] = ['account', 'notifications', 'privacy', 'preferences'];
-
-interface UserDefaultPrivacy {
-  defaultWishlistVisibility: string;
-  defaultItemVisibility: string;
-  allowComments: boolean;
-  allowReservations: boolean;
-  requireApproval: boolean;
-}
 
 const VISIBILITY_OPTIONS = [
   { value: 'public', label: 'Public', description: 'Anyone with the link can view', icon: Globe, color: 'text-green-600' },
@@ -91,10 +87,24 @@ export default function Settings() {
   const [language, setLanguage] = useState('en');
   const [currency, setCurrency] = useState('USD');
 
-  const { data: defaultPrivacy } = useQuery<UserDefaultPrivacy>({
-    queryKey: ['user-default-privacy'],
-    queryFn: () => apiRequest('/api/privacy/defaults') as Promise<UserDefaultPrivacy>,
-  });
+  const { toast } = useToast();
+  const { data: defaultPrivacy } = useDefaultPrivacySettings();
+  const updateDefaultPrivacy = useUpdateDefaultPrivacySettings();
+  const [privacyDraft, setPrivacyDraft] = useState<UserDefaultPrivacy | null>(null);
+
+  useEffect(() => {
+    if (defaultPrivacy) {
+      setPrivacyDraft(defaultPrivacy);
+    }
+  }, [defaultPrivacy]);
+
+  const handleSavePrivacyDefaults = () => {
+    if (!privacyDraft) return;
+    updateDefaultPrivacy.mutate(privacyDraft, {
+      onSuccess: () => toast({ title: 'Default privacy preferences saved' }),
+      onError: () => toast({ title: 'Failed to save privacy preferences', variant: 'destructive' }),
+    });
+  };
 
   // Calendar Connections moved to the unified Calendar page — send anyone
   // hitting the old bookmark somewhere sane instead of silently falling
@@ -273,13 +283,19 @@ export default function Settings() {
                 <CardContent className="space-y-6">
                   <div>
                     <Label className="text-base font-medium">Default Wishlist Visibility</Label>
-                    <RadioGroup value={defaultPrivacy?.defaultWishlistVisibility || 'public'} className="mt-2">
+                    <RadioGroup
+                      value={privacyDraft?.defaultWishlistVisibility || 'private'}
+                      onValueChange={(value) =>
+                        setPrivacyDraft((prev) => (prev ? { ...prev, defaultWishlistVisibility: value } : prev))
+                      }
+                      className="mt-2"
+                    >
                       {VISIBILITY_OPTIONS.map((option) => {
                         const Icon = option.icon;
                         return (
                           <div key={option.value} className="flex items-center space-x-2">
-                            <RadioGroupItem value={option.value} id={`wishlist-${option.value}`} disabled />
-                            <Label htmlFor={`wishlist-${option.value}`} className="flex items-center space-x-2 opacity-80">
+                            <RadioGroupItem value={option.value} id={`wishlist-${option.value}`} disabled={!privacyDraft} />
+                            <Label htmlFor={`wishlist-${option.value}`} className="flex items-center space-x-2">
                               <Icon className={`h-4 w-4 ${option.color}`} />
                               <div>
                                 <span className="font-medium">{option.label}</span>
@@ -296,13 +312,19 @@ export default function Settings() {
 
                   <div>
                     <Label className="text-base font-medium">Default Item Visibility</Label>
-                    <RadioGroup value={defaultPrivacy?.defaultItemVisibility || 'public'} className="mt-2">
+                    <RadioGroup
+                      value={privacyDraft?.defaultItemVisibility || 'private'}
+                      onValueChange={(value) =>
+                        setPrivacyDraft((prev) => (prev ? { ...prev, defaultItemVisibility: value } : prev))
+                      }
+                      className="mt-2"
+                    >
                       {VISIBILITY_OPTIONS.map((option) => {
                         const Icon = option.icon;
                         return (
                           <div key={option.value} className="flex items-center space-x-2">
-                            <RadioGroupItem value={option.value} id={`item-${option.value}`} disabled />
-                            <Label htmlFor={`item-${option.value}`} className="flex items-center space-x-2 opacity-80">
+                            <RadioGroupItem value={option.value} id={`item-${option.value}`} disabled={!privacyDraft} />
+                            <Label htmlFor={`item-${option.value}`} className="flex items-center space-x-2">
                               <Icon className={`h-4 w-4 ${option.color}`} />
                               <div>
                                 <span className="font-medium">{option.label}</span>
@@ -324,27 +346,53 @@ export default function Settings() {
                         <Label htmlFor="allow-comments">Allow Comments</Label>
                         <p className="text-sm text-muted-foreground">Let others comment on your wishlists and items</p>
                       </div>
-                      <Switch id="allow-comments" checked={defaultPrivacy?.allowComments ?? true} disabled />
+                      <Switch
+                        id="allow-comments"
+                        checked={privacyDraft?.allowComments ?? true}
+                        disabled={!privacyDraft}
+                        onCheckedChange={(checked) =>
+                          setPrivacyDraft((prev) => (prev ? { ...prev, allowComments: checked } : prev))
+                        }
+                      />
                     </div>
                     <div className="flex items-center justify-between">
                       <div className="space-y-0.5">
                         <Label htmlFor="allow-reservations">Allow Reservations</Label>
                         <p className="text-sm text-muted-foreground">Let others reserve items for purchase</p>
                       </div>
-                      <Switch id="allow-reservations" checked={defaultPrivacy?.allowReservations ?? true} disabled />
+                      <Switch
+                        id="allow-reservations"
+                        checked={privacyDraft?.allowReservations ?? true}
+                        disabled={!privacyDraft}
+                        onCheckedChange={(checked) =>
+                          setPrivacyDraft((prev) => (prev ? { ...prev, allowReservations: checked } : prev))
+                        }
+                      />
                     </div>
                     <div className="flex items-center justify-between">
                       <div className="space-y-0.5">
                         <Label htmlFor="require-approval">Require Approval</Label>
                         <p className="text-sm text-muted-foreground">Require your approval for reservations and comments</p>
                       </div>
-                      <Switch id="require-approval" checked={defaultPrivacy?.requireApproval ?? false} disabled />
+                      <Switch
+                        id="require-approval"
+                        checked={privacyDraft?.requireApproval ?? false}
+                        disabled={!privacyDraft}
+                        onCheckedChange={(checked) =>
+                          setPrivacyDraft((prev) => (prev ? { ...prev, requireApproval: checked } : prev))
+                        }
+                      />
                     </div>
                   </div>
 
-                  <p className="text-sm text-muted-foreground">
-                    Editing default privacy preferences is coming soon. For now, adjust privacy per wishlist or item from its own sharing controls.
-                  </p>
+                  <div className="flex items-center gap-3">
+                    <Button onClick={handleSavePrivacyDefaults} disabled={!privacyDraft || updateDefaultPrivacy.isPending}>
+                      {updateDefaultPrivacy.isPending ? 'Saving...' : 'Save Privacy Defaults'}
+                    </Button>
+                    <p className="text-sm text-muted-foreground">
+                      Applies to new wishlists and items. Existing ones keep their own sharing controls.
+                    </p>
+                  </div>
                 </CardContent>
               </Card>
             )}
