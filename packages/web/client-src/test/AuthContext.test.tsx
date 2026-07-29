@@ -28,6 +28,10 @@ vi.mock('@/lib/firebase', () => ({
   resetPassword: vi.fn(),
   verifyEmail: vi.fn(),
   changePassword: vi.fn(),
+  checkPasswordPolicy: vi.fn(async () => ({
+    isValid: true,
+    passwordPolicy: { customStrengthOptions: {} },
+  })),
 }));
 
 vi.mock('@shared/firebase-utils', () => ({
