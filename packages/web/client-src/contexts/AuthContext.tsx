@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useRef, useState, ReactNode } from 'react';
-import type { AuthCredential, User } from 'firebase/auth';
+import type { AuthCredential, PasswordValidationStatus, User } from 'firebase/auth';
 import {
   FeatureFlags,
   getAnalyticsTracker,
@@ -13,6 +13,7 @@ import {
   resetPassword,
   verifyEmail,
   changePassword,
+  checkPasswordPolicy,
   signInWithGoogle as firebaseSignInWithGoogle,
   signInWithApple as firebaseSignInWithApple,
   credentialFromOAuthError,
@@ -25,6 +26,7 @@ interface AuthContextType {
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, displayName?: string) => Promise<void>;
+  checkPasswordPolicy: (password: string) => Promise<PasswordValidationStatus>;
   signInWithGoogle: () => Promise<void>;
   signInWithApple: () => Promise<void>;
   signOut: () => Promise<void>;
@@ -313,6 +315,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     loading,
     signIn,
     signUp,
+    checkPasswordPolicy,
     signInWithGoogle,
     signInWithApple,
     signOut,

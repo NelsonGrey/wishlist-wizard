@@ -30,6 +30,7 @@ const CONTEXT_CODE_MESSAGES: Record<AuthErrorContext, Record<string, string>> = 
     'auth/email-already-in-use': 'An account with this email already exists.',
     'auth/invalid-email': 'Invalid email address.',
     'auth/weak-password': 'Password is too weak. Please choose a stronger password.',
+    'auth/password-does-not-meet-requirements': 'Password does not meet the required strength policy.',
     'auth/operation-not-allowed': 'Email/password accounts are not enabled.',
     ...OAUTH_CODE_MESSAGES,
   },

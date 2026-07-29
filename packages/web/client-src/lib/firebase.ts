@@ -26,7 +26,9 @@ import {
   GoogleAuthProvider,
   OAuthProvider,
   signInWithPopup,
-  linkWithCredential
+  linkWithCredential,
+  validatePassword,
+  type PasswordValidationStatus
 } from 'firebase/auth';
 import { getToken, isSupported as messagingIsSupported } from 'firebase/messaging';
 
@@ -475,6 +477,15 @@ export async function signOutUser() {
   }
   if (!firebaseClient) throw createFirebaseNotConfiguredError();
   return await signOut(firebaseClient.auth);
+}
+
+/** Fetches the live Firebase password policy and validates `password` against it in one round-trip. */
+export async function checkPasswordPolicy(password: string): Promise<PasswordValidationStatus> {
+  if (!firebaseClient) {
+    await initFirebase({ enableAuth: true, enableFirestore: true });
+  }
+  if (!firebaseClient) throw createFirebaseNotConfiguredError();
+  return await validatePassword(firebaseClient.auth, password);
 }
 
 export async function resetPassword(email: string) {
