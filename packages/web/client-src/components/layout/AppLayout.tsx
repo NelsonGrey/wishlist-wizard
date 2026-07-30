@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -30,7 +30,6 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useAuth } from "@/contexts/AuthContext";
-import { useLockShellHeight } from "@/hooks/use-lock-shell-height";
 import Footer from "@/components/Footer";
 import { GlobalAdSlot } from "@/components/ads";
 
@@ -42,13 +41,10 @@ export default function AppLayout({ children }: AppLayoutProps) {
   const [location] = useLocation();
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
   const { user, signOut } = useAuth();
-  const mainRef = useRef<HTMLElement>(null);
-  const shellRef = useRef<HTMLDivElement>(null);
-  useLockShellHeight(shellRef);
 
   // Scroll to top when location changes
   useEffect(() => {
-    mainRef.current?.scrollTo(0, 0);
+    window.scrollTo(0, 0);
   }, [location]);
 
   const currentUser = user;
@@ -82,7 +78,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
   ];
 
   return (
-    <div ref={shellRef} className="h-screen flex flex-col overflow-hidden bg-white">
+    <div className="min-h-screen flex flex-col bg-white">
       {/* App Header */}
       <header className="bg-white border-b border-emerald-100 sticky top-0 z-10 shadow-sm">
         <div className="site-container flex items-center justify-between py-2.5 2xl:py-3">
@@ -215,8 +211,8 @@ export default function AppLayout({ children }: AppLayoutProps) {
 
       <GlobalAdSlot placement="top" />
 
-      {/* Main content — scrolls within viewport so footer stays pinned */}
-      <main ref={mainRef} className="min-h-0 flex-1 overflow-y-auto bg-white">
+      {/* Main content — flex-1 fills remaining space when short, page scrolls naturally when tall */}
+      <main className="flex-1 bg-white">
         <div className="mx-auto min-h-full w-full max-w-[var(--site-content-width)] bg-gray-50">
           {children}
         </div>

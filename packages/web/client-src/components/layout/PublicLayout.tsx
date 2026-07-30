@@ -1,9 +1,8 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import Footer from "@/components/Footer";
 import { GlobalAdSlot } from "@/components/ads";
 import { useAuth } from "@/contexts/AuthContext";
-import { useLockShellHeight } from "@/hooks/use-lock-shell-height";
 
 interface PublicLayoutProps {
   children: React.ReactNode;
@@ -12,9 +11,6 @@ interface PublicLayoutProps {
 export default function PublicLayout({ children }: PublicLayoutProps) {
   const [location] = useLocation();
   const { isAuthenticated } = useAuth();
-  const mainRef = useRef<HTMLElement>(null);
-  const shellRef = useRef<HTMLDivElement>(null);
-  useLockShellHeight(shellRef);
   const adFreeMarketingRoutes = [
     '/',
     '/subscriptions',
@@ -39,13 +35,13 @@ export default function PublicLayout({ children }: PublicLayoutProps) {
   ];
   const shouldShowAds = !adFreeMarketingRoutes.includes(location);
 
-  // Scroll the main content area to top on route change.
+  // Scroll to top on route change.
   useEffect(() => {
-    mainRef.current?.scrollTo(0, 0);
+    window.scrollTo(0, 0);
   }, [location]);
 
   return (
-    <div ref={shellRef} className="h-screen flex flex-col overflow-hidden bg-white">
+    <div className="min-h-screen flex flex-col bg-white">
       <header className="flex-none bg-white border-b border-gray-200 shadow-sm z-50">
         <div className="site-container flex items-center justify-between py-2.5 2xl:py-3.5">
           <Link href="/">
@@ -111,8 +107,8 @@ export default function PublicLayout({ children }: PublicLayoutProps) {
 
       {shouldShowAds && <GlobalAdSlot placement="top" />}
 
-      {/* Scrollable content area between the pinned header and footer */}
-      <main ref={mainRef} className="min-h-0 flex-1 overflow-y-auto bg-white">
+      {/* Content area between header and footer — flex-1 fills remaining space when short */}
+      <main className="flex-1 bg-white">
         {children}
       </main>
 

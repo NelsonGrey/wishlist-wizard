@@ -1,8 +1,7 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { GlobalAdSlot } from "@/components/ads";
 import Footer from "@/components/Footer";
-import { useLockShellHeight } from "@/hooks/use-lock-shell-height";
 
 interface AuthLayoutProps {
   children: React.ReactNode;
@@ -10,17 +9,14 @@ interface AuthLayoutProps {
 
 export default function AuthLayout({ children }: AuthLayoutProps) {
   const [location] = useLocation();
-  const mainRef = useRef<HTMLElement>(null);
-  const shellRef = useRef<HTMLDivElement>(null);
-  useLockShellHeight(shellRef);
 
-  // Scroll the main content area to top on route change.
+  // Scroll to top on route change.
   useEffect(() => {
-    mainRef.current?.scrollTo(0, 0);
+    window.scrollTo(0, 0);
   }, [location]);
 
   return (
-    <div ref={shellRef} className="h-screen flex flex-col overflow-hidden bg-white">
+    <div className="min-h-screen flex flex-col bg-white">
       {/* Minimal Auth Header */}
       <header className="flex-none bg-white/95 backdrop-blur-sm border-b border-emerald-100 shadow-sm">
         <div className="site-container flex items-center justify-between py-3 2xl:py-4">
@@ -42,8 +38,8 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
 
       <GlobalAdSlot placement="top" />
 
-      {/* Main content - aligned closer to top, scrolls within viewport so footer stays pinned */}
-      <main ref={mainRef} className="mx-auto min-h-0 w-full max-w-[var(--site-content-width)] flex-1 overflow-y-auto flex items-start justify-center bg-gradient-to-br from-emerald-50 via-white to-green-50 pt-3 pb-12 px-4">
+      {/* Main content - aligned closer to top, flex-1 fills remaining space, page scrolls naturally when tall */}
+      <main className="mx-auto w-full max-w-[var(--site-content-width)] flex-1 flex items-start justify-center bg-gradient-to-br from-emerald-50 via-white to-green-50 pt-3 pb-12 px-4">
         <div className="w-full max-w-md">
           {children}
         </div>
