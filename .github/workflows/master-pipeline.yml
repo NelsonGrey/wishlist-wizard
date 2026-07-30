@@ -30,6 +30,11 @@ on:
         required: false
         type: boolean
         default: false
+  pull_request:
+    branches:
+      - develop
+      - staging
+      - main
 
 concurrency:
   group: master-pipeline-v2-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
