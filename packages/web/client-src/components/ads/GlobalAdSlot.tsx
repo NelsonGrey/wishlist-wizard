@@ -14,9 +14,8 @@ export function GlobalAdSlot({ placement }: GlobalAdSlotProps) {
   return (
     <section aria-label="Sponsored" className="pointer-events-none">
       {/*
-        AdSense's ad-unclipping script (see use-lock-shell-height.ts for the
-        same issue elsewhere) can force an inline height on this slot's
-        ancestors that no longer matches the actual ad's visible size,
+        AdSense's ad-unclipping script can force an inline height on this
+        slot's ancestors that no longer matches the actual ad's visible size,
         leaving an invisible box that overlaps page content below it and
         steals its clicks. pointer-events-none here means that stray box is
         never interactive; pointer-events-auto on AdUnit's own wrapper
