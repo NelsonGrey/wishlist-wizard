@@ -14,6 +14,7 @@ import 'providers/providers.dart';
 import 'services/services.dart';
 import 'services/admob_service.dart';
 import 'services/fcm_service.dart';
+import 'services/iap_service.dart';
 import 'screens/login_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/firebase_wishlists_screen.dart';
@@ -102,6 +103,7 @@ class WishlistWizardApp extends StatelessWidget {
           ChangeNotifierProvider(create: (_) => WishlistProvider()),
           ChangeNotifierProvider(create: (_) => FirebaseWishlistProvider()),
           ChangeNotifierProvider(create: (_) => SubscriptionProvider()),
+          ChangeNotifierProvider(create: (_) => IapService()..initialize()),
         ],
         child: MaterialApp(
           title: 'Wishlist Wizard',

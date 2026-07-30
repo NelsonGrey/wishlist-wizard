@@ -43,7 +43,6 @@ class SubscriptionProvider extends ChangeNotifier {
   final FirebaseFunctionsService _functionsService = FirebaseFunctionsService();
 
   bool _isLoading = false;
-  bool _isActionLoading = false;
   String? _error;
 
   String _tier = 'free';
@@ -57,7 +56,6 @@ class SubscriptionProvider extends ChangeNotifier {
       <SubscriptionUpgradeOption>[];
 
   bool get isLoading => _isLoading;
-  bool get isActionLoading => _isActionLoading;
   String? get error => _error;
   String get tier => _tier;
   String get status => _status;
@@ -86,42 +84,6 @@ class SubscriptionProvider extends ChangeNotifier {
     }
   }
 
-  Future<String?> createCheckoutUrl(String tier, String billingCycle) async {
-    _isActionLoading = true;
-    _error = null;
-    notifyListeners();
-
-    try {
-      final response = await _functionsService.billingCheckout(
-        tier,
-        billingCycle,
-      );
-      return _pickFirstString(response, const <String>['checkoutUrl', 'url']);
-    } catch (_) {
-      _error = 'Unable to create checkout session';
-      return null;
-    } finally {
-      _isActionLoading = false;
-      notifyListeners();
-    }
-  }
-
-  Future<String?> createBillingPortalUrl() async {
-    _isActionLoading = true;
-    _error = null;
-    notifyListeners();
-
-    try {
-      final response = await _functionsService.billingPortal();
-      return _pickFirstString(response, const <String>['portalUrl', 'url']);
-    } catch (_) {
-      _error = 'Unable to open billing portal';
-      return null;
-    } finally {
-      _isActionLoading = false;
-      notifyListeners();
-    }
-  }
 
   int usageCount(String key) {
     final value = _usage[key];
@@ -192,13 +154,4 @@ class SubscriptionProvider extends ChangeNotifier {
     }
   }
 
-  String? _pickFirstString(Map<String, dynamic> source, List<String> keys) {
-    for (final key in keys) {
-      final value = source[key];
-      if (value is String && value.isNotEmpty) {
-        return value;
-      }
-    }
-    return null;
-  }
 }

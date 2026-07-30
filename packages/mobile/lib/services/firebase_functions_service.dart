@@ -158,29 +158,28 @@ class FirebaseFunctionsService {
     }
   }
 
-  Future<Map<String, dynamic>> billingCheckout(
-    String tier,
-    String billingCycle,
-  ) async {
+  /// Verifies a native StoreKit/Play Billing purchase server-side and
+  /// updates the user's subscription tier. See packages/functions/src/api/iap.ts.
+  Future<Map<String, dynamic>> verifyIapPurchase({
+    required String productId,
+    required String? purchaseId,
+    required String verificationData,
+    required String source,
+  }) async {
     try {
       final result = await _apiRequest(
         'POST',
-        '/billing/checkout',
-        body: {'tier': tier, 'billingCycle': billingCycle},
+        '/billing/verify-purchase',
+        body: {
+          'productId': productId,
+          'purchaseId': purchaseId,
+          'verificationData': verificationData,
+          'source': source,
+        },
       );
       return Map<String, dynamic>.from(result as Map);
     } catch (e) {
-      _logger.severe('Error calling billingCheckout: $e');
-      rethrow;
-    }
-  }
-
-  Future<Map<String, dynamic>> billingPortal() async {
-    try {
-      final result = await _apiRequest('POST', '/billing/portal');
-      return Map<String, dynamic>.from(result as Map);
-    } catch (e) {
-      _logger.severe('Error calling billingPortal: $e');
+      _logger.severe('Error calling verifyIapPurchase: $e');
       rethrow;
     }
   }
