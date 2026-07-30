@@ -728,6 +728,9 @@ jobs:
     name: Build Chrome Extension
     needs: load-config
     if: needs.load-config.outputs.chrome_extension == 'true'
+    permissions:
+      contents: read
+      issues: write
     uses: ./.github/workflows/extension-build.yml
     with:
       project_name: ${{ needs.load-config.outputs.project_name }}

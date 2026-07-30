@@ -2,6 +2,7 @@ name: Build & Test Browser Extension
 
 permissions:
   contents: read
+  issues: write
 
 on:
   workflow_call:
