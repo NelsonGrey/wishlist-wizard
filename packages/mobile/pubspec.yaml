@@ -37,7 +37,7 @@ dependencies:
   # Authentication & Security
   flutter_secure_storage: ^9.2.2
   google_sign_in: ^7.1.1
-  sign_in_with_apple: ^7.0.0
+  sign_in_with_apple: ^8.1.0
   
   # Image & Media
   image_picker: ^1.1.2
