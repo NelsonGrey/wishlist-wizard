@@ -84,6 +84,7 @@ function shouldUseFirebaseApiRouter(url: string, _method: string): boolean {
   }
 
   const routerEndpoints = [
+    '/api/account',
     '/api/privacy',
     '/api/recommendations',
     '/api/price-alerts',

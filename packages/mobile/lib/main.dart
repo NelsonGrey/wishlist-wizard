@@ -690,8 +690,89 @@ class ProfileScreen extends StatelessWidget {
               },
               child: const Text('Logout'),
             ),
+            const SizedBox(height: 24),
+            TextButton(
+              onPressed: () => _showDeleteAccountDialog(context),
+              style: TextButton.styleFrom(foregroundColor: Colors.red),
+              child: const Text('Delete Account'),
+            ),
           ],
         ),
+      ),
+    );
+  }
+
+  void _showDeleteAccountDialog(BuildContext context) {
+    final confirmController = TextEditingController();
+    var deleting = false;
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setDialogState) {
+          final confirmed =
+              confirmController.text.trim().toLowerCase() == 'delete my account';
+
+          return AlertDialog(
+            title: const Text('Delete Your Account?'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'This action cannot be undone. All your wishlists, preferences, and data will be permanently deleted.',
+                ),
+                const SizedBox(height: 16),
+                const Text('Please type "delete my account" to confirm:'),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: confirmController,
+                  autofocus: true,
+                  enabled: !deleting,
+                  decoration: const InputDecoration(hintText: 'delete my account'),
+                  onChanged: (_) => setDialogState(() {}),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: deleting ? null : () => Navigator.pop(dialogContext),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red,
+                  foregroundColor: Colors.white,
+                ),
+                onPressed: !confirmed || deleting
+                    ? null
+                    : () async {
+                        setDialogState(() => deleting = true);
+                        try {
+                          await FirebaseFunctionsService().deleteAccount();
+                          if (dialogContext.mounted) {
+                            Navigator.pop(dialogContext);
+                          }
+                          if (context.mounted) {
+                            Provider.of<AuthProvider>(context, listen: false).logout();
+                          }
+                        } catch (e) {
+                          setDialogState(() => deleting = false);
+                          if (dialogContext.mounted) {
+                            ScaffoldMessenger.of(dialogContext).showSnackBar(
+                              const SnackBar(
+                                content: Text('Failed to delete account. Please try again.'),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                          }
+                        }
+                      },
+                child: Text(deleting ? 'Deleting...' : 'Delete Account'),
+              ),
+            ],
+          );
+        },
       ),
     );
   }

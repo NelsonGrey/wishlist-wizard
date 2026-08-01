@@ -134,6 +134,15 @@ class FirebaseFunctionsService {
     }
   }
 
+  Future<void> deleteAccount() async {
+    try {
+      await _apiRequest('DELETE', '/account');
+    } catch (e) {
+      _logger.severe('Error calling deleteAccount: $e');
+      rethrow;
+    }
+  }
+
   // =============================================================================
   // SUBSCRIPTION FUNCTIONS
   // =============================================================================
