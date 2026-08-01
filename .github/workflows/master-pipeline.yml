@@ -35,6 +35,25 @@ on:
       - develop
       - staging
       - main
+  # develop is deliberately excluded here even though the project manifest
+  # (.cicd/projects/wishlist-wizard.yml) lists it under ci.triggers — adding
+  # it would newly activate deploy-firebase (a real Functions deploy) on
+  # every develop push, a bigger behavior change than "leave develop as-is".
+  # develop keeps its existing dev-hosting-only deploy via
+  # firebase-hosting-dev.yml.
+  push:
+    branches:
+      - staging
+      - main
+    paths:
+      - "packages/mobile/**"
+      - "packages/web/**"
+      - "packages/browser-extension/**"
+      - "packages/functions/**"
+      - ".github/workflows/**"
+      - ".cicd/projects/**"
+      - "pubspec.yaml"
+      - "firebase*.json"
 
 concurrency:
   group: master-pipeline-v2-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -393,9 +412,136 @@ jobs:
     uses: ./.github/workflows/ios-mobile-release.yml
     with:
       release_type: ${{ needs.load-config.outputs.trigger_context == 'build_all' && 'build_only' || 'testflight' }}
-      beta_group_name: "Internal Testers"
+      # Both staging and main land in TestFlight (not App Store submission —
+      # that stays a deliberate, manual workflow_dispatch with
+      # release_type=appstore, never reachable from this automatic path) —
+      # different group names just so builds from each branch are
+      # distinguishable in TestFlight.
+      beta_group_name: >-
+        ${{ needs.load-config.outputs.target_environment == 'production' && 'Beta Testers' || 'Staging' }}
       skip_tests: false
     secrets: inherit
+
+  build-android:
+    name: Build Android App
+    needs: [load-config, quality-gate]
+    if: |
+      needs.load-config.outputs.android_enabled == 'true' &&
+      (needs.load-config.outputs.trigger_context == 'build_all' ||
+       needs.load-config.outputs.trigger_context == 'build_and_deploy') &&
+      needs.quality-gate.result == 'success'
+    runs-on: ubuntu-latest
+    env:
+      TARGET_ENV: ${{ needs.load-config.outputs.target_environment }}
+    defaults:
+      run:
+        working-directory: packages/mobile
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v7
+
+      - name: Setup Java 21
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ runner.os }}-${{ hashFiles('packages/mobile/android/gradle/wrapper/gradle-wrapper.properties', 'packages/mobile/android/**/build.gradle.kts', 'packages/mobile/android/settings.gradle.kts') }}
+          restore-keys: |
+            gradle-${{ runner.os }}-
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: Install Dependencies
+        run: flutter pub get
+
+      - name: Select Firebase Environment Config
+        run: |
+          # firebase_options.dart's String.fromEnvironment('FIREBASE_ENV')
+          # defaults to dev, but android/app/google-services.json (the file
+          # the google-services Gradle plugin actually bakes into the build)
+          # is a separate, native-layer config with its own default — swap it
+          # explicitly so both layers agree on which Firebase project this
+          # build talks to.
+          case "$TARGET_ENV" in
+            production) SUFFIX=prod ;;
+            staging)    SUFFIX=staging ;;
+            *)          SUFFIX=dev ;;
+          esac
+          cp "android/app/google-services.$SUFFIX.json" android/app/google-services.json
+
+      - name: Build Debug APK
+        if: needs.load-config.outputs.trigger_context != 'build_and_deploy'
+        run: flutter build apk --debug --dart-define=FIREBASE_ENV=${{ env.TARGET_ENV }}
+
+      - name: Decode Release Keystore
+        if: needs.load-config.outputs.trigger_context == 'build_and_deploy'
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          if [ -z "$ANDROID_KEYSTORE_BASE64" ]; then
+            echo "❌ ANDROID_KEYSTORE_BASE64 secret is not set — cannot produce a signed release build"
+            exit 1
+          fi
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/app/wishlist-wizard-key.jks
+
+      - name: Build Release App Bundle
+        if: needs.load-config.outputs.trigger_context == 'build_and_deploy'
+        env:
+          ANDROID_STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          if [ -z "$ANDROID_STORE_PASSWORD" ] || [ -z "$ANDROID_KEY_PASSWORD" ]; then
+            echo "❌ ANDROID_STORE_PASSWORD / ANDROID_KEY_PASSWORD secrets are not set"
+            exit 1
+          fi
+          flutter build appbundle --release --dart-define=FIREBASE_ENV=${{ env.TARGET_ENV }}
+
+      - name: Upload Android Artifacts
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: android-build-${{ needs.load-config.outputs.trigger_context == 'build_and_deploy' && 'release' || 'debug' }}
+          path: |
+            packages/mobile/build/app/outputs/**/*.apk
+            packages/mobile/build/app/outputs/**/*.aab
+          if-no-files-found: warn
+
+  deploy-android:
+    name: Deploy Android to Play Store
+    needs: [load-config, build-android]
+    if: |
+      needs.load-config.outputs.android_enabled == 'true' &&
+      needs.load-config.outputs.trigger_context == 'build_and_deploy' &&
+      needs.build-android.result == 'success'
+    runs-on: ubuntu-latest
+    environment: ${{ needs.load-config.outputs.target_environment == 'production' && 'PRODUCTION' || 'STAGING' }}
+    steps:
+      - name: Download Android Artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: android-build-release
+          path: android-build/
+
+      - name: Upload to Google Play (internal track)
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: com.wishlistwizard.app.android
+          releaseFiles: android-build/bundle/release/app-release.aab
+          # Same static track for staging and main — the app isn't publicly
+          # launched yet, so nothing auto-publishes to the production track.
+          track: internal
+          status: completed
 
   build-web:
     name: Build Web App
@@ -740,7 +886,9 @@ jobs:
     uses: ./.github/workflows/extension-build.yml
     with:
       project_name: ${{ needs.load-config.outputs.project_name }}
-      publish: false
+      # Only real deploy pushes (staging/main) attempt to publish — PR runs
+      # and develop stay build-only, unchanged.
+      publish: ${{ needs.load-config.outputs.trigger_context == 'build_and_deploy' }}
       node_version: "20"
     secrets:
       chrome_extension_id: ${{ secrets.CHROME_EXTENSION_ID }}
@@ -750,7 +898,7 @@ jobs:
 
   pipeline-summary:
     name: Pipeline Summary
-    needs: [load-config, test, web-uat-tests, quality-gate, build-ios, build-web, deploy-firebase, validate-production, build-chrome-extension]
+    needs: [load-config, test, web-uat-tests, quality-gate, build-ios, build-android, deploy-android, build-web, deploy-firebase, validate-production, build-chrome-extension]
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -767,6 +915,8 @@ jobs:
           echo "- Web UAT: ${{ needs.web-uat-tests.result }}" >> $GITHUB_STEP_SUMMARY
           echo "- Quality Gate: ${{ needs.quality-gate.result }}" >> $GITHUB_STEP_SUMMARY
           echo "- iOS: ${{ needs.build-ios.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Android Build: ${{ needs.build-android.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Android Deploy: ${{ needs.deploy-android.result }}" >> $GITHUB_STEP_SUMMARY
           echo "- Web: ${{ needs.build-web.result }}" >> $GITHUB_STEP_SUMMARY
           echo "- Firebase: ${{ needs.deploy-firebase.result }}" >> $GITHUB_STEP_SUMMARY
           echo "- Production Validation: ${{ needs.validate-production.result }}" >> $GITHUB_STEP_SUMMARY
