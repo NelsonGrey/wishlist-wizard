@@ -38,6 +38,8 @@ import {
   useUpdateDefaultPrivacySettings,
   type UserDefaultPrivacy,
 } from '@/hooks/use-privacy';
+import { useDeleteAccount } from '@/hooks/use-account-deletion';
+import { useAuth } from '@/contexts/AuthContext';
 
 type SettingsTab = 'account' | 'notifications' | 'privacy' | 'preferences';
 
@@ -88,9 +90,30 @@ export default function Settings() {
   const [currency, setCurrency] = useState('USD');
 
   const { toast } = useToast();
+  const { signOut } = useAuth();
   const { data: defaultPrivacy } = useDefaultPrivacySettings();
   const updateDefaultPrivacy = useUpdateDefaultPrivacySettings();
   const [privacyDraft, setPrivacyDraft] = useState<UserDefaultPrivacy | null>(null);
+  const deleteAccount = useDeleteAccount();
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+
+  const handleDeleteAccount = () => {
+    deleteAccount.mutate(undefined, {
+      onSuccess: async () => {
+        toast({ title: 'Account deleted' });
+        setDeleteDialogOpen(false);
+        await signOut();
+        setLocation('/');
+      },
+      onError: () =>
+        toast({
+          title: 'Failed to delete account',
+          description: 'Please try again or contact support.',
+          variant: 'destructive',
+        }),
+    });
+  };
 
   useEffect(() => {
     if (defaultPrivacy) {
@@ -239,7 +262,13 @@ export default function Settings() {
                         <LogOut size={16} className="mr-2" />
                         Log Out of All Devices
                       </Button>
-                      <Dialog>
+                      <Dialog
+                        open={deleteDialogOpen}
+                        onOpenChange={(open) => {
+                          setDeleteDialogOpen(open);
+                          if (!open) setDeleteConfirmText('');
+                        }}
+                      >
                         <DialogTrigger asChild>
                           <Button variant="outline" size="sm" className="text-red-600 hover:bg-red-50">
                             Delete Account
@@ -256,11 +285,27 @@ export default function Settings() {
                             <p className="text-sm text-muted-foreground">
                               Please type &quot;delete my account&quot; to confirm:
                             </p>
-                            <Input placeholder="delete my account" />
+                            <Input
+                              placeholder="delete my account"
+                              value={deleteConfirmText}
+                              onChange={(e) => setDeleteConfirmText(e.target.value)}
+                              disabled={deleteAccount.isPending}
+                            />
                           </div>
                           <DialogFooter>
-                            <Button variant="outline">Cancel</Button>
-                            <Button variant="destructive">Delete Account</Button>
+                            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
+                              Cancel
+                            </Button>
+                            <Button
+                              variant="destructive"
+                              disabled={
+                                deleteConfirmText.trim().toLowerCase() !== 'delete my account' ||
+                                deleteAccount.isPending
+                              }
+                              onClick={handleDeleteAccount}
+                            >
+                              {deleteAccount.isPending ? 'Deleting...' : 'Delete Account'}
+                            </Button>
                           </DialogFooter>
                         </DialogContent>
                       </Dialog>
