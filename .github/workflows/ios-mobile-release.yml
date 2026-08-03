@@ -88,7 +88,13 @@ jobs:
     runs-on: ${{ fromJSON(inputs.runner_labels) }}
     timeout-minutes: 90
     environment:
-      name: ${{ (inputs.release_type == 'appstore' || inputs.release_type == 'appstore_metadata' || inputs.release_type == 'appstore_submit') && 'ios-appstore' || 'ios-testflight' }}
+      # ios-appstore requires manual approval (see repo environment
+      # settings) — reserved for appstore_submit, the one genuinely
+      # irreversible action here. appstore/appstore_metadata build or push
+      # metadata and are safe to run repeatedly/automatically, so they stay
+      # on the ungated ios-testflight environment rather than picking up
+      # ios-appstore's approval requirement too.
+      name: ${{ inputs.release_type == 'appstore_submit' && 'ios-appstore' || 'ios-testflight' }}
     defaults:
       run:
         shell: bash
