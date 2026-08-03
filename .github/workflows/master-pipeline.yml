@@ -433,11 +433,12 @@ jobs:
     name: Build Android App
     needs: [load-config, quality-gate]
     if: |
+      always() &&
       needs.load-config.outputs.android_enabled == 'true' &&
       (needs.load-config.outputs.trigger_context == 'build_all' ||
        needs.load-config.outputs.trigger_context == 'build_and_deploy' ||
        needs.load-config.outputs.trigger_context == 'android_deploy_only') &&
-      (needs.load-config.outputs.trigger_context == 'android_deploy_only' || needs.quality-gate.result == 'success')
+      needs.quality-gate.result == 'success'
     runs-on: ubuntu-latest
     env:
       TARGET_ENV: ${{ needs.load-config.outputs.target_environment }}
@@ -528,6 +529,7 @@ jobs:
     name: Deploy Android to Play Store
     needs: [load-config, build-android]
     if: |
+      always() &&
       needs.load-config.outputs.android_enabled == 'true' &&
       (needs.load-config.outputs.trigger_context == 'build_and_deploy' ||
        needs.load-config.outputs.trigger_context == 'android_deploy_only') &&
