@@ -170,8 +170,12 @@ platform :ios do
   # FIREBASE_ENV dart-define does not touch) and fails loudly if the result
   # doesn't actually match the prod project, rather than silently shipping wrong.
   def ensure_prod_firebase_config!
-    prod_plist = "Runner/GoogleService-Info.prod.plist"
-    active_plist = "Runner/GoogleService-Info.plist"
+    # Fastlane's working directory during lane execution is this fastlane/
+    # directory itself (see sibling "../Pods" references elsewhere in this
+    # file), not its parent — so these paths need the "../" prefix to reach
+    # Runner/, which lives alongside fastlane/, not inside it.
+    prod_plist = "../Runner/GoogleService-Info.prod.plist"
+    active_plist = "../Runner/GoogleService-Info.plist"
     UI.user_error!("Missing #{prod_plist}") unless File.exist?(prod_plist)
 
     FileUtils.cp(prod_plist, active_plist)
