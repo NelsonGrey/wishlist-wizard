@@ -668,6 +668,20 @@ platform :ios do
       skip_binary_upload: true,
       skip_app_version_update: true,
       skip_screenshots: !Dir.exist?(File.expand_path("screenshots", __dir__)),
+      # Required — without this, deliver tries to fetch/preserve this
+      # version's *existing* appStoreReviewDetail and crashes with a
+      # spaceship "No data" error when none has ever been created (as found
+      # running this for real: fastlane-2.237.0's
+      # deliver/upload_metadata.rb:752 review_attachment_file assumes the
+      # resource exists). Passing this explicitly makes deliver create it
+      # instead of trying to read a nonexistent one.
+      app_review_information: {
+        first_name: "Mark",
+        last_name: "Nelson",
+        phone_number: ENV["BETA_CONTACT_PHONE"] || "+16307158474",
+        email_address: ENV["BETA_FEEDBACK_EMAIL"] || "mark.a.nelson@outlook.com",
+        notes: "No demo account needed — sign-in supports Google, email, or continuing as a guest."
+      },
       submit_for_review: false,
       # precheck's IAP-metadata inspection requires Apple ID/2FA auth, not
       # API-key auth — this app authenticates with an API key, so precheck's
@@ -689,6 +703,13 @@ platform :ios do
       skip_binary_upload: true,
       skip_app_version_update: true,
       skip_screenshots: !Dir.exist?(File.expand_path("screenshots", __dir__)),
+      app_review_information: {
+        first_name: "Mark",
+        last_name: "Nelson",
+        phone_number: ENV["BETA_CONTACT_PHONE"] || "+16307158474",
+        email_address: ENV["BETA_FEEDBACK_EMAIL"] || "mark.a.nelson@outlook.com",
+        notes: "No demo account needed — sign-in supports Google, email, or continuing as a guest."
+      },
       submit_for_review: true,
       automatic_release: false,
       precheck_include_in_app_purchases: false,
