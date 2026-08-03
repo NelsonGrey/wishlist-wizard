@@ -1,4 +1,17 @@
 # Fastfile for Wishlist Wizard Android App
+#
+# STATUS: not wired into CI. master-pipeline.yml's build-android/deploy-android
+# jobs use the r0adkll/upload-google-play GitHub Action directly instead of
+# this Fastfile — that path is what's actually exercised and live-verified
+# (real signed AAB built, real upload to the Play Console internal track).
+# This file is kept for local/manual use only; if you resurrect it for CI,
+# note upload_to_play_store needs json_key_data/package_name passed
+# explicitly (the Appfile's json_key_file/ENV declaration alone silently
+# falls through to Application Default Credentials and fails confusingly),
+# and the secret name below (GOOGLE_PLAY_SERVICE_ACCOUNT_KEY) doesn't match
+# the one actually configured in this repo's GitHub Actions secrets
+# (GOOGLE_PLAY_SERVICE_ACCOUNT_JSON) — fix that before relying on it.
+#
 # This file contains the lanes for building, testing, and distributing the app
 
 # Import required plugins
