@@ -64,6 +64,8 @@ on:
           - build_only
           - testflight
           - appstore
+          - appstore_metadata
+          - appstore_submit
       skip_tests:
         description: Skip mobile tests
         required: false
@@ -86,7 +88,7 @@ jobs:
     runs-on: ${{ fromJSON(inputs.runner_labels) }}
     timeout-minutes: 90
     environment:
-      name: ${{ inputs.release_type == 'appstore' && 'ios-appstore' || 'ios-testflight' }}
+      name: ${{ (inputs.release_type == 'appstore' || inputs.release_type == 'appstore_metadata' || inputs.release_type == 'appstore_submit') && 'ios-appstore' || 'ios-testflight' }}
     defaults:
       run:
         shell: bash
@@ -228,6 +230,17 @@ jobs:
             appstore)
               bundle exec fastlane build_appstore
               ;;
+            appstore_metadata)
+              # Metadata/screenshots only via the API — no build, no signing,
+              # and never submits for review.
+              bundle exec fastlane push_appstore_metadata
+              ;;
+            appstore_submit)
+              # Submits the current App Store version for human review.
+              # Irreversible on Apple's side once accepted — only reachable
+              # via an explicit workflow_dispatch choice, never automatically.
+              bundle exec fastlane submit_appstore_for_review
+              ;;
             *)
               echo "❌ Unknown release type: ${{ inputs.release_type }}"
               exit 1
@@ -235,7 +248,7 @@ jobs:
           esac
 
       - name: Upload iOS build artifact
-        if: ${{ inputs.release_type != 'testflight' }}
+        if: ${{ inputs.release_type != 'testflight' && inputs.release_type != 'appstore_metadata' && inputs.release_type != 'appstore_submit' }}
         uses: actions/upload-artifact@v7
         with:
           name: ios-release-${{ inputs.release_type }}
