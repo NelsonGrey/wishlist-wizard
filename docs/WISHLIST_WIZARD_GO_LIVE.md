@@ -332,6 +332,67 @@ Per the user's explicit direction ("production should show Coming Soon since we'
 
 ---
 
+### 1.18 Marketing Tools Service Account — GA4/GTM/Search Console API Access [PARTIALLY RESOLVED — 2026-08-04]
+
+Replicated the `marketing-tools-service` pattern set up on the sibling `modulo-squares` project (its `docs/GO_LIVE_RUNBOOK.md` §3.2b) onto `wishlist-wizard-prod`, so the same GA4/GTM/Search Console API access — and the live-config audit it enables — exists here too. Confirmed clean slate before starting: none of the four marketing APIs were enabled, no `marketing-tools-service` SA existed, and `constraints/iam.disableServiceAccountKeyCreation` is `enforced: true` on this project (same as it was on modulo-squares pre-fix).
+
+**Completed:**
+- Enabled `analyticsadmin.googleapis.com`, `analyticsdata.googleapis.com`, `tagmanager.googleapis.com`, `searchconsole.googleapis.com`, `adsense.googleapis.com` on `wishlist-wizard-prod`.
+- Created `marketing-tools-service@wishlist-wizard-prod.iam.gserviceaccount.com`.
+
+**Blocked, needs the account owner:**
+- **Org policy exception + key mint.** Same as modulo-squares: the org-level `iam.disableServiceAccountKeyCreation` constraint blocks minting a key for the new SA, and lifting it (even project-scoped) is a sensitive-enough IAM mutation that it's outside what this session can execute directly. Run as `admin@nelsongrey.com` (Owner on this project):
+  ```bash
+  cat <<'EOF' > /tmp/sa-key-policy.yaml
+  constraint: constraints/iam.disableServiceAccountKeyCreation
+  booleanPolicy:
+    enforced: false
+  EOF
+  gcloud resource-manager org-policies set-policy /tmp/sa-key-policy.yaml --project=wishlist-wizard-prod
+
+  gcloud iam service-accounts keys create ~/marketing-tools-service-key.json \
+    --iam-account=marketing-tools-service@wishlist-wizard-prod.iam.gserviceaccount.com
+  ```
+- **Manual product invites** (UI-only, no API path, needs the actual Google-account owner in each console):
+  - **GTM:** invite `marketing-tools-service@wishlist-wizard-prod.iam.gserviceaccount.com` as a User under Account **6359833234 ("Nelson Grey")** if wishlist-wizard's container lives there (same shared account modulo-squares uses) — **not yet confirmed live**, since read access to list GTM accounts is itself blocked until the key exists. Confirm the actual account/container ID first via `GET https://tagmanager.googleapis.com/tagmanager/v2/accounts` once the SA key is usable, then invite there.
+  - **GA4:** invite the SA under Property Access Management for whichever GA4 property the `GTM-KRDC75LR` container feeds (see below) — property ID also not yet confirmed live.
+  - **Search Console:** invite the SA as a user under whichever verified property covers `wishlist-wizard.com` (production domain, per `.firebaserc`/`firebase_options.dart`).
+  - **AdSense/Google Ads:** intentionally not connected via this SA — same as modulo-squares, AdSense's permission model doesn't support inviting a service account, it needs the owner's own interactive OAuth consent through a custom verified OAuth client, and Google Ads additionally needs a developer token application. Accepted limitation, not a gap.
+
+**Auth pattern for using the SA once minted** (documented so it isn't rediscovered — two real gotchas cost time on modulo-squares):
+1. `gcloud auth application-default login --scopes=...` for these APIs is blocked outright by Google for the shared gcloud CLI OAuth client ("This app is blocked") — don't attempt it.
+2. `gcloud auth print-access-token --impersonate-service-account=...` silently ignores `--scopes` and returns a `cloud-platform`-only token, which none of these APIs accept (confirmed again this session: a `cloud-platform`-scoped token against `tagmanager.googleapis.com` returns `403 ACCESS_TOKEN_SCOPE_INSUFFICIENT`). Also confirmed this session: `gcloud auth print-access-token --scopes=...` run as a **human** account (not activated as the SA) fails outright — gcloud restricts custom `--scopes` on user credentials to a small fixed allowlist (`cloud-platform`, `drive`, etc.) that doesn't include analytics/tagmanager/webmasters scopes at all. The SA key is a hard prerequisite for any read access here, not just a nice-to-have. Once the key exists:
+   ```bash
+   gcloud auth activate-service-account --key-file=~/marketing-tools-service-key.json
+   gcloud config set account marketing-tools-service@wishlist-wizard-prod.iam.gserviceaccount.com
+   gcloud auth print-access-token \
+     --scopes="https://www.googleapis.com/auth/analytics.readonly,https://www.googleapis.com/auth/tagmanager.readonly,https://www.googleapis.com/auth/webmasters.readonly" \
+     --project=wishlist-wizard-prod > /tmp/token.txt
+   curl -s -H "Authorization: Bearer $(cat /tmp/token.txt)" "https://tagmanager.googleapis.com/tagmanager/v2/accounts"
+   gcloud config set account admin@nelsongrey.com   # restore afterward
+   ```
+
+**Resource IDs found in-repo (not yet cross-checked against live GTM/GA4 since read access is blocked):**
+- Web GTM container: **`GTM-KRDC75LR`** — loaded in `packages/web/index.html` and referenced in `packages/web/client-src/AppRouter.tsx:164` ("Analytics is handled by GTM ... + Consent Mode v2"). Same container ID appears to be used across all web environments (no per-env GTM ID found), worth confirming isn't mixing dev/staging/prod traffic in one GTM container once live access exists.
+- Firebase/GA4 measurement IDs (`packages/mobile/lib/firebase_options.dart`), one per Firebase project, mobile only:
+  - prod: `G-EVSC05Z24C`
+  - staging: `G-49ZJQVE5GH`
+  - dev: `G-R9N3G478FF`
+  - No `firebase_analytics` package dependency in `packages/mobile/pubspec.yaml` and no `FirebaseAnalytics` usage in `packages/mobile/lib/` — these measurement IDs are inert (present in generated `FirebaseOptions` from `flutterfire configure`, but nothing in the app actually sends events to them). Not a live conflict, just dead config.
+- **Checked for the Firebase-Analytics-vs-GTM conflict pattern flagged elsewhere in this project's history** (don't run the Firebase Analytics SDK alongside GTM-managed GA4 on the same web property): the web app's `getAnalyticsTracker()` (`packages/firebase-utils/src/analytics.ts`) looks like a real Firebase Analytics wrapper by name, but its `sendToFirebase()` method is fully commented out (`// await analytics.logEvent(...)`) and only `console.log`s — it's an inert local stub, not live Firebase Analytics traffic. **No actual conflict today**: only `GTM-KRDC75LR` is live on the web property. Worth a note for whoever eventually wires `sendToFirebase()` up for real — don't do it on web without either dropping GTM's GA4 tag or routing both through server-side tagging, or this becomes the exact double-counting bug modulo-squares hit.
+- **Separate, unrelated finding surfaced while cross-checking `.firebaserc`:** it defines a `"demonstration": "wishlist-wizard-demo"` project alias, but `wishlist-wizard-demo` is not visible to either `admin@nelsongrey.com` or `nelson.mark.a@gmail.com` (`gcloud projects describe wishlist-wizard-demo` → permission/not-found error under both). Either it's a real project under some other account/org this session can't see, or it's a stale alias pointing at nothing. Worth a 30-second check by whoever has broader access — low stakes, but the same class of "config says X, reality says something else" issue the GTM/GA4 audit is meant to catch, so flagging it here rather than silently dropping it.
+
+**Once the SA key + product invites are done**, re-run the live audit this section describes (list GTM accounts/containers, list GA4 properties, list Search Console sites) and confirm no analogous issue to modulo-squares' contaminated-tags/orphaned-property finding exists here. This section should be updated with the actual GTM account/container ID, GA4 property ID, and Search Console site once confirmed live — the IDs above are inferred from source, not yet verified against the real API.
+
+- [x] **Enable `analyticsadmin`, `analyticsdata`, `tagmanager`, `searchconsole`, `adsense` APIs on `wishlist-wizard-prod`** — Completed 2026-08-04
+- [x] **Create `marketing-tools-service@wishlist-wizard-prod.iam.gserviceaccount.com`** — Completed 2026-08-04
+- [ ] **Add project-scoped exception to `iam.disableServiceAccountKeyCreation` and mint the SA key** — Owner: _______ (exact commands above)
+- [ ] **Invite the SA in GTM, GA4, and Search Console consoles** — Owner: _______ (confirm exact account/property/site IDs first via the live API once the key exists)
+- [ ] **Re-run the live GTM/GA4/Search Console audit with real read access and confirm no contaminated tags / duplicate or orphaned properties**, mirroring the modulo-squares finding — Owner: _______
+- [ ] **Check whether `wishlist-wizard-demo` (referenced in `.firebaserc`) is a real, live project or a stale alias** — Owner: _______
+
+---
+
 ## Part 2 — Pre-Launch Checklist
 
 ### 2.1 Firebase Infrastructure
