@@ -20,7 +20,6 @@ import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -30,7 +29,6 @@ import { BellRing, DollarSign } from "lucide-react";
 
 interface PriceAlertFormProps {
   itemId: number;
-  itemTitle: string;
   currentPrice: string;
   currentNumericPrice: number;
   onSuccess?: () => void;
@@ -38,7 +36,6 @@ interface PriceAlertFormProps {
 
 export default function PriceAlertForm({
   itemId,
-  itemTitle,
   currentPrice,
   currentNumericPrice,
   onSuccess
@@ -109,7 +106,7 @@ export default function PriceAlertForm({
     <Card>
       <CardHeader className="pb-3">
         <CardTitle className="text-lg flex items-center">
-          <BellRing className="h-5 w-5 mr-2 text-blue-500" />
+          <BellRing className="h-5 w-5 mr-2 text-emerald-800" />
           Price Alert
         </CardTitle>
         <CardDescription>
@@ -123,7 +120,7 @@ export default function PriceAlertForm({
             className="w-full" 
             onClick={() => setShowForm(true)}
           >
-            Set up price alert
+            Add Price Alert
           </Button>
         ) : (
           <Form {...form}>
@@ -159,7 +156,7 @@ export default function PriceAlertForm({
                   className="flex-1"
                   disabled={createPriceAlertMutation.isPending}
                 >
-                  {createPriceAlertMutation.isPending ? "Creating..." : "Create Alert"}
+                  {createPriceAlertMutation.isPending ? "Saving..." : "Save"}
                 </Button>
                 <Button
                   type="button"

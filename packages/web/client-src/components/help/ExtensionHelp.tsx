@@ -6,7 +6,7 @@ export function ExtensionHelp() {
     <HelpDialog title="Browser Extension Help">
       <p className="text-sm text-muted-foreground mb-4">
         The Wishlist Wizard browser extension makes it easy to add items to your wishlists while shopping online.
-        Here's how to get the most out of this powerful tool:
+        Here&apos;s how to get the most out of this powerful tool:
       </p>
 
       <Accordion type="single" collapsible className="w-full">
@@ -30,7 +30,7 @@ export function ExtensionHelp() {
                 Add optional notes or customize the product information if needed
               </li>
               <li>
-                Click "Add to Wishlist" to save the item
+                Click &quot;Add to Wishlist&quot; to save the item
               </li>
             </ol>
             <p className="text-sm mt-2">
@@ -48,7 +48,7 @@ export function ExtensionHelp() {
             </p>
             <ol className="text-sm list-decimal pl-5 space-y-2">
               <li>
-                When viewing a product, click the Wishlist Wizard icon and select the "Compare Prices" tab
+                When viewing a product, click the Wishlist Wizard icon and select the &quot;Compare Prices&quot; tab
               </li>
               <li>
                 The extension will search for the same or similar products across other major retailers
@@ -60,7 +60,7 @@ export function ExtensionHelp() {
                 Click on any result to open that product page
               </li>
               <li>
-                Use the "Add to Wishlist" button to save the item from any of the comparison results
+                Use the &quot;Add to Wishlist&quot; button to save the item from any of the comparison results
               </li>
             </ol>
             <p className="text-sm mt-2">
@@ -78,10 +78,10 @@ export function ExtensionHelp() {
             </p>
             <ol className="text-sm list-decimal pl-5 space-y-2">
               <li>
-                While on a retailer's website, click the Wishlist Wizard icon
+                While on a retailer&apos;s website, click the Wishlist Wizard icon
               </li>
               <li>
-                Select the "Find Coupons" tab
+                Select the &quot;Find Coupons&quot; tab
               </li>
               <li>
                 The extension will search for valid coupon codes for that specific retailer
@@ -90,7 +90,7 @@ export function ExtensionHelp() {
                 See coupon details including the discount amount and any restrictions
               </li>
               <li>
-                Click "Copy Code" to copy a coupon code to your clipboard
+                Click &quot;Copy Code&quot; to copy a coupon code to your clipboard
               </li>
               <li>
                 Paste the code during checkout to apply the discount
@@ -112,28 +112,38 @@ export function ExtensionHelp() {
             
             <h4 className="text-sm font-medium mt-3 mb-1">For Chrome/Chromium Browsers:</h4>
             <ol className="text-sm list-decimal pl-5 space-y-1">
-              <li>Click the "Install for Chrome" button on the extension page</li>
-              <li>In the Chrome Web Store, click "Add to Chrome"</li>
-              <li>When prompted, confirm by clicking "Add extension"</li>
+              <li>Click the &quot;Install for Chrome&quot; button on the extension page</li>
+              <li>In the Chrome Web Store, click &quot;Add to Chrome&quot;</li>
+              <li>When prompted, confirm by clicking &quot;Add extension&quot;</li>
               <li>Once installed, the Wishlist Wizard icon will appear in your browser toolbar</li>
               <li>Click the icon and log in to your Wishlist Wizard account</li>
             </ol>
 
             <h4 className="text-sm font-medium mt-3 mb-1">For Firefox:</h4>
             <ol className="text-sm list-decimal pl-5 space-y-1">
-              <li>Click the "Install for Firefox" button on the extension page</li>
-              <li>In the Firefox Add-ons page, click "Add to Firefox"</li>
-              <li>When prompted, click "Add"</li>
+              <li>Click the &quot;Install for Firefox&quot; button on the extension page</li>
+              <li>You&apos;ll be taken to the Mozilla Add-ons store page</li>
+              <li>Click &quot;Add to Firefox&quot;</li>
+              <li>When prompted, click &quot;Add&quot; to confirm</li>
               <li>The Wishlist Wizard icon will appear in your browser toolbar</li>
               <li>Click the icon and log in to your Wishlist Wizard account</li>
             </ol>
 
             <h4 className="text-sm font-medium mt-3 mb-1">For Microsoft Edge:</h4>
             <ol className="text-sm list-decimal pl-5 space-y-1">
-              <li>Click the "Install for Edge" button on the extension page</li>
-              <li>In the Edge Add-ons page, click "Get"</li>
-              <li>When prompted, click "Add extension"</li>
+              <li>Click the &quot;Install for Edge&quot; button on the extension page</li>
+              <li>In the Edge Add-ons page, click &quot;Get&quot;</li>
+              <li>When prompted, click &quot;Add extension&quot;</li>
               <li>The Wishlist Wizard icon will appear in your browser toolbar</li>
+              <li>Click the icon and log in to your Wishlist Wizard account</li>
+            </ol>
+
+            <h4 className="text-sm font-medium mt-3 mb-1">For Safari:</h4>
+            <ol className="text-sm list-decimal pl-5 space-y-1">
+              <li>Click the &quot;Install for Safari&quot; button on the extension page</li>
+              <li>Install the Wishlist Wizard app from the App Store</li>
+              <li>Open Safari settings and enable the Wishlist Wizard extension</li>
+              <li>The Wishlist Wizard icon will appear in your Safari toolbar</li>
               <li>Click the icon and log in to your Wishlist Wizard account</li>
             </ol>
           </AccordionContent>
@@ -149,7 +159,7 @@ export function ExtensionHelp() {
             <h4 className="text-sm font-medium mt-3 mb-1">Product Information Not Detected:</h4>
             <ul className="text-sm list-disc pl-5 space-y-1">
               <li>Refresh the page and try again</li>
-              <li>Make sure you're on a product page, not a category or search results page</li>
+              <li>Make sure you&apos;re on a product page, not a category or search results page</li>
               <li>Some websites with unusual layouts may require manual input</li>
               <li>Use the manual input option to enter product details</li>
             </ul>
@@ -189,7 +199,7 @@ export function ExtensionHelp() {
                 <strong>What we collect:</strong> The extension only collects product information (title, price, image, URL) from pages where you explicitly choose to save an item
               </li>
               <li>
-                <strong>What we don't collect:</strong> We do not track your browsing history, collect personal information, or monitor your behavior on non-product pages
+                <strong>What we don&apos;t collect:</strong> We do not track your browsing history, collect personal information, or monitor your behavior on non-product pages
               </li>
               <li>
                 <strong>Permissions:</strong> The extension requests permissions to read content on retail sites to identify product information when you click the extension button

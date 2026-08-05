@@ -1,6 +1,6 @@
-# WishKeeper Browser Extension
+# Wishlist Wizard Browser Extension
 
-Add products to your WishKeeper wishlists from any online retailer with a single click!
+Add products to your Wishlist Wizard wishlists from any online retailer with a single click!
 
 ## Features
 
@@ -13,28 +13,25 @@ Add products to your WishKeeper wishlists from any online retailer with a single
 
 ## Installation Guide
 
-### Installing from Chrome Web Store (Coming Soon)
+### Installing from Chrome Web Store
 
-1. Visit the WishKeeper Extension page on the Chrome Web Store
-2. Click the "Add to Chrome" button
-3. Confirm the installation when prompted
-4. The WishKeeper icon will appear in your browser toolbar
+The Chrome Web Store listing is not available yet. Use the manual installation steps below until the listing is published.
 
 ### Manual Installation (Developer Mode)
 
-1. Download the extension files from [our website](https://wishlist-wizard.web.app/extension)
+1. Download the extension files from [our website](https://wishlist-wizard.com/extension)
 2. Unzip the downloaded file to a folder on your computer
 3. Open Chrome and go to `chrome://extensions/`
 4. Enable "Developer mode" by toggling the switch in the top-right corner
 5. Click "Load unpacked" and select the folder containing the extension files
-6. The WishKeeper extension is now installed and ready to use!
+6. The Wishlist Wizard extension is now installed and ready to use!
 
 ## How to Use
 
 ### First-time Setup
 
-1. After installing the extension, click the WishKeeper icon in your toolbar
-2. If you're not already logged in to WishKeeper, you'll be prompted to sign in
+1. After installing the extension, click the Wishlist Wizard icon in your toolbar
+2. If you're not already logged in, you'll be prompted to sign in
 3. Once signed in, the extension is ready to use
 
 ### Adding Items to Your Wishlists
@@ -42,7 +39,7 @@ Add products to your WishKeeper wishlists from any online retailer with a single
 #### Method 1: Using the Extension Button
 
 1. Navigate to any product page on any retail website
-2. Click the WishKeeper extension icon in your toolbar
+2. Click the Wishlist Wizard extension icon in your toolbar
 3. The product information will be automatically detected
 4. Select which wishlist to add the item to
 5. Add an optional note about why you want this item
@@ -51,7 +48,7 @@ Add products to your WishKeeper wishlists from any online retailer with a single
 #### Method 2: Using the In-Page Button (on supported sites)
 
 1. Browse to a product page on any retail website
-2. Look for the WishKeeper button that appears on the page
+2. Look for the Wishlist Wizard button that appears on the page
 3. Click the button to open the wishlist selection popup
 4. Select a wishlist, add a note if desired, and click "Add to Wishlist"
 
@@ -65,25 +62,24 @@ If the extension doesn't detect a product correctly:
 
 ## Privacy Information
 
-- The WishKeeper extension only accesses and analyzes product information on the pages you visit
-- Your wishlist data is stored securely on WishKeeper servers
+- The Wishlist Wizard extension only accesses and analyzes product information on the pages you visit
+- Your wishlist data is stored securely on Wishlist Wizard servers
 - We do not sell or share your browsing habits or wishlist data with third parties
-- For our complete privacy policy, visit [our website](https://wishlist-wizard.web.app/privacy)
+- For our complete privacy policy, visit [wishlist-wizard.com/privacy](https://wishlist-wizard.com/privacy)
 
 ## Support
 
-For help with the WishKeeper extension:
+For help with the Wishlist Wizard extension:
 
-- Visit our [Help Center](https://wishlist-wizard.web.app/help)
-- Email us at support@wishlist-wizard.web.app
-- Check the [FAQ section](https://wishlist-wizard.web.app/faq) on our website
+- Visit [wishlist-wizard.com/support](https://wishlist-wizard.com/support)
+- Email us at support@wishlist-wizard.com
 
-## About WishKeeper
+## About Wishlist Wizard
 
-WishKeeper is your all-in-one wishlist management platform. Create, share, and collaborate on wishlists for any occasion. Manage gift-giving for friends and family, track purchases, and ensure no one buys the same gift twice.
+Wishlist Wizard is your all-in-one wishlist management platform. Create, share, and collaborate on wishlists for any occasion. Manage gift-giving for friends and family, track purchases, and ensure no one buys the same gift twice.
 
-Visit [wishlist-wizard.web.app](https://wishlist-wizard.web.app) to learn more and start creating your wishlists!
+Visit [wishlist-wizard.com](https://wishlist-wizard.com) to learn more and start creating your wishlists!
 
 ---
 
-© 2023-2025 WishKeeper. All rights reserved.
+© 2025 Wishlist Wizard. All rights reserved.

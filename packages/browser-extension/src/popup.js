@@ -4,11 +4,184 @@ let wishlists = [];
 let currentActiveScreen = 'loading-screen';
 let currentActiveTab = 'product';
 let currentTab = null;
+let selectedWishlistId = '';
 let isLoggedIn = false;
 let userId = null;
 let username = null;
 let comparisonResults = [];
 let coupons = [];
+let contentScriptRetries = 0;
+let contentScriptRetryTimer = null;
+let contentScriptFailedHard = false;
+let checkProductPageInFlight = false;
+let statusBannerTimer = null;
+let subscriptionStatus = null;
+let subscriptionUpgradeOptions = [];
+let paywallBillingCycle = 'monthly';
+const MAX_CONTENT_SCRIPT_RETRIES = 2;
+const EXTENSION_ENV_OPTIONS = {
+  development: 'https://wishlist-wizard-dev.web.app',
+  staging: 'https://wishlist-wizard-staging.web.app',
+  production: 'https://wishlist-wizard-prod.web.app',
+  local: 'http://localhost:3001'
+};
+
+function normalizeExtensionEnvironment(value) {
+  const env = String(value || 'development').toLowerCase();
+  if (env === 'dev') return 'development';
+  if (env === 'stage') return 'staging';
+  if (env === 'prod') return 'production';
+  if (env === 'localhost') return 'local';
+  return Object.prototype.hasOwnProperty.call(EXTENSION_ENV_OPTIONS, env) ? env : 'development';
+}
+
+async function loadSelectedEnvironment() {
+  return new Promise((resolve) => {
+    if (!chrome?.storage?.local?.get) {
+      resolve('development');
+      return;
+    }
+
+    chrome.storage.local.get(['wwEnvironment'], (result) => {
+      resolve(normalizeExtensionEnvironment(result?.wwEnvironment));
+    });
+  });
+}
+
+async function initializeEnvironmentSelector() {
+  const selector = document.getElementById('environment-select');
+  if (!selector) {
+    return;
+  }
+
+  const selectedEnvironment = await loadSelectedEnvironment();
+  selector.value = selectedEnvironment;
+}
+
+// Expose variables globally for cross-script access
+window.currentProductInfo = null;
+window.wishlists = wishlists;
+window.currentActiveScreen = currentActiveScreen;
+window.currentActiveTab = currentActiveTab;
+window.currentTab = null;
+window.selectedWishlistId = selectedWishlistId;
+window.isLoggedIn = false;
+window.userId = null;
+window.username = null;
+window.comparisonResults = comparisonResults;
+window.coupons = coupons;
+
+// Sync function to update window references
+function syncGlobalVars() {
+  window.currentProductInfo = currentProductInfo;
+  window.wishlists = wishlists;
+  window.currentActiveScreen = currentActiveScreen;
+  window.currentActiveTab = currentActiveTab;
+  window.currentTab = currentTab;
+  window.selectedWishlistId = selectedWishlistId;
+  window.isLoggedIn = isLoggedIn;
+  window.userId = userId;
+  window.username = username;
+  window.comparisonResults = comparisonResults;
+  window.coupons = coupons;
+}
+
+// Update authentication state (called from popup-auth.js)
+window.updateAuthState = function(authData) {
+  isLoggedIn = authData.isLoggedIn;
+  userId = authData.userId;
+  username = authData.username;
+  window.isLoggedIn = isLoggedIn;
+  window.userId = userId;
+  window.username = username;
+  console.log('Auth state updated:', { isLoggedIn, userId, username });
+};
+
+// Helper function to execute scripts in cross-browser compatible way
+async function executeScript(tabId, files) {
+  // Chrome MV3 uses chrome.scripting API
+  if (chrome.scripting && chrome.scripting.executeScript) {
+    return await chrome.scripting.executeScript({
+      target: { tabId: tabId },
+      files: files
+    });
+  }
+  // Firefox MV2 uses chrome.tabs.executeScript
+  else if (chrome.tabs && chrome.tabs.executeScript) {
+    for (const file of files) {
+      await new Promise((resolve, reject) => {
+        chrome.tabs.executeScript(tabId, { file: file }, (result) => {
+          if (chrome.runtime.lastError) {
+            reject(new Error(chrome.runtime.lastError.message));
+          } else {
+            resolve(result);
+          }
+        });
+      });
+    }
+  } else {
+    throw new Error('No script execution API available');
+  }
+}
+
+async function injectContentScriptsViaBackground(tabId) {
+  return new Promise((resolve) => {
+    chrome.runtime.sendMessage(
+      { action: 'injectContentScripts', tabId },
+      (response) => {
+        if (chrome.runtime.lastError) {
+          resolve({ success: false, error: chrome.runtime.lastError.message });
+          return;
+        }
+        resolve(response || { success: false, error: 'No response from background' });
+      }
+    );
+  });
+}
+
+async function extractProductInfoDirectViaBackground(tabId) {
+  return new Promise((resolve) => {
+    chrome.runtime.sendMessage(
+      { action: 'extractProductInfoDirect', tabId },
+      (response) => {
+        if (chrome.runtime.lastError) {
+          resolve({ success: false, error: chrome.runtime.lastError.message });
+          return;
+        }
+        resolve(response || { success: false, error: 'No response from background' });
+      }
+    );
+  });
+}
+
+function scheduleContentScriptRetry(reason = 'unknown') {
+  if (contentScriptFailedHard) {
+    return false;
+  }
+
+  if (contentScriptRetries >= MAX_CONTENT_SCRIPT_RETRIES) {
+    contentScriptFailedHard = true;
+    if (contentScriptRetryTimer) {
+      clearTimeout(contentScriptRetryTimer);
+      contentScriptRetryTimer = null;
+    }
+    return false;
+  }
+
+  contentScriptRetries++;
+  console.log(`Waiting for content scripts to load (attempt ${contentScriptRetries}/${MAX_CONTENT_SCRIPT_RETRIES}) [${reason}]...`);
+
+  if (contentScriptRetryTimer) {
+    clearTimeout(contentScriptRetryTimer);
+  }
+
+  contentScriptRetryTimer = setTimeout(() => {
+    contentScriptRetryTimer = null;
+    checkProductPage();
+  }, 2000);
+
+  return true;
+}
 
 // Track extension events
 function trackExtensionEvent(action, category, label, value) {
@@ -47,44 +220,377 @@ function showScreen(screenId) {
   }
 }
 
+function setLoadingMessage(message = 'Loading...') {
+  const loadingText = document.querySelector('#loading-screen p');
+  if (loadingText) {
+    loadingText.textContent = message;
+  }
+}
+
+function showStatusBanner(message, type = 'info', timeoutMs = 2200) {
+  const banner = document.getElementById('status-banner');
+  if (!banner) return;
+
+  banner.textContent = message;
+  banner.classList.remove('hidden', 'info', 'success', 'error');
+  banner.classList.add(type);
+
+  if (statusBannerTimer) {
+    clearTimeout(statusBannerTimer);
+  }
+
+  statusBannerTimer = setTimeout(() => {
+    banner.classList.add('hidden');
+    statusBannerTimer = null;
+  }, timeoutMs);
+}
+
+async function sendBackgroundAction(action, payload = {}) {
+  return new Promise((resolve) => {
+    chrome.runtime.sendMessage({ action, ...payload }, (response) => {
+      if (chrome.runtime.lastError) {
+        resolve({ success: false, error: chrome.runtime.lastError.message });
+        return;
+      }
+      resolve(response || { success: false, error: 'No response from background' });
+    });
+  });
+}
+
+function getSubscriptionUsageRows() {
+  const usage = subscriptionStatus?.usage || {};
+  const limits = subscriptionStatus?.limits || {};
+
+  return [
+    {
+      label: 'Wishlists',
+      used: Number(usage.wishlists || 0),
+      limit: Number(limits.maxWishlists || 0)
+    },
+    {
+      label: 'Items',
+      used: Number(usage.itemsTotal || 0),
+      limit: Number(limits.maxItemsPerWishlist || 0)
+    },
+    {
+      label: 'Price Tracking',
+      used: Number(usage.priceTrackedItems || 0),
+      limit: Number(limits.maxPriceTrackedItems || 0)
+    }
+  ];
+}
+
+async function refreshSubscriptionData() {
+  if (!isLoggedIn) {
+    return;
+  }
+
+  const [statusResponse, optionsResponse] = await Promise.all([
+    sendBackgroundAction('billingStatus'),
+    sendBackgroundAction('billingPlans')
+  ]);
+
+  if (statusResponse?.success) {
+    subscriptionStatus = statusResponse.data || null;
+  }
+
+  if (optionsResponse?.success) {
+    subscriptionUpgradeOptions = optionsResponse.data?.available || optionsResponse.data?.upgradeOptions || [];
+  }
+}
+
+function closePaywall() {
+  const overlay = document.getElementById('paywall-overlay');
+  if (overlay) {
+    overlay.classList.add('hidden');
+  }
+}
+
+function closeTierModal() {
+  const overlay = document.getElementById('tier-modal-overlay');
+  if (overlay) {
+    overlay.classList.add('hidden');
+  }
+}
+
+function renderTierComparisonModal() {
+  const body = document.getElementById('tier-comparison-body');
+  if (!body) {
+    return;
+  }
+
+  body.innerHTML = '';
+  const options = Array.isArray(subscriptionUpgradeOptions)
+    ? subscriptionUpgradeOptions
+    : [];
+
+  if (!options.length) {
+    const row = document.createElement('tr');
+    row.innerHTML = '<td colspan="3">No upgrade options available.</td>';
+    body.appendChild(row);
+    return;
+  }
+
+  options.forEach((option) => {
+    const row = document.createElement('tr');
+    const monthly = option?.monthlyPrice != null ? `$${Number(option.monthlyPrice).toFixed(2)}` : '-';
+    const annual = option?.annualPrice != null ? `$${Number(option.annualPrice).toFixed(2)}` : '-';
+
+    row.innerHTML = `
+      <td>${option?.name || option?.tier || 'Tier'}</td>
+      <td>${monthly}</td>
+      <td>${annual}</td>
+    `;
+    body.appendChild(row);
+  });
+}
+
+function openTierComparisonModal() {
+  renderTierComparisonModal();
+  const overlay = document.getElementById('tier-modal-overlay');
+  if (overlay) {
+    overlay.classList.remove('hidden');
+  }
+}
+
+function renderPaywall() {
+  const usageContainer = document.getElementById('paywall-usage');
+  const optionsContainer = document.getElementById('paywall-options');
+  const monthlyButton = document.getElementById('paywall-billing-monthly');
+  const annualButton = document.getElementById('paywall-billing-annual');
+
+  if (!usageContainer || !optionsContainer) {
+    return;
+  }
+
+  usageContainer.innerHTML = '';
+  getSubscriptionUsageRows().forEach((row) => {
+    const line = document.createElement('div');
+    line.textContent = `${row.label}: ${row.used} / ${row.limit || 'unlimited'}`;
+    usageContainer.appendChild(line);
+  });
+
+  monthlyButton?.classList.toggle('primary-button', paywallBillingCycle === 'monthly');
+  monthlyButton?.classList.toggle('secondary-button', paywallBillingCycle !== 'monthly');
+  annualButton?.classList.toggle('primary-button', paywallBillingCycle === 'annual');
+  annualButton?.classList.toggle('secondary-button', paywallBillingCycle !== 'annual');
+
+  optionsContainer.innerHTML = '';
+  const options = Array.isArray(subscriptionUpgradeOptions)
+    ? subscriptionUpgradeOptions
+    : [];
+
+  if (!options.length) {
+    const emptyState = document.createElement('div');
+    emptyState.className = 'message-box';
+    emptyState.innerHTML = '<p>No upgrades are available right now.</p>';
+    optionsContainer.appendChild(emptyState);
+    return;
+  }
+
+  options.forEach((option) => {
+    const card = document.createElement('div');
+    card.className = 'paywall-option';
+
+    const displayedPrice = paywallBillingCycle === 'annual'
+      ? option?.annualPrice ?? option?.monthlyPrice
+      : option?.monthlyPrice ?? option?.annualPrice;
+
+    const priceLabel = displayedPrice == null
+      ? 'Price unavailable'
+      : `$${Number(displayedPrice).toFixed(2)} / ${paywallBillingCycle === 'annual' ? 'year' : 'month'}`;
+
+    card.innerHTML = `
+      <h3>${option?.name || option?.tier || 'Tier'}</h3>
+      <div class="price-line">${priceLabel}</div>
+      ${paywallBillingCycle === 'annual' && option?.annualSavings != null ? `<div class="hint-line">Save $${Number(option.annualSavings).toFixed(2)} annually</div>` : ''}
+      <button class="primary-button" data-paywall-tier="${option?.tier || ''}">Upgrade</button>
+    `;
+
+    const upgradeButton = card.querySelector('[data-paywall-tier]');
+    if (upgradeButton) {
+      upgradeButton.addEventListener('click', async () => {
+        const tier = upgradeButton.getAttribute('data-paywall-tier');
+        if (!tier) {
+          showStatusBanner('Missing tier selection', 'error', 3000);
+          return;
+        }
+
+        const checkoutResponse = await sendBackgroundAction('billingCheckout', {
+          tier,
+          billingCycle: paywallBillingCycle
+        });
+
+        if (!checkoutResponse?.success) {
+          showStatusBanner(checkoutResponse?.error || 'Unable to start checkout', 'error', 3000);
+          return;
+        }
+
+        const checkoutUrl = checkoutResponse?.data?.checkoutUrl || checkoutResponse?.data?.url;
+        if (!checkoutUrl) {
+          showStatusBanner('Checkout URL not returned by server', 'error', 3000);
+          return;
+        }
+
+        chrome.tabs.create({ url: checkoutUrl });
+        showStatusBanner('Checkout opened in new tab.', 'info', 2500);
+      });
+    }
+
+    optionsContainer.appendChild(card);
+  });
+}
+
+async function openPaywall(message = '') {
+  await refreshSubscriptionData();
+  renderPaywall();
+
+  const subtitle = document.getElementById('paywall-subtitle');
+  if (subtitle) {
+    subtitle.textContent = message ||
+      'You have reached a plan limit. Upgrade to unlock more wishlists, items, and tracking.';
+  }
+
+  const overlay = document.getElementById('paywall-overlay');
+  if (overlay) {
+    overlay.classList.remove('hidden');
+  }
+}
+
+function isLimitError(error) {
+  const message = String(error?.message || '').toLowerCase();
+  const hasLimitSignal = /limit|max|quota|upgrade|tier|plan/.test(message);
+  const hasUsageSignal = /wishlist|item|tracking|subscription/.test(message);
+  return hasLimitSignal && hasUsageSignal;
+}
+
 // Initialize the popup when it's opened
-document.addEventListener('DOMContentLoaded', async () => {
+async function initPopup() {
   // Show loading screen first
   showScreen('loading-screen');
+
+  await initializeEnvironmentSelector();
   
-  // Get the active tab
-  const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-  currentTab = tabs[0];
+  // Reset content script retry counter
+  contentScriptRetries = 0;
+  contentScriptFailedHard = false;
+  if (contentScriptRetryTimer) {
+    clearTimeout(contentScriptRetryTimer);
+    contentScriptRetryTimer = null;
+  }
+  
+  // Get the active tab via background script (more reliable than direct query in popup)
+  try {
+    const response = await new Promise((resolve) => {
+      let settled = false;
+      const fallbackTimer = setTimeout(() => {
+        if (!settled) {
+          settled = true;
+          resolve(null);
+        }
+      }, 300);
+
+      chrome.runtime.sendMessage(
+        { action: 'getActiveTab' },
+        (response) => {
+          if (settled) return;
+          settled = true;
+          clearTimeout(fallbackTimer);
+
+          if (chrome.runtime.lastError) {
+            console.warn('Could not get active tab from background:', chrome.runtime.lastError);
+            resolve(null);
+          } else {
+            resolve(response);
+          }
+        }
+      );
+    });
+    
+    if (response && response.success && response.tab) {
+      currentTab = response.tab;
+      syncGlobalVars();
+      console.log('Got active tab from background script:', currentTab.url);
+    } else {
+      const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+      currentTab = tabs[0] || null;
+      syncGlobalVars();
+      console.warn('Background script could not find active tab, used direct query fallback');
+    }
+  } catch (error) {
+    console.warn('Error getting active tab from background script:', error);
+    try {
+      const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+      currentTab = tabs[0] || null;
+      syncGlobalVars();
+    } catch (fallbackError) {
+      console.warn('Active tab fallback query failed:', fallbackError);
+    }
+  }
   
   // Check login status
   checkLoginStatus();
   
   // Setup event listeners
   setupEventListeners();
-});
+}
 
-// Check if user is logged in
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initPopup);
+} else {
+  initPopup();
+}
+
+async function resolveAuthStatus() {
+  if (typeof window.checkAuthentication === 'function') {
+    return window.checkAuthentication();
+  }
+
+  return new Promise((resolve) => {
+    chrome.runtime.sendMessage({ action: 'isAuthenticated' }, (response) => {
+      if (response && response.success && response.authenticated) {
+        resolve({
+          isAuthenticated: true,
+          userData: response.userData
+        });
+      } else {
+        resolve({ isAuthenticated: false });
+      }
+    });
+  });
+}
+
+async function resolveLogout() {
+  if (typeof window.logoutUser === 'function') {
+    return window.logoutUser();
+  }
+
+  return new Promise((resolve) => {
+    chrome.runtime.sendMessage({ action: 'logout' }, (response) => {
+      resolve({ success: response?.success || false });
+    });
+  });
+}
+
+// Check if user is logged in (using JWT authentication)
 async function checkLoginStatus() {
   try {
-    // Get the base URL for the API
-    const baseUrl = await getBaseUrl();
+    setLoadingMessage('Checking your session...');
+
+    // Check authentication via background script (JWT-based)
+    const authResult = await resolveAuthStatus();
     
-    // Make API request to check login status
-    const response = await fetch(`${baseUrl}/api/auth/me`, {
-      method: 'GET',
-      credentials: 'include'
-    });
-    
-    if (response.ok) {
-      const userData = await response.json();
+    if (authResult.isAuthenticated && authResult.userData) {
       isLoggedIn = true;
-      userId = userData.id;
-      username = userData.username;
+      userId = authResult.userData.id;
+      username = authResult.userData.username;
       
       // Show user info in footer
       document.getElementById('username').textContent = username;
       document.getElementById('user-info').classList.remove('hidden');
       document.getElementById('logout-button').classList.remove('hidden');
+
+      await refreshSubscriptionData();
       
       // Check if we're on a product page
       await checkProductPage();
@@ -100,19 +606,93 @@ async function checkLoginStatus() {
 
 // Check if current page is a product page with enhanced detection
 async function checkProductPage() {
+  if (checkProductPageInFlight) {
+    return;
+  }
+
+  checkProductPageInFlight = true;
+
   try {
+    // Fast path: the floating in-page button was just clicked and already
+    // extracted this page's product info (see background.js's 'openPopup'
+    // handler) — use it directly instead of re-running the ping/retry chain
+    // below, which is what makes a manual popup-open feel instant.
+    try {
+      const pending = await new Promise((resolve) => {
+        chrome.storage.session.get(['pendingProductData'], (result) => resolve(result.pendingProductData || null));
+      });
+
+      if (pending && pending.data && Date.now() - pending.capturedAt < 10000) {
+        chrome.storage.session.remove('pendingProductData');
+
+        currentProductInfo = pending.data;
+        syncGlobalVars();
+        trackExtensionEvent('product_detected', 'detection', `button: ${currentProductInfo.store || (currentTab?.url || 'unknown')}`);
+        populateProductDetails();
+        await getWishlists();
+        showEnhancedProductScreen();
+        return;
+      }
+    } catch (pendingError) {
+      console.warn('Could not read pending product data, falling back to normal detection:', pendingError);
+    }
+
+    setLoadingMessage('Detecting product details...');
+
+    // If we don't have a current tab, show appropriate screen based on auth status
+    if (!currentTab || !currentTab.id) {
+      console.warn('No current tab available');
+      if (!isLoggedIn) {
+        showScreen('login-screen');
+        return;
+      }
+      // User is logged in but no active tab - show not-product message
+      console.log('User logged in but no active tab context');
+      showScreen('not-product-screen');
+      return;
+    }
+    
     // Track the page check attempt
     trackExtensionEvent('check_product_page', 'detection', currentTab.url);
     
-    // Inject enhanced product extractor first if not already present
+    // First, try sending a message to see if content script responds
     try {
-      await chrome.scripting.executeScript({
-        target: { tabId: currentTab.id },
-        files: ['src/enhanced-product-extractor.js']
-      });
-    } catch (scriptError) {
-      console.warn('Enhanced extractor may already be loaded:', scriptError.message);
+      const pingResult = await chrome.tabs.sendMessage(currentTab.id, { action: 'ping' });
+      if (pingResult && pingResult.success) {
+        console.log('Content script is loaded and responsive');
+        contentScriptRetries = 0;
+        contentScriptFailedHard = false;
+        if (contentScriptRetryTimer) {
+          clearTimeout(contentScriptRetryTimer);
+          contentScriptRetryTimer = null;
+        }
+      }
+    } catch (pingError) {
+      console.log('Content script not loaded yet, waiting...:', pingError.message);
+      // Do not reinject content scripts here; manifest injection + direct extraction fallback
+      // is safer and avoids duplicate top-level declaration SyntaxErrors.
+
+      if (!scheduleContentScriptRetry('ping_failed')) {
+        trackExtensionEvent('content_script_error', 'detection', 'connection_failed');
+
+        const directResult = await extractProductInfoDirectViaBackground(currentTab.id);
+        if (directResult && directResult.success && directResult.result && directResult.result.success) {
+          currentProductInfo = directResult.result.productInfo;
+          syncGlobalVars();
+          trackExtensionEvent('product_detected', 'detection', `direct: ${currentProductInfo.store || (currentTab?.url || 'unknown')}`);
+          populateProductDetails();
+          await getWishlists();
+          showEnhancedProductScreen();
+          return;
+        }
+
+        showErrorScreen('Unable to analyze this page. Please refresh the page and try again.', 'permission');
+      }
+      return;
     }
+    
+    // NO LONGER INJECTING - manifest content_scripts handles this automatically
+    // The scripts are declared in manifest.json and Chrome injects them at document_end
     
     // Send message to content script to extract product info
     const result = await chrome.tabs.sendMessage(currentTab.id, { action: 'getProductInfo' });
@@ -120,10 +700,14 @@ async function checkProductPage() {
     if (result && result.success) {
       // Product info was extracted successfully
       currentProductInfo = result.productInfo;
+      syncGlobalVars();
+      
+      // Reset retry counter on success
+      contentScriptRetries = 0;
       
       // Track successful detection with extraction method
       trackExtensionEvent('product_detected', 'detection', 
-        `${result.extractionMethod || 'unknown'}: ${result.productInfo.store || currentTab.url}`);
+        `${result.extractionMethod || 'unknown'}: ${result.productInfo.store || (currentTab?.url || 'unknown')}`);
       
       // Populate product details in the UI
       populateProductDetails();
@@ -145,7 +729,7 @@ async function checkProductPage() {
       
       // Track the failed detection with more context
       trackExtensionEvent('product_detection_failed', 'detection', 
-        `${errorType}: ${errorMessage} (URL: ${currentTab.url})`);
+        `${errorType}: ${errorMessage} (URL: ${currentTab?.url || 'unknown'})`);
       
       // For parsing errors, offer forced detection
       if (errorType === 'parsing') {
@@ -154,36 +738,24 @@ async function checkProductPage() {
         showErrorScreen(errorMessage, errorType);
       }
     }
-  } catch (contentScriptError) {
-    console.error('Content script error:', contentScriptError);
+  } catch (error) {
+    console.error('Content script error:', error);
     
     // Handle content script injection errors
-    if (contentScriptError.message && contentScriptError.message.includes('Could not establish connection')) {
+    if (error.message && error.message.includes('Could not establish connection')) {
       // Track content script connection issue
       trackExtensionEvent('content_script_error', 'detection', 'connection_failed');
-      
-      // Try to inject both scripts
-      try {
-        await chrome.scripting.executeScript({
-          target: { tabId: currentTab.id },
-          files: ['src/enhanced-product-extractor.js', 'src/content.js']
-        });
-        
-        // Retry product detection after injection
-        setTimeout(checkProductPage, 1500);
-        return;
-      } catch (injectionError) {
-        console.error('Failed to inject content scripts:', injectionError);
-        showErrorScreen('Unable to analyze this page. Please try refreshing.', 'permission');
-        return;
+
+      if (!scheduleContentScriptRetry('sendMessage_failed')) {
+        showErrorScreen('Unable to analyze this page. Please refresh the page and try again.', 'permission');
       }
+      return;
     }
     
     // Other content script errors
     showErrorScreen('Error analyzing page content.', 'unknown');
-  } catch (error) {
-    console.error('Unexpected error in checkProductPage:', error);
-    showErrorScreen('An unexpected error occurred: ' + error.message, 'unknown');
+  } finally {
+    checkProductPageInFlight = false;
   }
 }
 
@@ -257,15 +829,19 @@ function enableAmazonSpecificFeatures() {
   }
   
   // ASIN extraction for better tracking
-  const asinMatch = currentTab.url.match(/\/dp\/([A-Z0-9]{10})/);
-  if (asinMatch) {
-    currentProductInfo.asin = asinMatch[1];
+  if (currentTab && currentTab.url) {
+    const asinMatch = currentTab.url.match(/\/dp\/([A-Z0-9]{10})/);
+    if (asinMatch) {
+      currentProductInfo.asin = asinMatch[1];
+    }
   }
 }
 
 // Enable eBay-specific features  
 function enableEbaySpecificFeatures() {
   // Auction vs Buy It Now detection
+  if (!currentTab || !currentTab.url) return;
+  
   const url = currentTab.url.toLowerCase();
   if (url.includes('auction')) {
     currentProductInfo.listingType = 'auction';
@@ -366,7 +942,11 @@ function showErrorScreen(message, errorType = 'unknown') {
       break;
     case 'permission':
       retryButton.textContent = 'Refresh Page';
-      retryButton.onclick = () => chrome.tabs.reload(currentTab.id);
+      retryButton.onclick = () => {
+        if (currentTab && currentTab.id) {
+          chrome.tabs.reload(currentTab.id);
+        }
+      };
       break;
     case 'parsing':
       retryButton.textContent = 'Try Manual Entry';
@@ -383,6 +963,11 @@ function showErrorScreen(message, errorType = 'unknown') {
 async function forceProductDetection() {
   showScreen('loading-screen');
   
+  if (!currentTab || !currentTab.id) {
+    showScreen('error-screen');
+    return;
+  }
+  
   try {
     // Try to get product info with a more aggressive approach
     const result = await chrome.tabs.sendMessage(currentTab.id, { 
@@ -393,6 +978,7 @@ async function forceProductDetection() {
     if (result && result.productInfo && result.productInfo.title) {
       // Product info was extracted
       currentProductInfo = result.productInfo;
+      syncGlobalVars();
       
       // Populate product details
       populateProductDetails();
@@ -427,7 +1013,7 @@ function enableManualEntry() {
     // If we have store information, pre-populate it
     if (currentProductInfo.store) {
       document.getElementById('edit-store').value = currentProductInfo.store;
-    } else {
+    } else if (currentTab && currentTab.url) {
       // Try to extract store from URL
       try {
         const url = new URL(currentTab.url);
@@ -443,6 +1029,9 @@ function enableManualEntry() {
         console.warn('Error extracting store from URL for manual entry', err);
         document.getElementById('edit-store').value = 'Online Store';
       }
+    } else {
+      // No store info and no current tab, use default
+      document.getElementById('edit-store').value = 'Online Store';
     }
   } else {
     // Initialize with empty values if we have no data at all
@@ -519,7 +1108,7 @@ function populateProductDetails(isPartialData = false) {
       imageContainer.alt = product.title || 'Product Image';
       imageContainer.classList.remove('hidden');
     } else {
-      // Show placeholder image or hide container
+      // Hide image container when no image is available
       imageContainer.classList.add('hidden');
     }
     
@@ -556,33 +1145,30 @@ function populateProductDetails(isPartialData = false) {
 // Get user's wishlists
 async function getWishlists() {
   try {
-    const baseUrl = await getBaseUrl();
-    
-    // Get user's personal wishlists
-    const response = await fetch(`${baseUrl}/api/wishlists`, {
-      method: 'GET',
-      credentials: 'include'
-    });
-    
-    if (response.ok) {
-      wishlists = await response.json();
-      
-      // Get user's collaborative wishlists
-      const collabResponse = await fetch(`${baseUrl}/api/collaborative-wishlists`, {
-        method: 'GET',
-        credentials: 'include'
+    const response = await new Promise((resolve) => {
+      chrome.runtime.sendMessage({ action: 'fetchWishlists' }, (result) => {
+        if (chrome.runtime.lastError) {
+          resolve({ success: false, error: chrome.runtime.lastError.message });
+        } else {
+          resolve(result);
+        }
       });
-      
-      if (collabResponse.ok) {
-        const collabWishlists = await collabResponse.json();
-        // Combine personal and collaborative wishlists
-        wishlists = [...wishlists, ...collabWishlists];
+    });
+
+    if (response && response.success) {
+      wishlists = response.wishlists || [];
+
+      if (!wishlists.length) {
+        selectedWishlistId = '';
+      } else if (!selectedWishlistId || !wishlists.some((wishlist) => String(wishlist.id) === String(selectedWishlistId))) {
+        selectedWishlistId = String(wishlists[0].id);
       }
-      
-      // Populate wishlist dropdown
+
+      syncGlobalVars();
       populateWishlistDropdown();
+      populateWishlistManagementDropdown();
     } else {
-      throw new Error('Failed to get wishlists');
+      throw new Error(response?.error || 'Failed to get wishlists');
     }
   } catch (error) {
     console.error('Error getting wishlists:', error);
@@ -595,6 +1181,7 @@ async function getWishlists() {
 // Populate wishlist dropdown
 function populateWishlistDropdown() {
   const select = document.getElementById('wishlist-select');
+  if (!select) return;
   
   // Clear existing options
   select.innerHTML = '<option value="" disabled selected>Select a wishlist</option>';
@@ -602,16 +1189,217 @@ function populateWishlistDropdown() {
   // Add wishlists to dropdown
   wishlists.forEach(wishlist => {
     const option = document.createElement('option');
-    option.value = wishlist.id;
+    option.value = String(wishlist.id);
     option.textContent = wishlist.name;
     select.appendChild(option);
   });
+
+  if (selectedWishlistId) {
+    select.value = String(selectedWishlistId);
+  } else if (wishlists.length > 0) {
+    select.value = String(wishlists[0].id);
+    selectedWishlistId = String(wishlists[0].id);
+  }
+}
+
+function populateWishlistManagementDropdown() {
+  const select = document.getElementById('wishlist-manage-select');
+  if (!select) {
+    return;
+  }
+
+  select.innerHTML = '<option value="" disabled selected>Select a wishlist</option>';
+
+  wishlists.forEach(wishlist => {
+    const option = document.createElement('option');
+    option.value = String(wishlist.id);
+    option.textContent = wishlist.name;
+    select.appendChild(option);
+  });
+
+  if (selectedWishlistId) {
+    select.value = String(selectedWishlistId);
+  } else if (wishlists.length > 0) {
+    select.value = String(wishlists[0].id);
+    selectedWishlistId = String(wishlists[0].id);
+  }
+}
+
+async function loadWishlistItemsForSelected() {
+  const select = document.getElementById('wishlist-manage-select');
+  const loading = document.getElementById('wishlist-items-loading');
+  const empty = document.getElementById('wishlist-items-empty');
+  const list = document.getElementById('wishlist-items-list');
+
+  if (!select || !loading || !empty || !list) {
+    return;
+  }
+
+  const wishlistId = String(select.value || selectedWishlistId || '');
+  if (!wishlistId) {
+    list.innerHTML = '';
+    const emptyMessage = empty.querySelector('p');
+    if (emptyMessage) {
+      emptyMessage.textContent = 'Select a wishlist to view its items.';
+    }
+    empty.classList.remove('hidden');
+    return;
+  }
+
+  selectedWishlistId = wishlistId;
+  syncGlobalVars();
+
+  loading.classList.remove('hidden');
+  empty.classList.add('hidden');
+  list.innerHTML = '';
+
+  try {
+    const response = await new Promise((resolve) => {
+      chrome.runtime.sendMessage({ action: 'fetchWishlistItems', wishlistId }, (result) => {
+        if (chrome.runtime.lastError) {
+          resolve({ success: false, error: chrome.runtime.lastError.message });
+        } else {
+          resolve(result);
+        }
+      });
+    });
+
+    if (!response || !response.success) {
+      throw new Error(response?.error || 'Failed to load wishlist items');
+    }
+
+    const items = response.items || [];
+    if (!items.length) {
+      const emptyMessage = empty.querySelector('p');
+      if (emptyMessage) {
+        emptyMessage.textContent = 'No items in this wishlist yet.';
+      }
+      empty.classList.remove('hidden');
+      return;
+    }
+
+    const template = document.getElementById('wishlist-item-template');
+    items.forEach((item) => {
+      const node = template.content.cloneNode(true);
+      node.querySelector('.wishlist-item-title').textContent = item.title || 'Untitled item';
+      node.querySelector('.wishlist-item-price').textContent = item.price ? `$${item.price}` : '';
+      node.querySelector('.wishlist-item-store').textContent = item.store || 'Online Store';
+
+      const removeButton = node.querySelector('.remove-item-button');
+      removeButton.addEventListener('click', async () => {
+        removeButton.disabled = true;
+        removeButton.textContent = 'Removing...';
+
+        try {
+          const removeResponse = await new Promise((resolve) => {
+            chrome.runtime.sendMessage({ action: 'removeItem', itemId: item.id }, (result) => {
+              if (chrome.runtime.lastError) {
+                resolve({ success: false, error: chrome.runtime.lastError.message });
+              } else {
+                resolve(result);
+              }
+            });
+          });
+
+          if (!removeResponse || !removeResponse.success) {
+            throw new Error(removeResponse?.error || 'Failed to remove item');
+          }
+
+          await loadWishlistItemsForSelected();
+          showStatusBanner('Item removed.', 'success');
+        } catch (removeError) {
+          console.error('Error removing item:', removeError);
+          showStatusBanner(removeError.message || 'Failed to remove item', 'error', 3000);
+        }
+      });
+
+      list.appendChild(node);
+    });
+  } catch (error) {
+    console.error('Error loading wishlist items:', error);
+    showErrorScreen(error.message || 'Failed to load wishlist items', 'unknown');
+  } finally {
+    loading.classList.add('hidden');
+  }
+}
+
+function setInlineWishlistCreateVisible(containerId, visible) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+
+  if (visible) {
+    container.classList.remove('hidden');
+    const input = container.querySelector('input');
+    if (input) {
+      input.focus();
+      input.select();
+    }
+  } else {
+    container.classList.add('hidden');
+    const input = container.querySelector('input');
+    if (input) {
+      input.value = '';
+    }
+  }
+}
+
+// Create a new wishlist from the popup
+async function createWishlistFromPopup(nameInput) {
+  const name = (nameInput || '').trim();
+  if (!name) {
+    showStatusBanner('Enter a wishlist name first.', 'error');
+    return;
+  }
+
+  try {
+    showStatusBanner('Creating wishlist...', 'info', 1400);
+
+    const response = await new Promise((resolve) => {
+      chrome.runtime.sendMessage({ action: 'createWishlist', name }, (result) => {
+        if (chrome.runtime.lastError) {
+          resolve({ success: false, error: chrome.runtime.lastError.message });
+        } else {
+          resolve(result);
+        }
+      });
+    });
+
+    if (!response || !response.success) {
+      throw new Error(response?.error || 'Failed to create wishlist');
+    }
+
+    // Refresh wishlists and select the new one if available
+    await getWishlists();
+    if (response.wishlist?.id) {
+      selectedWishlistId = String(response.wishlist.id);
+      const select = document.getElementById('wishlist-select');
+      const manageSelect = document.getElementById('wishlist-manage-select');
+      if (select) {
+        select.value = String(response.wishlist.id);
+      }
+      if (manageSelect) {
+        manageSelect.value = String(response.wishlist.id);
+      }
+
+      setInlineWishlistCreateVisible('create-wishlist-inline', false);
+      setInlineWishlistCreateVisible('create-wishlist-inline-manage', false);
+      showStatusBanner('Wishlist created.', 'success');
+      syncGlobalVars();
+    }
+  } catch (error) {
+    console.error('Error creating wishlist:', error);
+    showStatusBanner(error.message || 'Failed to create wishlist. Please try again.', 'error', 3000);
+  }
 }
 
 // Add the current product to the selected wishlist
 async function addToWishlist() {
-  // Show loading screen
-  showScreen('loading-screen');
+  const addButton = document.getElementById('add-button');
+  const originalAddButtonText = addButton?.textContent || 'Add to Wishlist';
+  if (addButton) {
+    addButton.disabled = true;
+    addButton.textContent = 'Adding...';
+  }
   
   try {
     // Validate we have a product to add
@@ -622,9 +1410,6 @@ async function addToWishlist() {
     // Track this action in analytics
     trackExtensionEvent('add_to_wishlist_started', 'extension', 'product_button');
     
-    // Get server URL
-    const baseUrl = await getBaseUrl();
-    
     // Get selected wishlist and note
     const wishlistSelect = document.getElementById('wishlist-select');
     const noteInput = document.getElementById('note-input');
@@ -633,8 +1418,11 @@ async function addToWishlist() {
       throw new Error('Wishlist selection element not found');
     }
     
-    const wishlistId = wishlistSelect.value;
+    const wishlistId = String(wishlistSelect.value || '');
     const note = noteInput ? noteInput.value : '';
+
+    selectedWishlistId = wishlistId || selectedWishlistId;
+    syncGlobalVars();
     
     // Validate wishlist selection
     if (!wishlistId) {
@@ -653,10 +1441,10 @@ async function addToWishlist() {
     
     // Prepare item data, prioritizing manually entered data if the edit form is visible
     const itemData = {
-      wishlistId: parseInt(wishlistId),
+      wishlistId,
       title: useManualEntry && manualTitle ? manualTitle : currentProductInfo.title,
       price: useManualEntry && manualPrice ? manualPrice : (currentProductInfo.price || ''),
-      productUrl: currentProductInfo.productUrl || currentTab.url,
+      productUrl: currentProductInfo.productUrl || (currentTab?.url || ''),
       imageUrl: useManualEntry && manualImageUrl ? manualImageUrl : (currentProductInfo.imageUrl || ''),
       store: useManualEntry && manualStore ? manualStore : (currentProductInfo.store || 'Online Store'),
       note: note || null
@@ -676,57 +1464,29 @@ async function addToWishlist() {
     // Log the request for troubleshooting
     console.log('Adding item to wishlist:', itemData);
     
-    // Set up timeout to handle network issues
-    const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('Request timed out')), 15000)
-    );
-    
-    // Send request to add item with timeout protection
-    const fetchPromise = fetch(`${baseUrl}/api/extension/add-item`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      credentials: 'include',
-      body: JSON.stringify(itemData)
-    });
-    
-    // Race between the fetch and the timeout
-    const response = await Promise.race([fetchPromise, timeoutPromise]);
-    
-    // Handle HTTP errors
-    if (!response.ok) {
-      // Try to parse error response
-      try {
-        const errorData = await response.json();
-        
-        // Handle authentication errors specially
-        if (response.status === 401) {
-          showErrorScreen('You need to log in to add items to your wishlist', 'auth');
+    // Send request through background script (uses authenticated Cloud Function calls)
+    const responseData = await new Promise((resolve, reject) => {
+      chrome.runtime.sendMessage({ action: 'addItemToWishlist', itemData }, (result) => {
+        if (chrome.runtime.lastError) {
+          reject(new Error(chrome.runtime.lastError.message));
           return;
         }
-        
-        // Handle permission errors
-        if (response.status === 403) {
-          throw new Error(errorData.error || 'You don\'t have permission to add to this wishlist');
+
+        if (!result || !result.success) {
+          reject(new Error(result?.error || 'Failed to add item'));
+          return;
         }
-        
-        // Handle other errors
-        throw new Error(errorData.error || `Server error (${response.status})`);
-      } catch (parseError) {
-        // If we can't parse the error JSON, use the status text
-        throw new Error(`Failed to add item: ${response.statusText || response.status}`);
-      }
-    }
-    
-    // Parse the successful response
-    const responseData = await response.json();
+
+        resolve(result.data || result);
+      });
+    });
     
     // Item added successfully
     showScreen('success-screen');
+    showStatusBanner('Item added to wishlist.', 'success');
     
     // Update success message with wishlist name
-    const wishlist = wishlists.find(w => w.id === parseInt(wishlistId));
+    const wishlist = wishlists.find(w => String(w.id) === String(wishlistId));
     const wishlistName = wishlist ? wishlist.name : 'wishlist';
     
     const successTitle = document.querySelector('#success-screen h2');
@@ -736,8 +1496,15 @@ async function addToWishlist() {
     
     // Set up view wishlist button
     document.getElementById('view-wishlist-button').onclick = () => {
-      chrome.tabs.create({ url: `${baseUrl}/wishlists/${wishlistId}` });
-      window.close();
+      selectedWishlistId = String(wishlistId);
+      syncGlobalVars();
+
+      const wishlistTabButton = document.getElementById('tab-wishlist');
+      if (wishlistTabButton) {
+        wishlistTabButton.click();
+      } else {
+        showScreen('wishlist-screen');
+      }
     };
     
     // Track successful addition in extension storage for stats
@@ -758,6 +1525,11 @@ async function addToWishlist() {
     }
   } catch (error) {
     console.error('Error adding item to wishlist:', error);
+
+    if (isLimitError(error)) {
+      await openPaywall('You reached a usage limit for your current plan. Upgrade to continue adding items.');
+      return;
+    }
     
     // Determine error type for better user feedback
     let errorType = 'unknown';
@@ -772,6 +1544,11 @@ async function addToWishlist() {
     }
     
     showErrorScreen(error.message, errorType);
+  } finally {
+    if (addButton) {
+      addButton.disabled = false;
+      addButton.textContent = originalAddButtonText;
+    }
   }
 }
 
@@ -798,46 +1575,46 @@ function updateProductInfo() {
 
 // Get the base URL for API requests
 async function getBaseUrl() {
-  // Get extension URL from manifest
-  const extensionUrl = chrome.runtime.getURL('');
-  
-  // Check if we're in development or production
-  if (extensionUrl.includes('chrome-extension://')) {
-    // Production mode - use the actual website
-    return "https://wishlist-wizard.web.app";
-  } else {
-    // Development mode - use localhost
-    return "http://localhost:3001";
-  }
+  return new Promise((resolve) => {
+    if (!chrome?.storage?.local?.get) {
+      resolve(EXTENSION_ENV_OPTIONS.development);
+      return;
+    }
+
+    chrome.storage.local.get(['wwEnvironment', 'wwBaseUrlOverride'], (result) => {
+      const env = normalizeExtensionEnvironment(result?.wwEnvironment);
+      resolve(result?.wwBaseUrlOverride || EXTENSION_ENV_OPTIONS[env]);
+    });
+  });
 }
 
 // Open login page in new tab
-function openLoginPage() {
-  chrome.tabs.create({ url: getBaseUrl() + '/login' });
+async function openLoginPage() {
+  const baseUrl = await getBaseUrl();
+  chrome.tabs.create({ url: `${baseUrl}/login` });
   window.close();
 }
 
 // Handle logout
 async function handleLogout() {
   try {
-    const baseUrl = await getBaseUrl();
+    // Call logout via background script (JWT-based)
+    const result = await resolveLogout();
     
-    // Call logout API
-    await fetch(`${baseUrl}/api/auth/logout`, {
-      method: 'POST',
-      credentials: 'include'
-    });
-    
-    // Reset UI
-    isLoggedIn = false;
-    userId = null;
-    username = null;
-    
-    document.getElementById('user-info').classList.add('hidden');
-    document.getElementById('logout-button').classList.add('hidden');
-    
-    // Show login screen
-    showScreen('login-screen');
+    if (result.success) {
+      // Reset UI
+      isLoggedIn = false;
+      userId = null;
+      username = null;
+      
+      document.getElementById('user-info').classList.add('hidden');
+      document.getElementById('logout-button').classList.add('hidden');
+      
+      // Show login screen
+      showScreen('login-screen');
+    } else {
+      console.error('Logout failed');
+    }
   } catch (error) {
     console.error('Error logging out:', error);
   }
@@ -845,9 +1622,29 @@ async function handleLogout() {
 
 // Set up event listeners
 function setupEventListeners() {
-  // Login button
-  document.getElementById('login-button').addEventListener('click', openLoginPage);
-  
+  const legacyLoginButton = document.getElementById('login-button');
+  const loginForm = document.getElementById('login-form');
+  if (legacyLoginButton && !loginForm) {
+    legacyLoginButton.addEventListener('click', openLoginPage);
+  }
+
+  const environmentSelect = document.getElementById('environment-select');
+  if (environmentSelect) {
+    environmentSelect.addEventListener('change', () => {
+      const value = normalizeExtensionEnvironment(environmentSelect.value);
+      environmentSelect.value = value;
+
+      if (!chrome?.storage?.local?.set) {
+        return;
+      }
+
+      chrome.storage.local.set({ wwEnvironment: value }, () => {
+        const envLabel = value.charAt(0).toUpperCase() + value.slice(1);
+        showStatusBanner(`Environment set to ${envLabel}.`, 'info');
+      });
+    });
+  }
+
   // Logout button
   document.getElementById('logout-button').addEventListener('click', handleLogout);
   
@@ -872,6 +1669,146 @@ function setupEventListeners() {
   
   // Update product button
   document.getElementById('update-product-button').addEventListener('click', updateProductInfo);
+
+  // Create wishlist button
+  const createWishlistButton = document.getElementById('create-wishlist-button');
+  if (createWishlistButton) {
+    createWishlistButton.addEventListener('click', () => {
+      setInlineWishlistCreateVisible('create-wishlist-inline-manage', false);
+      setInlineWishlistCreateVisible('create-wishlist-inline', true);
+    });
+  }
+
+  const saveWishlistButton = document.getElementById('save-wishlist-button');
+  if (saveWishlistButton) {
+    saveWishlistButton.addEventListener('click', () => {
+      const input = document.getElementById('new-wishlist-name-input');
+      createWishlistFromPopup(input?.value || '');
+    });
+  }
+
+  const cancelCreateWishlistButton = document.getElementById('cancel-create-wishlist-button');
+  if (cancelCreateWishlistButton) {
+    cancelCreateWishlistButton.addEventListener('click', () => {
+      setInlineWishlistCreateVisible('create-wishlist-inline', false);
+    });
+  }
+
+  const createWishlistManageButton = document.getElementById('create-wishlist-manage-button');
+  if (createWishlistManageButton) {
+    createWishlistManageButton.addEventListener('click', () => {
+      setInlineWishlistCreateVisible('create-wishlist-inline', false);
+      setInlineWishlistCreateVisible('create-wishlist-inline-manage', true);
+    });
+  }
+
+  const saveWishlistManageButton = document.getElementById('save-wishlist-manage-button');
+  if (saveWishlistManageButton) {
+    saveWishlistManageButton.addEventListener('click', async () => {
+      const input = document.getElementById('new-wishlist-name-manage-input');
+      await createWishlistFromPopup(input?.value || '');
+      await loadWishlistItemsForSelected();
+    });
+  }
+
+  const cancelCreateWishlistManageButton = document.getElementById('cancel-create-wishlist-manage-button');
+  if (cancelCreateWishlistManageButton) {
+    cancelCreateWishlistManageButton.addEventListener('click', () => {
+      setInlineWishlistCreateVisible('create-wishlist-inline-manage', false);
+    });
+  }
+
+  const productWishlistSelect = document.getElementById('wishlist-select');
+  if (productWishlistSelect) {
+    productWishlistSelect.addEventListener('change', () => {
+      selectedWishlistId = String(productWishlistSelect.value || '');
+      syncGlobalVars();
+      populateWishlistManagementDropdown();
+    });
+  }
+
+  // Wishlist management dropdown
+  const wishlistManageSelect = document.getElementById('wishlist-manage-select');
+  if (wishlistManageSelect) {
+    wishlistManageSelect.addEventListener('change', () => {
+      selectedWishlistId = String(wishlistManageSelect.value || '');
+      syncGlobalVars();
+      const productSelect = document.getElementById('wishlist-select');
+      if (productSelect && selectedWishlistId) {
+        productSelect.value = selectedWishlistId;
+      }
+      loadWishlistItemsForSelected();
+    });
+  }
+
+  // Open selected wishlist on website (optional)
+  const openWishlistWebsiteButton = document.getElementById('open-wishlist-website-button');
+  if (openWishlistWebsiteButton) {
+    openWishlistWebsiteButton.addEventListener('click', async () => {
+      const wishlistId = selectedWishlistId || document.getElementById('wishlist-manage-select')?.value;
+      if (!wishlistId) {
+        showErrorScreen('Please select a wishlist first', 'unknown');
+        return;
+      }
+
+      const baseUrl = await getBaseUrl();
+      chrome.tabs.create({ url: `${baseUrl}/wishlists` });
+      window.close();
+    });
+  }
+
+  const paywallMonthlyButton = document.getElementById('paywall-billing-monthly');
+  if (paywallMonthlyButton) {
+    paywallMonthlyButton.addEventListener('click', () => {
+      paywallBillingCycle = 'monthly';
+      renderPaywall();
+    });
+  }
+
+  const paywallAnnualButton = document.getElementById('paywall-billing-annual');
+  if (paywallAnnualButton) {
+    paywallAnnualButton.addEventListener('click', () => {
+      paywallBillingCycle = 'annual';
+      renderPaywall();
+    });
+  }
+
+  const paywallCompareButton = document.getElementById('paywall-compare-button');
+  if (paywallCompareButton) {
+    paywallCompareButton.addEventListener('click', () => {
+      openTierComparisonModal();
+    });
+  }
+
+  const paywallManageBillingButton = document.getElementById('paywall-manage-billing-button');
+  if (paywallManageBillingButton) {
+    paywallManageBillingButton.addEventListener('click', async () => {
+      const response = await sendBackgroundAction('billingPortal');
+      if (!response?.success) {
+        showStatusBanner(response?.error || 'Unable to open billing portal', 'error', 3000);
+        return;
+      }
+
+      const portalUrl = response?.data?.portalUrl || response?.data?.url;
+      if (!portalUrl) {
+        showStatusBanner('Billing portal URL not returned by server', 'error', 3000);
+        return;
+      }
+
+      chrome.tabs.create({ url: portalUrl });
+      showStatusBanner('Billing portal opened in new tab.', 'success', 2500);
+    });
+  }
+
+  const paywallCloseButton = document.getElementById('paywall-close-button');
+  if (paywallCloseButton) {
+    paywallCloseButton.addEventListener('click', closePaywall);
+  }
+
+  const tierModalCloseButton = document.getElementById('tier-modal-close-button');
+  if (tierModalCloseButton) {
+    tierModalCloseButton.addEventListener('click', closeTierModal);
+  }
   
   // Cancel button
   document.getElementById('cancel-button').addEventListener('click', () => {
@@ -898,3 +1835,13 @@ function setupEventListeners() {
     window.close();
   });
 }
+
+// Expose functions globally for cross-script access
+window.showScreen = showScreen;
+window.showErrorScreen = showErrorScreen;
+window.getBaseUrl = getBaseUrl;
+window.populateWishlistDropdown = populateWishlistDropdown;
+window.loadWishlistItemsForSelected = loadWishlistItemsForSelected;
+window.syncGlobalVars = syncGlobalVars;
+window.trackExtensionEvent = trackExtensionEvent;
+window.checkProductPage = checkProductPage;

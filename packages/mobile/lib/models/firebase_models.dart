@@ -1,4 +1,18 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'wishlist.dart';
+
+DateTime _parseDate(dynamic v, {DateTime? fallback}) {
+  if (v is Timestamp) return v.toDate();
+  if (v is String) return DateTime.tryParse(v) ?? (fallback ?? DateTime.now());
+  return fallback ?? DateTime.now();
+}
+
+DateTime? _parseDateNullable(dynamic v) {
+  if (v == null) return null;
+  if (v is Timestamp) return v.toDate();
+  if (v is String) return DateTime.tryParse(v);
+  return null;
+}
 
 enum Priority { low, medium, high }
 
@@ -16,6 +30,7 @@ class FirebaseWishlist {
   final String? description;
   final String userId;
   final bool isPublic;
+  final String? shareId;
   final List<String> tags;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -26,6 +41,7 @@ class FirebaseWishlist {
     this.description,
     required this.userId,
     required this.isPublic,
+    this.shareId,
     this.tags = const [],
     required this.createdAt,
     required this.updatedAt,
@@ -53,9 +69,10 @@ class FirebaseWishlist {
       description: data['description'],
       userId: data['userId'] ?? '',
       isPublic: data['isPublic'] ?? false,
+      shareId: data['shareId'],
       tags: List<String>.from(data['tags'] ?? []),
-      createdAt: (data['createdAt'] as DateTime?) ?? DateTime.now(),
-      updatedAt: (data['updatedAt'] as DateTime?) ?? DateTime.now(),
+      createdAt: _parseDate(data['createdAt']),
+      updatedAt: _parseDate(data['updatedAt']),
     );
   }
 
@@ -82,6 +99,7 @@ class FirebaseWishlistItem {
   final String currency;
   final String? url;
   final String? imageUrl;
+  final String? store;
   final String wishlistId;
   final String userId;
   final bool isPurchased;
@@ -100,6 +118,7 @@ class FirebaseWishlistItem {
     this.currency = 'USD',
     this.url,
     this.imageUrl,
+    this.store,
     required this.wishlistId,
     required this.userId,
     this.isPurchased = false,
@@ -119,6 +138,7 @@ class FirebaseWishlistItem {
       'currency': currency,
       'url': url,
       'imageUrl': imageUrl,
+      'store': store,
       'wishlistId': wishlistId,
       'userId': userId,
       'isPurchased': isPurchased,
@@ -135,23 +155,28 @@ class FirebaseWishlistItem {
     String docId,
     Map<String, dynamic> data,
   ) {
+    // Support cross-platform field aliases written by Cloud Functions:
+    //   title → name,  productUrl → url,  addedBy → userId,
+    //   purchasedByUserId → isPurchased=true + purchasedBy
+    final purchasedByUserId = data['purchasedByUserId'] as String?;
     return FirebaseWishlistItem(
       id: docId,
-      name: data['name'] ?? '',
+      name: data['name'] ?? data['title'] ?? '',
       description: data['description'],
       price: (data['price'] as num?)?.toDouble(),
       currency: data['currency'] ?? 'USD',
-      url: data['url'],
+      url: data['url'] ?? data['productUrl'],
       imageUrl: data['imageUrl'],
+      store: data['store'],
       wishlistId: data['wishlistId'] ?? '',
-      userId: data['userId'] ?? '',
-      isPurchased: data['isPurchased'] ?? false,
-      purchasedBy: data['purchasedBy'],
-      purchasedAt: data['purchasedAt'] as DateTime?,
+      userId: data['userId'] ?? data['addedBy'] ?? '',
+      isPurchased: (data['isPurchased'] as bool? ?? false) || purchasedByUserId != null,
+      purchasedBy: data['purchasedBy'] ?? purchasedByUserId,
+      purchasedAt: _parseDateNullable(data['purchasedAt']),
       tags: List<String>.from(data['tags'] ?? []),
       priority: _stringToPriority(data['priority']),
-      createdAt: (data['createdAt'] as DateTime?) ?? DateTime.now(),
-      updatedAt: (data['updatedAt'] as DateTime?) ?? DateTime.now(),
+      createdAt: _parseDate(data['createdAt']),
+      updatedAt: _parseDate(data['updatedAt']),
     );
   }
 
@@ -225,16 +250,20 @@ class FirebaseNotification {
     String docId,
     Map<String, dynamic> data,
   ) {
+    // Support cross-platform field aliases written by Cloud Functions:
+    //   body → message,  read → isRead,  data → metadata
     return FirebaseNotification(
       id: docId,
       userId: data['userId'] ?? '',
       title: data['title'] ?? '',
-      message: data['message'] ?? '',
+      message: data['message'] ?? data['body'] ?? '',
       type: _stringToNotificationType(data['type']),
-      isRead: data['isRead'] ?? false,
-      createdAt: (data['createdAt'] as DateTime?) ?? DateTime.now(),
-      readAt: data['readAt'] as DateTime?,
-      metadata: Map<String, dynamic>.from(data['metadata'] ?? {}),
+      isRead: data['isRead'] as bool? ?? data['read'] as bool? ?? false,
+      createdAt: _parseDate(data['createdAt']),
+      readAt: _parseDateNullable(data['readAt']),
+      metadata: Map<String, dynamic>.from(
+        data['metadata'] ?? data['data'] ?? {},
+      ),
     );
   }
 

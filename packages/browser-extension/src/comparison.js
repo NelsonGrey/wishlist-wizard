@@ -1,4 +1,4 @@
-// WishKeeper Extension - Comparison Shopping Module
+// Wishlist Wizard Extension - Comparison Shopping Module
 // This script handles comparing prices across different retailers
 
 // Major shopping sites to compare prices
@@ -92,9 +92,27 @@ class PriceComparison {
     this.comparisonResults = [];
 
     try {
-      // In a real implementation, this would make API calls to price comparison services
-      // For this demo, we'll use mock data based on the current product
-      this.comparisonResults = this.getMockComparisonResults();
+      const baseUrl = await this.resolveBaseUrl();
+      const response = await fetch(`${baseUrl}/api/extension/price-comparisons`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          title: this.productInfo.title,
+          store: this.productInfo.store,
+          price: this.productInfo.price,
+          productUrl: this.productInfo.productUrl
+        })
+      });
+
+      if (response.ok) {
+        const results = await response.json();
+        this.comparisonResults = Array.isArray(results) ? results : [];
+      } else {
+        this.comparisonResults = [];
+      }
       
       return this.comparisonResults;
     } catch (error) {
@@ -105,60 +123,34 @@ class PriceComparison {
     }
   }
 
-  /**
-   * Generate mock comparison results for demonstration
-   * @returns {Array} - Array of mock comparison result objects
-   */
-  getMockComparisonResults() {
-    if (!this.productInfo) return [];
+  async resolveBaseUrl() {
+    const envConfig = {
+      development: 'https://wishlist-wizard-dev.web.app',
+      staging: 'https://wishlist-wizard-staging.web.app',
+      production: 'https://wishlist-wizard-prod.web.app',
+      local: 'http://localhost:3001'
+    };
 
-    const currentPrice = parseFloat(this.productInfo.price) || 100;
-    const currentStore = this.productInfo.store || 'Online Store';
-    const results = [];
+    const normalize = (value) => {
+      const env = String(value || 'development').toLowerCase();
+      if (env === 'dev') return 'development';
+      if (env === 'stage') return 'staging';
+      if (env === 'prod') return 'production';
+      if (env === 'localhost') return 'local';
+      return Object.prototype.hasOwnProperty.call(envConfig, env) ? env : 'development';
+    };
 
-    // Add current store as reference
-    results.push({
-      storeName: currentStore,
-      price: currentPrice,
-      priceFormatted: `$${currentPrice.toFixed(2)}`,
-      url: this.productInfo.productUrl || '',
-      isCurrent: true,
-      inStock: true,
-      freeShipping: Math.random() > 0.5
-    });
+    return new Promise((resolve) => {
+      if (!chrome?.storage?.local?.get) {
+        resolve(envConfig.development);
+        return;
+      }
 
-    // Get a subset of comparison sites, excluding the current store
-    const availableSites = COMPARISON_SITES.filter(site => 
-      site.name.toLowerCase() !== currentStore.toLowerCase()
-    );
-
-    // Generate 3-5 comparison results with realistic price variations
-    const numComparisons = Math.floor(Math.random() * 3) + 3;
-    
-    for (let i = 0; i < numComparisons && i < availableSites.length; i++) {
-      const site = availableSites[i];
-      
-      // Generate a realistic price variation (±20%)
-      const priceVariation = (Math.random() * 0.4) - 0.2; // -20% to +20%
-      const price = currentPrice * (1 + priceVariation);
-      
-      results.push({
-        storeName: site.name,
-        price: price,
-        priceFormatted: `$${price.toFixed(2)}`,
-        url: site.searchUrl + site.searchFunction(this.productInfo.title),
-        isCurrent: false,
-        inStock: Math.random() > 0.1, // 90% chance of being in stock
-        freeShipping: Math.random() > 0.5,
-        difference: {
-          amount: price - currentPrice,
-          percentage: ((price - currentPrice) / currentPrice) * 100
-        }
+      chrome.storage.local.get(['wwEnvironment', 'wwBaseUrlOverride'], (result) => {
+        const env = normalize(result?.wwEnvironment);
+        resolve(result?.wwBaseUrlOverride || envConfig[env]);
       });
-    }
-
-    // Sort results by price (lowest first)
-    return results.sort((a, b) => a.price - b.price);
+    });
   }
 
   /**

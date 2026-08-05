@@ -33,9 +33,9 @@ export interface UserDefaultPrivacy {
 
 // Hook to get privacy settings for an entity
 export const usePrivacySettings = (entityType: string, entityId: number) => {
-  return useQuery({
+  return useQuery<PrivacySettings | undefined>({
     queryKey: ['privacy-settings', entityType, entityId],
-    queryFn: () => apiRequest(`/api/privacy/settings/${entityType}/${entityId}`),
+    queryFn: () => apiRequest(`/api/privacy/settings/${entityType}/${entityId}`) as Promise<PrivacySettings>,
     enabled: !!entityType && !!entityId
   });
 };
@@ -209,6 +209,23 @@ export const useDefaultPrivacySettings = () => {
   return useQuery({
     queryKey: ['user-default-privacy'],
     queryFn: () => apiRequest('/api/privacy/defaults') as Promise<UserDefaultPrivacy>
+  });
+};
+
+// Hook to update user's default privacy settings
+export const useUpdateDefaultPrivacySettings = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (defaults: UserDefaultPrivacy) => {
+      return apiRequest('/api/privacy/defaults', {
+        method: 'PUT',
+        body: JSON.stringify(defaults)
+      }) as Promise<UserDefaultPrivacy>;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['user-default-privacy'] });
+    }
   });
 };
 

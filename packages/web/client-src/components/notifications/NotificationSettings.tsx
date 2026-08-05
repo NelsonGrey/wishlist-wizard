@@ -8,6 +8,7 @@ import { Badge } from "../ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
 import { Bell, BellOff, Settings, TestTube, Clock, Mail, Smartphone } from "lucide-react";
 import { useFCM, useNotificationPreferences } from "../../hooks/useFCM";
+import { FeatureFlags, getRemoteConfig } from '@shared/firebase-utils';
 // import { toast } from "sonner"; // Using browser notifications for now
 
 /**
@@ -15,6 +16,7 @@ import { useFCM, useNotificationPreferences } from "../../hooks/useFCM";
  * Allows users to manage their push notification preferences
  */
 export function NotificationSettings() {
+  const priceAlertsEnabled = getRemoteConfig().isFeatureEnabled(FeatureFlags.PRICE_ALERTS_ENABLED);
   const { 
     isSupported, 
     isEnabled, 
@@ -166,7 +168,7 @@ export function NotificationSettings() {
               <BellOff className="h-4 w-4" />
               <AlertTitle>Push Notifications Not Supported</AlertTitle>
               <AlertDescription>
-                Your browser doesn't support push notifications. You can still receive email notifications.
+                Your browser doesn&apos;t support push notifications. You can still receive email notifications.
               </AlertDescription>
             </Alert>
           )}
@@ -265,18 +267,20 @@ export function NotificationSettings() {
                   />
                 </div>
 
-                <div className="flex items-center justify-between">
-                  <div className="space-y-1">
-                    <Label>Price Alerts</Label>
-                    <p className="text-sm text-muted-foreground">
-                      When an item's price drops to your target price
-                    </p>
+                {priceAlertsEnabled && (
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-1">
+                      <Label>Price Alerts</Label>
+                      <p className="text-sm text-muted-foreground">
+                        When an item&apos;s price drops to your target price
+                      </p>
+                    </div>
+                    <Switch 
+                      checked={preferences.types.priceAlerts}
+                      onCheckedChange={(checked) => handleTypeToggle('priceAlerts', checked)}
+                    />
                   </div>
-                  <Switch 
-                    checked={preferences.types.priceAlerts}
-                    onCheckedChange={(checked) => handleTypeToggle('priceAlerts', checked)}
-                  />
-                </div>
+                )}
 
                 <div className="flex items-center justify-between">
                   <div className="space-y-1">
@@ -409,7 +413,7 @@ export function NotificationSettings() {
                       title="Quiet hours start time"
                       value={preferences.quietHours.start}
                       onChange={(e) => handleQuietHoursTimeUpdate('start', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500"
                     />
                   </div>
                   <div className="space-y-2">
@@ -419,7 +423,7 @@ export function NotificationSettings() {
                       title="Quiet hours end time"
                       value={preferences.quietHours.end}
                       onChange={(e) => handleQuietHoursTimeUpdate('end', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500"
                     />
                   </div>
                 </div>

@@ -3,15 +3,69 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Wishlist Wizard - Coming Soon</title>
-    <meta name="description" content="Wishlist Wizard is coming soon! Sign up to be notified when we launch the ultimate wishlist management platform with one-click saving, price tracking, and social sharing." />
-    <meta property="og:title" content="Wishlist Wizard - Coming Soon" />
-    <meta property="og:description" content="The ultimate wishlist management platform is coming soon. Sign up for launch notifications!" />
+    <title>Wishlist Wizard - Smart Wishlist Management</title>
+    <meta name="description" content="Create, share, and manage wishlists with price tracking, collaboration, and personalized recommendations." />
+    <meta property="og:title" content="Wishlist Wizard - Smart Wishlist Management" />
+    <meta property="og:description" content="Create, share, and manage wishlists with price tracking, collaboration, and personalized recommendations." />
     <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://wishlist-wizard.web.app" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta property="og:url" content="https://wishlist-wizard.com" />
+    <meta property="og:site_name" content="Wishlist Wizard" />
+    <meta property="og:image" content="https://wishlist-wizard.com/android-chrome-512x512.png" />
+    <meta property="og:image:width" content="512" />
+    <meta property="og:image:height" content="512" />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:image" content="https://wishlist-wizard.com/android-chrome-512x512.png" />
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+  <!-- Google Consent Mode v2: deny all by default before any tag fires -->
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('consent', 'default', {
+      analytics_storage: 'denied',
+      ad_storage: 'denied',
+      ad_user_data: 'denied',
+      ad_personalization: 'denied',
+      functionality_storage: 'denied',
+      personalization_storage: 'denied',
+      security_storage: 'granted'
+    });
+    // Restore previously saved consent on page load so returning visitors
+    // don't see the banner again and tags fire immediately.
+    try {
+      var _c = JSON.parse(localStorage.getItem('ww_consent') || 'null');
+      if (_c && _c.decided) {
+        gtag('consent', 'update', {
+          analytics_storage: _c.analytics ? 'granted' : 'denied',
+          functionality_storage: _c.analytics ? 'granted' : 'denied',
+          personalization_storage: _c.analytics ? 'granted' : 'denied',
+          ad_storage: _c.marketing ? 'granted' : 'denied',
+          ad_user_data: _c.marketing ? 'granted' : 'denied',
+          ad_personalization: _c.marketing ? 'granted' : 'denied'
+        });
+      }
+    } catch(e) {}
+  </script>
+  <!-- Google AdSense — Consent Mode defaults above ensure no personalised ads fire before consent -->
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5198775482699756"
+       crossorigin="anonymous"></script>
+  <!-- End Google AdSense -->
+  <!-- Google Tag Manager — must load after Consent Mode defaults above -->
+  <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+  new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+  j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+  'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+  })(window,document,'script','dataLayer','GTM-KRDC75LR');</script>
+  <!-- End Google Tag Manager -->
   </head>
   <body>
+  <!-- Google Tag Manager (noscript) -->
+  <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-KRDC75LR"
+  height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+  <!-- End Google Tag Manager (noscript) -->
     <div id="root"></div>
     <script type="module" src="/client-src/main.tsx"></script>
   </body>

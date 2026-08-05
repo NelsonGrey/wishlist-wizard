@@ -228,10 +228,10 @@ export function useAdSense(config: Partial<AdSenseConfig> = {}) {
 /**
  * Push ad to AdSense queue
  */
-export function pushAd(element?: HTMLElement): void {
+export function pushAd(): void {
   if (typeof window !== 'undefined' && window.adsbygoogle && adSenseLoaded) {
     try {
-      (window.adsbygoogle as any[]).push({});
+      (window.adsbygoogle as unknown[]).push({});
       console.log('[AdSense] Ad pushed to queue');
     } catch (error) {
       console.error('[AdSense] Error pushing ad:', error);
@@ -253,7 +253,7 @@ export function refreshAds(): void {
       
       // Reinitialize ads
       adElements.forEach(() => {
-        (window.adsbygoogle as any[]).push({});
+        (window.adsbygoogle as unknown[]).push({});
       });
       
       console.log('[AdSense] Ads refreshed');
@@ -291,7 +291,7 @@ export function detectAdBlocker(): Promise<boolean> {
 // TypeScript declarations for global objects
 declare global {
   interface Window {
-    adsbygoogle: any[];
-    gtag: (...args: any[]) => void;
+    adsbygoogle: unknown[];
+    gtag: (...args: unknown[]) => void;
   }
 }

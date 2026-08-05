@@ -164,6 +164,61 @@ class WishlistProvider extends ChangeNotifier {
     }
   }
 
+  Future<bool> updateItem(
+    int itemId, {
+    String? name,
+    String? description,
+    String? imageUrl,
+    String? productUrl,
+    double? price,
+    bool? isPurchased,
+  }) async {
+    _setLoading(true);
+    _clearError();
+
+    try {
+      final updatedItem = await _wishlistService.updateItem(
+        itemId,
+        name: name,
+        description: description,
+        imageUrl: imageUrl,
+        productUrl: productUrl,
+        price: price,
+        isPurchased: isPurchased,
+      );
+
+      _updateItemInWishlists(updatedItem);
+      return true;
+    } on ApiException catch (e) {
+      _setError(e.message);
+      return false;
+    } catch (e) {
+      _setError('Failed to update item');
+      return false;
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  Future<bool> deleteItem(int itemId) async {
+    _setLoading(true);
+    _clearError();
+
+    try {
+      await _wishlistService.deleteItem(itemId);
+      _removeItemFromWishlists(itemId);
+      return true;
+    } on ApiException catch (e) {
+      _setError(e.message);
+      return false;
+    } catch (e) {
+      _setError('Failed to delete item');
+      return false;
+    } finally {
+      _setLoading(false);
+    }
+  }
+
   void _setWishlists(List<Wishlist> wishlists) {
     _wishlists = wishlists;
     notifyListeners();
@@ -224,6 +279,96 @@ class WishlistProvider extends ChangeNotifier {
         updatedAt: wishlist.updatedAt,
         items: updatedItems,
       );
+    }
+
+    notifyListeners();
+  }
+
+  void _updateItemInWishlists(WishlistItem updatedItem) {
+    // Update current wishlist if it contains the item
+    if (_currentWishlist != null) {
+      final itemIndex = _currentWishlist!.items.indexWhere(
+        (item) => item.id == updatedItem.id,
+      );
+      if (itemIndex != -1) {
+        final updatedItems = List<WishlistItem>.from(_currentWishlist!.items);
+        updatedItems[itemIndex] = updatedItem;
+        _currentWishlist = Wishlist(
+          id: _currentWishlist!.id,
+          name: _currentWishlist!.name,
+          description: _currentWishlist!.description,
+          ownerId: _currentWishlist!.ownerId,
+          isPublic: _currentWishlist!.isPublic,
+          createdAt: _currentWishlist!.createdAt,
+          updatedAt: _currentWishlist!.updatedAt,
+          items: updatedItems,
+        );
+      }
+    }
+
+    // Update in wishlists list
+    for (int i = 0; i < _wishlists.length; i++) {
+      final itemIndex = _wishlists[i].items.indexWhere(
+        (item) => item.id == updatedItem.id,
+      );
+      if (itemIndex != -1) {
+        final updatedItems = List<WishlistItem>.from(_wishlists[i].items);
+        updatedItems[itemIndex] = updatedItem;
+        _wishlists[i] = Wishlist(
+          id: _wishlists[i].id,
+          name: _wishlists[i].name,
+          description: _wishlists[i].description,
+          ownerId: _wishlists[i].ownerId,
+          isPublic: _wishlists[i].isPublic,
+          createdAt: _wishlists[i].createdAt,
+          updatedAt: _wishlists[i].updatedAt,
+          items: updatedItems,
+        );
+        break;
+      }
+    }
+
+    notifyListeners();
+  }
+
+  void _removeItemFromWishlists(int itemId) {
+    // Remove from current wishlist if it contains the item
+    if (_currentWishlist != null) {
+      final updatedItems = _currentWishlist!.items
+          .where((item) => item.id != itemId)
+          .toList();
+      if (updatedItems.length != _currentWishlist!.items.length) {
+        _currentWishlist = Wishlist(
+          id: _currentWishlist!.id,
+          name: _currentWishlist!.name,
+          description: _currentWishlist!.description,
+          ownerId: _currentWishlist!.ownerId,
+          isPublic: _currentWishlist!.isPublic,
+          createdAt: _currentWishlist!.createdAt,
+          updatedAt: _currentWishlist!.updatedAt,
+          items: updatedItems,
+        );
+      }
+    }
+
+    // Remove from wishlists list
+    for (int i = 0; i < _wishlists.length; i++) {
+      final updatedItems = _wishlists[i].items
+          .where((item) => item.id != itemId)
+          .toList();
+      if (updatedItems.length != _wishlists[i].items.length) {
+        _wishlists[i] = Wishlist(
+          id: _wishlists[i].id,
+          name: _wishlists[i].name,
+          description: _wishlists[i].description,
+          ownerId: _wishlists[i].ownerId,
+          isPublic: _wishlists[i].isPublic,
+          createdAt: _wishlists[i].createdAt,
+          updatedAt: _wishlists[i].updatedAt,
+          items: updatedItems,
+        );
+        break;
+      }
     }
 
     notifyListeners();

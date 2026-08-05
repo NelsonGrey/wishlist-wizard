@@ -109,5 +109,95 @@ service cloud.firestore {
     match /userSessions/{sessionId} {
       allow read, write: if isAuthenticated() && request.auth.uid == resource.data.userId;
     }
+
+    // ─── SUBSCRIPTION SYSTEM (NEW) ───
+
+    // Subscriptions - users can read their own; Cloud Functions write-only
+    match /subscriptions/{userId} {
+      allow read: if isAuthenticated() && (
+        request.auth.uid == userId ||
+        (get(/databases/$(database)/documents/adminUsers/$(request.auth.uid)).data.isActive == true)
+      );
+      allow write: if false; // Cloud Functions only (via admin SDK)
+    }
+
+    // Usage metrics - users can read their own; Cloud Functions write-only
+    match /usageMetrics/{userId} {
+      allow read: if isAuthenticated() && (
+        request.auth.uid == userId ||
+        (get(/databases/$(database)/documents/adminUsers/$(request.auth.uid)).data.isActive == true)
+      );
+      allow write: if false; // Cloud Functions only (via admin SDK)
+    }
+
+    // Admin users - admin-only access, Cloud Functions manage
+    match /adminUsers/{uid} {
+      allow read: if isAuthenticated() && 
+        (get(/databases/$(database)/documents/adminUsers/$(request.auth.uid)).data.isActive == true);
+      allow write: if false; // Cloud Functions only (via admin SDK)
+    }
+
+    // Support tickets - users can create and read their own; admins read all
+    match /supportTickets/{ticketId} {
+      allow read: if isAuthenticated() && (
+        resource.data.userId == request.auth.uid ||
+        (get(/databases/$(database)/documents/adminUsers/$(request.auth.uid)).data.isActive == true)
+      );
+      
+      allow create: if isAuthenticated() && 
+        request.auth.uid == request.resource.data.userId;
+      
+      allow update: if isAuthenticated() && 
+        ((get(/databases/$(database)/documents/adminUsers/$(request.auth.uid)).data.isActive == true) ||
+         request.auth.uid == resource.data.userId);
+      
+      allow delete: if false; // Tickets are immutable via client
+    }
+
+    // Audit log - admin-only read; append-only (no updates/deletes)
+    match /auditLog/{logId} {
+      allow read: if isAuthenticated() &&
+        (get(/databases/$(database)/documents/adminUsers/$(request.auth.uid)).data.isActive == true);
+
+      allow create: if false; // Cloud Functions only (via admin SDK)
+      allow update, delete: if false; // Append-only, immutable
+    }
+
+    // Affiliate commission ledger and everything payout-related - no direct
+    // client access at all, not even read, matching affiliateClicks/
+    // affiliateConversions above. A financial ledger's every read needs to
+    // pass through a callable that can scope to the caller's own uid, redact
+    // internal provenance (rawReportRow), and log access - not a raw client
+    // query. See commissionLedger.ts / affiliateReconciliation.ts / payouts.ts.
+    match /commissionLedger/{ledgerEntryId} {
+      allow read, write: if false;
+      match /transitions/{transitionId} {
+        allow read, write: if false;
+      }
+    }
+    match /commissionAdjustments/{adjustmentId} {
+      allow read, write: if false;
+    }
+    match /payoutBatches/{batchId} {
+      allow read, write: if false;
+      match /items/{itemId} {
+        allow read, write: if false;
+      }
+    }
+    match /creatorPayoutAccounts/{creatorUid} {
+      allow read, write: if false;
+    }
+    match /affiliateReportImports/{importId} {
+      allow read, write: if false;
+    }
+    match /creatorAffiliateTrackingIds/{assignmentId} {
+      allow read, write: if false;
+    }
+    match /affiliateTrackingIdPool/{network} {
+      allow read, write: if false;
+      match /ids/{poolIdDocId} {
+        allow read, write: if false;
+      }
+    }
   }
 }

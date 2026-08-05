@@ -1,0 +1,21 @@
+/* Calendar Component Styles */
+.calendar-container {
+  height: 500px;
+}
+
+.calendar-event-badge {
+  /* Dynamic background color will be set via data attribute or inline style */
+  color: white;
+  border-radius: 3px;
+  opacity: 0.8;
+  border: 0px;
+  display: block;
+  padding: 3px;
+}
+
+.calendar-color-preview {
+  /* Dynamic background color will be set via inline style */
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+}

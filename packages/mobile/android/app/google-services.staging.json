@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "1039527515823",
+    "project_id": "wishlist-wizard-staging",
+    "storage_bucket": "wishlist-wizard-staging.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1039527515823:android:c72fe157d450914edee65a",
+        "android_client_info": {
+          "package_name": "com.wishlistwizard.app.android"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1039527515823-jr4kj6p6unfmfr8p2v3pk9q0h9dcah1n.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCIeL17Pyydg7NAImCh64pwnvIV2RxPxrk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1039527515823-jr4kj6p6unfmfr8p2v3pk9q0h9dcah1n.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "1039527515823-tnq9un7p741n41a950mqule5m4di6klo.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.wishlistwizard.app.ios",
+                "app_store_id": "6783932988"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

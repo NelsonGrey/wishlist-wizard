@@ -3,22 +3,25 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>WishKeeper</title>
+  <title>Wishlist Wizard</title>
   <link rel="stylesheet" href="popup.css">
 </head>
 <body>
   <div class="container">
     <div class="header">
       <div class="title-row">
-        <img src="../icons/icon48.png" alt="WishKeeper Logo" class="logo">
-        <h1>WishKeeper</h1>
+        <img src="../icons/icon48.png" alt="Wishlist Wizard Logo" class="logo">
+        <h1>Wishlist Wizard</h1>
       </div>
       <div class="nav-tabs">
         <button id="tab-product" class="tab-button active">Product</button>
         <button id="tab-price" class="tab-button">Compare</button>
         <button id="tab-coupon" class="tab-button">Coupons</button>
+        <button id="tab-wishlist" class="tab-button">Wishlists</button>
       </div>
     </div>
+
+    <div id="status-banner" class="status-banner hidden" role="status" aria-live="polite"></div>
 
     <!-- Login Screen -->
     <div id="login-screen" class="screen">
@@ -52,7 +55,7 @@
     <div id="not-product-screen" class="screen hidden">
       <div class="message-box">
         <p>This doesn't appear to be a product page.</p>
-        <p class="small-text">WishKeeper works on product pages from any online retailer.</p>
+        <p class="small-text">Wishlist Wizard works on product pages from any online retailer.</p>
         <button id="force-detection-button" class="secondary-button">This is a product - try again</button>
       </div>
     </div>
@@ -100,18 +103,19 @@
         <select id="wishlist-select" class="wishlist-dropdown">
           <option value="" disabled selected>Select a wishlist</option>
         </select>
+        <button id="create-wishlist-button" class="secondary-button">Create New Wishlist</button>
+        <div id="create-wishlist-inline" class="inline-create-wishlist hidden">
+          <input id="new-wishlist-name-input" type="text" class="form-input" maxlength="60" placeholder="Wishlist name">
+          <div class="inline-create-actions">
+            <button id="save-wishlist-button" class="primary-button">Save</button>
+            <button id="cancel-create-wishlist-button" class="secondary-button">Cancel</button>
+          </div>
+        </div>
       </div>
       
       <div class="note-section">
         <label for="note-input">Add a note (optional):</label>
         <textarea id="note-input" class="note-textarea" placeholder="Why do you want this item?"></textarea>
-      </div>
-      
-      <div class="quick-add-options">
-        <button id="enable-quick-add-button" class="option-button">
-          <span class="option-icon">⚡</span>
-          <span class="option-text">Enable One-Click Add</span>
-        </button>
       </div>
       
       <div class="button-group">
@@ -205,6 +209,49 @@
       <button id="view-wishlist-button" class="secondary-button">View Wishlist</button>
     </div>
 
+    <!-- Wishlist Management Screen -->
+    <div id="wishlist-screen" class="screen hidden">
+      <h2>Your Wishlists</h2>
+      <div class="wishlist-selection">
+        <label for="wishlist-manage-select">Select wishlist:</label>
+        <select id="wishlist-manage-select" class="wishlist-dropdown">
+          <option value="" disabled selected>Select a wishlist</option>
+        </select>
+      </div>
+
+      <div id="wishlist-items-loading" class="spinner hidden"></div>
+      <div id="wishlist-items-empty" class="message-box hidden">
+        <p>No items in this wishlist yet.</p>
+      </div>
+      <div id="wishlist-items-list" class="coupon-results"></div>
+
+      <div id="create-wishlist-inline-manage" class="inline-create-wishlist hidden">
+        <input id="new-wishlist-name-manage-input" type="text" class="form-input" maxlength="60" placeholder="Wishlist name">
+        <div class="inline-create-actions">
+          <button id="save-wishlist-manage-button" class="primary-button">Save</button>
+          <button id="cancel-create-wishlist-manage-button" class="secondary-button">Cancel</button>
+        </div>
+      </div>
+
+      <template id="wishlist-item-template">
+        <div class="coupon-item">
+          <div class="coupon-details">
+            <div class="coupon-description wishlist-item-title"></div>
+            <div class="coupon-discount wishlist-item-price"></div>
+            <div class="coupon-source wishlist-item-store"></div>
+          </div>
+          <div class="coupon-actions">
+            <button class="remove-item-button secondary-button">Remove</button>
+          </div>
+        </div>
+      </template>
+
+      <div class="button-group">
+        <button id="create-wishlist-manage-button" class="secondary-button">Create New Wishlist</button>
+        <button id="open-wishlist-website-button" class="secondary-button">Open on Website</button>
+      </div>
+    </div>
+
     <!-- Error Screen -->
     <div id="error-screen" class="screen hidden">
       <div class="error-icon">!</div>
@@ -214,17 +261,66 @@
       <button id="close-button" class="secondary-button">Close</button>
     </div>
 
+    <div id="paywall-overlay" class="paywall-overlay hidden">
+      <div class="paywall-card">
+        <h2>Upgrade To Keep Going</h2>
+        <p id="paywall-subtitle" class="small-text">
+          You have reached a plan limit. Upgrade to unlock more wishlists, items, and tracking.
+        </p>
+
+        <div id="paywall-usage" class="paywall-usage"></div>
+
+        <div class="paywall-pricing-toggle">
+          <button id="paywall-billing-monthly" class="secondary-button">Monthly</button>
+          <button id="paywall-billing-annual" class="secondary-button">Annual</button>
+        </div>
+
+        <div id="paywall-options" class="paywall-options"></div>
+
+        <div class="button-group">
+          <button id="paywall-compare-button" class="secondary-button">Compare All Tiers</button>
+          <button id="paywall-manage-billing-button" class="secondary-button">Manage Billing</button>
+          <button id="paywall-close-button" class="text-button">Maybe Later</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="tier-modal-overlay" class="paywall-overlay hidden">
+      <div class="paywall-card tier-modal-card">
+        <h2>Tier Comparison</h2>
+        <div class="tier-table-wrap">
+          <table class="tier-table" id="tier-comparison-table">
+            <thead>
+              <tr>
+                <th>Tier</th>
+                <th>Monthly</th>
+                <th>Annual</th>
+              </tr>
+            </thead>
+            <tbody id="tier-comparison-body"></tbody>
+          </table>
+        </div>
+        <div class="button-group">
+          <button id="tier-modal-close-button" class="secondary-button">Close</button>
+        </div>
+      </div>
+    </div>
+
     <div class="footer">
       <span id="user-info" class="user-info hidden">Signed in as <span id="username"></span></span>
+      <div class="environment-control">
+        <label for="environment-select">Env</label>
+        <select id="environment-select" class="environment-select" aria-label="Environment">
+          <option value="development">Development</option>
+          <option value="staging">Staging</option>
+          <option value="production">Production</option>
+          <option value="local">Local</option>
+        </select>
+      </div>
       <button id="logout-button" class="text-button hidden">Sign Out</button>
     </div>
   </div>
 
-  <script src="popup-auth.js"></script>
-  <script src="coupons.js"></script>
-  <script src="comparison.js"></script>
-  <script src="quick-add.js"></script>
-  <script src="popup-extra.js"></script>
-  <script src="popup.js"></script>
+  <script type="module" src="popup-bootstrap.js"></script>
 </body>
 </html>

@@ -19,8 +19,14 @@ class FirebaseInitializationService {
 
   Future<bool> initialize() async {
     if (_isInitialized) return true;
+
+    // Firebase may already be initialized by main() before runApp() — reuse it.
+    if (Firebase.apps.isNotEmpty) {
+      _isInitialized = true;
+      return true;
+    }
+
     if (_isInitializing) {
-      // Wait for ongoing initialization
       while (_isInitializing) {
         await Future.delayed(const Duration(milliseconds: 100));
       }
@@ -40,18 +46,8 @@ class FirebaseInitializationService {
     } catch (e) {
       _initializationError = e.toString();
       print('Firebase initialization error: $e');
-
-      // Try alternative initialization without options (fallback)
-      try {
-        await Firebase.initializeApp();
-        _isInitialized = true;
-        print('Firebase initialized with fallback method');
-        return true;
-      } catch (fallbackError) {
-        print('Firebase fallback initialization failed: $fallbackError');
-        _isInitialized = false;
-        return false;
-      }
+      _isInitialized = false;
+      return false;
     } finally {
       _isInitializing = false;
     }

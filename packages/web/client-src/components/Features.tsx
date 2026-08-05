@@ -1,182 +1,173 @@
 import { Link } from "wouter";
-import { 
-  CameraIcon, 
-  Share2, 
-  AlertCircle, 
-  CalendarClock, 
-  BadgeDollarSign,
-  Smile,
-  Smartphone,
-  Award,
-  User
-} from "lucide-react";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { ArrowRight, BadgeDollarSign, BellRing, CalendarDays, CheckCircle2, Gift, HeartHandshake, Megaphone, Search, Share2, ShoppingBag, Users } from "lucide-react";
+
+const personas = [
+  {
+    icon: Gift,
+    label: "Gift recipients",
+    title: "Make it easy for friends and family to choose well.",
+    story: "Create one list for a birthday, holiday, or just-because ideas. Share it once, keep it current, and let buyers mark gifts as purchased.",
+    outcome: "Fewer duplicates, fewer awkward guesses, better gifts.",
+    plan: "Free",
+    href: "/register",
+    accent: "text-emerald-800 bg-emerald-50 border-emerald-100",
+  },
+  {
+    icon: CalendarDays,
+    label: "Family planners",
+    title: "Manage every birthday, holiday, and personal list in one place.",
+    story: "Track multiple lists across kids, partners, parents, and seasonal shopping. Price alerts help you buy at the right moment.",
+    outcome: "More organized gifting without spreadsheet sprawl.",
+    plan: "Starter",
+    href: "/subscriptions",
+    accent: "text-emerald-800 bg-emerald-50 border-emerald-100",
+  },
+  {
+    icon: Users,
+    label: "Occasion coordinators",
+    title: "Coordinate group gifts without the group-chat confusion.",
+    story: "For weddings, showers, graduations, and big family events, collaborators can see commitments before they buy.",
+    outcome: "Clear ownership, fewer duplicates, smoother events.",
+    plan: "Plus",
+    href: "/subscriptions",
+    accent: "text-emerald-800 bg-emerald-50 border-emerald-100",
+  },
+  {
+    icon: Megaphone,
+    label: "Creators",
+    title: "Turn product taste into trackable recommendation lists.",
+    story: "Publish themed wishlists, understand audience activity, and prepare for a transparent commission-sharing program.",
+    outcome: "A cleaner path from content to measurable recommendations.",
+    plan: "Creator Pro",
+    href: "/creator-program",
+    accent: "text-emerald-800 bg-emerald-50 border-emerald-100",
+  },
+];
+
+const workflow = [
+  {
+    icon: Search,
+    title: "Capture ideas anywhere",
+    text: "Save products from retailers, mobile shopping, or manual entry before ideas get lost.",
+  },
+  {
+    icon: Share2,
+    title: "Share the right list",
+    text: "Send one link for the occasion, person, or audience instead of scattered screenshots.",
+  },
+  {
+    icon: HeartHandshake,
+    title: "Coordinate buying",
+    text: "Viewers can reserve, purchase, or contribute so everyone knows what is covered.",
+  },
+  {
+    icon: BellRing,
+    title: "Watch prices",
+    text: "Price tracking turns wishlists into a planning tool, not just a static list.",
+  },
+];
+
+const differentiators = [
+  "Works across web, iOS, and browser extension",
+  "Supports personal lists, shared occasions, and creator storefronts",
+  "Pairs gift coordination with price tracking",
+  "Scales from free personal use to teams and API access",
+];
 
 export default function Features() {
   return (
-    <section className="py-16 bg-slate-50">
-      <div className="container mx-auto px-4">
-        <div className="text-center mb-16">
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">Our Exclusive Features</h2>
-          <p className="text-lg text-slate-600 max-w-2xl mx-auto">
-            Wishlist Wizard goes beyond basic wishlists with these powerful and exclusive features
-            that make gift-giving easier and more delightful.
-          </p>
+    <>
+      <section className="compact-laptop-section bg-white py-8 2xl:py-12">
+        <div className="site-container">
+          <div className="max-w-3xl">
+            <p className="text-sm font-semibold uppercase tracking-[0.24em] text-emerald-700">Use cases</p>
+            <h2 className="mt-3 text-3xl font-bold tracking-tight text-slate-950 2xl:text-4xl">One platform, four clear reasons to use it.</h2>
+            <p className="mt-4 text-lg leading-8 text-slate-600">
+              Whether you are receiving gifts, planning for family, coordinating an event, or monetizing recommendations, Wishlist Wizard gives each workflow a clear place to start.
+            </p>
+          </div>
+
+          <div className="mt-7 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4 2xl:mt-10 2xl:gap-5">
+            {personas.map(persona => {
+              const Icon = persona.icon;
+
+              return (
+                <article key={persona.label} className="flex h-full flex-col rounded-lg border border-slate-200 bg-white p-5 shadow-sm 2xl:p-6">
+                  <div className={`mb-5 flex h-12 w-12 items-center justify-center rounded-lg border ${persona.accent}`}>
+                    <Icon className="h-6 w-6" />
+                  </div>
+                  <p className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">{persona.label}</p>
+                  <h3 className="mt-3 text-xl font-bold leading-snug text-slate-950">{persona.title}</h3>
+                  <p className="mt-4 flex-1 text-sm leading-6 text-slate-600">{persona.story}</p>
+                  <div className="mt-5 rounded-lg bg-slate-50 p-4">
+                    <p className="text-sm font-semibold text-slate-950">{persona.outcome}</p>
+                    <p className="mt-1 text-sm text-slate-600">Natural plan: {persona.plan}</p>
+                  </div>
+                  <Link href={persona.href} className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-emerald-800 hover:text-emerald-950">
+                    Explore {persona.plan}
+                    <ArrowRight className="h-4 w-4" />
+                  </Link>
+                </article>
+              );
+            })}
+          </div>
         </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {/* Mobile App Feature */}
-          <Card className="border-2 hover:border-primary/30 hover:shadow-lg transition-all">
-            <CardHeader className="pb-2">
-              <div className="p-2 w-12 h-12 bg-primary/10 rounded-lg mb-2 flex items-center justify-center">
-                <Smartphone className="text-primary" size={24} />
-              </div>
-              <CardTitle>Mobile App</CardTitle>
-              <CardDescription>Take your wishlists anywhere</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-slate-600">
-                Our native mobile app with offline mode keeps your wishlists synced across all your devices.
-                Scan barcodes in-store to instantly add items.
-              </p>
-            </CardContent>
-            <CardFooter>
-              <Link href="/mobile-demo">
-                <Button variant="outline" className="w-full">Try the Mobile Demo</Button>
+      </section>
+
+      <section className="compact-laptop-section bg-white py-8 2xl:py-12">
+        <div className="site-container">
+          <div className="grid grid-cols-1 gap-10 rounded-lg border border-emerald-100 bg-emerald-50/60 p-6 sm:p-8 lg:grid-cols-[0.9fr_1.1fr]">
+            <div>
+              <p className="text-sm font-semibold uppercase tracking-[0.24em] text-emerald-700">Product story</p>
+              <h2 className="mt-3 text-3xl font-bold tracking-tight text-slate-950 sm:text-4xl">From gift idea to confirmed purchase.</h2>
+              <p className="mt-4 text-lg leading-8 text-slate-600">Collect the right ideas, share them cleanly, coordinate buyers, and use price intelligence to make each purchase feel smart.</p>
+              <Link href="/extension" className="mt-7 inline-flex items-center gap-2 rounded-lg bg-emerald-800 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-emerald-900">
+                See the Browser Extension
+                <ArrowRight className="h-4 w-4" />
               </Link>
-            </CardFooter>
-          </Card>
-          
-          {/* AR Visualization Feature */}
-          <Card className="border-2 hover:border-primary/30 hover:shadow-lg transition-all">
-            <CardHeader className="pb-2">
-              <div className="p-2 w-12 h-12 bg-primary/10 rounded-lg mb-2 flex items-center justify-center">
-                <CameraIcon className="text-primary" size={24} />
-              </div>
-              <CardTitle>AR Visualization</CardTitle>
-              <CardDescription>Try before you buy</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-slate-600">
-                See how items will look in your space with augmented reality. Compare true size and
-                check if furniture will fit before purchasing.
-              </p>
-            </CardContent>
-            <CardFooter>
-              <Link href="/ar-visualizer">
-                <Button variant="outline" className="w-full">Experience AR Demo</Button>
-              </Link>
-            </CardFooter>
-          </Card>
-          
-          {/* Social Sharing Feature */}
-          <Card className="border-2 hover:border-primary/30 hover:shadow-lg transition-all">
-            <CardHeader className="pb-2">
-              <div className="p-2 w-12 h-12 bg-primary/10 rounded-lg mb-2 flex items-center justify-center">
-                <Share2 className="text-primary" size={24} />
-              </div>
-              <CardTitle>Social Integration</CardTitle>
-              <CardDescription>Connect with friends and family</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-slate-600">
-                Share wishlists across social media platforms, find friends' wishlists, and collaborate 
-                on group gifts seamlessly.
-              </p>
-            </CardContent>
-            <CardFooter>
-              <Link href="/social-sharing">
-                <Button variant="outline" className="w-full">Try Social Sharing</Button>
-              </Link>
-            </CardFooter>
-          </Card>
-          
-          {/* Price Tracking Feature */}
-          <Card className="border-2 hover:border-primary/30 hover:shadow-lg transition-all">
-            <CardHeader className="pb-2">
-              <div className="p-2 w-12 h-12 bg-primary/10 rounded-lg mb-2 flex items-center justify-center">
-                <BadgeDollarSign className="text-primary" size={24} />
-              </div>
-              <CardTitle>Price Tracking</CardTitle>
-              <CardDescription>Never miss a deal</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-slate-600">
-                Automatically track prices of items in your wishlists and get alerts when they drop
-                or when similar items go on sale.
-              </p>
-            </CardContent>
-            <CardFooter>
-              <Link href="/price-tracking">
-                <Button variant="outline" className="w-full">Try Price Tracking</Button>
-              </Link>
-            </CardFooter>
-          </Card>
-          
-          {/* Occasion Reminders Feature */}
-          <Card className="border-2 hover:border-primary/30 hover:shadow-lg transition-all">
-            <CardHeader className="pb-2">
-              <div className="p-2 w-12 h-12 bg-primary/10 rounded-lg mb-2 flex items-center justify-center">
-                <CalendarClock className="text-primary" size={24} />
-              </div>
-              <CardTitle>Calendar Integration</CardTitle>
-              <CardDescription>Never forget a special date</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-slate-600">
-                Sync important occasions with your calendar apps and get timely reminders for
-                birthdays, anniversaries, and other gift-giving events.
-              </p>
-            </CardContent>
-            <CardFooter>
-              <Button variant="outline" className="w-full" disabled>Coming Soon</Button>
-            </CardFooter>
-          </Card>
-          
-          {/* Advanced User Profiles Feature */}
-          <Card className="border-2 hover:border-primary/30 hover:shadow-lg transition-all">
-            <CardHeader className="pb-2">
-              <div className="p-2 w-12 h-12 bg-primary/10 rounded-lg mb-2 flex items-center justify-center">
-                <User className="text-primary" size={24} />
-              </div>
-              <CardTitle>Advanced User Profiles</CardTitle>
-              <CardDescription>Personalized preferences</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-slate-600">
-                Create personalized profiles with detailed gift preferences, statistics, and
-                recommendation settings to get better gift suggestions.
-              </p>
-            </CardContent>
-            <CardFooter>
-              <Link href="/user-profile">
-                <Button variant="outline" className="w-full">Try User Profiles</Button>
-              </Link>
-            </CardFooter>
-          </Card>
-          
-          {/* AI Recommendations Feature */}
-          <Card className="border-2 hover:border-primary/30 hover:shadow-lg transition-all">
-            <CardHeader className="pb-2">
-              <div className="p-2 w-12 h-12 bg-primary/10 rounded-lg mb-2 flex items-center justify-center">
-                <Award className="text-primary" size={24} />
-              </div>
-              <CardTitle>AI Gift Recommendations</CardTitle>
-              <CardDescription>Personalized suggestions</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-slate-600">
-                Get intelligent gift suggestions based on preferences, past purchases, and similar users.
-                Our AI helps you find the perfect gift every time.
-              </p>
-            </CardContent>
-            <CardFooter>
-              <Button variant="outline" className="w-full" disabled>Coming Soon</Button>
-            </CardFooter>
-          </Card>
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              {workflow.map(step => {
+                const Icon = step.icon;
+
+                return (
+                  <div key={step.title} className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+                    <Icon className="h-6 w-6 text-emerald-700" />
+                    <h3 className="mt-4 text-lg font-bold text-slate-950">{step.title}</h3>
+                    <p className="mt-2 text-sm leading-6 text-slate-600">{step.text}</p>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         </div>
-      </div>
-    </section>
+      </section>
+
+      <section className="compact-laptop-section bg-white py-8 2xl:py-12">
+        <div className="site-container grid grid-cols-1 gap-8 lg:grid-cols-[1fr_1fr]">
+          <div className="rounded-lg border border-emerald-100 bg-emerald-900 p-8 text-white">
+            <ShoppingBag className="h-9 w-9 text-emerald-100" />
+            <h2 className="mt-5 text-3xl font-bold tracking-tight">More flexible than single-store wishlists.</h2>
+            <p className="mt-4 text-slate-200">
+              Wishlist Wizard is not locked to one retailer or one occasion. It combines any-store saving, shared gift coordination, price alerts, and creator analytics.
+            </p>
+          </div>
+
+          <div className="rounded-lg border border-slate-200 bg-white p-8 shadow-sm">
+            <BadgeDollarSign className="h-9 w-9 text-emerald-700" />
+            <h2 className="mt-5 text-3xl font-bold tracking-tight text-slate-950">Make the paid plans feel earned.</h2>
+            <div className="mt-5 space-y-3">
+              {differentiators.map(item => (
+                <div key={item} className="flex gap-3">
+                  <CheckCircle2 className="mt-0.5 h-5 w-5 flex-none text-emerald-700" />
+                  <p className="text-sm leading-6 text-slate-700">{item}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+    </>
   );
 }

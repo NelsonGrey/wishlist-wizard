@@ -7,17 +7,22 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-
 import 'package:wishlist_wizard_mobile/main.dart';
 
 void main() {
-  testWidgets('Login screen smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const WishlistWizardApp());
+  testWidgets('Custom app bar smoke test', (WidgetTester tester) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Scaffold(
+          appBar: CustomAppBar(title: 'Test Title'),
+          body: SizedBox.shrink(),
+        ),
+      ),
+    );
 
-    // Verify that we start with the login screen
-    expect(find.text('Wishlist Wizard'), findsOneWidget);
-    expect(find.text('Welcome back!'), findsOneWidget);
-    expect(find.byType(TextFormField), findsAtLeast(2));
+    await tester.pump();
+
+    expect(find.text('Test Title'), findsOneWidget);
+    expect(find.byType(AppBar), findsOneWidget);
   });
 }

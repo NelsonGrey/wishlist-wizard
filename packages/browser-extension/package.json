@@ -5,15 +5,25 @@
   "type": "module",
   "scripts": {
     "build": "vite build",
-    "dev": "vite build --watch"
+    "build:all": "bash scripts/build-extension.sh all",
+    "build:chrome": "bash scripts/build-extension.sh chrome",
+    "build:edge": "bash scripts/build-extension.sh edge",
+    "build:firefox": "bash scripts/build-extension.sh firefox",
+    "build:safari": "bash scripts/build-extension.sh safari",
+    "dev": "vite build --watch",
+    "test": "vitest run",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@dataconnect/generated": "file:src/dataconnect-generated",
     "@wishlist-wizard/shared": "file:../shared"
   },
   "devDependencies": {
+    "@playwright/test": "^1.58.2",
     "@types/chrome": "^0.0.270",
+    "jsdom": "^26.1.0",
     "typescript": "^5.6.3",
-    "vite": "^5.4.19"
+    "vite": "^7.1.10",
+    "vitest": "^4.1.8"
   }
 }

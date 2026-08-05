@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Link } from 'wouter';
 import {
   Card,
@@ -13,28 +13,22 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Switch } from "@/components/ui/switch";
-import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
-import {
+import { 
   Lock,
   Users,
   Eye,
-  EyeOff,
   UserPlus,
   UserMinus,
-  Clock,
   Settings,
   Shield,
   Globe,
   UserCheck,
   AlertTriangle,
   Check,
-  X,
   Loader2,
-  ChevronDown,
   Search,
   Filter
 } from 'lucide-react';
@@ -42,11 +36,6 @@ import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
-  usePrivacySettings,
-  useUpdatePrivacySettings,
-  useUpdateAccessList,
-  useDeletePrivacySettings,
-  useDefaultPrivacySettings,
   type PrivacySettings
 } from '@/hooks/use-privacy';
 
@@ -59,11 +48,18 @@ interface EntityWithPrivacy {
   isOwner: boolean;
 }
 
-interface User {
+interface WishlistResponse {
   id: number;
-  username: string;
-  displayName?: string;
-  email: string;
+  name: string;
+  userId: number;
+}
+
+interface ItemResponse {
+  id: number;
+  title: string;
+  wishlist?: {
+    userId: number;
+  };
 }
 
 const VISIBILITY_OPTIONS = [
@@ -72,29 +68,32 @@ const VISIBILITY_OPTIONS = [
     label: 'Public',
     description: 'Anyone with the link can view',
     icon: Globe,
-    color: 'text-green-600'
+    color: 'text-green-600',
+    disabled: false
   },
   {
     value: 'friends',
-    label: 'Friends Only (Coming Soon)',
-    description: 'Only people you\'ve connected with (friends system not yet implemented)',
+    label: 'Friends Only',
+    description: 'Only people you\'ve connected with can view',
     icon: Users,
-    color: 'text-gray-400',
-    disabled: true
+    color: 'text-emerald-700',
+    disabled: false
   },
   {
     value: 'private',
     label: 'Private',
     description: 'Only you can view',
     icon: Lock,
-    color: 'text-red-600'
+    color: 'text-red-600',
+    disabled: false
   },
   {
     value: 'custom',
     label: 'Custom Access',
     description: 'Only specific people you choose',
     icon: UserCheck,
-    color: 'text-purple-600'
+    color: 'text-emerald-800',
+    disabled: false
   }
 ];
 
@@ -108,23 +107,23 @@ const PrivacySettingsPage = () => {
   const queryClient = useQueryClient();
 
   // Fetch user's entities with privacy settings
-  const { data: entities, isLoading: entitiesLoading } = useQuery({
+  const { data: entities, isLoading: entitiesLoading } = useQuery<EntityWithPrivacy[]>({
     queryKey: ['user-entities-privacy'],
-    queryFn: async () => {
+    queryFn: async (): Promise<EntityWithPrivacy[]> => {
       const [wishlistsRes, itemsRes] = await Promise.all([
-        apiRequest('/api/wishlists'),
-        apiRequest('/api/wishlist-items')
+        apiRequest('/api/wishlists') as Promise<WishlistResponse[]>,
+        apiRequest('/api/wishlist-items') as Promise<ItemResponse[]>
       ]);
 
       const entities: EntityWithPrivacy[] = [
-        ...wishlistsRes.map((w: any) => ({
+        ...wishlistsRes.map((w: WishlistResponse) => ({
           id: w.id,
           name: w.name,
           type: 'wishlist' as const,
           ownerId: w.userId,
           isOwner: true // Assuming current user owns these
         })),
-        ...itemsRes.map((i: any) => ({
+        ...itemsRes.map((i: ItemResponse) => ({
           id: i.id,
           name: i.title,
           type: 'item' as const,
@@ -137,9 +136,9 @@ const PrivacySettingsPage = () => {
       const entitiesWithPrivacy = await Promise.all(
         entities.map(async (entity) => {
           try {
-            const privacyRes = await apiRequest(
+            const privacyRes = await (apiRequest(
               `/api/privacy/settings/${entity.type}/${entity.id}`
-            );
+            ) as Promise<PrivacySettings>);
             return { ...entity, privacySettings: privacyRes };
           } catch (error) {
             // No privacy settings exist yet
@@ -150,12 +149,6 @@ const PrivacySettingsPage = () => {
 
       return entitiesWithPrivacy;
     }
-  });
-
-  // Fetch user's default privacy preferences
-  const { data: defaultSettings } = useQuery({
-    queryKey: ['user-default-privacy'],
-    queryFn: () => apiRequest('/api/privacy/defaults')
   });
 
   // Update privacy settings mutation
@@ -281,7 +274,7 @@ const PrivacySettingsPage = () => {
 
   if (entitiesLoading) {
     return (
-      <div className="container mx-auto py-8">
+      <div data-testid="privacy-settings-page" className="container mx-auto px-4 py-6 2xl:py-8 max-w-7xl">
         <div className="flex items-center justify-center min-h-[400px]">
           <Loader2 className="h-8 w-8 animate-spin" />
         </div>
@@ -290,19 +283,18 @@ const PrivacySettingsPage = () => {
   }
 
   return (
-    <div className="container mx-auto py-8">
+    <div data-testid="privacy-settings-page" className="container mx-auto px-4 py-6 2xl:py-8 max-w-7xl">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">Privacy Settings</h1>
+        <h1 data-testid="privacy-settings-title" className="text-4xl font-bold bg-gradient-to-r from-emerald-800 to-green-800 bg-clip-text text-transparent mb-2">Privacy Settings</h1>
         <p className="text-muted-foreground">
           Control who can see your wishlists, items, and profile information
         </p>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="entities">Manage Entities</TabsTrigger>
-          <TabsTrigger value="defaults">Default Settings</TabsTrigger>
         </TabsList>
 
         {/* Overview Tab */}
@@ -325,7 +317,7 @@ const PrivacySettingsPage = () => {
             <Card>
               <CardContent className="pt-6">
                 <div className="flex items-center space-x-2">
-                  <Users className="h-8 w-8 text-blue-600" />
+                  <Users className="h-8 w-8 text-emerald-800" />
                   <div>
                     <p className="text-2xl font-bold">
                       {entities?.filter(e => e.privacySettings?.visibilityLevel === 'friends').length || 0}
@@ -353,7 +345,7 @@ const PrivacySettingsPage = () => {
             <Card>
               <CardContent className="pt-6">
                 <div className="flex items-center space-x-2">
-                  <UserCheck className="h-8 w-8 text-purple-600" />
+                  <UserCheck className="h-8 w-8 text-emerald-800" />
                   <div>
                     <p className="text-2xl font-bold">
                       {entities?.filter(e => e.privacySettings?.visibilityLevel === 'custom').length || 0}
@@ -380,12 +372,11 @@ const PrivacySettingsPage = () => {
                   Manage Individual Items
                 </Button>
 
-                <Button
-                  variant="outline"
-                  onClick={() => setActiveTab('defaults')}
-                >
-                  <Shield className="h-4 w-4 mr-2" />
-                  Set Default Privacy
+                <Button variant="outline" asChild>
+                  <Link href="/app/settings?tab=privacy">
+                    <Shield className="h-4 w-4 mr-2" />
+                    Set Default Privacy
+                  </Link>
                 </Button>
 
                 <Button variant="outline">
@@ -432,7 +423,7 @@ const PrivacySettingsPage = () => {
                     />
                   </div>
                 </div>
-                <Select value={filterType} onValueChange={(value: any) => setFilterType(value)}>
+                <Select value={filterType} onValueChange={(value: 'all' | 'wishlist' | 'item') => setFilterType(value)}>
                   <SelectTrigger className="w-[180px]">
                     <Filter className="h-4 w-4 mr-2" />
                     <SelectValue />
@@ -461,10 +452,10 @@ const PrivacySettingsPage = () => {
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-3">
                         <div className={`p-2 rounded-full ${
-                          entity.type === 'wishlist' ? 'bg-blue-100' : 'bg-green-100'
+                          entity.type === 'wishlist' ? 'bg-emerald-100' : 'bg-green-100'
                         }`}>
                           {entity.type === 'wishlist' ? (
-                            <Settings className="h-4 w-4 text-blue-600" />
+                            <Settings className="h-4 w-4 text-emerald-800" />
                           ) : (
                             <Check className="h-4 w-4 text-green-600" />
                           )}
@@ -486,7 +477,7 @@ const PrivacySettingsPage = () => {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => setSelectedEntity(entity)}
+                          onClick={() => setSelectedEntity(entity as EntityWithPrivacy)}
                         >
                           Manage
                         </Button>
@@ -514,129 +505,6 @@ const PrivacySettingsPage = () => {
           )}
         </TabsContent>
 
-        {/* Default Settings Tab */}
-        <TabsContent value="defaults" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Default Privacy Preferences</CardTitle>
-              <CardDescription>
-                Set your default privacy settings for new wishlists and items
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="space-y-4">
-                <div>
-                  <Label className="text-base font-medium">Default Wishlist Visibility</Label>
-                  <RadioGroup
-                    value={defaultSettings?.defaultWishlistVisibility || 'public'}
-                    className="mt-2"
-                  >
-                    {VISIBILITY_OPTIONS.map(option => {
-                      const Icon = option.icon;
-                      return (
-                        <div key={option.value} className="flex items-center space-x-2">
-                          <RadioGroupItem 
-                            value={option.value} 
-                            id={`wishlist-${option.value}`} 
-                            disabled={option.disabled}
-                          />
-                          <Label 
-                            htmlFor={`wishlist-${option.value}`} 
-                            className={`flex items-center space-x-2 ${option.disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
-                          >
-                            <Icon className={`h-4 w-4 ${option.color}`} />
-                            <div>
-                              <span className="font-medium">{option.label}</span>
-                              <p className="text-sm text-muted-foreground">{option.description}</p>
-                            </div>
-                          </Label>
-                        </div>
-                      );
-                    })}
-                  </RadioGroup>
-                </div>
-
-                <Separator />
-
-                <div>
-                  <Label className="text-base font-medium">Default Item Visibility</Label>
-                  <RadioGroup
-                    value={defaultSettings?.defaultItemVisibility || 'public'}
-                    className="mt-2"
-                  >
-                    {VISIBILITY_OPTIONS.map(option => {
-                      const Icon = option.icon;
-                      return (
-                        <div key={option.value} className="flex items-center space-x-2">
-                          <RadioGroupItem 
-                            value={option.value} 
-                            id={`item-${option.value}`} 
-                            disabled={option.disabled}
-                          />
-                          <Label 
-                            htmlFor={`item-${option.value}`} 
-                            className={`flex items-center space-x-2 ${option.disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
-                          >
-                            <Icon className={`h-4 w-4 ${option.color}`} />
-                            <div>
-                              <span className="font-medium">{option.label}</span>
-                              <p className="text-sm text-muted-foreground">{option.description}</p>
-                            </div>
-                          </Label>
-                        </div>
-                      );
-                    })}
-                  </RadioGroup>
-                </div>
-
-                <Separator />
-
-                <div className="space-y-3">
-                  <Label className="text-base font-medium">Interaction Permissions</Label>
-
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label htmlFor="allow-comments">Allow Comments</Label>
-                      <p className="text-sm text-muted-foreground">Let others comment on your wishlists and items</p>
-                    </div>
-                    <Switch
-                      id="allow-comments"
-                      checked={defaultSettings?.allowComments ?? true}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label htmlFor="allow-reservations">Allow Reservations</Label>
-                      <p className="text-sm text-muted-foreground">Let others reserve items for purchase</p>
-                    </div>
-                    <Switch
-                      id="allow-reservations"
-                      checked={defaultSettings?.allowReservations ?? true}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label htmlFor="require-approval">Require Approval</Label>
-                      <p className="text-sm text-muted-foreground">Require your approval for reservations and comments</p>
-                    </div>
-                    <Switch
-                      id="require-approval"
-                      checked={defaultSettings?.requireApproval ?? false}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="pt-4">
-                <Button>
-                  Save Default Settings
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
       </Tabs>
 
       {/* Entity Privacy Settings Dialog */}
@@ -660,7 +528,7 @@ const PrivacySettingsPage = () => {
                 <RadioGroup
                   value={selectedEntity.privacySettings?.visibilityLevel || 'public'}
                   onValueChange={(value) =>
-                    handlePrivacyUpdate(selectedEntity, { visibilityLevel: value as any })
+                    handlePrivacyUpdate(selectedEntity, { visibilityLevel: value as 'public' | 'friends' | 'private' | 'custom' })
                   }
                   className="mt-3"
                 >
@@ -697,10 +565,10 @@ const PrivacySettingsPage = () => {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => setShowAddUserDialog(true)}
+                      disabled
                     >
                       <UserPlus className="h-4 w-4 mr-2" />
-                      Add User
+                      User Search Pending
                     </Button>
                   </div>
 
@@ -716,12 +584,13 @@ const PrivacySettingsPage = () => {
                         <Button
                           variant="ghost"
                           size="sm"
+                          aria-label={`Remove custom access user ${userId}`}
                           onClick={() => {
                             const newList = selectedEntity.privacySettings!.customAccessList!.filter(id => id !== userId);
                             handleAccessListUpdate(selectedEntity, newList);
                           }}
                         >
-                          <UserMinus className="h-4 w-4" />
+                          <UserMinus className="h-4 w-4" aria-hidden="true" />
                         </Button>
                       </div>
                     ))}
@@ -817,7 +686,7 @@ const PrivacySettingsPage = () => {
                 Reset to Default
               </Button>
               <Button onClick={() => setSelectedEntity(null)}>
-                Done
+                Close
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -845,18 +714,8 @@ const PrivacySettingsPage = () => {
             </div>
 
             <div className="max-h-48 overflow-y-auto space-y-2">
-              {/* Mock user results - in real app, this would be from API */}
-              <div className="flex items-center justify-between p-3 border rounded-lg">
-                <div className="flex items-center space-x-3">
-                  <div className="w-8 h-8 bg-muted rounded-full flex items-center justify-center">
-                    <Users className="h-4 w-4" />
-                  </div>
-                  <div>
-                    <p className="font-medium">john_doe</p>
-                    <p className="text-sm text-muted-foreground">john@example.com</p>
-                  </div>
-                </div>
-                <Button size="sm">Add</Button>
+              <div className="p-4 border rounded-lg text-sm text-muted-foreground">
+                User search and access assignment will be available once the user directory API is enabled.
               </div>
             </div>
           </div>

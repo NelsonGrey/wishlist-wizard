@@ -5,13 +5,12 @@ interface AdSenseProps {
   slot: string;
   format?: string;
   responsive?: boolean;
-  style?: React.CSSProperties;
   className?: string;
 }
 
 declare global {
   interface Window {
-    adsbygoogle: any[];
+    adsbygoogle: unknown[];
   }
 }
 
@@ -20,7 +19,6 @@ export function AdSense({
   slot,
   format = 'auto',
   responsive = true,
-  style = { display: 'block' },
   className = '',
 }: AdSenseProps) {
   useEffect(() => {
@@ -36,7 +34,6 @@ export function AdSense({
     <div className={`adsense-container ${className}`}>
       <ins
         className="adsbygoogle"
-        style={style}
         data-ad-client={client}
         data-ad-slot={slot}
         data-ad-format={format}

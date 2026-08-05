@@ -21,16 +21,16 @@ export function GeneralHelp() {
                 <strong>Create an account:</strong> Sign up with your email address and create a password
               </li>
               <li>
-                <strong>Set up your profile:</strong> Add preferences to get personalized recommendations
+                <strong>Set up your profile:</strong> Add preferences so your wishlist planning stays personalized
               </li>
               <li>
-                <strong>Create your first wishlist:</strong> Go to "My Wishlists" and click "Create New Wishlist"
+                <strong>Create your first wishlist:</strong> Go to &quot;My Wishlists&quot; and click &quot;Create New Wishlist&quot;
               </li>
               <li>
                 <strong>Install the browser extension:</strong> For seamless adding of items from any website
               </li>
               <li>
-                <strong>Explore features:</strong> Try out gift coordination, price tracking, AR visualization, and more
+                <strong>Explore features:</strong> Try out social sharing, calendar planning, and collaboration
               </li>
             </ol>
           </AccordionContent>
@@ -44,7 +44,7 @@ export function GeneralHelp() {
             </p>
             <ul className="text-sm list-disc pl-5 space-y-2">
               <li>
-                <strong>Create multiple wishlists:</strong> Make separate lists for different occasions or people
+                <strong>Create multiple wishlists:</strong> Make separate lists for different events or people
               </li>
               <li>
                 <strong>Add items:</strong> Use the browser extension, manual entry, or import from other sites
@@ -90,9 +90,6 @@ export function GeneralHelp() {
                 <strong>Comments:</strong> Leave notes on items for collaborators to see
               </li>
               <li>
-                <strong>Group gifting:</strong> Coordinate with others for shared gifts
-              </li>
-              <li>
                 <strong>Social sharing:</strong> Post wishlists to social media platforms
               </li>
             </ul>
@@ -103,16 +100,14 @@ export function GeneralHelp() {
           <AccordionTrigger>Notifications</AccordionTrigger>
           <AccordionContent>
             <p className="text-sm mb-2">
-              Stay updated with Wishlist Wizard's notification system:
+              Stay updated with Wishlist Wizard&apos;s notification system:
             </p>
             <ul className="text-sm list-disc pl-5 space-y-2">
               <li>
                 <strong>Types of notifications:</strong>
                 <ul className="list-disc pl-5 mt-1">
-                  <li>Price drops on tracked items</li>
-                  <li>Upcoming occasions (birthdays, anniversaries, etc.)</li>
+                  <li>Upcoming events (birthdays, anniversaries, etc.)</li>
                   <li>Collaborative wishlist activity</li>
-                  <li>Group gift contributions and updates</li>
                   <li>Comments and messages from friends</li>
                   <li>Reserved or purchased items</li>
                 </ul>
@@ -175,10 +170,7 @@ export function GeneralHelp() {
                 <strong>Barcode scanning:</strong> Add items by scanning product barcodes in stores
               </li>
               <li>
-                <strong>AR visualization:</strong> See how items will look in your space
-              </li>
-              <li>
-                <strong>In-store alerts:</strong> Get notified when you're near a store with wishlisted items
+                <strong>In-store alerts:</strong> Get notified when you&apos;re near a store with wishlisted items
               </li>
               <li>
                 <strong>Offline access:</strong> View your wishlists even without internet connection
@@ -191,7 +183,7 @@ export function GeneralHelp() {
               </li>
             </ul>
             <p className="text-sm mt-2">
-              Download the mobile app from the App Store or Google Play Store.
+              Download the iOS app from the App Store. Android coming soon!
             </p>
           </AccordionContent>
         </AccordionItem>

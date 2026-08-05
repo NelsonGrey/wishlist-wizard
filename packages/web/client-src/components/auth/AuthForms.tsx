@@ -8,6 +8,11 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, Mail, Lock, User } from 'lucide-react';
 
+interface FirebaseAuthError {
+  code: string;
+  message: string;
+}
+
 interface LoginFormProps {
   onSuccess?: () => void;
 }
@@ -38,23 +43,24 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
       if (onSuccess) {
         onSuccess();
       } else {
-        setLocation('/dashboard');
+        setLocation('/app/wishlists');
       }
-    } catch (err: any) {
-      console.error('Login error:', err);
+    } catch (err: unknown) {
+      const error = err as FirebaseAuthError;
+      console.error('Login error:', error);
       
       // Firebase Auth error handling
       let errorMessage = 'Failed to sign in. Please try again.';
       
-      if (err.code === 'auth/user-not-found') {
+      if (error.code === 'auth/user-not-found') {
         errorMessage = 'No account found with this email address.';
-      } else if (err.code === 'auth/wrong-password') {
+      } else if (error.code === 'auth/wrong-password') {
         errorMessage = 'Incorrect password.';
-      } else if (err.code === 'auth/invalid-email') {
+      } else if (error.code === 'auth/invalid-email') {
         errorMessage = 'Invalid email address.';
-      } else if (err.code === 'auth/user-disabled') {
+      } else if (error.code === 'auth/user-disabled') {
         errorMessage = 'This account has been disabled.';
-      } else if (err.code === 'auth/too-many-requests') {
+      } else if (error.code === 'auth/too-many-requests') {
         errorMessage = 'Too many failed attempts. Please try again later.';
       }
       
@@ -135,7 +141,7 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
             </Link>
             
             <div className="text-sm">
-              Don't have an account?{' '}
+              Don&apos;t have an account?{' '}
               <Link to="/register" className="text-primary hover:underline">
                 Sign up
               </Link>
@@ -189,19 +195,20 @@ export function RegisterForm({ onSuccess }: RegisterFormProps) {
       if (onSuccess) {
         onSuccess();
       } else {
-        setLocation('/dashboard');
+        setLocation('/app/wishlists');
       }
-    } catch (err: any) {
-      console.error('Registration error:', err);
+    } catch (err: unknown) {
+      const error = err as FirebaseAuthError;
+      console.error('Registration error:', error);
       
       // Firebase Auth error handling
       let errorMessage = 'Failed to create account. Please try again.';
       
-      if (err.code === 'auth/email-already-in-use') {
+      if (error.code === 'auth/email-already-in-use') {
         errorMessage = 'An account with this email already exists.';
-      } else if (err.code === 'auth/invalid-email') {
+      } else if (error.code === 'auth/invalid-email') {
         errorMessage = 'Invalid email address.';
-      } else if (err.code === 'auth/weak-password') {
+      } else if (error.code === 'auth/weak-password') {
         errorMessage = 'Password is too weak. Please choose a stronger password.';
       }
       
@@ -351,14 +358,15 @@ export function ForgotPasswordForm({ onSuccess }: ForgotPasswordFormProps) {
       if (onSuccess) {
         onSuccess();
       }
-    } catch (err: any) {
-      console.error('Password reset error:', err);
+    } catch (err: unknown) {
+      const error = err as FirebaseAuthError;
+      console.error('Password reset error:', error);
       
       let errorMessage = 'Failed to send password reset email. Please try again.';
       
-      if (err.code === 'auth/user-not-found') {
+      if (error.code === 'auth/user-not-found') {
         errorMessage = 'No account found with this email address.';
-      } else if (err.code === 'auth/invalid-email') {
+      } else if (error.code === 'auth/invalid-email') {
         errorMessage = 'Invalid email address.';
       }
       
@@ -374,7 +382,7 @@ export function ForgotPasswordForm({ onSuccess }: ForgotPasswordFormProps) {
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl text-center">Check your email</CardTitle>
           <CardDescription className="text-center">
-            We've sent a password reset link to {email}
+            We&apos;ve sent a password reset link to {email}
           </CardDescription>
         </CardHeader>
         
@@ -395,7 +403,7 @@ export function ForgotPasswordForm({ onSuccess }: ForgotPasswordFormProps) {
       <CardHeader className="space-y-1">
         <CardTitle className="text-2xl text-center">Reset password</CardTitle>
         <CardDescription className="text-center">
-          Enter your email and we'll send you a reset link
+          Enter your email and we&apos;ll send you a reset link
         </CardDescription>
       </CardHeader>
       

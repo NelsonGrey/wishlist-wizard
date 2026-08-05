@@ -1,0 +1,295 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Apply a new icon across the repository deliverables with adaptive Android icon
+# handling and master icon storage. Uses sips on macOS or ImageMagick (`convert`)
+# on other platforms when available. Creates optional backup files (default)
+# and will copy the provided PNG into an `icons/` folder for future automation.
+
+SRC_PNG=${1:-}
+BG_COLOR=${2:-"#004E36"} # original Wishlist Wizard icon green
+NO_BACKUP=${NO_BACKUP:-false}
+SAVE_MASTER=${SAVE_MASTER:-true}
+
+if [ -z "$SRC_PNG" ]; then
+  echo "Usage: $0 /path/to/icon.png [bg-color]"
+  exit 1
+fi
+
+if [ ! -f "$SRC_PNG" ]; then
+  echo "Source PNG does not exist: $SRC_PNG"
+  exit 1
+fi
+
+echo "🔁 Applying new icon from: $SRC_PNG"
+echo "🎯 Background color: $BG_COLOR"
+
+ROOT=$(git rev-parse --show-toplevel 2>/dev/null || echo "$(pwd)")
+
+mkdir -p "$ROOT/icons"
+MASTER_PNG_DEST="$ROOT/icons/icon-wishlist-wizard.png"
+
+# Save master PNG into icons/ if requested
+if [ "$SAVE_MASTER" == "true" ]; then
+  # Compare realpath to avoid copying a file onto itself
+  src_real=$(realpath "$SRC_PNG" 2>/dev/null || echo "$SRC_PNG")
+  dest_real=$(realpath "$MASTER_PNG_DEST" 2>/dev/null || echo "$MASTER_PNG_DEST")
+  if [ "$src_real" != "$dest_real" ]; then
+    cp -v "$SRC_PNG" "$MASTER_PNG_DEST"
+    echo "Saved master icon to $MASTER_PNG_DEST"
+  else
+    echo "Master PNG already at $MASTER_PNG_DEST; skipping copy"
+  fi
+fi
+
+# Also sync master SVG to extension icon folders if present
+MASTER_SVG_SRC="$ROOT/icons/icon-wishlist-wizard.svg"
+if [ -f "$MASTER_SVG_SRC" ]; then
+  echo "Syncing master SVG into product icon directories..."
+  if [ -d "$ROOT/packages/browser-extension/src/icons" ]; then
+    cp -v "$MASTER_SVG_SRC" "$ROOT/packages/browser-extension/src/icons/icon-wishlist-wizard.svg" || true
+    cp -v "$MASTER_SVG_SRC" "$ROOT/packages/browser-extension/src/icons/icon16.svg" || true
+    cp -v "$MASTER_SVG_SRC" "$ROOT/packages/browser-extension/src/icons/icon48.svg" || true
+    cp -v "$MASTER_SVG_SRC" "$ROOT/packages/browser-extension/src/icons/icon128.svg" || true
+  fi
+  if [ -d "$ROOT/packages/browser-extension/public/icons" ]; then
+    cp -v "$MASTER_SVG_SRC" "$ROOT/packages/browser-extension/public/icons/icon-wishlist-wizard.svg" || true
+    cp -v "$MASTER_SVG_SRC" "$ROOT/packages/browser-extension/public/icons/icon16.svg" || true
+    cp -v "$MASTER_SVG_SRC" "$ROOT/packages/browser-extension/public/icons/icon48.svg" || true
+    cp -v "$MASTER_SVG_SRC" "$ROOT/packages/browser-extension/public/icons/icon128.svg" || true
+  fi
+  if [ -d "$ROOT/chrome-extension-package/icons" ]; then
+    cp -v "$MASTER_SVG_SRC" "$ROOT/chrome-extension-package/icons/icon-wishlist-wizard.svg" || true
+  fi
+  if [ -d "$ROOT/packages/web/public" ]; then
+    cp -v "$MASTER_SVG_SRC" "$ROOT/packages/web/public/logo.svg" || true
+  fi
+fi
+
+# Find tool: prefer sips on macOS, else try convert (ImageMagick)
+USE_SIPS=false
+IMAGEMAGICK_BIN=""
+if command -v sips >/dev/null 2>&1; then
+  USE_SIPS=true
+fi
+if command -v magick >/dev/null 2>&1; then
+  IMAGEMAGICK_BIN=magick
+elif command -v convert >/dev/null 2>&1; then
+  IMAGEMAGICK_BIN=convert
+fi
+if ! $USE_SIPS && [ -z "$IMAGEMAGICK_BIN" ]; then
+  echo "Error: Neither 'sips' nor ImageMagick 'convert' is available. Install ImageMagick or run on macOS." 1>&2
+  exit 1
+fi
+
+backup_and_mkdir() {
+  dest="$1"
+  if [ "$NO_BACKUP" == "false" ] && [ -f "$dest" ]; then
+    cp -v "$dest" "$dest.bak"
+  fi
+  mkdir -p "$(dirname "$dest")" || true
+}
+
+ 
+
+resize_with_tool() {
+  local size=$1
+  local src=$2
+  local dest=$3
+  if $USE_SIPS; then
+    sips -z "$size" "$size" "$src" --out "$dest" >/dev/null
+  else
+    convert "$src" -resize ${size}x${size} "$dest"
+  fi
+}
+
+resize_copy() {
+  local size=$1
+  local dest=$2
+  backup_and_mkdir "$dest"
+  resize_with_tool "$size" "$SRC_PNG" "$dest"
+  echo "Created $dest ($size x $size)"
+}
+
+# Create adaptive Android icons (foreground/background)
+generate_android_adaptive() {
+  # sizes per density (example) - foreground/background sizes are similar
+  local densities=("mdpi:48" "hdpi:72" "xhdpi:96" "xxhdpi:144" "xxxhdpi:192")
+  local fg_name="ic_launcher_foreground.png"
+  local bg_name="ic_launcher_background.png"
+  for d in "${densities[@]}"; do
+    IFS=":" read -r density size <<< "$d"
+    destfg="$ROOT/packages/mobile/android/app/src/main/res/mipmap-${density}/${fg_name}"
+    destbg="$ROOT/packages/mobile/android/app/src/main/res/mipmap-${density}/${bg_name}"
+    backup_and_mkdir "$destfg"
+    backup_and_mkdir "$destbg"
+    # Render the dedicated transparent foreground inside Android's adaptive safe zone.
+    adaptive_svg="$ROOT/icons/icon-wishlist-wizard-foreground.svg"
+    if command -v rsvg-convert >/dev/null 2>&1 && [ -f "$adaptive_svg" ]; then
+      rsvg-convert --width "$size" --height "$size" "$adaptive_svg" --output "$destfg"
+    else
+      resize_with_tool "$size" "$SRC_PNG" "$destfg"
+    fi
+    # For background, generate a solid color png of size
+    if $USE_SIPS; then
+      # sips doesn't directly create a solid color png; use a small trick
+      convert_cmd="$size x $size"
+    fi
+    # Use ImageMagick if available for background solid color
+    if [ -n "$IMAGEMAGICK_BIN" ]; then
+      $IMAGEMAGICK_BIN -size ${size}x${size} xc:"$BG_COLOR" "$destbg"
+    else
+      # fallback: just copy the src icon as background (not ideal)
+      resize_with_tool "$size" "$SRC_PNG" "$destbg"
+    fi
+      done
+
+  # Create mipmap-anydpi-v26 xml adaptive icon files
+  dest_anydpi="$ROOT/packages/mobile/android/app/src/main/res/mipmap-anydpi-v26"
+  mkdir -p "$dest_anydpi"
+  cat > "$dest_anydpi/ic_launcher.xml" <<EOF
+<?xml version="1.0" encoding="utf-8"?>
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+  <background android:drawable="@mipmap/ic_launcher_background"/>
+  <foreground android:drawable="@mipmap/ic_launcher_foreground"/>
+</adaptive-icon>
+EOF
+
+  cat > "$dest_anydpi/ic_launcher_round.xml" <<EOF
+<?xml version="1.0" encoding="utf-8"?>
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+  <background android:drawable="@mipmap/ic_launcher_background"/>
+  <foreground android:drawable="@mipmap/ic_launcher_foreground"/>
+</adaptive-icon>
+EOF
+  echo "Generated adaptive Android icons and XML files in $dest_anydpi"
+}
+
+echo "Repository root: $ROOT"
+
+echo "Generating browser extension icons..."
+resize_copy 16 "$ROOT/packages/browser-extension/src/icons/icon16.png"
+resize_copy 32 "$ROOT/packages/browser-extension/src/icons/icon32.png"
+resize_copy 48 "$ROOT/packages/browser-extension/src/icons/icon48.png"
+resize_copy 128 "$ROOT/packages/browser-extension/src/icons/icon128.png"
+
+# Update public copies for distribution
+resize_copy 16 "$ROOT/packages/browser-extension/public/icons/icon16.png"
+resize_copy 32 "$ROOT/packages/browser-extension/public/icons/icon32.png"
+resize_copy 48 "$ROOT/packages/browser-extension/public/icons/icon48.png"
+resize_copy 128 "$ROOT/packages/browser-extension/public/icons/icon128.png"
+
+echo "Generating chrome-extension-package icons..."
+resize_copy 16 "$ROOT/chrome-extension-package/icons/icon16.png"
+resize_copy 32 "$ROOT/chrome-extension-package/icons/icon32.png"
+resize_copy 48 "$ROOT/chrome-extension-package/icons/icon48.png"
+resize_copy 128 "$ROOT/chrome-extension-package/icons/icon128.png"
+
+echo "Generating React web app icons..."
+resize_copy 16 "$ROOT/packages/web/public/favicon-16x16.png"
+resize_copy 32 "$ROOT/packages/web/public/favicon-32x32.png"
+resize_copy 180 "$ROOT/packages/web/public/apple-touch-icon.png"
+resize_copy 192 "$ROOT/packages/web/public/android-chrome-192x192.png"
+resize_copy 512 "$ROOT/packages/web/public/android-chrome-512x512.png"
+
+# Create multi-resolution favicon.ico for better browser compatibility
+echo "Generating favicon.ico (multi-resolution for browser compatibility)..."
+dest_ico="$ROOT/packages/web/public/favicon.ico"
+if [ -n "$IMAGEMAGICK_BIN" ]; then
+  # Create a temporary 256x256 PNG for ICO conversion
+  temp_ico_src=$(mktemp /tmp/favicon-temp-XXXXX.png)
+  resize_with_tool 256 "$SRC_PNG" "$temp_ico_src"
+  # Generate multi-resolution ICO with sizes: 16, 32, 48, 64, 128, 256
+  $IMAGEMAGICK_BIN "$temp_ico_src" -define icon:auto-resize=256,128,64,48,32,16 "$dest_ico" 2>/dev/null || \
+  $IMAGEMAGICK_BIN "$temp_ico_src" -colors 256 "$dest_ico"
+  rm -f "$temp_ico_src"
+  echo "Created $dest_ico (multi-resolution)"
+else
+  echo "Skipping favicon.ico generation (ImageMagick not available)"
+fi
+
+# Create PWA manifest for React web app
+dest_manifest="$ROOT/packages/web/public/site.webmanifest"
+mkdir -p "$(dirname "$dest_manifest")"
+cat > "$dest_manifest" <<'MANIFEST'
+{
+  "name": "Wishlist Wizard",
+  "short_name": "Wishlist Wizard",
+  "theme_color": "#047857",
+  "background_color": "#065f46",
+  "display": "standalone",
+  "scope": "/",
+  "start_url": "/",
+  "icons": [
+    {
+      "src": "/android-chrome-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/android-chrome-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
+MANIFEST
+echo "Created site.webmanifest for React web app"
+
+echo "Generating web PWA icons..."
+resize_copy 192 "$ROOT/packages/mobile/web/icons/Icon-192.png"
+resize_copy 512 "$ROOT/packages/mobile/web/icons/Icon-512.png"
+resize_copy 192 "$ROOT/packages/mobile/web/icons/Icon-maskable-192.png"
+resize_copy 512 "$ROOT/packages/mobile/web/icons/Icon-maskable-512.png"
+resize_copy 32 "$ROOT/packages/mobile/web/favicon.png"
+
+echo "Generating Android mipmap launcher icons..."
+resize_copy 48 "$ROOT/packages/mobile/android/app/src/main/res/mipmap-mdpi/ic_launcher.png"
+resize_copy 72 "$ROOT/packages/mobile/android/app/src/main/res/mipmap-hdpi/ic_launcher.png"
+resize_copy 96 "$ROOT/packages/mobile/android/app/src/main/res/mipmap-xhdpi/ic_launcher.png"
+resize_copy 144 "$ROOT/packages/mobile/android/app/src/main/res/mipmap-xxhdpi/ic_launcher.png"
+resize_copy 192 "$ROOT/packages/mobile/android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png"
+
+echo "Generating iOS icon appset..."
+resize_copy 40 "$ROOT/packages/mobile/ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-20x20@2x.png"
+resize_copy 60 "$ROOT/packages/mobile/ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-20x20@3x.png"
+resize_copy 29 "$ROOT/packages/mobile/ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-29x29@1x.png"
+resize_copy 58 "$ROOT/packages/mobile/ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-29x29@2x.png"
+resize_copy 87 "$ROOT/packages/mobile/ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-29x29@3x.png"
+resize_copy 80 "$ROOT/packages/mobile/ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-40x40@2x.png"
+resize_copy 120 "$ROOT/packages/mobile/ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-40x40@3x.png"
+resize_copy 120 "$ROOT/packages/mobile/ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-60x60@2x.png"
+resize_copy 180 "$ROOT/packages/mobile/ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-60x60@3x.png"
+resize_copy 20 "$ROOT/packages/mobile/ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-20x20@1x.png"
+resize_copy 40 "$ROOT/packages/mobile/ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-20x20@2x.png"
+resize_copy 29 "$ROOT/packages/mobile/ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-29x29@1x.png"
+resize_copy 58 "$ROOT/packages/mobile/ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-29x29@2x.png"
+resize_copy 40 "$ROOT/packages/mobile/ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-40x40@1x.png"
+resize_copy 80 "$ROOT/packages/mobile/ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-40x40@2x.png"
+resize_copy 76 "$ROOT/packages/mobile/ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-76x76@1x.png"
+resize_copy 152 "$ROOT/packages/mobile/ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-76x76@2x.png"
+resize_copy 167 "$ROOT/packages/mobile/ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-83.5x83.5@2x.png"
+resize_copy 1024 "$ROOT/packages/mobile/ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-1024x1024@1x.png"
+
+echo "Generating adaptive Android foreground/background icons..."
+generate_android_adaptive
+
+echo "Generating macOS app icons..."
+resize_copy 16 "$ROOT/packages/mobile/macos/Runner/Assets.xcassets/AppIcon.appiconset/app_icon_16.png"
+resize_copy 32 "$ROOT/packages/mobile/macos/Runner/Assets.xcassets/AppIcon.appiconset/app_icon_32.png"
+resize_copy 64 "$ROOT/packages/mobile/macos/Runner/Assets.xcassets/AppIcon.appiconset/app_icon_64.png"
+resize_copy 128 "$ROOT/packages/mobile/macos/Runner/Assets.xcassets/AppIcon.appiconset/app_icon_128.png"
+resize_copy 256 "$ROOT/packages/mobile/macos/Runner/Assets.xcassets/AppIcon.appiconset/app_icon_256.png"
+resize_copy 512 "$ROOT/packages/mobile/macos/Runner/Assets.xcassets/AppIcon.appiconset/app_icon_512.png"
+resize_copy 1024 "$ROOT/packages/mobile/macos/Runner/Assets.xcassets/AppIcon.appiconset/app_icon_1024.png"
+
+if [ -n "$IMAGEMAGICK_BIN" ]; then
+  echo "Generating Windows app icon..."
+  mkdir -p "$ROOT/packages/mobile/windows/runner/resources"
+  $IMAGEMAGICK_BIN "$SRC_PNG" -define icon:auto-resize=256,128,64,48,32,16 \
+    "$ROOT/packages/mobile/windows/runner/resources/app_icon.ico"
+fi
+
+echo "✅ All icons generated/updated. If the repo is clean, you can commit the updated images."
+
+exit 0

@@ -27,20 +27,20 @@ const AffiliateDisclosure: React.FC<AffiliateDisclosureProps> = ({
         <div className="space-y-2">
           <h4 className="font-semibold">Affiliate Links Disclosure</h4>
           <p>
-            Some links on this platform are affiliate links. This means we may earn a small 
+            Some links on this platform are affiliate links. This means we may earn a small
             commission if you click on these links and make a purchase, at no additional cost to you.
           </p>
           <p>
-            We only recommend products we believe will be valuable to you. Our affiliate partnerships 
+            We only recommend products we believe will be valuable to you. Our affiliate partnerships
             help support the platform and keep it free for all users.
           </p>
           <p className="text-sm">
-            <strong>Supported Programs:</strong> Amazon Associates, Target Affiliates, Best Buy, 
-            Walmart, eBay Partner Network, Etsy, Home Depot, Macy's, Nordstrom, and Wayfair.
+            <strong>Supported Programs:</strong> Amazon Associates, Target Affiliates, Best Buy,
+            Walmart, eBay Partner Network, Etsy, Home Depot, Macy&apos;s, Nordstrom, and Wayfair.
           </p>
           <p className="text-sm">
-            For more information about our affiliate partnerships and how they work, please see our 
-            <a href="/privacy" className="underline ml-1">Privacy Policy</a>.
+            For more information about our affiliate partnerships and how they work, please see our
+            <a href="/app/privacy-settings" className="underline ml-1">Privacy Policy</a>.
           </p>
         </div>
       </AlertDescription>

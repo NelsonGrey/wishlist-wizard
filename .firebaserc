@@ -1,9 +1,10 @@
 {
   "projects": {
-    "default": "wishlist-wizard",
-    "production": "wishlist-wizard",
+    "default": "wishlist-wizard-dev",
+    "production": "wishlist-wizard-prod",
     "staging": "wishlist-wizard-staging",
-    "development": "wishlist-wizard-dev"
+    "development": "wishlist-wizard-dev",
+    "demonstration": "wishlist-wizard-demo"
   },
   "targets": {},
   "etags": {}

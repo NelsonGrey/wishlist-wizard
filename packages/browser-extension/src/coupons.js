@@ -1,4 +1,4 @@
-// WishKeeper Extension - Coupon Finder Module
+// Wishlist Wizard Extension - Coupon Finder Module
 // This script handles finding and applying coupons for the current product
 
 // List of popular coupon websites and their APIs
@@ -68,9 +68,25 @@ class CouponFinder {
     this.coupons = [];
 
     try {
-      // Get mock coupons for demonstration
-      // In a real implementation, this would make API calls to coupon services
-      this.coupons = this.getMockCoupons();
+      const baseUrl = await this.resolveBaseUrl();
+      const response = await fetch(`${baseUrl}/api/extension/coupons`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          store: this.store,
+          title: this.productTitle
+        })
+      });
+
+      if (response.ok) {
+        const results = await response.json();
+        this.coupons = Array.isArray(results) ? results : [];
+      } else {
+        this.coupons = [];
+      }
       
       return this.coupons;
     } catch (error) {
@@ -81,45 +97,34 @@ class CouponFinder {
     }
   }
 
-  /**
-   * Generate mock coupons for demonstration
-   * @returns {Array} - Array of mock coupon objects
-   */
-  getMockCoupons() {
-    // Create realistic mock coupons based on the store
-    const storeName = this.store.toLowerCase();
-    const currentDate = new Date();
-    const expDate = new Date();
-    expDate.setDate(currentDate.getDate() + 14); // 2 weeks from now
-    
-    const mockCoupons = [];
-    
-    // Some common coupon types
-    const couponTypes = [
-      { code: `${storeName.substring(0, 4).toUpperCase()}10OFF`, discount: "10% off", description: "10% off your purchase" },
-      { code: `${storeName.substring(0, 3).toUpperCase()}FREESHIP`, discount: "Free Shipping", description: "Free shipping on orders over $50" },
-      { code: `NEW${storeName.substring(0, 4).toUpperCase()}15`, discount: "15% off", description: "15% off for new customers" },
-      { code: `SAVE${Math.floor(Math.random() * 30) + 10}`, discount: "$20 off", description: "$20 off orders over $100" },
-      { code: `EXTRA${Math.floor(Math.random() * 15) + 5}`, discount: "Extra 10%", description: "Extra 10% off sale items" }
-    ];
-    
-    // Select 2-4 random coupons
-    const numCoupons = Math.floor(Math.random() * 3) + 2;
-    
-    for (let i = 0; i < numCoupons; i++) {
-      const couponTemplate = couponTypes[Math.floor(Math.random() * couponTypes.length)];
-      
-      mockCoupons.push({
-        code: couponTemplate.code,
-        discount: couponTemplate.discount,
-        description: couponTemplate.description,
-        expiryDate: expDate.toLocaleDateString(),
-        source: COUPON_SOURCES[Math.floor(Math.random() * COUPON_SOURCES.length)].name,
-        verified: Math.random() > 0.3 // 70% of coupons are "verified"
+  async resolveBaseUrl() {
+    const envConfig = {
+      development: 'https://wishlist-wizard-dev.web.app',
+      staging: 'https://wishlist-wizard-staging.web.app',
+      production: 'https://wishlist-wizard-prod.web.app',
+      local: 'http://localhost:3001'
+    };
+
+    const normalize = (value) => {
+      const env = String(value || 'development').toLowerCase();
+      if (env === 'dev') return 'development';
+      if (env === 'stage') return 'staging';
+      if (env === 'prod') return 'production';
+      if (env === 'localhost') return 'local';
+      return Object.prototype.hasOwnProperty.call(envConfig, env) ? env : 'development';
+    };
+
+    return new Promise((resolve) => {
+      if (!chrome?.storage?.local?.get) {
+        resolve(envConfig.development);
+        return;
+      }
+
+      chrome.storage.local.get(['wwEnvironment', 'wwBaseUrlOverride'], (result) => {
+        const env = normalize(result?.wwEnvironment);
+        resolve(result?.wwBaseUrlOverride || envConfig[env]);
       });
-    }
-    
-    return mockCoupons;
+    });
   }
 
   /**

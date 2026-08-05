@@ -29,7 +29,6 @@ export const AdSenseAd: React.FC<AdSenseComponentProps> = ({
   format = 'auto',
   responsive = true,
   className = '',
-  style = {},
   testMode = false,
   onAdLoad,
   onAdError
@@ -44,7 +43,7 @@ export const AdSenseAd: React.FC<AdSenseComponentProps> = ({
     
     try {
       // Push ad to AdSense queue
-      pushAd(adRef.current || undefined);
+      pushAd();
       setAdLoaded(true);
       onAdLoad?.();
     } catch (error) {
@@ -95,8 +94,7 @@ export const HeaderBannerAd: React.FC<{
       slotId={slotId}
       size="leaderboard"
       responsive={true}
-      className={`header-banner-ad ${className}`}
-      style={{ marginBottom: '20px' }}
+      className={`adsense-header header-banner-ad ${className}`}
     />
   );
 };
@@ -117,8 +115,7 @@ export const SidebarRectangleAd: React.FC<{
       slotId={slotId}
       size="rectangle"
       responsive={false}
-      className={`sidebar-rectangle-ad ${className}`}
-      style={{ margin: '20px 0' }}
+      className={`adsense-sidebar sidebar-rectangle-ad ${className}`}
     />
   );
 };
@@ -139,8 +136,7 @@ export const FooterBannerAd: React.FC<{
       slotId={slotId}
       size="banner"
       responsive={true}
-      className={`footer-banner-ad ${className}`}
-      style={{ marginTop: '20px' }}
+      className={`adsense-footer footer-banner-ad ${className}`}
     />
   );
 };
@@ -162,8 +158,7 @@ export const InContentAd: React.FC<{
       size="responsive"
       format="rectangle"
       responsive={true}
-      className={`in-content-ad ${className}`}
-      style={{ margin: '30px 0' }}
+      className={`adsense-content in-content-ad ${className}`}
     />
   );
 };
@@ -196,8 +191,7 @@ export const MobileBannerAd: React.FC<{
       slotId={slotId}
       size="mobile-banner"
       responsive={true}
-      className={`mobile-banner-ad ${className}`}
-      style={{ margin: '10px 0' }}
+      className={`adsense-inline mobile-banner-ad ${className}`}
     />
   );
 };
@@ -218,8 +212,7 @@ export const SkyscraperAd: React.FC<{
       slotId={slotId}
       size="skyscraper"
       responsive={false}
-      className={`skyscraper-ad ${className}`}
-      style={{ margin: '20px 0' }}
+      className={`adsense-sidebar skyscraper-ad ${className}`}
     />
   );
 };
@@ -232,7 +225,7 @@ export const AdContainer: React.FC<{
   title?: string;
   className?: string;
 }> = ({ children, title = 'Advertisement', className = '' }) => {
-  const [hasError, setHasError] = useState(false);
+  const [hasError, ] = useState(false);
   const { isLoading, error } = useAdSense();
 
   if (hasError || error) {
@@ -249,7 +242,6 @@ export const AdContainer: React.FC<{
       
       <div 
         className="ad-content"
-        onError={() => setHasError(true)}
       >
         {isLoading ? (
           <div className="ad-loading">
@@ -306,7 +298,7 @@ export const AdBlockerNotice: React.FC<{
     <div className={`ad-blocker-notice ${className}`}>
       <strong>Supporting Wishlist Wizard</strong>
       <p>
-        We notice you're using an ad blocker. Wishlist Wizard is free and ad-supported. 
+        We notice you&apos;re using an ad blocker. Wishlist Wizard is free and ad-supported. 
         Please consider allowing ads to help us keep the service running!
       </p>
       <button onClick={() => setShowNotice(false)}>

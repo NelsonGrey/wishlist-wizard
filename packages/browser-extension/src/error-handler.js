@@ -1,5 +1,5 @@
 /**
- * WishKeeper Extension Error Handler
+ * Wishlist Wizard Extension Error Handler
  * 
  * This module provides centralized error handling for the extension,
  * including logging, user-friendly messages, and error reporting.
@@ -19,17 +19,17 @@ const ErrorType = {
 const ErrorMessages = {
   [ErrorType.NETWORK]: {
     title: 'Connection Problem',
-    message: 'Unable to connect to WishKeeper servers. Please check your internet connection and try again.',
+    message: 'Unable to connect to Wishlist Wizard servers. Please check your internet connection and try again.',
     action: 'Retry'
   },
   [ErrorType.AUTH]: {
     title: 'Authentication Required',
-    message: 'Please sign in to your WishKeeper account to continue.',
+    message: 'Please sign in to your Wishlist Wizard account to continue.',
     action: 'Sign In'
   },
   [ErrorType.PERMISSION]: {
     title: 'Permission Required',
-    message: 'WishKeeper needs permission to access this page. Please update your extension settings.',
+    message: 'Wishlist Wizard needs permission to access this page. Please update your extension settings.',
     action: 'Update Settings'
   },
   [ErrorType.PARSING]: {
@@ -66,7 +66,7 @@ function handleError(error, context = 'general', type = ErrorType.UNKNOWN, detai
   const errorStack = error instanceof Error ? error.stack : new Error().stack;
   
   // Log the error for debugging
-  console.error(`WishKeeper Error (${context}):`, errorMessage);
+  console.error(`Wishlist Wizard Error (${context}):`, errorMessage);
   console.debug('Error details:', { type, details, stack: errorStack });
   
   // Prepare user-friendly error info

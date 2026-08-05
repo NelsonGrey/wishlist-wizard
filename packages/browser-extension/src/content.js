@@ -1,10 +1,21 @@
 // Wishlist Wizard Extension - Content Script
 // This script runs on supported shopping websites and extracts product information
 
+// Content script load marker (non-fatal)
+if (window.__WISHLIST_WIZARD_CONTENT_LOADED__) {
+  console.log('🎯 WISHLIST WIZARD: content.js loaded again');
+} else {
+  window.__WISHLIST_WIZARD_CONTENT_LOADED__ = true;
+}
+
+// IMMEDIATE DEBUG - Verify script loads
+console.log('🎯 WISHLIST WIZARD: content.js is LOADING on:', window.location.href);
+console.log('🎯 WISHLIST WIZARD: Timestamp:', new Date().toISOString());
+
 // Function to track content script events
 function trackContentEvent(action, category = 'content', label = null, value = null) {
   try {
-    chrome.runtime.sendMessage({
+    const maybePromise = chrome.runtime.sendMessage({
       type: 'TRACK_EVENT',
       payload: {
         action,
@@ -13,6 +24,11 @@ function trackContentEvent(action, category = 'content', label = null, value = n
         value
       }
     });
+    if (maybePromise && typeof maybePromise.catch === 'function') {
+      maybePromise.catch(() => {
+        // Non-fatal telemetry failure; ignore to avoid noisy console warnings.
+      });
+    }
     console.log(`Content script tracked: ${category} - ${action}`);
   } catch (error) {
     console.warn('Failed to track content script event:', error);
@@ -21,119 +37,98 @@ function trackContentEvent(action, category = 'content', label = null, value = n
 
 // Listen for messages from the background script or popup
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  console.log('Content script received message:', message);
+  console.log('🎯 WISHLIST WIZARD: Content script received message:', message);
   
   try {
+    // Handle ping messages to check if content script is loaded
+    if (message.action === 'ping') {
+      console.log('🎯 WISHLIST WIZARD: Responding to PING');
+      sendResponse({ success: true, loaded: true });
+      return true;
+    }
+    
     if (message.action === 'extractProductInfo' || message.action === 'getProductInfo') {
-      // If force flag is set, use a more aggressive approach
+      // extractProductInfo() is async (it awaits the enhanced extractor), so
+      // this whole branch runs in an IIFE and responds when it settles —
+      // 'return true' below tells Chrome to keep the message channel open
+      // for that async response.
       if (message.force) {
         // For forced detection, lower the threshold for product page detection
-        const isProductPage = true; // Skip the check entirely
-        
-        try {
-          const productInfo = extractProductInfo();
-          
-          // Validate that we have sufficient product information
-          if (!productInfo.success || !productInfo.productInfo.title) {
-            // Track failed product extraction
-            trackContentEvent('product_extraction_failed', 'product', 'insufficient_info');
-            
-            sendResponse({ 
-              success: false, 
-              error: 'Could not extract sufficient product information', 
+        (async () => {
+          try {
+            const productInfo = await extractProductInfo();
+
+            // Validate that we have sufficient product information
+            if (!productInfo.success || !productInfo.productInfo.title) {
+              // Track failed product extraction
+              trackContentEvent('product_extraction_failed', 'product', 'insufficient_info');
+
+              sendResponse({
+                success: false,
+                error: 'Could not extract sufficient product information',
+                errorType: 'parsing',
+                partialInfo: productInfo.productInfo || null
+              });
+              return;
+            }
+
+            // Track successful product extraction
+            trackContentEvent('product_extraction_success', 'product',
+              productInfo.productInfo.store || window.location.hostname);
+
+            sendResponse(productInfo);
+          } catch (error) {
+            console.error('Error extracting product info (forced):', error);
+            sendResponse({
+              success: false,
+              error: error.message || 'Error extracting product information',
               errorType: 'parsing',
-              partialInfo: productInfo.productInfo || null
+              stack: error.stack
             });
-            return true;
           }
-          
-          // Track successful product extraction
-          trackContentEvent('product_extraction_success', 'product', 
-            productInfo.productInfo.store || window.location.hostname);
-          
-          sendResponse(productInfo);
-        } catch (error) {
-          console.error('Error extracting product info (forced):', error);
-          sendResponse({ 
-            success: false, 
-            error: error.message || 'Error extracting product information', 
-            errorType: 'parsing',
-            stack: error.stack
-          });
-        }
+        })();
       } else {
         // Normal detection with error handling
-        try {
-          const isProductPage = checkIfProductPage();
-          
-          if (!isProductPage) {
-            sendResponse({ 
-              success: false, 
-              error: 'Not a product page', 
-              errorType: 'detection',
-              url: window.location.href
+        (async () => {
+          try {
+            const isProductPage = checkIfProductPage();
+
+            if (!isProductPage) {
+              sendResponse({
+                success: false,
+                error: 'Not a product page',
+                errorType: 'detection',
+                url: window.location.href
+              });
+              return;
+            }
+
+            const productInfo = await extractProductInfo();
+
+            // Validate extraction results
+            if (!productInfo.success || !productInfo.productInfo.title) {
+              sendResponse({
+                success: false,
+                error: 'Could not extract sufficient product information',
+                errorType: 'parsing',
+                partialInfo: productInfo.productInfo || null
+              });
+              return;
+            }
+
+            sendResponse(productInfo);
+          } catch (error) {
+            console.error('Error in product detection/extraction:', error);
+            sendResponse({
+              success: false,
+              error: error.message || 'Error processing product page',
+              errorType: error.message.includes('detection') ? 'detection' : 'parsing',
+              stack: error.stack
             });
-            return true;
           }
-          
-          const productInfo = extractProductInfo();
-          
-          // Validate extraction results
-          if (!productInfo.success || !productInfo.productInfo.title) {
-            sendResponse({ 
-              success: false, 
-              error: 'Could not extract sufficient product information',
-              errorType: 'parsing',
-              partialInfo: productInfo.productInfo || null
-            });
-            return true;
-          }
-          
-          sendResponse(productInfo);
-        } catch (error) {
-          console.error('Error in product detection/extraction:', error);
-          sendResponse({ 
-            success: false, 
-            error: error.message || 'Error processing product page', 
-            errorType: error.message.includes('detection') ? 'detection' : 'parsing',
-            stack: error.stack
-          });
-        }
+        })();
       }
-    } else if (message.action === 'enableQuickAdd') {
-      // Handle the quick add button injection
-      try {
-        if (!message.isLoggedIn) {
-          sendResponse({
-            success: false,
-            error: 'User must be logged in to enable quick add'
-          });
-          return true;
-        }
-        
-        if (!message.baseUrl) {
-          sendResponse({
-            success: false,
-            error: 'Base URL is required for API communication'
-          });
-          return true;
-        }
-        
-        // Inject the quick add button
-        const quickAddResult = injectQuickAddButton(message.baseUrl, message.productInfo);
-        
-        sendResponse({
-          success: quickAddResult.success,
-          message: quickAddResult.message
-        });
-      } catch (error) {
-        console.error('Error enabling quick add:', error);
-        sendResponse({
-          success: false,
-          error: error.message || 'Error enabling quick add functionality',
-          stack: error.stack
-        });
-      }
+      return true;
     } else if (message.action === 'applyCoupon') {
       // Handle applying a coupon code
       try {
@@ -178,14 +173,16 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   return true;
 });
 
+console.log('🎯 WISHLIST WIZARD: Message listener registered successfully');
+
 // Extract product information using the enhanced extractor
-function extractProductInfo() {
+async function extractProductInfo() {
   try {
     // Use the enhanced product extractor if available
     if (typeof window.EnhancedProductExtractor !== 'undefined') {
       const extractor = new window.EnhancedProductExtractor();
-      const result = extractor.extract();
-      
+      const result = await extractor.extract();
+
       if (result.success) {
         return {
           success: true,
@@ -211,6 +208,8 @@ function extractProductInfo() {
 function extractProductInfoLegacy() {
   try {
     const url = window.location.href;
+    const parsedUrl = new URL(url);
+    const hostname = parsedUrl.hostname.toLowerCase();
     let productInfo = null;
     let extractionMethod = 'unknown';
     
@@ -220,7 +219,7 @@ function extractProductInfoLegacy() {
     }
     
     // Try site-specific extractors first for better results
-    if (url.includes('amazon.com') && url.includes('/dp/')) {
+    if (isAllowedStoreHost(hostname, 'amazon.com') && parsedUrl.pathname.includes('/dp/')) {
       try {
         productInfo = extractAmazonProductInfo();
         extractionMethod = 'amazon-legacy';
@@ -228,7 +227,7 @@ function extractProductInfoLegacy() {
         console.warn('Amazon-specific extraction failed, falling back to generic extraction', err);
       }
     }
-    else if (url.includes('target.com') && url.includes('/p/')) {
+    else if (isAllowedStoreHost(hostname, 'target.com') && parsedUrl.pathname.includes('/p/')) {
       try {
         productInfo = extractTargetProductInfo();
         extractionMethod = 'target-legacy';
@@ -236,7 +235,7 @@ function extractProductInfoLegacy() {
         console.warn('Target-specific extraction failed, falling back to generic extraction', err);
       }
     }
-    else if (url.includes('walmart.com') && url.includes('/ip/')) {
+    else if (isAllowedStoreHost(hostname, 'walmart.com') && parsedUrl.pathname.includes('/ip/')) {
       try {
         productInfo = extractWalmartProductInfo();
         extractionMethod = 'walmart-legacy';
@@ -339,6 +338,10 @@ function extractProductInfoLegacy() {
       url: window.location.href
     };
   }
+}
+
+function isAllowedStoreHost(hostname, domain) {
+  return hostname === domain || hostname.endsWith(`.${domain}`);
 }
 
 // Helper function to sanitize price strings
@@ -638,9 +641,16 @@ function addWishlistWizardButton() {
   // Only show the button if we're confident this is a product page
   if (!isLikelyProductPage) return;
   
-  // Pre-extract product info for faster response
-  const productInfo = extractProductInfo();
-  
+  // Pre-extract product info in the background so it's very likely already
+  // resolved by the time the user actually clicks — extraction is async
+  // (it awaits the enhanced extractor), so it must not block showing the
+  // button itself. The click handler below falls back to a fresh await'd
+  // extraction if this hasn't resolved yet.
+  let cachedProductInfo = { success: false };
+  extractProductInfo()
+    .then((result) => { cachedProductInfo = result; })
+    .catch(() => {});
+
   // Create floating action button with modern design
   const buttonContainer = document.createElement('div');
   buttonContainer.id = 'wishlist-wizard-button-container';
@@ -756,8 +766,8 @@ function addWishlistWizardButton() {
     trackContentEvent('wishlist_wizard_button_clicked', 'engagement', window.location.hostname);
     
     try {
-      // Extract product info (use cached if available)
-      const extractedInfo = productInfo.success ? productInfo : extractProductInfo();
+      // Extract product info (use the pre-fetched cache if it's ready by now)
+      const extractedInfo = cachedProductInfo.success ? cachedProductInfo : await extractProductInfo();
       
       if (extractedInfo.success) {
         // Track successful product detection
@@ -1097,145 +1107,6 @@ function applyCouponCode(code) {
     return {
       success: false,
       message: `Error applying coupon: ${error.message}`
-    };
-  }
-}
-
-// Inject quick-add button functionality
-function injectQuickAddButton(baseUrl, productInfo) {
-  try {
-    // Check if quick-add button already exists
-    if (document.getElementById('wishlist-wizard-quick-add')) {
-      return {
-        success: true,
-        message: 'Quick-add button already active'
-      };
-    }
-    
-    // Find suitable location for quick-add button (near add to cart)
-    const addToCartSelectors = [
-      // Common add to cart patterns
-      'button[name*="add-to-cart" i]',
-      'button[id*="add-to-cart" i]',
-      'input[name*="add-to-cart" i]',
-      'input[id*="add-to-cart" i]',
-      'button:contains("Add to Cart")',
-      'button:contains("Add to Basket")',
-      'button:contains("Add to Bag")',
-      
-      // Site-specific selectors
-      '#add-to-cart-button', // Amazon
-      '[data-test="chooseOptionsButton"]', // Target
-      '[data-automation="add-to-cart"]', // Walmart
-      '.notranslate[data-testid="bin-add-button"]', // eBay
-      '.add-to-cart-button' // Generic
-    ];
-    
-    let targetElement = null;
-    for (const selector of addToCartSelectors) {
-      targetElement = document.querySelector(selector);
-      if (targetElement) break;
-    }
-    
-    if (!targetElement) {
-      return {
-        success: false,
-        message: 'Could not find suitable location for quick-add button'
-      };
-    }
-    
-    // Create quick-add button
-    const quickAddButton = document.createElement('button');
-    quickAddButton.id = 'wishlist-wizard-quick-add';
-    quickAddButton.style.cssText = `
-      margin-left: 8px;
-      padding: 8px 16px;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      border: none;
-      border-radius: 6px;
-      font-size: 14px;
-      font-weight: 500;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-    `;
-    quickAddButton.innerHTML = '♡ Quick Add to Wishlist';
-    
-    // Add hover effect
-    quickAddButton.onmouseenter = () => {
-      quickAddButton.style.transform = 'translateY(-1px)';
-      quickAddButton.style.boxShadow = '0 4px 12px rgba(102, 126, 234, 0.4)';
-    };
-    
-    quickAddButton.onmouseleave = () => {
-      quickAddButton.style.transform = 'translateY(0)';
-      quickAddButton.style.boxShadow = 'none';
-    };
-    
-    // Add click handler
-    quickAddButton.onclick = async () => {
-      quickAddButton.disabled = true;
-      quickAddButton.innerHTML = '⏳ Adding...';
-      
-      try {
-        // Send product to API
-        const response = await fetch(`${baseUrl}/api/wishlist/items`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            // Add auth headers if available
-          },
-          body: JSON.stringify({
-            title: productInfo.title,
-            price: productInfo.price,
-            imageUrl: productInfo.imageUrl,
-            productUrl: productInfo.productUrl,
-            store: productInfo.store,
-            quickAdd: true
-          })
-        });
-        
-        if (response.ok) {
-          quickAddButton.innerHTML = '✓ Added!';
-          quickAddButton.style.background = 'linear-gradient(135deg, #4ade80 0%, #22c55e 100%)';
-          
-          setTimeout(() => {
-            quickAddButton.disabled = false;
-            quickAddButton.innerHTML = '♡ Quick Add to Wishlist';
-            quickAddButton.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
-          }, 2000);
-        } else {
-          throw new Error('Failed to add to wishlist');
-        }
-      } catch (error) {
-        console.error('Quick add error:', error);
-        quickAddButton.innerHTML = '✕ Error';
-        quickAddButton.style.background = 'linear-gradient(135deg, #f87171 0%, #ef4444 100%)';
-        
-        setTimeout(() => {
-          quickAddButton.disabled = false;
-          quickAddButton.innerHTML = '♡ Quick Add to Wishlist';
-          quickAddButton.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
-        }, 3000);
-      }
-    };
-    
-    // Insert button next to add to cart
-    targetElement.parentNode.insertBefore(quickAddButton, targetElement.nextSibling);
-    
-    return {
-      success: true,
-      message: 'Quick-add button successfully injected'
-    };
-    
-  } catch (error) {
-    console.error('Error injecting quick-add button:', error);
-    return {
-      success: false,
-      message: `Error injecting quick-add button: ${error.message}`
     };
   }
 }

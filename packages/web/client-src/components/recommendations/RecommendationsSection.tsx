@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Sparkles, RefreshCw, ListFilter } from "lucide-react";
+import { Sparkles, RefreshCw } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -20,6 +20,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { apiRequest } from "@/lib/queryClient";
+import { getApiErrorMessage } from "@/lib/api-errors";
 
 interface Recommendation {
   id?: number;
@@ -48,7 +49,7 @@ interface RecommendationsSectionProps {
 export default function RecommendationsSection({
   beneficiaryId,
   wishlistOptions,
-  title = "AI-Powered Recommendations"
+  title = "Personalized Recommendations"
 }: RecommendationsSectionProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -60,6 +61,8 @@ export default function RecommendationsSection({
     data: fetchedRecommendations,
     isLoading,
     isError,
+    isFetching,
+    error,
     refetch
   } = useQuery<Recommendation[]>({
     queryKey: beneficiaryId 
@@ -74,6 +77,22 @@ export default function RecommendationsSection({
       setRecommendations(fetchedRecommendations);
     }
   }, [fetchedRecommendations]);
+
+  useEffect(() => {
+    if (!wishlistOptions || wishlistOptions.length === 0) {
+      return;
+    }
+
+    if (!selectedWishlistId) {
+      setSelectedWishlistId(String(wishlistOptions[0].id));
+      return;
+    }
+
+    const exists = wishlistOptions.some((wishlist) => String(wishlist.id) === selectedWishlistId);
+    if (!exists) {
+      setSelectedWishlistId(String(wishlistOptions[0].id));
+    }
+  }, [wishlistOptions, selectedWishlistId]);
   
   // Mutation for updating recommendation status
   const updateStatusMutation = useMutation({
@@ -131,6 +150,10 @@ export default function RecommendationsSection({
     }
 
     try {
+      const selectedWishlist = wishlistOptions?.find(
+        (wishlist) => String(wishlist.id) === selectedWishlistId
+      );
+
       // Prepare the item data
       const itemData = {
         wishlistId: parseInt(selectedWishlistId),
@@ -139,32 +162,24 @@ export default function RecommendationsSection({
         imageUrl: recommendation.imageUrl,
         productUrl: recommendation.productUrl,
         store: recommendation.store,
-        note: `Added from AI recommendations. ${recommendation.matchReason}`,
+        note: `Added from recommendations. ${recommendation.matchReason}`,
         category: recommendation.category || null
       };
 
-      // Send a POST request to add the item
-      const response = await fetch('/api/items', {
+      await apiRequest('/api/items', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(itemData),
+        body: itemData,
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to add item to wishlist');
-      }
-
       // If the recommendation has an ID, mark it as saved
-      if (recommendation.id) {
+      if (recommendation.id && !recommendation.isSaved) {
         handleStatusChange(recommendation.id, { isSaved: true });
       }
 
       // Show success toast
       toast({
         title: "Item added!",
-        description: `"${recommendation.title}" was added to your wishlist.`,
+        description: `"${recommendation.title}" was added to ${selectedWishlist?.name || 'your wishlist'}.`,
       });
       
       // Invalidate queries to refresh data
@@ -175,7 +190,7 @@ export default function RecommendationsSection({
       // Show error toast
       toast({
         title: "Failed to add item",
-        description: "There was an error adding this item to your wishlist.",
+        description: getApiErrorMessage(error, "There was an error adding this item to your wishlist."),
         variant: "destructive",
       });
       return false;
@@ -191,7 +206,7 @@ export default function RecommendationsSection({
       <Card>
         <CardHeader>
           <div className="flex items-center">
-            <Sparkles className="mr-2 h-5 w-5 text-purple-500" />
+            <Sparkles className="mr-2 h-5 w-5 text-emerald-800" />
             <CardTitle>{title}</CardTitle>
           </div>
           <CardDescription>
@@ -199,7 +214,7 @@ export default function RecommendationsSection({
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4" role="status" aria-live="polite">
             {Array(4).fill(0).map((_, i) => (
               <Card key={i} className="overflow-hidden">
                 <div className="h-40 bg-gray-200 animate-pulse" />
@@ -222,7 +237,7 @@ export default function RecommendationsSection({
       <Card>
         <CardHeader>
           <div className="flex items-center">
-            <Sparkles className="mr-2 h-5 w-5 text-purple-500" />
+            <Sparkles className="mr-2 h-5 w-5 text-emerald-800" />
             <CardTitle>{title}</CardTitle>
           </div>
           <CardDescription>
@@ -232,7 +247,7 @@ export default function RecommendationsSection({
         <CardContent>
           <div className="text-center py-8">
             <p className="text-gray-600 mb-4">
-              We couldn't load your recommendations at this time.
+              We couldn&apos;t load your recommendations at this time.
             </p>
             <Button onClick={() => refetch()} variant="outline">
               <RefreshCw className="mr-2 h-4 w-4" /> Try Again
@@ -249,7 +264,7 @@ export default function RecommendationsSection({
       <Card>
         <CardHeader>
           <div className="flex items-center">
-            <Sparkles className="mr-2 h-5 w-5 text-purple-500" />
+            <Sparkles className="mr-2 h-5 w-5 text-emerald-800" />
             <CardTitle>{title}</CardTitle>
           </div>
           <CardDescription>
@@ -276,7 +291,7 @@ export default function RecommendationsSection({
       <CardHeader>
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div className="flex items-center">
-            <Sparkles className="mr-2 h-5 w-5 text-purple-500" />
+            <Sparkles className="mr-2 h-5 w-5 text-emerald-800" />
             <CardTitle>{title}</CardTitle>
           </div>
           
@@ -286,7 +301,7 @@ export default function RecommendationsSection({
                 value={selectedWishlistId}
                 onValueChange={setSelectedWishlistId}
               >
-                <SelectTrigger className="w-[180px]">
+                <SelectTrigger className="w-[180px]" aria-label="Select wishlist for recommendation adds">
                   <SelectValue placeholder="Select wishlist" />
                 </SelectTrigger>
                 <SelectContent>
@@ -303,16 +318,23 @@ export default function RecommendationsSection({
               variant="outline"
               size="sm"
               onClick={() => refetch()}
+              disabled={isFetching}
               className="h-9 px-2"
             >
-              <RefreshCw className="mr-1 h-4 w-4" />
-              Refresh
+              <RefreshCw className={`mr-1 h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} />
+              {isFetching ? 'Refreshing...' : 'Refresh'}
             </Button>
           </div>
         </div>
         <CardDescription>
           Personalized suggestions based on your preferences
         </CardDescription>
+        {isFetching && !isLoading && (
+          <p className="text-xs text-gray-500 mt-1" role="status" aria-live="polite">Updating recommendations…</p>
+        )}
+        {isError && (
+          <p className="text-xs text-red-500 mt-1">{getApiErrorMessage(error, "Unable to refresh recommendations right now.")}</p>
+        )}
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">

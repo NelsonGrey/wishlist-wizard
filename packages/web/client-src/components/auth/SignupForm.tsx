@@ -1,6 +1,78 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import type { PasswordValidationStatus } from 'firebase/auth';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLocation } from 'wouter';
+import { getFirebaseAuthErrorMessage } from '@/lib/firebase-auth-errors';
+
+// Defaults match today's enforced Firebase password policy so the form is
+// still usable if the live policy fetch fails (e.g. offline); the
+// authoritative check in handleSubmit re-verifies against the real policy
+// regardless of whether this fetch succeeded.
+interface PasswordPolicyState {
+  minLength: number;
+  requiresUpper: boolean;
+  requiresLower: boolean;
+  requiresDigit: boolean;
+  requiresSymbol: boolean;
+}
+
+const DEFAULT_POLICY: PasswordPolicyState = {
+  minLength: 8,
+  requiresUpper: true,
+  requiresLower: true,
+  requiresDigit: true,
+  requiresSymbol: true,
+};
+
+function passwordRequirementsHint(policy: PasswordPolicyState): string {
+  const requirements = [
+    policy.requiresUpper && 'an uppercase letter',
+    policy.requiresLower && 'a lowercase letter',
+    policy.requiresDigit && 'a number',
+    policy.requiresSymbol && 'a symbol',
+  ].filter(Boolean) as string[];
+  if (requirements.length === 0) {
+    return `Must be at least ${policy.minLength} characters long`;
+  }
+  return `Must be at least ${policy.minLength} characters, including ${requirements.join(', ')}`;
+}
+
+// Quick pass using the cached live policy, for immediate feedback without a
+// network round-trip. handleSubmit re-validates authoritatively against
+// Firebase itself before signing up, so this never needs to be the last
+// word on whether a password is accepted.
+function quickPasswordCheck(password: string, policy: PasswordPolicyState): string | null {
+  if (password.length < policy.minLength) {
+    return `Password must be at least ${policy.minLength} characters long.`;
+  }
+  if (policy.requiresUpper && !/[A-Z]/.test(password)) {
+    return 'Password must include an uppercase letter.';
+  }
+  if (policy.requiresLower && !/[a-z]/.test(password)) {
+    return 'Password must include a lowercase letter.';
+  }
+  if (policy.requiresDigit && !/[0-9]/.test(password)) {
+    return 'Password must include a number.';
+  }
+  if (policy.requiresSymbol && !/[^A-Za-z0-9]/.test(password)) {
+    return 'Password must include a symbol (e.g. ! @ # ?).';
+  }
+  return null;
+}
+
+function describePasswordPolicyFailure(status: PasswordValidationStatus, policy: PasswordPolicyState): string {
+  const missing = [
+    status.meetsMinPasswordLength === false && `be at least ${policy.minLength} characters`,
+    status.containsUppercaseLetter === false && 'include an uppercase letter',
+    status.containsLowercaseLetter === false && 'include a lowercase letter',
+    status.containsNumericCharacter === false && 'include a number',
+    status.containsNonAlphanumericCharacter === false && 'include a symbol',
+  ].filter(Boolean) as string[];
+  if (missing.length === 0) {
+    return 'Password does not meet the requirements for this account.';
+  }
+  return `Password must ${missing.join(', ')}.`;
+}
 
 export const SignupForm: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -9,49 +81,97 @@ export const SignupForm: React.FC = () => {
   const [displayName, setDisplayName] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { signUp } = useAuth();
+  const [policy, setPolicy] = useState<PasswordPolicyState>(DEFAULT_POLICY);
+  const isSubmittingRef = useRef(false);
+  const { signUp, checkPasswordPolicy } = useAuth();
   const [, setLocation] = useLocation();
+
+  useEffect(() => {
+    let cancelled = false;
+    // A throwaway non-empty candidate -- only .passwordPolicy is used here,
+    // not whether this specific placeholder is valid.
+    checkPasswordPolicy(' ')
+      .then((status) => {
+        if (cancelled) return;
+        const options = status.passwordPolicy.customStrengthOptions;
+        setPolicy({
+          minLength: options.minPasswordLength ?? DEFAULT_POLICY.minLength,
+          requiresUpper: options.containsUppercaseLetter ?? false,
+          requiresLower: options.containsLowercaseLetter ?? false,
+          requiresDigit: options.containsNumericCharacter ?? false,
+          requiresSymbol: options.containsNonAlphanumericCharacter ?? false,
+        });
+      })
+      .catch(() => {
+        // Keep DEFAULT_POLICY -- handleSubmit still authoritatively
+        // re-checks the real password against the live policy at submit time.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [checkPasswordPolicy]);
+
+  const isValidEmail = (value: string): boolean => {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
-
-    // Validate passwords match
-    if (password !== confirmPassword) {
-      setError('Passwords do not match');
+    if (isSubmittingRef.current) {
       return;
     }
 
-    // Basic password strength validation
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters long');
+    isSubmittingRef.current = true;
+    setError('');
+    const normalizedEmail = email.trim();
+
+    // Validate passwords match
+    if (password !== confirmPassword) {
+      setError('Passwords do not match.');
+      isSubmittingRef.current = false;
+      return;
+    }
+
+    // Quick client-side pass using the cached live policy.
+    const quickCheckError = quickPasswordCheck(password, policy);
+    if (quickCheckError) {
+      setError(quickCheckError);
+      isSubmittingRef.current = false;
+      return;
+    }
+
+    if (!normalizedEmail) {
+      setError('Email is required.');
+      isSubmittingRef.current = false;
+      return;
+    }
+
+    if (!isValidEmail(normalizedEmail)) {
+      setError('Please enter a valid email address.');
+      isSubmittingRef.current = false;
       return;
     }
 
     setLoading(true);
 
     try {
-      await signUp(email, password, displayName.trim() || undefined);
-      // ProtectedRoute will handle redirect after auth state change
-    } catch (err: any) {
-      setError(getErrorMessage(err));
-    } finally {
-      setLoading(false);
-    }
-  };
+      // Authoritative check against the live Firebase policy -- catches
+      // drift between this form's cached copy and the real policy (e.g. it
+      // changed after this form loaded, or the initial fetch failed)
+      // before spending a round-trip on account creation.
+      const status = await checkPasswordPolicy(password);
+      if (!status.isValid) {
+        setError(describePasswordPolicyFailure(status, policy));
+        return;
+      }
 
-  const getErrorMessage = (error: any): string => {
-    switch (error.code) {
-      case 'auth/email-already-in-use':
-        return 'An account with this email already exists.';
-      case 'auth/invalid-email':
-        return 'Invalid email address.';
-      case 'auth/weak-password':
-        return 'Password is too weak. Please choose a stronger password.';
-      case 'auth/operation-not-allowed':
-        return 'Email/password accounts are not enabled.';
-      default:
-        return 'Failed to create account. Please try again.';
+      await signUp(normalizedEmail, password, displayName.trim() || undefined);
+      // ProtectedRoute will handle redirect after auth state change
+    } catch (err: unknown) {
+      setError(getFirebaseAuthErrorMessage(err, 'signup'));
+    } finally {
+      isSubmittingRef.current = false;
+      setLoading(false);
     }
   };
 
@@ -70,7 +190,7 @@ export const SignupForm: React.FC = () => {
             value={displayName}
             onChange={(e) => setDisplayName(e.target.value)}
             disabled={loading}
-            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50"
+            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 disabled:opacity-50"
           />
         </div>
 
@@ -85,7 +205,7 @@ export const SignupForm: React.FC = () => {
             onChange={(e) => setEmail(e.target.value)}
             required
             disabled={loading}
-            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50"
+            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 disabled:opacity-50"
           />
         </div>
 
@@ -100,10 +220,10 @@ export const SignupForm: React.FC = () => {
             onChange={(e) => setPassword(e.target.value)}
             required
             disabled={loading}
-            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50"
+            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 disabled:opacity-50"
           />
           <p className="text-xs text-gray-500 mt-1">
-            Must be at least 6 characters long
+            {passwordRequirementsHint(policy)}
           </p>
         </div>
 
@@ -118,12 +238,12 @@ export const SignupForm: React.FC = () => {
             onChange={(e) => setConfirmPassword(e.target.value)}
             required
             disabled={loading}
-            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50"
+            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 disabled:opacity-50"
           />
         </div>
 
         {error && (
-          <div className="text-red-600 text-sm mt-2 p-2 bg-red-50 border border-red-200 rounded">
+          <div role="alert" className="text-red-600 text-sm mt-2 p-2 bg-red-50 border border-red-200 rounded">
             {error}
           </div>
         )}
@@ -131,7 +251,7 @@ export const SignupForm: React.FC = () => {
         <button
           type="submit"
           disabled={loading}
-          className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-gradient-to-r from-emerald-700 to-green-700 hover:from-emerald-800 hover:to-green-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
         >
           {loading ? 'Creating account...' : 'Create Account'}
         </button>
@@ -141,7 +261,7 @@ export const SignupForm: React.FC = () => {
         <span className="text-gray-600">Already have an account? </span>
         <button
           onClick={() => setLocation('/login')}
-          className="text-blue-600 hover:text-blue-500 font-medium"
+          className="text-emerald-700 hover:text-emerald-800 font-medium"
         >
           Sign in
         </button>

@@ -60,23 +60,24 @@ export default function VerifyEmail() {
         <CardContent className="space-y-6">
           <div className="flex justify-center">
             {status === 'loading' && (
-              <Loader2 className="h-12 w-12 animate-spin text-blue-500" />
+              <Loader2 className="h-12 w-12 animate-spin text-emerald-700" aria-hidden="true" />
             )}
             {status === 'success' && (
-              <CheckCircle className="h-12 w-12 text-green-500" />
+              <CheckCircle className="h-12 w-12 text-green-500" aria-hidden="true" />
             )}
             {status === 'error' && (
-              <XCircle className="h-12 w-12 text-red-500" />
+              <XCircle className="h-12 w-12 text-red-500" aria-hidden="true" />
             )}
           </div>
           
           <div className="text-center">
-            <p className="text-gray-600">{message}</p>
+            <p className="text-gray-600" role={status === 'error' ? 'alert' : 'status'} aria-live={status === 'error' ? 'assertive' : 'polite'}>{message}</p>
           </div>
 
           {status !== 'loading' && (
             <div className="space-y-4">
               <Button
+                type="button"
                 onClick={handleContinue}
                 className="w-full"
                 variant={status === 'success' ? 'default' : 'outline'}
@@ -90,6 +91,7 @@ export default function VerifyEmail() {
                     Need a new verification email?
                   </p>
                   <Button 
+                    type="button"
                     variant="link" 
                     onClick={() => setLocation('/register')}
                     className="text-sm"

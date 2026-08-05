@@ -1,0 +1,189 @@
+# Fastfile for Wishlist Wizard Android App
+#
+# STATUS: not wired into CI. master-pipeline.yml's build-android/deploy-android
+# jobs use the r0adkll/upload-google-play GitHub Action directly instead of
+# this Fastfile — that path is what's actually exercised and live-verified
+# (real signed AAB built, real upload to the Play Console internal track).
+# This file is kept for local/manual use only; if you resurrect it for CI,
+# note upload_to_play_store needs json_key_data/package_name passed
+# explicitly (the Appfile's json_key_file/ENV declaration alone silently
+# falls through to Application Default Credentials and fails confusingly),
+# and the secret name below (GOOGLE_PLAY_SERVICE_ACCOUNT_KEY) doesn't match
+# the one actually configured in this repo's GitHub Actions secrets
+# (GOOGLE_PLAY_SERVICE_ACCOUNT_JSON) — fix that before relying on it.
+#
+# This file contains the lanes for building, testing, and distributing the app
+
+# Import required plugins
+# fastlane add_plugin google_play_track_version_codes
+# fastlane add_plugin google_play_track_release_names
+
+default_platform(:android)
+
+platform :android do
+  before_all do
+    # Set up environment
+    setup_ci if ENV['CI']
+
+    # Ensure we're in the right directory
+    Dir.chdir("../../") do
+      # Any setup commands that need to run from the mobile package root
+    end
+  end
+
+  desc "Install Flutter dependencies"
+  lane :flutter_deps do
+    Dir.chdir("../../") do
+      sh("flutter pub get")
+    end
+  end
+
+  desc "Run Flutter tests"
+  lane :flutter_test do
+    Dir.chdir("../../") do
+      sh("flutter test")
+    end
+  end
+
+  desc "Build Flutter Android app in debug mode"
+  lane :build_debug do
+    flutter_deps
+    Dir.chdir("../../") do
+      sh("flutter build apk --debug")
+    end
+  end
+
+  desc "Build Flutter Android app in release mode (APK)"
+  lane :build_release_apk do
+    flutter_deps
+    Dir.chdir("../../") do
+      sh("flutter build apk --release")
+    end
+  end
+
+  desc "Build Flutter Android app in release mode (AAB)"
+  lane :build_release_aab do
+    flutter_deps
+    Dir.chdir("../../") do
+      sh("flutter build appbundle --release")
+    end
+  end
+
+  desc "Deploy to Google Play Internal Testing Track"
+  lane :internal do
+    # Build the app bundle
+    build_release_aab
+
+    # Upload to Google Play Internal Testing
+    upload_to_play_store(
+      package_name: ENV["MOBILE_ANDROID_PACKAGE"] || "com.wishlistwizard.app.android",
+      aab: "../build/app/outputs/bundle/release/app-release.aab",
+      track: ENV["ANDROID_TRACK"] || "internal",
+      rollout: "1.0",
+      release_status: "draft",
+      json_key_data: ENV["GOOGLE_PLAY_SERVICE_ACCOUNT_KEY"],
+      in_app_update_priority: ENV["ANDROID_IN_APP_UPDATE_PRIORITY"] || "3",
+      changes_not_sent_for_review: true
+    )
+  end
+
+  desc "Deploy to Google Play Beta Track"
+  lane :beta do
+    # Build the app bundle
+    build_release_aab
+
+    # Upload to Google Play Beta
+    upload_to_play_store(
+      package_name: ENV["MOBILE_ANDROID_PACKAGE"] || "com.wishlistwizard.app.android",
+      aab: "../build/app/outputs/bundle/release/app-release.aab",
+      track: "beta",
+      rollout: "1.0",
+      release_status: "draft",
+      json_key_data: ENV["GOOGLE_PLAY_SERVICE_ACCOUNT_KEY"],
+      in_app_update_priority: ENV["ANDROID_IN_APP_UPDATE_PRIORITY"] || "3",
+      changes_not_sent_for_review: true
+    )
+  end
+
+  desc "Deploy to Google Play Production Track"
+  lane :production do
+    # Build the app bundle
+    build_release_aab
+
+    # Upload to Google Play Production
+    upload_to_play_store(
+      package_name: ENV["MOBILE_ANDROID_PACKAGE"] || "com.wishlistwizard.app.android",
+      aab: "../build/app/outputs/bundle/release/app-release.aab",
+      track: "production",
+      rollout: "1.0",
+      release_status: "draft",
+      json_key_data: ENV["GOOGLE_PLAY_SERVICE_ACCOUNT_KEY"],
+      in_app_update_priority: ENV["ANDROID_IN_APP_UPDATE_PRIORITY"] || "3",
+      changes_not_sent_for_review: false
+    )
+  end
+
+  desc "Promote from Internal to Beta"
+  lane :promote_to_beta do
+    upload_to_play_store(
+      package_name: ENV["MOBILE_ANDROID_PACKAGE"] || "com.wishlistwizard.app.android",
+      track: "internal",
+      track_promote_to: "beta",
+      json_key_data: ENV["GOOGLE_PLAY_SERVICE_ACCOUNT_KEY"],
+      rollout: "1.0"
+    )
+  end
+
+  desc "Promote from Beta to Production"
+  lane :promote_to_production do
+    upload_to_play_store(
+      package_name: ENV["MOBILE_ANDROID_PACKAGE"] || "com.wishlistwizard.app.android",
+      track: "beta",
+      track_promote_to: "production",
+      json_key_data: ENV["GOOGLE_PLAY_SERVICE_ACCOUNT_KEY"],
+      rollout: "1.0"
+    )
+  end
+
+  desc "Run tests and build debug version"
+  lane :test_and_build do
+    flutter_test
+    build_debug
+  end
+
+  desc "Complete CI pipeline: test, build, and distribute to Internal Testing"
+  lane :ci_pipeline do
+    # Run tests
+    flutter_test
+
+    # Build and upload to Internal Testing
+    internal
+  end
+
+  desc "Clean build artifacts"
+  lane :clean do
+    Dir.chdir("../../") do
+      sh("flutter clean")
+      sh("rm -rf build/")
+      sh("rm -rf android/app/build/")
+    end
+  end
+
+  desc "Get version information"
+  lane :version_info do
+    app_version = get_version_name(
+      package_name: ENV["MOBILE_ANDROID_PACKAGE"] || "com.wishlistwizard.app.android"
+    )
+    app_build = get_version_code(
+      package_name: ENV["MOBILE_ANDROID_PACKAGE"] || "com.wishlistwizard.app.android"
+    )
+
+    UI.message("Current version: #{app_version} (#{app_build})")
+  end
+
+  error do |lane, exception|
+    # Handle errors
+    puts "Lane #{lane} failed with exception: #{exception.message}"
+    clean
+  end
+end

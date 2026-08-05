@@ -20,7 +20,6 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import {
   Users,
-  DollarSign,
   CheckCircle,
   Clock,
   AlertCircle,
@@ -63,7 +62,7 @@ interface GiftStats {
   isPurchased: boolean;
 }
 
-export default function GroupGiftDetails({ itemId, item, onClose }: GroupGiftDetailsProps) {
+export default function GroupGiftDetails({ itemId, item }: GroupGiftDetailsProps) {
   const [showMarkReadyDialog, setShowMarkReadyDialog] = useState(false);
   const [showMarkPurchasedDialog, setShowMarkPurchasedDialog] = useState(false);
 
@@ -93,7 +92,7 @@ export default function GroupGiftDetails({ itemId, item, onClose }: GroupGiftDet
       queryClient.invalidateQueries({ queryKey: [`/api/group-payments/${itemId}/stats`] });
       setShowMarkReadyDialog(false);
     },
-    onError: (error) => {
+    onError: () => {
       toast({
         title: "Failed to mark gift as ready",
         description: "There was an error marking the gift as ready.",
@@ -117,7 +116,7 @@ export default function GroupGiftDetails({ itemId, item, onClose }: GroupGiftDet
       queryClient.invalidateQueries({ queryKey: [`/api/group-payments/${itemId}/stats`] });
       setShowMarkPurchasedDialog(false);
     },
-    onError: (error) => {
+    onError: () => {
       toast({
         title: "Failed to mark gift as purchased",
         description: "There was an error marking the gift as purchased.",
@@ -141,7 +140,7 @@ export default function GroupGiftDetails({ itemId, item, onClose }: GroupGiftDet
       queryClient.invalidateQueries({ queryKey: [`/api/gifts/${itemId}/participants`] });
       queryClient.invalidateQueries({ queryKey: [`/api/group-payments/${itemId}/stats`] });
     },
-    onError: (error) => {
+    onError: () => {
       toast({
         title: "Failed to remove participant",
         description: "There was an error removing the participant.",
@@ -226,7 +225,7 @@ export default function GroupGiftDetails({ itemId, item, onClose }: GroupGiftDet
                 Purchased
               </Badge>
             ) : stats?.isReadyToPurchase ? (
-              <Badge variant="default" className="bg-blue-100 text-blue-800">
+              <Badge variant="default" className="bg-emerald-100 text-emerald-800">
                 <Clock className="h-3 w-3 mr-1" />
                 Ready to Purchase
               </Badge>
@@ -321,6 +320,7 @@ export default function GroupGiftDetails({ itemId, item, onClose }: GroupGiftDet
                         onClick={() => handleRemoveParticipant(participant.userId)}
                         disabled={removeParticipantMutation.isPending}
                         className="text-red-500 hover:text-red-700"
+                        aria-label={`Remove ${participant.isAnonymous ? "anonymous contributor" : (participant.user?.displayName || participant.user?.username || "participant")}`}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -329,7 +329,7 @@ export default function GroupGiftDetails({ itemId, item, onClose }: GroupGiftDet
                   {participant.message && (
                     <div className="mt-2 ml-11 p-2 bg-gray-50 rounded-md">
                       <p className="text-xs text-muted-foreground italic">
-                        "{participant.message}"
+                        &quot;{participant.message}&quot;
                       </p>
                     </div>
                   )}

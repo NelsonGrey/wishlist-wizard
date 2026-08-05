@@ -49,15 +49,33 @@ class FirebaseFirestoreService {
       final querySnapshot = await _db
           .collection('wishlists')
           .where('userId', isEqualTo: userId)
-          .orderBy('createdAt', descending: true)
           .get();
 
-      return querySnapshot.docs
+      final list = querySnapshot.docs
           .map((doc) => _documentToFirebaseWishlist(doc))
           .toList();
+      list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      return list;
     } catch (e) {
       print('Error fetching wishlists: $e');
       return [];
+    }
+  }
+
+  Future<FirebaseWishlist?> getWishlistById(String wishlistId) async {
+    if (!await _ensureFirebaseInitialized()) {
+      return null;
+    }
+
+    try {
+      final doc = await _db.collection('wishlists').doc(wishlistId).get();
+      if (!doc.exists) {
+        return null;
+      }
+      return _documentToFirebaseWishlist(doc);
+    } catch (e) {
+      print('Error fetching wishlist by id: $e');
+      return null;
     }
   }
 
@@ -69,13 +87,14 @@ class FirebaseFirestoreService {
         return _db
             .collection('wishlists')
             .where('userId', isEqualTo: userId)
-            .orderBy('createdAt', descending: true)
             .snapshots()
-            .map(
-              (snapshot) => snapshot.docs
+            .map((snapshot) {
+              final list = snapshot.docs
                   .map((doc) => _documentToFirebaseWishlist(doc))
-                  .toList(),
-            );
+                  .toList();
+              list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+              return list;
+            });
       } else {
         return Stream.value(<FirebaseWishlist>[]);
       }
@@ -134,7 +153,7 @@ class FirebaseFirestoreService {
     try {
       // Delete all items in the wishlist first
       final itemsSnapshot = await _db
-          .collection('wishlist_items')
+          .collection('wishlistItems')
           .where('wishlistId', isEqualTo: wishlistId)
           .get();
 
@@ -162,14 +181,15 @@ class FirebaseFirestoreService {
 
     try {
       final querySnapshot = await _db
-          .collection('wishlist_items')
+          .collection('wishlistItems')
           .where('wishlistId', isEqualTo: wishlistId)
-          .orderBy('createdAt', descending: true)
           .get();
 
-      return querySnapshot.docs
+      final list = querySnapshot.docs
           .map((doc) => _documentToFirebaseWishlistItem(doc))
           .toList();
+      list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      return list;
     } catch (e) {
       print('Error fetching wishlist items: $e');
       return [];
@@ -182,19 +202,37 @@ class FirebaseFirestoreService {
     ) {
       if (initialized) {
         return _db
-            .collection('wishlist_items')
+            .collection('wishlistItems')
             .where('wishlistId', isEqualTo: wishlistId)
-            .orderBy('createdAt', descending: true)
             .snapshots()
-            .map(
-              (snapshot) => snapshot.docs
+            .map((snapshot) {
+              final list = snapshot.docs
                   .map((doc) => _documentToFirebaseWishlistItem(doc))
-                  .toList(),
-            );
+                  .toList();
+              list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+              return list;
+            });
       } else {
         return Stream.value(<FirebaseWishlistItem>[]);
       }
     });
+  }
+
+  Future<FirebaseWishlistItem?> getWishlistItemById(String itemId) async {
+    if (!await _ensureFirebaseInitialized()) {
+      return null;
+    }
+
+    try {
+      final doc = await _db.collection('wishlistItems').doc(itemId).get();
+      if (!doc.exists) {
+        return null;
+      }
+      return _documentToFirebaseWishlistItem(doc);
+    } catch (e) {
+      print('Error fetching wishlist item by id: $e');
+      return null;
+    }
   }
 
   Future<FirebaseWishlistItem?> addWishlistItem(
@@ -205,7 +243,7 @@ class FirebaseFirestoreService {
     }
 
     try {
-      final docRef = await _db.collection('wishlist_items').add({
+      final docRef = await _db.collection('wishlistItems').add({
         'name': item.name,
         'description': item.description,
         'price': item.price,
@@ -237,7 +275,7 @@ class FirebaseFirestoreService {
     }
 
     try {
-      await _db.collection('wishlist_items').doc(item.id).update({
+      await _db.collection('wishlistItems').doc(item.id).update({
         'name': item.name,
         'description': item.description,
         'price': item.price,
@@ -264,7 +302,7 @@ class FirebaseFirestoreService {
     }
 
     try {
-      await _db.collection('wishlist_items').doc(itemId).delete();
+      await _db.collection('wishlistItems').doc(itemId).delete();
       return true;
     } catch (e) {
       print('Error deleting wishlist item: $e');
@@ -282,13 +320,14 @@ class FirebaseFirestoreService {
       final querySnapshot = await _db
           .collection('notifications')
           .where('userId', isEqualTo: userId)
-          .orderBy('createdAt', descending: true)
           .limit(50)
           .get();
 
-      return querySnapshot.docs
+      final list = querySnapshot.docs
           .map((doc) => _documentToFirebaseNotification(doc))
           .toList();
+      list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      return list;
     } catch (e) {
       print('Error fetching notifications: $e');
       return [];
@@ -303,14 +342,15 @@ class FirebaseFirestoreService {
         return _db
             .collection('notifications')
             .where('userId', isEqualTo: userId)
-            .orderBy('createdAt', descending: true)
             .limit(50)
             .snapshots()
-            .map(
-              (snapshot) => snapshot.docs
+            .map((snapshot) {
+              final list = snapshot.docs
                   .map((doc) => _documentToFirebaseNotification(doc))
-                  .toList(),
-            );
+                  .toList();
+              list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+              return list;
+            });
       } else {
         return Stream.value(<FirebaseNotification>[]);
       }
@@ -325,6 +365,7 @@ class FirebaseFirestoreService {
     try {
       await _db.collection('notifications').doc(notificationId).update({
         'isRead': true,
+        'read': true,
         'readAt': FieldValue.serverTimestamp(),
       });
       return true;
@@ -332,6 +373,21 @@ class FirebaseFirestoreService {
       print('Error marking notification as read: $e');
       return false;
     }
+  }
+
+  // Safely parse a Firestore timestamp field that may be stored as a
+  // Firestore Timestamp OR as an ISO-8601 String (written by Functions/web).
+  DateTime _parseTimestamp(dynamic value, {DateTime? fallback}) {
+    if (value is Timestamp) return value.toDate();
+    if (value is String) return DateTime.tryParse(value) ?? (fallback ?? DateTime.now());
+    return fallback ?? DateTime.now();
+  }
+
+  DateTime? _parseTimestampNullable(dynamic value) {
+    if (value == null) return null;
+    if (value is Timestamp) return value.toDate();
+    if (value is String) return DateTime.tryParse(value);
+    return null;
   }
 
   // Helper methods to convert Firestore documents to models
@@ -343,46 +399,92 @@ class FirebaseFirestoreService {
       description: data['description'],
       userId: data['userId'] ?? '',
       isPublic: data['isPublic'] ?? false,
+      shareId: data['shareId'],
       tags: List<String>.from(data['tags'] ?? []),
-      createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
-      updatedAt: (data['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      createdAt: _parseTimestamp(data['createdAt']),
+      updatedAt: _parseTimestamp(data['updatedAt']),
     );
   }
 
   FirebaseWishlistItem _documentToFirebaseWishlistItem(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
-    return FirebaseWishlistItem(
-      id: doc.id,
-      name: data['name'] ?? '',
-      description: data['description'],
-      price: (data['price'] as num?)?.toDouble(),
-      currency: data['currency'] ?? 'USD',
-      url: data['url'],
-      imageUrl: data['imageUrl'],
-      wishlistId: data['wishlistId'] ?? '',
-      userId: data['userId'] ?? '',
-      isPurchased: data['isPurchased'] ?? false,
-      purchasedBy: data['purchasedBy'],
-      purchasedAt: (data['purchasedAt'] as Timestamp?)?.toDate(),
-      tags: List<String>.from(data['tags'] ?? []),
-      priority: _stringToPriority(data['priority']),
-      createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
-      updatedAt: (data['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
-    );
+    try {
+      return FirebaseWishlistItem(
+        id: doc.id,
+        // Functions may write 'title' instead of 'name'
+        name: (data['name'] ?? data['title'] ?? '').toString(),
+        description: data['description']?.toString(),
+        // price may be stored as String by some clients
+        price: _parsePrice(data['price']),
+        currency: (data['currency'] ?? 'USD').toString(),
+        // Functions may write 'productUrl' instead of 'url'
+        url: (data['url'] ?? data['productUrl'])?.toString(),
+        imageUrl: data['imageUrl']?.toString(),
+        store: data['store']?.toString(),
+        wishlistId: (data['wishlistId'] ?? '').toString(),
+        // Functions may write 'addedBy' instead of 'userId'
+        userId: (data['userId'] ?? data['addedBy'] ?? '').toString(),
+        isPurchased: data['isPurchased'] == true || data['purchasedByUserId'] != null,
+        purchasedBy: (data['purchasedBy'] ?? data['purchasedByUserId'])?.toString(),
+        purchasedAt: _parseTimestampNullable(data['purchasedAt']),
+        tags: List<String>.from(data['tags'] ?? []),
+        priority: _stringToPriority(_toPriorityString(data['priority'])),
+        createdAt: _parseTimestamp(data['createdAt']),
+        updatedAt: _parseTimestamp(data['updatedAt']),
+      );
+    } catch (e, stack) {
+      print('[FirestoreService] Failed to parse wishlist item ${doc.id}: $e');
+      print('[FirestoreService] Data: $data');
+      print('[FirestoreService] Stack: $stack');
+      rethrow;
+    }
+  }
+
+  double? _parsePrice(dynamic value) {
+    if (value == null) return null;
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value);
+    return null;
+  }
+
+  // Normalise numeric priority (Functions use int 1-3) to string form.
+  String? _toPriorityString(dynamic value) {
+    if (value == null) return null;
+    if (value is String) return value;
+    if (value is num) {
+      if (value >= 3) return 'high';
+      if (value == 2) return 'medium';
+      return 'low';
+    }
+    return null;
   }
 
   FirebaseNotification _documentToFirebaseNotification(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
+    final dynamic rawMetadata = data['metadata'] ?? data['data'] ?? {};
+
+    Map<String, dynamic> metadata;
+    if (rawMetadata is Map<String, dynamic>) {
+      metadata = rawMetadata;
+    } else if (rawMetadata is Map) {
+      metadata = rawMetadata.map(
+        (key, value) => MapEntry(key.toString(), value),
+      );
+    } else {
+      metadata = <String, dynamic>{};
+    }
+
     return FirebaseNotification(
       id: doc.id,
       userId: data['userId'] ?? '',
       title: data['title'] ?? '',
-      message: data['message'] ?? '',
+      message: (data['message'] ?? data['body'] ?? data['content'] ?? '')
+          .toString(),
       type: _stringToNotificationType(data['type']),
-      isRead: data['isRead'] ?? false,
-      createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
-      readAt: (data['readAt'] as Timestamp?)?.toDate(),
-      metadata: Map<String, dynamic>.from(data['metadata'] ?? {}),
+      isRead: (data['isRead'] ?? data['read'] ?? false) == true,
+      createdAt: _parseTimestamp(data['createdAt']),
+      readAt: _parseTimestampNullable(data['readAt']),
+      metadata: metadata,
     );
   }
 

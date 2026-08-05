@@ -1,5 +1,5 @@
 specVersion: "v1"
-serviceId: "wishlist-wizard-react-project"
+serviceId: "wishlist-wizard"
 location: "us-central1"
 schema:
   source: "./schema"
@@ -7,7 +7,9 @@ schema:
     postgresql:
       database: "fdcdb"
       cloudSql:
-        instanceId: "wishlist-wizard-react-project-fdc"
+        instanceId: "wishlist-wizard-fdc"
         # schemaValidation: "STRICT"     # STRICT mode makes Postgres schema match Data Connect exactly.
         # schemaValidation: "COMPATIBLE" # COMPATIBLE mode makes Postgres schema compatible with Data Connect.
-connectorDirs: ["./example"]
+connectorDirs: []
+# Note: ./example directory disabled - uses deprecated auth.uid syntax.
+# Example queries should be updated to use uuidV4() or app-level auth handling.
