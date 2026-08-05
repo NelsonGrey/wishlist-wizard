@@ -30,11 +30,10 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
-        <!-- Google Mobile Ads (AdMob) requires this App ID; mirrors the test
-             App ID already set in ios/Runner/Info.plist's GADApplicationIdentifier. -->
+        <!-- Google Mobile Ads (AdMob) requires this App ID -->
         <meta-data
             android:name="com.google.android.gms.ads.APPLICATION_ID"
-            android:value="ca-app-pub-3940256099942544~3347511713" />
+            android:value="ca-app-pub-5198775482699756~1528233576" />
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and
