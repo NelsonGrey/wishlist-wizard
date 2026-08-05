@@ -88,7 +88,7 @@ export default function ResetPassword() {
               <p className="text-gray-600">{message}</p>
             </div>
 
-            <Button onClick={handleContinue} className="w-full">
+            <Button type="button" onClick={handleContinue} className="w-full">
               Continue to Login
             </Button>
           </CardContent>
@@ -114,7 +114,7 @@ export default function ResetPassword() {
               <p className="text-gray-600">The password reset link is invalid or has expired.</p>
             </div>
 
-            <Button onClick={() => setLocation('/login')} className="w-full" variant="outline">
+            <Button type="button" onClick={() => setLocation('/login')} className="w-full" variant="outline">
               Back to Login
             </Button>
           </CardContent>
@@ -138,6 +138,7 @@ export default function ResetPassword() {
                 <Input
                   id="password"
                   type={showPassword ? "text" : "password"}
+                  autoComplete="new-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Enter your new password"
@@ -151,11 +152,12 @@ export default function ResetPassword() {
                   className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
                   onClick={() => setShowPassword(!showPassword)}
                   disabled={status === 'loading'}
+                  aria-label={showPassword ? 'Hide new password' : 'Show new password'}
                 >
                   {showPassword ? (
-                    <EyeOff className="h-4 w-4" />
+                    <EyeOff className="h-4 w-4" aria-hidden="true" />
                   ) : (
-                    <Eye className="h-4 w-4" />
+                    <Eye className="h-4 w-4" aria-hidden="true" />
                   )}
                 </Button>
               </div>
@@ -167,6 +169,7 @@ export default function ResetPassword() {
                 <Input
                   id="confirmPassword"
                   type={showConfirmPassword ? "text" : "password"}
+                  autoComplete="new-password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   placeholder="Confirm your new password"
@@ -180,18 +183,19 @@ export default function ResetPassword() {
                   className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                   disabled={status === 'loading'}
+                  aria-label={showConfirmPassword ? 'Hide confirm password' : 'Show confirm password'}
                 >
                   {showConfirmPassword ? (
-                    <EyeOff className="h-4 w-4" />
+                    <EyeOff className="h-4 w-4" aria-hidden="true" />
                   ) : (
-                    <Eye className="h-4 w-4" />
+                    <Eye className="h-4 w-4" aria-hidden="true" />
                   )}
                 </Button>
               </div>
             </div>
 
             {message && (
-              <div className={`text-sm ${status === 'error' ? 'text-red-600' : 'text-gray-600'}`}>
+              <div role={status === 'error' ? 'alert' : 'status'} aria-live={status === 'error' ? 'assertive' : 'polite'} className={`text-sm ${status === 'error' ? 'text-red-600' : 'text-gray-600'}`}>
                 {message}
               </div>
             )}

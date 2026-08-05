@@ -7,15 +7,24 @@ function switchTab(tabId) {
   document.getElementById(`tab-${tabId}`).classList.add('active');
   
   // Save active tab
-  currentActiveTab = tabId;
+  window.currentActiveTab = tabId;
   
   // Show appropriate screen based on tab
   if (tabId === 'product') {
-    showScreen('product-screen');
+    if (typeof window.showScreen === 'function') {
+      window.showScreen('product-screen');
+    }
   } else if (tabId === 'price') {
     loadPriceComparisons();
   } else if (tabId === 'coupon') {
     loadCoupons();
+  } else if (tabId === 'wishlist') {
+    if (typeof window.showScreen === 'function') {
+      window.showScreen('wishlist-screen');
+    }
+    if (typeof window.loadWishlistItemsForSelected === 'function') {
+      window.loadWishlistItemsForSelected();
+    }
   }
 }
 
@@ -289,51 +298,7 @@ function populateCouponList(coupons) {
   });
 }
 
-// Enable one-click adding
-async function enableQuickAdd() {
-  try {
-    if (!currentTab || !currentTab.id) {
-      showErrorScreen('No active tab found', 'unknown');
-      return;
-    }
-    
-    if (!currentProductInfo) {
-      showErrorScreen('No product information available', 'detection');
-      return;
-    }
-    
-    // Get base URL
-    const baseUrl = await getBaseUrl();
-    
-    // Initialize quick add in content script
-    const result = await chrome.tabs.sendMessage(currentTab.id, { 
-      action: 'enableQuickAdd',
-      isLoggedIn: isLoggedIn,
-      baseUrl: baseUrl,
-      productInfo: currentProductInfo
-    });
-    
-    if (result && result.success) {
-      const quickAddButton = document.getElementById('enable-quick-add-button');
-      quickAddButton.disabled = true;
-      quickAddButton.innerHTML = `
-        <span class="option-icon">✓</span>
-        <span class="option-text">One-Click Add Enabled</span>
-      `;
-      quickAddButton.style.backgroundColor = '#d1fae5';
-      quickAddButton.style.borderColor = '#a7f3d0';
-      quickAddButton.style.color = '#065f46';
-    } else {
-      showErrorScreen('Failed to enable one-click add', 'unknown');
-    }
-  } catch (error) {
-    console.error('Error enabling quick add:', error);
-    showErrorScreen('Error enabling one-click add', 'unknown');
-  }
-}
-
-// Setup tab event listeners
-document.addEventListener('DOMContentLoaded', () => {
+function setupPopupExtraEventListeners() {
   const tabButtons = document.querySelectorAll('.tab-button');
   tabButtons.forEach(button => {
     button.addEventListener('click', () => {
@@ -341,12 +306,6 @@ document.addEventListener('DOMContentLoaded', () => {
       switchTab(tabId);
     });
   });
-  
-  // Quick add button
-  const quickAddButton = document.getElementById('enable-quick-add-button');
-  if (quickAddButton) {
-    quickAddButton.addEventListener('click', enableQuickAdd);
-  }
   
   // Refresh comparison button
   const refreshComparisonButton = document.getElementById('refresh-comparison-button');
@@ -359,4 +318,13 @@ document.addEventListener('DOMContentLoaded', () => {
   if (refreshCouponsButton) {
     refreshCouponsButton.addEventListener('click', loadCoupons);
   }
-});
+}
+
+// Setup tab event listeners (supports both normal DOMContentLoaded and late script bootstrap)
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', setupPopupExtraEventListeners);
+} else {
+  setupPopupExtraEventListeners();
+}
+
+window.switchTab = switchTab;

@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { trackEvent } from '@/lib/analytics';
 import '../../styles/ads.css';
 
 interface AdUnitProps {
@@ -11,7 +12,7 @@ interface AdUnitProps {
 
 declare global {
   interface Window {
-    adsbygoogle: any[];
+    adsbygoogle: unknown[];
   }
 }
 
@@ -84,51 +85,70 @@ export function AdUnit({
   const [publisherId, setPublisherId] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [inView, setInView] = useState(false);
+  const adElementRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
-    // Skip API calls entirely - ads will be configured when backend is ready
-    setError('Ads not configured');
+    // Publisher ID is public (visible in page source) — safe to hard-code as default.
+    const configuredPublisher = import.meta.env.VITE_ADSENSE_PUBLISHER_ID || 'ca-pub-5198775482699756';
+
+    if (!configuredPublisher) {
+      setError('AdSense publisher is not configured');
+      trackEvent('ad_slot_config_missing', 'advertising', slot);
+      setLoading(false);
+      return;
+    }
+
+    setPublisherId(configuredPublisher);
     setLoading(false);
-    
-    /* This code is disabled until backend APIs are deployed
-    fetch('/api/config/adsense')
-      .then(response => {
-        // Check if the response is actually JSON before trying to parse it
-        const contentType = response.headers.get("content-type");
-        if (contentType && contentType.includes("application/json")) {
-          return response.json();
-        } else {
-          // If it's not JSON (e.g., HTML 404 page), treat as unavailable
-          throw new Error('AdSense configuration not available');
-        }
-      })
-      .then(data => {
-        if (data.publisherId) {
-          setPublisherId(data.publisherId);
-        } else {
-          setError('Publisher ID not available');
-        }
-        setLoading(false);
-      })
-      .catch(err => {
-        // Silently handle AdSense config errors
-        setError('AdSense not configured');
-        setLoading(false);
-      });
-    */
   }, []);
 
   useEffect(() => {
     // Only push the ad to Google AdSense when the component mounts and we have a publisherId
     if (publisherId && !loading) {
-      try {
-        // Initialize the adsbygoogle object if it doesn't exist
-        (window.adsbygoogle = window.adsbygoogle || []).push({});
-      } catch (error) {
-        console.error('AdSense error:', error);
-      }
+      // Defer until after paint so the <ins> has been laid out and has non-zero width.
+      // AdSense throws "No slot size for availableWidth=0" when pushed against a 0-width element.
+      const frame = requestAnimationFrame(() => {
+        const adEl = adElementRef.current;
+        if (!adEl || adEl.offsetWidth === 0) return;
+        try {
+          (window.adsbygoogle = window.adsbygoogle || []).push({});
+          trackEvent('ad_slot_rendered', 'advertising', slot);
+        } catch (error) {
+          console.error('AdSense error:', error);
+          trackEvent('ad_slot_render_failed', 'advertising', slot);
+        }
+      });
+      return () => cancelAnimationFrame(frame);
     }
-  }, [publisherId, loading]);
+  }, [publisherId, loading, slot]);
+
+  useEffect(() => {
+    if (loading || error || inView) {
+      return;
+    }
+
+    const adElement = adElementRef.current;
+    if (!adElement || typeof window.IntersectionObserver === 'undefined') {
+      return;
+    }
+
+    const observer = new IntersectionObserver((entries) => {
+      const entry = entries[0];
+      if (!entry || !entry.isIntersecting || inView) {
+        return;
+      }
+
+      setInView(true);
+      trackEvent('ad_slot_viewable', 'advertising', slot);
+      observer.disconnect();
+    }, {
+      threshold: 0.5,
+    });
+
+    observer.observe(adElement);
+    return () => observer.disconnect();
+  }, [loading, error, inView, slot]);
 
   if (loading) {
     return <div className={`ad-unit-loading ${className}`}></div>;
@@ -147,14 +167,28 @@ export function AdUnit({
   }
 
   return (
-    <div className={`ad-unit ${className}`}>
-      <ins
-        className="adsbygoogle"
-        data-ad-client={publisherId}
-        data-ad-slot={slot}
-        data-ad-format={format}
-        data-full-width-responsive={responsive ? 'true' : 'false'}
-      />
+    <div
+      className={`ad-unit ${className}`}
+      onClick={() => trackEvent('ad_slot_container_click', 'advertising', slot)}
+    >
+      {import.meta.env.DEV && (
+        <div className="flex items-center justify-center min-h-[90px] bg-gray-100 border-2 border-dashed border-gray-300 text-gray-400 text-xs font-mono rounded">
+          Ad slot {slot}
+        </div>
+      )}
+      {!import.meta.env.DEV && (
+        <ins
+          ref={(element) => {
+            adElementRef.current = element;
+          }}
+          className="adsbygoogle"
+          style={{ display: 'block', width: '100%' }}
+          data-ad-client={publisherId}
+          data-ad-slot={slot}
+          data-ad-format={format}
+          data-full-width-responsive={responsive ? 'true' : 'false'}
+        />
+      )}
     </div>
   );
 }

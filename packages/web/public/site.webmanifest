@@ -1,0 +1,21 @@
+{
+  "name": "Wishlist Wizard",
+  "short_name": "Wishlist Wizard",
+  "theme_color": "#047857",
+  "background_color": "#065f46",
+  "display": "standalone",
+  "scope": "/",
+  "start_url": "/",
+  "icons": [
+    {
+      "src": "/android-chrome-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/android-chrome-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

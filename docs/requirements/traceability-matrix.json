@@ -1,0 +1,148 @@
+{
+  "version": "1.0.0",
+  "updatedAt": "2026-05-06",
+  "businessRequirements": [
+    {
+      "id": "BR-001",
+      "title": "Secure account lifecycle",
+      "priority": "P0",
+      "mapsToTechnical": ["TR-001", "TR-002"],
+      "mapsToWorkPackages": ["WP-01"],
+      "verificationSignals": ["npm run test:users:smoke", "npm run test:functions:smoke:all"]
+    },
+    {
+      "id": "BR-002",
+      "title": "Wishlist CRUD and beneficiary support",
+      "priority": "P0",
+      "mapsToTechnical": ["TR-003"],
+      "mapsToWorkPackages": ["WP-01"],
+      "verificationSignals": ["npm run test:users:smoke"]
+    },
+    {
+      "id": "BR-003",
+      "title": "Multi-channel item ingestion",
+      "priority": "P0",
+      "mapsToTechnical": ["TR-004"],
+      "mapsToWorkPackages": ["WP-01", "WP-03"],
+      "verificationSignals": ["npm run test:e2e:tier1"]
+    },
+    {
+      "id": "BR-004",
+      "title": "Share and privacy controls",
+      "priority": "P0",
+      "mapsToTechnical": ["TR-005", "TR-017"],
+      "mapsToWorkPackages": ["WP-02"],
+      "verificationSignals": ["npm run test:e2e:smoke"]
+    },
+    {
+      "id": "BR-005",
+      "title": "Reservation and purchase integrity",
+      "priority": "P0",
+      "mapsToTechnical": ["TR-006"],
+      "mapsToWorkPackages": ["WP-02"],
+      "verificationSignals": ["npm run test:functions:smoke:all"]
+    },
+    {
+      "id": "BR-006",
+      "title": "Collaboration and role visibility",
+      "priority": "P1",
+      "mapsToTechnical": ["TR-007"],
+      "mapsToWorkPackages": ["WP-04"],
+      "verificationSignals": ["npm run test:functions:smoke:all"]
+    },
+    {
+      "id": "BR-007",
+      "title": "Price tracking and alerts",
+      "priority": "P1",
+      "mapsToTechnical": ["TR-008", "TR-011"],
+      "mapsToWorkPackages": ["WP-03"],
+      "verificationSignals": ["npm run test:functions:smoke:all"]
+    },
+    {
+      "id": "BR-008",
+      "title": "Creator analytics trust",
+      "priority": "P1",
+      "mapsToTechnical": ["TR-009"],
+      "mapsToWorkPackages": ["WP-05"],
+      "verificationSignals": ["npm run test:functions:smoke:all"]
+    },
+    {
+      "id": "BR-009",
+      "title": "Group commitments and export",
+      "priority": "P1",
+      "mapsToTechnical": ["TR-010"],
+      "mapsToWorkPackages": ["WP-04"],
+      "verificationSignals": ["npm run test:functions:smoke:all"]
+    },
+    {
+      "id": "BR-010",
+      "title": "Multi-channel notifications",
+      "priority": "P1",
+      "mapsToTechnical": ["TR-011"],
+      "mapsToWorkPackages": ["WP-03", "WP-04"],
+      "verificationSignals": ["npm run test:functions:smoke:all"]
+    },
+    {
+      "id": "BR-011",
+      "title": "Cross-platform parity",
+      "priority": "P1",
+      "mapsToTechnical": ["TR-012"],
+      "mapsToWorkPackages": ["WP-06"],
+      "verificationSignals": ["npm run test:e2e:tier1", "flutter test"]
+    },
+    {
+      "id": "BR-012",
+      "title": "Privacy and compliance controls",
+      "priority": "P0",
+      "mapsToTechnical": ["TR-002", "TR-017"],
+      "mapsToWorkPackages": ["WP-02", "WP-07"],
+      "verificationSignals": ["npm run requirements:verify"]
+    },
+    {
+      "id": "BR-013",
+      "title": "Reliability and observability",
+      "priority": "P1",
+      "mapsToTechnical": ["TR-013", "TR-018"],
+      "mapsToWorkPackages": ["WP-07"],
+      "verificationSignals": ["npm run test:functions:smoke:all"]
+    },
+    {
+      "id": "BR-014",
+      "title": "Release governance and evidence",
+      "priority": "P0",
+      "mapsToTechnical": ["TR-014", "TR-015", "TR-016"],
+      "mapsToWorkPackages": ["WP-08"],
+      "verificationSignals": ["npm run requirements:verify", "npm run requirements:traceability"]
+    }
+  ],
+  "technicalRequirements": [
+    {"id": "TR-001", "title": "Auth lifecycle implementation", "mapsToWorkPackages": ["WP-01"]},
+    {"id": "TR-002", "title": "Authorization and role enforcement", "mapsToWorkPackages": ["WP-01", "WP-02", "WP-07"]},
+    {"id": "TR-003", "title": "Wishlist CRUD contracts", "mapsToWorkPackages": ["WP-01"]},
+    {"id": "TR-004", "title": "Multi-channel item ingestion", "mapsToWorkPackages": ["WP-01", "WP-03"]},
+    {"id": "TR-005", "title": "Share and privacy enforcement", "mapsToWorkPackages": ["WP-02"]},
+    {"id": "TR-006", "title": "Reservation and purchase audit", "mapsToWorkPackages": ["WP-02"]},
+    {"id": "TR-007", "title": "Collaboration role updates", "mapsToWorkPackages": ["WP-04"]},
+    {"id": "TR-008", "title": "Price tracking pipeline", "mapsToWorkPackages": ["WP-03"]},
+    {"id": "TR-009", "title": "Creator analytics reconciliation", "mapsToWorkPackages": ["WP-05"]},
+    {"id": "TR-010", "title": "Group commitment and export APIs", "mapsToWorkPackages": ["WP-04"]},
+    {"id": "TR-011", "title": "Notification channel adapters", "mapsToWorkPackages": ["WP-03", "WP-04"]},
+    {"id": "TR-012", "title": "Cross-surface parity validation", "mapsToWorkPackages": ["WP-06"]},
+    {"id": "TR-013", "title": "Telemetry and SLO reporting", "mapsToWorkPackages": ["WP-07"]},
+    {"id": "TR-014", "title": "Requirements verification enforcement", "mapsToWorkPackages": ["WP-08"]},
+    {"id": "TR-015", "title": "Traceability verification enforcement", "mapsToWorkPackages": ["WP-08"]},
+    {"id": "TR-016", "title": "Release gate checks", "mapsToWorkPackages": ["WP-08"]},
+    {"id": "TR-017", "title": "Privacy and retention controls", "mapsToWorkPackages": ["WP-02", "WP-07"]},
+    {"id": "TR-018", "title": "Dependency and config validation", "mapsToWorkPackages": ["WP-03", "WP-07"]}
+  ],
+  "workPackages": [
+    {"id": "WP-01", "title": "Core Flow Hardening"},
+    {"id": "WP-02", "title": "Sharing and Purchase Integrity"},
+    {"id": "WP-03", "title": "Price and Notification Reliability"},
+    {"id": "WP-04", "title": "Collaboration and Group Coordination"},
+    {"id": "WP-05", "title": "Creator Monetization Integrity"},
+    {"id": "WP-06", "title": "Cross-Platform Parity"},
+    {"id": "WP-07", "title": "Operations and Security Controls"},
+    {"id": "WP-08", "title": "Governance Automation"}
+  ]
+}

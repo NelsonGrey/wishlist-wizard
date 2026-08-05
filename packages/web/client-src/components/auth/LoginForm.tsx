@@ -1,42 +1,59 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLocation } from 'wouter';
+import { getFirebaseAuthErrorMessage } from '@/lib/firebase-auth-errors';
 
 export const LoginForm: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const isSubmittingRef = useRef(false);
   const { signIn } = useAuth();
   const [, setLocation] = useLocation();
 
+  const isValidEmail = (value: string): boolean => {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmittingRef.current) {
+      return;
+    }
+
+    isSubmittingRef.current = true;
     setError('');
+    const normalizedEmail = email.trim();
+
+    if (!normalizedEmail) {
+      setError('Email is required.');
+      isSubmittingRef.current = false;
+      return;
+    }
+
+    if (!isValidEmail(normalizedEmail)) {
+      setError('Please enter a valid email address.');
+      isSubmittingRef.current = false;
+      return;
+    }
+
+    if (!password.trim()) {
+      setError('Password is required.');
+      isSubmittingRef.current = false;
+      return;
+    }
+
     setLoading(true);
 
     try {
-      await signIn(email, password);
+      await signIn(normalizedEmail, password);
       // ProtectedRoute will handle redirect after auth state change
-    } catch (err: any) {
-      setError(getErrorMessage(err));
+    } catch (err: unknown) {
+      setError(getFirebaseAuthErrorMessage(err, 'login'));
     } finally {
+      isSubmittingRef.current = false;
       setLoading(false);
-    }
-  };
-
-  const getErrorMessage = (error: any): string => {
-    switch (error.code) {
-      case 'auth/user-not-found':
-        return 'No account found with this email address.';
-      case 'auth/wrong-password':
-        return 'Incorrect password.';
-      case 'auth/invalid-email':
-        return 'Invalid email address.';
-      case 'auth/too-many-requests':
-        return 'Too many failed attempts. Please try again later.';
-      default:
-        return 'Failed to sign in. Please try again.';
     }
   };
 
@@ -56,7 +73,7 @@ export const LoginForm: React.FC = () => {
             onChange={(e) => setEmail(e.target.value)}
             required
             disabled={loading}
-            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50"
+            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 disabled:opacity-50"
           />
         </div>
 
@@ -71,12 +88,12 @@ export const LoginForm: React.FC = () => {
             onChange={(e) => setPassword(e.target.value)}
             required
             disabled={loading}
-            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50"
+            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 disabled:opacity-50"
           />
         </div>
 
         {error && (
-          <div className="text-red-600 text-sm mt-2 p-2 bg-red-50 border border-red-200 rounded">
+          <div role="alert" className="text-red-600 text-sm mt-2 p-2 bg-red-50 border border-red-200 rounded">
             {error}
           </div>
         )}
@@ -84,7 +101,7 @@ export const LoginForm: React.FC = () => {
         <button
           type="submit"
           disabled={loading}
-          className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-gradient-to-r from-emerald-700 to-green-700 hover:from-emerald-800 hover:to-green-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
         >
           {loading ? 'Signing in...' : 'Sign In'}
         </button>
@@ -93,17 +110,17 @@ export const LoginForm: React.FC = () => {
       <div className="mt-4 text-center text-sm">
         <button
           onClick={() => setLocation('/forgot-password')}
-          className="text-blue-600 hover:text-blue-500"
+          className="text-emerald-700 hover:text-emerald-800"
         >
           Forgot your password?
         </button>
       </div>
 
       <div className="mt-2 text-center text-sm">
-        <span className="text-gray-600">Don't have an account? </span>
+        <span className="text-gray-600">Don&apos;t have an account? </span>
         <button
           onClick={() => setLocation('/signup')}
-          className="text-blue-600 hover:text-blue-500 font-medium"
+          className="text-emerald-700 hover:text-emerald-800 font-medium"
         >
           Sign up
         </button>

@@ -1,7 +1,5 @@
 # Act CLI secrets
 .act-secrets/
-!.act-secrets/test-secrets
-!.act-secrets/secrets
 .act-secrets/real-secrets
 
 # Local tooling artifacts
@@ -52,6 +50,7 @@ packages/*/package.json.backup
 # Browser extension builds
 packages/browser-extension/dist/
 packages/browser-extension/build/
+packages/browser-extension/releases/
 chrome-extension-package/
 wishlist-wizard-extension.zip
 
@@ -95,6 +94,8 @@ yarn-error.log*
 *.spec.js
 test-*.js
 mock-*.js
+!packages/browser-extension/src/*.spec.js
+!packages/browser-extension/src/test/mocks/*.js
 
 # Editor and IDE files
 .vscode/settings.json
@@ -111,6 +112,7 @@ mock-*.js
 .env
 .env.*
 !.env.example
+!.env.automation.*.example
 .env.local
 .env.development.local
 .env.test.local
@@ -152,6 +154,7 @@ packages/mobile/config/*/ios/GoogleService-Info.plist
 packages/mobile/android/app/service-account-key.json
 packages/mobile/ios/service-account-key.json
 **/*service-account-key.json
+**/*service-account-key*.json
 
 # Flutter
 .dart_tool/
@@ -187,6 +190,13 @@ packages/mobile/.pub/
 .jwt-secret
 certs/
 monitoring-report-*.json
+*.pem
+*.key
+*.p12
+*.mobileprovision
+*.cer
+*.crt
+*.der
 
 # IDE files
 *.iml
@@ -298,6 +308,7 @@ ehthumbs.db
 android/
 ios/
 !packages/mobile/android/
+!packages/mobile/android/app/src/main/kotlin/com/wishlistwizard/app/android/
 !packages/mobile/ios/
 *.keystore
 *.jks
@@ -371,3 +382,19 @@ Desktop.ini
 *.xcworkspace
 *.xcuserdata
 *.xcodeproj/project.xcworkspace/
+vendor/
+commit-msg.txt
+v2-migration-msg.txt
+
+# Test artifacts
+playwright-report/
+test-results/
+test-ci-cd-pipeline.txt
+
+# packages/functions now lives in a separate private repo
+# (NelsonGrey/wishlist-wizard-functions). A local clone into this path for
+# dev/emulator use is fine, but it should never be committed here.
+packages/functions/
+
+# Claude Code local session data
+.claude/

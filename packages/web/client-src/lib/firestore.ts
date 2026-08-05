@@ -1,7 +1,6 @@
 // Firestore real-time utilities for Wishlist Wizard
 // Provides hooks and utilities for real-time Firestore subscriptions
 
-import type { FirebaseApp } from 'firebase/app';
 import { 
   getFirestore, 
   doc, 
@@ -13,12 +12,9 @@ import {
   onSnapshot, 
   addDoc, 
   updateDoc, 
-  deleteDoc,
-  getDoc,
   getDocs,
   Timestamp,
   type Firestore,
-  type DocumentData,
   type QuerySnapshot,
   type DocumentSnapshot,
   type Unsubscribe
@@ -47,7 +43,7 @@ export function getFirestoreDb(): Firestore {
 }
 
 // Helper to convert Firestore timestamp to Date
-function convertTimestamp(data: any): any {
+function convertTimestamp(data: Record<string, unknown>): Record<string, unknown> {
   if (!data) return data;
   
   const converted = { ...data };
@@ -56,8 +52,9 @@ function convertTimestamp(data: any): any {
   const timestampFields = ['createdAt', 'lastLogin', 'verificationExpires', 'passwordResetExpires', 'birthdate', 'occasionDate', 'reservedAt', 'purchasedAt', 'triggeredAt', 'expiresAt', 'addedAt', 'lastActive'];
   
   timestampFields.forEach(field => {
-    if (converted[field] && converted[field].toDate) {
-      converted[field] = converted[field].toDate();
+    const fieldValue = converted[field];
+    if (fieldValue && typeof fieldValue === 'object' && 'toDate' in fieldValue && typeof fieldValue.toDate === 'function') {
+      converted[field] = fieldValue.toDate();
     }
   });
   
@@ -536,7 +533,7 @@ export async function createNotification(
   type: string,
   title: string,
   content: string,
-  data?: any
+  data?: Record<string, unknown>
 ): Promise<void> {
   try {
     const db = getFirestoreDb();

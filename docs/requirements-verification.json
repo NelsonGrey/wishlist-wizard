@@ -1,0 +1,493 @@
+{
+  "version": "1.0.0",
+  "updatedAt": "2026-03-03",
+  "policy": {
+    "mode": "phased",
+    "description": "Only enforced requirements block CI. Expand enforced coverage over time until all completed requirements are mapped and verified.",
+    "strictAllEnvVar": "REQUIREMENTS_STRICT_ALL",
+    "designExecutionMatrix": "docs/DESIGN_EXECUTION_MATRIX.md"
+  },
+  "items": [
+    {
+      "id": "core-user-accounts-auth",
+      "section": "1. Core Platform",
+      "requirement": "Register, login, logout, session & JWT auth",
+      "enforced": true,
+      "verificationStatus": "verified",
+      "persona": "Social Gift-Giver",
+      "flow": "Flow 1: Create First Wishlist",
+      "designRef": "docs/PRODUCT_DESIGN.md#-core-user-flows",
+      "owner": "backend",
+      "evidence": [
+        "npm run test:users:smoke",
+        "artifacts/smoke-users-report.json"
+      ],
+      "lastVerifiedAt": "2026-02-27"
+    },
+    {
+      "id": "core-wishlists-crud-share",
+      "section": "1. Core Platform",
+      "requirement": "CRUD wishlists, share public link via `shareId`",
+      "enforced": true,
+      "verificationStatus": "verified",
+      "persona": "Social Gift-Giver",
+      "flow": "Flow 1: Create First Wishlist",
+      "designRef": "docs/PRODUCT_DESIGN.md#flow-1-create-first-wishlist-individual-user",
+      "owner": "backend",
+      "evidence": [
+        "npm run test:users:smoke",
+        "packages/functions/scripts/emulator-smoke-users.cjs"
+      ],
+      "lastVerifiedAt": "2026-02-27"
+    },
+    {
+      "id": "core-items-crud",
+      "section": "1. Core Platform",
+      "requirement": "CRUD items, list per wishlist",
+      "enforced": true,
+      "verificationStatus": "verified",
+      "persona": "Budget-Conscious Shopper",
+      "flow": "Flow 2: Add Item to Wishlist",
+      "designRef": "docs/PRODUCT_DESIGN.md#flow-2-add-item-to-wishlist-product-discovery",
+      "owner": "backend",
+      "evidence": [
+        "npm run test:users:smoke",
+        "npm run test:functions:smoke:all",
+        "artifacts/smoke-users-report.json",
+        "artifacts/smoke-all-functions-report.json"
+      ],
+      "lastVerifiedAt": "2026-03-03"
+    },
+    {
+      "id": "core-collaboration-management",
+      "section": "1. Core Platform",
+      "requirement": "Add/remove collaborators; roles; activity timestamp",
+      "enforced": true,
+      "verificationStatus": "verified",
+      "persona": "Occasion Coordinator",
+      "flow": "Flow 6: Group Gifting Coordination",
+      "designRef": "docs/PRODUCT_DESIGN.md#flow-6-group-gifting-coordination",
+      "owner": "backend",
+      "evidence": [
+        "npm run test:users:smoke",
+        "npm run test:functions:smoke:all"
+      ],
+      "lastVerifiedAt": "2026-02-27"
+    },
+    {
+      "id": "core-inapp-notifications",
+      "section": "1. Core Platform",
+      "requirement": "Create & fetch notifications, unread count, mark read/delete",
+      "enforced": true,
+      "verificationStatus": "verified",
+      "persona": "Occasion Coordinator",
+      "flow": "Flow 6: Group Gifting Coordination",
+      "designRef": "docs/PRODUCT_DESIGN.md#feature-7-notifications--communication",
+      "owner": "backend",
+      "evidence": [
+        "npm run test:functions:smoke:all",
+        "npm run test:users:smoke"
+      ],
+      "lastVerifiedAt": "2026-02-27"
+    },
+    {
+      "id": "core-beneficiary-management",
+      "section": "1. Core Platform",
+      "requirement": "Manage beneficiaries, link wishlists",
+      "enforced": true,
+      "verificationStatus": "verified",
+      "persona": "Occasion Coordinator",
+      "flow": "Flow 1: Create First Wishlist",
+      "designRef": "docs/PRODUCT_DESIGN.md#flow-1-create-first-wishlist-individual-user",
+      "owner": "backend",
+      "evidence": [
+        "npm run test:users:smoke",
+        "npm run test:functions:smoke:all"
+      ],
+      "lastVerifiedAt": "2026-02-27"
+    },
+    {
+      "id": "core-reservations-purchasing",
+      "section": "1. Core Platform",
+      "requirement": "Reserve & purchase items with audit fields",
+      "enforced": true,
+      "verificationStatus": "verified",
+      "persona": "Social Gift-Giver",
+      "flow": "Flow 4: Buy from Wishlist",
+      "designRef": "docs/PRODUCT_DESIGN.md#flow-4-buy-from-wishlist",
+      "owner": "backend",
+      "evidence": [
+        "npm run test:functions:smoke:all",
+        "artifacts/smoke-all-functions-report.json"
+      ],
+      "lastVerifiedAt": "2026-03-03"
+    },
+    {
+      "id": "advanced-price-tracking",
+      "section": "2. Advanced Features",
+      "requirement": "Track price history, manual update, price alerts, price drop query",
+      "enforced": true,
+      "verificationStatus": "verified",
+      "persona": "Budget-Conscious Shopper",
+      "flow": "Flow 2: Add Item to Wishlist",
+      "designRef": "docs/PRODUCT_DESIGN.md#flow-2-add-item-to-wishlist-product-discovery",
+      "owner": "backend",
+      "evidence": [
+        "2026-07-20: the prior 'verified' status here was false - POST /api/price-alerts didn't exist (the create dialog failed every time), nothing ever set triggered:true on an alert, and priceHistory had never been written to. The scheduled smoke test that fed this record (test:functions:smoke:all) seeded its fixture alert via the generic createDocument callable, bypassing the real create endpoint entirely, and had an explicit check asserting POST should be REJECTED - it was validating the bug as correct behavior.",
+        "2026-07-20: implemented POST /api/price-alerts, GET enrichment, evaluatePriceAlertsForItem + scheduledEvaluatePriceAlerts (the real trigger evaluator), recordPriceHistoryIfChanged, and the processPriceAlertDispatch field fix. Deployed live to wishlist-wizard-dev, confirmed via `firebase functions:list` (priceAlertsEvaluateScheduled, updated api, etc. all present).",
+        "2026-07-20: evaluatePriceAlertsForItem and recordPriceHistoryIfChanged independently verified against a real Firestore emulator - trigger/hysteresis-rearm/inactive-alert-exclusion (7 scenarios) and price-history-on-change/no-op-on-unchanged/orphan-item-guard (4 scenarios), 22 assertions total, all passing.",
+        "2026-07-20: scripts/emulator-smoke-all-functions.cjs updated with real POST coverage (contract:api-router:price-alerts-create, -create-upserts-duplicate, -create-foreign-item-denied) and the inverted method-not-allowed check fixed to test PUT instead of POST. NOT yet run to completion end-to-end - the local sandbox this was built in couldn't keep the Auth emulator up for a full multi-emulator run (connect ECONNREFUSED after ~15-25s twice in a row); syntax/lint clean and logic traced carefully but not executed live.",
+        "2026-07-23: `npm run test:functions:smoke:all` run to a clean pass end-to-end (total=231, passed=221, warned=10, failed=0 - see artifacts/smoke-all-functions-report.json). contract:api-router:price-alerts-create / -create-upserts-duplicate / -create-foreign-item-denied all passed. Getting the suite to run at all required a separate fix first: the ~63-function router migration (moving onCall functions off broken standalone Cloud Run invoker bindings onto the `api` HTTP router) had left this script calling the old direct-callable names for buildFixtureContext and ~15 contract-check blocks, which 404'd immediately. Added callRouterRaw/callRouterExpectSuccess (mirroring callCallableRaw/callCallableExpectSuccess but speaking the router's plain-JSON HTTP contract) and repointed those call sites at the router paths. Also fixed two unrelated pre-existing script bugs surfaced only once the suite ran this far for the first time: parseExportedFunctions was invoking aliased exports (`export { x as y }`) by their original name instead of the deployed name (404 for createGroupPaymentIntent/confirmGroupContribution/getGroupGiftSummary/getARModel), and the privacy-settings-get-after-delete check expected 404 when the handler correctly returns 200 with an isDefaultFallback object. The 10 warned results are expected local-emulator gaps (Stripe not configured, BOOTSTRAP_ADMIN_SECRET unset, permission-denied guards) already covered by ENDPOINT_ALLOWED_ERROR_STATUSES."
+      ],
+      "lastVerifiedAt": "2026-07-23"
+    },
+    {
+      "id": "advanced-privacy-sharing-controls",
+      "section": "2. Advanced Features",
+      "requirement": "Per-entity privacy settings, custom access lists",
+      "enforced": true,
+      "verificationStatus": "verified",
+      "persona": "Social Gift-Giver",
+      "flow": "Flow 3: Share Wishlist",
+      "designRef": "docs/PRODUCT_DESIGN.md#flow-3-share-wishlist",
+      "owner": "backend",
+      "evidence": [
+        "npm run test:e2e:smoke",
+        "npm run test:functions:smoke:all"
+      ],
+      "lastVerifiedAt": "2026-03-03"
+    },
+    {
+      "id": "extension-auth-refresh",
+      "section": "3. Browser Extension",
+      "requirement": "Extension JWT auth & refresh",
+      "enforced": true,
+      "verificationStatus": "verified",
+      "persona": "Social Gift-Giver",
+      "flow": "Flow 2: Add Item to Wishlist",
+      "designRef": "docs/PRODUCT_DESIGN.md#feature-4-browser-extension",
+      "owner": "extension",
+      "evidence": [
+        "npm run test:functions:smoke:all"
+      ],
+      "lastVerifiedAt": "2026-02-27"
+    },
+    {
+      "id": "extension-wishlist-integration",
+      "section": "3. Browser Extension",
+      "requirement": "Fetch wishlists & add items from pages",
+      "enforced": true,
+      "verificationStatus": "verified",
+      "persona": "Social Gift-Giver",
+      "flow": "Flow 2: Add Item to Wishlist",
+      "designRef": "docs/PRODUCT_DESIGN.md#flow-2-add-item-to-wishlist-product-discovery",
+      "owner": "extension",
+      "evidence": [
+        "npm run test:functions:smoke:all",
+        "npm run test:e2e:smoke"
+      ],
+      "lastVerifiedAt": "2026-02-27"
+    },
+    {
+      "id": "extension-price-comparison",
+      "section": "3. Browser Extension",
+      "requirement": "Compare across retailers",
+      "enforced": true,
+      "verificationStatus": "verified",
+      "persona": "Social Gift-Giver",
+      "flow": "Flow 2: Add Item to Wishlist",
+      "designRef": "docs/PRODUCT_DESIGN.md#feature-4-browser-extension",
+      "owner": "extension",
+      "evidence": [
+        "npm run test:e2e:smoke",
+        "npm run test:functions:smoke:all"
+      ],
+      "lastVerifiedAt": "2026-02-27"
+    },
+    {
+      "id": "extension-product-detection",
+      "section": "3. Browser Extension",
+      "requirement": "Extract product metadata",
+      "enforced": true,
+      "verificationStatus": "verified",
+      "persona": "Social Gift-Giver",
+      "flow": "Flow 2: Add Item to Wishlist",
+      "designRef": "docs/PRODUCT_DESIGN.md#feature-4-browser-extension",
+      "owner": "extension",
+      "evidence": [
+        "npm run test:e2e:smoke",
+        "npm run test:functions:smoke:all"
+      ],
+      "lastVerifiedAt": "2026-02-27"
+    },
+    {
+      "id": "extension-event-tracking",
+      "section": "3. Browser Extension",
+      "requirement": "Track extension events",
+      "enforced": true,
+      "verificationStatus": "verified",
+      "persona": "TikTok Creator",
+      "flow": "Flow 5: Creator Dashboard",
+      "designRef": "docs/PRODUCT_DESIGN.md#flow-5-creator-dashboard",
+      "owner": "extension",
+      "evidence": [
+        "npm run test:functions:smoke:all",
+        "npm run test:e2e:smoke"
+      ],
+      "lastVerifiedAt": "2026-02-27"
+    },
+    {
+      "id": "extension-coupon-finder",
+      "section": "3. Browser Extension",
+      "requirement": "Find and apply coupons",
+      "enforced": true,
+      "verificationStatus": "verified",
+      "persona": "Budget-Conscious Shopper",
+      "flow": "Flow 2: Add Item to Wishlist",
+      "designRef": "docs/PRODUCT_DESIGN.md#feature-4-browser-extension",
+      "owner": "extension",
+      "evidence": [
+        "npm run test:functions:smoke:all",
+        "npm run test:e2e:tier1"
+      ],
+      "lastVerifiedAt": "2026-02-27"
+    },
+    {
+      "id": "extension-manual-entry",
+      "section": "3. Browser Extension",
+      "requirement": "Fallback product entry",
+      "enforced": true,
+      "verificationStatus": "verified",
+      "persona": "Social Gift-Giver",
+      "flow": "Flow 2: Add Item to Wishlist",
+      "designRef": "docs/PRODUCT_DESIGN.md#flow-2-add-item-to-wishlist-product-discovery",
+      "owner": "extension",
+      "evidence": [
+        "npm run test:e2e:tier1",
+        "npm run test:e2e:smoke"
+      ],
+      "lastVerifiedAt": "2026-02-27"
+    },
+    {
+      "id": "extension-error-recovery",
+      "section": "3. Browser Extension",
+      "requirement": "Robust error handling",
+      "enforced": true,
+      "verificationStatus": "verified",
+      "persona": "Social Gift-Giver",
+      "flow": "Flow 2: Add Item to Wishlist",
+      "designRef": "docs/PRODUCT_DESIGN.md#feature-4-browser-extension",
+      "owner": "extension",
+      "evidence": [
+        "npm run test:e2e:smoke",
+        "npm run test:e2e:tier1"
+      ],
+      "lastVerifiedAt": "2026-02-27"
+    },
+    {
+      "id": "extension-quick-add",
+      "section": "3. Browser Extension",
+      "requirement": "One-click wishlist addition",
+      "enforced": false,
+      "verificationStatus": "partial",
+      "persona": "Social Gift-Giver",
+      "flow": "Flow 2: Add Item to Wishlist",
+      "designRef": "docs/PRODUCT_DESIGN.md#feature-4-browser-extension",
+      "owner": "extension",
+      "evidence": [
+        "npm run test:e2e:tier1"
+      ],
+      "lastVerifiedAt": "2026-02-27"
+    },
+    {
+      "id": "auth-session",
+      "section": "6. Authentication & Security",
+      "requirement": "Session Auth",
+      "enforced": true,
+      "verificationStatus": "verified",
+      "persona": "Social Gift-Giver",
+      "flow": "Flow 1: Create First Wishlist",
+      "designRef": "docs/PRODUCT_DESIGN.md#flow-1-create-first-wishlist-individual-user",
+      "owner": "backend",
+      "evidence": [
+        "npm run test:users:smoke",
+        "npm run test:functions:smoke:all"
+      ],
+      "lastVerifiedAt": "2026-02-27"
+    },
+    {
+      "id": "auth-jwt",
+      "section": "6. Authentication & Security",
+      "requirement": "JWT Auth",
+      "enforced": true,
+      "verificationStatus": "verified",
+      "persona": "Social Gift-Giver",
+      "flow": "Flow 1: Create First Wishlist",
+      "designRef": "docs/PRODUCT_DESIGN.md#flow-1-create-first-wishlist-individual-user",
+      "owner": "backend",
+      "evidence": [
+        "npm run test:users:smoke",
+        "npm run test:functions:smoke:all"
+      ],
+      "lastVerifiedAt": "2026-02-27"
+    },
+    {
+      "id": "auth-extension-tokens",
+      "section": "6. Authentication & Security",
+      "requirement": "Extension Tokens",
+      "enforced": true,
+      "verificationStatus": "verified",
+      "persona": "Social Gift-Giver",
+      "flow": "Flow 2: Add Item to Wishlist",
+      "designRef": "docs/PRODUCT_DESIGN.md#feature-4-browser-extension",
+      "owner": "backend",
+      "evidence": [
+        "npm run test:functions:smoke:all"
+      ],
+      "lastVerifiedAt": "2026-02-27"
+    },
+    {
+      "id": "notifications-inapp-channel",
+      "section": "7. Notifications & Email",
+      "requirement": "In-App Notifications",
+      "enforced": true,
+      "verificationStatus": "verified",
+      "persona": "Occasion Coordinator",
+      "flow": "Flow 6: Group Gifting Coordination",
+      "designRef": "docs/PRODUCT_DESIGN.md#feature-7-notifications--communication",
+      "owner": "backend",
+      "evidence": [
+        "npm run test:functions:smoke:all",
+        "npm run test:users:smoke"
+      ],
+      "lastVerifiedAt": "2026-02-27"
+    },
+    {
+      "id": "integrations-analytics-ga",
+      "section": "8. External Integrations",
+      "requirement": "Analytics (GA)",
+      "enforced": true,
+      "verificationStatus": "verified",
+      "persona": "TikTok Creator",
+      "flow": "Flow 5: Creator Dashboard",
+      "designRef": "docs/PRODUCT_DESIGN.md#flow-5-creator-dashboard",
+      "owner": "web",
+      "evidence": [
+        "npm run test:e2e:smoke",
+        "npm run check"
+      ],
+      "lastVerifiedAt": "2026-02-27"
+    },
+    {
+      "id": "quality-unit-tests-shared",
+      "section": "10. Testing & Quality",
+      "requirement": "Unit Tests (Shared Schemas)",
+      "enforced": true,
+      "verificationStatus": "verified",
+      "persona": "Social Gift-Giver",
+      "flow": "Flow 1: Create First Wishlist",
+      "designRef": "docs/PRODUCT_DESIGN.md#flow-1-create-first-wishlist-individual-user",
+      "owner": "platform",
+      "evidence": [
+        "npm test",
+        "shared/tests/schema.test.ts"
+      ],
+      "lastVerifiedAt": "2026-02-27"
+    },
+    {
+      "id": "quality-type-safety",
+      "section": "10. Testing & Quality",
+      "requirement": "Type Safety",
+      "enforced": true,
+      "verificationStatus": "verified",
+      "persona": "Social Gift-Giver",
+      "flow": "Flow 1: Create First Wishlist",
+      "designRef": "docs/PRODUCT_DESIGN.md#flow-1-create-first-wishlist-individual-user",
+      "owner": "platform",
+      "evidence": [
+        "npm run check",
+        "tsconfig.json"
+      ],
+      "lastVerifiedAt": "2026-02-27"
+    },
+    {
+      "id": "tooling-dev-workflow",
+      "section": "11. Build & Tooling",
+      "requirement": "Dev Workflow",
+      "enforced": true,
+      "verificationStatus": "verified",
+      "persona": "Social Gift-Giver",
+      "flow": "Flow 1: Create First Wishlist",
+      "designRef": "docs/PRODUCT_DESIGN.md#platform-specific-considerations",
+      "owner": "platform",
+      "evidence": [
+        "npm run dev",
+        "server/index.ts"
+      ],
+      "lastVerifiedAt": "2026-02-27"
+    },
+    {
+      "id": "tooling-production-build",
+      "section": "11. Build & Tooling",
+      "requirement": "Production Build",
+      "enforced": true,
+      "verificationStatus": "verified",
+      "persona": "Social Gift-Giver",
+      "flow": "Flow 1: Create First Wishlist",
+      "designRef": "docs/PRODUCT_DESIGN.md#platform-specific-considerations",
+      "owner": "platform",
+      "evidence": [
+        "npm run build",
+        "package.json"
+      ],
+      "lastVerifiedAt": "2026-02-27"
+    },
+    {
+      "id": "tooling-database-migration",
+      "section": "11. Build & Tooling",
+      "requirement": "Database Migration",
+      "enforced": true,
+      "verificationStatus": "verified",
+      "persona": "Occasion Coordinator",
+      "flow": "Flow 6: Group Gifting Coordination",
+      "designRef": "docs/PRODUCT_DESIGN.md#flow-6-group-gifting-coordination",
+      "owner": "platform",
+      "evidence": [
+        "npm run db:push",
+        "drizzle.config.ts"
+      ],
+      "lastVerifiedAt": "2026-02-27"
+    },
+    {
+      "id": "tooling-lint-type-check",
+      "section": "11. Build & Tooling",
+      "requirement": "Lint/Type Check",
+      "enforced": true,
+      "verificationStatus": "verified",
+      "persona": "Social Gift-Giver",
+      "flow": "Flow 1: Create First Wishlist",
+      "designRef": "docs/PRODUCT_DESIGN.md#platform-specific-considerations",
+      "owner": "platform",
+      "evidence": [
+        "npm run lint",
+        "npm run check"
+      ],
+      "lastVerifiedAt": "2026-02-27"
+    },
+    {
+      "id": "mobile-core-wishlist",
+      "section": "4. Mobile Application",
+      "requirement": "Core wishlist management (auth, list, detail, add item)",
+      "enforced": false,
+      "verificationStatus": "partial",
+      "persona": "Budget-Conscious Shopper",
+      "flow": "Flow 1: Create First Wishlist",
+      "designRef": "docs/PRODUCT_DESIGN.md#feature-6-mobile-app-ios--android",
+      "owner": "mobile",
+      "evidence": [
+        "cd packages/mobile && flutter test"
+      ],
+      "lastVerifiedAt": "2026-02-27"
+    }
+  ]
+}

@@ -5,16 +5,27 @@ import {
   getMessaging, 
   getToken, 
   onMessage, 
-  isSupported as messagingIsSupported 
+  isSupported as messagingIsSupported,
+  Messaging
 } from 'firebase/messaging';
 import { firebaseApp, getCurrentUser } from './firebase';
 import { getFirestoreDb } from './firestore';
-import { doc, setDoc, getDoc, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
+import { apiRequest } from './queryClient';
 
 // VAPID key for web push - should be set in environment variables
 const VAPID_KEY = import.meta.env.VITE_FIREBASE_VAPID_KEY;
 
-let messaging: any = null;
+interface FCMMessagePayload {
+  notification?: {
+    title?: string;
+    body?: string;
+    icon?: string;
+  };
+  data?: Record<string, string>;
+}
+
+let messaging: Messaging | null = null;
 
 /**
  * Initialize Firebase Cloud Messaging
@@ -66,6 +77,8 @@ export async function requestNotificationPermission(): Promise<string | null> {
     }
 
     // Get FCM token
+    if (!messaging) return null;
+    
     const token = await getToken(messaging, {
       vapidKey: VAPID_KEY
     });
@@ -95,21 +108,20 @@ async function saveTokenToFirestore(token: string): Promise<void> {
       return;
     }
 
-    const db = getFirestoreDb();
-    const userTokenRef = doc(db, 'userFCMTokens', user.uid);
-    
-    await setDoc(userTokenRef, {
-      token,
-      userId: user.uid,
-      platform: 'web',
-      userAgent: navigator.userAgent,
-      lastUpdated: new Date(),
-      enabled: true
-    }, { merge: true });
+    await apiRequest('/api/fcm/token', {
+      method: 'POST',
+      body: {
+        token,
+        platform: 'web',
+        userAgent: navigator.userAgent,
+        enabled: true
+      },
+      useFirebaseFunctions: true
+    });
 
-    console.log('[FCM] Token saved to Firestore');
+    console.log('[FCM] Token saved via Functions');
   } catch (error) {
-    console.error('[FCM] Error saving token to Firestore:', error);
+    console.error('[FCM] Error saving token:', error);
   }
 }
 
@@ -117,7 +129,7 @@ async function saveTokenToFirestore(token: string): Promise<void> {
  * Set up foreground message listener
  */
 export function setupForegroundMessageListener(
-  onMessageReceived: (payload: any) => void
+  onMessageReceived: (payload: FCMMessagePayload) => void
 ): (() => void) | null {
   try {
     if (!messaging) {
@@ -146,7 +158,7 @@ export function setupForegroundMessageListener(
 /**
  * Handle messages when app is in foreground
  */
-function handleForegroundMessage(payload: any): void {
+function handleForegroundMessage(payload: FCMMessagePayload): void {
   const { notification, data } = payload;
   
   if (!notification) return;
@@ -172,42 +184,6 @@ function handleForegroundMessage(payload: any): void {
   } else {
     // Fallback for browsers without service worker support
     new Notification(notification.title || 'Wishlist Wizard', notificationOptions);
-  }
-}
-
-/**
- * Get notification actions based on type
- */
-function getNotificationActions(type?: string): Array<{ action: string; title: string }> {
-  const baseActions = [
-    { action: 'view', title: '👀 View' },
-    { action: 'dismiss', title: '✖️ Dismiss' }
-  ];
-
-  switch (type) {
-    case 'item_added':
-    case 'item_reserved':
-    case 'item_purchased':
-      return [
-        { action: 'view_wishlist', title: '📝 View Wishlist' },
-        ...baseActions
-      ];
-    
-    case 'collaboration_invite':
-      return [
-        { action: 'accept_invite', title: '✅ Accept' },
-        { action: 'decline_invite', title: '❌ Decline' }
-      ];
-    
-    case 'price_alert':
-      return [
-        { action: 'view_item', title: '👀 View Item' },
-        { action: 'buy_now', title: '🛒 Buy Now' },
-        ...baseActions
-      ];
-    
-    default:
-      return baseActions;
   }
 }
 
@@ -351,17 +327,13 @@ export async function subscribeToTopic(topic: string): Promise<boolean> {
       return false;
     }
 
-    // Topic subscriptions are typically handled server-side
-    // Send token and topic to your backend
-    const response = await fetch('/api/fcm/subscribe-topic', {
+    await apiRequest('/api/fcm/subscribe-topic', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ token, topic })
+      body: { token, topic },
+      useFirebaseFunctions: true
     });
 
-    return response.ok;
+    return true;
   } catch (error) {
     console.error('[FCM] Error subscribing to topic:', error);
     return false;
@@ -376,15 +348,13 @@ export async function unsubscribeFromTopic(topic: string): Promise<boolean> {
     const user = getCurrentUser();
     if (!user) return false;
 
-    const response = await fetch('/api/fcm/unsubscribe-topic', {
+    await apiRequest('/api/fcm/unsubscribe-topic', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ topic })
+      body: { topic },
+      useFirebaseFunctions: true
     });
 
-    return response.ok;
+    return true;
   } catch (error) {
     console.error('[FCM] Error unsubscribing from topic:', error);
     return false;
@@ -396,14 +366,12 @@ export async function unsubscribeFromTopic(topic: string): Promise<boolean> {
  */
 export async function sendTestNotification(): Promise<boolean> {
   try {
-    const response = await fetch('/api/fcm/test-notification', {
+    await apiRequest('/api/fcm/test-notification', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      }
+      useFirebaseFunctions: true
     });
 
-    return response.ok;
+    return true;
   } catch (error) {
     console.error('[FCM] Error sending test notification:', error);
     return false;
@@ -419,6 +387,8 @@ export async function getCurrentFCMToken(): Promise<string | null> {
       const initialized = await initializeFCM();
       if (!initialized) return null;
     }
+
+    if (!messaging) return null;
 
     const token = await getToken(messaging, {
       vapidKey: VAPID_KEY

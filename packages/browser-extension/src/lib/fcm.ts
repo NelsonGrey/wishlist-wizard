@@ -92,7 +92,7 @@ export async function requestExtensionNotificationPermission(): Promise<Notifica
     const permission = await new Promise<NotificationPermission>((resolve) => {
       chrome.permissions.request(
         { permissions: ['notifications'] },
-        (granted) => {
+        (granted: boolean) => {
           if (chrome.runtime.lastError) {
             console.error('[FCM Extension] Permission error:', chrome.runtime.lastError);
             resolve('denied');
@@ -327,17 +327,18 @@ export async function initializeExtensionFCM(): Promise<{
  * Update extension badge with notification count
  */
 export async function updateExtensionBadge(): Promise<void> {
-  if (!chrome?.action?.setBadgeText) return;
+  const actionApi = chrome?.action || chrome?.browserAction;
+  if (!actionApi?.setBadgeText) return;
   
   try {
     // Get unread notification count from storage or API
     const count = await getUnreadNotificationCount();
     
     if (count > 0) {
-      chrome.action.setBadgeText({ text: count.toString() });
-      chrome.action.setBadgeBackgroundColor({ color: '#FF4444' });
+      actionApi.setBadgeText({ text: count.toString() });
+      actionApi.setBadgeBackgroundColor?.({ color: '#FF4444' });
     } else {
-      chrome.action.setBadgeText({ text: '' });
+      actionApi.setBadgeText({ text: '' });
     }
   } catch (error) {
     console.error('[FCM Extension] Error updating badge:', error);
@@ -345,19 +346,32 @@ export async function updateExtensionBadge(): Promise<void> {
 }
 
 /**
- * Get unread notification count (placeholder - implement based on your data structure)
+ * Get unread notification count from active extension notifications.
  */
 async function getUnreadNotificationCount(): Promise<number> {
-  // TODO: Implement based on your notification storage strategy
-  // This could query Firestore for unread notifications for the current user
-  return 0;
+  if (!chrome?.notifications?.getAll) {
+    return 0;
+  }
+
+  return new Promise((resolve) => {
+    chrome.notifications.getAll((notifications: any) => {
+      if (chrome.runtime.lastError) {
+        console.warn('[FCM Extension] Failed to read notifications for badge count:', chrome.runtime.lastError.message);
+        resolve(0);
+        return;
+      }
+
+      resolve(Object.keys(notifications).length);
+    });
+  });
 }
 
 /**
  * Clear extension badge
  */
 export function clearExtensionBadge(): void {
-  if (chrome?.action?.setBadgeText) {
-    chrome.action.setBadgeText({ text: '' });
+  const actionApi = chrome?.action || chrome?.browserAction;
+  if (actionApi?.setBadgeText) {
+    actionApi.setBadgeText({ text: '' });
   }
 }

@@ -11,12 +11,11 @@ Wishlist Wizard is a comprehensive wishlist management platform that empowers us
 - **Social Sharing**: Share wishlists with friends and family via direct links or social media.
 
 ### Advanced Features
-- **Price Tracking**: Track price changes across multiple retailers and receive alerts for price drops.
 - **Collaborative Wishlists**: Co-create and edit wishlists with friends and family for group gifting.
 - **Calendar Integration**: Sync birthdays, holidays, and other occasions with Google Calendar, Outlook, or Apple Calendar.
+- **Social Network & Discovery**: Find trusted profiles and coordinate shared planning.
 - **Cross-Platform Access**: Use WishKeeper on web, mobile, and through a browser extension.
-- **Notification System**: Receive alerts for price changes, approaching events, or collaborative activities.
-- **AR Visualization**: Preview how items would look in your space with AR technology.
+- **Notification System**: Receive alerts for approaching events or collaborative activities.
 
 ### Browser Extension
 - **One-Click Adding**: Add items to your wishlists while browsing online stores.
@@ -26,18 +25,18 @@ Wishlist Wizard is a comprehensive wishlist management platform that empowers us
 ### E-Commerce Integration
 - **Multi-Platform Support**: Integration with Amazon, eBay, Etsy, Walmart, Target, and Best Buy.
 - **Product Data Extraction**: Extract detailed product information from URLs.
-- **Price Tracking**: Monitor price changes across multiple retailers.
-- **Affiliate Link Generation**: Generate affiliate links for supported platforms.
+- **Roadmap Note**: Price tracking and affiliate monetization are planned for a later rollout phase.
 
 ## 🚀 Getting Started
 
 ### Development Setup
 
 This project consists of:
-- **Web App**: React frontend with TypeScript (`client/`)
-- **Backend**: Express.js API (`server/`)
-- **Mobile App**: Flutter app for iOS and Android (`mobile/`)
-- **Browser Extension**: Chrome/Firefox extension (`client/public/extension/`)
+- **Web App**: React frontend with TypeScript (`packages/web/`)
+- **Backend**: Firebase Functions, serverless (`packages/functions/`) — the live API; root `server/`/`client/` and `packages/api-server` are historical and not deployed
+- **Mobile App**: Flutter app for iOS and Android (`packages/mobile/`)
+- **Browser Extension**: Chrome/Firefox extension (`packages/browser-extension/`)
+- **Shared Libraries**: Common TypeScript code (`packages/shared/`)
 
 #### Prerequisites
 - Node.js v18+ 
@@ -61,10 +60,46 @@ npm run build
 npm run start
 ```
 
+#### Synthetic Test Users + Functionality Smoke Test
+```bash
+# Runs Firebase emulators (auth/firestore/functions), seeds synthetic users,
+# and exercises callable wishlist flows (create/update/item CRUD/delete)
+npm run test:users:smoke
+
+# If emulators are already running, run only the smoke script
+npm run test:users:smoke:live
+```
+
+Smoke report output:
+- JSON artifact: `artifacts/smoke-users-report.json`
+- Includes per-callable pass/fail, HTTP status, duration, and run summary
+
+#### Full Functions Contract Smoke Test
+```bash
+# Strict mode: preserves environment/config warnings (FCM/Stripe gaps remain warned)
+npm run test:functions:smoke:all:strict
+
+# Env-aware mode: treats known dependency/config gaps as expected passes
+npm run test:functions:smoke:all:env-aware
+```
+
+Notes:
+- `test:functions:smoke:all` is the strict baseline and is equivalent to `test:functions:smoke:all:strict`.
+- Env-aware mode sets `SMOKE_TREAT_EXPECTED_DEPENDENCY_GAPS_AS_PASS=true` for the emulator run.
+- Full report artifact: `artifacts/smoke-all-functions-report.json`.
+- In env-aware mode, report metadata includes `treatExpectedDependencyGapsAsPass: true`.
+
+Latest comparison snapshot:
+
+| Mode | Total | Passed | Warned | Failed | Warning scope |
+| --- | ---: | ---: | ---: | ---: | --- |
+| Strict | 273 | 265 | 8 | 0 | FCM topic/test notification callables (3), Stripe group-gifting callables (2), Stripe HTTP endpoints (2), upstream barcode provider callable dependency (1) |
+| Env-aware | 273 | 273 | 0 | 0 | Same 8 expected dependency gaps are treated as pass |
+
 #### Flutter Mobile App
 ```bash
 # Navigate to mobile directory
-cd mobile
+cd packages/mobile
 
 # Install Flutter dependencies
 flutter pub get
@@ -115,12 +150,6 @@ flutter build apk --release
 
 ## 💫 Advanced Usage
 
-### Price Tracking Setup
-1. Add an item to your wishlist with a link to an online store
-2. Enable "Track Price" on the item
-3. Set your target price (optional)
-4. Receive notifications when the price drops
-
 ### Calendar Integration
 1. Navigate to "Calendar" in the sidebar
 2. Click on the "Connections" tab
@@ -136,66 +165,54 @@ flutter build apk --release
 4. Select their permission level (view, edit, admin)
 5. They'll receive an invitation to collaborate
 
-### AR Visualization
-1. Select an item in your wishlist
-2. Click the "View in AR" button
-3. Follow the prompts to use your device camera
-4. The item will appear in your real-world environment
-5. Move your device to see the item from different angles
-
 ### E-Commerce Platform Integration
 1. Navigate to "Settings" > "E-Commerce"
 2. Select the platforms you want to enable
 3. The system will now fetch product data from these platforms
-4. Item price tracking will use these platforms for comparison
+4. Product metadata and links are normalized for consistent wishlist management
 
 ## 🛠️ Technical Details
 
 ### Architecture
 - **Frontend**: React 19 + TypeScript + Vite
-- **Backend**: Express.js + TypeScript + Drizzle ORM  
-- **Database**: PostgreSQL (via DATABASE_URL)
+- **Backend**: Firebase Functions (TypeScript) + Firestore — the Express.js/PostgreSQL server this project started with was removed in the Firebase-first migration; `packages/api-server` and root `server/`/`client/` are historical and no longer contain live source
 - **Mobile**: Flutter 3.8+ with Provider state management
 - **Styling**: Tailwind CSS (web), Material Design (mobile)
 
 ### System Requirements
 - **Browser Support**: Chrome, Firefox, Safari, Edge (latest versions)
-- **Mobile Support**: iOS 13+ and Android 8.0+ (Flutter app)
-- **Internet Connection**: Required for real-time price tracking and collaboration
+- **Mobile Support**: iOS 16+ and Android 8.0+ (Flutter app)
+- **Internet Connection**: Required for collaboration and calendar syncing
 
 ### Environment Setup
-Required environment variables (add to `.env`):
+Required environment variables (add to `.env`) — see the Firebase Integration section below for the full `VITE_FIREBASE_*` set:
 ```env
-DATABASE_URL=postgresql://...
-JWT_SECRET=your-jwt-secret
-SESSION_SECRET=your-session-secret
-OPENAI_API_KEY=sk-...
-SENDGRID_API_KEY=SG...
 VITE_GA_MEASUREMENT_ID=G-...
 ```
+Note: `OPENAI_API_KEY` and `SENDGRID_API_KEY` are **not required** — neither service is used anywhere in this codebase. Recommendations are Firestore-backed, not model-backed, and transactional email uses Workspace SMTP via Nodemailer.
 
 ### API Integration
 Wishlist Wizard integrates with the following external APIs:
 - **E-commerce APIs**: Amazon, eBay, Etsy, Walmart, Target, Best Buy
+- **SerpAPI**: For multi-retailer price comparison
 - **Calendar APIs**: Google Calendar, Microsoft Outlook, Apple Calendar
 - **Payment Processing**: For group gifting contributions
 - **Social Media**: For advanced sharing capabilities
-- **OpenAI**: For AI-powered recommendations
-- **Firebase** (Optional): Analytics, Cloud Messaging (push notifications), future real-time features
+- **Firebase**: Primary infrastructure — Auth, Firestore, Functions, Hosting, Cloud Messaging, Analytics (not optional — see below)
 
 ### 🔥 Firebase Integration (Primary Infrastructure)
 **Wishlist Wizard leverages Firebase as the primary infrastructure platform** for authentication, data storage, serverless functions, hosting, and analytics.
 
 #### Required Firebase Setup:
 1. **Firebase Project Configuration**: Already configured with project ID `wishlist-wizard`
-```
-VITE_FIREBASE_API_KEY=AIzaSyDXBMWTCbNDi2MhWxhZL9BQA3xEnGDEf70
-VITE_FIREBASE_AUTH_DOMAIN=wishlist-wizard.firebaseapp.com
-VITE_FIREBASE_PROJECT_ID=wishlist-wizard
-VITE_FIREBASE_STORAGE_BUCKET=wishlist-wizard.appspot.app
-VITE_FIREBASE_MESSAGING_SENDER_ID=1000918568663
-VITE_FIREBASE_APP_ID=1:1000918568663:web:143b262fb4bd8fd904ea92
-VITE_FIREBASE_MEASUREMENT_ID=G-75WET6CFDE
+```dotenv
+VITE_FIREBASE_API_KEY=your-firebase-web-api-key
+VITE_FIREBASE_AUTH_DOMAIN=your-project.firebaseapp.com
+VITE_FIREBASE_PROJECT_ID=your-project-id
+VITE_FIREBASE_STORAGE_BUCKET=your-project.firebasestorage.app
+VITE_FIREBASE_MESSAGING_SENDER_ID=your-messaging-sender-id
+VITE_FIREBASE_APP_ID=your-web-app-id
+VITE_FIREBASE_MEASUREMENT_ID=your-measurement-id
 VITE_FIREBASE_AUTO_INIT=false
 ```
 
@@ -203,20 +220,20 @@ VITE_FIREBASE_AUTO_INIT=false
    - ✅ **Firestore Database**: Primary data storage with security rules
    - ✅ **Firebase Functions**: Serverless API and background operations  
    - ✅ **Firebase Hosting**: Web app deployment with CDN
-   - ✅ **Firebase Authentication**: User management (planned migration)
+   - ✅ **Firebase Authentication**: User management — live, used by both the web app and the browser extension
    - ✅ **Cloud Messaging**: Push notifications
    - ✅ **Firebase Analytics**: User behavior tracking
    - ✅ **Firebase Storage**: Media and file uploads
-   - ✅ **Cloud Scheduler**: Automated price tracking
+   - ✅ **Cloud Scheduler**: Scheduled background workflows
 
 3. **Development with Firebase Emulators**:
 ```bash
-npm run firebase:emulators  # Start all Firebase emulators
-npm run firebase:deploy     # Deploy to Firebase hosting
+npx firebase emulators:start --project wishlist-wizard --only auth,firestore,functions
+npx firebase deploy --project wishlist-wizard
 ```
 
 4. **Firebase-Native Features**:
-   - **Price Tracking**: Implemented as Firebase Functions with Cloud Scheduler
+   - **Scheduled Processing**: Implemented as Firebase Functions with Cloud Scheduler
    - **Real-time Updates**: Firestore real-time subscriptions
    - **Push Notifications**: FCM for web and mobile
    - **Serverless Architecture**: Firebase Functions v2 for all API operations
@@ -224,13 +241,55 @@ npm run firebase:deploy     # Deploy to Firebase hosting
 
 See `FIREBASE_STRATEGY.md` for comprehensive Firebase integration details.
 
+## 🚀 Zero-Touch DevOps Automation
+
+Wishlist Wizard includes a complete **zero-touch DevOps automation suite** that eliminates manual credential management and provides automated CI/CD, monitoring, and deployment capabilities.
+
+### 🎯 Automation Features
+- **Automated Token Management**: GitHub, Firebase, Docker registry, and API tokens rotate automatically
+- **Multi-Environment Management**: Development, staging, and production environments with isolated secrets
+- **Intelligent Monitoring**: 24/7 health checks with auto-healing and smart alerting
+- **Zero-Touch Deployments**: Push to main branch → automatic deployment across all platforms
+- **Self-Healing Systems**: Automatic service restarts, certificate renewal, and issue resolution
+- **Multi-Channel Alerts**: Email, Slack, and log-based notifications
+- **Automated Backups**: Daily backups with disaster recovery capabilities
+
+### 🚀 Quick Automation Start
+```bash
+# Complete automated setup
+./automate.sh setup
+
+# Start 24/7 monitoring with auto-healing
+./automate.sh monitor start
+
+# Deploy everything automatically
+./automate.sh deploy full production
+
+# Rotate all tokens automatically
+./automate.sh tokens rotate
+```
+
+### 📊 Automated CI/CD Pipeline
+- **Quality Checks**: TypeScript compilation, tests, security audit
+- **Multi-Platform Builds**: Web, API, mobile, and extension builds
+- **Automated Deployment**: Push to `main` triggers full deployment
+- **Artifact Management**: Build artifacts stored for rollback capability
+
+### 🔐 Security Features
+- **Automated Token Rotation**: GitHub, Firebase, API secrets rotate automatically
+- **Environment Isolation**: Secrets isolated per environment
+- **GitHub Secrets Sync**: Automatic synchronization of secrets
+- **Audit Logging**: Comprehensive logging for all operations
+
+See `ZERO_TOUCH_DEVOPS_IMPLEMENTATION_GUIDE.md` and `AUTOMATION_README.md` for complete automation details.
+
 ## 🚀 Automated Deployment
 
 Wishlist Wizard includes a comprehensive CI/CD pipeline that automatically builds, tests, and deploys all components:
 
 ### Deployment Targets
-- **🌐 Web App**: Vercel (`https://wishlist-wizard.vercel.app`)
-- **🚂 API Server**: Railway (`https://api.wishlist-wizard.railway.app`) 
+- **🌐 Web App**: Firebase Hosting (`https://wishlist-wizard.web.app`)
+- **🚂 API Server**: Firebase Functions (`https://api.wishlist-wizard.web.app`)
 - **📱 Mobile PWA**: Firebase Hosting (`https://wishlist-wizard.web.app`)
 - **🔌 Chrome Extension**: Chrome Web Store (manual submission)
 
@@ -246,9 +305,9 @@ Wishlist Wizard includes a comprehensive CI/CD pipeline that automatically build
 npm run deploy
 
 # Deploy individual components  
-npm run deploy:web     # Deploy to Vercel
-npm run deploy:api     # Deploy to Railway
-npm run deploy:mobile  # Deploy to Firebase
+npm run deploy:web     # Deploy to Firebase Hosting
+npm run deploy:api     # Deploy to Firebase Functions
+npm run deploy:mobile  # Deploy to Firebase Hosting
 
 # Create extension package
 npm run package:extension
@@ -269,12 +328,12 @@ See `AUTOMATED_DEPLOYMENT.md` for complete setup and configuration details.
 
 ## 🔮 Upcoming Features
 
-- Advanced gift recommendations powered by AI
-- Enhanced social sharing capabilities
-- Improved AR visualization
-- Extended mobile application functionality
-- Enhanced group gifting tools
+- Phase 2 intelligence rollout (price tracking, affiliate integrations, AI recommendations)
+- Creator economy tooling and advanced monetization dashboards
+- Phase 3 ecosystem expansion (AR, white-label, conversational AI)
+- Extended mobile and collaboration enhancements
 
 ---
 
 © 2024 Wishlist Wizard. All rights reserved.
+# Test commit to trigger iOS build with CocoaPods fix

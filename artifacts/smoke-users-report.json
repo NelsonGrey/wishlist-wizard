@@ -1,0 +1,464 @@
+{
+  "meta": {
+    "startedAt": "2026-05-06T17:53:08.524Z",
+    "projectId": "wishlist-wizard",
+    "authHost": "127.0.0.1:9099",
+    "functionsHost": "127.0.0.1:5001",
+    "region": "us-central1",
+    "reportPath": "artifacts/smoke-users-report.json",
+    "endedAt": "2026-05-06T17:53:37.539Z"
+  },
+  "calls": [
+    {
+      "functionName": "createUserProfile",
+      "status": "passed",
+      "durationMs": 1184,
+      "httpStatus": 200
+    },
+    {
+      "functionName": "createWishlist",
+      "status": "passed",
+      "durationMs": 766,
+      "httpStatus": 200
+    },
+    {
+      "functionName": "updateWishlist",
+      "status": "passed",
+      "durationMs": 893,
+      "httpStatus": 200
+    },
+    {
+      "functionName": "addWishlistItem",
+      "status": "passed",
+      "durationMs": 875,
+      "httpStatus": 200
+    },
+    {
+      "functionName": "addWishlistItem",
+      "status": "passed",
+      "durationMs": 16,
+      "httpStatus": 200
+    },
+    {
+      "functionName": "addWishlistItem",
+      "status": "passed",
+      "durationMs": 16,
+      "httpStatus": 200
+    },
+    {
+      "functionName": "updateWishlistItem",
+      "status": "passed",
+      "durationMs": 916,
+      "httpStatus": 200
+    },
+    {
+      "functionName": "deleteWishlistItem",
+      "status": "passed",
+      "durationMs": 873,
+      "httpStatus": 200
+    },
+    {
+      "functionName": "getWishlistItems",
+      "status": "passed",
+      "durationMs": 803,
+      "httpStatus": 200
+    },
+    {
+      "functionName": "deleteWishlist",
+      "status": "passed",
+      "durationMs": 886,
+      "httpStatus": 200
+    },
+    {
+      "functionName": "getUserWishlists",
+      "status": "passed",
+      "durationMs": 766,
+      "httpStatus": 200
+    },
+    {
+      "functionName": "createWishlist",
+      "status": "passed",
+      "durationMs": 12,
+      "httpStatus": 200
+    },
+    {
+      "functionName": "addWishlistItem",
+      "status": "passed",
+      "durationMs": 25,
+      "httpStatus": 200
+    },
+    {
+      "functionName": "getWishlistItems",
+      "status": "passed",
+      "durationMs": 18,
+      "httpStatus": 200
+    },
+    {
+      "functionName": "updateWishlist",
+      "status": "passed",
+      "durationMs": 13,
+      "httpStatus": 200
+    },
+    {
+      "functionName": "updateWishlistItem",
+      "status": "passed",
+      "durationMs": 24,
+      "httpStatus": 200
+    },
+    {
+      "functionName": "deleteWishlistItem",
+      "status": "passed",
+      "durationMs": 27,
+      "httpStatus": 200
+    },
+    {
+      "functionName": "deleteWishlist",
+      "status": "passed",
+      "durationMs": 15,
+      "httpStatus": 200
+    },
+    {
+      "functionName": "createWishlist",
+      "status": "passed",
+      "durationMs": 9,
+      "httpStatus": 200
+    },
+    {
+      "functionName": "getSharedWishlist",
+      "status": "passed",
+      "durationMs": 889,
+      "httpStatus": 403,
+      "expectedError": "This shared wishlist is private"
+    },
+    {
+      "functionName": "deleteWishlist",
+      "status": "passed",
+      "durationMs": 18,
+      "httpStatus": 200
+    },
+    {
+      "functionName": "createWishlist",
+      "status": "passed",
+      "durationMs": 12,
+      "httpStatus": 200
+    },
+    {
+      "functionName": "addWishlistItem",
+      "status": "passed",
+      "durationMs": 19,
+      "httpStatus": 200
+    },
+    {
+      "functionName": "reserveWishlistItem",
+      "status": "passed",
+      "durationMs": 764,
+      "httpStatus": 200
+    },
+    {
+      "functionName": "purchaseWishlistItem",
+      "status": "passed",
+      "durationMs": 775,
+      "httpStatus": 400,
+      "expectedError": "This item is reserved by another user"
+    },
+    {
+      "functionName": "purchaseWishlistItem",
+      "status": "passed",
+      "durationMs": 26,
+      "httpStatus": 200
+    },
+    {
+      "functionName": "purchaseWishlistItem",
+      "status": "passed",
+      "durationMs": 23,
+      "httpStatus": 400,
+      "expectedError": "This item has already been purchased by another user"
+    },
+    {
+      "functionName": "deleteWishlist",
+      "status": "passed",
+      "durationMs": 14,
+      "httpStatus": 200
+    },
+    {
+      "functionName": "createWishlist",
+      "status": "passed",
+      "durationMs": 13,
+      "httpStatus": 200
+    },
+    {
+      "functionName": "addWishlistItem",
+      "status": "passed",
+      "durationMs": 12,
+      "httpStatus": 403,
+      "expectedError": "You do not have permission to add items to this wishlist"
+    },
+    {
+      "functionName": "addWishlistItem",
+      "status": "passed",
+      "durationMs": 22,
+      "httpStatus": 200
+    },
+    {
+      "functionName": "deleteWishlist",
+      "status": "passed",
+      "durationMs": 15,
+      "httpStatus": 200
+    },
+    {
+      "functionName": "createWishlist",
+      "status": "passed",
+      "durationMs": 11,
+      "httpStatus": 200
+    },
+    {
+      "functionName": "addWishlistItem",
+      "status": "passed",
+      "durationMs": 16,
+      "httpStatus": 200
+    },
+    {
+      "functionName": "createGroupPaymentIntent",
+      "status": "passed",
+      "durationMs": 620,
+      "httpStatus": 400,
+      "expectedError": "Contribution amount must be at least $1.00"
+    },
+    {
+      "functionName": "createGroupPaymentIntent",
+      "status": "passed",
+      "durationMs": 2,
+      "httpStatus": 400,
+      "expectedError": "Contribution amount cannot exceed $5000.00"
+    },
+    {
+      "functionName": "deleteWishlist",
+      "status": "passed",
+      "durationMs": 13,
+      "httpStatus": 200
+    },
+    {
+      "functionName": "createWishlist",
+      "status": "passed",
+      "durationMs": 8,
+      "httpStatus": 200
+    },
+    {
+      "functionName": "addWishlistItem",
+      "status": "passed",
+      "durationMs": 14,
+      "httpStatus": 200
+    },
+    {
+      "functionName": "getGroupGiftSummary",
+      "status": "passed",
+      "durationMs": 815,
+      "httpStatus": 200
+    },
+    {
+      "functionName": "deleteWishlist",
+      "status": "passed",
+      "durationMs": 13,
+      "httpStatus": 200
+    },
+    {
+      "functionName": "createWishlist",
+      "status": "passed",
+      "durationMs": 10,
+      "httpStatus": 200
+    },
+    {
+      "functionName": "addWishlistItem",
+      "status": "passed",
+      "durationMs": 11,
+      "httpStatus": 200
+    },
+    {
+      "functionName": "createSystemNotification",
+      "status": "passed",
+      "durationMs": 752,
+      "httpStatus": 200
+    },
+    {
+      "functionName": "getUserNotifications",
+      "status": "passed",
+      "durationMs": 895,
+      "httpStatus": 200
+    },
+    {
+      "functionName": "markNotificationAsRead",
+      "status": "passed",
+      "durationMs": 777,
+      "httpStatus": 200
+    },
+    {
+      "functionName": "markNotificationAsRead",
+      "status": "passed",
+      "durationMs": 12,
+      "httpStatus": 200
+    },
+    {
+      "functionName": "markAllNotificationsAsRead",
+      "status": "passed",
+      "durationMs": 765,
+      "httpStatus": 200
+    },
+    {
+      "functionName": "createSystemNotification",
+      "status": "passed",
+      "durationMs": 9,
+      "httpStatus": 200
+    },
+    {
+      "functionName": "createSystemNotification",
+      "status": "passed",
+      "durationMs": 6,
+      "httpStatus": 200
+    },
+    {
+      "functionName": "deleteWishlist",
+      "status": "passed",
+      "durationMs": 17,
+      "httpStatus": 200
+    },
+    {
+      "functionName": "authenticateExtension",
+      "status": "passed",
+      "durationMs": 1032,
+      "httpStatus": 200
+    },
+    {
+      "functionName": "createExtensionWishlist",
+      "status": "passed",
+      "durationMs": 861,
+      "httpStatus": 200
+    },
+    {
+      "functionName": "addItemFromExtension",
+      "status": "passed",
+      "durationMs": 779,
+      "httpStatus": 200
+    },
+    {
+      "functionName": "shareExtensionWishlist",
+      "status": "passed",
+      "durationMs": 755,
+      "httpStatus": 200
+    },
+    {
+      "functionName": "trackExtensionEvent",
+      "status": "passed",
+      "durationMs": 749,
+      "httpStatus": 200
+    },
+    {
+      "functionName": "deleteExtensionItem",
+      "status": "passed",
+      "durationMs": 786,
+      "httpStatus": 200
+    },
+    {
+      "functionName": "deleteWishlist",
+      "status": "passed",
+      "durationMs": 17,
+      "httpStatus": 200
+    },
+    {
+      "functionName": "getNotificationSettings",
+      "status": "passed",
+      "durationMs": 1068,
+      "httpStatus": 200
+    },
+    {
+      "functionName": "updateNotificationSettings",
+      "status": "passed",
+      "durationMs": 869,
+      "httpStatus": 200
+    },
+    {
+      "functionName": "createSystemNotification",
+      "status": "passed",
+      "durationMs": 7,
+      "httpStatus": 200
+    },
+    {
+      "functionName": "getUserNotifications",
+      "status": "passed",
+      "durationMs": 22,
+      "httpStatus": 200
+    },
+    {
+      "functionName": "markNotificationAsRead",
+      "status": "passed",
+      "durationMs": 28,
+      "httpStatus": 200
+    },
+    {
+      "functionName": "createSystemNotification",
+      "status": "passed",
+      "durationMs": 5,
+      "httpStatus": 200
+    },
+    {
+      "functionName": "markAllNotificationsAsRead",
+      "status": "passed",
+      "durationMs": 23,
+      "httpStatus": 200
+    },
+    {
+      "functionName": "deleteNotification",
+      "status": "passed",
+      "durationMs": 1184,
+      "httpStatus": 200
+    },
+    {
+      "functionName": "deleteNotification",
+      "status": "passed",
+      "durationMs": 11,
+      "httpStatus": 200
+    },
+    {
+      "functionName": "createCalendarEvent",
+      "status": "passed",
+      "durationMs": 759,
+      "httpStatus": 200
+    },
+    {
+      "functionName": "getCalendarEvents",
+      "status": "passed",
+      "durationMs": 854,
+      "httpStatus": 200
+    },
+    {
+      "functionName": "updateCalendarEvent",
+      "status": "passed",
+      "durationMs": 758,
+      "httpStatus": 200
+    },
+    {
+      "functionName": "getCalendarConnections",
+      "status": "passed",
+      "durationMs": 779,
+      "httpStatus": 200
+    },
+    {
+      "functionName": "getCalendarSyncSettings",
+      "status": "passed",
+      "durationMs": 871,
+      "httpStatus": 200
+    },
+    {
+      "functionName": "deleteCalendarEvent",
+      "status": "passed",
+      "durationMs": 876,
+      "httpStatus": 200
+    }
+  ],
+  "success": true,
+  "summary": {
+    "totalCalls": 73,
+    "passedCalls": 73,
+    "failedCalls": 0,
+    "durationMs": 29015
+  }
+}

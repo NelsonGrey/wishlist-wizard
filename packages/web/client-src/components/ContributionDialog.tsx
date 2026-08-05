@@ -31,17 +31,23 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { Heart, Users, DollarSign, Lock } from "lucide-react";
 import "@/styles/progress.css";
 
 // Initialize Stripe
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || "");
+const stripePublishableKey = String(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '').trim();
+const stripePromise = stripePublishableKey ? loadStripe(stripePublishableKey) : null;
+
+export const MIN_CONTRIBUTION_AMOUNT = 0.5;
+export const MAX_CONTRIBUTION_AMOUNT = 10000;
 
 const formSchema = z.object({
-  contributionAmount: z.number().min(0.5, "Minimum contribution is $0.50").max(10000, "Maximum contribution is $10,000"),
+  contributionAmount: z
+    .number()
+    .min(MIN_CONTRIBUTION_AMOUNT, "Minimum contribution is $0.50")
+    .max(MAX_CONTRIBUTION_AMOUNT, "Maximum contribution is $10,000"),
   message: z.string().max(500, "Message cannot exceed 500 characters").optional(),
   isAnonymous: z.boolean().default(false),
 });
@@ -62,14 +68,41 @@ interface ContributionDialogProps {
 }
 
 // Inner component that uses Stripe Elements
+interface Participant {
+  id: string;
+  name: string;
+  amount: number;
+  date: string;
+  isAnonymous?: boolean;
+  user?: {
+    displayName?: string;
+  };
+  contributionAmount?: number;
+}
+
+interface PaymentIntentResponse {
+  clientSecret: string;
+  contributionId: string;
+}
+
+export function getContributionLimit(targetPrice: number, currentTotal: number): number {
+  const remainingAmount = Math.max(0, targetPrice - currentTotal);
+  if (remainingAmount === 0) {
+    return 0;
+  }
+
+  return Math.min(MAX_CONTRIBUTION_AMOUNT, Number(remainingAmount.toFixed(2)));
+}
+
 function ContributionForm({
   item,
   onClose,
   onContributionSuccess
 }: Omit<ContributionDialogProps, 'open'>) {
   const [isProcessing, setIsProcessing] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [currentTotal, setCurrentTotal] = useState(0);
-  const [participants, setParticipants] = useState<any[]>([]);
+  const [participants, setParticipants] = useState<Participant[]>([]);
   const [isLoadingParticipants, setIsLoadingParticipants] = useState(true);
   const progressBarRef = useRef<HTMLDivElement>(null);
 
@@ -106,21 +139,30 @@ function ContributionForm({
       return;
     }
 
+    if (data.contributionAmount > maxAllowedContribution) {
+      toast({
+        title: "Contribution exceeds allowed range",
+        description: `Enter an amount between $${MIN_CONTRIBUTION_AMOUNT.toFixed(2)} and $${maxAllowedContribution.toFixed(2)}.`,
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsProcessing(true);
 
     try {
       // First, create a payment intent
       const paymentIntentRes = await apiRequest("/api/group-payments/payment-intent", {
         method: "POST",
-        body: JSON.stringify({
+        body: {
           itemId: item.id,
           amount: data.contributionAmount,
           message: data.message || "",
           isAnonymous: data.isAnonymous,
-        }),
-      });
+        },
+      }) as PaymentIntentResponse;
 
-      const { clientSecret } = paymentIntentRes;
+      const { clientSecret, contributionId } = paymentIntentRes;
 
       // Confirm the payment with Stripe
       const { error: stripeError } = await stripe.confirmCardPayment(clientSecret, {
@@ -132,6 +174,14 @@ function ContributionForm({
       if (stripeError) {
         throw new Error(stripeError.message);
       }
+
+      // Confirm contribution in backend
+      await apiRequest('/api/group-payments/confirm', {
+        method: 'POST',
+        body: {
+          contributionId
+        }
+      });
 
       toast({
         title: "Contribution successful!",
@@ -154,10 +204,21 @@ function ContributionForm({
 
   const targetPrice = parseFloat(item.price.replace(/[$,]/g, '')) || 0;
   const remainingAmount = Math.max(0, targetPrice - currentTotal);
+  const maxAllowedContribution = getContributionLimit(targetPrice, currentTotal);
+  const canContribute = maxAllowedContribution >= MIN_CONTRIBUTION_AMOUNT;
   const contributionAmount = form.watch("contributionAmount") || 0;
   const newTotal = currentTotal + contributionAmount;
   const progressPercentage = Math.min(100, (newTotal / targetPrice) * 100);
 
+
+    if (!canContribute) {
+      toast({
+        title: "Contribution unavailable",
+        description: "This group gift is fully funded or below the minimum contribution threshold.",
+        variant: "destructive",
+      });
+      return;
+    }
   // Update progress bar width when currentTotal or targetPrice changes
   useEffect(() => {
     if (progressBarRef.current) {
@@ -166,15 +227,44 @@ function ContributionForm({
     }
   }, [currentTotal, targetPrice]);
 
+  // Load current group gift summary
+  useEffect(() => {
+    let isMounted = true;
+    const loadSummary = async () => {
+      try {
+        setIsLoadingParticipants(true);
+        const summary = await apiRequest(`/api/group-payments/item/${item.id}`, { method: 'GET' }) as {
+          totalAmount?: number;
+          participants?: Participant[];
+        };
+
+        if (!isMounted) return;
+        setCurrentTotal(summary?.totalAmount || 0);
+        setParticipants(summary?.participants || []);
+      } catch (error) {
+        console.error('Failed to load group gift summary:', error);
+      } finally {
+        if (isMounted) {
+          setIsLoadingParticipants(false);
+        }
+      }
+    };
+
+    loadSummary();
+    return () => {
+      isMounted = false;
+    };
+  }, [item.id]);
+
   return (
-    <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+    <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto" aria-label={`Contribute to ${item.title}`}>
       <DialogHeader>
         <DialogTitle className="flex items-center">
-          <Heart className="h-5 w-5 mr-2 text-red-500" />
+          <Heart className="h-5 w-5 mr-2 text-red-500" aria-hidden="true" />
           Contribute to Gift
         </DialogTitle>
         <DialogDescription>
-          Help make "{item.title}" a reality by contributing to this group gift.
+          Help make &quot;{item.title}&quot; a reality by contributing to this group gift.
         </DialogDescription>
       </DialogHeader>
 
@@ -210,7 +300,7 @@ function ContributionForm({
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-base flex items-center">
-              <Users className="h-4 w-4 mr-2" />
+              <Users className="h-4 w-4 mr-2" aria-hidden="true" />
               Group Progress
             </CardTitle>
           </CardHeader>
@@ -229,6 +319,12 @@ function ContributionForm({
                 <>Goal reached! 🎉</>
               )}
             </div>
+
+            {isLoadingParticipants && (
+              <p className="text-xs text-muted-foreground" role="status" aria-live="polite">
+                Loading contributor activity...
+              </p>
+            )}
 
             {/* Participants */}
             {participants.length > 0 && (
@@ -263,12 +359,12 @@ function ContributionForm({
                   <FormLabel>Your Contribution</FormLabel>
                   <FormControl>
                     <div className="relative">
-                      <DollarSign className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                      <DollarSign className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" aria-hidden="true" />
                       <Input
                         type="number"
                         step="0.01"
                         min="0.50"
-                        max="10000"
+                        max={String(maxAllowedContribution)}
                         placeholder="0.00"
                         className="pl-9"
                         {...field}
@@ -276,6 +372,11 @@ function ContributionForm({
                       />
                     </div>
                   </FormControl>
+                  <p className="text-xs text-muted-foreground" data-testid="contribution-amount-hint">
+                    {canContribute
+                      ? `Allowed range: $${MIN_CONTRIBUTION_AMOUNT.toFixed(2)} - $${maxAllowedContribution.toFixed(2)}`
+                      : 'Additional contributions are disabled for this gift.'}
+                  </p>
                   <FormMessage />
                 </FormItem>
               )}
@@ -326,7 +427,7 @@ function ContributionForm({
               <Card className="border-dashed">
                 <CardContent className="p-4">
                   <div className="flex items-center space-x-2 mb-2">
-                    <Lock className="h-4 w-4 text-green-600" />
+                    <Lock className="h-4 w-4 text-green-600" aria-hidden="true" />
                     <span className="text-sm font-medium">Secure Payment</span>
                   </div>
                   <CardElement
@@ -349,10 +450,10 @@ function ContributionForm({
 
             {/* Preview */}
             {contributionAmount > 0 && (
-              <Card className="bg-blue-50 border-blue-200">
+              <Card className="bg-emerald-50 border-emerald-200">
                 <CardContent className="p-4">
-                  <h4 className="font-medium text-blue-900 mb-2">Contribution Summary</h4>
-                  <div className="space-y-1 text-sm text-blue-800">
+                  <h4 className="font-medium text-emerald-900 mb-2">Contribution Summary</h4>
+                  <div className="space-y-1 text-sm text-emerald-800">
                     <div className="flex justify-between">
                       <span>Your contribution:</span>
                       <span>${contributionAmount.toFixed(2)}</span>
@@ -382,7 +483,13 @@ function ContributionForm({
               </Button>
               <Button
                 type="submit"
-                disabled={isProcessing || !stripe || contributionAmount < 0.5}
+                disabled={
+                  isProcessing ||
+                  !stripe ||
+                  !canContribute ||
+                  contributionAmount < MIN_CONTRIBUTION_AMOUNT ||
+                  contributionAmount > maxAllowedContribution
+                }
                 className="w-full sm:w-auto"
               >
                 {isProcessing ? (
@@ -400,6 +507,24 @@ function ContributionForm({
 }
 
 export default function ContributionDialog(props: ContributionDialogProps) {
+  if (!stripePromise) {
+    return (
+      <Dialog open={props.open} onOpenChange={(open) => !open && props.onClose()}>
+        <DialogContent className="sm:max-w-[520px]">
+          <DialogHeader>
+            <DialogTitle>Payments unavailable</DialogTitle>
+            <DialogDescription>
+              Group contributions are temporarily unavailable because Stripe is not configured for this environment.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={props.onClose}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
   return (
     <Dialog open={props.open} onOpenChange={(open) => !open && props.onClose()}>
       <Elements stripe={stripePromise}>

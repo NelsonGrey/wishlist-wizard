@@ -2,6 +2,8 @@
 /// Handles mobile advertising with banner, interstitial, and rewarded ads
 library;
 
+import 'dart:async';
+
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:flutter/foundation.dart';
 
@@ -87,19 +89,69 @@ class AdMobManager {
   bool get isRewardedAdLoaded => _isRewardedAdLoaded;
   BannerAd? get bannerAd => _bannerAd;
 
-  /// Initialize AdMob
+  /// Initialize AdMob with UMP consent flow.
+  ///
+  /// Requests consent info from Google's User Messaging Platform, shows the
+  /// AdMob-configured privacy message if required, then initializes the SDK
+  /// only when ads are permitted. Call this once from main() after Firebase.
   Future<void> initialize() async {
     try {
-      debugPrint('[AdMob] Initializing Google Mobile Ads SDK...');
-      await MobileAds.instance.initialize();
-
-      // Set request configuration for privacy compliance
-      await _updateRequestConfiguration();
-
-      debugPrint('[AdMob] Initialization complete');
+      await _requestConsentThenInit();
     } catch (e) {
       debugPrint('[AdMob] Initialization error: $e');
+      // Fall back to initializing without personalized ads on unexpected errors.
+      await _initializeSdk();
     }
+  }
+
+  /// Run the UMP consent update → optional form display → SDK init sequence.
+  Future<void> _requestConsentThenInit() async {
+    final completer = Completer<void>();
+
+    final params = ConsentRequestParameters(
+      // In debug builds you can force a geography to test the consent form:
+      //   consentDebugSettings: ConsentDebugSettings(
+      //     debugGeography: DebugGeography.debugGeographyEea,
+      //     testIdentifiers: ['YOUR_TEST_DEVICE_HASH'],
+      //   ),
+    );
+
+    ConsentInformation.instance.requestConsentInfoUpdate(
+      params,
+      () async {
+        // Consent status is fresh — show the form if the user hasn't decided.
+        if (await ConsentInformation.instance.isConsentFormAvailable()) {
+          ConsentForm.loadAndShowConsentFormIfRequired((FormError? formError) {
+            if (formError != null) {
+              debugPrint('[AdMob] Consent form error: ${formError.message}');
+            }
+            _initializeSdk().then((_) => completer.complete());
+          });
+        } else {
+          await _initializeSdk();
+          completer.complete();
+        }
+      },
+      (FormError formError) {
+        // Consent info update failed — init SDK anyway (non-personalized).
+        debugPrint('[AdMob] Consent update failed: ${formError.message}');
+        _initializeSdk().then((_) => completer.complete());
+      },
+    );
+
+    await completer.future;
+  }
+
+  /// Initialize the Mobile Ads SDK if consent permits.
+  Future<void> _initializeSdk() async {
+    if (!await ConsentInformation.instance.canRequestAds()) {
+      debugPrint('[AdMob] Consent not yet granted — skipping SDK init');
+      return;
+    }
+    debugPrint('[AdMob] Initializing Google Mobile Ads SDK...');
+    await MobileAds.instance.initialize();
+    await _updateRequestConfiguration();
+    debugPrint('[AdMob] Initialization complete');
   }
 
   /// Update request configuration for privacy compliance
