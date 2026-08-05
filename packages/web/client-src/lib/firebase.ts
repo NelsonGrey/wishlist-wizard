@@ -359,7 +359,7 @@ export async function initFirebase(options?: {
   }
 
   if (options?.enableRemoteConfig && !remoteConfigInitialized) {
-    await initializeRemoteConfig();
+    await initializeRemoteConfig(client.app);
     remoteConfigInitialized = true;
 
     if (import.meta.env.DEV) {

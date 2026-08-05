@@ -13,6 +13,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { GoogleIcon, AppleIcon } from "@/components/auth/OAuthIcons";
+import { useAppOffline } from "@/hooks/useAppOffline";
+import AppOfflineNotice from "@/components/AppOfflineNotice";
 
 // Define form validation schema - Updated for Firebase Auth (email instead of username)
 const loginSchema = z.object({
@@ -25,6 +27,7 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 type OAuthProviderId = 'google.com' | 'apple.com';
 
 export default function Login() {
+  const isAppOffline = useAppOffline();
   const [isLoading, setIsLoading] = useState(false);
   const [oauthLoading, setOauthLoading] = useState<OAuthProviderId | null>(null);
   // Set when a Google/Apple attempt collides with an existing password
@@ -123,6 +126,10 @@ export default function Login() {
       setOauthLoading(null);
     }
   };
+
+  if (isAppOffline) {
+    return <AppOfflineNotice />;
+  }
 
   return (
     <div className="container flex justify-center py-1">
