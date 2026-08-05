@@ -24,16 +24,17 @@ targets:
         enabled: true
 
   android:
-    enabled: false
+    enabled: true
     path: "packages/mobile/android"
     signing:
-      keystore_ref: "${ANDROID_KEYSTORE_PATH}"
-      key_alias: "${ANDROID_KEY_ALIAS}"
+      # Keystore is decoded from the ANDROID_KEYSTORE_BASE64 secret at build
+      # time (see master-pipeline.yml's build-android job) into
+      # android/app/wishlist-wizard-key.jks; alias/passwords are read from
+      # ANDROID_KEY_PASSWORD/ANDROID_STORE_PASSWORD secrets, referenced
+      # directly in build.gradle.kts's signingConfigs block.
+      keystore_ref: "packages/mobile/android/app/wishlist-wizard-key.jks"
+      key_alias: "wishlist-wizard"
     destinations:
-      firebase_app_distribution:
-        enabled: true
-        groups:
-          - testers
       google_play:
         enabled: true
         track: "internal"

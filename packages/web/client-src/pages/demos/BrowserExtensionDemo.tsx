@@ -3,8 +3,8 @@ import { Chrome, MousePointer, AlertCircle, Award } from "lucide-react";
 
 export default function BrowserExtensionDemo() {
   return (
-    <div className="py-12 bg-gradient-to-br from-emerald-50 via-white to-green-50">
-      <div className="container mx-auto px-4 max-w-7xl">
+    <div className="mx-auto w-full max-w-[var(--site-content-width)] bg-gradient-to-br from-emerald-50 via-white to-green-50 py-12">
+      <div className="mx-auto px-4 max-w-7xl">
         <div className="mb-12">
           <p className="text-sm font-semibold text-emerald-700 uppercase tracking-wide mb-3">
             Feature Demo

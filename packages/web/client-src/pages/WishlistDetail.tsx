@@ -1,7 +1,7 @@
 import { KeyboardEvent as ReactKeyboardEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useRoute, useLocation, Link } from "wouter";
-import { ArrowLeft, Check, ChevronUp, Download, ExternalLink, Plus, Share2 } from "lucide-react";
+import { ArrowLeft, Check, ChevronDown, ChevronUp, Download, ExternalLink, Plus, Share2 } from "lucide-react";
 import WishlistItem from "@/components/WishlistItem";
 import PrivacyControls from "@/components/privacy/PrivacyControls";
 import { getApiErrorMessage } from "@/lib/api-errors";
@@ -64,6 +64,8 @@ export default function WishlistDetail() {
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [isItemDialogOpen, setIsItemDialogOpen] = useState(false);
   const [isEditingWishlist, setIsEditingWishlist] = useState(false);
+  const [isDetailsExpanded, setIsDetailsExpanded] = useState(false);
+  const [isCoordinationExpanded, setIsCoordinationExpanded] = useState(false);
   const [itemSort, setItemSort] = useState<ItemSortOption>(() => getInitialItemSort());
   const [itemSearch, setItemSearch] = useState(() => getInitialItemSearch());
   const itemSearchInputRef = useRef<HTMLInputElement | null>(null);
@@ -915,7 +917,7 @@ export default function WishlistDetail() {
       <div className="container mx-auto px-4 py-6 2xl:py-8 max-w-7xl">
           <h1 className="text-4xl font-bold bg-gradient-to-r from-emerald-800 to-green-800 bg-clip-text text-transparent">Wishlist not found</h1>
           <p className="mt-4">The wishlist you&apos;re looking for doesn&apos;t exist or has been removed.</p>
-          <Button className="mt-6" onClick={() => setLocation('/app/dashboard')}>
+          <Button className="mt-6" onClick={() => setLocation('/app/wishlists')}>
             Back to Dashboard
           </Button>
       </div>
@@ -936,7 +938,7 @@ export default function WishlistDetail() {
                 <Button variant="outline" onClick={() => queryClient.invalidateQueries({ queryKey: [`/api/wishlists/${wishlistId}`] })}>
                   Retry
                 </Button>
-                <Button onClick={() => setLocation('/app/dashboard')}>
+                <Button onClick={() => setLocation('/app/wishlists')}>
                   Back to Dashboard
                 </Button>
               </div>
@@ -956,7 +958,7 @@ export default function WishlistDetail() {
               <Button 
                 variant="ghost" 
                 className="mr-2"
-                onClick={() => setLocation('/app/dashboard')}
+                onClick={() => setLocation('/app/wishlists')}
               >
                 <ArrowLeft className="h-5 w-5" />
               </Button>
@@ -1085,10 +1087,25 @@ export default function WishlistDetail() {
           <Card className="mb-6">
             <CardContent className="p-6 space-y-4">
               <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-lg font-semibold">Wishlist Details</h2>
-                  <p className="text-sm text-gray-500">Manage this wishlist&apos;s core details and schedule.</p>
-                </div>
+                <button
+                  type="button"
+                  className="flex items-center gap-2 text-left"
+                  onClick={() => setIsDetailsExpanded((prev) => !prev)}
+                  aria-expanded={isEditingWishlist || isDetailsExpanded}
+                  data-testid="wishlist-detail-toggle-details"
+                >
+                  <ChevronDown className={`h-4 w-4 shrink-0 transition-transform ${isEditingWishlist || isDetailsExpanded ? 'rotate-180' : ''}`} />
+                  <div>
+                    <h2 className="text-lg font-semibold">Wishlist Details</h2>
+                    {!(isEditingWishlist || isDetailsExpanded) && (
+                      <p className="text-sm text-gray-500">
+                        {[wishlistForm.event, wishlistForm.recurrence && wishlistForm.recurrence !== 'none' ? `Repeats ${wishlistForm.recurrence}` : null]
+                          .filter(Boolean)
+                          .join(' • ') || 'No event or schedule set'}
+                      </p>
+                    )}
+                  </div>
+                </button>
                 <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
                   {isEditingWishlist && (
                     <Button
@@ -1108,15 +1125,17 @@ export default function WishlistDetail() {
                         return;
                       }
 
+                      setIsDetailsExpanded(true);
                       setIsEditingWishlist(true);
                     }}
                     disabled={updateWishlistMutation.isPending}
                   >
-                    {updateWishlistMutation.isPending ? "Saving..." : isEditingWishlist ? "Save Details" : "Edit Details"}
+                    {updateWishlistMutation.isPending ? "Saving..." : isEditingWishlist ? "Save" : "Edit"}
                   </Button>
                 </div>
               </div>
 
+              {(isEditingWishlist || isDetailsExpanded) && (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
                 <div className="grid gap-2">
                   <Label htmlFor="wishlist-name">Wishlist Name</Label>
@@ -1194,16 +1213,28 @@ export default function WishlistDetail() {
                   />
                 </div>
               </div>
+              )}
             </CardContent>
           </Card>
 
           <Card className="mb-6">
             <CardContent className="p-6 space-y-4">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <h2 className="text-lg font-semibold">Coordination Status</h2>
-                  <p className="text-sm text-gray-500">Track purchase commitments and export current status.</p>
-                </div>
+                <button
+                  type="button"
+                  className="flex items-center gap-2 text-left"
+                  onClick={() => setIsCoordinationExpanded((prev) => !prev)}
+                  aria-expanded={isCoordinationExpanded}
+                  data-testid="wishlist-detail-toggle-coordination"
+                >
+                  <ChevronDown className={`h-4 w-4 shrink-0 transition-transform ${isCoordinationExpanded ? 'rotate-180' : ''}`} />
+                  <div>
+                    <h2 className="text-lg font-semibold">Coordination Status</h2>
+                    <p className="text-sm text-gray-500">
+                      {coordinationSummary.total} items • {coordinationSummary.completionPercent}% purchased
+                    </p>
+                  </div>
+                </button>
                 <Button
                   variant="outline"
                   className="w-full sm:w-auto flex items-center gap-2"
@@ -1215,6 +1246,8 @@ export default function WishlistDetail() {
                 </Button>
               </div>
 
+              {isCoordinationExpanded && (
+              <>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
                 <div className="rounded-lg border p-3">
                   <p className="text-gray-500">Total</p>
@@ -1243,10 +1276,12 @@ export default function WishlistDetail() {
               <p className="text-xs text-gray-500">
                 Purchase completion: {coordinationSummary.completionPercent}%
               </p>
+              </>
+              )}
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="mb-6">
             <CardContent className="p-6">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
                 <div>
@@ -1327,7 +1362,7 @@ export default function WishlistDetail() {
                 <Card>
                   <CardContent className="p-8 text-center">
                     <p className="text-red-500 mb-4">Failed to load wishlist items</p>
-                    <Button 
+                    <Button
                       variant="outline"
                       onClick={() => queryClient.invalidateQueries({ queryKey: [`/api/wishlists/${wishlistId}/items`] })}
                     >
@@ -1343,9 +1378,9 @@ export default function WishlistDetail() {
                     const disableItemActions = isReservePendingForItem || isPurchasePendingForItem;
 
                     return (
-                    <WishlistItem 
-                      key={item.id} 
-                      item={item} 
+                    <WishlistItem
+                      key={item.id}
+                      item={item}
                       searchQuery={itemSearch}
                       onEdit={() => openEditItemDialog(item)}
                       onDelete={() => handleDeleteItem(item.id)}
@@ -1389,6 +1424,7 @@ export default function WishlistDetail() {
               )}
             </CardContent>
           </Card>
+
         </div>
       </main>
 
@@ -1401,7 +1437,7 @@ export default function WishlistDetail() {
               onClick={openCreateItemDialog}
             >
               <Plus className="h-4 w-4 mr-2" />
-              Quick Add
+              Add Item
             </Button>
             <Button
               data-testid="wishlist-detail-mobile-sticky-share"
@@ -1513,9 +1549,7 @@ export default function WishlistDetail() {
               Cancel
             </Button>
             <Button data-testid="wishlist-item-save" onClick={handleSaveItem} disabled={isItemMutationPending}>
-              {isItemMutationPending
-                ? (editingItem ? "Saving..." : "Adding...")
-                : (editingItem ? "Save Changes" : "Add Item")}
+              {isItemMutationPending ? "Saving..." : "Save"}
             </Button>
           </DialogFooter>
         </DialogContent>

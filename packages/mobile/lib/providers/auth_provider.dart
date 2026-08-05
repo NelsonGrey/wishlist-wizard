@@ -80,6 +80,50 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
+  Future<bool> loginWithGoogle() async {
+    _setLoading(true);
+    _clearError();
+
+    try {
+      final result = await _authService.loginWithGoogle();
+
+      if (result.isSuccess) {
+        _setUser(result.user);
+        return true;
+      } else {
+        _setError(result.error ?? 'Google sign-in failed');
+        return false;
+      }
+    } catch (e) {
+      _setError('An unexpected error occurred');
+      return false;
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  Future<bool> loginWithApple() async {
+    _setLoading(true);
+    _clearError();
+
+    try {
+      final result = await _authService.loginWithApple();
+
+      if (result.isSuccess) {
+        _setUser(result.user);
+        return true;
+      } else {
+        _setError(result.error ?? 'Apple sign-in failed');
+        return false;
+      }
+    } catch (e) {
+      _setError('An unexpected error occurred');
+      return false;
+    } finally {
+      _setLoading(false);
+    }
+  }
+
   Future<bool> register(String email, String password, String? name) async {
     _setLoading(true);
     _clearError();

@@ -1,5 +1,6 @@
 import { ReactNode, useState } from "react";
-import { Check, Copy, ExternalLink, MoreHorizontal, Trash2, Heart, Bell, Pencil, Info } from "lucide-react";
+import { Link } from "wouter";
+import { Check, ChevronDown, ChevronUp, Copy, ExternalLink, MoreHorizontal, Trash2, Heart, Bell, Pencil, TrendingUp } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { WishlistItem as DbWishlistItem } from "@wishlist-wizard/shared";
@@ -17,14 +18,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -66,7 +59,7 @@ export default function WishlistItem({
   searchQuery,
 }: WishlistItemProps) {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
   const [isContributionDialogOpen, setIsContributionDialogOpen] = useState(false);
   const [isPriceAlertDialogOpen, setIsPriceAlertDialogOpen] = useState(false);
   const [isLinkCopied, setIsLinkCopied] = useState(false);
@@ -91,8 +84,8 @@ export default function WishlistItem({
     setIsPriceAlertDialogOpen(true);
   };
 
-  const handleViewDetails = () => {
-    setIsDetailsDialogOpen(true);
+  const handleToggleDetails = () => {
+    setIsExpanded((prev) => !prev);
   };
 
   const isPurchased = Boolean(item.purchasedByUserId);
@@ -232,16 +225,17 @@ export default function WishlistItem({
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={handleViewDetails}
+                        onClick={handleToggleDetails}
                         className="text-xs px-2 py-1 h-8 shrink-0"
+                        aria-expanded={isExpanded}
                         data-testid={`wishlist-item-details-${normalizedItemId}`}
                       >
-                        <Info className="h-3 w-3 mr-1" />
+                        {isExpanded ? <ChevronUp className="h-3 w-3 mr-1" /> : <ChevronDown className="h-3 w-3 mr-1" />}
                         Details
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>
-                      View full item details and actions
+                      {isExpanded ? 'Hide item details' : 'Show brand, category, description, and price history'}
                     </TooltipContent>
                   </Tooltip>
                   
@@ -336,7 +330,7 @@ export default function WishlistItem({
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>
-                      Remove item from wishlist
+                      Delete item
                     </TooltipContent>
                   </Tooltip>
                 </div>
@@ -390,6 +384,51 @@ export default function WishlistItem({
               {actionStatusMessage && (onReserve || onPurchase) && (
                 <p className="text-xs text-gray-500 mt-2" role="status" aria-live="polite">{actionStatusMessage}</p>
               )}
+
+              {isExpanded && (
+                <div className="mt-3 pt-3 border-t space-y-3" data-testid={`wishlist-item-expanded-${normalizedItemId}`}>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+                    <div><span className="font-medium">Brand:</span> {item.brand || 'N/A'}</div>
+                    <div><span className="font-medium">Category:</span> {item.category || 'N/A'}</div>
+                    <div><span className="font-medium">Availability:</span> {item.availability || 'N/A'}</div>
+                    <div>
+                      <span className="font-medium">Rating:</span>{' '}
+                      {item.rating ? `${item.rating}${item.reviewCount ? ` (${item.reviewCount} reviews)` : ''}` : 'N/A'}
+                    </div>
+                  </div>
+
+                  {item.description && (
+                    <div>
+                      <h4 className="font-medium text-sm mb-1">Description</h4>
+                      <p className="text-sm text-muted-foreground">{item.description}</p>
+                    </div>
+                  )}
+
+                  <div>
+                    <h4 className="font-medium text-sm mb-1">Product URL</h4>
+                    <a
+                      href={item.productUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label={`Open ${itemDisplayTitle} product page in a new tab`}
+                      className="text-sm text-primary underline break-all"
+                      onClick={handleAffiliateClick}
+                    >
+                      {item.productUrl}
+                    </a>
+                  </div>
+
+                  <Button variant="outline" size="sm" asChild>
+                    <Link
+                      href={`/app/price-tracking?itemId=${encodeURIComponent(String(item.id))}`}
+                      data-testid={`wishlist-item-price-history-${normalizedItemId}`}
+                    >
+                      <TrendingUp className="h-4 w-4 mr-2" />
+                      Price History
+                    </Link>
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
         </CardContent>
@@ -398,148 +437,19 @@ export default function WishlistItem({
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent data-testid={`wishlist-item-delete-dialog-${normalizedItemId}`}>
           <AlertDialogHeader>
-            <AlertDialogTitle>Remove Item</AlertDialogTitle>
+            <AlertDialogTitle>Delete Item</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to remove this item from your wishlist? This action cannot be undone.
+              Are you sure you want to delete this item from your wishlist? This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel data-testid={`wishlist-item-delete-cancel-${normalizedItemId}`}>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={confirmDelete} className="bg-red-500 hover:bg-red-600" data-testid={`wishlist-item-delete-confirm-${normalizedItemId}`}>
-              Remove
+              Delete
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
-      <Dialog open={isDetailsDialogOpen} onOpenChange={setIsDetailsDialogOpen}>
-        <DialogContent
-          className="sm:max-w-[620px] max-h-[80vh] overflow-y-auto"
-          aria-label={`Item details for ${itemDisplayTitle}`}
-          data-testid={`wishlist-item-details-dialog-${normalizedItemId}`}
-        >
-          <DialogHeader>
-            <DialogTitle>{item.title}</DialogTitle>
-            <DialogDescription>
-              Detailed item information and actions.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4">
-            <div className="rounded-md overflow-hidden border">
-              <img
-                src={item.imageUrl}
-                alt={item.title}
-                className="w-full h-56 object-cover"
-              />
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-              <div><span className="font-medium">Price:</span> {item.price}</div>
-              <div><span className="font-medium">Store:</span> {item.store}</div>
-              <div><span className="font-medium">Brand:</span> {item.brand || 'N/A'}</div>
-              <div><span className="font-medium">Category:</span> {item.category || 'N/A'}</div>
-              <div><span className="font-medium">Availability:</span> {item.availability || 'N/A'}</div>
-              <div>
-                <span className="font-medium">Rating:</span>{' '}
-                {item.rating ? `${item.rating}${item.reviewCount ? ` (${item.reviewCount} reviews)` : ''}` : 'N/A'}
-              </div>
-            </div>
-
-            {item.description && (
-              <div>
-                <h4 className="font-medium mb-1">Description</h4>
-                <p className="text-sm text-muted-foreground">{item.description}</p>
-              </div>
-            )}
-
-            {item.note && (
-              <div>
-                <h4 className="font-medium mb-1">Note</h4>
-                <p className="text-sm text-muted-foreground">{item.note}</p>
-              </div>
-            )}
-
-            <div>
-              <h4 className="font-medium mb-1">Product URL</h4>
-              <a
-                href={item.productUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label={`Open ${itemDisplayTitle} product page in a new tab`}
-                className="text-sm text-primary underline break-all"
-              >
-                {item.productUrl}
-              </a>
-            </div>
-          </div>
-
-          <DialogFooter className="flex-col gap-2 sm:flex-row sm:flex-wrap">
-            {onEdit && (
-              <Button className="w-full sm:w-auto" variant="outline" onClick={() => { setIsDetailsDialogOpen(false); onEdit(); }}>
-                <Pencil className="h-4 w-4 mr-2" />
-                Edit
-              </Button>
-            )}
-            {isStripeReady && (
-              <Button className="w-full sm:w-auto" variant="outline" onClick={() => { setIsDetailsDialogOpen(false); handleContribute(); }}>
-                <Heart className="h-4 w-4 mr-2" />
-                Contribute
-              </Button>
-            )}
-            {priceAlertsEnabled && (
-              <Button className="w-full sm:w-auto" variant="outline" onClick={() => { setIsDetailsDialogOpen(false); handlePriceAlert(); }}>
-                <Bell className="h-4 w-4 mr-2" />
-                Alert
-              </Button>
-            )}
-            {onReserve && (
-              <Button
-                className="w-full sm:w-auto"
-                variant="outline"
-                onClick={() => {
-                  setIsDetailsDialogOpen(false);
-                  onReserve();
-                }}
-                disabled={!canReserve || Boolean(reserveDisabled)}
-                title={reserveDisabledReason}
-              >
-                {reserveLabel || 'Reserve'}
-              </Button>
-            )}
-            {onPurchase && (
-              <Button
-                className="w-full sm:w-auto"
-                variant="outline"
-                onClick={() => {
-                  setIsDetailsDialogOpen(false);
-                  onPurchase();
-                }}
-                disabled={!canPurchase || Boolean(purchaseDisabled)}
-                title={purchaseDisabledReason}
-              >
-                {purchaseLabel || 'Mark Purchased'}
-              </Button>
-            )}
-            <Button className="w-full sm:w-auto" asChild>
-              <a
-                href={item.productUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label={`View ${itemDisplayTitle} product page in a new tab`}
-                onClick={handleAffiliateClick}
-              >
-                <ExternalLink className="h-4 w-4 mr-2" aria-hidden="true" />
-                View Product
-              </a>
-            </Button>
-            <Button className="w-full sm:w-auto" variant="outline" onClick={handleCopyProductUrl} data-testid={`wishlist-item-copy-link-dialog-${normalizedItemId}`}>
-              {isLinkCopied ? <Check className="h-4 w-4 mr-2" aria-hidden="true" /> : <Copy className="h-4 w-4 mr-2" aria-hidden="true" />}
-              {isLinkCopied ? 'Copied!' : 'Copy Link'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       <span className="sr-only" role="status" aria-live="polite" data-testid={`wishlist-item-copy-status-${normalizedItemId}`}>
         {isLinkCopied ? `Product link copied for ${itemDisplayTitle}` : ''}

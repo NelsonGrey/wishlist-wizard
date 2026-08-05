@@ -3,8 +3,16 @@ import '../models/models.dart';
 import '../services/services.dart';
 
 class FirebaseWishlistProvider extends ChangeNotifier {
-  final FirebaseFirestoreService _firestoreService = FirebaseFirestoreService();
-  final FirebaseFunctionsService _functionsService = FirebaseFunctionsService();
+  final FirebaseFirestoreService _firestoreService;
+  final FirebaseFunctionsService _functionsService;
+
+  // Services are injectable (defaulting to real instances) so tests can
+  // substitute mocks instead of needing a live Firebase connection.
+  FirebaseWishlistProvider({
+    FirebaseFirestoreService? firestoreService,
+    FirebaseFunctionsService? functionsService,
+  })  : _firestoreService = firestoreService ?? FirebaseFirestoreService(),
+        _functionsService = functionsService ?? FirebaseFunctionsService();
 
   final List<FirebaseWishlist> _wishlists = [];
   List<FirebaseWishlistItem> _currentWishlistItems = [];
@@ -74,7 +82,15 @@ class FirebaseWishlistProvider extends ChangeNotifier {
         'isPublic': isPublic,
         'tags': tags,
       });
-      final createdWishlist = FirebaseWishlist.fromFirestore('', result);
+      // createWishlist's Cloud Function returns { id: docRef.id, ...wishlistData }
+      // (see packages/functions/src/api/wishlists.ts) — fromFirestore's docId
+      // argument must come from that real id, not an empty placeholder, or
+      // createdWishlist.id is always '' and this always reports failure even
+      // though the wishlist was created successfully.
+      final createdWishlist = FirebaseWishlist.fromFirestore(
+        (result['id'] as String?) ?? '',
+        result,
+      );
       if (createdWishlist.id.isNotEmpty) {
         _addWishlistToList(createdWishlist);
         return true;

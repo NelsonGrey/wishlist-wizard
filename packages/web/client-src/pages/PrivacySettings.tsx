@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'wouter';
 import {
   Card,
   CardContent,
@@ -12,7 +13,6 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Switch } from "@/components/ui/switch";
-import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -60,14 +60,6 @@ interface ItemResponse {
   wishlist?: {
     userId: number;
   };
-}
-
-interface UserDefaultPrivacy {
-  defaultWishlistVisibility: string;
-  defaultItemVisibility: string;
-  allowComments: boolean;
-  allowReservations: boolean;
-  requireApproval: boolean;
 }
 
 const VISIBILITY_OPTIONS = [
@@ -157,12 +149,6 @@ const PrivacySettingsPage = () => {
 
       return entitiesWithPrivacy;
     }
-  });
-
-  // Fetch user's default privacy preferences
-  const { data: defaultSettings } = useQuery<UserDefaultPrivacy>({
-    queryKey: ['user-default-privacy'],
-    queryFn: () => apiRequest('/api/privacy/defaults') as Promise<UserDefaultPrivacy>
   });
 
   // Update privacy settings mutation
@@ -306,10 +292,9 @@ const PrivacySettingsPage = () => {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="entities">Manage Entities</TabsTrigger>
-          <TabsTrigger value="defaults">Default Settings</TabsTrigger>
         </TabsList>
 
         {/* Overview Tab */}
@@ -387,12 +372,11 @@ const PrivacySettingsPage = () => {
                   Manage Individual Items
                 </Button>
 
-                <Button
-                  variant="outline"
-                  onClick={() => setActiveTab('defaults')}
-                >
-                  <Shield className="h-4 w-4 mr-2" />
-                  Set Default Privacy
+                <Button variant="outline" asChild>
+                  <Link href="/app/settings?tab=privacy">
+                    <Shield className="h-4 w-4 mr-2" />
+                    Set Default Privacy
+                  </Link>
                 </Button>
 
                 <Button variant="outline">
@@ -521,129 +505,6 @@ const PrivacySettingsPage = () => {
           )}
         </TabsContent>
 
-        {/* Default Settings Tab */}
-        <TabsContent value="defaults" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Default Privacy Preferences</CardTitle>
-              <CardDescription>
-                Set your default privacy settings for new wishlists and items
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="space-y-4">
-                <div>
-                  <Label className="text-base font-medium">Default Wishlist Visibility</Label>
-                  <RadioGroup
-                    value={defaultSettings?.defaultWishlistVisibility || 'public'}
-                    className="mt-2"
-                  >
-                    {VISIBILITY_OPTIONS.map(option => {
-                      const Icon = option.icon;
-                      return (
-                        <div key={option.value} className="flex items-center space-x-2">
-                          <RadioGroupItem 
-                            value={option.value} 
-                            id={`wishlist-${option.value}`} 
-                            disabled={option.disabled}
-                          />
-                          <Label 
-                            htmlFor={`wishlist-${option.value}`} 
-                            className={`flex items-center space-x-2 ${option.disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
-                          >
-                            <Icon className={`h-4 w-4 ${option.color}`} />
-                            <div>
-                              <span className="font-medium">{option.label}</span>
-                              <p className="text-sm text-muted-foreground">{option.description}</p>
-                            </div>
-                          </Label>
-                        </div>
-                      );
-                    })}
-                  </RadioGroup>
-                </div>
-
-                <Separator />
-
-                <div>
-                  <Label className="text-base font-medium">Default Item Visibility</Label>
-                  <RadioGroup
-                    value={defaultSettings?.defaultItemVisibility || 'public'}
-                    className="mt-2"
-                  >
-                    {VISIBILITY_OPTIONS.map(option => {
-                      const Icon = option.icon;
-                      return (
-                        <div key={option.value} className="flex items-center space-x-2">
-                          <RadioGroupItem 
-                            value={option.value} 
-                            id={`item-${option.value}`} 
-                            disabled={option.disabled}
-                          />
-                          <Label 
-                            htmlFor={`item-${option.value}`} 
-                            className={`flex items-center space-x-2 ${option.disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
-                          >
-                            <Icon className={`h-4 w-4 ${option.color}`} />
-                            <div>
-                              <span className="font-medium">{option.label}</span>
-                              <p className="text-sm text-muted-foreground">{option.description}</p>
-                            </div>
-                          </Label>
-                        </div>
-                      );
-                    })}
-                  </RadioGroup>
-                </div>
-
-                <Separator />
-
-                <div className="space-y-3">
-                  <Label className="text-base font-medium">Interaction Permissions</Label>
-
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label htmlFor="allow-comments">Allow Comments</Label>
-                      <p className="text-sm text-muted-foreground">Let others comment on your wishlists and items</p>
-                    </div>
-                    <Switch
-                      id="allow-comments"
-                      checked={defaultSettings?.allowComments ?? true}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label htmlFor="allow-reservations">Allow Reservations</Label>
-                      <p className="text-sm text-muted-foreground">Let others reserve items for purchase</p>
-                    </div>
-                    <Switch
-                      id="allow-reservations"
-                      checked={defaultSettings?.allowReservations ?? true}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label htmlFor="require-approval">Require Approval</Label>
-                      <p className="text-sm text-muted-foreground">Require your approval for reservations and comments</p>
-                    </div>
-                    <Switch
-                      id="require-approval"
-                      checked={defaultSettings?.requireApproval ?? false}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="pt-4">
-                <Button>
-                  Save Default Settings
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
       </Tabs>
 
       {/* Entity Privacy Settings Dialog */}
@@ -825,7 +686,7 @@ const PrivacySettingsPage = () => {
                 Reset to Default
               </Button>
               <Button onClick={() => setSelectedEntity(null)}>
-                Done
+                Close
               </Button>
             </DialogFooter>
           </DialogContent>

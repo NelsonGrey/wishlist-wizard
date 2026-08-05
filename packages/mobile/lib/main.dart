@@ -4,6 +4,7 @@ import 'dart:io' show Platform;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:logging/logging.dart';
 import 'package:flutter/foundation.dart';
@@ -13,6 +14,7 @@ import 'providers/providers.dart';
 import 'services/services.dart';
 import 'services/admob_service.dart';
 import 'services/fcm_service.dart';
+import 'services/iap_service.dart';
 import 'screens/login_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/firebase_wishlists_screen.dart';
@@ -33,8 +35,27 @@ void main() async {
     );
   });
 
-  // Initialize Firebase
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  // Initialize Firebase. On iOS, the native SDK can auto-configure the
+  // "[DEFAULT]" app from GoogleService-Info.plist before this ever runs, so
+  // Firebase.apps.isEmpty (a Dart-side registry) doesn't reliably reflect
+  // that. Catching core/duplicate-app specifically and treating it as
+  // already-configured is the standard fix for this ordering issue.
+  try {
+    await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  } on FirebaseException catch (e) {
+    if (e.code != 'duplicate-app') rethrow;
+  }
+
+  // App Check is enforced server-side (Auth/Firestore/Storage) in
+  // wishlist-wizard-dev as of 2026-07-18 — without this, every real
+  // request gets rejected with a 403. Debug providers are used in debug
+  // builds (including simulators, which can't do real App Attest/Play
+  // Integrity attestation) and print a token to the console that must be
+  // registered once via the Firebase Console/App Check API before it works.
+  await FirebaseAppCheck.instance.activate(
+    providerApple: kDebugMode ? const AppleDebugProvider() : const AppleAppAttestWithDeviceCheckFallbackProvider(),
+    providerAndroid: kDebugMode ? const AndroidDebugProvider() : const AndroidPlayIntegrityProvider(),
+  );
 
   // Explicitly enable Firestore's offline cache (settings must be applied before
   // any Firestore read/write) so wishlists remain viewable without a connection.
@@ -82,6 +103,7 @@ class WishlistWizardApp extends StatelessWidget {
           ChangeNotifierProvider(create: (_) => WishlistProvider()),
           ChangeNotifierProvider(create: (_) => FirebaseWishlistProvider()),
           ChangeNotifierProvider(create: (_) => SubscriptionProvider()),
+          ChangeNotifierProvider(create: (_) => IapService()..initialize()),
         ],
         child: MaterialApp(
           title: 'Wishlist Wizard',
@@ -668,8 +690,89 @@ class ProfileScreen extends StatelessWidget {
               },
               child: const Text('Logout'),
             ),
+            const SizedBox(height: 24),
+            TextButton(
+              onPressed: () => _showDeleteAccountDialog(context),
+              style: TextButton.styleFrom(foregroundColor: Colors.red),
+              child: const Text('Delete Account'),
+            ),
           ],
         ),
+      ),
+    );
+  }
+
+  void _showDeleteAccountDialog(BuildContext context) {
+    final confirmController = TextEditingController();
+    var deleting = false;
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setDialogState) {
+          final confirmed =
+              confirmController.text.trim().toLowerCase() == 'delete my account';
+
+          return AlertDialog(
+            title: const Text('Delete Your Account?'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'This action cannot be undone. All your wishlists, preferences, and data will be permanently deleted.',
+                ),
+                const SizedBox(height: 16),
+                const Text('Please type "delete my account" to confirm:'),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: confirmController,
+                  autofocus: true,
+                  enabled: !deleting,
+                  decoration: const InputDecoration(hintText: 'delete my account'),
+                  onChanged: (_) => setDialogState(() {}),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: deleting ? null : () => Navigator.pop(dialogContext),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red,
+                  foregroundColor: Colors.white,
+                ),
+                onPressed: !confirmed || deleting
+                    ? null
+                    : () async {
+                        setDialogState(() => deleting = true);
+                        try {
+                          await FirebaseFunctionsService().deleteAccount();
+                          if (dialogContext.mounted) {
+                            Navigator.pop(dialogContext);
+                          }
+                          if (context.mounted) {
+                            Provider.of<AuthProvider>(context, listen: false).logout();
+                          }
+                        } catch (e) {
+                          setDialogState(() => deleting = false);
+                          if (dialogContext.mounted) {
+                            ScaffoldMessenger.of(dialogContext).showSnackBar(
+                              const SnackBar(
+                                content: Text('Failed to delete account. Please try again.'),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                          }
+                        }
+                      },
+                child: Text(deleting ? 'Deleting...' : 'Delete Account'),
+              ),
+            ],
+          );
+        },
       ),
     );
   }

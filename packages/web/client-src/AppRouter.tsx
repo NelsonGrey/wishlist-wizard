@@ -11,6 +11,9 @@ import { AuthProvider } from "./contexts/AuthContext";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 import { queryClient } from "./lib/queryClient";
 import EnvironmentPasswordGate from "./components/security/EnvironmentPasswordGate";
+import MarketingHoldingPage from "./pages/MarketingHoldingPage";
+import { useMarketingOffline } from "./hooks/useMarketingOffline";
+import { marketingHoldingPageRoutes } from "./lib/marketingRoutes";
 
 // Layouts
 import PublicLayout from "./components/layout/PublicLayout";
@@ -19,9 +22,12 @@ import AuthLayout from "./components/layout/AuthLayout";
 
 const Home = lazy(() => import("./pages/Home"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
+const Wishlists = lazy(() => import("./pages/Wishlists"));
 const Login = lazy(() => import("./pages/Login"));
 const Register = lazy(() => import("./pages/Register"));
 const UserProfile = lazy(() => import("./pages/UserProfile"));
+const Settings = lazy(() => import("./pages/Settings"));
+const AchievementsGuide = lazy(() => import("./pages/AchievementsGuide"));
 const Subscription = lazy(() => import("./pages/Subscription"));
 const WishlistDetail = lazy(() => import("./pages/WishlistDetail"));
 const Recommendations = lazy(() => import("./pages/Recommendations"));
@@ -34,7 +40,6 @@ const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const VerifyEmail = lazy(() => import("./pages/VerifyEmail"));
 const SharedWishlist = lazy(() => import("./pages/SharedWishlist"));
-const Analytics = lazy(() => import("./pages/Analytics"));
 const NotFound = lazy(() => import("./pages/not-found"));
 const TermsOfService = lazy(() => import("./pages/TermsOfService"));
 const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
@@ -42,6 +47,9 @@ const CookiePolicy = lazy(() => import("./pages/CookiePolicy"));
 const About = lazy(() => import("./pages/About"));
 const Support = lazy(() => import("./pages/Support"));
 const Subscriptions = lazy(() => import("./pages/Subscriptions"));
+const HowItWorks = lazy(() => import("./pages/HowItWorks"));
+const AffiliateCommissions = lazy(() => import("./pages/AffiliateCommissions"));
+const CreatorProgram = lazy(() => import("./pages/CreatorProgram"));
 const Download = lazy(() => import("./pages/Download"));
 const MobileAppDemo = lazy(() => import("./pages/demos/MobileAppDemo"));
 const BrowserExtensionDemo = lazy(() => import("./pages/demos/BrowserExtensionDemo"));
@@ -52,11 +60,11 @@ const ActivityInsightsDemo = lazy(() => import("./pages/demos/ActivityInsightsDe
 const AdvancedUserProfilesDemo = lazy(() => import("./pages/demos/AdvancedUserProfilesDemo"));
 
 // Super-admin pages
-const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
 const UserManagement = lazy(() => import("./pages/admin/UserManagement"));
 const UserDetail = lazy(() => import("./pages/admin/UserDetail"));
 const SupportTickets = lazy(() => import("./pages/admin/SupportTickets"));
 const AuditLog = lazy(() => import("./pages/admin/AuditLog"));
+const AffiliateAdmin = lazy(() => import("./pages/admin/AffiliateAdmin"));
 
 function resolveRuntimeEnvironment(): 'development' | 'staging' | 'production' {
   const processEnvironment =
@@ -130,9 +138,12 @@ function LayoutRouter({ children }: { children: React.ReactNode }) {
   }
 
   // Authenticated app pages (/app/* and /admin/*) use AppLayout (app-shell scroll).
-  // All other pages — marketing, demos, legal — always use PublicLayout (traditional
-  // browser-window scroll) regardless of auth state.
-  const isAppShellPage = location.startsWith('/app/') || location.startsWith('/admin');
+  // /extension is also in-app nav item — an authenticated user clicking it from
+  // AppLayout should keep the app shell rather than dropping into the marketing
+  // site's PublicLayout. Anonymous visitors (e.g. from marketing links) still
+  // get PublicLayout. All other pages — marketing, demos, legal — always use
+  // PublicLayout regardless of auth state.
+  const isAppShellPage = location.startsWith('/app/') || location.startsWith('/admin') || location === '/extension';
   if (!authLoading && isAuthenticated && isAppShellPage) {
     return <AppLayout>{children}</AppLayout>;
   }
@@ -151,6 +162,23 @@ function NonHomeEnvironmentGate({ children }: { children: React.ReactNode }) {
   );
 }
 
+// Gates the marketing route group behind the marketing_offline Remote
+// Config flag (see hooks/useMarketingOffline and lib/marketingRoutes).
+// Independent of app_offline — legal/support pages, auth pages, and the app
+// itself are never affected by this. Renders full-bleed, outside
+// LayoutRouter, so the holding page isn't wrapped in PublicLayout's own
+// header/footer chrome.
+function MarketingRoutesGate({ children }: { children: React.ReactNode }) {
+  const [location] = useLocation();
+  const isMarketingOffline = useMarketingOffline();
+
+  if (isMarketingOffline && marketingHoldingPageRoutes.includes(location)) {
+    return <MarketingHoldingPage />;
+  }
+
+  return <>{children}</>;
+}
+
 function AppRouter() {
   // Analytics is handled by GTM (GTM-KRDC75LR loaded in index.html) + Consent Mode v2.
 
@@ -162,6 +190,7 @@ function AppRouter() {
           <Router>
             <CookieConsentBanner />
             <AnalyticsRouteTracker />
+            <MarketingRoutesGate>
             <LayoutRouter>
               <NonHomeEnvironmentGate>
                 <Suspense fallback={<div className="flex-1 min-h-[60vh]" aria-busy="true" />}>
@@ -171,6 +200,9 @@ function AppRouter() {
                   <Route path="/extension" component={ExtensionPage} />
                   <Route path="/download" component={Download} />
                   <Route path="/subscriptions" component={Subscriptions} />
+                  <Route path="/how-it-works" component={HowItWorks} />
+                  <Route path="/affiliate-commissions" component={AffiliateCommissions} />
+                  <Route path="/creator-program" component={CreatorProgram} />
                   {/* Legacy redirect — keep for existing links and search indexing */}
                   <Route path="/plans" component={() => <Redirect to="/subscriptions" />} />
                     <Route path="/about" component={About} />
@@ -213,7 +245,7 @@ function AppRouter() {
                     path="/app/wishlists"
                     component={() => (
                       <ProtectedRoute requireAuth>
-                        <Dashboard />
+                        <Wishlists />
                       </ProtectedRoute>
                     )}
                   />
@@ -265,6 +297,8 @@ function AppRouter() {
                       </ProtectedRoute>
                     )}
                   />
+                  {/* Creator Dashboard folded into the unified Dashboard's Creator tab */}
+                  <Route path="/app/creator-dashboard" component={() => <Redirect to="/app/dashboard?tab=creator" />} />
                   <Route
                     path="/app/calendar"
                     component={() => (
@@ -289,20 +323,41 @@ function AppRouter() {
                       </ProtectedRoute>
                     )}
                   />
-                  <Route path="/shared/:shareId" component={SharedWishlist} />
                   <Route
-                    path="/app/analytics"
+                    path="/app/settings"
                     component={() => (
                       <ProtectedRoute requireAuth>
-                        <Analytics />
+                        <Settings />
                       </ProtectedRoute>
                     )}
                   />
+                  <Route
+                    path="/app/achievements"
+                    component={() => (
+                      <ProtectedRoute requireAuth>
+                        <AchievementsGuide />
+                      </ProtectedRoute>
+                    )}
+                  />
+                  <Route
+                    path="/shared/:shareId"
+                    component={() => (
+                      // Public/unauthenticated, but still real app content —
+                      // governed by app_offline, not marketing_offline.
+                      // ProtectedRoute with no auth flags just applies the
+                      // app_offline gate here without requiring a login.
+                      <ProtectedRoute>
+                        <SharedWishlist />
+                      </ProtectedRoute>
+                    )}
+                  />
+                  {/* Analytics folded into the unified Dashboard's Analytics tab */}
+                  <Route path="/app/analytics" component={() => <Redirect to="/app/dashboard?tab=analytics" />} />
 
                   {/* Legacy Authenticated Routes -> canonical /app namespace */}
-                  <Route path="/dashboard" component={() => <Redirect to="/app/dashboard" />} />
+                  <Route path="/dashboard" component={() => <Redirect to="/app/wishlists" />} />
                   <Route path="/wishlists" component={() => <Redirect to="/app/wishlists" />} />
-                  <Route path="/dashboard-firebase" component={() => <Redirect to="/app/dashboard" />} />
+                  <Route path="/dashboard-firebase" component={() => <Redirect to="/app/wishlists" />} />
                   <Route path="/user-profile" component={() => <Redirect to="/app/user-profile" />} />
                   <Route
                     path="/wishlist/:id"
@@ -324,17 +379,20 @@ function AppRouter() {
                   <Route path="/calendar" component={() => <Redirect to="/app/calendar" />} />
                   <Route path="/notifications" component={() => <Redirect to="/app/notifications" />} />
                   <Route path="/privacy-settings" component={() => <Redirect to="/app/privacy-settings" />} />
-                  <Route path="/analytics" component={() => <Redirect to="/app/analytics" />} />
+                  <Route path="/analytics" component={() => <Redirect to="/app/dashboard?tab=analytics" />} />
 
                   {/* ──────────────────────────────────────── */}
-                  {/* Super-Admin Routes (always registered;   */}
-                  {/* pages self-guard via token claim check)  */}
+                  {/* Super-Admin Routes (deeper pages always  */}
+                  {/* registered; self-guard via token claim   */}
+                  {/* check. The overview folded into the      */}
+                  {/* unified Dashboard's Admin tab.)          */}
                   {/* ──────────────────────────────────────── */}
-                  <Route path="/admin" component={AdminDashboard} />
+                  <Route path="/admin" component={() => <Redirect to="/app/dashboard?tab=admin" />} />
                   <Route path="/admin/users" component={UserManagement} />
                   <Route path="/admin/users/:uid" component={UserDetail} />
                   <Route path="/admin/tickets" component={SupportTickets} />
                   <Route path="/admin/audit-log" component={AuditLog} />
+                  <Route path="/admin/affiliate" component={AffiliateAdmin} />
 
                   {/* 404 — must stay last: wouter's path-less Route always matches */}
                   <Route component={NotFound} />
@@ -342,6 +400,7 @@ function AppRouter() {
                 </Suspense>
               </NonHomeEnvironmentGate>
             </LayoutRouter>
+            </MarketingRoutesGate>
           </Router>
         </TooltipProvider>
       </AuthProvider>

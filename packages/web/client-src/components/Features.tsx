@@ -36,10 +36,10 @@ const personas = [
     icon: Megaphone,
     label: "Creators",
     title: "Turn product taste into trackable recommendation lists.",
-    story: "Publish themed wishlists, see clicks and conversions, and use affiliate commission share as your recommendations grow.",
-    outcome: "A cleaner path from content to measurable revenue.",
+    story: "Publish themed wishlists, understand audience activity, and prepare for a transparent commission-sharing program.",
+    outcome: "A cleaner path from content to measurable recommendations.",
     plan: "Creator Pro",
-    href: "/subscriptions",
+    href: "/creator-program",
     accent: "text-emerald-800 bg-emerald-50 border-emerald-100",
   },
 ];

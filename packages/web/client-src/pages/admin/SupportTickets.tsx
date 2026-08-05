@@ -5,7 +5,7 @@
  */
 import { useState, useEffect } from 'react';
 import { useLocation } from 'wouter';
-import { getFunctions, httpsCallable } from 'firebase/functions';
+import { apiRequest } from '@/lib/queryClient';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -66,15 +66,12 @@ export default function SupportTickets() {
   const [newStatus, setNewStatus] = useState('');
   const [acting, setActing] = useState(false);
 
-  const functions = getFunctions();
-
   useEffect(() => {
     if (isSuperAdmin === false) { setLocation('/app/dashboard'); return; }
     if (isSuperAdmin !== true) return;
 
-    const fn = httpsCallable<object, { tickets: SupportTicket[] }>(functions, 'adminGetSupportTickets');
-    fn({ pageSize: 50 })
-      .then(({ data }) => setTickets(data.tickets))
+    apiRequest('/api/admin/support-tickets', { method: 'POST', body: { pageSize: 50 } })
+      .then((data) => setTickets((data as { tickets: SupportTicket[] }).tickets))
       .finally(() => setLoading(false));
   }, [isSuperAdmin, setLocation]);
 
@@ -82,11 +79,12 @@ export default function SupportTickets() {
     if (!replyTarget || !replyMessage.trim()) return;
     setActing(true);
     try {
-      const fn = httpsCallable(functions, 'adminRespondToTicket');
-      await fn({
-        ticketId: replyTarget.id,
-        message: replyMessage,
-        newStatus: newStatus || undefined,
+      await apiRequest(`/api/admin/support-tickets/${replyTarget.id}/respond`, {
+        method: 'POST',
+        body: {
+          message: replyMessage,
+          newStatus: newStatus || undefined,
+        },
       });
       setTickets((prev) =>
         prev.map((t) =>

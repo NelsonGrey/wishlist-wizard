@@ -2,6 +2,7 @@ name: Build & Test Browser Extension
 
 permissions:
   contents: read
+  issues: write
 
 on:
   workflow_call:
@@ -55,10 +56,10 @@ jobs:
     
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
       
       - name: Setup Node.js
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@v7
         with:
           node-version: ${{ inputs.node_version || '20' }}
           cache: 'npm'
@@ -109,8 +110,27 @@ jobs:
       - name: Run tests
         run: |
           cd packages/browser-extension
-          npm run test || echo "Tests not configured yet"
-      
+          npm run test
+
+      - name: Install Playwright Chromium + xvfb
+        run: |
+          cd packages/browser-extension
+          npx playwright install --with-deps chromium
+          sudo apt-get install -y xvfb
+
+      - name: Run E2E tests (extension loaded in a real browser)
+        run: |
+          cd packages/browser-extension
+          xvfb-run --auto-servernum npm run test:e2e
+
+      - name: Upload Playwright report on failure
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: extension-e2e-report
+          path: packages/browser-extension/test-results/
+          retention-days: 7
+
       - name: Generate manifest comparison report
         if: success()
         run: |
@@ -136,7 +156,7 @@ jobs:
       
       - name: Upload builds as artifacts
         if: success()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: extension-builds
           path: packages/browser-extension/dist/
@@ -157,14 +177,56 @@ jobs:
       
       - name: Upload deployment packages
         if: success()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: extension-deployment-packages
           path: packages/browser-extension/dist/*.zip
           retention-days: 90
-      
+
+      - name: Publish to Chrome Web Store
+        if: success() && inputs.publish == true
+        env:
+          CHROME_EXTENSION_ID: ${{ secrets.chrome_extension_id }}
+          CHROME_CLIENT_ID: ${{ secrets.chrome_client_id }}
+          CHROME_CLIENT_SECRET: ${{ secrets.chrome_client_secret }}
+          CHROME_REFRESH_TOKEN: ${{ secrets.chrome_refresh_token }}
+        run: |
+          if [ -z "$CHROME_EXTENSION_ID" ] || [ -z "$CHROME_CLIENT_ID" ] || [ -z "$CHROME_CLIENT_SECRET" ] || [ -z "$CHROME_REFRESH_TOKEN" ]; then
+            echo "❌ Chrome Web Store publish secrets are not fully configured."
+            echo "   Required: chrome_extension_id, chrome_client_id, chrome_client_secret, chrome_refresh_token."
+            echo "   The first-ever Chrome Web Store listing must be created manually via the"
+            echo "   Developer Dashboard before these can point at anything real; the refresh"
+            echo "   token requires a one-time interactive OAuth consent flow and can't be"
+            echo "   generated headlessly in CI."
+            exit 1
+          fi
+
+          # Uses dist/chrome from the build:all output above, not the
+          # separate root-level `npm run package:extension:release` flow
+          # (a different, flat single-vite-build dist/ shape used only for
+          # local ad-hoc packaging).
+          npx chrome-webstore-upload-cli upload \
+            --source packages/browser-extension/dist/chrome \
+            --extension-id "$CHROME_EXTENSION_ID" \
+            --client-id "$CHROME_CLIENT_ID" \
+            --client-secret "$CHROME_CLIENT_SECRET" \
+            --refresh-token "$CHROME_REFRESH_TOKEN"
+
+          npx chrome-webstore-upload-cli publish \
+            --extension-id "$CHROME_EXTENSION_ID" \
+            --client-id "$CHROME_CLIENT_ID" \
+            --client-secret "$CHROME_CLIENT_SECRET" \
+            --refresh-token "$CHROME_REFRESH_TOKEN"
+          # Firefox AMO / Edge Add-ons publishing could follow this same
+          # upload-then-publish shape with their own CLIs (web-ext for AMO,
+          # the Partner Center API for Edge) — deliberately out of scope
+          # this round.
+
       - name: Comment on PR (if applicable)
         if: github.event_name == 'pull_request' && success()
+        continue-on-error: true # informational only — this repo's default
+          # workflow token is read-only, so issues:write here is capped
+          # below what createComment needs unless a PAT is wired in later
         uses: actions/github-script@v7
         with:
           script: |
@@ -213,7 +275,7 @@ jobs:
     
     steps:
       - name: Download builds
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: extension-builds
           path: builds/
@@ -243,7 +305,7 @@ jobs:
           cat /tmp/report.md
       
       - name: Upload report
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: manifest-comparison-report

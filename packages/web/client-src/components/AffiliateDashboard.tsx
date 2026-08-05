@@ -117,8 +117,9 @@ const AffiliateDashboard: React.FC = () => {
       <Alert>
         <Info className="h-4 w-4" />
         <AlertDescription>
-          This dashboard shows your affiliate link performance. When visitors click on affiliate links 
-          from your wishlists and make purchases, you may earn commissions that help support the platform.
+          This dashboard shows affiliate-link activity. When visitors follow these links and complete qualifying purchases,
+          Wishlist Wizard may receive commissions that support the platform. Creator commission sharing is a planned program
+          and does not begin until separately launched under published program terms.
         </AlertDescription>
       </Alert>
 

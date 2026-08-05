@@ -344,7 +344,7 @@ Wedding/Event Planner creates event wishlist
 
 ### Feature 1: Wishlist Creation & Management
 
-**Status**: ✅ Complete — the authenticated `/app/*` route block in `packages/web/client-src/AppRouter.tsx` was found accidentally gated out of production by an unrelated cross-project automation commit (2026-05-06); the gate was removed 2026-07-16 and production now matches dev/staging.
+**Status**: ✅ Complete in `wishlist-wizard-dev`, config wired for staging/prod but unverified there — the authenticated `/app/*` route block in `packages/web/client-src/AppRouter.tsx` was found accidentally gated out of production by an unrelated cross-project automation commit (2026-05-06); the gate was removed 2026-07-16 and production now matches dev/staging. A 2026-07-18 audit (`docs/WISHLIST_WIZARD_GO_LIVE.md` §1.15) found the `createWishlist` Cloud Function unconditionally enforces Firebase App Check while the web client never initialized it — confirmed via plain `curl` calls against both dev and staging. Fixed the same day (§1.16): the user set up App Check and provided a reCAPTCHA site key, the client SDK is now wired for web and iOS, and `createWishlist` was verified live end-to-end against `wishlist-wizard-dev`. The user then configured App Check for staging and production too (same site key); the site key is now wired into all three real web deploy paths and the corresponding GitHub secrets are set, but staging/production were deliberately not live-verified this round — dev is the only environment confirmed working end-to-end.
 
 **Wishlist Types**:
 - **Personal Wishlist**: "Things I want" (private by default, can share)
@@ -457,21 +457,22 @@ Wedding/Event Planner creates event wishlist
 
 ### Feature 4: Browser Extension
 
-**Status**: 🟡 Partial — the core one-click-add flow (auto-detect → pick wishlist → save via Cloud Functions) is real and works. Retailer coverage is ~16 hardcoded sites, not 40+. Coupon Finder and Price Comparison have finished UI but call backend endpoints that don't exist, so they never return results. The per-site settings gear described below doesn't exist.
+**Status**: 🟡 Partial, but the core "killer app" flow is now genuinely real, verified live, and covered by a committed automated test suite (2026-07-18, see `docs/WISHLIST_WIZARD_GO_LIVE.md` §1.12–§1.13 for the full history): click the floating button on any website → product auto-detected (JSON-LD structured data preferred, CSS-selector/heuristic fallback otherwise) → toolbar popup opens pre-filled → pick or create a wishlist → save via Cloud Functions. Coupon Finder and Price Comparison remain UI-only, calling backend endpoints that don't exist (deferred, see `docs/WISHLIST_WIZARD_GO_LIVE.md` Part 5). The per-site settings gear described below doesn't exist.
 
 **Core Functionality**:
-1. **One-Click Add**: Floating button on product pages → [+Wishlist]
-2. **Auto-Detection**: Identifies product on page (price, image, title) — deep parsing for Amazon/Target/Walmart, generic heuristic fallback elsewhere
-3. **Smart Retailers**: Pre-configured for ~16 sites (Amazon, Etsy, Walmart, etc.) — not yet the 40+ originally targeted
+1. **One-Click Add**: Floating button on product pages → auto-detects the product and hands it straight to the toolbar popup, pre-filled (fixed 2026-07-18 — previously the button showed a fake success checkmark but the message it sent had no listener anywhere, so nothing was ever saved)
+2. **Auto-Detection**: Identifies product on page (price, image, title) — deep parsing for Amazon/Target/Walmart adapters; real JSON-LD `Product` schema parsing (title/price/image) for every other site, falling back further to CSS-selector heuristics only when no structured data is present. A second bug found while adding unit tests (2026-07-18): the extraction call was missing an `await`, so this enhanced/JSON-LD path was silently unreachable in the running extension the whole time — fixed, and now covered by both unit and E2E tests.
+3. **Site Coverage**: Runs on all http(s) websites, not a fixed retailer list (broadened 2026-07-18 from ~16 hardcoded domains)
 4. **Fallback Mode**: Manual entry if auto-detection fails
 5. **Price Comparison**: 🔴 Not functional — UI calls a backend endpoint that isn't implemented
 6. **Coupon Finder**: 🔴 Not functional — same reason as above
 
 **UI/UX**:
 - Floating button (bottom-right, minimalist icon)
-- Popup overlay (wishlist selector, price preview)
+- Popup overlay (wishlist selector, price preview) — opens automatically via `chrome.action.openPopup()` on Chrome/Edge when supported by the browser context; always reachable manually via the toolbar icon regardless
 - Success toast ("Added to Electronics Wishlist")
 - Settings gear icon (enable/disable per site) — 🔴 not implemented
+- Two broken/dead legacy "quick add" code paths removed 2026-07-18: an "Enable One-Click Add" button that posted to a non-existent unauthenticated endpoint, and an entirely orphaned `QuickAdd` class that was loaded into every popup session but never activated
 
 **Technical**:
 - Content script injects features on product pages
@@ -523,7 +524,7 @@ Wedding/Event Planner creates event wishlist
 
 ### Feature 6: Mobile App (iOS & Android)
 
-**Status**: 🟡 Partial — real Flutter/Firebase client with a working App Store release pipeline (Xcode project, Fastlane, TestFlight/App Store GitHub Actions workflow). Sharing, push notifications, and offline support are now live (see below). Still thin: 4 tabs (Home, Wishlists, Notifications, Profile), no Shared-with-Me, no Creator Mode.
+**Status**: 🟡 Partial — real Flutter/Firebase client with a working App Store release pipeline (Xcode project, Fastlane, TestFlight/App Store GitHub Actions workflow). Sharing, push notifications, and offline support are now live (see below). Still thin: 4 tabs (Home, Wishlists, Notifications, Profile), no Shared-with-Me, no Creator Mode. A 2026-07-18 audit (`docs/WISHLIST_WIZARD_GO_LIVE.md` §1.14) found and fixed a bug where `createWishlist()` always reported failure to the user despite genuinely succeeding server-side, added injectable test doubles (`mocktail`) and 9 regression-proven unit tests for the provider's write paths, and wired (but has not yet populated) CI secrets needed to actually run the existing logged-in integration test suite. Also (§1.16): wired the `firebase_app_check` client SDK (DeviceCheck/App Attest for release, debug provider for simulators) to match App Check enforcement now turned on in `wishlist-wizard-dev`, and found/fixed a real launch-blocking crash (`[core/duplicate-app]`) surfaced during live iOS simulator verification. **Android is on hold indefinitely** (2026-07-18, user decision) — no physical Android device is available, which is required both for real device testing and for Google Play Store submission, independent of any code readiness.
 
 **Screens**:
 1. **Home Feed**: dashboard-style recent wishlists / stats / quick actions (not a browse/discover feed)

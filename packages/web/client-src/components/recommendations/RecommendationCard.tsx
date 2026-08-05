@@ -255,7 +255,7 @@ export default function RecommendationCard({
           onClick={handleView}
           aria-label={`View product details for ${title}`}
         >
-          <ExternalLink size={16} className="mr-1" /> View
+          <ExternalLink size={16} className="mr-1" /> View Details
         </Button>
         {onAddToWishlist && (
           <Button 

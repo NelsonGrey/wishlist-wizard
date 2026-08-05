@@ -5,7 +5,7 @@
  */
 import { useState, useEffect } from 'react';
 import { useLocation } from 'wouter';
-import { getFunctions, httpsCallable } from 'firebase/functions';
+import { apiRequest } from '@/lib/queryClient';
 import { useAuth } from '@/contexts/AuthContext';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -54,20 +54,20 @@ export default function AuditLog() {
   const [resourceType, setResourceType] = useState('');
   const [actorUid, setActorUid] = useState('');
 
-  const functions = getFunctions();
-
   function load() {
     if (isSuperAdmin !== true) return;
     setLoading(true);
-    const fn = httpsCallable<object, { entries: AuditEntry[] }>(functions, 'adminGetAuditLog');
-    fn({
-      pageSize: 100,
-      filter: {
-        ...(resourceType ? { resourceType } : {}),
-        ...(actorUid.trim() ? { actorUid: actorUid.trim() } : {}),
+    apiRequest('/api/admin/audit-log', {
+      method: 'POST',
+      body: {
+        pageSize: 100,
+        filter: {
+          ...(resourceType ? { resourceType } : {}),
+          ...(actorUid.trim() ? { actorUid: actorUid.trim() } : {}),
+        },
       },
     })
-      .then(({ data }) => setEntries(data.entries))
+      .then((data) => setEntries((data as { entries: AuditEntry[] }).entries))
       .finally(() => setLoading(false));
   }
 

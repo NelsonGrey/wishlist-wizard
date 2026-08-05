@@ -12,39 +12,27 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
-import { Separator } from "@/components/ui/separator";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { 
+import {
   User,
-  Settings,
-  Bell,
   Gift,
   HeartHandshake,
-  Lock,
   Mail,
   Check,
-  ShieldCheck,
-  History,
-  LogOut,
   ChevronDown,
-  BadgeDollarSign,
   Edit3,
-  Save,
-  CreditCard,
   BarChart3,
   Loader2,
   X,
-  UserPlus,
-  Receipt
+  UserPlus
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useMutation } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
-import { CalendarSettings } from '@/components/calendar/CalendarSettings';
-import { FeatureFlags, getRemoteConfig } from '@shared/firebase-utils';
+import { ACHIEVEMENT_DEFINITIONS, ACHIEVEMENT_TIER_NAMES, ACHIEVEMENT_TIER_BADGE_CLASSES, WIZARD_TIER } from '@/lib/achievements';
+import { useAchievements } from '@/hooks/use-achievements';
+import { useSubscriptionStatus } from '@/hooks/use-subscription-status';
 
 const createInitialProfile = (user?: {
   uid?: string;
@@ -97,14 +85,6 @@ const createInitialProfile = (user?: {
     doNotWant: [] as string[],
     giftCards: [] as string[]
   },
-  stats: {
-    itemsTracked: 0,
-    wishlistsCreated: 0,
-    giftsPurchased: 0,
-    totalSavings: 0,
-    averageRating: 0,
-    daysActive: 0
-  },
   exchangeHistory: [] as Array<{
     id: number;
     date: string;
@@ -117,53 +97,16 @@ const createInitialProfile = (user?: {
   favoriteStores: [] as string[]
 });
 
-// Theme options
-const THEME_OPTIONS = [
-  { value: "light", label: "Light" },
-  { value: "dark", label: "Dark" },
-  { value: "system", label: "System Default" }
-];
-
-// Language options
-const LANGUAGE_OPTIONS = [
-  { value: "en", label: "English (US)" },
-  { value: "es", label: "Spanish" },
-  { value: "fr", label: "French" },
-  { value: "de", label: "German" },
-  { value: "it", label: "Italian" },
-  { value: "ja", label: "Japanese" }
-];
-
-// Currency options
-const CURRENCY_OPTIONS = [
-  { value: "USD", label: "USD ($)" },
-  { value: "EUR", label: "EUR (€)" },
-  { value: "GBP", label: "GBP (£)" },
-  { value: "JPY", label: "JPY (¥)" },
-  { value: "CAD", label: "CAD ($)" }
-];
-
 // Common clothing sizes
 const CLOTHING_SIZES = ["XS", "S", "M", "L", "XL", "XXL"];
 
 // Common shoe sizes (US)
 const SHOE_SIZES = ["US 5", "US 6", "US 7", "US 8", "US 9", "US 10", "US 11", "US 12", "US 13"];
 
-// Achievement badges data
-const ACHIEVEMENTS = [
-  { id: 1, name: "Wishlist Wizard", description: "Created 10+ wishlists", earned: true, icon: "🌟" },
-  { id: 2, name: "Gifting Guru", description: "Purchased 25+ gifts", earned: true, icon: "🎁" },
-  { id: 3, name: "Savings Expert", description: "Saved over $250 with smart wishlist planning", earned: true, icon: "💰" },
-  { id: 4, name: "Social Butterfly", description: "Connected with 20+ friends", earned: false, icon: "🦋" },
-  { id: 5, name: "Review Enthusiast", description: "Wrote 15+ product reviews", earned: false, icon: "✍️" }
-];
-
 const CONNECTIONS: Array<{ id: number; name: string; avatar: string; mutualFriends: number }> = [];
 
 const UserProfile = () => {
   const { user } = useAuth();
-  const isStripeReady = Boolean(String(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '').trim());
-  const priceAlertsEnabled = getRemoteConfig().isFeatureEnabled(FeatureFlags.PRICE_ALERTS_ENABLED);
   const [profile, setProfile] = useState(() => createInitialProfile(user || undefined));
   const [selectedTab, setSelectedTab] = useState("profile");
   const [editMode, setEditMode] = useState(false);
@@ -171,6 +114,13 @@ const UserProfile = () => {
   const [savingProfile, setSavingProfile] = useState(false);
   const [showConnections, setShowConnections] = useState(false);
   const { toast } = useToast();
+  const { data: achievementsData } = useAchievements();
+  const { data: subscriptionStatus } = useSubscriptionStatus();
+  const stats = {
+    itemsTracked: achievementsData?.achievements?.tracker?.count ?? 0,
+    wishlistsCreated: subscriptionStatus?.usage?.wishlistsOwned ?? 0,
+    giftsPurchased: achievementsData?.achievements?.['gift-giver']?.count ?? 0,
+  };
 
   useEffect(() => {
     if (!user || editMode) {
@@ -238,17 +188,6 @@ const UserProfile = () => {
   const handleCancelEdit = () => {
     setEditedProfile(profile);
     setEditMode(false);
-  };
-
-  // Toggle notification settings
-  const toggleNotification = (key: keyof typeof profile.notifications) => {
-    setEditedProfile({
-      ...editedProfile,
-      notifications: {
-        ...editedProfile.notifications,
-        [key]: !editedProfile.notifications[key]
-      }
-    });
   };
 
   // Add favorite store
@@ -340,27 +279,7 @@ const UserProfile = () => {
                   <Gift size={18} aria-hidden="true" />
                   <span>Gift Preferences</span>
                 </button>
-                <button 
-                  type="button"
-                  className={`flex items-center gap-3 p-4 text-left transition-colors hover:bg-muted ${selectedTab === 'notifications' ? 'bg-muted font-medium' : ''}`}
-                  onClick={() => setSelectedTab('notifications')}
-                  aria-pressed={selectedTab === 'notifications'}
-                  aria-label="Open Notifications section"
-                >
-                  <Bell size={18} aria-hidden="true" />
-                  <span>Notifications</span>
-                </button>
-                <button 
-                  type="button"
-                  className={`flex items-center gap-3 p-4 text-left transition-colors hover:bg-muted ${selectedTab === 'privacy' ? 'bg-muted font-medium' : ''}`}
-                  onClick={() => setSelectedTab('privacy')}
-                  aria-pressed={selectedTab === 'privacy'}
-                  aria-label="Open Privacy section"
-                >
-                  <Lock size={18} aria-hidden="true" />
-                  <span>Privacy</span>
-                </button>
-                <button 
+                <button
                   type="button"
                   className={`flex items-center gap-3 p-4 text-left transition-colors hover:bg-muted ${selectedTab === 'connections' ? 'bg-muted font-medium' : ''}`}
                   onClick={() => setSelectedTab('connections')}
@@ -370,7 +289,7 @@ const UserProfile = () => {
                   <HeartHandshake size={18} aria-hidden="true" />
                   <span>Connections</span>
                 </button>
-                <button 
+                <button
                   type="button"
                   className={`flex items-center gap-3 p-4 text-left transition-colors hover:bg-muted ${selectedTab === 'stats' ? 'bg-muted font-medium' : ''}`}
                   onClick={() => setSelectedTab('stats')}
@@ -379,16 +298,6 @@ const UserProfile = () => {
                 >
                   <BarChart3 size={18} aria-hidden="true" />
                   <span>Stats & Achievements</span>
-                </button>
-                <button 
-                  type="button"
-                  className={`flex items-center gap-3 p-4 text-left transition-colors hover:bg-muted ${selectedTab === 'settings' ? 'bg-muted font-medium' : ''}`}
-                  onClick={() => setSelectedTab('settings')}
-                  aria-pressed={selectedTab === 'settings'}
-                  aria-label="Open Account Settings section"
-                >
-                  <Settings size={18} aria-hidden="true" />
-                  <span>Account Settings</span>
                 </button>
               </nav>
             </CardContent>
@@ -403,23 +312,15 @@ const UserProfile = () => {
               <div className="space-y-1">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Items Tracked:</span>
-                  <span className="font-medium">{profile.stats.itemsTracked}</span>
+                  <span className="font-medium">{stats.itemsTracked}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Wishlists Created:</span>
-                  <span className="font-medium">{profile.stats.wishlistsCreated}</span>
+                  <span className="font-medium">{stats.wishlistsCreated}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Gifts Purchased:</span>
-                  <span className="font-medium">{profile.stats.giftsPurchased}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Total Savings:</span>
-                  <span className="font-medium text-green-600">${profile.stats.totalSavings.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Average Rating:</span>
-                  <span className="font-medium">{profile.stats.averageRating} / 5</span>
+                  <span className="font-medium">{stats.giftsPurchased}</span>
                 </div>
               </div>
               
@@ -440,24 +341,26 @@ const UserProfile = () => {
                   <CardTitle>My Profile</CardTitle>
                   <CardDescription>Manage your personal information</CardDescription>
                 </div>
-                <Button 
-                  data-testid="user-profile-edit-toggle"
-                  variant={editMode ? "default" : "outline"} 
-                  onClick={() => setEditMode(!editMode)}
-                  disabled={savingProfile}
-                >
-                  {editMode ? (
-                    <>
-                      <Save size={16} className="mr-2" />
-                      Done Editing
-                    </>
-                  ) : (
-                    <>
-                      <Edit3 size={16} className="mr-2" />
-                      Edit Profile
-                    </>
-                  )}
-                </Button>
+                {editMode ? (
+                  <div className="flex gap-2">
+                    <Button variant="outline" onClick={handleCancelEdit} disabled={savingProfile}>
+                      Cancel
+                    </Button>
+                    <Button data-testid="user-profile-save" onClick={handleSaveProfile} disabled={savingProfile}>
+                      {savingProfile && <Loader2 size={16} className="mr-2 animate-spin" />}
+                      Save
+                    </Button>
+                  </div>
+                ) : (
+                  <Button
+                    data-testid="user-profile-edit-toggle"
+                    variant="outline"
+                    onClick={() => setEditMode(true)}
+                  >
+                    <Edit3 size={16} className="mr-2" />
+                    Edit
+                  </Button>
+                )}
               </CardHeader>
               <CardContent>
                 <div className="flex flex-col md:flex-row gap-6">
@@ -561,15 +464,6 @@ const UserProfile = () => {
                           </div>
                         </div>
                         
-                        <div className="pt-4 flex gap-2">
-                          <Button data-testid="user-profile-save" onClick={handleSaveProfile} disabled={savingProfile}>
-                            {savingProfile && <Loader2 size={16} className="mr-2 animate-spin" />}
-                            Save Changes
-                          </Button>
-                          <Button variant="outline" onClick={handleCancelEdit} disabled={savingProfile}>
-                            Cancel
-                          </Button>
-                        </div>
                       </>
                     ) : (
                       <>
@@ -615,23 +509,22 @@ const UserProfile = () => {
                     <CardTitle>Gift Preferences</CardTitle>
                     <CardDescription>Customize your gifting experience</CardDescription>
                   </div>
-                  <Button 
-                    variant={editMode ? "default" : "outline"} 
-                    onClick={() => setEditMode(!editMode)}
-                    disabled={savingProfile}
-                  >
-                    {editMode ? (
-                      <>
-                        <Save size={16} className="mr-2" />
-                        Done
-                      </>
-                    ) : (
-                      <>
-                        <Edit3 size={16} className="mr-2" />
-                        Edit
-                      </>
-                    )}
-                  </Button>
+                  {editMode ? (
+                    <div className="flex gap-2">
+                      <Button variant="outline" onClick={handleCancelEdit} disabled={savingProfile}>
+                        Cancel
+                      </Button>
+                      <Button onClick={handleSaveProfile} disabled={savingProfile}>
+                        {savingProfile && <Loader2 size={16} className="mr-2 animate-spin" />}
+                        Save
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button variant="outline" onClick={() => setEditMode(true)}>
+                      <Edit3 size={16} className="mr-2" />
+                      Edit
+                    </Button>
+                  )}
                 </div>
               </CardHeader>
               <CardContent>
@@ -859,146 +752,11 @@ const UserProfile = () => {
                     )}
                   </div>
                   
-                  {editMode && (
-                    <div className="pt-4 flex gap-2">
-                      <Button onClick={handleSaveProfile} disabled={savingProfile}>
-                        {savingProfile && <Loader2 size={16} className="mr-2 animate-spin" />}
-                        Save Changes
-                      </Button>
-                      <Button variant="outline" onClick={handleCancelEdit} disabled={savingProfile}>
-                        Cancel
-                      </Button>
-                    </div>
-                  )}
                 </div>
               </CardContent>
             </Card>
           )}
-          
-          {/* Notifications Tab */}
-          {selectedTab === 'notifications' && (
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle>Notification Preferences</CardTitle>
-                <CardDescription>Manage how and when we contact you</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-6">
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-0.5">
-                        <Label htmlFor="email-notifications">Email Notifications</Label>
-                        <p className="text-sm text-muted-foreground">Receive updates via email</p>
-                      </div>
-                      <Switch 
-                        id="email-notifications" 
-                        checked={editedProfile.notifications.email}
-                        onCheckedChange={() => toggleNotification('email')}
-                      />
-                    </div>
-                    
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-0.5">
-                        <Label htmlFor="push-notifications">Push Notifications</Label>
-                        <p className="text-sm text-muted-foreground">Receive notifications on your device</p>
-                      </div>
-                      <Switch 
-                        id="push-notifications" 
-                        checked={editedProfile.notifications.push}
-                        onCheckedChange={() => toggleNotification('push')}
-                      />
-                    </div>
-                    
-                    <Separator />
-                    
-                    {priceAlertsEnabled && (
-                      <div className="flex items-center justify-between">
-                        <div className="space-y-0.5">
-                          <Label htmlFor="price-alerts">Price Drop Alerts</Label>
-                          <p className="text-sm text-muted-foreground">Get notified when item prices drop</p>
-                        </div>
-                        <Switch 
-                          id="price-alerts" 
-                          checked={editedProfile.notifications.priceAlerts}
-                          onCheckedChange={() => toggleNotification('priceAlerts')}
-                        />
-                      </div>
-                    )}
-                    
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-0.5">
-                        <Label htmlFor="gift-reminders">Gift Reminders</Label>
-                        <p className="text-sm text-muted-foreground">Receive reminders for upcoming gift events</p>
-                      </div>
-                      <Switch 
-                        id="gift-reminders" 
-                        checked={editedProfile.notifications.giftReminders}
-                        onCheckedChange={() => toggleNotification('giftReminders')}
-                      />
-                    </div>
-                    
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-0.5">
-                        <Label htmlFor="wishlist-updates">Wishlist Updates</Label>
-                        <p className="text-sm text-muted-foreground">Notifications when your wishlists are viewed or items are purchased</p>
-                      </div>
-                      <Switch 
-                        id="wishlist-updates" 
-                        checked={editedProfile.notifications.wishlistUpdates}
-                        onCheckedChange={() => toggleNotification('wishlistUpdates')}
-                      />
-                    </div>
-                    
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-0.5">
-                        <Label htmlFor="special-offers">Special Offers & Tips</Label>
-                        <p className="text-sm text-muted-foreground">Receive exclusive deals and gifting advice</p>
-                      </div>
-                      <Switch 
-                        id="special-offers" 
-                        checked={editedProfile.notifications.specialOffers}
-                        onCheckedChange={() => toggleNotification('specialOffers')}
-                      />
-                    </div>
-                  </div>
-                  
-                  <div className="pt-4">
-                    <Button onClick={handleSaveProfile} disabled={savingProfile}>
-                      {savingProfile && <Loader2 size={16} className="mr-2 animate-spin" />}
-                      Save Notification Preferences
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-          
-          {/* Privacy Tab */}
-          {selectedTab === 'privacy' && (
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle>Privacy Settings</CardTitle>
-                <CardDescription>Manage who can see your wishlists and activity</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center py-12">
-                  <Lock className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
-                  <h3 className="text-lg font-medium mb-2">Advanced Privacy Controls</h3>
-                  <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-                    Manage detailed privacy settings for individual wishlists, items, and your profile.
-                    Control visibility, custom access lists, and interaction permissions.
-                  </p>
-                  <Button asChild size="lg">
-                    <Link href="/app/privacy-settings">
-                      <Settings className="h-4 w-4 mr-2" />
-                      Open Privacy Settings
-                    </Link>
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-          
+
           {/* Connections Tab */}
           {selectedTab === 'connections' && (
             <Card>
@@ -1126,87 +884,97 @@ const UserProfile = () => {
                     <Card className="bg-emerald-50">
                       <CardContent className="pt-6">
                         <div className="text-center">
-                          <span className="text-3xl font-bold">{profile.stats.itemsTracked}</span>
+                          <span className="text-3xl font-bold">{stats.itemsTracked}</span>
                           <p className="text-sm text-muted-foreground">Items Tracked</p>
                         </div>
                       </CardContent>
                     </Card>
-                    
+
                     <Card className="bg-emerald-50">
                       <CardContent className="pt-6">
                         <div className="text-center">
-                          <span className="text-3xl font-bold">{profile.stats.wishlistsCreated}</span>
+                          <span className="text-3xl font-bold">{stats.wishlistsCreated}</span>
                           <p className="text-sm text-muted-foreground">Wishlists Created</p>
                         </div>
                       </CardContent>
                     </Card>
-                    
+
                     <Card className="bg-emerald-50">
                       <CardContent className="pt-6">
                         <div className="text-center">
-                          <span className="text-3xl font-bold">{profile.stats.giftsPurchased}</span>
+                          <span className="text-3xl font-bold">{stats.giftsPurchased}</span>
                           <p className="text-sm text-muted-foreground">Gifts Purchased</p>
                         </div>
                       </CardContent>
                     </Card>
-                    
-                    <Card className="bg-green-50">
-                      <CardContent className="pt-6">
-                        <div className="text-center">
-                          <span className="text-3xl font-bold text-green-600">${profile.stats.totalSavings.toFixed(2)}</span>
-                          <p className="text-sm text-muted-foreground">Total Savings</p>
-                        </div>
-                      </CardContent>
-                    </Card>
-                    
-                    <Card className="bg-primary/5">
-                      <CardContent className="pt-6">
-                        <div className="text-center">
-                          <span className="text-3xl font-bold">{profile.stats.averageRating}</span>
-                          <p className="text-sm text-muted-foreground">Average Rating</p>
-                        </div>
-                      </CardContent>
-                    </Card>
-                    
-                    <Card className="bg-primary/5">
-                      <CardContent className="pt-6">
-                        <div className="text-center">
-                          <span className="text-3xl font-bold">{profile.stats.daysActive}</span>
-                          <p className="text-sm text-muted-foreground">Days Active</p>
-                        </div>
-                      </CardContent>
-                    </Card>
                   </div>
                 </div>
                 
-                {/* Achievement Badges */}
+                {/* Trophy Case */}
                 <div>
-                  <h3 className="text-lg font-medium mb-3">Achievement Badges</h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                    {ACHIEVEMENTS.map(achievement => (
-                      <div 
-                        key={achievement.id} 
-                        className={`border rounded-lg p-4 transition-colors ${achievement.earned ? 'bg-primary/5 border-primary/20' : 'bg-gray-50 opacity-60'}`}
-                      >
-                        <div className="flex items-start gap-3">
-                          <div className={`text-2xl ${achievement.earned ? '' : 'grayscale'}`}>
-                            {achievement.icon}
-                          </div>
-                          <div>
-                            <h4 className="font-medium flex items-center">
-                              {achievement.name}
-                              {achievement.earned && (
-                                <Check size={14} className="ml-1 text-green-500" />
-                              )}
-                            </h4>
-                            <p className="text-sm text-muted-foreground">{achievement.description}</p>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-lg font-medium">Trophy Case</h3>
+                    <Link href="/app/achievements" className="text-sm text-primary hover:underline">
+                      How are achievements earned?
+                    </Link>
                   </div>
+                  {(() => {
+                    const earnedAchievements = ACHIEVEMENT_DEFINITIONS.filter(
+                      achievement => achievementsData?.achievements?.[achievement.id]?.earned
+                    );
+                    if (earnedAchievements.length === 0) {
+                      return (
+                        <p className="text-sm text-muted-foreground">
+                          No achievements earned yet —{' '}
+                          <Link href="/app/achievements" className="text-primary hover:underline">
+                            see how to earn your first one
+                          </Link>.
+                        </p>
+                      );
+                    }
+                    return (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                        {earnedAchievements.map(achievement => {
+                          const state = achievementsData?.achievements?.[achievement.id];
+                          const tier = state?.tier ?? 0;
+                          const tierName = tier > 0 ? ACHIEVEMENT_TIER_NAMES[tier - 1] : null;
+                          const isWizard = achievement.tiered && tier === WIZARD_TIER;
+                          return (
+                            <div
+                              key={achievement.id}
+                              className={`border rounded-lg p-4 transition-colors ${
+                                isWizard
+                                  ? "bg-gradient-to-br from-amber-50 to-yellow-50 border-amber-300 ring-1 ring-amber-300 shadow-sm"
+                                  : "bg-primary/5 border-primary/20"
+                              }`}
+                            >
+                              <div className="flex items-start gap-3">
+                                <div className="text-2xl">
+                                  {isWizard ? "🧙" : achievement.icon}
+                                </div>
+                                <div>
+                                  <h4 className="font-medium flex items-center gap-1.5">
+                                    {achievement.name}
+                                    <Check size={14} className="text-green-500" />
+                                  </h4>
+                                  <p className="text-sm text-muted-foreground">{achievement.description}</p>
+                                  {tierName && achievement.tiered && (
+                                    <span
+                                      className={`inline-block mt-1.5 px-2 py-0.5 rounded-full text-xs font-medium border ${ACHIEVEMENT_TIER_BADGE_CLASSES[tier]}`}
+                                    >
+                                      {isWizard ? "✨ " : ""}{tierName}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  })()}
                 </div>
-                
+
                 {/* Recent Gift Exchanges */}
                 <div>
                   <h3 className="text-lg font-medium mb-3">Recent Gift Exchanges</h3>
@@ -1235,222 +1003,6 @@ const UserProfile = () => {
             </Card>
           )}
           
-          {/* Account Settings Tab */}
-          {selectedTab === 'settings' && (
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle>Account Settings</CardTitle>
-                <CardDescription>Manage your account preferences</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                {/* Appearance */}
-                <div className="space-y-2">
-                  <h3 className="text-base font-medium">Appearance</h3>
-                  <div className="flex flex-col space-y-1">
-                    <Label htmlFor="theme-select">Theme</Label>
-                    <select 
-                      id="theme-select" 
-                      className="border rounded-md p-2"
-                      value={editedProfile.theme}
-                      onChange={e => setEditedProfile({...editedProfile, theme: e.target.value})}
-                      title="Select your preferred theme"
-                    >
-                      {THEME_OPTIONS.map(option => (
-                        <option key={option.value} value={option.value}>{option.label}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-                
-                {/* Regional Settings */}
-                <div className="space-y-4">
-                  <h3 className="text-base font-medium">Regional Settings</h3>
-                  
-                  <div className="flex flex-col space-y-1">
-                    <Label htmlFor="language-select">Language</Label>
-                    <select 
-                      id="language-select" 
-                      className="border rounded-md p-2"
-                      value={editedProfile.language}
-                      onChange={e => setEditedProfile({...editedProfile, language: e.target.value})}
-                      title="Select your preferred language"
-                    >
-                      {LANGUAGE_OPTIONS.map(option => (
-                        <option key={option.value} value={option.value}>{option.label}</option>
-                      ))}
-                    </select>
-                  </div>
-                  
-                  <div className="flex flex-col space-y-1">
-                    <Label htmlFor="currency-select">Currency</Label>
-                    <select 
-                      id="currency-select" 
-                      className="border rounded-md p-2"
-                      value={editedProfile.currency}
-                      onChange={e => setEditedProfile({...editedProfile, currency: e.target.value})}
-                      title="Select your preferred currency"
-                    >
-                      {CURRENCY_OPTIONS.map(option => (
-                        <option key={option.value} value={option.value}>{option.label}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-                
-                {isStripeReady ? (
-                  <>
-                    {/* Payment Methods */}
-                    <div className="space-y-3">
-                      <h3 className="text-base font-medium">Payment Methods</h3>
-                      
-                      <div className="space-y-2">
-                        {profile.paymentMethods.map(method => (
-                          <div key={method.id} className="flex items-center justify-between border rounded-lg p-3">
-                            <div className="flex items-center gap-3">
-                              <div>
-                                {method.type === 'credit_card' ? (
-                                  <CreditCard className="text-primary" />
-                                ) : (
-                                  <BadgeDollarSign className="text-emerald-800" />
-                                )}
-                              </div>
-                              <div>
-                                {method.type === 'credit_card' ? (
-                                  <div>
-                                    <p className="font-medium">{method.brand} ••••{method.lastFour}</p>
-                                  </div>
-                                ) : (
-                                  <div>
-                                    <p className="font-medium">PayPal</p>
-                                    <p className="text-sm text-muted-foreground">{method.email}</p>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                            <div>
-                              {method.default && (
-                                <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">
-                                  Default
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        ))}
-                        
-                        <Button variant="outline" size="sm">
-                          <CreditCard size={16} className="mr-2" />
-                          Add Payment Method
-                        </Button>
-                      </div>
-                    </div>
-
-                    {/* Payment History */}
-                    <div className="space-y-3">
-                      <h3 className="text-base font-medium">Payment History</h3>
-
-                      <div className="space-y-2">
-                        {/* This would be populated with actual payment history data */}
-                        <div className="text-center py-8 text-muted-foreground">
-                          <Receipt className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                          <p className="text-sm">No payment history available</p>
-                          <p className="text-xs mt-1">Your contribution and purchase history will appear here</p>
-                        </div>
-                      </div>
-                    </div>
-                  </>
-                ) : (
-                  <div className="rounded-lg border p-4 text-sm text-muted-foreground" data-testid="profile-payments-deferred">
-                    Payments and checkout features are coming in v1.1.
-                  </div>
-                )}
-                
-                {/* Security */}
-                <div className="space-y-3">
-                  <h3 className="text-base font-medium">Security</h3>
-                  
-                  <div className="flex justify-between border rounded-lg p-3">
-                    <div>
-                      <p className="font-medium">Password</p>
-                      <p className="text-sm text-muted-foreground">Last updated 3 months ago</p>
-                    </div>
-                    <Button variant="outline" size="sm">Change Password</Button>
-                  </div>
-                  
-                  <div className="flex justify-between border rounded-lg p-3">
-                    <div>
-                      <p className="font-medium flex items-center">
-                        Two-Factor Authentication 
-                        <ShieldCheck size={16} className="ml-2 text-green-600" />
-                      </p>
-                      <p className="text-sm text-muted-foreground">Enabled via Authenticator App</p>
-                    </div>
-                    <Button variant="outline" size="sm">Manage</Button>
-                  </div>
-                </div>
-
-                {/* Contact Sources */}
-                <div className="space-y-3">
-                  <h3 className="text-base font-medium">Contact Sources</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Manage contact providers here. Recipient selection reads from these sources so setup stays in Profile & Settings.
-                  </p>
-                  <div className="rounded-lg border p-4">
-                    <CalendarSettings />
-                  </div>
-                </div>
-                
-                {/* Account Actions */}
-                <div className="space-y-3 pt-4">
-                  <h3 className="text-base font-medium">Account Actions</h3>
-                  
-                  <div className="flex flex-wrap gap-2">
-                    <Button variant="outline" size="sm">
-                      <History size={16} className="mr-2" />
-                      Download Your Data
-                    </Button>
-                    
-                    <Button variant="outline" size="sm">
-                      <LogOut size={16} className="mr-2" />
-                      Log Out of All Devices
-                    </Button>
-                    
-                    <Dialog>
-                      <DialogTrigger asChild>
-                        <Button variant="outline" size="sm" className="text-red-600 hover:bg-red-50">
-                          Delete Account
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent>
-                        <DialogHeader>
-                          <DialogTitle>Delete Your Account?</DialogTitle>
-                          <DialogDescription>
-                            This action cannot be undone. All your wishlists, preferences, and data will be permanently deleted.
-                          </DialogDescription>
-                        </DialogHeader>
-                        <div className="space-y-2 py-4">
-                          <p className="text-sm text-muted-foreground">
-                            Please type &quot;delete my account&quot; to confirm:
-                          </p>
-                          <Input placeholder="delete my account" />
-                        </div>
-                        <DialogFooter>
-                          <Button variant="outline">Cancel</Button>
-                          <Button variant="destructive">Delete Account</Button>
-                        </DialogFooter>
-                      </DialogContent>
-                    </Dialog>
-                  </div>
-                </div>
-                
-                <div className="pt-4">
-                  <Button onClick={handleSaveProfile} disabled={savingProfile}>
-                    {savingProfile && <Loader2 size={16} className="mr-2 animate-spin" />}
-                    Save Account Settings
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          )}
         </div>
       </div>
       </div>

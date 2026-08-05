@@ -3,8 +3,8 @@ import { Smartphone, Zap, Share2, Bell } from "lucide-react";
 
 export default function MobileAppDemo() {
   return (
-    <div className="py-12 bg-gradient-to-br from-emerald-50 via-white to-green-50">
-      <div className="container mx-auto px-4 max-w-7xl">
+    <div className="mx-auto w-full max-w-[var(--site-content-width)] bg-gradient-to-br from-emerald-50 via-white to-green-50 py-12">
+      <div className="mx-auto px-4 max-w-7xl">
         <div className="mb-12">
           <p className="text-sm font-semibold text-emerald-700 uppercase tracking-wide mb-3">
             Feature Demo
@@ -129,7 +129,7 @@ export default function MobileAppDemo() {
 
         {/* CTA */}
         <div className="flex flex-wrap gap-4 justify-center">
-          <Link href="/app/dashboard" className="inline-flex items-center justify-center rounded-lg bg-emerald-700 px-8 py-3 text-white font-semibold hover:bg-emerald-800 transition-colors">
+          <Link href="/app/wishlists" className="inline-flex items-center justify-center rounded-lg bg-emerald-700 px-8 py-3 text-white font-semibold hover:bg-emerald-800 transition-colors">
             Try App Dashboard
           </Link>
           <Link href="/register" className="inline-flex items-center justify-center rounded-lg border-2 border-emerald-700 px-8 py-3 text-emerald-700 font-semibold hover:bg-emerald-50 transition-colors">

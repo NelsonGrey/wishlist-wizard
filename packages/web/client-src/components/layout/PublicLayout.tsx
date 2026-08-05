@@ -1,8 +1,10 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import Footer from "@/components/Footer";
 import { GlobalAdSlot } from "@/components/ads";
 import { useAuth } from "@/contexts/AuthContext";
+import { legalAndSupportRoutes, marketingHoldingPageRoutes } from "@/lib/marketingRoutes";
+import AppEntryLink from "@/components/AppEntryLink";
 
 interface PublicLayoutProps {
   children: React.ReactNode;
@@ -11,45 +13,29 @@ interface PublicLayoutProps {
 export default function PublicLayout({ children }: PublicLayoutProps) {
   const [location] = useLocation();
   const { isAuthenticated } = useAuth();
-  const mainRef = useRef<HTMLElement>(null);
-  const adFreeMarketingRoutes = [
-    '/',
-    '/subscriptions',
-    '/plans',
-    '/extension',
-    '/download',
-    '/about',
-    '/support',
-    '/privacy',
-    '/terms',
-    '/cookies',
-    '/mobile-app-demo',
-    '/browser-extension-demo',
-    '/social-integration-demo',
-    '/calendar-integration-demo',
-    '/wishlist-management-demo',
-    '/basic-activity-insights-demo',
-    '/advanced-user-profiles-demo',
-  ];
+  const adFreeMarketingRoutes = [...marketingHoldingPageRoutes, ...legalAndSupportRoutes];
   const shouldShowAds = !adFreeMarketingRoutes.includes(location);
 
-  // Scroll the main content area to top on route change.
+  // Scroll to top on route change.
   useEffect(() => {
-    mainRef.current?.scrollTo(0, 0);
+    window.scrollTo(0, 0);
   }, [location]);
 
   return (
-    <div className="h-screen flex flex-col overflow-hidden bg-white">
+    <div className="min-h-screen flex flex-col bg-white">
       <header className="flex-none bg-white border-b border-gray-200 shadow-sm z-50">
         <div className="site-container flex items-center justify-between py-2.5 2xl:py-3.5">
           <Link href="/">
             <span className="flex items-center hover:scale-105 transition-transform duration-200">
               <img src="/logo.svg" alt="Wishlist Wizard" className="h-9 w-9 mr-2.5" />
-              <span className="font-bold text-xl tracking-tight text-emerald-800">Wishlist Wizard</span>
+              <span className="hidden font-bold text-xl tracking-tight text-emerald-800 sm:inline">Wishlist Wizard</span>
             </span>
           </Link>
 
           <nav className="hidden md:flex items-center space-x-6">
+            <Link href="/how-it-works" className="text-gray-700 hover:text-emerald-700 font-medium transition-colors">
+              How It Works
+            </Link>
             <Link href="/about" className="text-gray-700 hover:text-emerald-700 font-medium transition-colors">
               About
             </Link>
@@ -63,37 +49,37 @@ export default function PublicLayout({ children }: PublicLayoutProps) {
               Browser Extension
             </Link>
             {isAuthenticated ? (
-              <Link href="/app/dashboard" className="px-6 py-2.5 bg-emerald-800 text-white hover:bg-emerald-900 rounded-lg font-medium shadow-md hover:shadow-lg transition-all">
+              <Link href="/app/wishlists" className="px-6 py-2.5 bg-emerald-800 text-white hover:bg-emerald-900 rounded-lg font-medium shadow-md hover:shadow-lg transition-all">
                 Go to App
               </Link>
             ) : (
               <>
-                <Link href="/login" className="px-5 py-2 text-gray-700 hover:text-emerald-800 hover:bg-emerald-50 rounded-lg font-medium transition-all">
+                <AppEntryLink href="/login" className="px-5 py-2 text-gray-700 hover:text-emerald-800 hover:bg-emerald-50 rounded-lg font-medium transition-all">
                   Sign In
-                </Link>
-                <Link href="/register" className="px-6 py-2.5 bg-emerald-800 text-white hover:bg-emerald-900 rounded-lg font-medium shadow-md hover:shadow-lg transition-all">
+                </AppEntryLink>
+                <AppEntryLink href="/register" className="px-6 py-2.5 bg-emerald-800 text-white hover:bg-emerald-900 rounded-lg font-medium shadow-md hover:shadow-lg transition-all">
                   Sign Up
-                </Link>
+                </AppEntryLink>
               </>
             )}
           </nav>
 
           <div className="md:hidden flex items-center gap-3">
-            <Link href="/subscriptions" className="text-gray-700 hover:text-emerald-800 font-medium">
-              Subscriptions
+            <Link href="/how-it-works" className="text-gray-700 hover:text-emerald-800 font-medium">
+              How It Works
             </Link>
             {isAuthenticated ? (
-              <Link href="/app/dashboard" className="px-4 py-2 bg-emerald-800 text-white rounded-lg shadow-md">
+              <Link href="/app/wishlists" className="px-4 py-2 bg-emerald-800 text-white rounded-lg shadow-md">
                 Go to App
               </Link>
             ) : (
               <>
-                <Link href="/login" className="text-gray-700 hover:text-emerald-800 font-medium">
+                <AppEntryLink href="/login" className="text-gray-700 hover:text-emerald-800 font-medium">
                   Sign In
-                </Link>
-                <Link href="/register" className="px-4 py-2 bg-emerald-800 text-white rounded-lg shadow-md">
+                </AppEntryLink>
+                <AppEntryLink href="/register" className="px-4 py-2 bg-emerald-800 text-white rounded-lg shadow-md">
                   Sign Up
-                </Link>
+                </AppEntryLink>
               </>
             )}
           </div>
@@ -102,8 +88,8 @@ export default function PublicLayout({ children }: PublicLayoutProps) {
 
       {shouldShowAds && <GlobalAdSlot placement="top" />}
 
-      {/* Scrollable content area between the pinned header and footer */}
-      <main ref={mainRef} className="min-h-0 flex-1 overflow-y-auto bg-white">
+      {/* Content area between header and footer — flex-1 fills remaining space when short */}
+      <main className="flex-1 bg-white">
         {children}
       </main>
 

@@ -32,10 +32,10 @@ jobs:
       TARGET_URL: ${{ inputs.base_url || github.event.inputs.base_url || 'https://wishlist-wizard-prod.web.app' }}
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
 
       - name: Setup Node.js
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@v7
         with:
           node-version: 20
           cache: npm
@@ -54,7 +54,7 @@ jobs:
 
       - name: Upload Production Validation Report
         if: always()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: production-validation-report
           path: |

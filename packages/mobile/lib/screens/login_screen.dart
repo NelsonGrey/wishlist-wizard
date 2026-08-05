@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
@@ -46,6 +48,22 @@ class _LoginScreenState extends State<LoginScreen> {
             : _nameController.text.trim(),
       );
     }
+
+    if (!success && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(authProvider.error ?? 'Authentication failed'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  Future<void> _submitWithProvider(
+    Future<bool> Function() signIn,
+  ) async {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final success = await signIn();
 
     if (!success && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -187,6 +205,46 @@ class _LoginScreenState extends State<LoginScreen> {
                                   )
                                 : Text(_isLogin ? 'Sign In' : 'Sign Up'),
                           ),
+                          const SizedBox(height: 16),
+
+                          // Platform-native social sign-in (Apple on iOS, Google on Android)
+                          Row(
+                            children: [
+                              const Expanded(child: Divider()),
+                              Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                ),
+                                child: Text(
+                                  'or',
+                                  style: Theme.of(context).textTheme.bodySmall
+                                      ?.copyWith(color: Colors.grey[600]),
+                                ),
+                              ),
+                              const Expanded(child: Divider()),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          if (Platform.isIOS)
+                            OutlinedButton.icon(
+                              onPressed: authProvider.isLoading
+                                  ? null
+                                  : () => _submitWithProvider(
+                                      authProvider.loginWithApple,
+                                    ),
+                              icon: const Icon(Icons.apple),
+                              label: const Text('Continue with Apple'),
+                            )
+                          else if (Platform.isAndroid)
+                            OutlinedButton.icon(
+                              onPressed: authProvider.isLoading
+                                  ? null
+                                  : () => _submitWithProvider(
+                                      authProvider.loginWithGoogle,
+                                    ),
+                              icon: const Icon(Icons.g_mobiledata),
+                              label: const Text('Continue with Google'),
+                            ),
                           const SizedBox(height: 16),
 
                           // Toggle between login/register

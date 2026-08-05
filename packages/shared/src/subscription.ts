@@ -296,7 +296,7 @@ export const TIER_PRICING: Record<SubscriptionTier, TierPricing> = {
     annualMonthlyEquivalent: 12.42,
     annualSavingPercent: 17,
     displayName: 'Creator Pro',
-    tagline: 'Earn commission share. Full creator analytics.',
+    tagline: 'Full creator analytics. Commission sharing planned.',
     trialDays: 14,
   },
   business: {
@@ -346,6 +346,12 @@ export function canAddItemToWishlist(tier: SubscriptionTier, currentItemCount: n
 /** Whether a user at `tier` may add one more collaborator given `currentCollaborators` */
 export function canAddCollaborator(tier: SubscriptionTier, currentCollaborators: number): boolean {
   return currentCollaborators < getTierLimits(tier).maxCollaboratorsPerWishlist;
+}
+
+/** Whether a user at `tier` may connect one more external calendar given `currentConnections` */
+export function canConnectCalendar(tier: SubscriptionTier, currentConnections: number): boolean {
+  const limits = getTierLimits(tier);
+  return limits.calendarEnabled && currentConnections < limits.maxCalendars;
 }
 
 /**

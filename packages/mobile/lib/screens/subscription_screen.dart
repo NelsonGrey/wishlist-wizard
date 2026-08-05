@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../providers/providers.dart';
+import '../services/iap_service.dart';
 
 class SubscriptionScreen extends StatefulWidget {
   const SubscriptionScreen({super.key});
@@ -13,6 +13,7 @@ class SubscriptionScreen extends StatefulWidget {
 
 class _SubscriptionScreenState extends State<SubscriptionScreen> {
   String _selectedBillingCycle = 'monthly';
+  int _handledIapEventId = 0;
 
   @override
   void initState() {
@@ -20,24 +21,6 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<SubscriptionProvider>().loadSubscriptionData();
     });
-  }
-
-  Future<void> _openUrl(String? url) async {
-    if (url == null || url.isEmpty) {
-      _showError('No checkout link returned from server');
-      return;
-    }
-
-    final uri = Uri.tryParse(url);
-    if (uri == null) {
-      _showError('Invalid checkout URL');
-      return;
-    }
-
-    final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
-    if (!launched && mounted) {
-      _showError('Could not open link');
-    }
   }
 
   void _showError(String message) {
@@ -53,8 +36,23 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Subscription')),
-      body: Consumer<SubscriptionProvider>(
-        builder: (context, provider, child) {
+      body: Consumer2<SubscriptionProvider, IapService>(
+        builder: (context, provider, iapService, child) {
+          if (iapService.eventId != _handledIapEventId) {
+            final eventIdToHandle = iapService.eventId;
+            final errorToShow = iapService.lastError;
+            final purchasedTier = iapService.lastVerifiedTier;
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (!mounted) return;
+              _handledIapEventId = eventIdToHandle;
+              if (errorToShow != null) {
+                _showError(errorToShow);
+              } else if (purchasedTier != null) {
+                provider.loadSubscriptionData();
+              }
+            });
+          }
+
           if (provider.isLoading) {
             return const Center(child: CircularProgressIndicator());
           }
@@ -142,27 +140,24 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                   (option) => _UpgradeOptionCard(
                     option: option,
                     billingCycle: _selectedBillingCycle,
-                    isLoading: provider.isActionLoading,
-                    onUpgrade: () async {
-                      final url = await provider.createCheckoutUrl(
-                        option.tier,
-                        _selectedBillingCycle,
-                      );
-                      await _openUrl(url);
-                    },
+                    isLoading: iapService.isLoading,
+                    priceOverride: iapService.priceFor(
+                      option.tier,
+                      _selectedBillingCycle,
+                    ),
+                    onUpgrade: () =>
+                        iapService.purchase(option.tier, _selectedBillingCycle),
                   ),
                 ),
-                const SizedBox(height: 12),
-                OutlinedButton.icon(
-                  onPressed: provider.isActionLoading
-                      ? null
-                      : () async {
-                          final url = await provider.createBillingPortalUrl();
-                          await _openUrl(url);
-                        },
-                  icon: const Icon(Icons.payment),
-                  label: const Text('Manage billing in Stripe'),
-                ),
+                if (iapService.isAvailable) ...[
+                  const SizedBox(height: 12),
+                  TextButton(
+                    onPressed: iapService.isLoading
+                        ? null
+                        : iapService.restorePurchases,
+                    child: const Text('Restore purchases'),
+                  ),
+                ],
               ],
             ),
           );
@@ -306,6 +301,7 @@ class _UpgradeOptionCard extends StatelessWidget {
     required this.billingCycle,
     required this.onUpgrade,
     required this.isLoading,
+    required this.priceOverride,
   });
 
   final SubscriptionUpgradeOption option;
@@ -313,12 +309,15 @@ class _UpgradeOptionCard extends StatelessWidget {
   final VoidCallback onUpgrade;
   final bool isLoading;
 
+  /// Live price from StoreKit/Play Billing (falls back to a placeholder
+  /// matching packages/shared/src/subscription.ts's TIER_PRICING until the
+  /// store query resolves) — takes precedence over the Stripe-sourced
+  /// option.monthlyPrice/annualPrice, since actual purchases go through the
+  /// store, not Stripe, on mobile.
+  final String priceOverride;
+
   @override
   Widget build(BuildContext context) {
-    final price = billingCycle == 'annual'
-        ? option.annualPrice ?? option.monthlyPrice
-        : option.monthlyPrice ?? option.annualPrice;
-
     final savings = option.annualSavings;
 
     return Card(
@@ -333,11 +332,7 @@ class _UpgradeOptionCard extends StatelessWidget {
               style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
             ),
             const SizedBox(height: 4),
-            Text(
-              price == null
-                  ? 'Pricing unavailable'
-                  : '\$${price.toStringAsFixed(2)} / ${billingCycle == 'annual' ? 'year' : 'month'}',
-            ),
+            Text(priceOverride),
             if (billingCycle == 'annual' && savings != null) ...[
               const SizedBox(height: 4),
               Text(
@@ -349,7 +344,7 @@ class _UpgradeOptionCard extends StatelessWidget {
             ElevatedButton(
               onPressed: isLoading ? null : onUpgrade,
               child: Text(
-                isLoading ? 'Opening...' : 'Upgrade to ${option.name}',
+                isLoading ? 'Processing...' : 'Upgrade to ${option.name}',
               ),
             ),
           ],

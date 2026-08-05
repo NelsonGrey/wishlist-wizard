@@ -64,6 +64,8 @@ on:
           - build_only
           - testflight
           - appstore
+          - appstore_metadata
+          - appstore_submit
       skip_tests:
         description: Skip mobile tests
         required: false
@@ -86,7 +88,13 @@ jobs:
     runs-on: ${{ fromJSON(inputs.runner_labels) }}
     timeout-minutes: 90
     environment:
-      name: ${{ inputs.release_type == 'appstore' && 'ios-appstore' || 'ios-testflight' }}
+      # ios-appstore requires manual approval (see repo environment
+      # settings) — reserved for appstore_submit, the one genuinely
+      # irreversible action here. appstore/appstore_metadata build or push
+      # metadata and are safe to run repeatedly/automatically, so they stay
+      # on the ungated ios-testflight environment rather than picking up
+      # ios-appstore's approval requirement too.
+      name: ${{ inputs.release_type == 'appstore_submit' && 'ios-appstore' || 'ios-testflight' }}
     defaults:
       run:
         shell: bash
@@ -108,7 +116,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
           submodules: recursive
@@ -191,13 +199,22 @@ jobs:
 
       - name: Run mobile tests
         if: ${{ !inputs.skip_tests }}
+        env:
+          TEST_EMAIL: ${{ secrets.MOBILE_INTEGRATION_TEST_EMAIL }}
+          TEST_PASSWORD: ${{ secrets.MOBILE_INTEGRATION_TEST_PASSWORD }}
         run: |
           cd packages/mobile
           flutter test
 
           DEVICE_ID="$(flutter devices --machine | node -e "const fs=require('fs');const devices=JSON.parse(fs.readFileSync(0,'utf8'));const preferred=devices.find(d=>d.targetPlatform==='ios'&&d.emulator)||devices.find(d=>d.targetPlatform==='ios');if(!preferred){process.exit(1);}process.stdout.write(preferred.id);")" || true
           if [ -n "${DEVICE_ID:-}" ]; then
-            flutter test integration_test/auth_smoke_test.dart -d "$DEVICE_ID"
+            if [ -z "${TEST_EMAIL:-}" ] || [ -z "${TEST_PASSWORD:-}" ]; then
+              echo "ℹ️ MOBILE_INTEGRATION_TEST_EMAIL/PASSWORD secrets not set; 'Home screen (logged in)' integration tests will skip themselves"
+            fi
+            flutter test integration_test/auth_smoke_test.dart -d "$DEVICE_ID" \
+              --dart-define=FIREBASE_ENV=dev \
+              --dart-define=TEST_EMAIL="${TEST_EMAIL:-}" \
+              --dart-define=TEST_PASSWORD="${TEST_PASSWORD:-}"
           else
             echo "⚠️ No iOS simulator/device detected for integration smoke test; skipping smoke run"
           fi
@@ -219,6 +236,17 @@ jobs:
             appstore)
               bundle exec fastlane build_appstore
               ;;
+            appstore_metadata)
+              # Metadata/screenshots only via the API — no build, no signing,
+              # and never submits for review.
+              bundle exec fastlane push_appstore_metadata
+              ;;
+            appstore_submit)
+              # Submits the current App Store version for human review.
+              # Irreversible on Apple's side once accepted — only reachable
+              # via an explicit workflow_dispatch choice, never automatically.
+              bundle exec fastlane submit_appstore_for_review
+              ;;
             *)
               echo "❌ Unknown release type: ${{ inputs.release_type }}"
               exit 1
@@ -226,8 +254,8 @@ jobs:
           esac
 
       - name: Upload iOS build artifact
-        if: ${{ inputs.release_type != 'testflight' }}
-        uses: actions/upload-artifact@v6
+        if: ${{ inputs.release_type != 'testflight' && inputs.release_type != 'appstore_metadata' && inputs.release_type != 'appstore_submit' }}
+        uses: actions/upload-artifact@v7
         with:
           name: ios-release-${{ inputs.release_type }}
           path: |
