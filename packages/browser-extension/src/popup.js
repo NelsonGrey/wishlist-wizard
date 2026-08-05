@@ -613,6 +613,30 @@ async function checkProductPage() {
   checkProductPageInFlight = true;
 
   try {
+    // Fast path: the floating in-page button was just clicked and already
+    // extracted this page's product info (see background.js's 'openPopup'
+    // handler) — use it directly instead of re-running the ping/retry chain
+    // below, which is what makes a manual popup-open feel instant.
+    try {
+      const pending = await new Promise((resolve) => {
+        chrome.storage.session.get(['pendingProductData'], (result) => resolve(result.pendingProductData || null));
+      });
+
+      if (pending && pending.data && Date.now() - pending.capturedAt < 10000) {
+        chrome.storage.session.remove('pendingProductData');
+
+        currentProductInfo = pending.data;
+        syncGlobalVars();
+        trackExtensionEvent('product_detected', 'detection', `button: ${currentProductInfo.store || (currentTab?.url || 'unknown')}`);
+        populateProductDetails();
+        await getWishlists();
+        showEnhancedProductScreen();
+        return;
+      }
+    } catch (pendingError) {
+      console.warn('Could not read pending product data, falling back to normal detection:', pendingError);
+    }
+
     setLoadingMessage('Detecting product details...');
 
     // If we don't have a current tab, show appropriate screen based on auth status

@@ -1,25 +1,34 @@
 import React, { createContext, useContext, useEffect, useRef, useState, ReactNode } from 'react';
-import type { User } from 'firebase/auth';
+import type { AuthCredential, PasswordValidationStatus, User } from 'firebase/auth';
 import {
   FeatureFlags,
   getAnalyticsTracker,
 } from '@shared/firebase-utils';
-import { 
-  initFirebase, 
-  onAuthStateChange, 
+import {
+  initFirebase,
+  onAuthStateChange,
   signIn as firebaseSignIn,
   signUp as firebaseSignUp,
   signOutUser,
   resetPassword,
   verifyEmail,
-  changePassword
+  changePassword,
+  checkPasswordPolicy,
+  signInWithGoogle as firebaseSignInWithGoogle,
+  signInWithApple as firebaseSignInWithApple,
+  credentialFromOAuthError,
+  linkPendingCredential
 } from '../lib/firebase';
+import { isAccountExistsWithDifferentCredentialError } from '../lib/firebase-auth-errors';
 
 interface AuthContextType {
   user: User | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, displayName?: string) => Promise<void>;
+  checkPasswordPolicy: (password: string) => Promise<PasswordValidationStatus>;
+  signInWithGoogle: () => Promise<void>;
+  signInWithApple: () => Promise<void>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   sendEmailVerification: () => Promise<void>;
@@ -45,6 +54,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const userRef = useRef<User | null>(null);
+  const hasBroadcastSignedInUserRef = useRef(false);
+  // Holds an OAuth credential recovered from `auth/account-exists-with-different-credential`
+  // until the user next signs in successfully by any method — see linkPendingProviderIfNeeded.
+  const pendingLinkCredentialRef = useRef<AuthCredential | null>(null);
 
   const isFirebaseNotConfiguredError = (error: unknown): boolean => {
     if (!error || typeof error !== 'object') {
@@ -55,13 +68,29 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   // Lets the Wishlist Wizard browser extension (if installed and listening
   // on this origin) reuse this signed-in session instead of requiring a
-  // separate login — see packages/browser-extension/src/web-auth-bridge.js.
+  // separate login, and tells it when that session ends — see
+  // packages/browser-extension/src/web-auth-bridge.js.
   const broadcastAuthTokenToExtension = async (currentUser: User | null) => {
-    if (typeof window === 'undefined' || !currentUser) {
+    if (typeof window === 'undefined') {
       return;
     }
+
+    if (!currentUser) {
+      // Only signal a sign-out if this tab had actually broadcast a signed-in
+      // session before. Otherwise a logged-out visit to a public page (where
+      // the content script always requests the current auth state on load)
+      // would clear an unrelated, independently-logged-in extension session
+      // that was never bridged from this tab in the first place.
+      if (hasBroadcastSignedInUserRef.current) {
+        hasBroadcastSignedInUserRef.current = false;
+        window.dispatchEvent(new CustomEvent('ww:auth-bridge-signout'));
+      }
+      return;
+    }
+
     try {
       const token = await currentUser.getIdToken();
+      hasBroadcastSignedInUserRef.current = true;
       window.dispatchEvent(new CustomEvent('ww:auth-bridge-token', {
         detail: {
           token,
@@ -160,9 +189,34 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     };
   }, []);
 
+  // Firebase's "improved email privacy" (enumeration protection) strips the
+  // email off `auth/account-exists-with-different-credential` errors and
+  // neuters `fetchSignInMethodsForEmail`, so we can't look up which method
+  // owns a colliding email up front. Instead, a successful sign-in by *any*
+  // method is itself the proof of ownership — link the OAuth credential we
+  // stashed from the failed attempt right after this one succeeds.
+  const linkPendingProviderIfNeeded = async (signedInUser: User | null): Promise<void> => {
+    const pendingCredential = pendingLinkCredentialRef.current;
+    if (!pendingCredential || !signedInUser) {
+      return;
+    }
+
+    try {
+      await linkPendingCredential(signedInUser, pendingCredential);
+    } catch (error) {
+      const code = (error as { code?: string })?.code;
+      if (code !== 'auth/provider-already-linked' && code !== 'auth/credential-already-in-use' && code !== 'auth/requires-recent-login') {
+        throw error;
+      }
+    } finally {
+      pendingLinkCredentialRef.current = null;
+    }
+  };
+
   const signIn = async (email: string, password: string): Promise<void> => {
     try {
-      await firebaseSignIn(email, password);
+      const credential = await firebaseSignIn(email, password);
+      await linkPendingProviderIfNeeded(credential.user);
       getAnalyticsTracker().logUserLogin('email');
       // User state will be updated through onAuthStateChanged
     } catch (error) {
@@ -184,8 +238,37 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  const signInWithGoogle = async (): Promise<void> => {
+    try {
+      await firebaseSignInWithGoogle();
+      getAnalyticsTracker().logUserLogin('social');
+      // User state will be updated through onAuthStateChanged
+    } catch (error) {
+      if (isAccountExistsWithDifferentCredentialError(error)) {
+        pendingLinkCredentialRef.current = credentialFromOAuthError(error, 'google.com');
+      }
+      console.error('[AuthContext] Google sign-in failed:', error);
+      throw error;
+    }
+  };
+
+  const signInWithApple = async (): Promise<void> => {
+    try {
+      await firebaseSignInWithApple();
+      getAnalyticsTracker().logUserLogin('social');
+      // User state will be updated through onAuthStateChanged
+    } catch (error) {
+      if (isAccountExistsWithDifferentCredentialError(error)) {
+        pendingLinkCredentialRef.current = credentialFromOAuthError(error, 'apple.com');
+      }
+      console.error('[AuthContext] Apple sign-in failed:', error);
+      throw error;
+    }
+  };
+
   const signOut = async (): Promise<void> => {
     try {
+      pendingLinkCredentialRef.current = null;
       await signOutUser();
       // User state will be updated through onAuthStateChanged
     } catch (error) {
@@ -232,6 +315,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     loading,
     signIn,
     signUp,
+    checkPasswordPolicy,
+    signInWithGoogle,
+    signInWithApple,
     signOut,
     resetPassword: resetPasswordHandler,
     sendEmailVerification,

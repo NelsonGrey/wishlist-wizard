@@ -298,49 +298,6 @@ function populateCouponList(coupons) {
   });
 }
 
-// Enable one-click adding
-async function enableQuickAdd() {
-  try {
-    if (!currentTab || !currentTab.id) {
-      showErrorScreen('No active tab found', 'unknown');
-      return;
-    }
-    
-    if (!currentProductInfo) {
-      showErrorScreen('No product information available', 'detection');
-      return;
-    }
-    
-    // Get base URL
-    const baseUrl = await getBaseUrl();
-    
-    // Initialize quick add in content script
-    const result = await chrome.tabs.sendMessage(currentTab.id, { 
-      action: 'enableQuickAdd',
-      isLoggedIn: isLoggedIn,
-      baseUrl: baseUrl,
-      productInfo: currentProductInfo
-    });
-    
-    if (result && result.success) {
-      const quickAddButton = document.getElementById('enable-quick-add-button');
-      quickAddButton.disabled = true;
-      quickAddButton.innerHTML = `
-        <span class="option-icon">✓</span>
-        <span class="option-text">One-Click Add Enabled</span>
-      `;
-      quickAddButton.style.backgroundColor = '#d1fae5';
-      quickAddButton.style.borderColor = '#a7f3d0';
-      quickAddButton.style.color = '#065f46';
-    } else {
-      showErrorScreen('Failed to enable one-click add', 'unknown');
-    }
-  } catch (error) {
-    console.error('Error enabling quick add:', error);
-    showErrorScreen('Error enabling one-click add', 'unknown');
-  }
-}
-
 function setupPopupExtraEventListeners() {
   const tabButtons = document.querySelectorAll('.tab-button');
   tabButtons.forEach(button => {
@@ -349,12 +306,6 @@ function setupPopupExtraEventListeners() {
       switchTab(tabId);
     });
   });
-  
-  // Quick add button
-  const quickAddButton = document.getElementById('enable-quick-add-button');
-  if (quickAddButton) {
-    quickAddButton.addEventListener('click', enableQuickAdd);
-  }
   
   // Refresh comparison button
   const refreshComparisonButton = document.getElementById('refresh-comparison-button');

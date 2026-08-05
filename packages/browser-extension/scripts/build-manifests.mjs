@@ -17,26 +17,11 @@ import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-// Common permissions and host patterns
-const SHOPPING_SITES = [
-  '*://*.amazon.com/*',
-  '*://*.amazon.ca/*',
-  '*://*.amazon.co.uk/*',
-  '*://*.target.com/*',
-  '*://*.walmart.com/*',
-  '*://*.ebay.com/*',
-  '*://*.bestbuy.com/*',
-  '*://*.etsy.com/*',
-  '*://*.wayfair.com/*',
-  '*://*.overstock.com/*',
-  '*://*.homedepot.com/*',
-  '*://*.lowes.com/*',
-  '*://*.macys.com/*',
-  '*://*.nordstrom.com/*',
-  '*://*.kohls.com/*',
-  '*://*.costco.com/*',
-  '*://*.samsclub.com/*',
-];
+// Product detection (floating button + extraction) runs on all http(s) pages —
+// generic JSON-LD/OG-tag/heuristic extraction handles sites without a
+// dedicated adapter (see src/lib/adapters/ for the Amazon/Target/Walmart
+// adapters, which are looked up by hostname independently of this list).
+const ALL_SITES = ['http://*/*', 'https://*/*'];
 
 const EXTENSION_API_HOSTS = [
   'https://wishlist-wizard-dev.web.app/*',
@@ -88,7 +73,7 @@ function manifestV3() {
       'scripting',
       'notifications',
     ],
-    host_permissions: [...SHOPPING_SITES, ...EXTENSION_API_HOSTS],
+    host_permissions: ['<all_urls>'],
     background: {
       service_worker: 'background.js',
     },
@@ -100,7 +85,7 @@ function manifestV3() {
     ],
     content_scripts: [
       {
-        matches: SHOPPING_SITES,
+        matches: ALL_SITES,
         js: ['enhanced-product-extractor.js', 'content.js'],
         run_at: 'document_end',
       },
@@ -128,7 +113,7 @@ function manifestV2Firefox() {
       'tabs',
       'storage',
       'notifications',
-      ...SHOPPING_SITES,
+      '<all_urls>',
       ...EXTENSION_API_HOSTS,
     ],
     browser_action: {
@@ -140,7 +125,7 @@ function manifestV2Firefox() {
     },
     content_scripts: [
       {
-        matches: SHOPPING_SITES,
+        matches: ALL_SITES,
         js: ['enhanced-product-extractor.js', 'content.js'],
         run_at: 'document_end',
       },
@@ -171,7 +156,7 @@ function manifestSafari() {
     ],
     content_scripts: [
       {
-        matches: SHOPPING_SITES,
+        matches: ALL_SITES,
         js: ['enhanced-product-extractor.js', 'content.js'],
         run_at: 'document_end',
       },

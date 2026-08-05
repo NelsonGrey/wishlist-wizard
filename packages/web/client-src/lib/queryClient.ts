@@ -1,7 +1,8 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
 import { getAuth } from "firebase/auth";
 import { connectFunctionsEmulator, getFunctions, httpsCallable } from "firebase/functions";
-import { firebaseApp, initFirebase } from "@/lib/firebase";
+import { getToken as getAppCheckToken } from "firebase/app-check";
+import { firebaseApp, getFirebaseAppCheck, initFirebase } from "@/lib/firebase";
 
 // API Base URL
 // - Uses explicit env override when provided
@@ -37,9 +38,30 @@ async function getAuthToken(): Promise<string | null> {
 }
 
 /**
+ * Get an App Check token for raw fetch() requests to the api router.
+ * httpsCallable() attaches this automatically for callable-path requests;
+ * a plain fetch() does not, so router endpoints that call
+ * requireAppCheck()/requireAppCheckHTTP() internally need it attached here.
+ * Returns null (silently) if App Check isn't configured for this environment.
+ */
+async function getAppCheckHeaderToken(): Promise<string | null> {
+  try {
+    const appCheck = getFirebaseAppCheck();
+    if (!appCheck) {
+      return null;
+    }
+    const result = await getAppCheckToken(appCheck, false);
+    return result.token;
+  } catch (error) {
+    console.warn('Failed to get App Check token:', error);
+    return null;
+  }
+}
+
+/**
  * Determine if we should use Firebase Functions instead of Express API
  */
-function shouldUseFirebaseFunctions(url: string): boolean {
+function shouldUseFirebaseFunctions(url: string, _method: string): boolean {
   if (/^\/api\/items\/[^/]+\/price-intelligence$/.test(url)) {
     return false;
   }
@@ -47,33 +69,22 @@ function shouldUseFirebaseFunctions(url: string): boolean {
   // List of API endpoints that are backed by callable Firebase Functions
   const firebaseFunctionEndpoints = [
     '/api/auth/me',
-    '/api/wishlists',
-    '/api/shared',
-    '/api/users/search',
-    '/api/calendar',
-    '/api/analytics',
-    '/api/notifications',
-    '/api/fcm',
-    '/api/contacts',
-    '/api/affiliate',
-    '/api/items',
-    '/api/price-intelligence',
-    '/api/mobile',
-    '/api/devices'
+    '/api/users/search'
   ];
-  
+
   return firebaseFunctionEndpoints.some(endpoint => url.startsWith(endpoint));
 }
 
 /**
  * Endpoints served by the HTTP `api` Firebase function router (non-callable).
  */
-function shouldUseFirebaseApiRouter(url: string): boolean {
+function shouldUseFirebaseApiRouter(url: string, _method: string): boolean {
   if (/^\/api\/items\/[^/]+\/price-intelligence$/.test(url)) {
     return true;
   }
 
   const routerEndpoints = [
+    '/api/account',
     '/api/privacy',
     '/api/recommendations',
     '/api/price-alerts',
@@ -81,6 +92,22 @@ function shouldUseFirebaseApiRouter(url: string): boolean {
     '/api/beneficiaries',
     '/api/wishlist-items',
     '/api/products/preview',
+    '/api/creator',
+    '/api/admin',
+    '/api/billing',
+    '/api/contacts',
+    '/api/devices',
+    '/api/analytics',
+    '/api/mobile',
+    '/api/affiliate',
+    '/api/fcm',
+    '/api/notifications',
+    '/api/calendar',
+    '/api/wishlists',
+    '/api/shared',
+    '/api/items',
+    '/api/price-intelligence',
+    '/api/achievements',
   ];
 
   return routerEndpoints.some(endpoint => url.startsWith(endpoint));
@@ -151,82 +178,15 @@ type FunctionRouteMatch = {
   data: Record<string, unknown>;
 };
 
-function getFirebaseFunctionRoute(url: string, method: string, body?: unknown): FunctionRouteMatch {
-  const normalizedMethod = method.toUpperCase();
+function getFirebaseFunctionRoute(url: string, _method: string, body?: unknown): FunctionRouteMatch {
   const data = (typeof body === 'object' && body !== null && !Array.isArray(body))
     ? { ...(body as Record<string, unknown>) }
     : {};
 
   const patterns: Array<{ pattern: RegExp; resolve: (match: RegExpExecArray) => FunctionRouteMatch }> = [
-    { pattern: /^\/api\/calendar\/events$/, resolve: () => ({ functionName: normalizedMethod === 'POST' ? 'calendarEventCreate' : 'calendarEventsList', data }) },
-    { pattern: /^\/api\/calendar\/events\/([^/]+)$/, resolve: (match) => ({
-        functionName: normalizedMethod === 'DELETE' ? 'calendarEventDelete' : 'calendarEventUpdate',
-        data: { ...data, eventId: match[1] }
-      })
-    },
-    { pattern: /^\/api\/calendar\/auth\/([^/]+)$/, resolve: (match) => ({ functionName: 'calendarAuthUrl', data: { ...data, provider: match[1] } }) },
-    { pattern: /^\/api\/calendar\/connections$/, resolve: () => ({ functionName: 'calendarConnections', data }) },
-    { pattern: /^\/api\/calendar\/connect$/, resolve: () => ({ functionName: 'calendarConnect', data }) },
-    { pattern: /^\/api\/calendar\/connections\/([^/]+)\/sync$/, resolve: (match) => ({ functionName: 'calendarConnectionSync', data: { ...data, connectionId: match[1] } }) },
-    { pattern: /^\/api\/calendar\/connections\/([^/]+)\/settings$/, resolve: (match) => ({ functionName: 'calendarConnectionUpdate', data: { ...data, connectionId: match[1] } }) },
-    { pattern: /^\/api\/calendar\/connections\/([^/]+)$/, resolve: (match) => ({ functionName: 'calendarDisconnect', data: { ...data, connectionId: match[1] } }) },
-    { pattern: /^\/api\/calendar\/sync$/, resolve: () => ({ functionName: 'calendarSync', data }) },
-    { pattern: /^\/api\/calendar\/sync-settings$/, resolve: () => ({ functionName: 'calendarSyncSettings', data }) },
-    { pattern: /^\/api\/contacts$/, resolve: () => ({ functionName: 'getContacts', data }) },
-    { pattern: /^\/api\/contacts\/external$/, resolve: () => ({ functionName: 'getExternalContacts', data }) },
-    { pattern: /^\/api\/contacts\/import$/, resolve: () => ({ functionName: 'importContacts', data }) },
-    { pattern: /^\/api\/contacts\/([^/]+)\/hide$/, resolve: (match) => ({ functionName: 'hideContact', data: { ...data, contactId: match[1] } }) },
-    { pattern: /^\/api\/contacts\/([^/]+)$/, resolve: (match) => ({ functionName: 'deleteContact', data: { ...data, contactId: match[1] } }) },
-    { pattern: /^\/api\/affiliate\/convert$/, resolve: () => ({ functionName: 'linkConvert', data }) },
-    { pattern: /^\/api\/affiliate\/batch-convert$/, resolve: () => ({ functionName: 'linkConvertBatch', data }) },
-    { pattern: /^\/api\/affiliate\/track-click$/, resolve: () => ({ functionName: 'linkTrackClick', data }) },
-    { pattern: /^\/api\/affiliate\/convert-wishlist$/, resolve: () => ({ functionName: 'linkConvertWishlist', data }) },
-    { pattern: /^\/api\/affiliate\/programs$/, resolve: () => ({ functionName: 'linkPrograms', data }) },
-    { pattern: /^\/api\/affiliate\/stats$/, resolve: () => ({ functionName: 'linkStats', data }) },
-    { pattern: /^\/api\/affiliate\/disclosure$/, resolve: () => ({ functionName: 'linkDisclosure', data }) },
     { pattern: /^\/api\/group-payments\/payment-intent$/, resolve: () => ({ functionName: 'groupPaymentCreateIntent', data }) },
     { pattern: /^\/api\/group-payments\/confirm$/, resolve: () => ({ functionName: 'groupPaymentConfirm', data }) },
     { pattern: /^\/api\/group-payments\/item\/([^/]+)$/, resolve: (match) => ({ functionName: 'groupGiftSummary', data: { ...data, itemId: match[1] } }) },
-    { pattern: /^\/api\/mobile\/barcode\/([^/]+)$/, resolve: (match) => ({ functionName: 'barcodeLookup', data: { ...data, barcode: match[1] } }) },
-    { pattern: /^\/api\/mobile\/sync$/, resolve: () => ({ functionName: 'mobileSyncActions', data }) },
-    { pattern: /^\/api\/devices\/register$/, resolve: () => ({ functionName: 'deviceRegister', data }) },
-    { pattern: /^\/api\/devices$/, resolve: () => ({ functionName: 'deviceList', data }) },
-    { pattern: /^\/api\/devices\/update$/, resolve: () => ({ functionName: 'deviceUpdate', data }) },
-    { pattern: /^\/api\/devices\/sync-log$/, resolve: () => ({ functionName: 'deviceSyncLog', data }) },
-    { pattern: /^\/api\/devices\/sync-logs$/, resolve: () => ({ functionName: 'deviceSyncLogs', data }) },
-    { pattern: /^\/api\/analytics\/track$/, resolve: () => ({ functionName: 'metricsTrackEvent', data }) },
-    { pattern: /^\/api\/analytics\/events$/, resolve: () => ({ functionName: 'metricsEvents', data }) },
-    { pattern: /^\/api\/analytics\/summary$/, resolve: () => ({ functionName: 'metricsSummary', data }) },
-    { pattern: /^\/api\/analytics\/ad-revenue-summary$/, resolve: () => ({ functionName: 'metricsRevenueSummary', data }) },
-    { pattern: /^\/api\/analytics\/ad-kpi-snapshot$/, resolve: () => ({ functionName: 'metricsSnapshotCreate', data }) },
-    { pattern: /^\/api\/analytics\/ad-kpi-snapshots$/, resolve: () => ({ functionName: 'metricsSnapshots', data }) },
-    { pattern: /^\/api\/fcm\/token$/, resolve: () => ({ functionName: normalizedMethod === 'DELETE' ? 'removeFCMToken' : 'saveFCMToken', data }) },
-    { pattern: /^\/api\/fcm\/subscribe-topic$/, resolve: () => ({ functionName: 'subscribeToTopic', data }) },
-    { pattern: /^\/api\/fcm\/unsubscribe-topic$/, resolve: () => ({ functionName: 'unsubscribeFromTopic', data }) },
-    { pattern: /^\/api\/fcm\/test-notification$/, resolve: () => ({ functionName: 'sendTestPushNotification', data }) },
-    { pattern: /^\/api\/notifications$/, resolve: () => ({ functionName: 'getUserNotifications', data }) },
-    { pattern: /^\/api\/notifications\/mark-all-read$/, resolve: () => ({ functionName: 'markAllNotificationsAsRead', data }) },
-    { pattern: /^\/api\/notifications\/([^/]+)\/read$/, resolve: (match) => ({ functionName: 'markNotificationAsRead', data: { ...data, notificationId: match[1] } }) },
-    { pattern: /^\/api\/notifications\/([^/]+)$/, resolve: (match) => ({ functionName: 'deleteNotification', data: { ...data, notificationId: match[1] } }) },
-    { pattern: /^\/api\/notifications\/settings$/, resolve: () => ({ functionName: normalizedMethod === 'POST' ? 'updateNotificationSettings' : 'getNotificationSettings', data }) },
-    { pattern: /^\/api\/wishlists$/, resolve: () => ({ functionName: normalizedMethod === 'POST' ? 'createWishlist' : 'getUserWishlists', data }) },
-    { pattern: /^\/api\/wishlists\/([^/]+)$/, resolve: (match) => ({
-        functionName: normalizedMethod === 'DELETE'
-          ? 'deleteWishlist'
-          : normalizedMethod === 'PATCH' || normalizedMethod === 'PUT'
-            ? 'updateWishlist'
-            : 'getWishlistById',
-        data: { ...data, wishlistId: match[1] }
-      })
-    },
-    { pattern: /^\/api\/wishlists\/([^/]+)\/items$/, resolve: (match) => ({ functionName: 'getWishlistItems', data: { ...data, wishlistId: match[1] } }) },
-    { pattern: /^\/api\/items$/, resolve: () => ({ functionName: 'addWishlistItem', data }) },
-    { pattern: /^\/api\/price-intelligence\/refresh$/, resolve: () => ({ functionName: 'priceIntelRefresh', data }) },
-    { pattern: /^\/api\/items\/([^/]+)\/reserve$/, resolve: (match) => ({ functionName: 'reserveWishlistItem', data: { ...data, itemId: match[1] } }) },
-    { pattern: /^\/api\/items\/([^/]+)\/purchase$/, resolve: (match) => ({ functionName: 'purchaseWishlistItem', data: { ...data, itemId: match[1] } }) },
-    { pattern: /^\/api\/items\/([^/]+)$/, resolve: (match) => ({ functionName: normalizedMethod === 'DELETE' ? 'deleteWishlistItem' : 'updateWishlistItem', data: { ...data, itemId: match[1] } }) },
-    { pattern: /^\/api\/items\/([^/]+)\/price-history$/, resolve: (match) => ({ functionName: 'priceHistoryGetItem', data: { ...data, itemId: match[1] } }) },
-    { pattern: /^\/api\/shared\/([^/]+)$/, resolve: (match) => ({ functionName: 'getSharedWishlist', data: { ...data, shareId: match[1] } }) },
   ];
 
   for (const entry of patterns) {
@@ -268,8 +228,8 @@ export async function apiRequest(
   const normalizedBody = normalizeBody(body);
   
   // Determine if we should use Firebase Functions
-  const useFunctions = useFirebaseFunctions ?? shouldUseFirebaseFunctions(url);
-  const useApiRouter = shouldUseFirebaseApiRouter(url);
+  const useFunctions = useFirebaseFunctions ?? shouldUseFirebaseFunctions(url, method);
+  const useApiRouter = shouldUseFirebaseApiRouter(url, method);
   
   let fullUrl: string;
   const headers: Record<string, string> = {};
@@ -299,6 +259,11 @@ export async function apiRequest(
     const token = await getAuthToken();
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    const appCheckToken = await getAppCheckHeaderToken();
+    if (appCheckToken) {
+      headers['X-Firebase-AppCheck'] = appCheckToken;
     }
 
     fullUrl = buildFirebaseApiRouterUrl(url);

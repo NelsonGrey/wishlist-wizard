@@ -16,6 +16,10 @@ vi.mock('@/contexts/AuthContext', () => ({
     signIn: mockSignIn,
     resetPassword: mockResetPassword,
     signUp: mockSignUp,
+    checkPasswordPolicy: vi.fn(async () => ({
+      isValid: true,
+      passwordPolicy: { customStrengthOptions: {} },
+    })),
   }),
 }));
 

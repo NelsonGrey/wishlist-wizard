@@ -5,7 +5,6 @@ const legacyScriptUrls = [
   './popup-auth.js',      // Load second - calls those functions after login
   './coupons.js',
   './comparison.js',
-  './quick-add.js',
   './popup-extra.js'
 ];
 

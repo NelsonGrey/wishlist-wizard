@@ -5,7 +5,7 @@
  */
 import { useState, useEffect } from 'react';
 import { useLocation, useParams } from 'wouter';
-import { getFunctions, httpsCallable } from 'firebase/functions';
+import { apiRequest } from '@/lib/queryClient';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -18,6 +18,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useToast } from '@/hooks/use-toast';
 import { User, ArrowLeft } from 'lucide-react';
 
@@ -72,16 +73,13 @@ export default function UserDetail() {
   const [tierReason, setTierReason] = useState('');
   const [acting, setActing] = useState(false);
 
-  const functions = getFunctions();
-
   useEffect(() => {
     if (isSuperAdmin === false) { setLocation('/app/dashboard'); return; }
     if (isSuperAdmin !== true) return;
 
     setLoading(true);
-    const fn = httpsCallable<object, UserDetail>(functions, 'adminGetUser');
-    fn({ targetUid: uid })
-      .then(({ data }) => setUser(data))
+    apiRequest(`/api/admin/users/${uid}`)
+      .then((data) => setUser(data as UserDetail))
       .catch((err) => {
         toast({ title: 'Error', description: err?.message, variant: 'destructive' });
         setLocation('/admin/users');
@@ -93,8 +91,7 @@ export default function UserDetail() {
     if (!user || !suspendReason.trim()) return;
     setActing(true);
     try {
-      const fn = httpsCallable(functions, 'adminSuspendUser');
-      await fn({ targetUid: uid, reason: suspendReason });
+      await apiRequest(`/api/admin/users/${uid}/suspend`, { method: 'POST', body: { reason: suspendReason } });
       setUser({ ...user, isSuspended: true });
       toast({ title: 'User suspended' });
       setSuspendDialog(false);
@@ -111,8 +108,7 @@ export default function UserDetail() {
     if (!user) return;
     setActing(true);
     try {
-      const fn = httpsCallable(functions, 'adminUnsuspendUser');
-      await fn({ targetUid: uid, reason: 'Admin reinstatement' });
+      await apiRequest(`/api/admin/users/${uid}/unsuspend`, { method: 'POST', body: { reason: 'Admin reinstatement' } });
       setUser({ ...user, isSuspended: false });
       toast({ title: 'User reinstated' });
     } catch (err: unknown) {
@@ -127,8 +123,10 @@ export default function UserDetail() {
     if (!user || !newTier || !tierReason.trim()) return;
     setActing(true);
     try {
-      const fn = httpsCallable(functions, 'adminModifySubscription');
-      await fn({ targetUid: uid, newTier, reason: tierReason });
+      await apiRequest(`/api/admin/users/${uid}/subscription`, {
+        method: 'POST',
+        body: { newTier, reason: tierReason },
+      });
       setUser({ ...user, subscriptionTier: newTier });
       toast({ title: 'Subscription tier updated' });
       setTierDialog(false);
@@ -154,9 +152,14 @@ export default function UserDetail() {
     <div className="container mx-auto py-8 space-y-6">
       {/* Header */}
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={() => setLocation('/admin/users')}>
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button variant="ghost" size="icon" aria-label="Back to user list" onClick={() => setLocation('/admin/users')}>
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Back to user list</TooltipContent>
+        </Tooltip>
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
             <User className="h-6 w-6" />

@@ -9,7 +9,7 @@ import {
   initializeAnalytics,
   initializeRemoteConfig,
 } from '@shared/firebase-utils';
-import type { User, Auth } from 'firebase/auth';
+import type { User, Auth, AuthCredential } from 'firebase/auth';
 import type { FirebaseApp } from 'firebase/app';
 import type { Firestore } from 'firebase/firestore';
 import {
@@ -22,7 +22,13 @@ import {
   updatePassword,
   onAuthStateChanged,
   setPersistence,
-  browserLocalPersistence
+  browserLocalPersistence,
+  GoogleAuthProvider,
+  OAuthProvider,
+  signInWithPopup,
+  linkWithCredential,
+  validatePassword,
+  type PasswordValidationStatus
 } from 'firebase/auth';
 import { getToken, isSupported as messagingIsSupported } from 'firebase/messaging';
 
@@ -162,6 +168,19 @@ let firebaseConfig = {
     import.meta.env.VITE_FIREBASE_MEASUREMENT_ID_PRODUCTION,
     import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
   ) || undefined,
+  // App Check: enforced server-side on Auth/Firestore/Storage in
+  // wishlist-wizard-dev as of 2026-07-18; wiring the client through so real
+  // requests aren't rejected. appCheckDebugToken lets local dev / automated
+  // E2E tests pass without solving a real reCAPTCHA challenge — it must
+  // match a token already registered for this app (see
+  // e2e/fixtures/bootstrap.ts / .env.local for the local one).
+  appCheckSiteKey: pickEnvValue(
+    import.meta.env.VITE_FIREBASE_APPCHECK_SITE_KEY_DEVELOPMENT,
+    import.meta.env.VITE_FIREBASE_APPCHECK_SITE_KEY_STAGING,
+    import.meta.env.VITE_FIREBASE_APPCHECK_SITE_KEY_PRODUCTION,
+    import.meta.env.VITE_FIREBASE_APPCHECK_SITE_KEY
+  ) || undefined,
+  appCheckDebugToken: (import.meta.env.DEV && import.meta.env.VITE_FIREBASE_APPCHECK_DEBUG_TOKEN) || undefined,
 };
 
 function mergeWithRuntimeFirebaseConfig(runtimeConfig: Record<string, unknown>) {
@@ -254,6 +273,16 @@ export let firebaseFirestore: Firestore | null = null;
 let analyticsInitialized = false;
 let remoteConfigInitialized = false;
 
+/**
+ * The initialized App Check instance, if App Check is configured — needed by
+ * callers that make raw fetch() requests (e.g. the api router) instead of
+ * going through the Firebase Functions SDK, since httpsCallable() attaches
+ * the App Check token automatically but a plain fetch() does not.
+ */
+export function getFirebaseAppCheck() {
+  return firebaseClient?.appCheck ?? null;
+}
+
 function ensureFirebaseCoreInitialized(): boolean {
   if (firebaseClient) {
     firebaseApp = firebaseClient.app;
@@ -330,7 +359,7 @@ export async function initFirebase(options?: {
   }
 
   if (options?.enableRemoteConfig && !remoteConfigInitialized) {
-    await initializeRemoteConfig();
+    await initializeRemoteConfig(client.app);
     remoteConfigInitialized = true;
 
     if (import.meta.env.DEV) {
@@ -412,12 +441,51 @@ export async function signUp(email: string, password: string, displayName?: stri
   return userCredential;
 }
 
+export async function signInWithGoogle() {
+  if (!firebaseClient) {
+    await initFirebase({ enableAuth: true, enableFirestore: true });
+  }
+  if (!firebaseClient) throw createFirebaseNotConfiguredError();
+  return await signInWithPopup(firebaseClient.auth, new GoogleAuthProvider());
+}
+
+export async function signInWithApple() {
+  if (!firebaseClient) {
+    await initFirebase({ enableAuth: true, enableFirestore: true });
+  }
+  if (!firebaseClient) throw createFirebaseNotConfiguredError();
+  const provider = new OAuthProvider('apple.com');
+  provider.addScope('email');
+  provider.addScope('name');
+  return await signInWithPopup(firebaseClient.auth, provider);
+}
+
+/** Parses the pending credential off an `auth/account-exists-with-different-credential` error. */
+export function credentialFromOAuthError(error: unknown, providerId: 'google.com' | 'apple.com'): AuthCredential | null {
+  return providerId === 'google.com'
+    ? GoogleAuthProvider.credentialFromError(error as Parameters<typeof GoogleAuthProvider.credentialFromError>[0])
+    : OAuthProvider.credentialFromError(error as Parameters<typeof OAuthProvider.credentialFromError>[0]);
+}
+
+export async function linkPendingCredential(user: User, credential: AuthCredential) {
+  return await linkWithCredential(user, credential);
+}
+
 export async function signOutUser() {
   if (!firebaseClient) {
     await initFirebase({ enableAuth: true, enableFirestore: true });
   }
   if (!firebaseClient) throw createFirebaseNotConfiguredError();
   return await signOut(firebaseClient.auth);
+}
+
+/** Fetches the live Firebase password policy and validates `password` against it in one round-trip. */
+export async function checkPasswordPolicy(password: string): Promise<PasswordValidationStatus> {
+  if (!firebaseClient) {
+    await initFirebase({ enableAuth: true, enableFirestore: true });
+  }
+  if (!firebaseClient) throw createFirebaseNotConfiguredError();
+  return await validatePassword(firebaseClient.auth, password);
 }
 
 export async function resetPassword(email: string) {

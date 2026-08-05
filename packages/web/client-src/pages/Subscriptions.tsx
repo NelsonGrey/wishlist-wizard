@@ -1,4 +1,6 @@
 import { Helmet } from "react-helmet";
+import { Link } from "wouter";
+import { Clock3 } from "lucide-react";
 import SubscriptionsSection from "@/components/Subscriptions";
 import SubscriptionsComparisonMatrix from "@/components/SubscriptionsComparisonMatrix";
 
@@ -26,6 +28,19 @@ export default function Subscriptions() {
           <p className="text-base md:text-lg text-emerald-50 leading-relaxed">
             Start free, then upgrade when you need more occasions, group gifting, richer analytics, creator tools, or team capabilities.
           </p>
+        </div>
+      </section>
+
+      <section className="site-container pb-4">
+        <div className="flex flex-col gap-3 rounded-xl border border-amber-200 bg-amber-50 p-5 sm:flex-row sm:items-start">
+          <Clock3 className="h-5 w-5 flex-none text-amber-700" aria-hidden="true" />
+          <div>
+            <p className="font-bold text-amber-950">Creator commission sharing is planned, not currently guaranteed.</p>
+            <p className="mt-1 text-sm leading-6 text-amber-900">
+              Creator Pro and Business show the proposed program design. Payouts begin only after the program’s partner, legal, tax, accounting, and operational gates are complete.{" "}
+              <Link href="/affiliate-commissions" className="font-bold underline underline-offset-2">See how commission sharing will work.</Link>
+            </p>
+          </div>
         </div>
       </section>
 

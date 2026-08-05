@@ -12,8 +12,11 @@ const analyticsTrackerMock = {
   setUserProperties: vi.fn(),
 };
 
+// app_offline/marketing_offline default to "online" here so existing
+// route/redirect assertions keep exercising real behavior; tests that
+// specifically cover the offline gates override this per-test.
 const remoteConfigMock = {
-  isFeatureEnabled: vi.fn(() => true),
+  isFeatureEnabled: vi.fn((flag: string) => flag !== 'app_offline' && flag !== 'marketing_offline'),
   isFeatureEnabledForUser: vi.fn(() => true),
 };
 
@@ -31,6 +34,10 @@ vi.mock('@/lib/firebase', () => ({
   resetPassword: vi.fn(),
   verifyEmail: vi.fn(),
   changePassword: vi.fn(),
+  checkPasswordPolicy: vi.fn(async () => ({
+    isValid: true,
+    passwordPolicy: { customStrengthOptions: {} },
+  })),
 }));
 
 // Mock GA
@@ -46,6 +53,8 @@ vi.mock('@shared/firebase-utils', () => ({
     ENABLE_PERFORMANCE_MONITORING: 'enable_performance_monitoring',
     PRICE_ALERTS_ENABLED: 'price_alerts_enabled',
     GROUP_GIFTING_ENABLED: 'group_gifting_enabled',
+    MARKETING_OFFLINE: 'marketing_offline',
+    APP_OFFLINE: 'app_offline',
   },
   getAnalyticsTracker: vi.fn(() => analyticsTrackerMock),
 }));
@@ -56,7 +65,9 @@ describe('AppRouter Smoke Tests', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.unstubAllEnvs();
-    remoteConfigMock.isFeatureEnabled.mockReturnValue(true);
+    remoteConfigMock.isFeatureEnabled.mockImplementation(
+      (flag: string) => flag !== 'app_offline' && flag !== 'marketing_offline'
+    );
     remoteConfigMock.isFeatureEnabledForUser.mockReturnValue(true);
   });
 
@@ -172,6 +183,52 @@ describe('AppRouter Smoke Tests', () => {
     });
   });
 
+  describe('Marketing Availability Gate', () => {
+    it('shows the marketing holding page on a marketing route when marketing_offline is true', async () => {
+      remoteConfigMock.isFeatureEnabled.mockImplementation((flag: string) => flag === 'marketing_offline');
+      window.history.pushState({}, 'Home', '/');
+
+      render(<AppRouter />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Something Amazing is')).toBeInTheDocument();
+      });
+    });
+
+    it('does not gate legal/support pages when marketing_offline is true', async () => {
+      remoteConfigMock.isFeatureEnabled.mockImplementation((flag: string) => flag === 'marketing_offline');
+      window.history.pushState({}, 'Privacy', '/privacy');
+
+      render(<AppRouter />);
+
+      await waitFor(() => {
+        expect(screen.queryByText('Something Amazing is')).not.toBeInTheDocument();
+      });
+    });
+
+    it('does not gate /login when marketing_offline is true (governed by app_offline instead)', async () => {
+      remoteConfigMock.isFeatureEnabled.mockImplementation((flag: string) => flag === 'marketing_offline');
+      window.history.pushState({}, 'Login', '/login');
+
+      render(<AppRouter />);
+
+      await waitFor(() => {
+        expect(screen.queryByText('Something Amazing is')).not.toBeInTheDocument();
+      });
+    });
+
+    it('renders the real marketing page when marketing_offline is false', async () => {
+      remoteConfigMock.isFeatureEnabled.mockImplementation(() => false);
+      window.history.pushState({}, 'Home', '/');
+
+      render(<AppRouter />);
+
+      await waitFor(() => {
+        expect(screen.queryByText('Something Amazing is')).not.toBeInTheDocument();
+      });
+    });
+  });
+
   describe('Protected Route Access', () => {
     it('should prevent access to dashboard without authentication', async () => {
       // Arrange: User is not authenticated
@@ -210,7 +267,7 @@ describe('AppRouter Smoke Tests', () => {
       render(<AppRouter />);
 
       await waitFor(() => {
-        expect(sessionStorage.getItem('redirectAfterAuth')).toBe('/app/dashboard');
+        expect(sessionStorage.getItem('redirectAfterAuth')).toBe('/app/wishlists');
       });
     });
   });

@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { 
+import { apiRequest } from '../lib/queryClient';
+import {
   initializeFCM, 
   requestNotificationPermission, 
   setupForegroundMessageListener,
@@ -152,14 +153,11 @@ export function useFCM() {
    */
   const sendTestNotification = useCallback(async () => {
     try {
-      const response = await fetch('/api/fcm/test-notification', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        }
-      });
-
-      return response.ok;
+      // Must go through apiRequest, not a raw fetch: /api/fcm/* routes to the
+      // sendTestPushNotification callable, which a bare fetch() can't reach
+      // (no callable protocol, no Firebase ID token) and would just 404.
+      await apiRequest('/api/fcm/test-notification', { method: 'POST' });
+      return true;
     } catch (error) {
       console.error('[useFCM] Error sending test notification:', error);
       return false;

@@ -11,10 +11,20 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { GoogleIcon, AppleIcon } from "@/components/auth/OAuthIcons";
+import { isAccountExistsWithDifferentCredentialError } from "@/lib/firebase-auth-errors";
+import { useAppOffline } from "@/hooks/useAppOffline";
+import AppOfflineNotice from "@/components/AppOfflineNotice";
+
+type OAuthProviderId = 'google.com' | 'apple.com';
 
 // Define form validation schema - Updated for Firebase Auth
 const registerSchema = z.object({
-  displayName: z.string().min(2, "Display name must be at least 2 characters").optional(),
+  // z.string().min(2).optional() only permits `undefined`, not `""` — the
+  // form's default value is `""`, so this field never actually accepted
+  // being left blank despite the "(optional)" label. .or(z.literal('')))
+  // makes an empty string valid too.
+  displayName: z.string().min(2, "Display name must be at least 2 characters").optional().or(z.literal('')),
   email: z.string().trim().email("Please enter a valid email address"),
   password: z.string().min(6, "Password must be at least 6 characters"),
   confirmPassword: z.string(),
@@ -26,10 +36,12 @@ const registerSchema = z.object({
 type RegisterFormValues = z.infer<typeof registerSchema>;
 
 export default function Register() {
+  const isAppOffline = useAppOffline();
   const [isLoading, setIsLoading] = useState(false);
+  const [oauthLoading, setOauthLoading] = useState<OAuthProviderId | null>(null);
   const [, setLocation] = useLocation();
   const { toast } = useToast();
-  const { signUp } = useAuth();
+  const { signUp, signInWithGoogle, signInWithApple } = useAuth();
 
   // Initialize form with react-hook-form
   const form = useForm<RegisterFormValues>({
@@ -70,6 +82,51 @@ export default function Register() {
       setIsLoading(false);
     }
   };
+
+  const handleOAuthSignUp = async (providerId: OAuthProviderId) => {
+    if (oauthLoading) {
+      return;
+    }
+
+    setOauthLoading(providerId);
+    try {
+      if (providerId === 'google.com') {
+        await signInWithGoogle();
+      } else {
+        await signInWithApple();
+      }
+
+      toast({
+        title: "Account created",
+        description: "Your account has been created successfully!",
+      });
+      // Redirect will be handled by ProtectedRoute and auth state change
+    } catch (error: unknown) {
+      console.error("OAuth sign-up error:", error);
+
+      if (isAccountExistsWithDifferentCredentialError(error)) {
+        toast({
+          title: "Account already exists",
+          description: "An account with this email already exists. Sign in instead to link it.",
+          variant: "destructive",
+        });
+        setLocation("/login");
+        return;
+      }
+
+      toast({
+        title: "Sign-up failed",
+        description: getFirebaseAuthErrorMessage(error, "signup"),
+        variant: "destructive",
+      });
+    } finally {
+      setOauthLoading(null);
+    }
+  };
+
+  if (isAppOffline) {
+    return <AppOfflineNotice />;
+  }
 
   return (
     <div className="container flex justify-center py-1">
@@ -176,6 +233,40 @@ export default function Register() {
               </Button>
             </form>
           </Form>
+
+          <div className="relative my-4">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-card px-2 text-muted-foreground">Or continue with</span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <Button
+              type="button"
+              variant="outline"
+              data-testid="register-google"
+              disabled={oauthLoading !== null}
+              onClick={() => handleOAuthSignUp('google.com')}
+              className="flex items-center gap-2"
+            >
+              <GoogleIcon />
+              {oauthLoading === 'google.com' ? "Signing up..." : "Google"}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              data-testid="register-apple"
+              disabled={oauthLoading !== null}
+              onClick={() => handleOAuthSignUp('apple.com')}
+              className="flex items-center gap-2"
+            >
+              <AppleIcon />
+              {oauthLoading === 'apple.com' ? "Signing up..." : "Apple"}
+            </Button>
+          </div>
         </CardContent>
         <CardFooter className="flex flex-col space-y-4">
           <div className="text-center text-sm">

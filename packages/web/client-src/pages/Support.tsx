@@ -231,7 +231,7 @@ export default function Support() {
               </AccordionTrigger>
               <AccordionContent className="text-gray-700 space-y-2 pb-4">
                 <p>The free plan lets you create useful wishlists, add items, share lists, and use the browser extension — no credit card required.</p>
-                <p className="mt-2">Paid subscriptions unlock more wishlists, more price-tracked items, group gifting, creator analytics, commission share, team seats, and API access depending on the plan.</p>
+                <p className="mt-2">Paid subscriptions unlock more wishlists, more price-tracked items, group gifting, creator analytics, team seats, and API access depending on the plan. Creator commission sharing is planned and will be offered only after the program launches.</p>
                 <p className="mt-2">
                   <Link href="/subscriptions" className="text-emerald-700 hover:underline font-medium">See all subscription plans →</Link>
                 </p>

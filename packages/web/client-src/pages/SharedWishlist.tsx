@@ -10,6 +10,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import AffiliateIndicator from "@/components/AffiliateIndicator";
 import { getApiErrorMessage } from "@/lib/api-errors";
 import { apiRequest } from "@/lib/queryClient";
+import type { PrivacyCheckResult } from "@/hooks/use-privacy";
 
 type Wishlist = {
   id: number;
@@ -123,33 +124,31 @@ export default function SharedWishlist() {
   });
 
   // Check access to the wishlist
-  const { 
+  const {
     data: wishlistAccess,
-    isLoading: accessLoading 
-  } = useQuery({
+    isLoading: accessLoading
+  } = useQuery<PrivacyCheckResult | null>({
     queryKey: ['wishlist-access', shareId],
     queryFn: async () => {
       if (!data?.wishlist) return null;
-      
-      // Check if user has access to view this wishlist
-      const response = await fetch('/api/privacy/check-access', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          entityType: 'wishlist',
-          entityId: data.wishlist.id,
-          interactionType: 'view'
-        })
-      });
-      
-      if (response.ok) {
-        return response.json();
+
+      // Check if user has access to view this wishlist. Must go through
+      // apiRequest (not a raw fetch) so the caller's Firebase ID token and
+      // environment-aware API URL are actually attached — otherwise this
+      // always evaluates access as anonymous regardless of who's signed in.
+      try {
+        return await apiRequest('/api/privacy/check-access', {
+          method: 'POST',
+          body: {
+            entityType: 'wishlist',
+            entityId: data.wishlist.id,
+            interactionType: 'view'
+          }
+        }) as PrivacyCheckResult;
+      } catch {
+        // If privacy check fails, assume no access
+        return { hasAccess: false, isOwner: false, requiresApproval: false };
       }
-      
-      // If privacy check fails, assume no access
-      return { hasAccess: false, isOwner: false };
     },
     enabled: !!data?.wishlist
   });

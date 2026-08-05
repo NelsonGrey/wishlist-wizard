@@ -8,6 +8,7 @@ import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Wishlist as DbWishlist } from "@wishlist-wizard/shared";
 import PrivacyControls from "@/components/privacy/PrivacyControls";
+import { getNextOccurrenceDate, parseOccasionDate } from "@/lib/wishlist-dates";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,6 +24,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useMutation } from "@tanstack/react-query";
 import {
   Select,
@@ -49,11 +51,9 @@ type Wishlist = Omit<DbWishlist, 'id' | 'userId' | 'beneficiaryId'> & {
 interface WishlistCardProps {
   wishlist: Wishlist;
   onRefresh: () => void;
-  onSelect?: (wishlist: Wishlist) => void;
-  selected?: boolean;
 }
 
-export default function WishlistCard({ wishlist, onRefresh, onSelect, selected = false }: WishlistCardProps) {
+export default function WishlistCard({ wishlist, onRefresh }: WishlistCardProps) {
   const [, setLocation] = useLocation();
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -69,8 +69,7 @@ export default function WishlistCard({ wishlist, onRefresh, onSelect, selected =
   const [isSharing, setIsSharing] = useState(false);
   const { toast } = useToast();
 
-  const parsedOccasionDate = wishlist.occasionDate ? new Date(wishlist.occasionDate) : null;
-  const occasionDate = parsedOccasionDate && !Number.isNaN(parsedOccasionDate.getTime()) ? parsedOccasionDate : null;
+  const occasionDate = parseOccasionDate(wishlist.occasionDate);
   const eventDateDisplay = occasionDate
     ? occasionDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
     : null;
@@ -79,27 +78,7 @@ export default function WishlistCard({ wishlist, onRefresh, onSelect, selected =
   const recipientType = wishlist.recipient?.type || 'self';
   const recipientMembers = Array.isArray(wishlist.recipient?.members) ? wishlist.recipient?.members : [];
 
-  const getNextOccurrenceDate = () => {
-    if (!occasionDate || !wishlist.recurrence || wishlist.recurrence === 'none') return null;
-    const now = new Date();
-    const next = new Date(occasionDate);
-
-    if (wishlist.recurrence === 'yearly') {
-      next.setFullYear(now.getFullYear());
-      if (next < now) next.setFullYear(now.getFullYear() + 1);
-      return next;
-    }
-
-    if (wishlist.recurrence === 'monthly') {
-      next.setFullYear(now.getFullYear(), now.getMonth());
-      if (next < now) next.setMonth(now.getMonth() + 1);
-      return next;
-    }
-
-    return next;
-  };
-
-  const nextOccurrenceDate = getNextOccurrenceDate();
+  const nextOccurrenceDate = getNextOccurrenceDate(occasionDate, wishlist.recurrence);
 
   // Update wishlist mutation
   const updateWishlistMutation = useMutation({
@@ -254,7 +233,7 @@ export default function WishlistCard({ wishlist, onRefresh, onSelect, selected =
 
   return (
     <>
-      <Card data-testid={`wishlist-card-${wishlist.id}`} className={`hover:shadow-md transition ${selected ? 'ring-2 ring-primary/40' : ''}`}>
+      <Card data-testid={`wishlist-card-${wishlist.id}`} className="hover:shadow-md transition">
         <CardContent className="p-0">
           <div className="p-5 border-b">
             <div className="flex justify-between items-center">
@@ -290,34 +269,44 @@ export default function WishlistCard({ wishlist, onRefresh, onSelect, selected =
                 )}
               </div>
               <div className="flex space-x-2">
-                <Button
-                  data-testid={`wishlist-share-${wishlist.id}`}
-                  variant="ghost"
-                  size="icon"
-                  onClick={handleShare}
-                  disabled={isMutating || isSharing}
-                  className="text-gray-500 hover:text-gray-700"
-                  aria-label="Share wishlist"
-                >
-                  <Share2 className="h-5 w-5" aria-hidden="true" />
-                </Button>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
+                <Tooltip>
+                  <TooltipTrigger asChild>
                     <Button
-                      data-testid={`wishlist-menu-${wishlist.id}`}
+                      data-testid={`wishlist-share-${wishlist.id}`}
                       variant="ghost"
                       size="icon"
-                      disabled={isMutating}
+                      onClick={handleShare}
+                      disabled={isMutating || isSharing}
                       className="text-gray-500 hover:text-gray-700"
-                      aria-label="More options"
+                      aria-label="Share wishlist"
                     >
-                      <MoreVertical className="h-5 w-5" aria-hidden="true" />
+                      <Share2 className="h-5 w-5" aria-hidden="true" />
                     </Button>
-                  </DropdownMenuTrigger>
+                  </TooltipTrigger>
+                  <TooltipContent>Share wishlist</TooltipContent>
+                </Tooltip>
+                <DropdownMenu>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          data-testid={`wishlist-menu-${wishlist.id}`}
+                          variant="ghost"
+                          size="icon"
+                          disabled={isMutating}
+                          className="text-gray-500 hover:text-gray-700"
+                          aria-label="More options"
+                        >
+                          <MoreVertical className="h-5 w-5" aria-hidden="true" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                    </TooltipTrigger>
+                    <TooltipContent>More options</TooltipContent>
+                  </Tooltip>
                   <DropdownMenuContent align="end">
                     <DropdownMenuItem data-testid={`wishlist-edit-action-${wishlist.id}`} onClick={handleEditClick}>
                       <Edit className="h-4 w-4 mr-2" />
-                      Rename
+                      Edit
                     </DropdownMenuItem>
                     <DropdownMenuItem data-testid={`wishlist-delete-action-${wishlist.id}`} onClick={handleDeleteClick} className="text-red-600">
                       <Trash2 className="h-4 w-4 mr-2" />
@@ -345,19 +334,9 @@ export default function WishlistCard({ wishlist, onRefresh, onSelect, selected =
           </div>
         </CardContent>
         <CardFooter className="p-4 border-t flex items-center gap-2">
-          {onSelect && (
-            <Button
-              variant={selected ? 'default' : 'outline'}
-              className="flex-1"
-              disabled={isMutating}
-              onClick={() => onSelect(wishlist)}
-            >
-              {selected ? 'Selected' : 'Select'}
-            </Button>
-          )}
-          <Button 
+          <Button
             data-testid={`wishlist-view-${wishlist.id}`}
-            variant="link" 
+            variant="link"
             className="text-emerald-700 hover:text-emerald-800 flex-1"
             disabled={isMutating}
             onClick={() => setLocation(`/app/wishlist/${wishlist.id}`)}

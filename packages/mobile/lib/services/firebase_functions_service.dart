@@ -1,7 +1,22 @@
-import 'package:cloud_functions/cloud_functions.dart';
+import 'dart:convert';
+
+import 'package:firebase_app_check/firebase_app_check.dart';
+import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
+import 'package:http/http.dart' as http;
 import 'package:logging/logging.dart';
+
+import '../firebase_options.dart';
 import 'firebase_initialization_service.dart';
 
+/// Calls the `api` Cloud Function (packages/functions/src/api/router.ts)
+/// over plain authenticated HTTP instead of the Firebase Functions SDK.
+///
+/// A Domain Restricted Sharing org policy blocks granting new `allUsers`
+/// Cloud Run invoker bindings, so standalone onCall functions return a
+/// bare infra-level 403 before ever reaching app code. `api` is the one
+/// Cloud Function with a grandfathered invoker binding from before the
+/// policy took effect, so every request goes through it — mirroring
+/// packages/web/client-src/lib/queryClient.ts's apiRequest().
 class FirebaseFunctionsService {
   static final FirebaseFunctionsService _instance =
       FirebaseFunctionsService._internal();
@@ -10,81 +25,73 @@ class FirebaseFunctionsService {
 
   final FirebaseInitializationService _firebaseInit =
       FirebaseInitializationService();
-  FirebaseFunctions? _functions;
   final Logger _logger = Logger('FirebaseFunctionsService');
 
-  Future<bool> _ensureFirebaseInitialized() async {
-    if (_functions != null) return true;
+  Future<void> _ensureFirebaseInitialized() async {
+    if (!await _firebaseInit.initialize()) {
+      throw Exception('Firebase not initialized');
+    }
+  }
 
-    final initialized = await _firebaseInit.initialize();
-    if (initialized) {
-      try {
-        _functions = FirebaseFunctions.instance;
-        return true;
-      } catch (e) {
-        _logger.severe('Error accessing Firebase Functions: $e');
-        return false;
+  String get _apiBaseUrl =>
+      'https://${DefaultFirebaseOptions.currentPlatform.projectId}.web.app/api';
+
+  Future<Map<String, String>> _buildHeaders({bool hasBody = false}) async {
+    final user = firebase_auth.FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      throw Exception('Not signed in');
+    }
+    final idToken = await user.getIdToken(true);
+
+    final headers = <String, String>{'Authorization': 'Bearer $idToken'};
+    if (hasBody) {
+      headers['Content-Type'] = 'application/json';
+    }
+
+    try {
+      final appCheckToken = await FirebaseAppCheck.instance.getToken();
+      if (appCheckToken != null) {
+        headers['X-Firebase-AppCheck'] = appCheckToken;
       }
+    } catch (e) {
+      _logger.warning('Failed to get App Check token: $e');
     }
-    return false;
+
+    return headers;
   }
 
-  // =============================================================================
-  // AUTHENTICATION FUNCTIONS
-  // =============================================================================
+  Future<dynamic> _apiRequest(
+    String method,
+    String path, {
+    Map<String, dynamic>? body,
+  }) async {
+    await _ensureFirebaseInitialized();
+    final headers = await _buildHeaders(hasBody: body != null);
+    final uri = Uri.parse('$_apiBaseUrl$path');
+    final encodedBody = body != null ? jsonEncode(body) : null;
 
-  Future<Map<String, dynamic>> createUserProfile(
-    Map<String, dynamic> data,
-  ) async {
-    if (!await _ensureFirebaseInitialized()) {
-      throw Exception('Firebase not initialized');
+    late final http.Response response;
+    switch (method) {
+      case 'GET':
+        response = await http.get(uri, headers: headers);
+      case 'POST':
+        response = await http.post(uri, headers: headers, body: encodedBody);
+      case 'PATCH':
+        response = await http.patch(uri, headers: headers, body: encodedBody);
+      case 'DELETE':
+        response = await http.delete(uri, headers: headers, body: encodedBody);
+      default:
+        throw ArgumentError('Unsupported method: $method');
     }
 
-    try {
-      final result = await _functions!
-          .httpsCallable('createUserProfile')
-          .call(data);
-      return Map<String, dynamic>.from(result.data);
-    } catch (e) {
-      _logger.severe('Error calling createUserProfile: $e');
-      rethrow;
-    }
-  }
-
-  Future<Map<String, dynamic>> getUserProfile(String userId) async {
-    if (!await _ensureFirebaseInitialized()) {
-      throw Exception('Firebase not initialized');
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw Exception(
+        'API request to $path failed (${response.statusCode}): ${response.body}',
+      );
     }
 
-    try {
-      final result = await _functions!.httpsCallable('getUserProfile').call({
-        'userId': userId,
-      });
-      return Map<String, dynamic>.from(result.data);
-    } catch (e) {
-      _logger.severe('Error calling getUserProfile: $e');
-      rethrow;
-    }
-  }
-
-  Future<Map<String, dynamic>> updateUserProfile(
-    String userId,
-    Map<String, dynamic> data,
-  ) async {
-    if (!await _ensureFirebaseInitialized()) {
-      throw Exception('Firebase not initialized');
-    }
-
-    try {
-      final updateData = {'userId': userId, ...data};
-      final result = await _functions!
-          .httpsCallable('updateUserProfile')
-          .call(updateData);
-      return Map<String, dynamic>.from(result.data);
-    } catch (e) {
-      _logger.severe('Error calling updateUserProfile: $e');
-      rethrow;
-    }
+    if (response.body.isEmpty) return null;
+    return jsonDecode(response.body);
   }
 
   // =============================================================================
@@ -92,49 +99,11 @@ class FirebaseFunctionsService {
   // =============================================================================
 
   Future<Map<String, dynamic>> createWishlist(Map<String, dynamic> data) async {
-    if (!await _ensureFirebaseInitialized()) {
-      throw Exception('Firebase not initialized');
-    }
-
     try {
-      final result = await _functions!
-          .httpsCallable('createWishlist')
-          .call(data);
-      return Map<String, dynamic>.from(result.data);
+      final result = await _apiRequest('POST', '/wishlists', body: data);
+      return Map<String, dynamic>.from(result as Map);
     } catch (e) {
       _logger.severe('Error calling createWishlist: $e');
-      rethrow;
-    }
-  }
-
-  Future<List<dynamic>> getUserWishlists(String userId) async {
-    if (!await _ensureFirebaseInitialized()) {
-      throw Exception('Firebase not initialized');
-    }
-
-    try {
-      final result = await _functions!.httpsCallable('getUserWishlists').call({
-        'userId': userId,
-      });
-      return List<dynamic>.from(result.data);
-    } catch (e) {
-      _logger.severe('Error calling getUserWishlists: $e');
-      rethrow;
-    }
-  }
-
-  Future<Map<String, dynamic>> getWishlist(String wishlistId) async {
-    if (!await _ensureFirebaseInitialized()) {
-      throw Exception('Firebase not initialized');
-    }
-
-    try {
-      final result = await _functions!.httpsCallable('getWishlist').call({
-        'wishlistId': wishlistId,
-      });
-      return Map<String, dynamic>.from(result.data);
-    } catch (e) {
-      _logger.severe('Error calling getWishlist: $e');
       rethrow;
     }
   }
@@ -143,16 +112,13 @@ class FirebaseFunctionsService {
     String wishlistId,
     Map<String, dynamic> data,
   ) async {
-    if (!await _ensureFirebaseInitialized()) {
-      throw Exception('Firebase not initialized');
-    }
-
     try {
-      final updateData = {'wishlistId': wishlistId, ...data};
-      final result = await _functions!
-          .httpsCallable('updateWishlist')
-          .call(updateData);
-      return Map<String, dynamic>.from(result.data);
+      final result = await _apiRequest(
+        'PATCH',
+        '/wishlists/$wishlistId',
+        body: data,
+      );
+      return Map<String, dynamic>.from(result as Map);
     } catch (e) {
       _logger.severe('Error calling updateWishlist: $e');
       rethrow;
@@ -160,196 +126,19 @@ class FirebaseFunctionsService {
   }
 
   Future<void> deleteWishlist(String wishlistId) async {
-    if (!await _ensureFirebaseInitialized()) {
-      throw Exception('Firebase not initialized');
-    }
-
     try {
-      await _functions!.httpsCallable('deleteWishlist').call({
-        'wishlistId': wishlistId,
-      });
+      await _apiRequest('DELETE', '/wishlists/$wishlistId');
     } catch (e) {
       _logger.severe('Error calling deleteWishlist: $e');
       rethrow;
     }
   }
 
-  Future<Map<String, dynamic>> addWishlistItem(
-    String wishlistId,
-    Map<String, dynamic> itemData,
-  ) async {
-    if (!await _ensureFirebaseInitialized()) {
-      throw Exception('Firebase not initialized');
-    }
-
+  Future<void> deleteAccount() async {
     try {
-      final data = {'wishlistId': wishlistId, ...itemData};
-      final result = await _functions!
-          .httpsCallable('addWishlistItem')
-          .call(data);
-      return Map<String, dynamic>.from(result.data);
+      await _apiRequest('DELETE', '/account');
     } catch (e) {
-      _logger.severe('Error calling addWishlistItem: $e');
-      rethrow;
-    }
-  }
-
-  Future<Map<String, dynamic>> updateWishlistItem(
-    String itemId,
-    Map<String, dynamic> itemData,
-  ) async {
-    if (!await _ensureFirebaseInitialized()) {
-      throw Exception('Firebase not initialized');
-    }
-
-    try {
-      final data = {'itemId': itemId, ...itemData};
-      final result = await _functions!
-          .httpsCallable('updateWishlistItem')
-          .call(data);
-      return Map<String, dynamic>.from(result.data);
-    } catch (e) {
-      _logger.severe('Error calling updateWishlistItem: $e');
-      rethrow;
-    }
-  }
-
-  Future<void> deleteWishlistItem(String itemId) async {
-    if (!await _ensureFirebaseInitialized()) {
-      throw Exception('Firebase not initialized');
-    }
-
-    try {
-      await _functions!.httpsCallable('deleteWishlistItem').call({
-        'itemId': itemId,
-      });
-    } catch (e) {
-      _logger.severe('Error calling deleteWishlistItem: $e');
-      rethrow;
-    }
-  }
-
-  Future<Map<String, dynamic>> purchaseWishlistItem(
-    String itemId,
-    Map<String, dynamic> purchaseData,
-  ) async {
-    if (!await _ensureFirebaseInitialized()) {
-      throw Exception('Firebase not initialized');
-    }
-
-    try {
-      final data = {'itemId': itemId, ...purchaseData};
-      final result = await _functions!
-          .httpsCallable('purchaseWishlistItem')
-          .call(data);
-      return Map<String, dynamic>.from(result.data);
-    } catch (e) {
-      _logger.severe('Error calling purchaseWishlistItem: $e');
-      rethrow;
-    }
-  }
-
-  // =============================================================================
-  // GENERIC CRUD FUNCTIONS
-  // =============================================================================
-
-  Future<Map<String, dynamic>> createDocument(
-    String collection,
-    Map<String, dynamic> data,
-  ) async {
-    if (!await _ensureFirebaseInitialized()) {
-      throw Exception('Firebase not initialized');
-    }
-
-    try {
-      final result = await _functions!.httpsCallable('createDocument').call({
-        'collection': collection,
-        'data': data,
-      });
-      return Map<String, dynamic>.from(result.data);
-    } catch (e) {
-      _logger.severe('Error calling createDocument: $e');
-      rethrow;
-    }
-  }
-
-  Future<Map<String, dynamic>> getDocument(
-    String collection,
-    String documentId,
-  ) async {
-    if (!await _ensureFirebaseInitialized()) {
-      throw Exception('Firebase not initialized');
-    }
-
-    try {
-      final result = await _functions!.httpsCallable('getDocument').call({
-        'collection': collection,
-        'documentId': documentId,
-      });
-      return Map<String, dynamic>.from(result.data);
-    } catch (e) {
-      _logger.severe('Error calling getDocument: $e');
-      rethrow;
-    }
-  }
-
-  Future<Map<String, dynamic>> updateDocument(
-    String collection,
-    String documentId,
-    Map<String, dynamic> data,
-  ) async {
-    if (!await _ensureFirebaseInitialized()) {
-      throw Exception('Firebase not initialized');
-    }
-
-    try {
-      final result = await _functions!.httpsCallable('updateDocument').call({
-        'collection': collection,
-        'documentId': documentId,
-        'data': data,
-      });
-      return Map<String, dynamic>.from(result.data);
-    } catch (e) {
-      _logger.severe('Error calling updateDocument: $e');
-      rethrow;
-    }
-  }
-
-  Future<void> deleteDocument(String collection, String documentId) async {
-    if (!await _ensureFirebaseInitialized()) {
-      throw Exception('Firebase not initialized');
-    }
-
-    try {
-      await _functions!.httpsCallable('deleteDocument').call({
-        'collection': collection,
-        'documentId': documentId,
-      });
-    } catch (e) {
-      _logger.severe('Error calling deleteDocument: $e');
-      rethrow;
-    }
-  }
-
-  Future<List<dynamic>> listDocuments(
-    String collection, {
-    Map<String, dynamic>? filters,
-  }) async {
-    if (!await _ensureFirebaseInitialized()) {
-      throw Exception('Firebase not initialized');
-    }
-
-    try {
-      final Map<String, dynamic> data = {'collection': collection};
-      if (filters != null) {
-        data['filters'] = filters;
-      }
-      final result = await _functions!
-          .httpsCallable('listDocuments')
-          .call(data);
-      return List<dynamic>.from(result.data);
-    } catch (e) {
-      _logger.severe('Error calling listDocuments: $e');
+      _logger.severe('Error calling deleteAccount: $e');
       rethrow;
     }
   }
@@ -359,15 +148,9 @@ class FirebaseFunctionsService {
   // =============================================================================
 
   Future<Map<String, dynamic>> billingStatus() async {
-    if (!await _ensureFirebaseInitialized()) {
-      throw Exception('Firebase not initialized');
-    }
-
     try {
-      final result = await _functions!
-          .httpsCallable('billingStatus')
-          .call(<String, dynamic>{});
-      return Map<String, dynamic>.from(result.data);
+      final result = await _apiRequest('GET', '/billing/status');
+      return Map<String, dynamic>.from(result as Map);
     } catch (e) {
       _logger.severe('Error calling billingStatus: $e');
       rethrow;
@@ -375,53 +158,37 @@ class FirebaseFunctionsService {
   }
 
   Future<Map<String, dynamic>> billingPlans() async {
-    if (!await _ensureFirebaseInitialized()) {
-      throw Exception('Firebase not initialized');
-    }
-
     try {
-      final result = await _functions!
-          .httpsCallable('billingPlans')
-          .call(<String, dynamic>{});
-      return Map<String, dynamic>.from(result.data);
+      final result = await _apiRequest('GET', '/billing/plans');
+      return Map<String, dynamic>.from(result as Map);
     } catch (e) {
       _logger.severe('Error calling billingPlans: $e');
       rethrow;
     }
   }
 
-  Future<Map<String, dynamic>> billingCheckout(
-    String tier,
-    String billingCycle,
-  ) async {
-    if (!await _ensureFirebaseInitialized()) {
-      throw Exception('Firebase not initialized');
-    }
-
+  /// Verifies a native StoreKit/Play Billing purchase server-side and
+  /// updates the user's subscription tier. See packages/functions/src/api/iap.ts.
+  Future<Map<String, dynamic>> verifyIapPurchase({
+    required String productId,
+    required String? purchaseId,
+    required String verificationData,
+    required String source,
+  }) async {
     try {
-      final result = await _functions!.httpsCallable('billingCheckout').call({
-        'tier': tier,
-        'billingCycle': billingCycle,
-      });
-      return Map<String, dynamic>.from(result.data);
+      final result = await _apiRequest(
+        'POST',
+        '/billing/verify-purchase',
+        body: {
+          'productId': productId,
+          'purchaseId': purchaseId,
+          'verificationData': verificationData,
+          'source': source,
+        },
+      );
+      return Map<String, dynamic>.from(result as Map);
     } catch (e) {
-      _logger.severe('Error calling billingCheckout: $e');
-      rethrow;
-    }
-  }
-
-  Future<Map<String, dynamic>> billingPortal() async {
-    if (!await _ensureFirebaseInitialized()) {
-      throw Exception('Firebase not initialized');
-    }
-
-    try {
-      final result = await _functions!
-          .httpsCallable('billingPortal')
-          .call(<String, dynamic>{});
-      return Map<String, dynamic>.from(result.data);
-    } catch (e) {
-      _logger.severe('Error calling billingPortal: $e');
+      _logger.severe('Error calling verifyIapPurchase: $e');
       rethrow;
     }
   }
@@ -431,15 +198,12 @@ class FirebaseFunctionsService {
   // =============================================================================
 
   Future<void> saveFcmToken(String token, {required String platform}) async {
-    if (!await _ensureFirebaseInitialized()) {
-      throw Exception('Firebase not initialized');
-    }
-
     try {
-      await _functions!.httpsCallable('saveFCMToken').call({
-        'token': token,
-        'platform': platform,
-      });
+      await _apiRequest(
+        'POST',
+        '/fcm/token',
+        body: {'token': token, 'platform': platform},
+      );
     } catch (e) {
       _logger.severe('Error calling saveFCMToken: $e');
       rethrow;

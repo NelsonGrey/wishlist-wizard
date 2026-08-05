@@ -10,15 +10,15 @@ interface AuthLayoutProps {
 export default function AuthLayout({ children }: AuthLayoutProps) {
   const [location] = useLocation();
 
-  // Scroll to top when location changes
+  // Scroll to top on route change.
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [location]);
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-br from-emerald-50 via-white to-green-50">
+    <div className="min-h-screen flex flex-col bg-white">
       {/* Minimal Auth Header */}
-      <header className="bg-white/95 backdrop-blur-sm border-b border-emerald-100 sticky top-0 z-10 shadow-sm">
+      <header className="flex-none bg-white/95 backdrop-blur-sm border-b border-emerald-100 shadow-sm">
         <div className="site-container flex items-center justify-between py-3 2xl:py-4">
           {/* Logo - links back to public site */}
           <Link href="/" className="flex items-center hover:scale-105 transition-transform duration-200">
@@ -36,8 +36,10 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
         </div>
       </header>
 
-      {/* Main content - aligned closer to top */}
-      <main className="flex-1 flex items-start justify-center pt-3 pb-12 px-4">
+      <GlobalAdSlot placement="top" />
+
+      {/* Main content - aligned closer to top, flex-1 fills remaining space, page scrolls naturally when tall */}
+      <main className="mx-auto w-full max-w-[var(--site-content-width)] flex-1 flex items-start justify-center bg-gradient-to-br from-emerald-50 via-white to-green-50 pt-3 pb-12 px-4">
         <div className="w-full max-w-md">
           {children}
         </div>

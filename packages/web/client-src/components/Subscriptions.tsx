@@ -1,4 +1,5 @@
 import { Link } from "wouter";
+import AppEntryLink from "@/components/AppEntryLink";
 import { ArrowRight, BadgeDollarSign, CalendarDays, CheckCircle2, Gift, Megaphone, Users } from "lucide-react";
 import { TIER_LIMITS, TIER_PRICING, type SubscriptionTier } from "@wishlist-wizard/shared";
 
@@ -47,18 +48,18 @@ const PLAN_STORIES: Record<TierKey, PlanStory> = {
   creator: {
     icon: Megaphone,
     bestFor: "Creators and curators turning product recommendations into measurable lists.",
-    upgradeWhen: "You want affiliate commission share and creator analytics.",
-    valueProof: "Creators can offset the subscription when recommendations start driving purchases.",
-    bullets: ["Unlimited items and tracking", "20% commission share", "Full creator dashboard"],
+    upgradeWhen: "You want full creator analytics and access to the planned creator commission program.",
+    valueProof: "Build a measurable recommendation workflow now; commission sharing remains planned until launch approval.",
+    bullets: ["Unlimited items and tracking", "20% proposed commission share", "Full creator analytics"],
     cta: "Choose Creator Pro",
     accent: "text-emerald-800 bg-emerald-50 border-emerald-100",
   },
   business: {
     icon: BadgeDollarSign,
     bestFor: "Wedding planners, gifting teams, agencies, and high-volume recommendation workflows.",
-    upgradeWhen: "You need seats, API access, dedicated support, or higher commission share.",
+    upgradeWhen: "You need seats, API access, dedicated support, or planned high-volume creator economics.",
     valueProof: "Built for teams that manage gifting as an operational workflow, not a personal list.",
-    bullets: ["5 team members", "25K API calls per month", "30% commission share"],
+    bullets: ["5 team members", "25K API calls per month", "30% proposed commission share"],
     cta: "Choose Business",
     accent: "text-emerald-800 bg-emerald-50 border-emerald-100",
   },
@@ -102,7 +103,7 @@ export default function Subscriptions({ variant = "full" }: SubscriptionsProps) 
               <p className="text-sm font-semibold uppercase tracking-[0.24em] text-emerald-700">Subscriptions</p>
               <h2 className="mt-3 text-3xl font-bold tracking-tight text-slate-950 sm:text-4xl">Pick the plan that matches the job you are doing.</h2>
               <p className="mt-4 text-lg leading-8 text-slate-600">
-                Start with a useful free wishlist, then upgrade when you need more occasions, more coordination, deeper price tracking, creator revenue, or team operations.
+                Start with a useful free wishlist, then upgrade when you need more occasions, more coordination, deeper price tracking, creator analytics, or team operations.
               </p>
             </div>
 
@@ -163,7 +164,7 @@ export default function Subscriptions({ variant = "full" }: SubscriptionsProps) 
                   <p className="mt-5 text-sm leading-6 text-slate-600">{story.valueProof}</p>
                   <p className="mt-4 text-xs font-medium text-slate-500">{getPlanMetrics(tierKey)}</p>
 
-                  <Link
+                  <AppEntryLink
                     href="/register"
                     className={`mt-auto inline-flex items-center justify-center gap-2 rounded-lg px-4 py-3 text-sm font-semibold transition-colors ${
                       isHighlighted ? "bg-emerald-800 text-white hover:bg-emerald-900" : "bg-emerald-900 text-white hover:bg-emerald-800"
@@ -171,7 +172,7 @@ export default function Subscriptions({ variant = "full" }: SubscriptionsProps) 
                   >
                     {story.cta}
                     <ArrowRight className="h-4 w-4" />
-                  </Link>
+                  </AppEntryLink>
                 </article>
               );
             })}

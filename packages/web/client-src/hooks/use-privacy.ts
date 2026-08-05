@@ -212,6 +212,23 @@ export const useDefaultPrivacySettings = () => {
   });
 };
 
+// Hook to update user's default privacy settings
+export const useUpdateDefaultPrivacySettings = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (defaults: UserDefaultPrivacy) => {
+      return apiRequest('/api/privacy/defaults', {
+        method: 'PUT',
+        body: JSON.stringify(defaults)
+      }) as Promise<UserDefaultPrivacy>;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['user-default-privacy'] });
+    }
+  });
+};
+
 // Hook to get bulk privacy settings for multiple entities
 export const useBulkPrivacySettings = (entities: Array<{ entityType: string; entityId: number }>) => {
   return useQuery({

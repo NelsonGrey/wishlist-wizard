@@ -1,8 +1,0 @@
-{
-  "push": {
-    "ref": "refs/heads/develop",
-    "head_commit": {
-      "message": "Test commit [DRY-RUN]"
-    }
-  }
-}

@@ -1,9 +1,19 @@
 /**
  * Firebase Remote Config Client Utilities
  * Manages feature flags and dynamic configuration without code deployment
- * 
+ *
  * Maps to Business Requirement BR-014 (Release gates) and BR-002 (Feature rollout)
  */
+
+import type { FirebaseApp } from 'firebase/app';
+import {
+  getRemoteConfig as getFirebaseRemoteConfig,
+  fetchAndActivate,
+  getBoolean as sdkGetBoolean,
+  getString as sdkGetString,
+  getNumber as sdkGetNumber,
+  type RemoteConfig,
+} from 'firebase/remote-config';
 
 export interface RemoteConfigValue {
   asBoolean(): boolean;
@@ -31,6 +41,13 @@ export enum FeatureFlags {
   ENABLE_PERFORMANCE_MONITORING = 'enable_performance_monitoring',
   ENABLE_ERROR_REPORTING = 'enable_error_reporting',
   ENABLE_ANALYTICS = 'enable_analytics',
+
+  // Site availability kill switches. Default to fail-closed (true = offline)
+  // so a Remote Config outage or a not-yet-created parameter never
+  // accidentally exposes an unfinished site — see initialize()'s
+  // defaultConfig and docs/WISHLIST_WIZARD_GO_LIVE.md.
+  MARKETING_OFFLINE = 'marketing_offline',
+  APP_OFFLINE = 'app_offline',
 }
 
 /**
@@ -59,70 +76,83 @@ export enum ConfigParameters {
   GROUP_GIFTING_ROLLOUT_PERCENT = 'group_gifting_rollout_percent',
 }
 
+type ConfigKey = FeatureFlags | ConfigParameters;
+
 /**
- * Client-side Remote Config Manager
- * Note: This is a mock implementation until Firebase SDK is fully integrated
+ * Client-side Remote Config Manager, backed by the real Firebase Remote
+ * Config SDK. `initialize(app)` must be called with a live FirebaseApp
+ * before values reflect anything fetched from the console; until then (and
+ * whenever a fetch fails) every getter falls back to the same defaults a
+ * real fetch would use, so callers never need to null-check.
  */
 export class RemoteConfigManager {
-  private config: Map<string, any> = new Map();
-  private defaults: Map<string, any> = new Map();
+  private remoteConfigInstance: RemoteConfig | null = null;
   private initialized: boolean = false;
+  private readonly defaults: Record<string, string | number | boolean> = this.buildDefaults();
 
-  constructor() {
-    this.setDefaults();
+  private buildDefaults(): Record<string, string | number | boolean> {
+    return {
+      // Feature flags - default to enabled unless noted otherwise
+      [FeatureFlags.PRICE_ALERTS_ENABLED]: true,
+      [FeatureFlags.GROUP_GIFTING_ENABLED]: true,
+      [FeatureFlags.CALENDAR_INTEGRATION_ENABLED]: true,
+      [FeatureFlags.BROWSER_EXTENSION_ENABLED]: true,
+      [FeatureFlags.RECOMMENDATIONS_AI_ENABLED]: false,
+      [FeatureFlags.AFFILIATE_TRACKING_ENABLED]: true,
+      [FeatureFlags.COLLABORATIVE_EDITING_ENABLED]: false,
+      [FeatureFlags.ENABLE_PERFORMANCE_MONITORING]: true,
+      [FeatureFlags.ENABLE_ERROR_REPORTING]: true,
+      [FeatureFlags.ENABLE_ANALYTICS]: true,
+
+      // Site availability kill switches — fail closed everywhere. Per-project
+      // console values (set independently for dev/staging/prod) are what
+      // actually control behavior day to day; this is only the fallback
+      // used before the first successful fetch or if a fetch ever fails.
+      [FeatureFlags.MARKETING_OFFLINE]: true,
+      [FeatureFlags.APP_OFFLINE]: true,
+
+      // Budget guardrails
+      [ConfigParameters.MIN_CONTRIBUTION_AMOUNT]: 1.0,
+      [ConfigParameters.MAX_CONTRIBUTION_AMOUNT]: 5000.0,
+      [ConfigParameters.MAX_GROUP_GIFT_TOTAL]: 50000.0,
+
+      // Price alert thresholds
+      [ConfigParameters.PRICE_ALERT_CHECK_INTERVAL_HOURS]: 6,
+      [ConfigParameters.PRICE_DROP_THRESHOLD_PERCENT]: 10,
+
+      // Performance settings
+      [ConfigParameters.API_TIMEOUT_MS]: 30000,
+      [ConfigParameters.MAX_CONCURRENT_REQUESTS]: 5,
+
+      // Notification settings
+      [ConfigParameters.NOTIFICATION_BATCH_SIZE]: 100,
+      [ConfigParameters.NOTIFICATION_DELIVERY_DELAY_MS]: 1000,
+
+      // Rollout percentages (0-100)
+      [ConfigParameters.PRICE_ALERTS_ROLLOUT_PERCENT]: 100,
+      [ConfigParameters.GROUP_GIFTING_ROLLOUT_PERCENT]: 100,
+    };
   }
 
   /**
-   * Set default values for all config parameters
+   * Initialize Remote Config against a real Firebase app and fetch the
+   * live template. Never throws — a failed fetch leaves the fail-closed
+   * defaults above active rather than breaking app startup.
    */
-  private setDefaults(): void {
-    // Feature flags - default to disabled for safe rollout
-    this.defaults.set(FeatureFlags.PRICE_ALERTS_ENABLED, true);
-    this.defaults.set(FeatureFlags.GROUP_GIFTING_ENABLED, true);
-    this.defaults.set(FeatureFlags.CALENDAR_INTEGRATION_ENABLED, true);
-    this.defaults.set(FeatureFlags.BROWSER_EXTENSION_ENABLED, true);
-    this.defaults.set(FeatureFlags.RECOMMENDATIONS_AI_ENABLED, false);
-    this.defaults.set(FeatureFlags.AFFILIATE_TRACKING_ENABLED, true);
-    this.defaults.set(FeatureFlags.COLLABORATIVE_EDITING_ENABLED, false);
-    this.defaults.set(FeatureFlags.ENABLE_PERFORMANCE_MONITORING, true);
-    this.defaults.set(FeatureFlags.ENABLE_ERROR_REPORTING, true);
-    this.defaults.set(FeatureFlags.ENABLE_ANALYTICS, true);
-
-    // Budget guardrails from WP-04
-    this.defaults.set(ConfigParameters.MIN_CONTRIBUTION_AMOUNT, 1.0);
-    this.defaults.set(ConfigParameters.MAX_CONTRIBUTION_AMOUNT, 5000.0);
-    this.defaults.set(ConfigParameters.MAX_GROUP_GIFT_TOTAL, 50000.0);
-
-    // Price alert thresholds
-    this.defaults.set(ConfigParameters.PRICE_ALERT_CHECK_INTERVAL_HOURS, 6);
-    this.defaults.set(ConfigParameters.PRICE_DROP_THRESHOLD_PERCENT, 10);
-
-    // Performance settings
-    this.defaults.set(ConfigParameters.API_TIMEOUT_MS, 30000);
-    this.defaults.set(ConfigParameters.MAX_CONCURRENT_REQUESTS, 5);
-
-    // Notification settings
-    this.defaults.set(ConfigParameters.NOTIFICATION_BATCH_SIZE, 100);
-    this.defaults.set(ConfigParameters.NOTIFICATION_DELIVERY_DELAY_MS, 1000);
-
-    // Rollout percentages (0-100)
-    this.defaults.set(ConfigParameters.PRICE_ALERTS_ROLLOUT_PERCENT, 100);
-    this.defaults.set(ConfigParameters.GROUP_GIFTING_ROLLOUT_PERCENT, 100);
-  }
-
-  /**
-   * Initialize Remote Config from server
-   */
-  async initialize(): Promise<void> {
+  async initialize(app: FirebaseApp): Promise<void> {
     try {
-      // This would fetch from Firebase Console
-      // For now, use defaults
-      this.config = new Map(this.defaults);
+      this.remoteConfigInstance = getFirebaseRemoteConfig(app);
+      this.remoteConfigInstance.settings.minimumFetchIntervalMillis =
+        process.env.NODE_ENV === 'production' ? 60 * 60 * 1000 : 0;
+      this.remoteConfigInstance.defaultConfig = this.defaults;
       this.initialized = true;
-      console.log('✅ Remote Config initialized with defaults');
+
+      await fetchAndActivate(this.remoteConfigInstance).catch((error) => {
+        console.warn('Remote Config fetch failed, using defaults:', error);
+      });
     } catch (error) {
       console.error('Failed to initialize Remote Config:', error);
-      this.config = new Map(this.defaults);
+      this.remoteConfigInstance = null;
     }
   }
 
@@ -130,12 +160,7 @@ export class RemoteConfigManager {
    * Check if a feature flag is enabled
    */
   isFeatureEnabled(featureFlag: FeatureFlags): boolean {
-    if (!this.initialized) {
-      console.warn('Remote Config not initialized, using default');
-    }
-
-    const value = this.config.get(featureFlag) ?? this.defaults.get(featureFlag);
-    return Boolean(value);
+    return this.getBoolean(featureFlag);
   }
 
   /**
@@ -146,11 +171,14 @@ export class RemoteConfigManager {
       return false;
     }
 
-    // Get rollout percentage from config
+    // Historical note: this rollout key never actually matches a real
+    // ConfigParameters entry (e.g. "price_alerts_enabled_rollout_percent"
+    // vs. the real PRICE_ALERTS_ROLLOUT_PERCENT="price_alerts_rollout_percent"),
+    // so this has always effectively resolved to the 100 fallback in
+    // practice. Preserved as-is rather than silently reworked.
     const rolloutKey = `${featureFlag}_rollout_percent`;
-    const rolloutPercent = this.config.get(rolloutKey) ?? 100;
+    const rolloutPercent = this.getNumber(rolloutKey as ConfigParameters) || 100;
 
-    // Hash userId to get consistent value for this user
     const userHash = this.hashUserId(userId);
     const userPercent = (userHash % 100) + 1; // 1-100
 
@@ -161,64 +189,60 @@ export class RemoteConfigManager {
    * Get a string configuration value
    */
   getString(param: ConfigParameters): string {
-    const value = this.config.get(param) ?? this.defaults.get(param);
-    return String(value);
+    if (!this.remoteConfigInstance) {
+      if (!this.initialized) console.warn('Remote Config not initialized, using default');
+      return String(this.defaults[param] ?? '');
+    }
+    return sdkGetString(this.remoteConfigInstance, param);
   }
 
   /**
    * Get a numeric configuration value
    */
   getNumber(param: ConfigParameters): number {
-    const value = this.config.get(param) ?? this.defaults.get(param);
-    return Number(value);
+    if (!this.remoteConfigInstance) {
+      if (!this.initialized) console.warn('Remote Config not initialized, using default');
+      return Number(this.defaults[param] ?? 0);
+    }
+    const value = sdkGetNumber(this.remoteConfigInstance, param);
+    // The real SDK returns 0 for a key with no configured default (rather
+    // than the caller's own fallback), which matters for the rollout-percent
+    // lookup above — fall back to our own default map when a key was never
+    // registered in defaultConfig.
+    return param in this.defaults || value !== 0 ? value : Number(this.defaults[param] ?? 0);
   }
 
   /**
    * Get a boolean configuration value
    */
-  getBoolean(param: ConfigParameters): boolean {
-    const value = this.config.get(param) ?? this.defaults.get(param);
-    return Boolean(value);
+  getBoolean(param: ConfigKey): boolean {
+    if (!this.remoteConfigInstance) {
+      if (!this.initialized) console.warn('Remote Config not initialized, using default');
+      return Boolean(this.defaults[param] ?? false);
+    }
+    return sdkGetBoolean(this.remoteConfigInstance, param);
   }
 
   /**
    * Get a JSON configuration value
    */
   getJson(param: string): Record<string, any> {
-    const value = this.config.get(param);
-    if (!value) return {};
-
+    const raw = this.remoteConfigInstance
+      ? sdkGetString(this.remoteConfigInstance, param)
+      : String(this.defaults[param] ?? '');
+    if (!raw) return {};
     try {
-      return typeof value === 'string' ? JSON.parse(value) : value;
+      return JSON.parse(raw);
     } catch {
       return {};
     }
   }
 
   /**
-   * Set configuration value (for testing or local override)
-   */
-  setConfigValue(key: string, value: any): void {
-    this.config.set(key, value);
-    console.log(`🔧 Remote Config updated: ${key} = ${value}`);
-  }
-
-  /**
-   * Get all current configuration values
-   */
-  getAllValues(): Record<string, any> {
-    const result: Record<string, any> = {};
-    this.config.forEach((value, key) => {
-      result[key] = value;
-    });
-    return result;
-  }
-
-  /**
-   * Reset to defaults
+   * Reset to an uninitialized state (test convenience).
    */
   reset(): void {
-    this.config = new Map(this.defaults);
+    this.remoteConfigInstance = null;
     this.initialized = false;
   }
 
@@ -252,11 +276,11 @@ export function getRemoteConfig(): RemoteConfigManager {
 }
 
 /**
- * Initialize Remote Config
+ * Initialize Remote Config against a real Firebase app.
  */
-export async function initializeRemoteConfig(): Promise<RemoteConfigManager> {
+export async function initializeRemoteConfig(app: FirebaseApp): Promise<RemoteConfigManager> {
   const config = getRemoteConfig();
-  await config.initialize();
+  await config.initialize(app);
   return config;
 }
 

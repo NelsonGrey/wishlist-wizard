@@ -141,11 +141,11 @@ export default function PriceAlertDialog({
 
   return (
     <Dialog open={open} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-[500px]" aria-label={`Create price alert for ${itemDisplayTitle}`}>
+      <DialogContent className="sm:max-w-[500px]" aria-label={`Add price alert for ${itemDisplayTitle}`}>
         <DialogHeader>
           <DialogTitle className="flex items-center">
             <Bell className="h-5 w-5 mr-2 text-emerald-800" aria-hidden="true" />
-            Create Price Alert
+            Add Price Alert
           </DialogTitle>
           <DialogDescription>
             Get notified when the price drops below your target
@@ -271,13 +271,13 @@ export default function PriceAlertDialog({
               <Button
                 type="submit"
                 disabled={isCreating || targetPrice <= 0}
-                aria-label={isCreating ? `Creating price alert for ${itemDisplayTitle}` : `Create price alert for ${itemDisplayTitle}`}
+                aria-label={isCreating ? `Saving price alert for ${itemDisplayTitle}` : `Save price alert for ${itemDisplayTitle}`}
                 className="w-full sm:w-auto"
               >
                 {isCreating ? (
-                  <>Creating Alert...</>
+                  <>Saving...</>
                 ) : (
-                  <>Create Price Alert</>
+                  <>Save</>
                 )}
               </Button>
             </DialogFooter>

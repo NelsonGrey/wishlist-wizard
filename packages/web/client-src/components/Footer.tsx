@@ -43,6 +43,9 @@ export default function Footer() {
 
           {/* Main nav */}
           <nav className="flex flex-wrap gap-x-5 gap-y-1 text-sm text-emerald-200">
+            <Link href="/how-it-works" className="hover:text-white transition-colors">How It Works</Link>
+            <Link href="/affiliate-commissions" className="hover:text-white transition-colors">Commissions</Link>
+            <Link href="/creator-program" className="hover:text-white transition-colors">Creators</Link>
             <Link href="/about" className="hover:text-white transition-colors">About</Link>
             <Link href="/subscriptions" className="hover:text-white transition-colors">Subscriptions</Link>
             <Link href="/download" className="hover:text-white transition-colors">Download</Link>
@@ -59,7 +62,7 @@ export default function Footer() {
         </div>
 
         <div className="mt-3 pt-3 border-t border-emerald-800 flex items-center justify-between">
-          <p className="text-xs text-emerald-400">© {new Date().getFullYear()} Wishlist Wizard. All rights reserved.</p>
+          <p className="text-xs text-emerald-400">© {new Date().getFullYear()} Wishlist Wizard, a product of Nelson Grey LLC. All rights reserved.</p>
           <div className="flex items-center gap-3">
             {SOCIAL_LINKS.map(({ label, href, icon }) => (
               <a
