@@ -1,4 +1,5 @@
 import { Link } from "wouter";
+import AppEntryLink from "@/components/AppEntryLink";
 import { ArrowRight, BadgeDollarSign, CalendarDays, CheckCircle2, Gift, Megaphone, Users } from "lucide-react";
 import { TIER_LIMITS, TIER_PRICING, type SubscriptionTier } from "@wishlist-wizard/shared";
 
@@ -163,7 +164,7 @@ export default function Subscriptions({ variant = "full" }: SubscriptionsProps) 
                   <p className="mt-5 text-sm leading-6 text-slate-600">{story.valueProof}</p>
                   <p className="mt-4 text-xs font-medium text-slate-500">{getPlanMetrics(tierKey)}</p>
 
-                  <Link
+                  <AppEntryLink
                     href="/register"
                     className={`mt-auto inline-flex items-center justify-center gap-2 rounded-lg px-4 py-3 text-sm font-semibold transition-colors ${
                       isHighlighted ? "bg-emerald-800 text-white hover:bg-emerald-900" : "bg-emerald-900 text-white hover:bg-emerald-800"
@@ -171,7 +172,7 @@ export default function Subscriptions({ variant = "full" }: SubscriptionsProps) 
                   >
                     {story.cta}
                     <ArrowRight className="h-4 w-4" />
-                  </Link>
+                  </AppEntryLink>
                 </article>
               );
             })}

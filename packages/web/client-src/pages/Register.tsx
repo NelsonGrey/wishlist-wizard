@@ -13,6 +13,8 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { GoogleIcon, AppleIcon } from "@/components/auth/OAuthIcons";
 import { isAccountExistsWithDifferentCredentialError } from "@/lib/firebase-auth-errors";
+import { useAppOffline } from "@/hooks/useAppOffline";
+import AppOfflineNotice from "@/components/AppOfflineNotice";
 
 type OAuthProviderId = 'google.com' | 'apple.com';
 
@@ -34,6 +36,7 @@ const registerSchema = z.object({
 type RegisterFormValues = z.infer<typeof registerSchema>;
 
 export default function Register() {
+  const isAppOffline = useAppOffline();
   const [isLoading, setIsLoading] = useState(false);
   const [oauthLoading, setOauthLoading] = useState<OAuthProviderId | null>(null);
   const [, setLocation] = useLocation();
@@ -120,6 +123,10 @@ export default function Register() {
       setOauthLoading(null);
     }
   };
+
+  if (isAppOffline) {
+    return <AppOfflineNotice />;
+  }
 
   return (
     <div className="container flex justify-center py-1">
