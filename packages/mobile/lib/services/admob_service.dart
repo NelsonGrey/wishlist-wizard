@@ -12,27 +12,27 @@ class AdMobConfig {
   // Test Ad Unit IDs - Replace with real IDs for production
   static const String androidBannerAdUnitId = kDebugMode
       ? 'ca-app-pub-3940256099942544/6300978111' // Test banner
-      : 'ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX'; // Your real banner ID
+      : 'ca-app-pub-5198775482699756/8592990288'; // wishlist-wizard-admob-banner-android
 
   static const String iosBannerAdUnitId = kDebugMode
       ? 'ca-app-pub-3940256099942544/2934735716' // Test banner
-      : 'ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX'; // Your real banner ID
+      : 'ca-app-pub-5198775482699756/5239040965'; // wishlist-wizard-admob-banner-ios
 
   static const String androidInterstitialAdUnitId = kDebugMode
       ? 'ca-app-pub-3940256099942544/1033173712' // Test interstitial
-      : 'ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX'; // Your real interstitial ID
+      : 'ca-app-pub-5198775482699756/4490093744'; // wishlist-wizard-admob-interstitial-android
 
   static const String iosInterstitialAdUnitId = kDebugMode
       ? 'ca-app-pub-3940256099942544/4411468910' // Test interstitial
-      : 'ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX'; // Your real interstitial ID
+      : 'ca-app-pub-5198775482699756/6628531297'; // wishlist-wizard-admob-interstitial-ios
 
   static const String androidRewardedAdUnitId = kDebugMode
       ? 'ca-app-pub-3940256099942544/5224354917' // Test rewarded
-      : 'ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX'; // Your real rewarded ID
+      : 'ca-app-pub-5198775482699756/6552122638'; // wishlist-wizard-admob-rewarded-android
 
   static const String iosRewardedAdUnitId = kDebugMode
       ? 'ca-app-pub-3940256099942544/1712485313' // Test rewarded
-      : 'ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX'; // Your real rewarded ID
+      : 'ca-app-pub-5198775482699756/6994975766'; // wishlist-wizard-admob-rewarded-ios
 
   /// Get platform-specific banner ad unit ID
   static String get bannerAdUnitId {
