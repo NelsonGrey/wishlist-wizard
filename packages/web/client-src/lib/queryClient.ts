@@ -1,15 +1,20 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
 import { getAuth } from "firebase/auth";
+import { connectFunctionsEmulator, getFunctions, httpsCallable } from "firebase/functions";
+import { getToken as getAppCheckToken } from "firebase/app-check";
+import { firebaseApp, getFirebaseAppCheck, initFirebase } from "@/lib/firebase";
 
-// API Base URL - use Firebase Functions in production, Express.js API server in development
-const API_BASE_URL = import.meta.env.PROD 
-  ? "https://api-ph6if7thka-uc.a.run.app"  // Firebase Cloud Functions URL
-  : "http://localhost:3001";  // Local Express.js API server
+// API Base URL
+// - Uses explicit env override when provided
+// - Falls back to local API server in development
+// - Falls back to current origin in production to avoid cross-origin CORS issues
+const configuredApiBaseUrl = String(import.meta.env.VITE_API_BASE_URL || '').trim();
+const API_BASE_URL = configuredApiBaseUrl || (import.meta.env.PROD ? '' : 'http://localhost:3001');
 
-// Firebase Functions URL for production
-const FIREBASE_FUNCTIONS_URL = import.meta.env.PROD 
-  ? "https://us-central1-wishlist-wizard.cloudfunctions.net"
-  : "http://localhost:5001/wishlist-wizard/us-central1";
+const FIREBASE_FUNCTIONS_REGION = String(import.meta.env.VITE_FIREBASE_FUNCTIONS_REGION || 'us-central1');
+const USE_FIREBASE_EMULATORS = String(import.meta.env.VITE_USE_FIREBASE_EMULATORS || '').toLowerCase() === 'true';
+
+let functionsEmulatorConnected = false;
 
 /**
  * Get Firebase Auth ID token for authenticated requests
@@ -33,45 +38,168 @@ async function getAuthToken(): Promise<string | null> {
 }
 
 /**
+ * Get an App Check token for raw fetch() requests to the api router.
+ * httpsCallable() attaches this automatically for callable-path requests;
+ * a plain fetch() does not, so router endpoints that call
+ * requireAppCheck()/requireAppCheckHTTP() internally need it attached here.
+ * Returns null (silently) if App Check isn't configured for this environment.
+ */
+async function getAppCheckHeaderToken(): Promise<string | null> {
+  try {
+    const appCheck = getFirebaseAppCheck();
+    if (!appCheck) {
+      return null;
+    }
+    const result = await getAppCheckToken(appCheck, false);
+    return result.token;
+  } catch (error) {
+    console.warn('Failed to get App Check token:', error);
+    return null;
+  }
+}
+
+/**
  * Determine if we should use Firebase Functions instead of Express API
  */
-function shouldUseFirebaseFunctions(url: string): boolean {
-  // Use Firebase Functions for specific endpoints in production
-  if (!import.meta.env.PROD) {
+function shouldUseFirebaseFunctions(url: string, _method: string): boolean {
+  if (/^\/api\/items\/[^/]+\/price-intelligence$/.test(url)) {
     return false;
   }
-  
-  // List of API endpoints that have been migrated to Firebase Functions
+
+  // List of API endpoints that are backed by callable Firebase Functions
   const firebaseFunctionEndpoints = [
     '/api/auth/me',
-    '/api/users/search',
-    '/api/notifications',
-    '/api/price-alerts'
+    '/api/users/search'
   ];
-  
+
   return firebaseFunctionEndpoints.some(endpoint => url.startsWith(endpoint));
+}
+
+/**
+ * Endpoints served by the HTTP `api` Firebase function router (non-callable).
+ */
+function shouldUseFirebaseApiRouter(url: string, _method: string): boolean {
+  if (/^\/api\/items\/[^/]+\/price-intelligence$/.test(url)) {
+    return true;
+  }
+
+  const routerEndpoints = [
+    '/api/account',
+    '/api/privacy',
+    '/api/recommendations',
+    '/api/price-alerts',
+    '/api/price-drops',
+    '/api/beneficiaries',
+    '/api/wishlist-items',
+    '/api/products/preview',
+    '/api/creator',
+    '/api/admin',
+    '/api/billing',
+    '/api/contacts',
+    '/api/devices',
+    '/api/analytics',
+    '/api/mobile',
+    '/api/affiliate',
+    '/api/fcm',
+    '/api/notifications',
+    '/api/calendar',
+    '/api/wishlists',
+    '/api/shared',
+    '/api/items',
+    '/api/price-intelligence',
+    '/api/achievements',
+  ];
+
+  return routerEndpoints.some(endpoint => url.startsWith(endpoint));
+}
+
+function normalizeBody(body: unknown): unknown {
+  if (typeof body === 'string') {
+    try {
+      return JSON.parse(body);
+    } catch {
+      return body;
+    }
+  }
+  return body;
+}
+
+function resolveFirebaseProjectId(): string {
+  const fromApp = String(firebaseApp?.options?.projectId || '').trim();
+  if (fromApp) {
+    return fromApp;
+  }
+
+  const fromEnv = String(
+    import.meta.env.VITE_FIREBASE_PROJECT_ID ||
+    import.meta.env.VITE_FIREBASE_PROJECT_ID_DEVELOPMENT ||
+    import.meta.env.VITE_FIREBASE_PROJECT_ID_STAGING ||
+    import.meta.env.VITE_FIREBASE_PROJECT_ID_PRODUCTION ||
+    ''
+  ).trim();
+
+  if (!fromEnv) {
+    throw new Error('Firebase projectId is not configured for API router requests');
+  }
+
+  return fromEnv;
+}
+
+function buildFirebaseApiRouterUrl(url: string): string {
+  // In production, use relative paths that go through Firebase Hosting rewrites.
+  // The hosting config rewrites /api/** to the Cloud Function named 'api'.
+  // If an API base URL is configured, always prefer it (prod/dev) for non-Hosting deployments.
+  
+  const normalizedPath = url.startsWith('/') ? url : `/${url}`;
+  const apiPath = normalizedPath.startsWith('/api/')
+    ? normalizedPath
+    : `/api${normalizedPath}`;
+
+  if (configuredApiBaseUrl) {
+    const baseUrl = configuredApiBaseUrl.replace(/\/+$/, '');
+    return `${baseUrl}${apiPath}`;
+  }
+
+  if (import.meta.env.PROD) {
+    return apiPath; // Relative URL, Firebase Hosting handles the rewrite
+  }
+
+  // Local development: direct emulator URL
+  const projectId = resolveFirebaseProjectId();
+  const routerPath = apiPath.slice('/api'.length);
+  return `http://localhost:5001/${projectId}/${FIREBASE_FUNCTIONS_REGION}/api${routerPath}`;
 }
 
 /**
  * Convert Express API endpoint to Firebase Function name
  */
-function getFirebaseFunctionName(url: string): string {
-  // Map API endpoints to Firebase Function names
-  const endpointMapping: Record<string, string> = {
-    '/api/auth/me': 'getCurrentUser',
-    '/api/users/search': 'searchUsers',
-    '/api/notifications': 'getUserNotifications',
-    '/api/price-alerts': 'getUserPriceAlerts'
-  };
-  
-  for (const [endpoint, functionName] of Object.entries(endpointMapping)) {
-    if (url.startsWith(endpoint)) {
-      return functionName;
+type FunctionRouteMatch = {
+  functionName: string;
+  data: Record<string, unknown>;
+};
+
+function getFirebaseFunctionRoute(url: string, _method: string, body?: unknown): FunctionRouteMatch {
+  const data = (typeof body === 'object' && body !== null && !Array.isArray(body))
+    ? { ...(body as Record<string, unknown>) }
+    : {};
+
+  const patterns: Array<{ pattern: RegExp; resolve: (match: RegExpExecArray) => FunctionRouteMatch }> = [
+    { pattern: /^\/api\/group-payments\/payment-intent$/, resolve: () => ({ functionName: 'groupPaymentCreateIntent', data }) },
+    { pattern: /^\/api\/group-payments\/confirm$/, resolve: () => ({ functionName: 'groupPaymentConfirm', data }) },
+    { pattern: /^\/api\/group-payments\/item\/([^/]+)$/, resolve: (match) => ({ functionName: 'groupGiftSummary', data: { ...data, itemId: match[1] } }) },
+  ];
+
+  for (const entry of patterns) {
+    const match = entry.pattern.exec(url);
+    if (match) {
+      return entry.resolve(match);
     }
   }
-  
-  // Default fallback - convert URL path to function name
-  return url.replace('/api/', '').replace(/\//g, '_');
+
+  return {
+    functionName: url.replace('/api/', '').replace(/\//g, '_'),
+    data,
+  };
 }
 
 async function throwIfResNotOk(res: Response) {
@@ -95,25 +223,50 @@ export async function apiRequest(
     body?: unknown;
     useFirebaseFunctions?: boolean;
   }
-): Promise<any> {
+): Promise<unknown> {
   const { method = "GET", body, useFirebaseFunctions } = options || {};
+  const normalizedBody = normalizeBody(body);
   
   // Determine if we should use Firebase Functions
-  const useFunctions = useFirebaseFunctions ?? shouldUseFirebaseFunctions(url);
+  const useFunctions = useFirebaseFunctions ?? shouldUseFirebaseFunctions(url, method);
+  const useApiRouter = shouldUseFirebaseApiRouter(url, method);
   
   let fullUrl: string;
-  let headers: Record<string, string> = {};
+  const headers: Record<string, string> = {};
   
   if (useFunctions) {
-    // Use Firebase Functions
-    const functionName = getFirebaseFunctionName(url);
-    fullUrl = `${FIREBASE_FUNCTIONS_URL}/${functionName}`;
-    
-    // Get Firebase Auth token for authenticated requests
+    // Use Firebase SDK callable functions to ensure proper auth + CORS handling.
+    const { functionName, data } = getFirebaseFunctionRoute(url, method, normalizedBody);
+
+    await initFirebase({ enableAuth: true, enableFirestore: false });
+    if (!firebaseApp) {
+      throw new Error('Firebase app is not initialized');
+    }
+
+    const functions = getFunctions(firebaseApp, FIREBASE_FUNCTIONS_REGION);
+
+    if (!import.meta.env.PROD && USE_FIREBASE_EMULATORS && !functionsEmulatorConnected) {
+      connectFunctionsEmulator(functions, 'localhost', 5001);
+      functionsEmulatorConnected = true;
+    }
+
+    const callable = httpsCallable(functions, functionName);
+    const result = await callable(data);
+    return result.data;
+  } else if (useApiRouter) {
+    await initFirebase({ enableAuth: true, enableFirestore: false });
+
     const token = await getAuthToken();
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
     }
+
+    const appCheckToken = await getAppCheckHeaderToken();
+    if (appCheckToken) {
+      headers['X-Firebase-AppCheck'] = appCheckToken;
+    }
+
+    fullUrl = buildFirebaseApiRouterUrl(url);
   } else {
     // Use traditional Express.js API
     fullUrl = url.startsWith('http') ? url : `${API_BASE_URL}${url}`;
@@ -125,24 +278,18 @@ export async function apiRequest(
     }
   }
   
-  if (body) {
+  if (normalizedBody) {
     headers['Content-Type'] = 'application/json';
   }
   
   const fetchOptions: RequestInit = {
     method,
     headers,
-    credentials: useFunctions ? 'omit' : 'include', // Firebase Functions don't use cookies
+    credentials: useApiRouter ? 'omit' : 'include',
   };
   
-  if (body) {
-    if (useFunctions) {
-      // Firebase Functions expect data in the request body
-      fetchOptions.body = JSON.stringify({ data: body });
-    } else {
-      // Express.js API expects direct JSON body
-      fetchOptions.body = JSON.stringify(body);
-    }
+  if (normalizedBody) {
+    fetchOptions.body = JSON.stringify(normalizedBody);
   }
   
   const res = await fetch(fullUrl, fetchOptions);
@@ -154,11 +301,6 @@ export async function apiRequest(
   if (contentType && contentType.includes("application/json")) {
     const jsonResponse = await res.json();
     
-    // Firebase Functions wrap responses in a 'data' property
-    if (useFunctions && jsonResponse.data !== undefined) {
-      return jsonResponse.data;
-    }
-    
     return jsonResponse;
   } else {
     // If it's not JSON, return the text or throw an error
@@ -168,47 +310,46 @@ export async function apiRequest(
 }
 
 type UnauthorizedBehavior = "returnNull" | "throw";
-export const getQueryFn: <T>(options: {
+export const getQueryFn = <T,>(options: {
   on401: UnauthorizedBehavior;
   useFirebaseFunctions?: boolean;
-}) => QueryFunction<T> =
-  ({ on401: unauthorizedBehavior, useFirebaseFunctions }) =>
+}): QueryFunction<T> =>
   async ({ queryKey }) => {
     try {
       const url = queryKey[0] as string;
-      
+
       // Use apiRequest for consistent handling of both Express API and Firebase Functions
       try {
-        return await apiRequest(url, { 
+        return await apiRequest(url, {
           method: 'GET',
-          useFirebaseFunctions 
-        });
+          useFirebaseFunctions: options.useFirebaseFunctions
+        }) as T;
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
-        
+
         // Handle 401 errors
         if (errorMessage.includes('401')) {
-          if (unauthorizedBehavior === "returnNull") {
-            return null;
+          if (options.on401 === "returnNull") {
+            return null as T;
           }
           throw error;
         }
-        
+
         // Handle other API errors gracefully
         if (import.meta.env.DEV && !errorMessage.includes('API endpoint not available')) {
           console.warn(`API call failed for ${url}:`, error);
         }
-        
-        return unauthorizedBehavior === "returnNull" ? null : [];
+
+        return (options.on401 === "returnNull" ? null : []) as T;
       }
-      
+
     } catch (error) {
-      // Handle network errors gracefully - only log if it's not an API availability issue  
+      // Handle network errors gracefully - only log if it's not an API availability issue
       const errorMessage = error instanceof Error ? error.message : String(error);
       if (import.meta.env.DEV && !errorMessage.includes('API endpoint not available')) {
         console.warn(`Network error for ${queryKey[0]}:`, error);
       }
-      return unauthorizedBehavior === "returnNull" ? null : [];
+      return (options.on401 === "returnNull" ? null : []) as T;
     }
   };
 

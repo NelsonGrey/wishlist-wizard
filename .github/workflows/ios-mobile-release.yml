@@ -1,0 +1,270 @@
+name: iOS Mobile Release
+
+permissions:
+  contents: read
+
+on:
+  workflow_call:
+    inputs:
+      release_type:
+        description: Release mode
+        required: false
+        type: string
+        default: testflight
+      skip_tests:
+        description: Skip mobile tests
+        required: false
+        type: boolean
+        default: false
+      beta_group_name:
+        description: TestFlight beta group
+        required: false
+        type: string
+        default: Internal Testers
+      runner_labels:
+        description: Runner labels JSON array
+        required: false
+        type: string
+        default: '["macos-latest"]'
+    secrets:
+      APP_STORE_CONNECT_KEY_ID:
+        required: false
+      APP_STORE_CONNECT_ISSUER_ID:
+        required: false
+      APP_STORE_CONNECT_KEY:
+        required: false
+      FASTLANE_APPLE_ID:
+        required: false
+      FASTLANE_TEAM_ID:
+        required: false
+      MATCH_GIT_BRANCH:
+        required: false
+      MATCH_GIT_URL:
+        required: false
+      MATCH_GIT_URL_TOKEN:
+        required: false
+      MATCH_GIT_PASSWORD:
+        required: false
+      MATCH_KEYCHAIN_PASSWORD:
+        required: false
+      MATCH_PASSWORD:
+        required: false
+      MATCH_SSH_PRIVATE_KEY:
+        required: false
+      NELSON_GREY_PAT:
+        required: false
+  workflow_dispatch:
+    inputs:
+      release_type:
+        description: Release mode
+        required: true
+        type: choice
+        default: testflight
+        options:
+          - build_only
+          - testflight
+          - appstore
+          - appstore_metadata
+          - appstore_submit
+      skip_tests:
+        description: Skip mobile tests
+        required: false
+        default: false
+        type: boolean
+      beta_group_name:
+        description: TestFlight beta group
+        required: false
+        default: Internal Testers
+        type: string
+      runner_labels:
+        description: Runner labels JSON array
+        required: false
+        default: '["macos-latest"]'
+        type: string
+
+jobs:
+  build-ios:
+    name: Build iOS App
+    runs-on: ${{ fromJSON(inputs.runner_labels) }}
+    timeout-minutes: 90
+    environment:
+      # ios-appstore requires manual approval (see repo environment
+      # settings) — reserved for appstore_submit, the one genuinely
+      # irreversible action here. appstore/appstore_metadata build or push
+      # metadata and are safe to run repeatedly/automatically, so they stay
+      # on the ungated ios-testflight environment rather than picking up
+      # ios-appstore's approval requirement too.
+      name: ${{ inputs.release_type == 'appstore_submit' && 'ios-appstore' || 'ios-testflight' }}
+    defaults:
+      run:
+        shell: bash
+
+    env:
+      APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+      APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+      APP_STORE_CONNECT_KEY: ${{ secrets.APP_STORE_CONNECT_KEY }}
+      FASTLANE_APPLE_ID: ${{ secrets.FASTLANE_APPLE_ID }}
+      FASTLANE_TEAM_ID: ${{ secrets.FASTLANE_TEAM_ID }}
+      MATCH_GIT_BRANCH: ${{ secrets.MATCH_GIT_BRANCH || 'develop' }}
+      MATCH_GIT_URL: ${{ secrets.MATCH_GIT_URL }}
+      MATCH_GIT_URL_TOKEN: ${{ secrets.MATCH_GIT_URL_TOKEN }}
+      MATCH_GIT_PASSWORD: ${{ secrets.MATCH_GIT_PASSWORD }}
+      MATCH_KEYCHAIN_PASSWORD: ${{ secrets.MATCH_KEYCHAIN_PASSWORD }}
+      MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
+      MATCH_SSH_PRIVATE_KEY: ${{ secrets.MATCH_SSH_PRIVATE_KEY }}
+      NELSON_GREY_PAT: ${{ secrets.NELSON_GREY_PAT }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          submodules: recursive
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.2'
+          bundler-cache: true
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install Flutter dependencies
+        run: |
+          cd packages/mobile
+          flutter pub get
+
+      - name: Prepare match credentials
+        run: |
+          set -euo pipefail
+
+          if [ -z "${MATCH_GIT_BRANCH:-}" ]; then
+            echo "MATCH_GIT_BRANCH=develop" >> "$GITHUB_ENV"
+          fi
+
+          MATCH_SSH_AUTH=false
+          if [ -n "${MATCH_SSH_PRIVATE_KEY:-}" ]; then
+            mkdir -p "$HOME/.ssh"
+            chmod 700 "$HOME/.ssh"
+
+            MATCH_SSH_KEY_FILE="$HOME/.ssh/match_repo_key"
+            printf '%s' "$MATCH_SSH_PRIVATE_KEY" > "$MATCH_SSH_KEY_FILE"
+            if [ -n "$(tail -c 1 "$MATCH_SSH_KEY_FILE" 2>/dev/null || true)" ]; then
+              printf '\n' >> "$MATCH_SSH_KEY_FILE"
+            fi
+            chmod 600 "$MATCH_SSH_KEY_FILE"
+
+            if ! ssh-keygen -y -f "$MATCH_SSH_KEY_FILE" >/dev/null 2>&1; then
+              echo "⚠️ MATCH_SSH_PRIVATE_KEY is invalid; falling back to URL/token auth"
+            else
+              ssh-keyscan -t rsa,ecdsa,ed25519 github.com >> "$HOME/.ssh/known_hosts" 2>/dev/null || true
+              echo "GIT_SSH_COMMAND=ssh -i $MATCH_SSH_KEY_FILE -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile=$HOME/.ssh/known_hosts" >> "$GITHUB_ENV"
+              echo "MATCH_GIT_URL=git@github.com:mnelson3/nelson-grey.git" >> "$GITHUB_ENV"
+              MATCH_SSH_AUTH=true
+            fi
+          fi
+
+          if [ "$MATCH_SSH_AUTH" != "true" ] && [ -n "${MATCH_GIT_URL:-}" ]; then
+            if [[ "$MATCH_GIT_URL" != *"@"* ]]; then
+              TOKEN="${MATCH_GIT_PASSWORD:-${MATCH_GIT_URL_TOKEN:-${NELSON_GREY_PAT:-}}}"
+              if [ -z "$TOKEN" ]; then
+                echo "❌ MATCH_GIT_URL does not include credentials and no PAT/SSH key is configured"
+                exit 1
+              fi
+
+              if [[ "$MATCH_GIT_URL" == https://* ]]; then
+                MATCH_GIT_URL="https://x-access-token:${TOKEN}@${MATCH_GIT_URL#https://}"
+              else
+                MATCH_GIT_URL="https://x-access-token:${TOKEN}@github.com/${MATCH_GIT_URL#github.com/}"
+              fi
+            fi
+
+            echo "MATCH_GIT_URL=$MATCH_GIT_URL" >> "$GITHUB_ENV"
+          elif [ "$MATCH_SSH_AUTH" != "true" ]; then
+            TOKEN="${MATCH_GIT_PASSWORD:-${MATCH_GIT_URL_TOKEN:-${NELSON_GREY_PAT:-}}}"
+            if [ -z "$TOKEN" ]; then
+              echo "❌ No match repo auth configured"
+              exit 1
+            fi
+
+            echo "MATCH_GIT_URL=https://x-access-token:${TOKEN}@github.com/mnelson3/nelson-grey.git" >> "$GITHUB_ENV"
+          fi
+
+          echo "MATCH_PASSWORD=${MATCH_PASSWORD:-}" >> "$GITHUB_ENV"
+          echo "MATCH_KEYCHAIN_PASSWORD=${MATCH_KEYCHAIN_PASSWORD:-}" >> "$GITHUB_ENV"
+
+      - name: Run mobile tests
+        if: ${{ !inputs.skip_tests }}
+        env:
+          TEST_EMAIL: ${{ secrets.MOBILE_INTEGRATION_TEST_EMAIL }}
+          TEST_PASSWORD: ${{ secrets.MOBILE_INTEGRATION_TEST_PASSWORD }}
+        run: |
+          cd packages/mobile
+          flutter test
+
+          DEVICE_ID="$(flutter devices --machine | node -e "const fs=require('fs');const devices=JSON.parse(fs.readFileSync(0,'utf8'));const preferred=devices.find(d=>d.targetPlatform==='ios'&&d.emulator)||devices.find(d=>d.targetPlatform==='ios');if(!preferred){process.exit(1);}process.stdout.write(preferred.id);")" || true
+          if [ -n "${DEVICE_ID:-}" ]; then
+            if [ -z "${TEST_EMAIL:-}" ] || [ -z "${TEST_PASSWORD:-}" ]; then
+              echo "ℹ️ MOBILE_INTEGRATION_TEST_EMAIL/PASSWORD secrets not set; 'Home screen (logged in)' integration tests will skip themselves"
+            fi
+            flutter test integration_test/auth_smoke_test.dart -d "$DEVICE_ID" \
+              --dart-define=FIREBASE_ENV=dev \
+              --dart-define=TEST_EMAIL="${TEST_EMAIL:-}" \
+              --dart-define=TEST_PASSWORD="${TEST_PASSWORD:-}"
+          else
+            echo "⚠️ No iOS simulator/device detected for integration smoke test; skipping smoke run"
+          fi
+
+      - name: Build or release iOS app
+        run: |
+          set -euo pipefail
+
+          cd packages/mobile/ios
+          case "${{ inputs.release_type }}" in
+            build_only)
+              bundle exec fastlane build_release
+              ;;
+            testflight)
+              export BETA_FEEDBACK_EMAIL="${BETA_FEEDBACK_EMAIL:-mark.a.nelson@outlook.com}"
+              export BETA_GROUP_NAME="${{ inputs.beta_group_name || 'Internal Testers' }}"
+              bundle exec fastlane beta
+              ;;
+            appstore)
+              bundle exec fastlane build_appstore
+              ;;
+            appstore_metadata)
+              # Metadata/screenshots only via the API — no build, no signing,
+              # and never submits for review.
+              bundle exec fastlane push_appstore_metadata
+              ;;
+            appstore_submit)
+              # Submits the current App Store version for human review.
+              # Irreversible on Apple's side once accepted — only reachable
+              # via an explicit workflow_dispatch choice, never automatically.
+              bundle exec fastlane submit_appstore_for_review
+              ;;
+            *)
+              echo "❌ Unknown release type: ${{ inputs.release_type }}"
+              exit 1
+              ;;
+          esac
+
+      - name: Upload iOS build artifact
+        if: ${{ inputs.release_type != 'testflight' && inputs.release_type != 'appstore_metadata' && inputs.release_type != 'appstore_submit' }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: ios-release-${{ inputs.release_type }}
+          path: |
+            build/ios/ipa/
+            packages/mobile/build/ios/iphoneos/
+          if-no-files-found: warn
+
+      - name: Cleanup temporary auth files
+        if: always()
+        run: |
+          rm -rf "$HOME/.private_keys" || true
+          rm -f "$HOME/.ssh/match_repo_key" || true

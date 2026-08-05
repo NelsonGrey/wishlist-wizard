@@ -1,6 +1,5 @@
 import { pgTable, text, serial, integer, boolean, timestamp, varchar, primaryKey, jsonb, decimal } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
-import { z } from "zod";
 import { relations } from "drizzle-orm";
 export type { InferSelectModel, InferInsertModel } from 'drizzle-orm';
 
@@ -59,6 +58,8 @@ export const wishlists = pgTable("wishlists", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
   occasion: text("occasion"), // e.g., "Birthday", "Christmas", "Baby Shower"
   occasionDate: timestamp("occasion_date"), // When the event is happening
+  recurrence: text("recurrence"), // none, yearly, monthly
+  reminderDays: integer("reminder_days"), // Reminder lead time before occasion
   description: text("description"), // Additional description for the wishlist
 });
 
@@ -165,16 +166,9 @@ export const insertBeneficiarySchema = createInsertSchema(beneficiaries).pick({
   notes: true,
 });
 
-export const insertWishlistSchema = createInsertSchema(wishlists).pick({
-  name: true,
-  userId: true,
-  shareId: true,
-  beneficiaryId: true,
-  isPublic: true,
-  isCollaborative: true,
-  occasion: true,
-  occasionDate: true,
-  description: true,
+export const insertWishlistSchema = createInsertSchema(wishlists).omit({
+  id: true,
+  createdAt: true
 });
 
 export const insertWishlistCollaboratorSchema = createInsertSchema(wishlistCollaborators).pick({
@@ -208,14 +202,14 @@ export const insertWishlistItemSchema = createInsertSchema(wishlistItems).pick({
 });
 
 // Types
-export type InsertUser = z.infer<typeof insertUserSchema>;
-export type UpdateUser = z.infer<typeof updateUserSchema>;
+export type InsertUser = typeof users.$inferInsert;
+export type UpdateUser = typeof users.$inferInsert; // Note: Drizzle doesn't have separate update types
 export type User = typeof users.$inferSelect;
 
-export type InsertBeneficiary = z.infer<typeof insertBeneficiarySchema>;
+export type InsertBeneficiary = typeof beneficiaries.$inferInsert;
 export type Beneficiary = typeof beneficiaries.$inferSelect;
 
-export type InsertWishlist = z.infer<typeof insertWishlistSchema>;
+export type InsertWishlist = typeof wishlists.$inferInsert;
 export type Wishlist = typeof wishlists.$inferSelect;
 
 // Notifications table to track activities in the system
@@ -258,13 +252,13 @@ export const insertNotificationSchema = createInsertSchema(notifications).pick({
   emailStatus: true
 });
 
-export type InsertWishlistCollaborator = z.infer<typeof insertWishlistCollaboratorSchema>;
+export type InsertWishlistCollaborator = typeof wishlistCollaborators.$inferInsert;
 export type WishlistCollaborator = typeof wishlistCollaborators.$inferSelect;
 
-export type InsertNotification = z.infer<typeof insertNotificationSchema>;
+export type InsertNotification = typeof notifications.$inferInsert;
 export type Notification = typeof notifications.$inferSelect;
 
-export type InsertWishlistItem = z.infer<typeof insertWishlistItemSchema>;
+export type InsertWishlistItem = typeof wishlistItems.$inferInsert;
 export type WishlistItem = typeof wishlistItems.$inferSelect;
 
 // Price tracking table
@@ -301,7 +295,7 @@ export const insertPriceAlertSchema = createInsertSchema(priceAlerts).pick({
   emailSent: true
 });
 
-export type InsertPriceAlert = z.infer<typeof insertPriceAlertSchema>;
+export type InsertPriceAlert = typeof priceAlerts.$inferInsert;
 export type PriceAlert = typeof priceAlerts.$inferSelect;
 
 // User preferences for recommendations
@@ -334,7 +328,7 @@ export const insertUserPreferencesSchema = createInsertSchema(userPreferences).p
   personalInterests: true
 });
 
-export type InsertUserPreferences = z.infer<typeof insertUserPreferencesSchema>;
+export type InsertUserPreferences = typeof userPreferences.$inferInsert;
 export type UserPreferences = typeof userPreferences.$inferSelect;
 
 // AI-driven gift recommendations
@@ -392,7 +386,7 @@ export const insertRecommendationSchema = createInsertSchema(recommendations).pi
   metadata: true
 });
 
-export type InsertRecommendation = z.infer<typeof insertRecommendationSchema>;
+export type InsertRecommendation = typeof recommendations.$inferInsert;
 export type Recommendation = typeof recommendations.$inferSelect;
 
 // Group Gifting Tables
@@ -484,7 +478,7 @@ export const insertGiftReservationSchema = createInsertSchema(giftReservations).
   status: true
 });
 
-export type InsertGiftReservation = z.infer<typeof insertGiftReservationSchema>;
+export type InsertGiftReservation = typeof giftReservations.$inferInsert;
 export type GiftReservation = typeof giftReservations.$inferSelect;
 
 // Insert schemas for group gifting
@@ -509,10 +503,10 @@ export const insertGroupGiftContributionSchema = createInsertSchema(groupGiftCon
   paymentStatus: true
 });
 
-export type InsertGroupGift = z.infer<typeof insertGroupGiftSchema>;
+export type InsertGroupGift = typeof groupGifts.$inferInsert;
 export type GroupGift = typeof groupGifts.$inferSelect;
 
-export type InsertGroupGiftContribution = z.infer<typeof insertGroupGiftContributionSchema>;
+export type InsertGroupGiftContribution = typeof groupGiftContributions.$inferInsert;
 export type GroupGiftContribution = typeof groupGiftContributions.$inferSelect;
 
 // Payment Processing table for Stripe integration
@@ -561,7 +555,7 @@ export const insertPaymentSchema = createInsertSchema(payments).pick({
   refundedAt: true
 });
 
-export type InsertPayment = z.infer<typeof insertPaymentSchema>;
+export type InsertPayment = typeof payments.$inferInsert;
 export type Payment = typeof payments.$inferSelect;
 
 // Enhanced Privacy Controls
@@ -599,7 +593,7 @@ export const insertPrivacySettingsSchema = createInsertSchema(privacySettings).p
   requireApproval: true
 });
 
-export type InsertPrivacySettings = z.infer<typeof insertPrivacySettingsSchema>;
+export type InsertPrivacySettings = typeof privacySettings.$inferInsert;
 export type PrivacySettings = typeof privacySettings.$inferSelect;
 
 // Cross-Platform Synchronization & Mobile Support
@@ -775,16 +769,16 @@ export const insertCalendarEventSchema = createInsertSchema(calendarEvents).pick
 });
 
 // Types for the new additions
-export type InsertUserDevice = z.infer<typeof insertUserDeviceSchema>;
+export type InsertUserDevice = typeof userDevices.$inferInsert;
 export type UserDevice = typeof userDevices.$inferSelect;
 
-export type InsertSyncLog = z.infer<typeof insertSyncLogSchema>;
+export type InsertSyncLog = typeof syncLogs.$inferInsert;
 export type SyncLog = typeof syncLogs.$inferSelect;
 
-export type InsertUserCalendar = z.infer<typeof insertUserCalendarSchema>;
+export type InsertUserCalendar = typeof userCalendars.$inferInsert;
 export type UserCalendar = typeof userCalendars.$inferSelect;
 
-export type InsertCalendarEvent = z.infer<typeof insertCalendarEventSchema>;
+export type InsertCalendarEvent = typeof calendarEvents.$inferInsert;
 export type CalendarEvent = typeof calendarEvents.$inferSelect;
 
 // AR Models table for 3D model management
@@ -867,13 +861,13 @@ export const insertBarcodeScanLogSchema = createInsertSchema(barcodeScanLogs).om
 });
 
 // Type exports for the new tables
-export type InsertArModel = z.infer<typeof insertArModelSchema>;
+export type InsertArModel = typeof arModels.$inferInsert;
 export type ArModel = typeof arModels.$inferSelect;
 
-export type InsertArSession = z.infer<typeof insertArSessionSchema>;
+export type InsertArSession = typeof arSessions.$inferInsert;
 export type ArSession = typeof arSessions.$inferSelect;
 
-export type InsertBarcodeScanLog = z.infer<typeof insertBarcodeScanLogSchema>;
+export type InsertBarcodeScanLog = typeof barcodeScanLogs.$inferInsert;
 export type BarcodeScanLog = typeof barcodeScanLogs.$inferSelect;
 
 // Main entity types - already exported above

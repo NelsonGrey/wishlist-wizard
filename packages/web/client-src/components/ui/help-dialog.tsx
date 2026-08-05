@@ -27,7 +27,7 @@ export function HelpDialog({ title, children, triggerClassName }: HelpDialogProp
           className={`rounded-full ${triggerClassName}`}
           aria-label="Open help information"
         >
-          <HelpCircle className="h-5 w-5 text-muted-foreground hover:text-primary" />
+          <HelpCircle className="h-5 w-5 text-muted-foreground hover:text-primary" aria-hidden="true" />
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[500px]">

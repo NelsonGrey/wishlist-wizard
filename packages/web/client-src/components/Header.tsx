@@ -1,11 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Menu, LogOut } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest, getQueryFn } from "@/lib/queryClient";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import { useQueryClient } from "@tanstack/react-query";
 import { NotificationDropdown } from "@/components/ui/NotificationDropdown";
 
 export default function Header() {
@@ -18,7 +18,6 @@ export default function Header() {
   
   // Skip auth API calls until backend is deployed
   const currentUser = null;
-  const isLoading = false;
   
   /* This code is disabled until backend APIs are deployed
   const { data: currentUser, isLoading } = useQuery({
@@ -77,7 +76,7 @@ export default function Header() {
 
   return (
     <header className="bg-white shadow-sm border-b">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="site-container">
         <div className="flex justify-between items-center py-4">
           <div className="flex items-center">
             <Link href="/" className="text-2xl font-bold text-primary">
@@ -92,26 +91,21 @@ export default function Header() {
             </Link>
             {isLoggedIn ? (
               <>
-                <Link href="/dashboard" className="text-gray-600 hover:text-gray-900 font-medium">
+                <Link href="/app/wishlists" className="text-gray-600 hover:text-gray-900 font-medium">
                   My Wishlists
                 </Link>
                 {isLoggedIn && <NotificationDropdown />}
                 {isHome ? (
                   <Button
-                    onClick={() => window.location.href = "/dashboard"}
-                    className="bg-primary hover:bg-indigo-700 text-white"
+                    onClick={() => window.location.href = "/app/wishlists"}
+                    className="bg-primary hover:bg-emerald-800 text-white"
                   >
                     Dashboard
                   </Button>
                 ) : (
-                  <a 
-                    href="https://chrome.google.com/webstore/detail/wishkeeper/placeholder"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-gray-600 hover:text-gray-900 font-medium"
-                  >
+                  <Link href="/extension" className="text-gray-600 hover:text-gray-900 font-medium">
                     Download Extension
-                  </a>
+                  </Link>
                 )}
                 <Button 
                   onClick={handleLogout}
@@ -124,20 +118,13 @@ export default function Header() {
               </>
             ) : (
               <>
-                <a href="#" className="text-gray-600 hover:text-gray-900 font-medium">How It Works</a>
-                <a 
-                  href="https://chrome.google.com/webstore/detail/wishkeeper/placeholder"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-gray-600 hover:text-gray-900 font-medium"
-                >
+                <Link href="/extension" className="text-gray-600 hover:text-gray-900 font-medium">How It Works</Link>
+                <Link href="/extension" className="text-gray-600 hover:text-gray-900 font-medium">
                   Download Extension
-                </a>
-                <Link href="/login">
-                  <Button className="bg-primary hover:bg-indigo-700 text-white">
-                    Log In
-                  </Button>
                 </Link>
+                <Button asChild className="bg-primary hover:bg-emerald-800 text-white">
+                  <Link href="/login">Log In</Link>
+                </Button>
               </>
             )}
           </div>
@@ -146,8 +133,8 @@ export default function Header() {
           <div className="md:hidden">
             <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
               <SheetTrigger asChild>
-                <Button variant="ghost" size="icon">
-                  <Menu className="h-6 w-6" />
+                <Button variant="ghost" size="icon" aria-label="Open navigation menu">
+                  <Menu className="h-6 w-6" aria-hidden="true" />
                   <span className="sr-only">Open menu</span>
                 </Button>
               </SheetTrigger>
@@ -163,27 +150,26 @@ export default function Header() {
                   {isLoggedIn ? (
                     <>
                       <Link 
-                        href="/dashboard"
+                        href="/app/wishlists"
                         className="text-lg font-medium hover:text-primary"
                         onClick={() => setIsMenuOpen(false)}
                       >
                         My Wishlists
                       </Link>
                       <Link 
-                        href="/notifications"
+                        href="/app/notifications"
                         className="text-lg font-medium hover:text-primary flex items-center gap-2"
                         onClick={() => setIsMenuOpen(false)}
                       >
                         Notifications
                       </Link>
-                      <a 
-                        href="https://chrome.google.com/webstore/detail/wishkeeper/placeholder"
-                        target="_blank"
-                        rel="noopener noreferrer"
+                      <Link 
+                        href="/extension"
                         className="text-lg font-medium hover:text-primary"
+                        onClick={() => setIsMenuOpen(false)}
                       >
                         Download Extension
-                      </a>
+                      </Link>
                       <div className="mt-4">
                         <Button 
                           onClick={() => {
@@ -200,20 +186,19 @@ export default function Header() {
                     </>
                   ) : (
                     <>
-                      <a href="#" className="text-lg font-medium hover:text-primary">How It Works</a>
-                      <a 
-                        href="https://chrome.google.com/webstore/detail/wishkeeper/placeholder"
-                        target="_blank"
-                        rel="noopener noreferrer"
+                      <Link href="/extension" className="text-lg font-medium hover:text-primary" onClick={() => setIsMenuOpen(false)}>
+                        How It Works
+                      </Link>
+                      <Link 
+                        href="/extension"
                         className="text-lg font-medium hover:text-primary"
+                        onClick={() => setIsMenuOpen(false)}
                       >
                         Download Extension
-                      </a>
-                      <Link href="/login" onClick={() => setIsMenuOpen(false)}>
-                        <Button className="bg-primary hover:bg-indigo-700 text-white w-full mt-4">
-                          Log In
-                        </Button>
                       </Link>
+                      <Button asChild className="bg-primary hover:bg-emerald-800 text-white w-full mt-4">
+                        <Link href="/login" onClick={() => setIsMenuOpen(false)}>Log In</Link>
+                      </Button>
                     </>
                   )}
                 </nav>

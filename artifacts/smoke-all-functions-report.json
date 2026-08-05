@@ -1,0 +1,1490 @@
+{
+  "meta": {
+    "startedAt": "2026-07-23T18:52:22.697Z",
+    "projectId": "wishlist-wizard",
+    "authHost": "127.0.0.1:9099",
+    "functionsHost": "127.0.0.1:5001",
+    "region": "us-central1",
+    "endedAt": "2026-07-23T18:53:08.691Z",
+    "durationMs": 45994,
+    "treatExpectedDependencyGapsAsPass": false
+  },
+  "summary": {
+    "total": 231,
+    "passed": 221,
+    "warned": 10,
+    "failed": 0
+  },
+  "results": [
+    {
+      "endpoint": "contract:getAnalyticsSummary:unauthenticated",
+      "type": "contract",
+      "status": "passed",
+      "message": "Unauthenticated analytics summary access correctly denied"
+    },
+    {
+      "endpoint": "contract:getAnalyticsEvents:unauthenticated",
+      "type": "contract",
+      "status": "passed",
+      "message": "Unauthenticated analytics events access correctly denied"
+    },
+    {
+      "endpoint": "contract:getAnalyticsSummary:nonadmin-global-denied",
+      "type": "contract",
+      "status": "passed",
+      "message": "Non-admin global analytics access correctly denied"
+    },
+    {
+      "endpoint": "contract:getAnalyticsSummary:admin-global-allowed",
+      "type": "contract",
+      "status": "passed",
+      "message": "Admin global analytics summary access allowed"
+    },
+    {
+      "endpoint": "contract:trackAnalyticsEvent:missing-action-rejected",
+      "type": "contract",
+      "status": "passed",
+      "message": "Analytics tracking requires action and rejects invalid payloads"
+    },
+    {
+      "endpoint": "contract:trackAnalyticsEvent:valid-payload-accepted",
+      "type": "contract",
+      "status": "passed",
+      "message": "Analytics tracking accepts valid payload and returns success=true"
+    },
+    {
+      "endpoint": "contract:getAnalyticsSummary:window-max-clamped",
+      "type": "contract",
+      "status": "passed",
+      "message": "Analytics summary windowDays is clamped to max (365)"
+    },
+    {
+      "endpoint": "contract:getAnalyticsSummary:window-default-fallback",
+      "type": "contract",
+      "status": "passed",
+      "message": "Analytics summary windowDays falls back to default (30)"
+    },
+    {
+      "endpoint": "contract:getAnalyticsEvents:limit-default-fallback",
+      "type": "contract",
+      "status": "passed",
+      "message": "Analytics events limit=0 falls back to default without failure"
+    },
+    {
+      "endpoint": "contract:getAnalyticsEvents:limit-max-clamped",
+      "type": "contract",
+      "status": "passed",
+      "message": "Analytics events high limit is accepted and normalized without failure"
+    },
+    {
+      "endpoint": "contract:getAnalyticsEvents:response-shape",
+      "type": "contract",
+      "status": "passed",
+      "message": "Analytics events response includes typed event records (id, action)"
+    },
+    {
+      "endpoint": "contract:getAnalyticsSummary:response-shape",
+      "type": "contract",
+      "status": "passed",
+      "message": "Analytics summary response exposes expected summary fields"
+    },
+    {
+      "endpoint": "contract:createSystemNotification:unauthenticated",
+      "type": "contract",
+      "status": "passed",
+      "message": "Unauthenticated system notification access correctly denied"
+    },
+    {
+      "endpoint": "contract:createSystemNotification:nonadmin-denied",
+      "type": "contract",
+      "status": "passed",
+      "message": "Non-admin system notification access correctly denied"
+    },
+    {
+      "endpoint": "contract:createSystemNotification:admin-allowed",
+      "type": "contract",
+      "status": "passed",
+      "message": "Admin system notification access allowed"
+    },
+    {
+      "endpoint": "contract:cleanOldNotifications:unauthenticated",
+      "type": "contract",
+      "status": "passed",
+      "message": "Unauthenticated cleanOldNotifications access correctly denied"
+    },
+    {
+      "endpoint": "contract:cleanOldNotifications:nonadmin-denied",
+      "type": "contract",
+      "status": "passed",
+      "message": "Non-admin cleanOldNotifications access correctly denied"
+    },
+    {
+      "endpoint": "contract:cleanOldNotifications:admin-allowed",
+      "type": "contract",
+      "status": "passed",
+      "message": "Admin cleanOldNotifications access allowed"
+    },
+    {
+      "endpoint": "contract:sendBatchNotification:unauthenticated",
+      "type": "contract",
+      "status": "passed",
+      "message": "Unauthenticated batch notification access correctly denied"
+    },
+    {
+      "endpoint": "contract:sendBatchNotification:nonadmin-denied",
+      "type": "contract",
+      "status": "passed",
+      "message": "Non-admin batch notification access correctly denied"
+    },
+    {
+      "endpoint": "contract:sendBatchNotification:admin-allowed",
+      "type": "contract",
+      "status": "passed",
+      "message": "Admin batch notification access returns explicit delivery status and counts"
+    },
+    {
+      "endpoint": "contract:subscribeToTopic:unauthenticated",
+      "type": "contract",
+      "status": "passed",
+      "message": "Unauthenticated subscribeToTopic access correctly denied"
+    },
+    {
+      "endpoint": "contract:subscribeToTopic:invalid-argument",
+      "type": "contract",
+      "status": "passed",
+      "message": "subscribeToTopic invalid argument correctly rejected"
+    },
+    {
+      "endpoint": "contract:unsubscribeFromTopic:unauthenticated",
+      "type": "contract",
+      "status": "passed",
+      "message": "Unauthenticated unsubscribeFromTopic access correctly denied"
+    },
+    {
+      "endpoint": "contract:unsubscribeFromTopic:invalid-argument",
+      "type": "contract",
+      "status": "passed",
+      "message": "unsubscribeFromTopic invalid argument correctly rejected"
+    },
+    {
+      "endpoint": "contract:sendTestPushNotification:unauthenticated",
+      "type": "contract",
+      "status": "passed",
+      "message": "Unauthenticated sendTestPushNotification access correctly denied"
+    },
+    {
+      "endpoint": "contract:sendTestNotification:unauthenticated",
+      "type": "contract",
+      "status": "passed",
+      "message": "Unauthenticated sendTestNotification access correctly denied"
+    },
+    {
+      "endpoint": "contract:sendTestNotification:semantic-status",
+      "type": "contract",
+      "status": "passed",
+      "message": "sendTestNotification returns explicit semantic delivery status and counts"
+    },
+    {
+      "endpoint": "contract:extensionGetWishlists:unauthenticated",
+      "type": "contract",
+      "status": "passed",
+      "message": "Unauthenticated extensionGetWishlists access correctly denied"
+    },
+    {
+      "endpoint": "contract:extensionGetWishlists:malformed-auth",
+      "type": "contract",
+      "status": "passed",
+      "message": "Malformed bearer token is correctly rejected"
+    },
+    {
+      "endpoint": "contract:extensionGetWishlists:basic-auth-rejected",
+      "type": "contract",
+      "status": "passed",
+      "message": "Basic authorization scheme is correctly rejected"
+    },
+    {
+      "endpoint": "contract:extensionGetWishlists:raw-token-rejected",
+      "type": "contract",
+      "status": "passed",
+      "message": "Authorization header without Bearer scheme is correctly rejected"
+    },
+    {
+      "endpoint": "contract:extensionGetWishlists:lowercase-bearer-rejected",
+      "type": "contract",
+      "status": "passed",
+      "message": "Lowercase bearer scheme is correctly rejected"
+    },
+    {
+      "endpoint": "contract:extensionGetWishlists:extra-space-bearer-accepted",
+      "type": "contract",
+      "status": "passed",
+      "message": "Bearer token with extra internal spaces is accepted after normalization"
+    },
+    {
+      "endpoint": "contract:extensionGetWishlists:tab-bearer-rejected",
+      "type": "contract",
+      "status": "passed",
+      "message": "Bearer token with tab separator is correctly rejected"
+    },
+    {
+      "endpoint": "contract:extensionAddItem:invalid-body",
+      "type": "contract",
+      "status": "passed",
+      "message": "extensionAddItem missing required fields correctly rejected"
+    },
+    {
+      "endpoint": "contract:extensionAddItem:malformed-wishlist-id-type",
+      "type": "contract",
+      "status": "passed",
+      "message": "extensionAddItem rejects malformed non-text wishlistId values"
+    },
+    {
+      "endpoint": "contract:extensionAddItem:malformed-title-type",
+      "type": "contract",
+      "status": "passed",
+      "message": "extensionAddItem rejects malformed non-text title values"
+    },
+    {
+      "endpoint": "contract:extensionGetWishlistItems:missing-id",
+      "type": "contract",
+      "status": "passed",
+      "message": "extensionGetWishlistItems missing ID correctly rejected"
+    },
+    {
+      "endpoint": "contract:extensionGetWishlistItems:malformed-id-type",
+      "type": "contract",
+      "status": "passed",
+      "message": "extensionGetWishlistItems rejects malformed non-text ID values"
+    },
+    {
+      "endpoint": "contract:getItemPriceHistory:unauthenticated",
+      "type": "contract",
+      "status": "passed",
+      "message": "Unauthenticated getItemPriceHistory access correctly denied"
+    },
+    {
+      "endpoint": "contract:extensionDeleteItem:malformed-id-type",
+      "type": "contract",
+      "status": "passed",
+      "message": "extensionDeleteItem rejects malformed non-text ID values"
+    },
+    {
+      "endpoint": "contract:extensionDeleteItem:missing-id",
+      "type": "contract",
+      "status": "passed",
+      "message": "extensionDeleteItem missing ID correctly rejected"
+    },
+    {
+      "endpoint": "contract:getItemPriceHistory:nonexistent-item",
+      "type": "contract",
+      "status": "passed",
+      "message": "getItemPriceHistory rejects a nonexistent itemId"
+    },
+    {
+      "endpoint": "contract:getItemPriceHistory:missing-id",
+      "type": "contract",
+      "status": "passed",
+      "message": "getItemPriceHistory missing itemId correctly rejected (router: no matching route)"
+    },
+    {
+      "endpoint": "contract:extensionAddItem:tab-bearer-rejected",
+      "type": "contract",
+      "status": "passed",
+      "message": "extensionAddItem rejects Bearer token with tab separator"
+    },
+    {
+      "endpoint": "contract:extensionDeleteItem:tab-bearer-rejected",
+      "type": "contract",
+      "status": "passed",
+      "message": "extensionDeleteItem rejects Bearer token with tab separator"
+    },
+    {
+      "endpoint": "contract:getItemPriceHistory:tab-bearer-rejected",
+      "type": "contract",
+      "status": "passed",
+      "message": "getItemPriceHistory rejects Bearer token with tab separator"
+    },
+    {
+      "endpoint": "contract:extensionGetWishlists:method-not-allowed",
+      "type": "contract",
+      "status": "passed",
+      "message": "extensionGetWishlists rejects unsupported HTTP methods"
+    },
+    {
+      "endpoint": "contract:extensionAddItem:method-not-allowed",
+      "type": "contract",
+      "status": "passed",
+      "message": "extensionAddItem rejects unsupported HTTP methods"
+    },
+    {
+      "endpoint": "contract:extensionDeleteItem:method-not-allowed",
+      "type": "contract",
+      "status": "passed",
+      "message": "extensionDeleteItem rejects unsupported HTTP methods"
+    },
+    {
+      "endpoint": "contract:getItemPriceHistory:method-not-allowed",
+      "type": "contract",
+      "status": "passed",
+      "message": "getItemPriceHistory rejects unsupported HTTP methods (router: no matching route)"
+    },
+    {
+      "endpoint": "contract:extensionShareWishlist:missing-id",
+      "type": "contract",
+      "status": "passed",
+      "message": "extensionShareWishlist missing ID correctly rejected"
+    },
+    {
+      "endpoint": "contract:extensionShareWishlist:malformed-id-type",
+      "type": "contract",
+      "status": "passed",
+      "message": "extensionShareWishlist rejects malformed non-text ID values"
+    },
+    {
+      "endpoint": "contract:extensionShareWishlist:method-not-allowed",
+      "type": "contract",
+      "status": "passed",
+      "message": "extensionShareWishlist rejects unsupported HTTP methods"
+    },
+    {
+      "endpoint": "contract:extensionGetWishlists:options-preflight",
+      "type": "contract",
+      "status": "passed",
+      "message": "OPTIONS preflight returns expected CORS headers"
+    },
+    {
+      "endpoint": "contract:extensionAddItem:options-preflight",
+      "type": "contract",
+      "status": "passed",
+      "message": "OPTIONS preflight returns expected CORS headers"
+    },
+    {
+      "endpoint": "contract:extensionDeleteItem:options-preflight",
+      "type": "contract",
+      "status": "passed",
+      "message": "OPTIONS preflight returns expected CORS headers"
+    },
+    {
+      "endpoint": "contract:getItemPriceHistory:options-preflight",
+      "type": "contract",
+      "status": "passed",
+      "message": "OPTIONS preflight returns expected CORS headers"
+    },
+    {
+      "endpoint": "contract:extensionShareWishlist:options-preflight",
+      "type": "contract",
+      "status": "passed",
+      "message": "OPTIONS preflight returns expected CORS headers"
+    },
+    {
+      "endpoint": "contract:api-router:unauthenticated",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router unauthenticated access correctly denied"
+    },
+    {
+      "endpoint": "contract:api-router:malformed-auth",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router malformed bearer token correctly rejected"
+    },
+    {
+      "endpoint": "contract:api-router:basic-auth-rejected",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router rejects Basic authorization scheme"
+    },
+    {
+      "endpoint": "contract:api-router:raw-token-rejected",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router rejects raw token without Bearer scheme"
+    },
+    {
+      "endpoint": "contract:api-router:lowercase-bearer-rejected",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router rejects lowercase bearer scheme"
+    },
+    {
+      "endpoint": "contract:api-router:extra-space-bearer-accepted",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router accepts Bearer token with extra spaces after normalization"
+    },
+    {
+      "endpoint": "contract:api-router:tab-bearer-rejected",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router rejects Bearer token with tab separator"
+    },
+    {
+      "endpoint": "contract:api-router:create-wishlist-invalid-body",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router create wishlist missing name correctly rejected"
+    },
+    {
+      "endpoint": "contract:api-router:beneficiaries-reachable",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router beneficiaries route is reachable with authenticated Bearer token"
+    },
+    {
+      "endpoint": "contract:api-router:beneficiaries-shape-and-filtering",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router beneficiaries returns shaped owner records and filters hidden/foreign entries"
+    },
+    {
+      "endpoint": "contract:api-router:recommendations-reachable",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router recommendations route is reachable with authenticated Bearer token"
+    },
+    {
+      "endpoint": "contract:api-router:recommendations-shape-and-filtering",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router recommendations returns shaped owner records and excludes foreign recommendations"
+    },
+    {
+      "endpoint": "contract:api-router:recommendations-by-beneficiary-reachable",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router beneficiary recommendations route is reachable with authenticated Bearer token"
+    },
+    {
+      "endpoint": "contract:api-router:recommendations-by-beneficiary-filtering",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router beneficiary recommendations are scoped to requested beneficiary and owner"
+    },
+    {
+      "endpoint": "contract:api-router:recommendation-status-update-owner",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router recommendation status update allows owner updates"
+    },
+    {
+      "endpoint": "contract:api-router:recommendation-status-response-shape",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router recommendation status update returns expected response shape"
+    },
+    {
+      "endpoint": "contract:api-router:recommendation-status-update-foreign-denied",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router recommendation status update denies non-owner updates"
+    },
+    {
+      "endpoint": "contract:api-router:recommendation-status-update-missing-id",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router recommendation status update returns not found for missing IDs"
+    },
+    {
+      "endpoint": "contract:api-router:recommendation-status-method-not-allowed",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router recommendation status route rejects unsupported HTTP methods"
+    },
+    {
+      "endpoint": "contract:api-router:recommendations-by-beneficiary-method-not-allowed",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router beneficiary recommendations route rejects unsupported HTTP methods"
+    },
+    {
+      "endpoint": "contract:api-router:recommendations-method-not-allowed",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router recommendations route rejects unsupported HTTP methods"
+    },
+    {
+      "endpoint": "contract:api-router:privacy-defaults-reachable",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router privacy defaults route is reachable with authenticated Bearer token"
+    },
+    {
+      "endpoint": "contract:api-router:privacy-settings-invalid-body",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router privacy settings rejects missing entity fields"
+    },
+    {
+      "endpoint": "contract:api-router:privacy-settings-create",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router privacy settings create accepts valid payloads"
+    },
+    {
+      "endpoint": "contract:api-router:privacy-settings-get-owner",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router privacy settings get returns owner settings"
+    },
+    {
+      "endpoint": "contract:api-router:privacy-settings-get-foreign-denied",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router privacy settings get denies non-owner access"
+    },
+    {
+      "endpoint": "contract:api-router:privacy-check-access-owner",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router privacy access check responds for owner requests"
+    },
+    {
+      "endpoint": "contract:api-router:privacy-check-access-foreign-semantics",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router privacy check-access returns expected non-owner/private semantics"
+    },
+    {
+      "endpoint": "contract:api-router:privacy-check-access-missing-default-open",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router privacy check-access returns default-open semantics for missing settings"
+    },
+    {
+      "endpoint": "contract:api-router:privacy-settings-create-public",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router privacy settings create accepts public visibility payloads"
+    },
+    {
+      "endpoint": "contract:api-router:privacy-check-access-public-semantics",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router privacy check-access returns expected semantics for public visibility"
+    },
+    {
+      "endpoint": "contract:api-router:privacy-settings-create-custom-with-allowlist",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router privacy settings create accepts custom allowlist payloads"
+    },
+    {
+      "endpoint": "contract:api-router:privacy-check-access-custom-allowlist-semantics",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router privacy check-access returns allowlisted custom-visibility semantics"
+    },
+    {
+      "endpoint": "contract:api-router:privacy-access-list-update-owner",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router privacy access list update allows owner updates"
+    },
+    {
+      "endpoint": "contract:api-router:privacy-access-list-update-foreign-denied",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router privacy access list update denies non-owner updates"
+    },
+    {
+      "endpoint": "contract:api-router:privacy-settings-delete-foreign-denied",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router privacy settings delete denies non-owner deletes"
+    },
+    {
+      "endpoint": "contract:api-router:privacy-settings-delete-owner",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router privacy settings delete allows owner deletes"
+    },
+    {
+      "endpoint": "contract:api-router:privacy-settings-get-after-delete",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router privacy settings get returns default-fallback settings after delete"
+    },
+    {
+      "endpoint": "contract:api-router:price-alerts-reachable",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router price alerts route is reachable with authenticated Bearer token"
+    },
+    {
+      "endpoint": "contract:api-router:price-alerts-policy-shape",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router price alerts includes normalized policy fields for alert rows"
+    },
+    {
+      "endpoint": "contract:api-router:price-alert-replay-status-non-admin-denied",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router replay-status route denies non-admin users"
+    },
+    {
+      "endpoint": "contract:api-router:price-alert-replay-status-reachable",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router replay-status route is reachable for admin users"
+    },
+    {
+      "endpoint": "contract:api-router:price-alert-replay-status-shape",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router replay-status returns expected scheduler state payload shape"
+    },
+    {
+      "endpoint": "contract:api-router:price-alert-replay-status-method-not-allowed",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router replay-status route rejects unsupported HTTP methods"
+    },
+    {
+      "endpoint": "contract:api-router:price-alert-policy-update-owner",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router price alert policy update allows owner updates"
+    },
+    {
+      "endpoint": "contract:api-router:price-alert-policy-update-shape",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router price alert policy update returns expected normalized fields"
+    },
+    {
+      "endpoint": "contract:api-router:price-alert-policy-update-invalid-cooldown",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router price alert policy update validates cooldown bounds"
+    },
+    {
+      "endpoint": "contract:api-router:price-alert-policy-update-foreign-denied",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router price alert policy update denies non-owner updates"
+    },
+    {
+      "endpoint": "contract:api-router:price-alert-policy-update-missing",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router price alert policy update returns not found for missing IDs"
+    },
+    {
+      "endpoint": "contract:api-router:price-alert-delete-owner",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router price alert delete allows owner deletes"
+    },
+    {
+      "endpoint": "contract:api-router:price-alert-delete-foreign-denied",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router price alert delete denies non-owner deletes"
+    },
+    {
+      "endpoint": "contract:api-router:price-alert-delete-missing",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router price alert delete returns not found for missing IDs"
+    },
+    {
+      "endpoint": "contract:api-router:price-alerts-method-not-allowed",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router price alerts route rejects unsupported HTTP methods"
+    },
+    {
+      "endpoint": "contract:api-router:price-alerts-create",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router creates a real price alert via POST with expected fields"
+    },
+    {
+      "endpoint": "contract:api-router:price-alerts-create-upserts-duplicate",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router upserts a duplicate create onto the same alert instead of creating a second one"
+    },
+    {
+      "endpoint": "contract:api-router:price-alerts-create-foreign-item-denied",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router denies creating a price alert on an item the caller cannot access"
+    },
+    {
+      "endpoint": "contract:api-router:price-drops-shape",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router price drops returns mapped response shape (title, percentDrop)"
+    },
+    {
+      "endpoint": "contract:api-router:price-drops-method-not-allowed",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router price drops route rejects unsupported HTTP methods"
+    },
+    {
+      "endpoint": "contract:api-router:price-intelligence-shape",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router price-intelligence returns expected sectioned payload shape"
+    },
+    {
+      "endpoint": "contract:api-router:price-intelligence-best-identical",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router price-intelligence includes a best identical offer candidate"
+    },
+    {
+      "endpoint": "contract:api-router:price-intelligence-missing-item",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router price-intelligence returns not found for missing items"
+    },
+    {
+      "endpoint": "contract:api-router:price-intelligence-method-not-allowed",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router price-intelligence route rejects unsupported HTTP methods"
+    },
+    {
+      "endpoint": "contract:api-router:wishlist-items-shape-and-ownership",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router wishlist-items returns shaped records and excludes foreign wishlist items"
+    },
+    {
+      "endpoint": "contract:api-router:wishlist-items-method-not-allowed",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router wishlist-items route rejects unsupported HTTP methods"
+    },
+    {
+      "endpoint": "contract:api-router:wishlist-items-malformed-path-id",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router wishlist-items malformed path correctly returns not found"
+    },
+    {
+      "endpoint": "contract:api-router:analytics-path-not-routed",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router does not shadow callable analytics routes (returns 404)"
+    },
+    {
+      "endpoint": "contract:api-router:unknown-path",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router unknown path correctly returns not found"
+    },
+    {
+      "endpoint": "contract:api-router:share-wishlist-missing-path-id",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router share wishlist missing path ID correctly returns not found"
+    },
+    {
+      "endpoint": "contract:api-router:share-wishlist-malformed-path-id",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router share wishlist malformed path ID correctly returns not found"
+    },
+    {
+      "endpoint": "contract:api-router:delete-item-missing-path-id",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router delete item missing path ID correctly returns not found"
+    },
+    {
+      "endpoint": "contract:api-router:items-method-not-allowed",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router items route rejects unsupported HTTP methods"
+    },
+    {
+      "endpoint": "contract:api-router:share-method-not-allowed",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router share route rejects unsupported HTTP methods"
+    },
+    {
+      "endpoint": "contract:api-router:wishlist-items-options-preflight",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router OPTIONS preflight returns expected CORS headers"
+    },
+    {
+      "endpoint": "contract:api-router:items-options-preflight",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router OPTIONS preflight returns expected CORS headers"
+    },
+    {
+      "endpoint": "contract:api-router:share-options-preflight",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router OPTIONS preflight returns expected CORS headers"
+    },
+    {
+      "endpoint": "contract:api-router:beneficiaries-options-preflight",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router OPTIONS preflight returns expected CORS headers"
+    },
+    {
+      "endpoint": "contract:api-router:recommendations-options-preflight",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router OPTIONS preflight returns expected CORS headers"
+    },
+    {
+      "endpoint": "contract:api-router:recommendations-beneficiary-options-preflight",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router OPTIONS preflight returns expected CORS headers"
+    },
+    {
+      "endpoint": "contract:api-router:recommendation-status-options-preflight",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router OPTIONS preflight returns expected CORS headers"
+    },
+    {
+      "endpoint": "contract:api-router:privacy-defaults-options-preflight",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router OPTIONS preflight returns expected CORS headers"
+    },
+    {
+      "endpoint": "contract:api-router:privacy-settings-options-preflight",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router OPTIONS preflight returns expected CORS headers"
+    },
+    {
+      "endpoint": "contract:api-router:privacy-check-access-options-preflight",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router OPTIONS preflight returns expected CORS headers"
+    },
+    {
+      "endpoint": "contract:api-router:price-alerts-options-preflight",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router OPTIONS preflight returns expected CORS headers"
+    },
+    {
+      "endpoint": "contract:api-router:price-alert-replay-status-options-preflight",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router OPTIONS preflight returns expected CORS headers"
+    },
+    {
+      "endpoint": "contract:api-router:price-alert-delete-options-preflight",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router OPTIONS preflight returns expected CORS headers"
+    },
+    {
+      "endpoint": "contract:api-router:price-alert-update-options-preflight",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router OPTIONS preflight returns expected CORS headers"
+    },
+    {
+      "endpoint": "contract:api-router:price-drops-options-preflight",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router OPTIONS preflight returns expected CORS headers"
+    },
+    {
+      "endpoint": "contract:api-router:wishlist-items-list-options-preflight",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router OPTIONS preflight returns expected CORS headers"
+    },
+    {
+      "endpoint": "contract:api-router:price-intelligence-options-preflight",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router OPTIONS preflight returns expected CORS headers"
+    },
+    {
+      "endpoint": "contract:api-router:wishlist-items-missing-path-id",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router wishlist items missing path ID correctly returns not found"
+    },
+    {
+      "endpoint": "contract:api-router:wishlist-items-malformed-query-id-ignored",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router wishlist items ignores malformed query ID when path ID is missing"
+    },
+    {
+      "endpoint": "contract:api-router:wishlist-items-malformed-path-id",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router wishlist items malformed path ID correctly returns not found"
+    },
+    {
+      "endpoint": "contract:api-router:delete-item-malformed-path-id",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router delete item malformed path ID correctly returns not found"
+    },
+    {
+      "endpoint": "contract:api-router:delete-item-malformed-query-id-ignored",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router delete item ignores malformed query ID when path ID is missing"
+    },
+    {
+      "endpoint": "contract:api-router:delete-item-malformed-body-id-ignored",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router delete item ignores malformed body ID when path ID is missing"
+    },
+    {
+      "endpoint": "contract:api-router:wishlist-items-basic-auth-rejected",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router wishlist items rejects Basic authorization scheme"
+    },
+    {
+      "endpoint": "contract:api-router:wishlist-items-raw-token-rejected",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router wishlist items rejects raw token without Bearer scheme"
+    },
+    {
+      "endpoint": "contract:api-router:wishlist-items-lowercase-bearer-rejected",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router wishlist items rejects lowercase bearer scheme"
+    },
+    {
+      "endpoint": "contract:api-router:wishlist-items-extra-space-bearer-accepted",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router wishlist items accepts Bearer token with extra spaces after normalization"
+    },
+    {
+      "endpoint": "contract:api-router:wishlist-items-tab-bearer-rejected",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router wishlist items rejects Bearer token with tab separator"
+    },
+    {
+      "endpoint": "contract:api-router:wishlist-items-bearer-no-token-rejected",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router wishlist items rejects Bearer header without token"
+    },
+    {
+      "endpoint": "contract:api-router:wishlist-items-whitespace-bearer-rejected",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router wishlist items rejects whitespace-only Bearer token"
+    },
+    {
+      "endpoint": "contract:api-router:delete-item-basic-auth-rejected",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router delete item rejects Basic authorization scheme"
+    },
+    {
+      "endpoint": "contract:api-router:delete-item-raw-token-rejected",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router delete item rejects raw token without Bearer scheme"
+    },
+    {
+      "endpoint": "contract:api-router:delete-item-lowercase-bearer-rejected",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router delete item rejects lowercase bearer scheme"
+    },
+    {
+      "endpoint": "contract:api-router:delete-item-extra-space-bearer-accepted",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router delete item accepts Bearer token with extra spaces after normalization"
+    },
+    {
+      "endpoint": "contract:api-router:delete-item-tab-bearer-rejected",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router delete item rejects Bearer token with tab separator"
+    },
+    {
+      "endpoint": "contract:api-router:delete-item-bearer-no-token-rejected",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router delete item rejects Bearer header without token"
+    },
+    {
+      "endpoint": "contract:api-router:delete-item-whitespace-bearer-rejected",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router delete item rejects whitespace-only Bearer token"
+    },
+    {
+      "endpoint": "contract:api-router:share-basic-auth-rejected",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router share route rejects Basic authorization scheme"
+    },
+    {
+      "endpoint": "contract:api-router:share-raw-token-rejected",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router share route rejects raw token without Bearer scheme"
+    },
+    {
+      "endpoint": "contract:api-router:share-lowercase-bearer-rejected",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router share route rejects lowercase bearer scheme"
+    },
+    {
+      "endpoint": "contract:api-router:share-extra-space-bearer-accepted",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router share route accepts Bearer token with extra spaces after normalization"
+    },
+    {
+      "endpoint": "contract:api-router:share-tab-bearer-rejected",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router share route rejects Bearer token with tab separator"
+    },
+    {
+      "endpoint": "contract:api-router:share-malformed-query-id-ignored",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router share route ignores malformed query ID when path ID is missing"
+    },
+    {
+      "endpoint": "contract:api-router:share-malformed-body-id-ignored",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router share route ignores malformed body ID when path ID is missing"
+    },
+    {
+      "endpoint": "contract:api-router:share-bearer-no-token-rejected",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router share route rejects Bearer header without token"
+    },
+    {
+      "endpoint": "contract:api-router:share-whitespace-bearer-rejected",
+      "type": "contract",
+      "status": "passed",
+      "message": "API router share route rejects whitespace-only Bearer token"
+    },
+    {
+      "endpoint": "createUserProfile",
+      "type": "onCall",
+      "status": "passed",
+      "durationMs": 7,
+      "httpStatus": 200,
+      "message": "Callable reachable"
+    },
+    {
+      "endpoint": "getUserProfile",
+      "type": "onCall",
+      "status": "passed",
+      "durationMs": 948,
+      "httpStatus": 200,
+      "message": "Callable reachable"
+    },
+    {
+      "endpoint": "updateUserProfile",
+      "type": "onCall",
+      "status": "passed",
+      "durationMs": 1042,
+      "httpStatus": 200,
+      "message": "Callable reachable"
+    },
+    {
+      "endpoint": "createDocument",
+      "type": "onCall",
+      "status": "passed",
+      "durationMs": 4,
+      "httpStatus": 200,
+      "message": "Callable reachable"
+    },
+    {
+      "endpoint": "getDocument",
+      "type": "onCall",
+      "status": "passed",
+      "durationMs": 1063,
+      "httpStatus": 200,
+      "message": "Callable reachable"
+    },
+    {
+      "endpoint": "updateDocument",
+      "type": "onCall",
+      "status": "passed",
+      "durationMs": 1022,
+      "httpStatus": 200,
+      "message": "Callable reachable"
+    },
+    {
+      "endpoint": "deleteDocument",
+      "type": "onCall",
+      "status": "passed",
+      "durationMs": 938,
+      "httpStatus": 200,
+      "message": "Callable reachable"
+    },
+    {
+      "endpoint": "listDocuments",
+      "type": "onCall",
+      "status": "passed",
+      "durationMs": 1050,
+      "httpStatus": 200,
+      "message": "Callable reachable"
+    },
+    {
+      "endpoint": "batchCreateDocuments",
+      "type": "onCall",
+      "status": "passed",
+      "durationMs": 8,
+      "httpStatus": 200,
+      "message": "Callable reachable"
+    },
+    {
+      "endpoint": "batchUpdateDocuments",
+      "type": "onCall",
+      "status": "passed",
+      "durationMs": 1072,
+      "httpStatus": 200,
+      "message": "Callable reachable"
+    },
+    {
+      "endpoint": "createSystemNotification",
+      "type": "onCall",
+      "status": "passed",
+      "durationMs": 6,
+      "httpStatus": 200,
+      "message": "Callable reachable"
+    },
+    {
+      "endpoint": "cleanOldNotifications",
+      "type": "onCall",
+      "status": "passed",
+      "durationMs": 5,
+      "httpStatus": 200,
+      "message": "Callable reachable"
+    },
+    {
+      "endpoint": "authenticateExtension",
+      "type": "onCall",
+      "status": "passed",
+      "durationMs": 1141,
+      "httpStatus": 200,
+      "message": "Callable reachable"
+    },
+    {
+      "endpoint": "getExtensionWishlists",
+      "type": "onCall",
+      "status": "passed",
+      "durationMs": 962,
+      "httpStatus": 200,
+      "message": "Callable reachable"
+    },
+    {
+      "endpoint": "addItemFromExtension",
+      "type": "onCall",
+      "status": "passed",
+      "durationMs": 1194,
+      "httpStatus": 200,
+      "message": "Callable reachable"
+    },
+    {
+      "endpoint": "getExtensionRecentItems",
+      "type": "onCall",
+      "status": "passed",
+      "durationMs": 1035,
+      "httpStatus": 200,
+      "message": "Callable reachable"
+    },
+    {
+      "endpoint": "createExtensionWishlist",
+      "type": "onCall",
+      "status": "passed",
+      "durationMs": 1125,
+      "httpStatus": 200,
+      "message": "Callable reachable"
+    },
+    {
+      "endpoint": "deleteExtensionItem",
+      "type": "onCall",
+      "status": "passed",
+      "durationMs": 983,
+      "httpStatus": 200,
+      "message": "Callable reachable"
+    },
+    {
+      "endpoint": "shareExtensionWishlist",
+      "type": "onCall",
+      "status": "passed",
+      "durationMs": 937,
+      "httpStatus": 200,
+      "message": "Callable reachable"
+    },
+    {
+      "endpoint": "getExtensionAnalytics",
+      "type": "onCall",
+      "status": "passed",
+      "durationMs": 1116,
+      "httpStatus": 200,
+      "message": "Callable reachable"
+    },
+    {
+      "endpoint": "trackExtensionEvent",
+      "type": "onCall",
+      "status": "passed",
+      "durationMs": 1128,
+      "httpStatus": 200,
+      "message": "Callable reachable"
+    },
+    {
+      "endpoint": "sendTestNotification",
+      "type": "onCall",
+      "status": "passed",
+      "durationMs": 188,
+      "httpStatus": 200,
+      "message": "Callable reachable"
+    },
+    {
+      "endpoint": "sendBatchNotification",
+      "type": "onCall",
+      "status": "passed",
+      "durationMs": 194,
+      "httpStatus": 200,
+      "message": "Callable reachable"
+    },
+    {
+      "endpoint": "groupPaymentCreateIntent",
+      "type": "onCall",
+      "status": "warned",
+      "durationMs": 1028,
+      "httpStatus": 400,
+      "message": "FAILED_PRECONDITION: Stripe is not configured"
+    },
+    {
+      "endpoint": "groupPaymentConfirm",
+      "type": "onCall",
+      "status": "warned",
+      "durationMs": 823,
+      "httpStatus": 400,
+      "message": "FAILED_PRECONDITION: Stripe is not configured"
+    },
+    {
+      "endpoint": "groupGiftSummary",
+      "type": "onCall",
+      "status": "passed",
+      "durationMs": 1081,
+      "httpStatus": 200,
+      "message": "Callable reachable"
+    },
+    {
+      "endpoint": "arModelLookup",
+      "type": "onCall",
+      "status": "passed",
+      "durationMs": 923,
+      "httpStatus": 200,
+      "message": "Callable reachable"
+    },
+    {
+      "endpoint": "bootstrapSuperAdmin",
+      "type": "onCall",
+      "status": "warned",
+      "durationMs": 926,
+      "httpStatus": 501,
+      "message": "UNIMPLEMENTED: Bootstrap secret not configured"
+    },
+    {
+      "endpoint": "grantAdminRole",
+      "type": "onCall",
+      "status": "warned",
+      "durationMs": 1087,
+      "httpStatus": 403,
+      "message": "PERMISSION_DENIED: Only super_admin can grant admin roles"
+    },
+    {
+      "endpoint": "revokeAdminRole",
+      "type": "onCall",
+      "status": "warned",
+      "durationMs": 1057,
+      "httpStatus": 403,
+      "message": "PERMISSION_DENIED: Super-admin role required"
+    },
+    {
+      "endpoint": "createSupportTicket",
+      "type": "onCall",
+      "status": "warned",
+      "durationMs": 921,
+      "httpStatus": 400,
+      "message": "INVALID_ARGUMENT: category, subject, and description are required"
+    },
+    {
+      "endpoint": "extensionGetWishlists",
+      "type": "onRequest",
+      "status": "passed",
+      "durationMs": 19,
+      "httpStatus": 200,
+      "message": "HTTP endpoint reachable"
+    },
+    {
+      "endpoint": "extensionCreateWishlist",
+      "type": "onRequest",
+      "status": "passed",
+      "durationMs": 961,
+      "httpStatus": 200,
+      "message": "HTTP endpoint reachable"
+    },
+    {
+      "endpoint": "extensionAddItem",
+      "type": "onRequest",
+      "status": "passed",
+      "durationMs": 133,
+      "httpStatus": 200,
+      "message": "HTTP endpoint reachable"
+    },
+    {
+      "endpoint": "extensionGetRecentItems",
+      "type": "onRequest",
+      "status": "passed",
+      "durationMs": 1216,
+      "httpStatus": 200,
+      "message": "HTTP endpoint reachable"
+    },
+    {
+      "endpoint": "extensionGetWishlistItems",
+      "type": "onRequest",
+      "status": "passed",
+      "durationMs": 120,
+      "httpStatus": 200,
+      "message": "HTTP endpoint reachable"
+    },
+    {
+      "endpoint": "extensionDeleteItem",
+      "type": "onRequest",
+      "status": "passed",
+      "durationMs": 171,
+      "httpStatus": 200,
+      "message": "HTTP endpoint reachable"
+    },
+    {
+      "endpoint": "extensionShareWishlist",
+      "type": "onRequest",
+      "status": "passed",
+      "durationMs": 173,
+      "httpStatus": 200,
+      "message": "HTTP endpoint reachable"
+    },
+    {
+      "endpoint": "api",
+      "type": "onRequest",
+      "status": "passed",
+      "durationMs": 22,
+      "httpStatus": 200,
+      "message": "HTTP endpoint reachable"
+    },
+    {
+      "endpoint": "checkoutSessionCreate",
+      "type": "onRequest",
+      "status": "warned",
+      "durationMs": 925,
+      "httpStatus": 501,
+      "message": "HTTP 501 (reachable but not fully configured for this payload)"
+    },
+    {
+      "endpoint": "stripeWebhook",
+      "type": "onRequest",
+      "status": "warned",
+      "durationMs": 922,
+      "httpStatus": 501,
+      "message": "HTTP 501 (reachable but not fully configured for this payload)"
+    },
+    {
+      "endpoint": "billingWebhook",
+      "type": "onRequest",
+      "status": "warned",
+      "durationMs": 926,
+      "httpStatus": 501,
+      "message": "HTTP 501 (reachable but not fully configured for this payload)"
+    },
+    {
+      "endpoint": "notifyItemAdded",
+      "type": "eventTrigger",
+      "status": "passed",
+      "message": "Event trigger export detected (non-invocable in direct smoke runner)"
+    },
+    {
+      "endpoint": "notifyItemReserved",
+      "type": "eventTrigger",
+      "status": "passed",
+      "message": "Event trigger export detected (non-invocable in direct smoke runner)"
+    },
+    {
+      "endpoint": "notifyItemPurchased",
+      "type": "eventTrigger",
+      "status": "passed",
+      "message": "Event trigger export detected (non-invocable in direct smoke runner)"
+    },
+    {
+      "endpoint": "notifyPriceAlert",
+      "type": "eventTrigger",
+      "status": "passed",
+      "message": "Event trigger export detected (non-invocable in direct smoke runner)"
+    },
+    {
+      "endpoint": "replayDeferredPriceAlerts",
+      "type": "eventTrigger",
+      "status": "passed",
+      "message": "Event trigger export detected (non-invocable in direct smoke runner)"
+    },
+    {
+      "endpoint": "advanceCommissionsPastHold",
+      "type": "eventTrigger",
+      "status": "passed",
+      "message": "Event trigger export detected (non-invocable in direct smoke runner)"
+    },
+    {
+      "endpoint": "scheduledPayoutBatchRun",
+      "type": "eventTrigger",
+      "status": "passed",
+      "message": "Event trigger export detected (non-invocable in direct smoke runner)"
+    },
+    {
+      "endpoint": "scheduledAdKpiSnapshot",
+      "type": "eventTrigger",
+      "status": "passed",
+      "message": "Event trigger export detected (non-invocable in direct smoke runner)"
+    },
+    {
+      "endpoint": "scheduledRefreshPriceIntelligenceOffers",
+      "type": "eventTrigger",
+      "status": "passed",
+      "message": "Event trigger export detected (non-invocable in direct smoke runner)"
+    },
+    {
+      "endpoint": "scheduledEvaluatePriceAlerts",
+      "type": "eventTrigger",
+      "status": "passed",
+      "message": "Event trigger export detected (non-invocable in direct smoke runner)"
+    },
+    {
+      "endpoint": "affiliateReportImportProcess",
+      "type": "unknown",
+      "status": "warned",
+      "message": "Could not classify export from ./api/affiliateReconciliation"
+    }
+  ]
+}

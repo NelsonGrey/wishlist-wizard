@@ -6,16 +6,22 @@ import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 
 const firebaseConfig = {
-  apiKey: "AIzaSyDXBMWTCbNDi2MhWxhZL9BQA3xEnGDEf70",
-  authDomain: "wishlist-wizard.firebaseapp.com",
-  projectId: "wishlist-wizard",
-  storageBucket: "wishlist-wizard.appspot.app",
-  messagingSenderId: "1000918568663",
-  appId: "1:1000918568663:web:143b262fb4bd8fd904ea92",
-  measurementId: "G-75WET6CFDE"
+  apiKey: process.env.VITE_FIREBASE_API_KEY || "your-firebase-web-api-key",
+  authDomain: process.env.VITE_FIREBASE_AUTH_DOMAIN || "your-project.firebaseapp.com",
+  projectId: process.env.VITE_FIREBASE_PROJECT_ID || "your-project-id",
+  storageBucket: process.env.VITE_FIREBASE_STORAGE_BUCKET || "your-project.firebasestorage.app",
+  messagingSenderId: process.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "your-messaging-sender-id",
+  appId: process.env.VITE_FIREBASE_APP_ID || "your-web-app-id",
+  measurementId: process.env.VITE_FIREBASE_MEASUREMENT_ID || "your-measurement-id"
 };
 
 try {
+  if (!process.env.VITE_FIREBASE_API_KEY || !process.env.VITE_FIREBASE_PROJECT_ID) {
+    throw new Error(
+      'Set VITE_FIREBASE_API_KEY and VITE_FIREBASE_PROJECT_ID before running this connectivity check.'
+    );
+  }
+
   console.log('🔥 Initializing Firebase...');
   const app = initializeApp(firebaseConfig);
   console.log('✅ Firebase app initialized successfully');

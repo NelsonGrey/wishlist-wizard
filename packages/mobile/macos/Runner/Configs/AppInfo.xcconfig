@@ -8,7 +8,7 @@
 PRODUCT_NAME = mobile
 
 // The application's bundle identifier
-PRODUCT_BUNDLE_IDENTIFIER = com.nelsongrey.wishlistwizard.mobile
+PRODUCT_BUNDLE_IDENTIFIER = com.wishlistwizard.app.macos
 
 // The copyright displayed in application information
-PRODUCT_COPYRIGHT = Copyright © 2025 com.nelsongrey.wishlistwizard. All rights reserved.
+PRODUCT_COPYRIGHT = Copyright © 2025 Wishlist Wizard. All rights reserved.

@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../models/models.dart';
 import '../providers/providers.dart';
 import '../main.dart';
-import 'screens.dart';
+import '../widgets/admob_widgets.dart';
+import 'firebase_wishlists_screen.dart';
+import 'scan_item_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -15,9 +18,14 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    // Load data when screen initializes
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      Provider.of<WishlistProvider>(context, listen: false).loadWishlists();
+      final auth = Provider.of<AuthProvider>(context, listen: false);
+      if (auth.user != null) {
+        Provider.of<FirebaseWishlistProvider>(
+          context,
+          listen: false,
+        ).loadWishlists(auth.user!.id);
+      }
     });
   }
 
@@ -28,38 +36,44 @@ class _HomeScreenState extends State<HomeScreen> {
         title: 'Home',
         actions: [Icon(Icons.notifications_outlined), SizedBox(width: 16)],
       ),
-      body: Consumer2<AuthProvider, WishlistProvider>(
+      body: Consumer2<AuthProvider, FirebaseWishlistProvider>(
         builder: (context, authProvider, wishlistProvider, child) {
           final user = authProvider.user;
 
           return RefreshIndicator(
-            onRefresh: () => wishlistProvider.loadWishlists(),
+            onRefresh: () async {
+              if (user != null) {
+                await wishlistProvider.loadWishlists(user.id);
+              }
+            },
             child: SingleChildScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.all(16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Welcome section
                   _buildWelcomeSection(
                     context,
                     user?.name ?? user?.email ?? 'User',
                   ),
-
                   const SizedBox(height: 24),
-
-                  // Quick stats
                   _buildQuickStats(context, wishlistProvider.wishlists),
-
                   const SizedBox(height: 24),
-
-                  // Recent wishlists
                   _buildRecentWishlists(context, wishlistProvider),
-
                   const SizedBox(height: 24),
-
-                  // Quick actions
                   _buildQuickActions(context),
+                  const SizedBox(height: 16),
+                  Consumer<SubscriptionProvider>(
+                    builder: (context, sub, _) {
+                      if (sub.tier == 'free') {
+                        return const AdContainer(
+                          label: 'Advertisement',
+                          child: BannerAdWidget(),
+                        );
+                      }
+                      return const SizedBox.shrink();
+                    },
+                  ),
                 ],
               ),
             ),
@@ -114,12 +128,10 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildQuickStats(BuildContext context, List wishlists) {
-    int totalItems = 0;
-    for (var wishlist in wishlists) {
-      totalItems += (wishlist.items.length as int);
-    }
-
+  Widget _buildQuickStats(
+    BuildContext context,
+    List<FirebaseWishlist> wishlists,
+  ) {
     return Row(
       children: [
         Expanded(
@@ -135,9 +147,9 @@ class _HomeScreenState extends State<HomeScreen> {
         Expanded(
           child: _buildStatCard(
             context,
-            icon: Icons.card_giftcard,
-            label: 'Items',
-            value: totalItems.toString(),
+            icon: Icons.public,
+            label: 'Shared',
+            value: wishlists.where((w) => w.isPublic).length.toString(),
             color: Colors.green,
           ),
         ),
@@ -181,7 +193,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildRecentWishlists(
     BuildContext context,
-    WishlistProvider provider,
+    FirebaseWishlistProvider provider,
   ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -195,6 +207,17 @@ class _HomeScreenState extends State<HomeScreen> {
         const SizedBox(height: 12),
         if (provider.isLoading)
           const Center(child: CircularProgressIndicator())
+        else if (provider.error != null)
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Text(
+                provider.error!,
+                style: const TextStyle(color: Colors.red),
+                textAlign: TextAlign.center,
+              ),
+            ),
+          )
         else if (provider.wishlists.isEmpty)
           Card(
             child: Padding(
@@ -227,9 +250,8 @@ class _HomeScreenState extends State<HomeScreen> {
           ListView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
-            itemCount: provider.wishlists.length > 3
-                ? 3
-                : provider.wishlists.length,
+            itemCount:
+                provider.wishlists.length > 3 ? 3 : provider.wishlists.length,
             itemBuilder: (context, index) {
               final wishlist = provider.wishlists[index];
               return Card(
@@ -240,22 +262,27 @@ class _HomeScreenState extends State<HomeScreen> {
                       context,
                     ).primaryColor.withValues(alpha: 0.1),
                     child: Icon(
-                      Icons.list,
+                      wishlist.isPublic ? Icons.public : Icons.lock_outline,
                       color: Theme.of(context).primaryColor,
                     ),
                   ),
                   title: Text(wishlist.name),
-                  subtitle: Text(
-                    '${wishlist.items.length} items',
-                    style: TextStyle(color: Colors.grey[600]),
-                  ),
+                  subtitle: wishlist.description != null &&
+                          wishlist.description!.isNotEmpty
+                      ? Text(
+                          wishlist.description!,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(color: Colors.grey[600]),
+                        )
+                      : null,
                   trailing: const Icon(Icons.arrow_forward_ios, size: 16),
                   onTap: () {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
                         builder: (context) =>
-                            WishlistDetailScreen(wishlist: wishlist),
+                            FirebaseWishlistItemsScreen(wishlist: wishlist),
                       ),
                     );
                   },
@@ -286,7 +313,12 @@ class _HomeScreenState extends State<HomeScreen> {
                 icon: Icons.camera_alt,
                 label: 'Scan Item',
                 onTap: () {
-                  // TODO: Navigate to camera
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const ScanItemScreen(),
+                    ),
+                  );
                 },
               ),
             ),
@@ -297,7 +329,12 @@ class _HomeScreenState extends State<HomeScreen> {
                 icon: Icons.search,
                 label: 'Browse',
                 onTap: () {
-                  // TODO: Navigate to browse
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const BrowseScreen(),
+                    ),
+                  );
                 },
               ),
             ),
@@ -342,7 +379,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Text('Create New Wishlist'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -368,37 +405,52 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogContext),
             child: const Text('Cancel'),
           ),
           ElevatedButton(
             onPressed: () async {
               if (nameController.text.trim().isEmpty) return;
 
-              final success =
-                  await Provider.of<WishlistProvider>(
-                    context,
-                    listen: false,
-                  ).createWishlist(
-                    name: nameController.text.trim(),
-                    description: descriptionController.text.trim().isEmpty
-                        ? null
-                        : descriptionController.text.trim(),
-                  );
+              final auth = Provider.of<AuthProvider>(context, listen: false);
+              if (auth.user == null) return;
 
-              if (context.mounted) {
-                Navigator.pop(context);
-                if (success) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Wishlist created!')),
-                  );
-                }
+              final success = await Provider.of<FirebaseWishlistProvider>(
+                context,
+                listen: false,
+              ).createWishlist(
+                name: nameController.text.trim(),
+                userId: auth.user!.id,
+                description: descriptionController.text.trim().isEmpty
+                    ? null
+                    : descriptionController.text.trim(),
+              );
+
+              if (dialogContext.mounted) {
+                Navigator.pop(dialogContext);
+              }
+              if (success && context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Wishlist created!')),
+                );
               }
             },
             child: const Text('Create'),
           ),
         ],
       ),
+    );
+  }
+}
+
+class BrowseScreen extends StatelessWidget {
+  const BrowseScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Browse Products')),
+      body: const Center(child: Text('Browse Products Screen')),
     );
   }
 }

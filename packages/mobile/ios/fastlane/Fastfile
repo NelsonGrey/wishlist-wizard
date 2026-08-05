@@ -1,0 +1,724 @@
+# Fastfile for Wishlist Wizard iOS App
+# This file contains the lanes for building, testing, and distributing the app
+
+# Import required plugins
+# fastlane add_plugin firebase_app_distribution
+
+require 'fileutils'
+
+default_platform(:ios)
+
+platform :ios do
+  # Helper to set key partition list to avoid UI prompts
+  def set_partition_list(keychain_path, keychain_password)
+    UI.message("🔐 Setting key partition list for keychain: #{keychain_path}")
+    # Use system security command to allow access to the key by apple tools (codesign, etc.)
+    # This prevents the UI prompt for keychain access
+    cmd = "security set-key-partition-list -S apple-tool:,apple: -s -k #{keychain_password.shellescape} #{keychain_path.shellescape}"
+    
+    # Execute command and suppress output unless it fails
+    begin
+      sh(cmd, log: false)
+      UI.success("✅ Key partition list set successfully")
+    rescue => e
+      UI.error("⚠️ Failed to set key partition list: #{e.message}")
+      # Don't fail the build, just warn
+    end
+  end
+
+  # before_all block removed to align with modulo-squares and trust ephemeral_keychain script
+
+  desc "Load App Store Connect API Key information to use in subsequent lanes"
+  lane :load_asc_api_key do
+    # Load APP_STORE_CONNECT_KEY from environment
+    asc_raw = ENV["APP_STORE_CONNECT_KEY"]
+    if asc_raw
+      # If the secret is provided as a single-line base64 (no PEM header), prefer passing
+      # it directly to Fastlane via `key_content` with `is_key_content_base64: true`.
+      is_pem = asc_raw.include?("-----BEGIN")
+      cleaned = asc_raw.gsub(/\s+/, "")
+      looks_base64 = cleaned =~ /\A[A-Za-z0-9+\/=]+\z/ && cleaned.length > 100
+
+      if !is_pem && looks_base64
+        UI.message("Detected APP_STORE_CONNECT_KEY as base64; passing directly as key_content (is_key_content_base64: true)")
+        app_store_connect_api_key(
+          key_id: ENV["APP_STORE_CONNECT_KEY_ID"],
+          issuer_id: ENV["APP_STORE_CONNECT_ISSUER_ID"],
+          key_content: cleaned,
+          is_key_content_base64: true,
+          in_house: false
+        )
+        next
+      end
+
+      # Fall back to processing raw PEM-like content
+      private_key_content = asc_raw
+      # Clean up and normalize the key content
+      private_key_content = private_key_content.strip
+      # Remove surrounding quotes if present
+      private_key_content = private_key_content.gsub(/\A['\"]|['\"]\z/, '')
+      # Expand literal \n sequences into real newlines (handle secrets stored as one-liners)
+      private_key_content = private_key_content.gsub(/\\n/, "\n")
+      # Normalize CRLF -> LF
+      private_key_content = private_key_content.gsub(/\r\n?/, "\n")
+      # Strip leading/trailing whitespace from each PEM line to avoid 'bad end line' errors
+      private_key_content = private_key_content.lines.map { |l| l.strip }.reject { |l| l.empty? }.join("\n") + "\n"
+
+      # If the key doesn't have proper BEGIN/END markers, try base64 decoding
+      unless private_key_content.match?(/-----BEGIN [A-Z ]+-----/)
+        begin
+          require 'base64'
+          decoded = Base64.decode64(private_key_content)
+          if decoded.include?("-----BEGIN")
+            private_key_content = decoded
+            UI.message("Decoded APP_STORE_CONNECT_KEY from base64")
+          end
+        rescue => e
+          UI.message("Failed to decode APP_STORE_CONNECT_KEY as base64: #{e.message}")
+        end
+      end
+
+      # Write the (normalized) key to a temporary file
+      require 'tempfile'
+      key_file = Tempfile.new(['app_store_connect_key', '.p8'])
+      key_file.write(private_key_content)
+      key_file.close
+
+      UI.message("Created temporary App Store Connect key file: #{key_file.path}")
+
+      # Attempt multiple OpenSSL conversions to produce a canonical EC PEM that Ruby/OpenSSL accepts.
+      converted_path = nil
+      use_key_path = key_file.path
+      begin
+        require 'tmpdir'
+        converted_path = File.join(Dir.tmpdir, "app_store_connect_key_converted_#{Time.now.to_i}.p8")
+
+        conversion_cmds = [
+          "openssl pkcs8 -in #{key_file.path} -inform PEM -out #{converted_path} -outform PEM -nocrypt 2>&1",
+          "openssl pkey -in #{key_file.path} -out #{converted_path} -outform PEM -nocrypt 2>&1",
+          "openssl ec -in #{key_file.path} -out #{converted_path} 2>&1"
+        ]
+
+        conversion_succeeded = false
+        conversion_cmds.each do |cmd|
+          UI.message("Trying OpenSSL command: #{cmd}")
+          output = `#{cmd}`
+          if $?.success? && File.exist?(converted_path) && File.size?(converted_path) && File.size(converted_path) > 0
+            UI.message("OpenSSL conversion succeeded with command: #{cmd}")
+            use_key_path = converted_path
+            conversion_succeeded = true
+            break
+          else
+            UI.message("OpenSSL command failed or produced empty file: #{output}")
+            # Ensure no stale converted file remains
+            begin; File.delete(converted_path) if File.exist?(converted_path); rescue => _; end
+          end
+        end
+        UI.message("OpenSSL conversion overall success: #{conversion_succeeded}")
+      rescue => e
+        UI.message("OpenSSL conversion attempt raised: #{e.message}")
+        use_key_path = key_file.path
+      end
+
+      app_store_connect_api_key(
+        key_id: ENV["APP_STORE_CONNECT_KEY_ID"],
+        issuer_id: ENV["APP_STORE_CONNECT_ISSUER_ID"],
+        key_filepath: use_key_path,
+        in_house: false
+      )
+
+      # Clean up temporary files
+      begin
+        key_file.unlink
+      rescue => _; end
+      begin
+        File.delete(converted_path) if converted_path && File.exist?(converted_path)
+      rescue => _; end
+    else
+      UI.user_error!("APP_STORE_CONNECT_KEY environment variable is not set")
+    end
+  end
+
+  desc "Install Flutter dependencies"
+  lane :flutter_deps do
+    Dir.chdir("../../") do
+      sh("flutter pub get")
+    end
+  end
+
+  
+
+  desc "Run Flutter tests"
+  lane :flutter_test do
+    Dir.chdir("../../") do
+      sh("flutter test")
+    end
+  end
+
+  desc "Build Flutter iOS app in debug mode"
+  lane :build_debug do
+    flutter_deps
+    Dir.chdir("../../") do
+      sh("flutter build ios --debug --no-codesign")
+    end
+  end
+
+  # Every lane in this Fastfile that produces a distributable build (build_release,
+  # build_appstore, build_testflight) exists to ship a real artifact, so it must
+  # always point at wishlist-wizard-prod — never left to defaults. This swaps in
+  # the prod GoogleService-Info.plist (fixing native-SDK config, which the Dart
+  # FIREBASE_ENV dart-define does not touch) and fails loudly if the result
+  # doesn't actually match the prod project, rather than silently shipping wrong.
+  def ensure_prod_firebase_config!
+    # Fastlane's working directory during lane execution is this fastlane/
+    # directory itself (see sibling "../Pods" references elsewhere in this
+    # file), not its parent — so these paths need the "../" prefix to reach
+    # Runner/, which lives alongside fastlane/, not inside it.
+    prod_plist = "../Runner/GoogleService-Info.prod.plist"
+    active_plist = "../Runner/GoogleService-Info.plist"
+    UI.user_error!("Missing #{prod_plist}") unless File.exist?(prod_plist)
+
+    FileUtils.cp(prod_plist, active_plist)
+
+    project_id = sh(
+      "/usr/libexec/PlistBuddy -c \"Print :PROJECT_ID\" #{active_plist}",
+      log: false
+    ).to_s.strip
+
+    unless project_id == "wishlist-wizard-prod"
+      UI.user_error!(
+        "Firebase config guard failed: expected PROJECT_ID=wishlist-wizard-prod " \
+        "after swapping in #{prod_plist}, but found '#{project_id}'."
+      )
+    end
+
+    UI.message("✅ Verified iOS Firebase config points at #{project_id}")
+  end
+
+  desc "Build Flutter iOS app in release mode"
+  lane :build_release do
+    ensure_prod_firebase_config!
+    flutter_deps
+    Dir.chdir("../../") do
+      sh("flutter build ios --release --no-codesign --dart-define=FIREBASE_ENV=production")
+    end
+  end
+
+  desc "Helper to purge App Store assets from the match repo (nuke) without revoking on Apple Developer Portal"
+  def purge_match_repo_appstore_assets!
+    UI.message("💣  Purging App Store assets from the match git repository (skipping Apple Dev Portal revocation)...")
+    
+    # We use the 'nuke' action but we want to avoid revoking the actual certs on Apple's side 
+    # if we just want to clear the repo state. However, 'match nuke' is designed to revoke.
+    #
+    # Instead, we can use the 'match' action with 'readonly: false' and 'force: true' 
+    # which usually regenerates. But if we hit the limit, we need to clear the repo's knowledge 
+    # of the certs so it tries to generate a new one (and hopefully we have room or can revoke manually).
+    #
+    # ACTUALLY, the error is "reached the maximum number of available Distribution certificates".
+    # This means we DO need to revoke them on Apple's side to free up a slot.
+    # So we should use 'match nuke' to clear them out.
+    
+    # Nuke distribution certificates and profiles
+    begin
+      match_nuke(
+        type: "appstore",
+        skip_confirmation: true
+      )
+      UI.success("✅  Successfully nuked App Store assets.")
+    rescue => e
+      UI.error("⚠️  Failed to nuke App Store assets: #{e.message}")
+      # We continue, hoping that maybe enough was cleared or that the retry might work
+    end
+  end
+
+  desc "Sync code signing certificates and provisioning profiles"
+  lane :sync_signing do
+    # Set up API key authentication
+    private_key_content = ENV["APP_STORE_CONNECT_KEY"]
+    if private_key_content.nil? || private_key_content.empty?
+      UI.error("APP_STORE_CONNECT_KEY environment variable is not set or empty")
+      raise "Missing APP_STORE_CONNECT_KEY"
+    end
+
+    # Detect key format
+    is_pem = private_key_content.include?("-----BEGIN")
+    cleaned = private_key_content.gsub(/\s+/, "")
+    looks_base64 = cleaned =~ /\A[A-Za-z0-9+\/=]+\z/ && cleaned.length > 100
+
+    if !is_pem && looks_base64
+      UI.message("Detected APP_STORE_CONNECT_KEY as base64; passing directly as key_content (is_key_content_base64: true)")
+      api_key = app_store_connect_api_key(
+        key_id: ENV["APP_STORE_CONNECT_KEY_ID"],
+        issuer_id: ENV["APP_STORE_CONNECT_ISSUER_ID"],
+        key_content: cleaned,
+        is_key_content_base64: true,
+        in_house: false
+      )
+    else
+      # Process as PEM
+      private_key_content = private_key_content.strip
+      private_key_content = private_key_content.gsub(/\A['\"]|['\"]\z/, '')
+      private_key_content = private_key_content.gsub(/\\n/, "\n")
+      private_key_content = private_key_content.gsub(/\r\n?/, "\n")
+      private_key_content = private_key_content.lines.map { |l| l.strip }.reject { |l| l.empty? }.join("\n") + "\n"
+
+      unless private_key_content.match?(/-----BEGIN [A-Z ]+-----/)
+        begin
+          require 'base64'
+          decoded = Base64.decode64(private_key_content)
+          if decoded.include?("-----BEGIN")
+            private_key_content = decoded
+            UI.message("Decoded APP_STORE_CONNECT_KEY from base64")
+          end
+        rescue => e
+          UI.message("Failed to decode APP_STORE_CONNECT_KEY as base64: #{e.message}")
+        end
+      end
+
+      require 'tempfile'
+      key_file = Tempfile.new(['app_store_connect_key', '.p8'])
+      key_file.write(private_key_content)
+      key_file.close
+
+      UI.message("Created temporary App Store Connect key file: #{key_file.path}")
+
+      api_key = app_store_connect_api_key(
+        key_id: ENV["APP_STORE_CONNECT_KEY_ID"],
+        issuer_id: ENV["APP_STORE_CONNECT_ISSUER_ID"],
+        key_filepath: key_file.path
+      )
+    end
+
+    # Clean up ALL distribution certificates from the login keychain before starting
+    UI.message("🧹 Cleaning up all distribution certificates from login keychain...")
+    begin
+      login_keychain = File.expand_path("~/Library/Keychains/login.keychain-db")
+      cert_list = `security find-certificate -a -c "Apple Distribution" -Z "#{login_keychain}" 2>/dev/null`
+      sha1_hashes = cert_list.scan(/SHA-1 hash: ([A-F0-9]{40})/).flatten
+      
+      if sha1_hashes.any?
+        UI.message("Found #{sha1_hashes.length} distribution certificate(s), removing them...")
+        sha1_hashes.each do |sha1|
+          sh("security delete-certificate -Z #{sha1} \"#{login_keychain}\" 2>/dev/null || true", log: false)
+        end
+        UI.success("✅ Cleaned #{sha1_hashes.length} certificate(s) from login keychain")
+      end
+    rescue => e
+      UI.message("⚠️ Login keychain cleanup: #{e.message}")
+    end
+
+    # Explicitly create/unlock a specifically named keychain
+    keychain_name = ENV["MATCH_KEYCHAIN_NAME"]
+    if keychain_name.to_s.empty?
+      keychain_name = "fastlane_build_keychain"
+    end
+    keychain_password = ENV["MATCH_KEYCHAIN_PASSWORD"] || "fastlane_password"
+
+    keychain_path = ENV["MATCH_KEYCHAIN_PATH"]
+    if keychain_path.to_s.empty?
+      keychain_path = File.expand_path("~/Library/Keychains/#{keychain_name}-db")
+    end
+    
+    # Create and unlock keychain
+    if File.exist?(keychain_path)
+      sh("security unlock-keychain -p #{keychain_password.shellescape} #{keychain_path.shellescape} || true", log: false)
+      sh("security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k #{keychain_password.shellescape} #{keychain_path.shellescape} 2>/dev/null || true", log: false)
+    else
+      create_keychain(
+        name: keychain_name,
+        password: keychain_password,
+        default_keychain: false,
+        unlock: true,
+        timeout: 3600,
+        add_to_search_list: true
+      )
+      sh("security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k #{keychain_password.shellescape} #{keychain_path.shellescape} 2>/dev/null || true", log: false)
+    end
+
+    match_keychain_arg = keychain_path
+
+    # ZERO-TOUCH certificate management
+    should_retry = false
+    creation_attempt = 0
+
+    begin
+      # Try readonly first
+      UI.message("🔄 Attempting to use existing certificates...")
+      match(
+        type: "appstore",
+        readonly: true,
+        verbose: true,
+        keychain_name: keychain_name,
+        keychain_password: keychain_password,
+        api_key: api_key,
+        skip_confirmation: true
+      )
+      UI.success("✅ Using existing certificates")
+
+    rescue => e
+      if e.message.include?("No code signing identity found") || e.message.include?("No matching provisioning profiles found")
+        creation_attempt += 1
+        if creation_attempt > 1
+          UI.error("❌ Failed after multiple attempts")
+          raise e
+        end
+        
+        UI.message("⚠️  Creating new certificates...")
+        begin
+          # Ensure keychain is unlocked before attempting to create certs
+          kc_path = ENV['MATCH_KEYCHAIN_PATH']
+          kc_pass = ENV['MATCH_KEYCHAIN_PASSWORD']
+          if kc_path && kc_pass
+            system("security unlock-keychain -p '#{kc_pass}' '#{kc_path}' || true")
+            system("security set-key-partition-list -S apple-tool:,apple:,codesign: -s -t private -k '#{kc_pass}' '#{kc_path}' 2>/dev/null || true")
+          end
+          
+          match(
+            type: "appstore",
+            readonly: false,
+            verbose: true,
+            keychain_name: ENV['MATCH_KEYCHAIN_NAME'],
+            keychain_password: keychain_password,
+            api_key: api_key,
+            skip_confirmation: true,
+            git_full_name: "Fastlane Bot",
+            git_user_email: "fastlane@example.com"
+          )
+          UI.success("✅ Created new certificates")
+          
+        rescue => create_error
+          if create_error.message.include?("Maximum number of certificates") || create_error.message.include?("reached the maximum number")
+            UI.important("⚠️  Hit Apple's certificate limit. Using match_nuke...")
+            
+            begin
+              match_nuke(
+                type: "appstore",
+                skip_confirmation: true,
+                readonly: false,
+                api_key: api_key
+              )
+              
+              UI.success("✅ Revoked old certificates")
+              should_retry = true
+              creation_attempt = 0
+              retry
+            rescue => nuke_error
+              UI.error("❌ Failed to nuke certificates: #{nuke_error.message}")
+              raise create_error
+            end
+          else
+            raise create_error
+          end
+        end
+      else
+        raise e
+      end
+      
+      if should_retry
+        should_retry = false
+        creation_attempt = 0
+        retry
+      end
+    end
+
+    # Ensure partition list is set to prevent UI prompts
+    if keychain_name && !keychain_name.empty? && keychain_password && !keychain_password.empty?
+      keychain_path = nil
+      if !ENV["MATCH_KEYCHAIN_PATH"].to_s.empty?
+         keychain_path = ENV["MATCH_KEYCHAIN_PATH"]
+      else
+         # Handle both .keychain and .keychain-db extensions
+         keychain_path = File.expand_path("~/Library/Keychains/#{keychain_name}-db")
+         unless File.exist?(keychain_path)
+           keychain_path = File.expand_path("~/Library/Keychains/#{keychain_name}")
+         end
+      end
+      
+      if keychain_path && File.exist?(keychain_path)
+        set_partition_list(keychain_path, keychain_password)
+      end
+    end
+  end
+
+  desc "Build and sign iOS app for App Store distribution"
+  lane :build_appstore do
+    ensure_prod_firebase_config!
+    flutter_deps
+
+    # Sync signing certificates (ensures correct branch via env or Matchfile)
+    sync_signing
+
+    # Clean legacy build artifacts to avoid linker errors
+    clear_derived_data
+    sh("rm -rf ../Pods")
+    sh("rm -f ../Podfile.lock")
+
+    Dir.chdir("../../") do
+      # Build the app with proper code signing
+      sh("flutter clean")
+      sh("flutter pub get")
+      # Use --no-codesign to avoid Flutter trying to sign with default (likely Dev) identity
+      sh("flutter build ios --release --no-codesign --dart-define=FIREBASE_ENV=production")
+
+      # Force manual signing with the identity/profile we just fetched
+      app_id = "com.wishlistwizard.app.ios"
+      profile_name = ENV["sigh_#{app_id}_appstore_profile-name"]
+      team_id = ENV["sigh_#{app_id}_appstore_team-id"] || ENV["FASTLANE_TEAM_ID"]
+      cert_name = ENV["sigh_#{app_id}_appstore_certificate-name"] || "Apple Distribution"
+
+      # Ensure keychain is unlocked and searchable BEFORE build_app
+      # This is critical for Xcode to find the code signing certificate
+      keychain_name = ENV["MATCH_KEYCHAIN_NAME"]
+      keychain_password = ENV["MATCH_KEYCHAIN_PASSWORD"]
+      
+      if keychain_name && keychain_password
+        keychain_path = ENV["MATCH_KEYCHAIN_PATH"]
+        if keychain_path.to_s.empty?
+          keychain_path = File.expand_path("~/Library/Keychains/#{keychain_name}-db")
+        end
+        
+        if File.exist?(keychain_path)
+          UI.message("🔓 Unlocking dedicated keychain for build: #{keychain_path}")
+          sh("security unlock-keychain -p #{keychain_password.shellescape} #{keychain_path.shellescape}", log: false)
+          sh("security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k #{keychain_password.shellescape} #{keychain_path.shellescape} 2>/dev/null || true", log: false)
+          # Add keychain to search list
+          sh("security list-keychains -d user -s #{keychain_path.shellescape} $(security list-keychains -d user | tr -d '\"')", log: false)
+        else
+          UI.important("⚠️ Keychain not found at: #{keychain_path}")
+        end
+      end
+
+      # Build the Xcode project
+      build_app(
+        xcargs: "CODE_SIGN_STYLE='Manual' DEVELOPMENT_TEAM='#{team_id}' PROVISIONING_PROFILE_SPECIFIER='#{profile_name}' CODE_SIGN_IDENTITY='#{cert_name}'",
+        workspace: "ios/Runner.xcworkspace",
+        scheme: "Runner",
+        configuration: "Release",
+        export_method: "app-store",
+        clean: true
+      )
+    end
+  end
+
+  desc "Build and sign iOS app for TestFlight distribution"
+  lane :build_testflight do
+    ensure_prod_firebase_config!
+    clear_derived_data
+    # Clean workspace to prevent abseil/grpc linking issues
+    sh("rm -rf ../Pods")
+    sh("rm -f ../Podfile.lock")
+    
+    flutter_deps
+
+    # Sync signing certificates
+    sync_signing
+
+    # Ensure a clean build environment BEFORE dependencies
+    Dir.chdir("../../") do
+      sh("rm -rf build")
+      sh("flutter clean || true")
+      sh("flutter pub get")
+    end
+
+    # Build the iOS project once with Flutter so CocoaPods and generated iOS
+    # metadata are refreshed before Xcode archive/signing.
+    Dir.chdir("../../") do
+      sh("flutter build ios --release --no-codesign --dart-define=FIREBASE_ENV=production")
+    end
+
+    # Build the iOS app using gym (standard fastlane action, handles signing better than manual flutter build)
+    # We rely on 'flutter pub get' having run previously to set up the environment
+    
+    # Force manual signing with the identity/profile we just fetched
+    # match sets these environment variables:
+    # sigh_<bundle_id>_<type>_profile-name
+    # sigh_<bundle_id>_<type>_team-id
+    # sigh_<bundle_id>_<type>_certificate-name
+    
+    app_id = "com.wishlistwizard.app.ios"
+    # Fallback to standard env vars if match didn't set specific ones (e.g. if cached)
+    # But usually match sets them.
+    
+    # Debug: log available sigh variables
+    # ENV.keys.select { |k| k.to_s.start_with?("sigh_") }.each { |k| UI.message("ENV[#{k}] = #{ENV[k]}") }
+
+    profile_name = ENV["sigh_#{app_id}_appstore_profile-name"]
+    team_id = ENV["sigh_#{app_id}_appstore_team-id"] || ENV["FASTLANE_TEAM_ID"]
+    cert_name = ENV["sigh_#{app_id}_appstore_certificate-name"] || "Apple Distribution"
+
+    # Use update_code_signing_settings to specifically target the Runner project
+    # This avoids setting global xcodebuild args that break Pods signing (like FirebaseAppCheck)
+    update_code_signing_settings(
+      use_automatic_signing: false,
+      path: "Runner.xcodeproj",
+      targets: ["Runner"],
+      code_sign_identity: cert_name,
+      bundle_identifier: app_id,
+      profile_name: profile_name,
+      team_id: team_id
+    )
+
+    # Ensure keychain is unlocked and searchable BEFORE build_app
+    # This is critical for Xcode to find the code signing certificate
+    keychain_name = ENV["MATCH_KEYCHAIN_NAME"]
+    keychain_password = ENV["MATCH_KEYCHAIN_PASSWORD"]
+    
+    if keychain_name && keychain_password
+      keychain_path = ENV["MATCH_KEYCHAIN_PATH"]
+      if keychain_path.to_s.empty?
+        keychain_path = File.expand_path("~/Library/Keychains/#{keychain_name}-db")
+      end
+      
+      if File.exist?(keychain_path)
+        UI.message("🔓 Unlocking dedicated keychain for build: #{keychain_path}")
+        sh("security unlock-keychain -p #{keychain_password.shellescape} #{keychain_path.shellescape}", log: false)
+        sh("security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k #{keychain_password.shellescape} #{keychain_path.shellescape} 2>/dev/null || true", log: false)
+        # Add keychain to search list
+        sh("security list-keychains -d user -s #{keychain_path.shellescape} $(security list-keychains -d user | tr -d '\"')", log: false)
+      else
+        UI.important("⚠️ Keychain not found at: #{keychain_path}")
+      end
+    end
+
+    # Use sync_signing (match) variables
+    build_app(
+      workspace: "Runner.xcworkspace",
+      scheme: "Runner",
+      clean: true,
+      skip_profile_detection: true,
+      export_method: "app-store",
+      output_directory: "../../build/ios/ipa",
+      output_name: "WishlistWizard.ipa",
+      export_options: {
+        provisioningProfiles: {
+          app_id => profile_name
+        }
+      }
+    )
+    
+     # Get the actual IPA path from build_app result
+     ipa_path = Actions.lane_context[SharedValues::IPA_OUTPUT_PATH]
+     unless ipa_path && File.exist?(ipa_path)
+       UI.user_error!("gym failed to create IPA at #{ipa_path || '../../build/ios/ipa/WishlistWizard.ipa'}")
+     end
+    
+    UI.message("✅ Successfully created signed IPA at: #{ipa_path}")
+  end
+
+  desc "Upload to TestFlight"
+  lane :beta do
+    # Load App Store Connect API Key
+    load_asc_api_key
+
+    # Build the app
+    build_testflight
+
+    # Upload to TestFlight
+    # Get the IPA path from the build_testflight lane (it's stored in SharedValues)
+    ipa_path = Actions.lane_context[SharedValues::IPA_OUTPUT_PATH]
+    
+    if ipa_path.nil? || !File.exist?(ipa_path)
+      UI.user_error!("Could not find IPA after build_testflight. IPA path was: #{ipa_path || 'nil'}")
+    else
+      UI.message("Found IPA at #{ipa_path}")
+    end
+
+    # Normalize BETA contact phone to E.164-ish format for App Store Connect
+    # Note: beta_app_feedback_phone is no longer supported in current fastlane versions
+    raw_contact_phone = ENV["BETA_CONTACT_PHONE"].to_s.strip
+
+    if raw_contact_phone.empty?
+      UI.message("No contact phone provided")
+    else
+      UI.message("Contact phone provided (will be recorded but not passed to upload_to_testflight)")
+    end
+
+    # Use pilot (wrapped by upload_to_testflight)
+    # Use api_key from lane context (set by load_asc_api_key indirectly? No, load_asc_api_key returns nil but sets shared values/config)
+    # Actually, app_store_connect_api_key sets up the connection for subsequent actions.
+    # explicit api_key param is cleaner if available, but fastlane shared config handles it.
+    
+    upload_to_testflight(
+      ipa: ipa_path,
+      skip_waiting_for_build_processing: true,
+      beta_app_feedback_email: "mark.a.nelson@outlook.com",
+      changelog: "Automated TestFlight build from CI/CD pipeline",
+      distribute_external: true,
+      groups: [ENV["BETA_GROUP_NAME"] || "Internal Testers"]
+    )
+  end
+
+  desc "Push App Store text metadata (and screenshots, if present) via the API — never submits for review"
+  lane :push_appstore_metadata do
+    load_asc_api_key
+
+    # skip_binary_upload/skip_app_version_update: this lane's only job is
+    # metadata/screenshots, independent of build_appstore/build_testflight —
+    # it does not touch the binary or version number.
+    # submit_for_review: false is deliberate and load-bearing: pushing
+    # metadata is safe to automate, but actually submitting the app for
+    # human review is a separate, consequential action that stays behind an
+    # explicit human-triggered step (see submit_appstore_for_review below).
+    deliver(
+      api_key: Actions.lane_context[SharedValues::APP_STORE_CONNECT_API_KEY],
+      app_identifier: "com.wishlistwizard.app.ios",
+      metadata_path: File.expand_path("metadata", __dir__),
+      screenshots_path: File.expand_path("screenshots", __dir__),
+      skip_binary_upload: true,
+      skip_app_version_update: true,
+      skip_screenshots: !Dir.exist?(File.expand_path("screenshots", __dir__)),
+      # Required — without this, deliver tries to fetch/preserve this
+      # version's *existing* appStoreReviewDetail and crashes with a
+      # spaceship "No data" error when none has ever been created (as found
+      # running this for real: fastlane-2.237.0's
+      # deliver/upload_metadata.rb:752 review_attachment_file assumes the
+      # resource exists). Passing this explicitly makes deliver create it
+      # instead of trying to read a nonexistent one.
+      app_review_information: {
+        first_name: "Mark",
+        last_name: "Nelson",
+        phone_number: ENV["BETA_CONTACT_PHONE"] || "+16307158474",
+        email_address: ENV["BETA_FEEDBACK_EMAIL"] || "mark.a.nelson@outlook.com",
+        notes: "No demo account needed — sign-in supports Google, email, or continuing as a guest."
+      },
+      submit_for_review: false,
+      # precheck's IAP-metadata inspection requires Apple ID/2FA auth, not
+      # API-key auth — this app authenticates with an API key, so precheck's
+      # IAP check must be disabled or it hard-fails regardless of build state.
+      precheck_include_in_app_purchases: false,
+      force: true
+    )
+  end
+
+  desc "Submit the current App Store version for review — irreversible, human-triggered only. Never called by CI automatically."
+  lane :submit_appstore_for_review do
+    load_asc_api_key
+
+    deliver(
+      api_key: Actions.lane_context[SharedValues::APP_STORE_CONNECT_API_KEY],
+      app_identifier: "com.wishlistwizard.app.ios",
+      metadata_path: File.expand_path("metadata", __dir__),
+      screenshots_path: File.expand_path("screenshots", __dir__),
+      skip_binary_upload: true,
+      skip_app_version_update: true,
+      skip_screenshots: !Dir.exist?(File.expand_path("screenshots", __dir__)),
+      app_review_information: {
+        first_name: "Mark",
+        last_name: "Nelson",
+        phone_number: ENV["BETA_CONTACT_PHONE"] || "+16307158474",
+        email_address: ENV["BETA_FEEDBACK_EMAIL"] || "mark.a.nelson@outlook.com",
+        notes: "No demo account needed — sign-in supports Google, email, or continuing as a guest."
+      },
+      submit_for_review: true,
+      automatic_release: false,
+      precheck_include_in_app_purchases: false,
+      force: true
+    )
+  end
+
+  # Helper to remove derived data
+  def clear_derived_data
+    sh("rm -rf ~/Library/Developer/Xcode/DerivedData/*")
+  end
+end

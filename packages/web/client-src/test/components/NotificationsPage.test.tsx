@@ -1,20 +1,21 @@
-// Mock useQuery hook
+import { vi, describe, it, expect, beforeEach } from 'vitest';
+
+const reactQueryMocks = vi.hoisted(() => ({
+  useQuery: vi.fn(),
+  useMutation: vi.fn(),
+  useQueryClient: vi.fn(),
+}));
+
+// Mock useQuery hook properly for React Query v5
 vi.mock('@tanstack/react-query', async () => {
   const actual = await vi.importActual('@tanstack/react-query');
-  const mockUseQuery = vi.fn();
-  const mockUseMutation = vi.fn();
-  const mockUseQueryClient = vi.fn();
-  
   return {
     ...actual,
-    useQuery: mockUseQuery,
-    useMutation: mockUseMutation,
-    useQueryClient: mockUseQueryClient
+    ...reactQueryMocks,
   };
 });
 
-import { vi, describe, it, expect, beforeEach } from 'vitest';
-import { screen, waitFor } from '@testing-library/react';
+import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { render } from '../utils';
 import Notifications from '@/pages/Notifications';
@@ -42,17 +43,15 @@ describe('Notifications Page', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     
-    // Get the mocked useQuery function
-    const { useQuery, useMutation } = require('@tanstack/react-query');
-    
-    // Default mock implementation for useQuery
-    useQuery.mockReturnValue({
+    // Mock useQuery to return default data
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    reactQueryMocks.useQuery.mockReturnValue({
       data: {
         notifications: [
           {
             id: 1,
             title: 'New Wishlist Created',
-            message: 'A new wishlist "Birthday Wishes" has been created by John.',
+            content: 'A new wishlist "Birthday Wishes" has been created by John.',
             isRead: false,
             createdAt: mockDate.toISOString(),
             type: 'wishlist_created',
@@ -61,7 +60,7 @@ describe('Notifications Page', () => {
           {
             id: 2,
             title: 'Item Added',
-            message: 'Jane added "Wireless Headphones" to the wishlist "Tech Gadgets".',
+            content: 'Jane added "Wireless Headphones" to the wishlist "Tech Gadgets".',
             isRead: true,
             createdAt: mockDate.toISOString(),
             type: 'item_added',
@@ -70,12 +69,15 @@ describe('Notifications Page', () => {
         ],
         unreadCount: 1
       },
-      isLoading: false
+      isLoading: false,
+      isError: false,
+      error: null,
+      refetch: vi.fn(),
     });
     
-    // Mock useMutation implementations - reset for each test
-    useMutation.mockReset();
-    useMutation.mockReturnValue({
+    // Mock useMutation
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    reactQueryMocks.useMutation.mockReturnValue({
       mutate: vi.fn(),
       isPending: false
     });
@@ -85,8 +87,9 @@ describe('Notifications Page', () => {
     // Arrange & Act
     render(<Notifications />, { pathname: '/notifications' });
     
-    // Assert
-    expect(screen.getByText('Notifications')).toBeInTheDocument();
+    // Assert - Use getAllByText to get all matches and verify at least one exists
+    const notificationTexts = screen.getAllByText('Notifications');
+    expect(notificationTexts.length).toBeGreaterThan(0);
     expect(screen.getByText('New Wishlist Created')).toBeInTheDocument();
     expect(screen.getByText('Item Added')).toBeInTheDocument();
     expect(screen.getByText('A new wishlist "Birthday Wishes" has been created by John.')).toBeInTheDocument();
@@ -100,16 +103,26 @@ describe('Notifications Page', () => {
     expect(screen.getByText('Mark all as read')).toBeInTheDocument();
   });
 
+  it('links to notification preferences in Settings from inbox controls', async () => {
+    render(<Notifications />, { pathname: '/notifications' });
+
+    const user = userEvent.setup();
+
+    await user.click(screen.getByRole('link', { name: /notification preferences/i }));
+    expect(window.location.pathname).toBe('/app/settings');
+    expect(window.location.search).toContain('tab=notifications');
+  });
+
   it('should not show "Mark all as read" button when all notifications are read', () => {
     // Arrange
-    const { useQuery } = require('@tanstack/react-query');
-    useQuery.mockReturnValue({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    reactQueryMocks.useQuery.mockReturnValue({
       data: {
         notifications: [
           {
             id: 1,
             title: 'New Wishlist Created',
-            message: 'A new wishlist "Birthday Wishes" has been created by John.',
+            content: 'A new wishlist "Birthday Wishes" has been created by John.',
             isRead: true,
             createdAt: mockDate.toISOString(),
             type: 'wishlist_created'
@@ -117,13 +130,16 @@ describe('Notifications Page', () => {
         ],
         unreadCount: 0
       },
-      isLoading: false
+      isLoading: false,
+      isError: false,
+      error: null,
+      refetch: vi.fn(),
     });
     
     // Act
     render(<Notifications />, { pathname: '/notifications' });
     
-    // Assert
+    // Assert - Button should be hidden when there are no unread notifications
     expect(screen.queryByText('Mark all as read')).not.toBeInTheDocument();
   });
 
@@ -137,25 +153,24 @@ describe('Notifications Page', () => {
     expect(dateElements.length).toBe(2);
   });
 
-  it('should show the "View" button for notifications with action URLs', () => {
+  it('should show contextual action buttons for notifications with action URLs', () => {
     // Arrange & Act
     render(<Notifications />, { pathname: '/notifications' });
     
     // Assert
-    const viewButtons = screen.getAllByText('View');
-    expect(viewButtons.length).toBe(2); // Both notifications have actionUrls
+    expect(screen.getAllByRole('link', { name: 'View Details' })).toHaveLength(2);
   });
 
   it('should show the "Mark as read" button for unread notifications without action URLs', () => {
     // Arrange
-    const { useQuery } = require('@tanstack/react-query');
-    useQuery.mockReturnValue({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    reactQueryMocks.useQuery.mockReturnValue({
       data: {
         notifications: [
           {
             id: 1,
             title: 'System Notification',
-            message: 'Your account has been updated.',
+            content: 'Your account has been updated.',
             isRead: false,
             createdAt: mockDate.toISOString(),
             type: 'system'
@@ -164,7 +179,10 @@ describe('Notifications Page', () => {
         ],
         unreadCount: 1
       },
-      isLoading: false
+      isLoading: false,
+      isError: false,
+      error: null,
+      refetch: vi.fn(),
     });
     
     // Act
@@ -176,14 +194,14 @@ describe('Notifications Page', () => {
 
   it('should trigger mark as read mutation when "Mark as read" button is clicked', async () => {
     // Arrange
-    const { useQuery, useMutation } = require('@tanstack/react-query');
-    useQuery.mockReturnValue({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    reactQueryMocks.useQuery.mockReturnValue({
       data: {
         notifications: [
           {
             id: 1,
             title: 'System Notification',
-            message: 'Your account has been updated.',
+            content: 'Your account has been updated.',
             isRead: false,
             createdAt: mockDate.toISOString(),
             type: 'system'
@@ -192,11 +210,15 @@ describe('Notifications Page', () => {
         ],
         unreadCount: 1
       },
-      isLoading: false
+      isLoading: false,
+      isError: false,
+      error: null,
+      refetch: vi.fn(),
     });
     
     const markAsReadMutation = { mutate: vi.fn() };
-    useMutation.mockReturnValue(markAsReadMutation);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    reactQueryMocks.useMutation.mockReturnValue(markAsReadMutation);
     
     render(<Notifications />, { pathname: '/notifications' });
     const user = userEvent.setup();
@@ -210,10 +232,13 @@ describe('Notifications Page', () => {
 
   it('should show loading state when isLoading is true', () => {
     // Arrange
-    const { useQuery } = require('@tanstack/react-query');
-    useQuery.mockReturnValue({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    reactQueryMocks.useQuery.mockReturnValue({
       data: undefined,
-      isLoading: true
+      isLoading: true,
+      isError: false,
+      error: null,
+      refetch: vi.fn(),
     });
     
     // Act
@@ -222,23 +247,80 @@ describe('Notifications Page', () => {
     // Assert
     // Should not show any notifications
     expect(screen.queryByText('New Wishlist Created')).not.toBeInTheDocument();
-    // Should show loading indicator (implementation-specific)
-    expect(screen.getByRole('status')).toBeInTheDocument();
+    // Should show loading spinner
+    const spinner = document.querySelector('.animate-spin');
+    expect(spinner).toBeInTheDocument();
   });
 
   it('should show empty state when there are no notifications', () => {
     // Arrange
-    const { useQuery } = require('@tanstack/react-query');
-    useQuery.mockReturnValue({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    reactQueryMocks.useQuery.mockReturnValue({
       data: { notifications: [], unreadCount: 0 },
-      isLoading: false
+      isLoading: false,
+      isError: false,
+      error: null,
+      refetch: vi.fn(),
     });
     
     // Act
     render(<Notifications />, { pathname: '/notifications' });
     
     // Assert
-    expect(screen.getByText('No notifications yet')).toBeInTheDocument();
-    expect(screen.getByText("You'll see notifications about activity on your wishlists here.")).toBeInTheDocument();
+    expect(screen.getByText('No notifications in this view')).toBeInTheDocument();
+    expect(screen.getByText("You'll see notifications about wishlist activity here.")).toBeInTheDocument();
+  });
+
+  it('should render safely when notification timestamp is invalid', () => {
+    // Arrange
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    reactQueryMocks.useQuery.mockReturnValue({
+      data: {
+        notifications: [
+          {
+            id: 7,
+            title: 'Corrupt Notification',
+            content: 'This notification has an invalid timestamp.',
+            isRead: false,
+            createdAt: 'not-a-valid-date',
+            type: 'system',
+          },
+        ],
+        unreadCount: 1,
+      },
+      isLoading: false,
+      isError: false,
+      error: null,
+      refetch: vi.fn(),
+    });
+
+    // Act
+    render(<Notifications />, { pathname: '/notifications' });
+
+    // Assert
+    expect(screen.getByText('Corrupt Notification')).toBeInTheDocument();
+    expect(screen.getByText('Unknown time')).toBeInTheDocument();
+  });
+
+  it('should show query error state and retry action', async () => {
+    const refetch = vi.fn();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    reactQueryMocks.useQuery.mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      isError: true,
+      error: new Error('Network down'),
+      refetch,
+    });
+
+    render(<Notifications />, { pathname: '/notifications' });
+
+    expect(screen.getByText('Unable to load notifications')).toBeInTheDocument();
+    expect(screen.getByText('Network down')).toBeInTheDocument();
+
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('button', { name: 'Retry' }));
+
+    expect(refetch).toHaveBeenCalledTimes(1);
   });
 });

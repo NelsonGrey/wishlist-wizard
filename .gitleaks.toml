@@ -1,0 +1,18 @@
+title = "wishlist-wizard gitleaks configuration"
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Public Firebase client configuration required by mobile and extension clients"
+paths = [
+  '''packages/mobile/lib/firebase_options\.dart''',
+  '''packages/mobile/android/app/google-services(\.(dev|prod|staging))?\.json''',
+  '''packages/mobile/ios/Runner/GoogleService-Info(\.(dev|prod|staging))?\.plist''',
+  '''packages/mobile/(ios|macos)/Podfile\.lock''',
+  '''packages/mobile-app/ios/Podfile\.lock''',
+  '''packages/browser-extension/src/background\.js''',
+]
+regexes = [
+  '''AIza[0-9A-Za-z_-]{20,}''',
+]

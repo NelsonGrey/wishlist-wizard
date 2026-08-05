@@ -38,7 +38,7 @@ interface Recommendation {
 
 interface RecommendationCardProps {
   recommendation: Recommendation;
-  onAddToWishlist?: (recommendation: Recommendation) => void;
+  onAddToWishlist?: (recommendation: Recommendation) => Promise<boolean | void> | boolean | void;
   onStatusChange?: (id: number, status: {isViewed?: boolean, isSaved?: boolean, isRejected?: boolean}) => void;
 }
 
@@ -88,7 +88,7 @@ export default function RecommendationCard({
       }
     }
     
-    window.open(productUrl, "_blank");
+    window.open(productUrl, "_blank", "noopener,noreferrer");
   };
   
   // Handle saving or rejecting a recommendation
@@ -146,16 +146,15 @@ export default function RecommendationCard({
   
   // Handle adding to wishlist
   const handleAddToWishlist = async () => {
+    if (isSaved) {
+      return;
+    }
+
     setIsLoading(true);
     try {
       // Call the parent handler
       if (onAddToWishlist) {
         await onAddToWishlist(recommendation);
-      }
-      
-      // If this is a stored recommendation, also mark it as saved
-      if (id) {
-        await handleStatusUpdate({ isSaved: true });
       }
     } finally {
       setIsLoading(false);
@@ -179,7 +178,7 @@ export default function RecommendationCard({
           }}
         />
         <Badge 
-          className="absolute top-2 right-2 bg-gradient-to-r from-purple-600 to-blue-500"
+          className="absolute top-2 right-2 bg-emerald-700"
           variant="secondary"
         >
           {store}
@@ -189,7 +188,12 @@ export default function RecommendationCard({
           <div className="absolute top-2 left-2">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-8 w-8 p-0 bg-white/80 hover:bg-white/90 rounded-full">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0 bg-white/80 hover:bg-white/90 rounded-full"
+                  aria-label={`More actions for ${title}`}
+                >
                   <MoreHorizontal className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
@@ -207,7 +211,7 @@ export default function RecommendationCard({
                   className="text-red-600"
                 >
                   <ThumbsDown className="mr-2 h-4 w-4" />
-                  <span>Don't show again</span>
+                  <span>Don&apos;t show again</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -226,6 +230,7 @@ export default function RecommendationCard({
                 <Star
                   key={i}
                   size={16}
+                  aria-hidden="true"
                   className={`${
                     i < stars ? "text-yellow-400 fill-yellow-400" : "text-gray-300"
                   }`}
@@ -248,18 +253,20 @@ export default function RecommendationCard({
           size="sm" 
           className="flex-1"
           onClick={handleView}
+          aria-label={`View product details for ${title}`}
         >
-          <ExternalLink size={16} className="mr-1" /> View
+          <ExternalLink size={16} className="mr-1" /> View Details
         </Button>
         {onAddToWishlist && (
           <Button 
             onClick={handleAddToWishlist} 
             size="sm" 
-            className="flex-1 bg-gradient-to-r from-purple-600 to-blue-500 hover:from-purple-700 hover:to-blue-600"
-            disabled={isLoading}
+            className="flex-1 bg-emerald-700 hover:bg-emerald-800"
+            disabled={isLoading || !!isSaved}
+            aria-label={`Add ${title} to selected wishlist`}
           >
             <ShoppingCart size={16} className="mr-1" /> 
-            {isLoading ? "Adding..." : "Add"}
+            {isSaved ? "Saved" : isLoading ? "Adding..." : "Add"}
           </Button>
         )}
       </CardFooter>

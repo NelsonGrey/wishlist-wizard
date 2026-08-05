@@ -1,16 +1,20 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Link } from 'wouter';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
+import { Input } from '@/components/ui/input';
 import { ConnectCalendarDialog, CalendarProvider } from './ConnectCalendarDialog';
 import { LuCalendarClock, LuCloudSun, LuTrash2 } from 'react-icons/lu';
 import { SiGoogle, SiApple } from 'react-icons/si';
 import { FaMicrosoft } from 'react-icons/fa';
 import { format } from 'date-fns';
+import { useSubscriptionStatus } from '@/hooks/use-subscription-status';
+import { UNLIMITED } from '@wishlist-wizard/shared';
 
 // Calendar interface matching the backend structure
 interface ConnectedCalendar {
@@ -26,20 +30,91 @@ interface ConnectedCalendar {
   };
 }
 
+interface CalendarSettings {
+  syncEvents: boolean;
+  syncDirection: 'bidirectional' | 'import' | 'export';
+  defaultReminders: number[];
+}
+
+interface ExternalProviderStatus {
+  provider: 'google' | 'outlook' | 'apple' | 'facebook';
+  connected: boolean;
+  supported: boolean;
+  message?: string;
+}
+
+interface ExternalContactsResponse {
+  contacts?: Array<{
+    id: string;
+    name: string;
+    email?: string;
+    phone?: string;
+    primarySource: 'google' | 'outlook' | 'apple' | 'facebook';
+    sources: Array<{ provider: 'google' | 'outlook' | 'apple' | 'facebook'; sourceContactId: string }>;
+    quality?: {
+      score: number;
+      level: 'high' | 'medium' | 'low';
+      factors: string[];
+    };
+  }>;
+  providerStatuses?: ExternalProviderStatus[];
+  metadata?: {
+    storageMode?: 'ephemeral';
+    returnedContacts?: number;
+  };
+}
+
 export function CalendarSettings() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  
+  const { data: subStatus, isLoading: isLoadingSubStatus } = useSubscriptionStatus();
+
   // Fetch connected calendars
   const { 
     data: connectedCalendars = [], 
     isLoading: isLoadingCalendars,
     refetch: refetchCalendars
-  } = useQuery({ 
+  } = useQuery<ConnectedCalendar[]>({ 
     queryKey: ['/api/calendar/connections'],
-    queryFn: () => apiRequest('/api/calendar/connections')
+    queryFn: () => apiRequest('/api/calendar/connections') as Promise<ConnectedCalendar[]>
   });
-  
+
+  const [sourceQuery, setSourceQuery] = React.useState('');
+
+  const {
+    data: externalContactsResponse,
+    isLoading: isLoadingSourceData,
+    refetch: refetchSourceData,
+  } = useQuery<ExternalContactsResponse>({
+    queryKey: ['/api/contacts/external-preview', sourceQuery],
+    queryFn: () => apiRequest('/api/contacts/external', {
+      method: 'POST',
+      body: {
+        providers: ['google', 'outlook', 'apple', 'facebook'],
+        limit: 30,
+        query: sourceQuery.trim() || undefined,
+      },
+    }) as Promise<ExternalContactsResponse>,
+  });
+
+  // Some test mocks and fallback handlers can return non-array payloads.
+  // Normalize query results defensively to keep the settings UI resilient.
+  const connectedCalendarsList = Array.isArray(connectedCalendars) ? connectedCalendars : [];
+  const externalProviderStatuses = Array.isArray(externalContactsResponse?.providerStatuses)
+    ? externalContactsResponse?.providerStatuses
+    : [];
+  const externalContactsPreview = Array.isArray(externalContactsResponse?.contacts)
+    ? externalContactsResponse.contacts
+    : [];
+  const previewExternalContactCount = Array.isArray(externalContactsResponse?.contacts)
+    ? externalContactsResponse.contacts.length
+    : 0;
+  const storageMode = externalContactsResponse?.metadata?.storageMode || 'ephemeral';
+
+  const maxCalendars = subStatus?.limits?.maxCalendars ?? Infinity;
+  const atConnectionCap = !isLoadingSubStatus && connectedCalendarsList.length >= maxCalendars;
+  const maxCalendarsLabel = maxCalendars >= UNLIMITED ? '∞' : String(maxCalendars);
+
   // Disconnect calendar mutation
   const disconnectMutation = useMutation({
     mutationFn: (calendarId: number) => {
@@ -86,7 +161,7 @@ export function CalendarSettings() {
   
   // Update settings mutation
   const updateSettingsMutation = useMutation({
-    mutationFn: ({ calendarId, settings }: { calendarId: number, settings: any }) => {
+    mutationFn: ({ calendarId, settings }: { calendarId: number, settings: CalendarSettings }) => {
       return apiRequest(`/api/calendar/connections/${calendarId}/settings`, { method: 'PATCH', body: { settings } });
     },
     onSuccess: () => {
@@ -105,9 +180,9 @@ export function CalendarSettings() {
       });
     }
   });
-  
+
   // Handle calendar connection
-  const handleCalendarConnected = (provider: CalendarProvider) => {
+  const handleCalendarConnected = () => {
     // Refresh the calendars list after connecting
     setTimeout(() => {
       refetchCalendars();
@@ -138,33 +213,66 @@ export function CalendarSettings() {
       settings: newSettings
     });
   };
+
+  const formatProviderName = (provider: string): string => {
+    if (provider === 'google') return 'Google';
+    if (provider === 'outlook') return 'Outlook';
+    if (provider === 'apple') return 'Apple';
+    if (provider === 'facebook') return 'Facebook';
+    return provider;
+  };
   
   // Get icon for calendar type
   const getCalendarIcon = (type: CalendarProvider) => {
     switch (type) {
       case 'google':
-        return <SiGoogle className="h-5 w-5 text-blue-500" />;
+        return <SiGoogle className="h-5 w-5 text-emerald-800" />;
       case 'outlook':
-        return <FaMicrosoft className="h-5 w-5 text-blue-500" />;
+        return <FaMicrosoft className="h-5 w-5 text-emerald-800" />;
       case 'apple':
         return <SiApple className="h-5 w-5 text-gray-800" />;
       default:
         return <LuCalendarClock className="h-5 w-5 text-gray-500" />;
     }
   };
+
+  const formatSourceSummary = (providers: Array<{ provider: 'google' | 'outlook' | 'apple' | 'facebook' }>) => {
+    const uniqueProviders = Array.from(new Set(providers.map((source) => formatProviderName(source.provider))));
+    return uniqueProviders.join(', ');
+  };
   
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">Calendar Connections</h2>
-        <ConnectCalendarDialog onConnect={handleCalendarConnected} />
+        <div>
+          <h2 className="text-2xl font-bold">Calendar Connections</h2>
+          {!isLoadingSubStatus && (
+            <p className="text-sm text-gray-500 mt-1">
+              {connectedCalendarsList.length} of {maxCalendarsLabel} calendars connected
+            </p>
+          )}
+        </div>
+        {atConnectionCap ? (
+          <Button variant="outline" disabled title={`You've reached your plan's ${maxCalendarsLabel}-calendar limit`}>
+            Connect Calendar
+          </Button>
+        ) : (
+          <ConnectCalendarDialog onConnect={handleCalendarConnected} />
+        )}
       </div>
-      
+
+      {atConnectionCap && (
+        <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+          You've reached your plan's {maxCalendarsLabel}-calendar limit.{' '}
+          <a href="/subscriptions" className="underline font-medium">Upgrade</a> to connect more.
+        </div>
+      )}
+
       <Separator />
-      
+
       {isLoadingCalendars ? (
         <div className="py-8 text-center text-gray-500">Loading calendars...</div>
-      ) : connectedCalendars.length === 0 ? (
+      ) : connectedCalendarsList.length === 0 ? (
         <div className="py-8 text-center bg-gray-50 rounded-lg border border-dashed">
           <LuCalendarClock className="h-12 w-12 mx-auto text-gray-400" />
           <h3 className="mt-4 text-lg font-medium">No calendars connected</h3>
@@ -174,12 +282,12 @@ export function CalendarSettings() {
             deadlines in your preferred calendar app.
           </p>
           <div className="mt-6">
-            <ConnectCalendarDialog onConnect={handleCalendarConnected} />
+            {!atConnectionCap && <ConnectCalendarDialog onConnect={handleCalendarConnected} />}
           </div>
         </div>
       ) : (
         <div className="space-y-4">
-          {connectedCalendars.map((calendar: ConnectedCalendar) => (
+          {connectedCalendarsList.map((calendar: ConnectedCalendar) => (
             <div key={calendar.id} className="p-4 border rounded-lg bg-white shadow-sm">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -250,6 +358,99 @@ export function CalendarSettings() {
           ))}
         </div>
       )}
+
+      <Separator />
+
+      <div className="space-y-4">
+        <div>
+          <h3 className="text-xl font-semibold">Recipient Source Access</h3>
+          <p className="text-sm text-gray-500 mt-1">
+            These source connections are used by wishlist recipient forms to pick contacts directly from external providers.
+          </p>
+        </div>
+
+        {isLoadingSourceData ? (
+          <div className="py-2 text-sm text-gray-500">Checking source access...</div>
+        ) : externalProviderStatuses.length === 0 ? (
+          <div className="py-2 text-sm text-gray-500">No source providers reported yet.</div>
+        ) : (
+          <div className="space-y-2">
+            {externalProviderStatuses.map((status) => (
+              <div key={status.provider} className="p-3 border rounded-md flex items-center justify-between gap-3">
+                <div className="space-y-1">
+                  <div className="font-medium">{formatProviderName(status.provider)}</div>
+                  {status.message && <div className="text-xs text-gray-500">{status.message}</div>}
+                </div>
+                <Badge variant={status.connected ? 'default' : 'outline'}>
+                  {status.connected ? 'Connected' : status.supported ? 'Not Connected' : 'Capability Available'}
+                </Badge>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div className="flex items-center justify-between rounded-md border p-3 text-sm">
+          <span>Live contact preview available to recipient forms ({storageMode})</span>
+          <Badge variant="outline">{previewExternalContactCount} matches</Badge>
+        </div>
+
+        <Button
+          variant="outline"
+          onClick={() => refetchSourceData()}
+          disabled={isLoadingSourceData}
+        >
+          {isLoadingSourceData ? 'Refreshing source data...' : 'Refresh Source Data'}
+        </Button>
+      </div>
+
+      <Separator />
+
+      <div className="space-y-4">
+        <div>
+          <h3 className="text-xl font-semibold">External Contact Preview</h3>
+          <p className="text-sm text-gray-500 mt-1">
+            Contacts are read directly from connected providers and are not stored from this page. They only become wishlist values when selected during wishlist creation.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <Input
+            placeholder="Search provider contacts by name, email, or phone"
+            value={sourceQuery}
+            onChange={(event) => setSourceQuery(event.target.value)}
+          />
+          <Button asChild variant="outline">
+            <Link href="/app/wishlists">Open Wishlist Creation</Link>
+          </Button>
+        </div>
+
+        <div className="rounded-md border p-3 text-xs text-gray-600 bg-gray-50">
+          Conversion rule: source contacts remain external until you pick one while creating a wishlist recipient.
+        </div>
+
+        {isLoadingSourceData ? (
+          <div className="py-4 text-sm text-gray-500">Loading external contact preview...</div>
+        ) : externalContactsPreview.length === 0 ? (
+          <div className="py-4 text-sm text-gray-500">No external contacts found for current source connections.</div>
+        ) : (
+          <div className="space-y-2">
+            {externalContactsPreview.map((contact) => (
+              <div key={contact.id} className="p-3 border rounded-md flex items-center justify-between gap-3">
+                <div>
+                  <div className="font-medium">{contact.name}</div>
+                  <div className="text-xs text-gray-500 flex flex-wrap gap-2">
+                    {contact.email && <span>{contact.email}</span>}
+                    {contact.phone && <span>{contact.phone}</span>}
+                    <Badge variant="outline" className="capitalize">{formatSourceSummary(contact.sources)}</Badge>
+                    {contact.quality && <Badge variant="outline">{contact.quality.level} quality</Badge>}
+                  </div>
+                </div>
+                <Badge>{formatProviderName(contact.primarySource)}</Badge>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

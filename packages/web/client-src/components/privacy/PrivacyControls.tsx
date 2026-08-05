@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Shield, Globe, Users, Lock, UserCheck, Settings } from 'lucide-react';
+import { Shield, Globe, Users, Lock, UserCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -37,10 +37,10 @@ interface PrivacyControlsProps {
 }
 
 const VISIBILITY_OPTIONS = [
-  { value: 'public', label: 'Public', icon: Globe, color: 'text-green-600' },
-  { value: 'friends', label: 'Friends Only (Coming Soon)', icon: Users, color: 'text-gray-400', disabled: true },
-  { value: 'private', label: 'Private', icon: Lock, color: 'text-red-600' },
-  { value: 'custom', label: 'Custom Access', icon: UserCheck, color: 'text-purple-600' }
+  { value: 'public', label: 'Public', icon: Globe, color: 'text-green-600', disabled: false },
+  { value: 'friends', label: 'Friends Only', icon: Users, color: 'text-emerald-700', disabled: false },
+  { value: 'private', label: 'Private', icon: Lock, color: 'text-red-600', disabled: false },
+  { value: 'custom', label: 'Custom Access', icon: UserCheck, color: 'text-emerald-800', disabled: false }
 ];
 
 export default function PrivacyControls({
@@ -53,7 +53,7 @@ export default function PrivacyControls({
   const { toast } = useToast();
 
   // Fetch current privacy settings
-  const { data: privacySettings, isLoading } = usePrivacySettings(entityType, entityId);
+  const { data: privacySettings } = usePrivacySettings(entityType, entityId);
 
   // Mutations
   const updatePrivacyMutation = useUpdatePrivacySettings();
@@ -170,6 +170,7 @@ export default function PrivacyControls({
             onUpdate={handlePrivacyUpdate}
             onAccessListUpdate={handleAccessListUpdate}
             onReset={handleResetToDefault}
+            onClose={() => setIsDialogOpen(false)}
             isLoading={updatePrivacyMutation.isPending || updateAccessListMutation.isPending || deletePrivacyMutation.isPending}
           />
         </DialogContent>
@@ -204,6 +205,7 @@ export default function PrivacyControls({
           onUpdate={handlePrivacyUpdate}
           onAccessListUpdate={handleAccessListUpdate}
           onReset={handleResetToDefault}
+          onClose={() => setIsDialogOpen(false)}
           isLoading={updatePrivacyMutation.isPending || updateAccessListMutation.isPending || deletePrivacyMutation.isPending}
         />
       </DialogContent>
@@ -218,16 +220,16 @@ interface PrivacySettingsFormProps {
   onUpdate: (updates: Partial<PrivacySettings>) => void;
   onAccessListUpdate: (userIds: number[]) => void;
   onReset: () => void;
+  onClose: () => void;
   isLoading: boolean;
 }
 
 function PrivacySettingsForm({
   privacySettings,
-  entityType,
-  entityName,
   onUpdate,
   onAccessListUpdate,
   onReset,
+  onClose,
   isLoading
 }: PrivacySettingsFormProps) {
   const [customAccessList, setCustomAccessList] = useState<number[]>(
@@ -235,7 +237,7 @@ function PrivacySettingsForm({
   );
 
   const handleVisibilityChange = (value: string) => {
-    onUpdate({ visibilityLevel: value as any });
+    onUpdate({ visibilityLevel: value as 'public' | 'friends' | 'private' | 'custom' });
   };
 
   const handlePermissionChange = (key: keyof PrivacySettings, value: boolean) => {
@@ -315,15 +317,9 @@ function PrivacySettingsForm({
               </p>
             )}
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            className="mt-2 w-full"
-            onClick={() => handleAddUser(Date.now())} // Mock user ID for demo
-            disabled={isLoading}
-          >
-            Add User (Demo)
-          </Button>
+          <p className="text-xs text-muted-foreground mt-2 text-center">
+            Direct user lookup for custom access is not available yet.
+          </p>
         </div>
       )}
 
@@ -388,8 +384,8 @@ function PrivacySettingsForm({
         >
           Reset to Default
         </Button>
-        <Button onClick={() => {}} disabled={isLoading}>
-          Done
+        <Button onClick={onClose} disabled={isLoading}>
+          Close
         </Button>
       </div>
     </div>

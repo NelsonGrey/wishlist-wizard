@@ -1,8 +1,23 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<svg width="128px" height="128px" viewBox="0 0 128 128" version="1.1" xmlns="http://www.w3.org/2000/svg">
-  <g stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
-    <rect fill="#6366F1" x="0" y="0" width="128" height="128" rx="24"></rect>
-    <path d="M64,24 C85.6,24 105.066667,41.6 104.533333,65.0666667 C104,88.5333333 91.2,97.6 64,117.333333 C36.8,97.6 24,88.5333333 23.4666667,65.0666667 C22.9333333,41.6 42.4,24 64,24 Z" fill="#FFFFFF"></path>
-    <path d="M64,38 C73.9,38 82.5333333,45.9333333 82.2666667,57.1333333 C82,68.3333333 75.8666667,72.6666667 64,82 C52.1333333,72.6666667 46,68.3333333 45.7333333,57.1333333 C45.4666667,45.9333333 54.1,38 64,38 Z" fill="#F0F0FF"></path>
-  </g>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-labelledby="title description">
+  <title id="title">Wishlist Wizard</title>
+  <desc id="description">An ivory gift with a heart-shaped ribbon and a gold magic sparkle on an emerald background.</desc>
+  <defs>
+    <linearGradient id="ivory" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fffdf7"/>
+      <stop offset="1" stop-color="#fff8e8"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fbbf24"/>
+      <stop offset="1" stop-color="#f59e0b"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1024" height="1024" fill="#004e36"/>
+
+  <!-- The ribbon loops form a heart while retaining a bold gift silhouette. -->
+  <path fill="url(#ivory)" d="M511 382c-51-105-111-157-181-157-70 0-119 51-119 116 0 84 74 133 204 184h-184c-22 0-40 18-40 40v85h279V518c-126-47-188-105-188-171 0-29 22-50 51-50 48 0 98 57 178 177 80-120 130-177 178-177 29 0 51 21 51 50 0 66-62 124-188 171v132h281v-85c0-22-18-40-40-40H607c130-51 204-100 204-184 0-65-49-116-119-116-70 0-130 52-181 157Z"/>
+  <path fill="url(#ivory)" d="M231 674h239v212H319c-49 0-88-39-88-88V674Zm321 0h241v124c0 49-39 88-88 88H552V674Z"/>
+
+  <!-- One large sparkle carries the Wizard idea without adding small-size noise. -->
+  <path fill="url(#gold)" d="M817 101c13 71 39 97 110 110-71 13-97 39-110 110-13-71-39-97-110-110 71-13 97-39 110-110Z"/>
 </svg>
