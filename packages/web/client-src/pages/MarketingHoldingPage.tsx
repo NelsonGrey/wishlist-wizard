@@ -1,6 +1,12 @@
 import { Sparkles } from "lucide-react";
 
-export default function ComingSoon() {
+/**
+ * Shown in place of the marketing route group when the marketing_offline
+ * Remote Config flag is on (see hooks/useMarketingOffline). Legal/support
+ * pages, auth pages, and the app itself are not gated by this — see
+ * lib/marketingRoutes.ts and AppRouter.tsx's MarketingRoutesGate.
+ */
+export default function MarketingHoldingPage() {
   return (
     <div className="min-h-screen bg-white flex flex-col">
       <header className="border-b bg-white/80 backdrop-blur-sm">

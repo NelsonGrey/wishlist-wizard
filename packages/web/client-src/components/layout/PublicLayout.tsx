@@ -3,6 +3,8 @@ import { Link, useLocation } from "wouter";
 import Footer from "@/components/Footer";
 import { GlobalAdSlot } from "@/components/ads";
 import { useAuth } from "@/contexts/AuthContext";
+import { legalAndSupportRoutes, marketingHoldingPageRoutes } from "@/lib/marketingRoutes";
+import AppEntryLink from "@/components/AppEntryLink";
 
 interface PublicLayoutProps {
   children: React.ReactNode;
@@ -11,28 +13,7 @@ interface PublicLayoutProps {
 export default function PublicLayout({ children }: PublicLayoutProps) {
   const [location] = useLocation();
   const { isAuthenticated } = useAuth();
-  const adFreeMarketingRoutes = [
-    '/',
-    '/subscriptions',
-    '/plans',
-    '/how-it-works',
-    '/affiliate-commissions',
-    '/creator-program',
-    '/extension',
-    '/download',
-    '/about',
-    '/support',
-    '/privacy',
-    '/terms',
-    '/cookies',
-    '/mobile-app-demo',
-    '/browser-extension-demo',
-    '/social-integration-demo',
-    '/calendar-integration-demo',
-    '/wishlist-management-demo',
-    '/basic-activity-insights-demo',
-    '/advanced-user-profiles-demo',
-  ];
+  const adFreeMarketingRoutes = [...marketingHoldingPageRoutes, ...legalAndSupportRoutes];
   const shouldShowAds = !adFreeMarketingRoutes.includes(location);
 
   // Scroll to top on route change.
@@ -73,12 +54,12 @@ export default function PublicLayout({ children }: PublicLayoutProps) {
               </Link>
             ) : (
               <>
-                <Link href="/login" className="px-5 py-2 text-gray-700 hover:text-emerald-800 hover:bg-emerald-50 rounded-lg font-medium transition-all">
+                <AppEntryLink href="/login" className="px-5 py-2 text-gray-700 hover:text-emerald-800 hover:bg-emerald-50 rounded-lg font-medium transition-all">
                   Sign In
-                </Link>
-                <Link href="/register" className="px-6 py-2.5 bg-emerald-800 text-white hover:bg-emerald-900 rounded-lg font-medium shadow-md hover:shadow-lg transition-all">
+                </AppEntryLink>
+                <AppEntryLink href="/register" className="px-6 py-2.5 bg-emerald-800 text-white hover:bg-emerald-900 rounded-lg font-medium shadow-md hover:shadow-lg transition-all">
                   Sign Up
-                </Link>
+                </AppEntryLink>
               </>
             )}
           </nav>
@@ -93,12 +74,12 @@ export default function PublicLayout({ children }: PublicLayoutProps) {
               </Link>
             ) : (
               <>
-                <Link href="/login" className="text-gray-700 hover:text-emerald-800 font-medium">
+                <AppEntryLink href="/login" className="text-gray-700 hover:text-emerald-800 font-medium">
                   Sign In
-                </Link>
-                <Link href="/register" className="px-4 py-2 bg-emerald-800 text-white rounded-lg shadow-md">
+                </AppEntryLink>
+                <AppEntryLink href="/register" className="px-4 py-2 bg-emerald-800 text-white rounded-lg shadow-md">
                   Sign Up
-                </Link>
+                </AppEntryLink>
               </>
             )}
           </div>

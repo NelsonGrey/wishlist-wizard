@@ -11,7 +11,9 @@ import { AuthProvider } from "./contexts/AuthContext";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 import { queryClient } from "./lib/queryClient";
 import EnvironmentPasswordGate from "./components/security/EnvironmentPasswordGate";
-import ComingSoon from "./pages/ComingSoon";
+import MarketingHoldingPage from "./pages/MarketingHoldingPage";
+import { useMarketingOffline } from "./hooks/useMarketingOffline";
+import { marketingHoldingPageRoutes } from "./lib/marketingRoutes";
 
 // Layouts
 import PublicLayout from "./components/layout/PublicLayout";
@@ -160,16 +162,25 @@ function NonHomeEnvironmentGate({ children }: { children: React.ReactNode }) {
   );
 }
 
+// Gates the marketing route group behind the marketing_offline Remote
+// Config flag (see hooks/useMarketingOffline and lib/marketingRoutes).
+// Independent of app_offline — legal/support pages, auth pages, and the app
+// itself are never affected by this. Renders full-bleed, outside
+// LayoutRouter, so the holding page isn't wrapped in PublicLayout's own
+// header/footer chrome.
+function MarketingRoutesGate({ children }: { children: React.ReactNode }) {
+  const [location] = useLocation();
+  const isMarketingOffline = useMarketingOffline();
+
+  if (isMarketingOffline && marketingHoldingPageRoutes.includes(location)) {
+    return <MarketingHoldingPage />;
+  }
+
+  return <>{children}</>;
+}
+
 function AppRouter() {
   // Analytics is handled by GTM (GTM-KRDC75LR loaded in index.html) + Consent Mode v2.
-
-  // Production isn't launched yet — hold the real app behind a marketing
-  // placeholder there regardless of auth/routing state. Staging and demo
-  // environments use EnvironmentPasswordGate instead (see NonHomeEnvironmentGate
-  // below), since those need real access for internal testing, not a public hold page.
-  if (resolveRuntimeEnvironment() === 'production') {
-    return <ComingSoon />;
-  }
 
   return (
     <QueryClientProvider client={queryClient}>
@@ -179,6 +190,7 @@ function AppRouter() {
           <Router>
             <CookieConsentBanner />
             <AnalyticsRouteTracker />
+            <MarketingRoutesGate>
             <LayoutRouter>
               <NonHomeEnvironmentGate>
                 <Suspense fallback={<div className="flex-1 min-h-[60vh]" aria-busy="true" />}>
@@ -327,7 +339,18 @@ function AppRouter() {
                       </ProtectedRoute>
                     )}
                   />
-                  <Route path="/shared/:shareId" component={SharedWishlist} />
+                  <Route
+                    path="/shared/:shareId"
+                    component={() => (
+                      // Public/unauthenticated, but still real app content —
+                      // governed by app_offline, not marketing_offline.
+                      // ProtectedRoute with no auth flags just applies the
+                      // app_offline gate here without requiring a login.
+                      <ProtectedRoute>
+                        <SharedWishlist />
+                      </ProtectedRoute>
+                    )}
+                  />
                   {/* Analytics folded into the unified Dashboard's Analytics tab */}
                   <Route path="/app/analytics" component={() => <Redirect to="/app/dashboard?tab=analytics" />} />
 
@@ -377,6 +400,7 @@ function AppRouter() {
                 </Suspense>
               </NonHomeEnvironmentGate>
             </LayoutRouter>
+            </MarketingRoutesGate>
           </Router>
         </TooltipProvider>
       </AuthProvider>

@@ -26,6 +26,13 @@ vi.mock('@/hooks/use-toast', () => ({
   }),
 }));
 
+// These tests exercise the real login/register/forgot-password forms, not
+// the app_offline gate — resolve it to "online" rather than relying on the
+// hook's real (fail-closed) default of true.
+vi.mock('@/hooks/useAppOffline', () => ({
+  useAppOffline: () => false,
+}));
+
 vi.mock('wouter', async () => {
   const actual = await vi.importActual<typeof import('wouter')>('wouter');
   return {

@@ -1,5 +1,6 @@
 import { Link } from "wouter";
 import { ArrowRight, BellRing, CheckCircle2, Gift, Share2, Sparkles } from "lucide-react";
+import AppEntryLink from "@/components/AppEntryLink";
 
 const proofPoints = ["Any-store wishlists", "Duplicate gift prevention", "Price drop alerts", "Creator-friendly links"];
 
@@ -21,13 +22,13 @@ export default function Hero() {
             </p>
 
             <div className="mt-6 flex flex-col gap-3 sm:flex-row 2xl:mt-8">
-              <Link
+              <AppEntryLink
                 href="/register"
                 className="inline-flex items-center justify-center gap-2 rounded-lg bg-white px-6 py-3 text-base font-semibold text-emerald-900 shadow-lg transition-colors hover:bg-emerald-50"
               >
                 Start a Free Wishlist
                 <ArrowRight className="h-4 w-4" />
-              </Link>
+              </AppEntryLink>
               <Link
                 href="/subscriptions"
                 className="inline-flex items-center justify-center rounded-lg border border-white/40 bg-emerald-800 px-6 py-3 text-base font-semibold text-white transition-colors hover:bg-emerald-700"

@@ -32,6 +32,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { useAuth } from "@/contexts/AuthContext";
 import Footer from "@/components/Footer";
 import { GlobalAdSlot } from "@/components/ads";
+import AppEntryLink from "@/components/AppEntryLink";
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -166,12 +167,12 @@ export default function AppLayout({ children }: AppLayoutProps) {
               </>
             ) : (
               <div className="flex items-center space-x-2">
-                <Link href="/login" className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-md">
+                <AppEntryLink href="/login" className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-md">
                   Login
-                </Link>
-                <Link href="/register" className="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-emerald-700 to-green-700 hover:from-emerald-800 hover:to-green-800 rounded-md transition-all">
+                </AppEntryLink>
+                <AppEntryLink href="/register" className="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-emerald-700 to-green-700 hover:from-emerald-800 hover:to-green-800 rounded-md transition-all">
                   Register
-                </Link>
+                </AppEntryLink>
               </div>
             )}
           </div>
