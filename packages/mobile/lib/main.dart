@@ -15,6 +15,7 @@ import 'services/services.dart';
 import 'services/admob_service.dart';
 import 'services/fcm_service.dart';
 import 'services/iap_service.dart';
+import 'screens/account_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/firebase_wishlists_screen.dart';
@@ -682,6 +683,19 @@ class ProfileScreen extends StatelessWidget {
               },
               icon: const Icon(Icons.workspace_premium),
               label: const Text('Manage Subscription'),
+            ),
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const AccountScreen(),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.security),
+              label: const Text('Account & Security'),
             ),
             const SizedBox(height: 12),
             ElevatedButton(

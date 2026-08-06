@@ -68,6 +68,11 @@ dev_dependencies:
   integration_test:
     sdk: flutter
   mocktail: ^1.0.4
+  # Transitive via firebase_auth, but password_policy_service_test.dart
+  # constructs PasswordPolicy fixtures directly (firebase_auth doesn't
+  # re-export that type, only PasswordValidationStatus) -- listed explicitly
+  # per the depend_on_referenced_packages lint.
+  firebase_auth_platform_interface: ^9.0.5
 
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is

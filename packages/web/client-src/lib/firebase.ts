@@ -25,9 +25,14 @@ import {
   browserLocalPersistence,
   GoogleAuthProvider,
   OAuthProvider,
+  EmailAuthProvider,
   signInWithPopup,
   linkWithCredential,
+  reauthenticateWithCredential,
   validatePassword,
+  verifyPasswordResetCode,
+  confirmPasswordReset,
+  type ActionCodeSettings,
   type PasswordValidationStatus
 } from 'firebase/auth';
 import { getToken, isSupported as messagingIsSupported } from 'firebase/messaging';
@@ -488,12 +493,53 @@ export async function checkPasswordPolicy(password: string): Promise<PasswordVal
   return await validatePassword(firebaseClient.auth, password);
 }
 
+/**
+ * Points the emailed reset link back at this app's own /reset-password page
+ * (with Firebase's standard mode/oobCode query params attached) instead of
+ * Firebase's generic hosted action page on <project>.firebaseapp.com.
+ */
+function buildResetPasswordActionCodeSettings(): ActionCodeSettings | undefined {
+  if (typeof window === 'undefined' || !window.location?.origin) {
+    return undefined;
+  }
+  return {
+    url: `${window.location.origin}/reset-password`,
+    handleCodeInApp: false,
+  };
+}
+
 export async function resetPassword(email: string) {
   if (!firebaseClient) {
     await initFirebase({ enableAuth: true, enableFirestore: true });
   }
   if (!firebaseClient) throw createFirebaseNotConfiguredError();
-  return await sendPasswordResetEmail(firebaseClient.auth, email);
+  return await sendPasswordResetEmail(firebaseClient.auth, email, buildResetPasswordActionCodeSettings());
+}
+
+/**
+ * Verifies a password-reset oobCode from the emailed link is valid (not
+ * expired/already-used) and returns the account email it belongs to, for
+ * display and error-handling before showing the new-password form.
+ */
+export async function verifyResetPasswordCode(oobCode: string): Promise<string> {
+  if (!firebaseClient) {
+    await initFirebase({ enableAuth: true, enableFirestore: true });
+  }
+  if (!firebaseClient) throw createFirebaseNotConfiguredError();
+  return await verifyPasswordResetCode(firebaseClient.auth, oobCode);
+}
+
+/**
+ * Completes the reset: Identity Platform enforces the console-configured
+ * password policy on this call itself, so this is authoritative server-side
+ * enforcement, not just the client-side usePasswordPolicy hint/quickCheck.
+ */
+export async function confirmResetPassword(oobCode: string, newPassword: string): Promise<void> {
+  if (!firebaseClient) {
+    await initFirebase({ enableAuth: true, enableFirestore: true });
+  }
+  if (!firebaseClient) throw createFirebaseNotConfiguredError();
+  return await confirmPasswordReset(firebaseClient.auth, oobCode, newPassword);
 }
 
 export async function verifyEmail(user: User) {
@@ -502,6 +548,23 @@ export async function verifyEmail(user: User) {
 
 export async function changePassword(user: User, newPassword: string) {
   return await updatePassword(user, newPassword);
+}
+
+/**
+ * Re-authenticates the current user with their current password. Firebase
+ * requires a "recent login" before allowing a sensitive operation like
+ * updatePassword() (it throws auth/requires-recent-login otherwise), so this
+ * must be called right before changePassword() in any change-password flow.
+ */
+export async function reauthenticateWithPassword(user: User, currentPassword: string): Promise<void> {
+  const email = user.email;
+  if (!email) {
+    const error = new Error('This account has no email/password sign-in method to re-authenticate with.') as FirebaseAppError;
+    error.code = 'auth/no-password-provider';
+    throw error;
+  }
+  const credential = EmailAuthProvider.credential(email, currentPassword);
+  await reauthenticateWithCredential(user, credential);
 }
 
 export function onAuthStateChange(callback: (user: User | null) => void) {

@@ -32,6 +32,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { NotificationSettings } from '@/components/notifications/NotificationSettings';
+import ChangePasswordDialog from '@/components/ChangePasswordDialog';
 import { useToast } from '@/hooks/use-toast';
 import {
   useDefaultPrivacySettings,
@@ -97,6 +98,7 @@ export default function Settings() {
   const deleteAccount = useDeleteAccount();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [changePasswordOpen, setChangePasswordOpen] = useState(false);
 
   const handleDeleteAccount = () => {
     deleteAccount.mutate(undefined, {
@@ -237,7 +239,9 @@ export default function Settings() {
                         <p className="font-medium">Password</p>
                         <p className="text-sm text-muted-foreground">Last updated 3 months ago</p>
                       </div>
-                      <Button variant="outline" size="sm">Change Password</Button>
+                      <Button variant="outline" size="sm" onClick={() => setChangePasswordOpen(true)}>
+                        Change Password
+                      </Button>
                     </div>
                     <div className="flex justify-between border rounded-lg p-3">
                       <div>
@@ -250,6 +254,12 @@ export default function Settings() {
                       <Button variant="outline" size="sm">Manage</Button>
                     </div>
                   </div>
+
+                  <ChangePasswordDialog
+                    open={changePasswordOpen}
+                    onOpenChange={setChangePasswordOpen}
+                    onSuccess={() => toast({ title: 'Password updated' })}
+                  />
 
                   <div className="space-y-3 pt-4">
                     <h3 className="text-base font-medium">Account Actions</h3>
