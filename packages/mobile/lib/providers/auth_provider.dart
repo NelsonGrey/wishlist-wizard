@@ -3,7 +3,15 @@ import '../models/models.dart';
 import '../services/firebase_auth_service.dart';
 
 class AuthProvider extends ChangeNotifier {
-  final FirebaseAuthService _authService = FirebaseAuthService();
+  final FirebaseAuthService _authService;
+
+  // Injectable (defaulting to the real singleton) so tests can substitute a
+  // mock instead of needing a live Firebase connection -- mirrors
+  // FirebaseWishlistProvider's constructor-level DI.
+  AuthProvider({FirebaseAuthService? authService})
+      : _authService = authService ?? FirebaseAuthService() {
+    _initializeAuth();
+  }
 
   User? _user;
   bool _isLoading = false;
@@ -13,10 +21,6 @@ class AuthProvider extends ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get error => _error;
   bool get isLoggedIn => _user != null;
-
-  AuthProvider() {
-    _initializeAuth();
-  }
 
   Future<void> _initializeAuth() async {
     _setLoading(true);
@@ -170,6 +174,52 @@ class AuthProvider extends ChangeNotifier {
         return true;
       } else {
         _setError(result.error ?? 'Password reset failed');
+        return false;
+      }
+    } catch (e) {
+      _setError('An unexpected error occurred');
+      return false;
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  Future<bool> reauthenticate(String currentPassword) async {
+    _setLoading(true);
+    _clearError();
+
+    try {
+      final result = await _authService.reauthenticateWithPassword(
+        currentPassword,
+      );
+
+      if (result.isSuccess) {
+        _setUser(result.user);
+        return true;
+      } else {
+        _setError(result.error ?? 'Reauthentication failed');
+        return false;
+      }
+    } catch (e) {
+      _setError('An unexpected error occurred');
+      return false;
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  Future<bool> changePassword(String newPassword) async {
+    _setLoading(true);
+    _clearError();
+
+    try {
+      final result = await _authService.updatePassword(newPassword);
+
+      if (result.isSuccess) {
+        _setUser(result.user);
+        return true;
+      } else {
+        _setError(result.error ?? 'Failed to update password');
         return false;
       }
     } catch (e) {

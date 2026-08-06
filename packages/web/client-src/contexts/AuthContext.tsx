@@ -11,9 +11,12 @@ import {
   signUp as firebaseSignUp,
   signOutUser,
   resetPassword,
+  verifyResetPasswordCode,
+  confirmResetPassword,
   verifyEmail,
   changePassword,
   checkPasswordPolicy,
+  reauthenticateWithPassword as firebaseReauthenticateWithPassword,
   signInWithGoogle as firebaseSignInWithGoogle,
   signInWithApple as firebaseSignInWithApple,
   credentialFromOAuthError,
@@ -31,8 +34,11 @@ interface AuthContextType {
   signInWithApple: () => Promise<void>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
+  verifyResetPasswordCode: (oobCode: string) => Promise<string>;
+  confirmResetPassword: (oobCode: string, newPassword: string) => Promise<void>;
   sendEmailVerification: () => Promise<void>;
   updatePassword: (password: string) => Promise<void>;
+  reauthenticateWithPassword: (currentPassword: string) => Promise<void>;
   isAuthenticated: boolean;
 }
 
@@ -286,6 +292,24 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  const verifyResetPasswordCodeHandler = async (oobCode: string): Promise<string> => {
+    try {
+      return await verifyResetPasswordCode(oobCode);
+    } catch (error) {
+      console.error('[AuthContext] Password reset code verification failed:', error);
+      throw error;
+    }
+  };
+
+  const confirmResetPasswordHandler = async (oobCode: string, newPassword: string): Promise<void> => {
+    try {
+      await confirmResetPassword(oobCode, newPassword);
+    } catch (error) {
+      console.error('[AuthContext] Password reset confirmation failed:', error);
+      throw error;
+    }
+  };
+
   const sendEmailVerification = async (): Promise<void> => {
     if (!user) {
       throw new Error('No user is currently signed in');
@@ -310,6 +334,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  const reauthenticateWithPasswordHandler = async (currentPassword: string): Promise<void> => {
+    if (!user) {
+      throw new Error('No user is currently signed in');
+    }
+    try {
+      await firebaseReauthenticateWithPassword(user, currentPassword);
+    } catch (error) {
+      console.error('[AuthContext] Re-authentication failed:', error);
+      throw error;
+    }
+  };
+
   const value: AuthContextType = {
     user,
     loading,
@@ -320,8 +356,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     signInWithApple,
     signOut,
     resetPassword: resetPasswordHandler,
+    verifyResetPasswordCode: verifyResetPasswordCodeHandler,
+    confirmResetPassword: confirmResetPasswordHandler,
     sendEmailVerification,
     updatePassword,
+    reauthenticateWithPassword: reauthenticateWithPasswordHandler,
     isAuthenticated: !!user,
   };
 
