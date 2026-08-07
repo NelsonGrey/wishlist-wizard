@@ -1,5 +1,8 @@
 name: "Manage App Store Connect subscriptions (one-off)"
 
+permissions:
+  contents: read
+
 on:
   workflow_dispatch:
     inputs:
