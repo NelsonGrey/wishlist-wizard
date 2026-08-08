@@ -613,6 +613,14 @@ jobs:
       VITE_FIREBASE_APPCHECK_SITE_KEY_DEVELOPMENT: ${{ secrets.VITE_FIREBASE_APPCHECK_SITE_KEY_DEVELOPMENT }}
       VITE_FIREBASE_APPCHECK_SITE_KEY_STAGING: ${{ secrets.VITE_FIREBASE_APPCHECK_SITE_KEY_STAGING }}
       VITE_FIREBASE_APPCHECK_SITE_KEY_PRODUCTION: ${{ secrets.VITE_FIREBASE_APPCHECK_SITE_KEY_PRODUCTION }}
+      # Lets the automated Web UAT suite (packages/web/e2e) pass real App
+      # Check enforcement without a live reCAPTCHA v3 challenge, which
+      # reliably gets scored as bot traffic and rejected server-side for a
+      # headless browser. Must match a token registered in the Firebase
+      # Console for this app under wishlist-wizard-dev (Project Settings >
+      # App Check > this web app > Manage debug tokens) — deliberately no
+      # _STAGING/_PRODUCTION equivalent secret exists.
+      VITE_FIREBASE_APPCHECK_DEBUG_TOKEN: ${{ secrets.VITE_FIREBASE_APPCHECK_DEBUG_TOKEN_DEVELOPMENT }}
       NON_PROD_SITE_PASSWORD_DEVELOPMENT: ${{ secrets.NON_PROD_SITE_PASSWORD_DEVELOPMENT }}
       NON_PROD_SITE_PASSWORD_DEMONSTRATION: ${{ secrets.NON_PROD_SITE_PASSWORD_DEMONSTRATION }}
       NON_PROD_SITE_PASSWORD_STAGING: ${{ secrets.NON_PROD_SITE_PASSWORD_STAGING }}

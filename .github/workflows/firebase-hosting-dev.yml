@@ -59,6 +59,14 @@ jobs:
           # there's no fallback if this isn't baked in correctly at build
           # time, unlike the plain-named fields above.
           VITE_FIREBASE_APPCHECK_SITE_KEY_DEVELOPMENT: ${{ secrets.VITE_FIREBASE_APPCHECK_SITE_KEY_DEVELOPMENT }}
+          # Lets the automated Web UAT suite (packages/web/e2e) pass real
+          # App Check enforcement without a live reCAPTCHA v3 challenge,
+          # which reliably gets scored as bot traffic for a headless
+          # browser and rejected server-side. Must match a token registered
+          # in the Firebase Console for this app under wishlist-wizard-dev
+          # (Project Settings > App Check > this web app > Manage debug
+          # tokens) — never set the equivalent secret for staging/production.
+          VITE_FIREBASE_APPCHECK_DEBUG_TOKEN: ${{ secrets.VITE_FIREBASE_APPCHECK_DEBUG_TOKEN_DEVELOPMENT }}
         run: npm run build --workspace=@wishlist-wizard/web
 
       - name: Use Dev Firebase Config
