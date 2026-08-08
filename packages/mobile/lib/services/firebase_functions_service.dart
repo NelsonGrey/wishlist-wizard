@@ -194,6 +194,26 @@ class FirebaseFunctionsService {
   }
 
   // =============================================================================
+  // MOBILE HELPERS
+  // =============================================================================
+
+  /// Looks up a scanned/entered barcode via packages/functions/src/api/mobile.ts.
+  /// Returns `{found: false}` when the barcode isn't recognized, or
+  /// `{found: true, product: {title, price, store}}` on a match.
+  Future<Map<String, dynamic>> lookupBarcode(String barcode) async {
+    try {
+      final result = await _apiRequest(
+        'GET',
+        '/mobile/barcode/${Uri.encodeComponent(barcode)}',
+      );
+      return Map<String, dynamic>.from(result as Map);
+    } catch (e) {
+      _logger.severe('Error calling lookupBarcode: $e');
+      rethrow;
+    }
+  }
+
+  // =============================================================================
   // NOTIFICATION FUNCTIONS
   // =============================================================================
 
