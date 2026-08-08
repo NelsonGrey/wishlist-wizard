@@ -37,7 +37,7 @@ This document provides technical information for developers working on the Wishl
 │   ├── web/                 # React web app (Vite)
 │   │   ├── client-src/       # App source
 │   │   └── public/           # Static assets
-│   ├── functions/            # Firebase Functions
+│   ├── functions/            # Firebase Functions — ⚠️ NOT in this repo's git history
 │   │   └── src/              # Callable function handlers
 │   ├── browser-extension/    # Browser extension
 │   │   └── src/              # Extension source
@@ -48,6 +48,15 @@ This document provides technical information for developers working on the Wishl
 │   └── firebase-utils/       # Firebase helper utilities
 └── scripts/                  # Automation scripts
 ```
+
+> ⚠️ **`packages/functions/` is gitignored in this repo** (since 2026-07-17).
+> The backend source of record lives in the private companion repo
+> `NelsonGrey/wishlist-wizard-functions` — a plain `git clone` of this repo
+> will **not** include it, and there's no other in-repo pointer explaining
+> why the directory is missing. To get backend source for local
+> emulator/reference use, clone the companion repo separately into
+> `packages/functions/`. See the note in
+> [SYSTEM_ARCHITECTURE.md](SYSTEM_ARCHITECTURE.md#21-firebase-functions-api-packagesfunctions).
 
 ---
 
@@ -70,10 +79,23 @@ See [DATABASE_SCHEMA.md](DATABASE_SCHEMA.md) for the authoritative Firestore mod
 
 ## Callable API Surface (High-Level)
 
-- **Wishlists**: `getUserWishlists`, `getWishlistById`, `getSharedWishlist`, `createWishlist`, `updateWishlist`, `deleteWishlist`
-- **Items**: `getWishlistItems`, `addWishlistItem`, `updateWishlistItem`, `deleteWishlistItem`
-- **Notifications**: `getUserNotifications`, `markNotificationAsRead`, `markAllNotificationsAsRead`, `deleteNotification`, `createSystemNotification`, `getNotificationSettings`, `updateNotificationSettings`
-- **Extension**: `authenticateExtension`, `getExtensionWishlists`, `addItemFromExtension`, `getExtensionRecentItems`, `createExtensionWishlist`
+> As of ~2026-07-23, the `api` HTTP router (`packages/functions/src/api/router.ts`,
+> dispatched under `/api/*`) is the **primary pattern for public-facing
+> endpoints** — this GCP org blocks granting new `allUsers` Cloud Run
+> invoker bindings, so a newly deployed standalone `onCall` function isn't
+> reliably reachable by clients. New public-facing endpoints should be added
+> to the router, not deployed as standalone `onCall` exports. Wishlists,
+> items, and notifications below are now router-dispatched rather than
+> plain `httpsCallable` targets; a defined set of functions (auth/profile
+> CRUD, generic CRUD, browser extension, FCM triggers, and a few others)
+> remain standalone `onCall`. See
+> [SYSTEM_ARCHITECTURE.md](SYSTEM_ARCHITECTURE.md#-api-architecture) for the
+> full breakdown.
+
+- **Wishlists** (via `api` router): `getUserWishlists`, `getWishlistById`, `getSharedWishlist`, `createWishlist`, `updateWishlist`, `deleteWishlist`
+- **Items** (via `api` router): `getWishlistItems`, `addWishlistItem`, `updateWishlistItem`, `deleteWishlistItem`
+- **Notifications** (via `api` router, except `createSystemNotification` which stays standalone `onCall`): `getUserNotifications`, `markNotificationAsRead`, `markAllNotificationsAsRead`, `deleteNotification`, `createSystemNotification`, `getNotificationSettings`, `updateNotificationSettings`
+- **Extension** (standalone `onCall`): `authenticateExtension`, `getExtensionWishlists`, `addItemFromExtension`, `getExtensionRecentItems`, `createExtensionWishlist`
 
 See [API_REFERENCE.md](API_REFERENCE.md) for payloads and examples.
 
@@ -110,6 +132,9 @@ See [API_REFERENCE.md](API_REFERENCE.md) for payloads and examples.
    - `npm run dev`
 
 3. **Run Functions Emulator**
+   - `packages/functions/` must first be cloned separately from the private
+     companion repo `NelsonGrey/wishlist-wizard-functions` — it's gitignored
+     here and does not come with a normal `git clone` of this repo.
    - `npm run serve --workspace=functions`
 
 4. **Tests**

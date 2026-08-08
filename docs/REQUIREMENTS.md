@@ -1,6 +1,6 @@
 ## REQUIREMENTS & IMPLEMENTATION STATUS
 
-Status Legend: 
+Status Legend:
 - ✅ Implemented (feature present & wired end‑to‑end)
 - 🟡 Partial (some code / scaffolding exists but incomplete, missing flows, or placeholders)
 - 🔴 Not Implemented (no meaningful code yet / only future mention)
@@ -14,140 +14,213 @@ Verification Policy:
 - Matrix rollout is phased: enforced items block CI now; strict-all mode can be enabled later with `REQUIREMENTS_STRICT_ALL=true`.
 
 ---
+### 0. Architecture Baseline (read this first)
+
+The stack described in this document is **Firebase-first**, not the earlier Express/Postgres design. On
+2025-10-16, commit `8581cfa` ("Complete Firebase-first migration: remove Express API server") deleted the
+Express server, session/JWT auth, and the Drizzle/Postgres schema entirely. Every row below reflects the
+codebase as it exists today, 2026-08-08. Any evidence path under `server/`, `shared/schema.ts` (Drizzle
+tables), `emailService.ts`, or `recommendationService.ts` describes dead code and should not appear here —
+if you find it elsewhere in the docs tree, treat it as historical/stale.
+
+| Layer | Technology | Location |
+|---|---|---|
+| Backend | Firebase Functions (TypeScript, Node), Firestore-backed | `packages/functions/` — source lives in a **private companion repo** (`NelsonGrey/wishlist-wizard-functions`, extracted 2026-07-17); CI checks it out automatically, local dev clones it into the gitignored `packages/functions/` path |
+| Frontend (web) | React 19 + TypeScript + Vite | `packages/web/client-src/` |
+| Mobile | **Flutter (Dart)** — not React Native | `packages/mobile/lib/` |
+| Database | Firestore (NoSQL) — not PostgreSQL/Drizzle | Firestore collections, no `shared/schema.ts` tables |
+| Browser Extension | Manifest V3 JS | `packages/browser-extension/` |
+| Shared types | TypeScript package | `packages/shared/` |
+
+`packages/api-server/` exists in the tree but contains only a gitignored `dist/` build artifact — it is not
+a tracked package and is not part of the current architecture.
+
 ### 1. Core Platform
 | Area | Requirement | Status | Evidence / Notes |
 |------|-------------|--------|------------------|
-| User Accounts | Register, login, logout, session & JWT auth | ✅ | `server/auth.ts`, routes `/api/auth/*`, session + JWT dual mode. Email verification & password reset endpoints exist (emails TODO). |
-| Wishlists | CRUD wishlists, share public link via `shareId` | ✅ | Routes in `server/routes.ts` (`/api/wishlists`, `/api/shared/:shareId`). Share ID generation in storage. |
-| Items | CRUD items, list per wishlist | ✅ | `/api/items*`, validation via `insertWishlistItemSchema`. |
-| Multi‑Beneficiary | Manage beneficiaries, link wishlists | ✅ | `/api/beneficiaries*`, schema `beneficiaries`, wishlists have `beneficiaryId`. |
-| Collaboration | Add/remove collaborators; roles; activity timestamp | ✅ | `/api/wishlists/:id/collaborators*`, storage collaborator methods. No granular role enforcement beyond presence. |
-| Reservations & Purchasing | Reserve & purchase items with audit fields | ✅ | `/api/items/:id/reserve` & `/purchase`, schema fields `reservedByUserId`, `purchasedByUserId`, `purchasedAt`. |
-| Notifications (in‑app) | Create & fetch notifications, unread count, mark read/delete | ✅ | Routes `/api/notifications*`, service `notificationService.ts`, storage methods. |
-| System Notifications | Trigger on wishlist/item events | 🟡 | Some hooks in routes (e.g., wishlist create, item add) but not all event types; email sending implemented. |
-
-### 8. Email Service
-| Component | Status | Notes |
-|-----------|--------|-------|
-| Email Service | `emailService.ts` with SendGrid integration | ✅ | Email sending implemented for verification, password reset, welcome, price drops, wishlist activity, and collaboration invites. |
-| Email Templates | HTML templates for all email types | ✅ | Styled HTML templates with CSS for professional appearance. |
-| Email Verification | Send verification emails on registration | ✅ | `/api/auth/send-verification-email` endpoint sends verification emails. |
-| Password Reset | Send password reset emails | ✅ | `/api/auth/forgot-password` endpoint sends reset emails. |
+| User Accounts | Register, login, logout via Firebase Auth | ✅ | `packages/web/client-src/lib/firebase.ts` wraps Firebase Auth SDK (email/password, session persistence); `createUserProfile`/`getUserProfile`/`updateUserProfile` standalone `onCall` functions in `packages/functions/src/auth/index.ts`. No custom session/JWT layer — Firebase ID tokens are the only auth mechanism. |
+| Password Policy | Enforced password strength rules | ✅ | Firebase Auth's `validatePassword()` SDK call is used directly — `packages/web/client-src/lib/firebase.ts:493`; mirrored on mobile via `packages/mobile/lib/services/password_policy_service.dart` and `login_screen.dart`. No app-level bcrypt/regex step; policy is configured and enforced server-side by Firebase Auth itself. |
+| Account & Data Deletion | Full account + owned-data deletion (Apple/Google store requirement) | ✅ | `packages/functions/src/api/accountDeletion.ts` (`deleteAccount`, routed through the `api` router) hard-deletes wishlists/items/notifications/price tracking/calendar/FCM/sync/achievements/subscriptions/creator payout accounts, cancels Stripe subscription, deauthorizes Stripe Connect, revokes calendar OAuth; anonymizes (not deletes) `commissionLedger`/`payoutBatches`/`affiliateConversions` for accounting/legal retention. Wired into web (`Settings.tsx`) and mobile (`main.dart`, `firebase_functions_service.dart`). |
+| Wishlists | CRUD wishlists, share public link via `shareId` | ✅ | Router endpoints in `packages/functions/src/api/wishlists.ts` (`getUserWishlists`, `getWishlistById`, `getSharedWishlist`, `createWishlist`, `updateWishlist`, `deleteWishlist`), dispatched via `packages/functions/src/api/router.ts`. Frontend `Wishlists.tsx`, `WishlistDetail.tsx`, `SharedWishlist.tsx`. |
+| Items | CRUD items, list per wishlist, reserve/purchase | ✅ | `addWishlistItem`/`updateWishlistItem`/`deleteWishlistItem`/`getWishlistItems`/`reserveWishlistItem`/`purchaseWishlistItem` — all on the `api` router (moved off standalone `onCall` after a live gcloud IAM audit showed the "public invoker" option silently no-ops under the project's org policy). |
+| Notifications (in‑app) | Create & fetch notifications, unread count, mark read/delete | ✅ | `getUserNotifications`/`markNotificationAsRead`/`markAllNotificationsAsRead`/`deleteNotification`/`getNotificationSettings`/`updateNotificationSettings` on the `api` router; `createSystemNotification`/`cleanOldNotifications` remain standalone `onCall` (`packages/functions/src/api/notifications.ts`). Push delivery via FCM triggers (`notifyItemAdded`, `notifyItemReserved`, `notifyItemPurchased`, `notifyPriceAlert`) in `packages/functions/src/fcm.ts`. Frontend `Notifications.tsx`. |
+| Achievements | Computed-on-read achievement/reward program with tiers | ✅ | `getUserAchievements` on the `api` router at `GET /api/achievements` (`packages/functions/src/api/achievements.ts`), shipped 2026-07-23. Merge-never-regress semantics: recompute merges with prior earned state so an achievement can never be lost if the underlying signal later drops (e.g. deleting the wishlist that earned it). Frontend page `packages/web/client-src/pages/AchievementsGuide.tsx` at `/app/achievements`; Trophy Case tier badges added since. |
 
 ### 2. Advanced Features
 | Feature | Requirement | Status | Evidence / Notes |
 |---------|-------------|--------|------------------|
-| Price Tracking | Track price history, manual update, price alerts, price drop query | ✅ | Routes under PRICE TRACKING; `priceTrackingService.ts` updates price history & alerts. Automated polling with `pricePollingService.ts` using Puppeteer for Amazon, Target, Walmart, and generic retailers. Rate limiting, retry logic, and user-agent rotation implemented. |
-| Recommendations (AI) | Personalized recommendations via OpenAI | 🟡 | `recommendationService.ts` generates/stores recs using OpenAI if API key present. Beneficiary variant partially implemented; large file with TODO style prompts; missing robust error/backoff & cost controls. |
-| Calendar Integration | Internal events + external calendar connections & sync | 🟡 | Schema tables (`userCalendars`, `calendarEvents`), `calendarIntegrationService.ts`, calendar routes registered. External provider OAuth & real API calls not present; many helper stubs. |
-| Group / Social Gifting | Group contributions & coordination | 🟡 | Schema has `group_gifts`, `group_gift_contributions`, service `giftCoordinationService.ts` handles participants via gift reservation abstraction. Payment processing & full workflow UI absent. |
-| Gift Reservations (micro‑pledges) | Reserve & contribution tracking | 🟡 | `giftReservations` schema + service logic partially; routes for participants reuse this. Payment settlement not implemented. |
-| Privacy / Sharing Controls | Per-entity privacy settings, custom access lists | ✅ | `privacySettings` table + routes `/api/privacy/*`, `privacyService.ts`, frontend PrivacySettings page, PrivacyControls component, access control in SharedWishlist. |
-| AR Visualization | AR preview capability | 🔴 | `arVisualizationService.ts` placeholder; frontend uses fallback previews but no routed AR experience or pipeline. |
-| Barcode Scanning | Scan to add items | 🔴 | `barcodeScanService.ts` placeholder only. |
-| Cross-Device Sync | Device registry & sync logs | 🔴 | `userDevices`, `syncLogs` tables exist; no routes/services implementing sync logic. |
-| Advanced Analytics Dashboard | User analytics page | 🟡 | Frontend route `/analytics` exists; backend analytics aggregation endpoints absent (page likely placeholder). |
-| Affiliate Link Generation | Generate affiliate links per platform | 🔴 | Mentioned in README; no concrete code paths found. |
+| Price Tracking | Track price history, price alerts, price drop query | ✅ | Live, not a future item. `packages/web/client-src/pages/PriceTracking.tsx`; backend `packages/functions/src/api/priceHistory.ts`, `priceIntelligenceRefresh.ts` (`refreshPriceIntelligenceOffers` on the router; `scheduledRefreshPriceIntelligenceOffers`/`scheduledEvaluatePriceAlerts` as Cloud Scheduler triggers, unaffected by the router migration). |
+| Recommendations | Personalized item recommendations, Firestore-backed | 🟡 | **Not model-backed** — no OpenAI or any LLM call anywhere in the codebase (confirmed: no `openai` reference in `packages/functions/src`; README.md states this explicitly). Frontend `Recommendations.tsx` + `components/recommendations/RecommendationsSection.tsx` calls `/api/recommendations*`; status/dismissal flow exists. Depth of the underlying ranking logic wasn't independently audited beyond confirming it is Firestore-data-driven, not AI-driven — flagged partial pending a closer read of the recommendations endpoint implementation. |
+| Calendar Integration | Internal events + external calendar connections & sync | 🟡 | `getCalendarEvents`/`createCalendarEvent`/`updateCalendarEvent`/`deleteCalendarEvent`/`getCalendarAuthUrl`/`connectCalendar`/`getCalendarConnections`/`syncCalendarConnection`/`syncCalendar` etc. all moved to the `api` router (`packages/functions/src/api/calendar.ts`). Frontend `Calendar.tsx`. External provider OAuth depth not independently re-verified this pass — carried as partial from the prior audit. |
+| Group / Social Gifting | Group contributions, Stripe-based payment intents | ✅ | `createGroupPaymentIntent`/`confirmGroupContribution`/`getGroupGiftSummary` — standalone `onCall` functions in `packages/functions/src/api/groupPayments.ts` (exported as `groupPaymentCreateIntent`/`groupPaymentConfirm`/`groupGiftSummary`), using real Stripe PaymentIntents rather than a placeholder. |
+| Privacy / Sharing Controls | Per-entity privacy settings | ✅ | Frontend `PrivacySettings.tsx` at `/app/privacy-settings`; enforcement wired per the 2026-07 drift-audit recovery. |
+| Affiliate Link Generation & Tracking | Convert product links to affiliate links, track clicks | ✅ | `linkConvert`/`linkConvertBatch`/`linkConvertWishlist`/`linkTrackClick`/`linkPrograms`/`linkStats`/`linkDisclosure` on the `api` router. Public marketing pages `AffiliateCommissions.tsx`, `CreatorProgram.tsx`. |
+| Affiliate/Creator Monetization | Commission ledger, reconciliation, Stripe Connect payouts | ✅ | Shipped 2026-07-21. Commission ledger state machine `Tracked → Pending → Approved → Payable → Paid`, with a `Reversed` branch reachable from any pre-Paid state and a post-payout-Paid clawback path — `packages/functions/src/api/commissionLedger.ts`. Report-based reconciliation ingestion in `affiliateReconciliation.ts`. Stripe Connect Express account creation/onboarding/status in `creatorPayoutAccount.ts`. Payout batch processing (`processPayoutBatch`, scheduled `scheduledPayoutBatchRun`) and creator payout history in `payouts.ts`. Tracking-ID pool management in `creatorTracking.ts`. All admin/creator-facing callables now live on the `api` router (moved off standalone `onCall`, same org-policy reason as elsewhere); `advanceCommissionsPastHold`, `affiliateReportImportProcess`, `scheduledPayoutBatchRun` remain standalone as scheduled/trigger functions. Creator-facing UI folded into the unified `Dashboard.tsx`'s Creator tab (`/app/creator-dashboard` now redirects to `/app/dashboard?tab=creator`) via `packages/web/client-src/components/creator-dashboard/*` (`CommissionStatusPanel`, `PayoutReadinessPanel`, `PerformancePanel`, `AdjustmentsPanel`, `CommissionStateBadge`). Admin tooling at `/admin/affiliate` (`pages/admin/AffiliateAdmin.tsx`). |
+| AR Visualization | AR model lookup | 🟡 | `getARModel` (exported as `arModelLookup`) remains a standalone `onCall` in `packages/functions/src/api/ar.ts` — not yet moved to the router, so its live reachability under the org's invoker-binding policy was not independently verified this pass. |
+| Barcode Scanning | Scan-to-add items | 🟡 | Mobile `scan_item_screen.dart` offers camera photo capture (`image_picker`) plus manual URL/name entry, **not** live barcode decoding — a code comment notes `mobile_scanner` was dropped due to a `GTMSessionFetcher` version conflict with Firebase 12.x. A barcode *lookup* backend exists (`lookupBarcode` in `packages/functions/src/api/mobile.ts`, queries Open Food Facts) but nothing in the mobile UI currently calls it with a scanned code. |
+| Cross-Device Sync | Device registry & sync logs | ✅ | `registerDevice`/`listDevices`/`updateDevice`/`logSyncEvent`/`getSyncLogs`/`syncMobileActions` all live on the `api` router (`packages/functions/src/api/sync.ts`); mobile `sync_service.dart` present. Upgraded from the prior "tables exist, unused" status. |
+| In-App Purchases (mobile) | Native StoreKit/Play Billing subscriptions | ✅ | Replaced Stripe checkout on mobile (commit `ab09174`). `packages/mobile/pubspec.yaml` depends on `in_app_purchase: ^3.2.0`; `packages/mobile/lib/services/iap_service.dart`; backend verification via `verifyPurchase`/`restorePurchase` on the `api` router (`packages/functions/src/api/iap.ts`). |
+| AdMob (mobile) | Ad monetization | ✅ | `google_mobile_ads: ^6.0.0` in `pubspec.yaml`; real production AdMob App IDs wired for both platforms (commits `c60c204`, `5a11659`, `15c8ee8`) — `ca-app-pub-5198775482699756~1528233576` in `android/app/src/main/AndroidManifest.xml`, `ca-app-pub-5198775482699756~9682055763` in `ios/Runner/Info.plist`. `admob_service.dart` present. |
+| Subscriptions & Billing (web) | Stripe Checkout/Portal subscription management | ✅ | `billingStatus`/`billingPlans`/`billingCheckout`/`billingPortal` on the `api` router (`packages/functions/src/api/subscriptions.ts`); `billingWebhook` remains standalone `onRequest` (Stripe calls it directly, not through the browser). Frontend `Subscription.tsx`, `Subscriptions.tsx`. |
 
 ### 3. Browser Extension
 | Area | Requirement | Status | Evidence / Notes |
 |------|-------------|--------|------------------|
-| Auth | Extension JWT auth & refresh | ✅ | `/api/extension/jwt-auth`, `extension-auth.ts`, refresh endpoint. |
-| Wishlist Integration | Fetch wishlists & add items from pages | ✅ | `/api/extension/wishlists`, `/api/extension/items`, content/background scripts in `packages/browser-extension/`. |
-| Price Comparison | Compare across retailers | ✅ | `comparison.js` uses backend lookup for comparison data with graceful empty-state fallback. |
-| Automatic Product Detection | Extract product metadata | ✅ | `enhanced-product-extractor.js` supports 40+ retailers with specific selectors, fallback strategies, product page detection. |
-| Event Tracking | Track extension events | ✅ | Comprehensive analytics in `background.js`, tracks all user interactions and errors. |
-| Coupon Finder | Find and apply coupons | ✅ | `coupons.js` uses backend lookup for coupons with graceful empty-state fallback. |
-| Quick Add | One-click wishlist addition | ✅ | `quick-add.js` floating button, detects products, adds to default wishlist. |
-| Manual Entry | Fallback product entry | ✅ | Popup UI supports manual product data entry when auto-detection fails. |
-| Error Recovery | Robust error handling | ✅ | Retry logic, recovery mode, timeout handling, force detection option. |
+| Auth | Extension auth against Firebase backend | ✅ | `authenticateExtension` in `packages/functions/src/api/extension.ts`; also HTTP-callable `extensionGetWishlists`/`extensionCreateWishlist`/`extensionAddItem`/etc. in `http-extension.ts`, both standalone-exported from `index.ts`. |
+| Wishlist Integration | Fetch wishlists & add items from pages | ✅ | `getExtensionWishlists`, `addItemFromExtension`, `createExtensionWishlist`, `deleteExtensionItem`, `shareExtensionWishlist`, content/background scripts in `packages/browser-extension/`. |
+| Event Tracking | Track extension events | ✅ | `getExtensionAnalytics`, `trackExtensionEvent`; analytics tracking in `background.js`. |
+| Product Detection / Quick Add / Manual Entry | Extract product metadata, one-click add, manual fallback | 🟡 | Carried forward unverified this pass — not re-audited beyond confirming the extension package and its Firebase-backed endpoints still exist. Prior audit rated these ✅; re-verify before relying on that rating. |
 
-### 4. Mobile Application
+### 4. Mobile Application (Flutter — corrects prior "React Native" description)
 | Area | Requirement | Status | Evidence / Notes |
 |------|-------------|--------|------------------|
-| React Native App | Core wishlist management (auth, list, detail, add item) | ✅ | Implemented AuthContext, `WishlistsScreen`, `WishlistDetailScreen` (live fetch), `AddItemScreen`, React Query + Axios client. Sync / device registry not yet implemented. |
-| Push Notifications | Price drops, updates | 🔴 | No push service integration implemented. |
-| AR & Camera Integration | Add via camera, AR view | 🔴 | Not implemented; placeholders only (navigation target + service stub). |
+| Core App | Auth, wishlist list/detail, add item | ✅ | Flutter/Dart, `packages/mobile/lib/`: `screens/home_screen.dart`, `firebase_wishlists_screen.dart`, `login_screen.dart`, `account_screen.dart`, Provider-based state (`providers/`), `services/firestore_service.dart`, `services/wishlist_service.dart`, `services/api_client.dart`. Firebase Auth via `firebase_auth_service.dart`. |
+| Push Notifications | Price drops, updates | ✅ | `services/fcm_service.dart`, `fcm_integration_example.dart`; backend triggers in `packages/functions/src/fcm.ts` (`notifyPriceAlert`, etc.). |
+| In-App Purchases | Native subscription billing | ✅ | See section 2 — `iap_service.dart` + `in_app_purchase` package, replacing Stripe checkout on mobile. |
+| AdMob | Ad monetization | ✅ | See section 2 — `admob_service.dart`, real production App IDs. |
+| Price Tracking | Mobile price tracking screen | ✅ | `screens/price_tracking_screen.dart`. |
+| Cross-Device Sync | Sync mobile actions to backend | ✅ | `services/sync_service.dart` + `syncMobileActions` on the `api` router. |
+| Barcode / Camera Add | Add via camera / barcode scan | 🟡 | See section 2 — camera photo capture only; no live barcode decode wired despite a lookup backend existing. |
+| AR & Camera Integration | AR view | 🔴 | No AR UI found under `packages/mobile/lib`; only the backend `arModelLookup` stub exists (see section 2). |
 
-### 5. Data Model Coverage
-Most core tables (users, wishlists, items, collaborators, notifications, priceAlerts, recommendations, userPreferences, group gifting, calendars) are implemented with Drizzle schemas in `shared/schema.ts`.
-
-Gaps / Future tables usage:
-- `privacySettings`: Implemented and actively used.
-- `userDevices`, `syncLogs`: Unused.
-- Schema and service field usage is properly aligned across all services.
+### 5. Data Model
+Firestore, not PostgreSQL/Drizzle — there is no `shared/schema.ts` table-based schema. Collections include
+(non-exhaustive, inferred from function code): `users`, `wishlists`, `wishlistItems`, `notifications`,
+`userAchievements`, `commissionLedger`, `payoutBatches`, `affiliateConversions`, `affiliateClicks`,
+`priceHistory`/`priceAlerts`, `calendarEvents`/`userCalendars`, `devices`/`syncLogs`, `subscriptions`.
+Type definitions shared between backend and frontend live in `packages/shared/`.
 
 ### 6. Authentication & Security
 | Aspect | Status | Notes |
 |--------|--------|-------|
-| Session Auth | ✅ | Express session with PG store in `session.ts` created automatically. |
-| JWT Auth | ✅ | `jwt-auth.ts` + dual-mode `isAuthenticated` middleware. |
-| Extension Tokens | ✅ | 7‑day tokens; refresh endpoint. |
-| Email Verification | 🟡 | Endpoint & token issuance implemented; email send stub (no email dispatch integration). |
-| Password Reset | 🟡 | Endpoints & token generation; email send stub. |
-| 2FA | 🔴 | Fields exist (`twoFactorEnabled`/`Secret`); no flows. |
+| Firebase Auth (email/password) | ✅ | No custom session store or JWT signing — Firebase ID tokens verified server-side via `firebase-admin/auth`. |
+| Password Policy | ✅ | See section 1 — enforced via `validatePassword()`, not app-level rules. |
+| Account/Data Deletion | ✅ | See section 1. |
+| App Check | ✅ | `requireAppCheckHTTP` gate used in the `api` router (`packages/functions/src/api/router.ts`, `packages/functions/src/utils/app-check.js`). A documented gotcha exists where `requireAppCheck` + the router needed careful wiring (see project memory `project_product_preview_router_fix.md`). |
+| Super-Admin | ✅ | `bootstrapSuperAdmin`, `grantAdminRole`, `revokeAdminRole` standalone `onCall`; `adminGetUsers`/`adminSuspendUser`/`adminModifySubscription`/`adminGetSupportTickets`/`adminRespondToTicket`/`adminGetAuditLog` on the `api` router (confirmed via live gcloud IAM audit that none had a working `allUsers` invoker binding as standalone functions). Frontend admin pages under `pages/admin/`. |
+| 2FA | 🔴 | No evidence of a 2FA flow found in web, mobile, or functions source. |
 
-### 7. Notifications & Email
+### 7. API Architecture — router vs. standalone `onCall` (new section)
+Around 2026-07-23, most `onCall` functions requiring public (unauthenticated-caller) invocation were moved
+off standalone Cloud Functions onto a single HTTP router, because a GCP Domain Restricted Sharing org policy
+blocks granting new `allUsers` Cloud Run invoker bindings — a standalone `onCall` function deployed under
+this policy silently never becomes reachable, even with `{ invoker: 'public' }` set (confirmed via a live
+`gcloud` IAM audit, not just code inspection).
+
+- **Router** (`packages/functions/src/api/router.ts`, exported as `api`): dispatches HTTP requests to
+  handler functions for wishlists/items, notifications, FCM, achievements, affiliate/creator (tracking,
+  commission ledger, reconciliation, Connect payouts), billing/subscriptions, group payments, calendar,
+  contacts, device sync, analytics, price intelligence refresh, IAP verification, account deletion, and
+  admin operations. This is now the majority of the public-facing API surface — broader than "some
+  endpoints," effectively the primary integration point for the web and mobile clients.
+- **Standalone `onCall`/`onRequest`** (still exported directly from `packages/functions/src/index.ts`):
+  `createUserProfile`/`getUserProfile`/`updateUserProfile` (auth), generic `createDocument`/`getDocument`/
+  `updateDocument`/`deleteDocument`/`listDocuments`/`batchCreateDocuments`/`batchUpdateDocuments` (CRUD),
+  extension HTTP endpoints, `createSystemNotification`/`cleanOldNotifications`, FCM trigger functions,
+  `bootstrapSuperAdmin`/`grantAdminRole`/`revokeAdminRole`/`createSupportTicket`, `checkoutSessionCreate`,
+  `stripeWebhook`/`billingWebhook` (called directly by Stripe, not the browser), `arModelLookup`, and
+  several Cloud Scheduler trigger functions (`scheduledAdKpiSnapshot`, `scheduledRefreshPriceIntelligenceOffers`,
+  `scheduledEvaluatePriceAlerts`, `scheduledPayoutBatchRun`, `advanceCommissionsPastHold`,
+  `affiliateReportImportProcess`). `index.ts` retains detailed comments documenting which functions were
+  migrated and why, including a note that several "read" functions were previously believed to have working
+  public bindings but did not.
+
+### 8. Notifications & Email
 | Component | Status | Notes |
 |-----------|--------|-------|
-| In-App Notifications | ✅ | CRUD & unread count. |
-| Email Service | 🟡 | `emailService.ts` exists (not reviewed in depth) – integration likely partial, many TODO comments in other services. |
-| Price Alert Emails | 🔴 | `priceTrackingEmailService.ts` suggests future; not wired. |
+| In-App Notifications | ✅ | CRUD & unread count — see section 1. |
+| Push Notifications (FCM) | ✅ | See sections 1 and 4. |
+| Transactional Email | ✅ | **No SendGrid.** Uses Google Workspace SMTP via Nodemailer (`packages/functions/src/email.ts`), per README.md's explicit note: `SENDGRID_API_KEY` is not required and SendGrid is not used anywhere in this codebase. |
 
-### 8. External Integrations
+### 9. External Integrations
 | Integration | Status | Notes |
 |------------|--------|-------|
-| E-commerce Platform Extraction | 🟡 | `ecommerceIntegrationService.ts` present; routes registered via `registerEcommerceRoutes`; depth unknown (not fully audited). |
-| Calendar Providers (Google/Outlook/Apple) | 🔴 | OAuth/env vars documented, but no provider-specific token exchange logic here. |
-| OpenAI | 🟡 | Recommendations rely on `process.env.OPENAI_API_KEY`; minimal error handling. |
-| SendGrid | 🟡 | Dependency present; actual email sending calls limited. |
-| Analytics (GA) | ✅ | `useAnalytics` + `initGA()` with env var `VITE_GA_MEASUREMENT_ID`. |
-| Payments (Group Gifting) | 🔴 | Mentioned; no code. |
-| Social Media Sharing | 🔴 | Mentioned; no API integration code. |
+| OpenAI | 🔴 removed | Not present anywhere in the codebase. Recommendations are Firestore-backed, not model-backed (README.md explicit note). Any doc still describing `recommendationService.ts`/`OPENAI_API_KEY` usage is describing deleted pre-migration code. |
+| SendGrid | 🔴 removed | Not present anywhere in the codebase; replaced by Workspace SMTP + Nodemailer (see section 8). |
+| Stripe | ✅ | Checkout/Portal billing (`stripe.ts`, `subscriptions.ts`, `stripeWebhook.ts`), Stripe Connect Express for creator payouts (`creatorPayoutAccount.ts`, `payouts.ts`), and PaymentIntents for group gifting (`groupPayments.ts`). |
+| Firebase (Auth, Firestore, Functions, App Check, FCM, Cloud Scheduler) | ✅ | Core platform — see section 0. |
+| Google Analytics / GTM | ✅ | GTM container loaded in `index.html` with Consent Mode v2; `useAnalytics`/`trackPageView` in `AppRouter.tsx`. |
+| AdMob | ✅ | See section 2/4. |
+| Calendar Providers (Google/Outlook/Apple) | 🟡 | Router endpoints exist (`calendar.ts`); OAuth token-exchange depth not re-verified this pass — carried forward as partial. |
+| Open Food Facts (barcode lookup) | 🟡 | Backend call exists (`lookupBarcode`) but not wired to a live mobile scan UI — see section 2/4. |
 
-### 9. Frontend (Web) Feature Routes
-Implemented routes (see `client-src/AppRouter.tsx`): `Home`, `ExtensionPage`, `About`, `Blog`, `Contact`, `TermsOfService`, `PrivacyPolicy`, `CookiePolicy`, `Login`, `Register`, `ForgotPassword`, `ResetPassword`, `VerifyEmail`, `Dashboard`, `DashboardFirebase`, `UserProfile`, `WishlistDetail`, `SharedWishlist`, `Recommendations`, `PriceTracking`, `Calendar`, `Notifications`, `PrivacySettings`, `Analytics`.
+### 10. Frontend (Web) Feature Routes
+From `packages/web/client-src/AppRouter.tsx` (current as of the router migration to a unified Dashboard
+with tabs — several routes below are **redirects** to a `?tab=` query param on `/app/dashboard`, not
+separate pages, which differs from earlier flat-route documentation):
 
-### 10. Testing & Quality
+- **Marketing/public**: `Home`, `ExtensionPage`, `Download`, `Subscriptions`, `HowItWorks`,
+  `AffiliateCommissions`, `CreatorProgram`, `About`, `TermsOfService`, `PrivacyPolicy`, `CookiePolicy`,
+  `Support`, plus demo pages under `/pages/demos/*`.
+- **Auth**: `Login`, `Register`, `ForgotPassword`, `ResetPassword`, `VerifyEmail`.
+- **App (authenticated, `/app/*`)**: `Dashboard` (now a tabbed hub — Overview/Analytics/Admin/Creator tabs
+  folded in via `?tab=`), `Wishlists`, `UserProfile`, `Subscription`, `WishlistDetail`, `Recommendations`,
+  `PriceTracking`, `Calendar`, `Notifications`, `PrivacySettings`, `Settings`, `AchievementsGuide`.
+  `/app/creator-dashboard` and `/app/analytics` now redirect to `/app/dashboard?tab=creator` /
+  `?tab=analytics` respectively rather than rendering standalone pages.
+- **Public shared view**: `/shared/:shareId` → `SharedWishlist` (unauthenticated but still app-gated by
+  the `app_offline` remote-config flag, distinct from the marketing-site `marketing_offline` flag).
+- **Super-admin (`/admin/*`)**: `/admin` redirects to `/app/dashboard?tab=admin`; deeper pages
+  (`UserManagement`, `UserDetail`, `SupportTickets`, `AuditLog`, `AffiliateAdmin`) remain standalone
+  routes, self-guarded by an admin token claim check.
+- Numerous legacy flat routes (`/dashboard`, `/wishlists`, `/recommendations`, `/calendar`,
+  `/notifications`, `/privacy-policy`, `/cookie-policy`, `/contact`, etc.) are kept only as redirects to
+  their canonical `/app/*` or renamed equivalents, for backlink/SEO continuity.
+
+### 11. Testing & Quality
 | Area | Status | Notes |
 |------|--------|-------|
-| Unit Tests (Shared Schemas) | ✅ | `shared/tests/schema.test.ts` covers validation edge cases. |
-| Backend Unit/Integration | 🟡 | Test folders scaffolded (`server/tests/{unit,integration,e2e}`); limited actual tests observed (e.g., notification service test). |
-| Frontend Tests | 🟡 | Testing libs installed; actual test files sparse (not enumerated in provided context). |
-| Type Safety | ✅ | TypeScript across monorepo; Drizzle types enforce schema. |
+| Type Safety | ✅ | TypeScript across web/functions/shared packages; Dart's sound null safety on mobile. |
+| Frontend Tests | 🟡 | Test infrastructure present (e.g. `AppRouter.test.tsx`); coverage depth not re-audited this pass. |
+| Functions Tests | 🟡 | `packages/functions/test/` exists in the (gitignored, private-repo) local clone when present; not independently re-verified this pass. |
+| Mobile CI | ✅ | Per project memory (`project_extension_killer_app_2026-07-18.md`), a mobile CI integration test was closed out, including fixing a `skip_tests` gate that had made it dead. |
 
-### 11. Build & Tooling
+### 12. Build & Tooling
 | Item | Status | Notes |
 |------|--------|-------|
-| Dev Workflow | ✅ | `npm run dev` starts Express + Vite (see `server/index.ts`). |
-| Production Build | ✅ | `npm run build` builds client via Vite then bundles server with esbuild to `dist/`. |
-| Database Migration | ✅ | `drizzle.config.ts` + `npm run db:push`. No migration files shown; relies on push. |
-| Lint/Type Check | ✅ | `npm run check` (tsc). ESLint config not shown (may be absent). |
+| Monorepo | ✅ | npm workspaces (`packages/*`) per root `package.json`. `packages/functions` is gitignored — sourced from the private companion repo in CI/local dev. |
+| Web Dev/Build | ✅ | `npm run dev --workspace=@wishlist-wizard/web` (Vite); `npm run build`. |
+| Mobile Build | ✅ | `npm run build:mobile` → `flutter build web --release` (also native iOS/Android builds via Flutter/Fastlane, not covered by this npm script). |
+| Firebase Deploy | ✅ | `npm run deploy` / `deploy:web` / `deploy:api` via `scripts/deploy.sh`; Firebase Functions deploy per project (`wishlist-wizard-dev`/`-staging`/`-prod`) as documented in the functions repo's README. |
+| Lint/Type Check | ✅ | `npm run lint`, `npm run check` across workspaces. |
+| Database Migration | N/A | No relational schema/migrations — Firestore is schemaless; any prior `drizzle.config.ts`/`db:push` references are obsolete. |
 
-### 12. Environment Variables (Observed / Referenced)
-`DATABASE_URL`, `JWT_SECRET`, `SESSION_SECRET`, `OPENAI_API_KEY`, `SENDGRID_API_KEY`, calendar provider keys (`GOOGLE_CLIENT_ID/SECRET`, `MICROSOFT_CLIENT_ID/SECRET`, `APPLE_CLIENT_ID/SECRET`), ecommerce API keys (Amazon/eBay/Etsy/etc.), `VITE_GA_MEASUREMENT_ID`, `GOOGLE_ADSENSE_PUBLISHER_ID`.
+### 13. Environment Variables (Current)
+Per `README.md`: `OPENAI_API_KEY` and `SENDGRID_API_KEY` are **explicitly not required** — neither service
+is used anywhere in this codebase. Firebase project config (via `firebase_options.dart` / web SDK config),
+Stripe keys (checkout + Connect), AdMob App IDs, Workspace SMTP credentials for Nodemailer, and
+`VITE_GA_MEASUREMENT_ID`/GTM container ID are the live external configuration surface. Calendar provider
+OAuth credentials remain referenced for the partial calendar integration (section 9).
 
-Gaps: No .env sample checked in; some services assume keys silently. Missing runtime validation.
-
-### 13. Known Inconsistencies / Technical Debt
-- Privacy & sync related tables unused—risk of schema bloat unless roadmap clarifies activation.
-- Large monolithic service files (recommendations, calendar) would benefit from modularization for testability.
-
-### 14. Pending / Future Roadmap Items (From README / Docs)
-- Advanced gift recommendations refinement (AI reasoning, cost control)
-- Enhanced social sharing (public profiles, social graph)
-- Improved AR visualization pipeline
-- Extended mobile functionality + push notifications
-- Group gifting payments & contribution settlement
-- Affiliate link generation & analytics
-- Privacy controls UI & enforcement logic
+### 14. Known Inconsistencies / Technical Debt
+- This document (`docs/REQUIREMENTS.md`) was substantively stale for ~5 months (last real edit 2026-02-27)
+  and described an architecture deleted 2025-10-16; this rewrite (2026-08-08) is a full resync, not a diff.
+  Other docs under `docs/` (there are 100+ files) were not audited in this pass and may carry the same
+  pre-migration Express/Postgres/React-Native content — treat any doc not recently touched with the same
+  suspicion until checked.
+- The router-vs-standalone-`onCall` split (section 7) is a workaround for an org policy, not a deliberate
+  architecture choice — per project memory, sibling projects (`modulo-squares`, `vehicle-vitals`) already
+  have the real fix (an org-policy override) that this project lacks. Not urgent, but worth knowing this
+  isn't the "intended" long-term shape of the API.
+- Barcode scanning (section 2/4) looks wired (a lookup backend exists) but has no live scan UI calling it —
+  a "looks-wired-but-dead" pattern this project has hit repeatedly per project memory; worth an explicit
+  audit rather than assuming section 2's 🟡 rating covers it fully.
+- AR (`arModelLookup`) has not been moved to the router and its live reachability was not verified this
+  pass — likely still broken under the same org-policy invoker issue affecting everything else that hasn't
+  been migrated, but unconfirmed.
 
 ### 15. Suggested Next Priorities
-1. ✅ Secure recommendation service (rate limiting, error handling, cost caps).
-2. ✅ Activate privacy settings with middleware enforcement.
-3. Build extension product parsing abstraction with site adapters.
-4. Flesh out tests for auth, price alerts, recommendations, calendar sync.
+1. Verify `arModelLookup`'s live reachability and either migrate it to the router or explicitly document it
+   as broken.
+2. Wire a real barcode-scan UI on mobile to the existing `lookupBarcode` backend, or remove the backend if
+   it's genuinely not planned.
+3. Full audit pass across the rest of `docs/` (100+ files) for the same 2025-10-16 architecture-migration
+   staleness found in this file.
+4. Re-verify browser-extension product-detection/quick-add/manual-entry claims (section 3) — carried
+   forward unverified from the prior audit rather than independently re-checked this pass.
 
 ---
-Restored: 2025-10-03 (file was emptied during rebase; contents reconstituted)
-
+Last rewritten: 2026-08-08 — full resync from stale 2026-02-27 content describing the pre-2025-10-16
+Express/Postgres/React-Native architecture. Superseded prior "Restored: 2025-10-03" note (that restoration
+brought back accurate-for-2025-10-03 content, which then drifted stale over the following ~4 months as the
+Firebase-era feature set shipped without this doc being updated alongside it).

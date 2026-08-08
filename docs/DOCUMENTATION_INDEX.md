@@ -1,7 +1,7 @@
 # Wishlist Wizard - Documentation Index
 
-**Version**: 1.0  
-**Last Updated**: May 6, 2026  
+**Version**: 1.1  
+**Last Updated**: August 8, 2026  
 **Owner**: Mark Nelson
 
 ---
@@ -78,9 +78,10 @@ Project overview and planning:
 
 | Document | Purpose | Audience |
 |----------|---------|----------|
-| [API_REFERENCE.md](API_REFERENCE.md) | Firebase callable API documentation with examples | Integration Devs, QA |
+| [API_REFERENCE.md](API_REFERENCE.md) | Firebase API documentation (router-first, with a small legacy-callable appendix) | Integration Devs, QA |
 | [FIREBASE_IMPLEMENTATION_SUMMARY.md](FIREBASE_IMPLEMENTATION_SUMMARY.md) | Firebase services integration | Backend Devs |
-| [AFFILIATE_IMPLEMENTATION.md](AFFILIATE_IMPLEMENTATION.md) | Affiliate program integration | Product, Backend |
+| [AFFILIATE_IMPLEMENTATION.md](AFFILIATE_IMPLEMENTATION.md) | Affiliate program integration (commission ledger, Stripe Connect payouts) | Product, Backend |
+| [Achievements_And_Rewards_Design.md](Achievements_And_Rewards_Design.md) | Achievements & rewards design + as-built v1 implementation notes | Product, Backend |
 
 ### Development
 
@@ -111,6 +112,7 @@ Project overview and planning:
 | [CICD_SETUP_GUIDE.md](CICD_SETUP_GUIDE.md) | CI/CD pipeline configuration | DevOps |
 | [ENVIRONMENT_SECURITY_HARDENING.md](ENVIRONMENT_SECURITY_HARDENING.md) | Environment hardening and non-production access controls | DevOps, Security |
 | [TROUBLESHOOTING_GUIDE.md](TROUBLESHOOTING_GUIDE.md) | Common issues and solutions | All Developers |
+| [WISHLIST_WIZARD_GO_LIVE.md](WISHLIST_WIZARD_GO_LIVE.md) | Go-live runbook, incl. marketing-tools-service (GA4/GTM/Search Console) setup | DevOps, Release Mgr |
 
 ### Project & Product
 
@@ -357,10 +359,11 @@ Ensure documentation is complete and accurate:
 | Version | Date | Changes |
 |---------|------|---------|
 | 1.0 | Feb 16, 2026 | Initial comprehensive documentation |
+| 1.1 | Aug 8, 2026 | Doc alignment pass: corrected drift across ~19 core docs against actual shipped code (affiliate/creator payout backend, achievements v1, the `api` HTTP router migration, the `packages/functions` companion-repo extraction, real CI/CD workflow set, mobile IAP/AdMob, password policy, account deletion, 1280px/CRUD UI standards). Full rewrites: REQUIREMENTS.md, API_REFERENCE.md, CICD_SETUP_GUIDE.md. The large one-off dated session-summary/status docs elsewhere in `docs/` were intentionally left untouched as historical record. |
 
 ---
 
-**Last Updated**: February 16, 2026  
+**Last Updated**: August 8, 2026  
 **Maintained By**: Mark Nelson  
 **Status**: 🟢 Complete & Current
 

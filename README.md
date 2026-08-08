@@ -25,7 +25,9 @@ Wishlist Wizard is a comprehensive wishlist management platform that empowers us
 ### E-Commerce Integration
 - **Multi-Platform Support**: Integration with Amazon, eBay, Etsy, Walmart, Target, and Best Buy.
 - **Product Data Extraction**: Extract detailed product information from URLs.
-- **Roadmap Note**: Price tracking and affiliate monetization are planned for a later rollout phase.
+- **Price Tracking & Affiliate Monetization**: Live — price drop/volatility tracking, plus a full commission
+  ledger, Stripe Connect creator payouts, and a tier-gated creator dashboard (`/app/creator-dashboard`),
+  shipped 2026-07-21.
 
 ## 🚀 Getting Started
 
@@ -33,7 +35,7 @@ Wishlist Wizard is a comprehensive wishlist management platform that empowers us
 
 This project consists of:
 - **Web App**: React frontend with TypeScript (`packages/web/`)
-- **Backend**: Firebase Functions, serverless (`packages/functions/`) — the live API; root `server/`/`client/` and `packages/api-server` are historical and not deployed
+- **Backend**: Firebase Functions, serverless (`packages/functions/`) — the live API; root `server/`/`client/` and `packages/api-server` are historical and not deployed. Real backend source now lives in a private companion repo (`NelsonGrey/wishlist-wizard-functions`, extracted 2026-07-17); `packages/functions/` is gitignored here and must be cloned separately for local dev/emulator use.
 - **Mobile App**: Flutter app for iOS and Android (`packages/mobile/`)
 - **Browser Extension**: Chrome/Firefox extension (`packages/browser-extension/`)
 - **Shared Libraries**: Common TypeScript code (`packages/shared/`)
@@ -249,7 +251,7 @@ Wishlist Wizard includes a complete **zero-touch DevOps automation suite** that 
 - **Automated Token Management**: GitHub, Firebase, Docker registry, and API tokens rotate automatically
 - **Multi-Environment Management**: Development, staging, and production environments with isolated secrets
 - **Intelligent Monitoring**: 24/7 health checks with auto-healing and smart alerting
-- **Zero-Touch Deployments**: Push to main branch → automatic deployment across all platforms
+- **Zero-Touch Deployments**: Push to `main`/`staging` → automatic deployment via `master-pipeline.yml` (web, iOS/Android builds, functions), gated by environment and the quality-gate job; Chrome extension publish and full iOS App Store submission remain manual (`workflow_dispatch`)
 - **Self-Healing Systems**: Automatic service restarts, certificate renewal, and issue resolution
 - **Multi-Channel Alerts**: Email, Slack, and log-based notifications
 - **Automated Backups**: Daily backups with disaster recovery capabilities
@@ -328,8 +330,9 @@ See `AUTOMATED_DEPLOYMENT.md` for complete setup and configuration details.
 
 ## 🔮 Upcoming Features
 
-- Phase 2 intelligence rollout (price tracking, affiliate integrations, AI recommendations)
-- Creator economy tooling and advanced monetization dashboards
+- AI recommendations
+- Group gifting payments
+- Advanced creator monetization dashboards beyond v1 (deeper analytics, more payout networks)
 - Phase 3 ecosystem expansion (AR, white-label, conversational AI)
 - Extended mobile and collaboration enhancements
 

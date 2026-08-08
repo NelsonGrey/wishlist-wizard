@@ -8,33 +8,37 @@ This project includes a comprehensive CI/CD pipeline that automatically builds, 
 
 | Component | Platform | URL | Auto Deploy |
 |-----------|----------|-----|-------------|
-| 🌐 Web App | Firebase Hosting | `https://wishlist-wizard-prod.web.app` | ✅ |
-| 🚂 API Server | Firebase Functions | `https://api.wishlist-wizard-prod.web.app` | ✅ |
-| 📱 Mobile PWA | Firebase Hosting | `https://wishlist-wizard-prod.web.app` | ✅ |
-| 🔌 Chrome Extension | Chrome Web Store | Manual submission | 📦 |
+| 🌐 Web App | Firebase Hosting | `https://wishlist-wizard-prod.web.app` | ✅ (push to `main`/`staging`/`develop`, per-environment) |
+| ⚡ Firebase Functions | Firebase Functions | n/a (callable functions, routed through an `api` router) | ✅ (push to `main`/`staging` only, via `master-pipeline.yml`) |
+| 📱 Android | Play Store — **internal track only** | n/a (app not publicly launched) | ✅ (push to `main`/`staging`, via `master-pipeline.yml`) |
+| 🍎 iOS | TestFlight only | n/a | ✅ (push to `main`/`staging`, via `master-pipeline.yml` → `ios-mobile-release.yml`); full App Store submission is a separate manual `workflow_dispatch` |
+| 🔌 Chrome Extension | Chrome Web Store | Manual submission unless `workflow_dispatch` action is `build_and_deploy` | 📦 conditional |
 
 ## 🔄 Automated CI/CD Pipeline
 
-### Triggers
-- **Push to `main`**: Triggers full build, test, and deployment
-- **Pull Requests**: Runs tests and builds (no deployment)
-- **Manual Trigger**: Chrome Web Store submission
+**Top-line claim**: "Push to `main` triggers deployment" — this is true today, but only since a `master-pipeline.yml` change on 2026-08-01 (commit `2cdb070`) added real `push` triggers on `staging`/`main`. It comes with caveats: Android goes to the Play Store internal track only, iOS goes to TestFlight only (not the App Store), and the Chrome extension only publishes under the `build_and_deploy` manual action. `develop` does **not** trigger this pipeline at all — see below.
+
+### Triggers (`master-pipeline.yml`)
+- **Push to `main`**: maps to the `production` environment; runs build/test/quality-gate, then deploys Firebase Hosting + Functions, Android (internal track), and builds iOS for TestFlight ("Beta Testers" group). Path-filtered — only fires when relevant package/workflow/config paths change.
+- **Push to `staging`**: same pipeline, mapped to the `staging` environment (iOS TestFlight "Staging" group).
+- **Push to `develop`**: does **not** trigger `master-pipeline.yml` — this is deliberate (see the comment in the workflow's `on:` block). `develop` instead gets a lighter, Hosting-only deploy via the separate `firebase-hosting-dev.yml` workflow, which deploys just the web app to the dev Firebase project.
+- **Pull Requests** (to `develop`/`staging`/`main`): runs tests and builds, no deployment.
+- **Manual Trigger** (`workflow_dispatch`): choose an `action` (`build_all`, `test_all`, `build_and_deploy`, `deploy_only`, `android_deploy_only`) and target `environment`. Chrome Web Store publish and a full iOS App Store submission both require explicit manual dispatch.
 
 ### Pipeline Stages
 
 #### 1. 🔍 Quality Check & Tests
 - TypeScript compilation check
-- Unit tests across all packages
+- Unit tests across all packages (functions tests run against the companion-repo checkout, see below)
 - Security audit
-- Code quality validation
+- Code quality / quality-gate job
 
 #### 2. 🏗️ Build All Packages
-- Parallel builds for maximum efficiency
 - Web App (Vite build)
-- API Server (esbuild bundle)
+- Firebase Functions (from the companion repo checkout)
 - Browser Extension (Vite build)
 - Shared Package (TypeScript compilation)
-- Mobile App (Flutter web build)
+- Mobile App (Flutter, native iOS/Android builds — not just a web PWA build)
 
 #### 3. 📦 Package & Artifacts
 - Creates deployment-ready artifacts
@@ -42,9 +46,15 @@ This project includes a comprehensive CI/CD pipeline that automatically builds, 
 - Optimized production bundles
 
 #### 4. 🚀 Deploy to Platforms
-- **Firebase Hosting**: Web application and Mobile PWA deployment
-- **Firebase Functions**: API server deployment
-- **Chrome Web Store**: Manual submission workflow
+- **Firebase Hosting**: web application, per-environment (`firebase-hosting-dev.yml`/`-staging.yml`/`-merge.yml`, plus `master-pipeline.yml`'s own hosting deploy for staging/main)
+- **Firebase Functions**: deployed via the reusable `firebase-deploy-local.yml`, called from `master-pipeline.yml` for staging/main
+- **Android**: Play Store internal track only
+- **iOS**: TestFlight only (App Store submission is manual)
+- **Chrome Web Store**: only on the `build_and_deploy` manual dispatch action
+
+### Functions Companion-Repo Checkout
+
+`packages/functions/` is gitignored in this repo — real function source lives in the private repo `NelsonGrey/wishlist-wizard-functions`. Before any job builds, tests, or deploys functions, it checks out that repo into `packages/functions/` using the `FUNCTIONS_REPO_PAT` secret. This happens in `master-pipeline.yml`'s `test` and `build-web` jobs, in the reusable `firebase-deploy-local.yml`, and in `release-readiness-gate.yml`. If you're debugging a functions-related CI failure and don't see this checkout step, that's the first thing to check.
 
 ## 🔧 Setup Instructions
 
@@ -67,22 +77,29 @@ CHROME_REFRESH_TOKEN=your_chrome_refresh_token
 
 ### 2. Environment Variables
 
-#### Firebase Environment Variables
-Set these in your Firebase Functions configuration:
+There is no Postgres database or `DATABASE_URL`/`JWT_SECRET` in this stack — those are dead references to a retired Express+Postgres backend. Auth is entirely Firebase Auth-managed (including password policy, read live via `validatePassword()`), and Functions are Firebase callable functions from the companion repo.
+
+#### Web App Environment Variables (Vite, build-time)
+Set these per environment (suffixed `_DEVELOPMENT`/`_STAGING`/`_PRODUCTION`, with unsuffixed `VITE_FIREBASE_*` as a fallback), consumed in `packages/web/client-src/lib/firebase.ts`:
 ```
-NODE_ENV=production
-DATABASE_URL=your_postgresql_connection_string
-FIREBASE_PROJECT_ID=your_project_id
-JWT_SECRET=your_jwt_secret
+VITE_FIREBASE_API_KEY
+VITE_FIREBASE_AUTH_DOMAIN
+VITE_FIREBASE_PROJECT_ID
+VITE_FIREBASE_STORAGE_BUCKET
+VITE_FIREBASE_MESSAGING_SENDER_ID
+VITE_FIREBASE_APP_ID
+VITE_FIREBASE_MEASUREMENT_ID
+VITE_FIREBASE_APPCHECK_SITE_KEY      # reCAPTCHA v3 site key — App Check is enforced server-side
+VITE_FIREBASE_APPCHECK_DEBUG_TOKEN   # dev-only, for local/E2E runs
 ```
 
-#### Web App Environment Variables
-Set these in your Firebase Hosting configuration or build process:
+There is no `VITE_API_URL` — the web app talks to Firebase directly (Auth, Firestore, callable Functions), not a separate REST API host.
+
+#### GitHub Actions Secrets
+Set in `Settings > Secrets and variables > Actions`:
 ```
-VITE_API_URL=https://api.wishlist-wizard-prod.web.app
-VITE_FIREBASE_API_KEY=your_firebase_api_key
-VITE_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
-VITE_FIREBASE_PROJECT_ID=your_project_id
+FIREBASE_SERVICE_ACCOUNT_KEY_WISHLIST_WIZARD   # Firebase deploy auth
+FUNCTIONS_REPO_PAT                              # read access to NelsonGrey/wishlist-wizard-functions
 ```
 
 ## 📋 Manual Deployment
@@ -126,9 +143,13 @@ npm run build
 firebase deploy --only hosting
 ```
 
-#### API Server to Firebase Functions
+#### Firebase Functions
+
+`packages/functions/` is gitignored — clone the companion repo into place first:
 ```bash
+git clone https://github.com/NelsonGrey/wishlist-wizard-functions.git packages/functions
 cd packages/functions
+npm ci
 npm run build
 firebase deploy --only functions
 ```
