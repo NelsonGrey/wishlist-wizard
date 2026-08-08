@@ -185,7 +185,15 @@ let firebaseConfig = {
     import.meta.env.VITE_FIREBASE_APPCHECK_SITE_KEY_PRODUCTION,
     import.meta.env.VITE_FIREBASE_APPCHECK_SITE_KEY
   ) || undefined,
-  appCheckDebugToken: (import.meta.env.DEV && import.meta.env.VITE_FIREBASE_APPCHECK_DEBUG_TOKEN) || undefined,
+  // Deliberately NOT gated on import.meta.env.DEV (Vite's local-dev-server
+  // flag) — that's false in every deployed bundle, including the dev
+  // project's own deployed build, which is exactly what the automated E2E
+  // suite hits (a real reCAPTCHA v3 challenge reliably gets scored as bot
+  // traffic and rejected server-side for a headless browser, see the T1.4
+  // Create Wishlist CI failure this fixed). Safe to leave ungated: the value
+  // only exists at all when a build's own env explicitly sets it, which
+  // must never happen for the production build.
+  appCheckDebugToken: import.meta.env.VITE_FIREBASE_APPCHECK_DEBUG_TOKEN || undefined,
 };
 
 function mergeWithRuntimeFirebaseConfig(runtimeConfig: Record<string, unknown>) {
