@@ -446,8 +446,8 @@
       "id": "tooling-database-migration",
       "section": "11. Build & Tooling",
       "requirement": "Database Migration",
-      "enforced": true,
-      "verificationStatus": "verified",
+      "enforced": false,
+      "verificationStatus": "not-applicable",
       "persona": "Occasion Coordinator",
       "flow": "Flow 6: Group Gifting Coordination",
       "designRef": "docs/PRODUCT_DESIGN.md#flow-6-group-gifting-coordination",
@@ -456,7 +456,8 @@
         "npm run db:push",
         "drizzle.config.ts"
       ],
-      "lastVerifiedAt": "2026-02-27"
+      "lastVerifiedAt": "2026-02-27",
+      "note": "Firestore is schemaless; there is no relational-migration concept in the current Firebase-first architecture. The original evidence (npm run db:push, drizzle.config.ts) described the pre-2025-10-16 Postgres/Drizzle backend, which no longer exists. Unenforced 2026-08-08 rather than marked falsely \u2705 in docs/REQUIREMENTS.md."
     },
     {
       "id": "tooling-lint-type-check",
