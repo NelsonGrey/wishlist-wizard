@@ -1,9 +1,39 @@
 # Achievements & Rewards Design
 
-**Updated**: 2026-07-22
-**Status**: Design only — not yet implemented
+**Updated**: 2026-07-22 (design) / 2026-07-23 (as-built notes added)
+**Status**: ✅ Implemented (v1 shipped 2026-07-23, emulator-verified). This document is the original design;
+see "As-Built (2026-07-23)" immediately below for what actually shipped and where it diverged from this
+design.
 **Owner**: Mark Nelson
 **Supersedes**: the mock `ACHIEVEMENTS` array in `packages/web/client-src/lib/achievements.ts` and the fake `profile.stats` shown on `UserProfile.tsx`. See [[project_achievements_program_todo]] for the prior deferral decision this design fulfills.
+
+## As-Built (2026-07-23)
+
+v1 shipped exactly the slice this design's own "Open decisions #5" recommended: 7 Foundation achievements +
+Tracker + Extension Power User + Gift Giver + Well-Loved + Sharer (12 total). Real computed-on-read backend
+at `GET /api/achievements` (`packages/functions/src/api/achievements.ts`), web hook
+`hooks/use-achievements.ts`, page at `/app/achievements`. Reward surface (Trophy Case, tier badges) shipped
+in `UserProfile.tsx`. Still deferred, not yet built: Bargain Hunter, Wishlist Builder, Group Organizer,
+Chip In, Collaborator, and the Creator track.
+
+Three deltas from this design that only surfaced during implementation:
+
+1. **Connected / Extension Power User backing data didn't actually exist.** This doc's Foundation table
+   (below) claims `Connected` is backed by "first `extensionAnalytics` doc for the uid, real," and the Depth
+   table claims Extension Power User's `totalItems` is "already computed server-side" — both were wrong. The
+   real shipped browser extension never wrote anything these two achievements could read. Fixed by tagging
+   extension-added items with `source: 'extension'` in `extensionAddItem`
+   (`packages/functions/src/api/http-extension.ts`) and counting via a `wishlistItems` query instead.
+2. **Routing constraint this design never anticipated.** Implementation had to route through the existing
+   `api` HTTP router (`GET /api/achievements`) instead of a standalone `onCall` function, because a Domain
+   Restricted Sharing org policy blocks granting a new `allUsers` Cloud Run invoker binding. Any future
+   achievement-related endpoint should go through the router from the start.
+3. **"Never regress" became codified policy, not just a Wishlist-Builder-specific note.** This doc's
+   "Wishlist Builder must be lifetime, not current-active" note (below) shows the regression risk was known
+   in general, but it was never written up as a resolved, app-wide policy until implementation:
+   `mergeWithPrevious` (`packages/functions/src/api/achievements.ts`) takes `Math.max(prior.tier, state.tier)`
+   for every achievement, not just Wishlist Builder — an earned achievement or tier can never be taken away
+   on a later recompute.
 
 ## Definitions
 

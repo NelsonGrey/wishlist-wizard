@@ -1,8 +1,16 @@
 # Deliverable Component Completion Matrix
 
-**Version**: 1.1  
-**Last Updated**: May 8, 2026  
+**Version**: 1.2  
+**Last Updated**: August 8, 2026  
 **Purpose**: Single execution tracker for the 3 production deliverables.
+
+### Recent Updates (July-August 2026)
+- **Affiliate/creator payout backend + creator dashboard shipped** (2026-07-21): commission ledger state machine, Stripe Connect Express payouts, tier-gated creator dashboard, `/admin/affiliate` tooling.
+- **Achievements v1 shipped** (2026-07-23): real computed-on-read backend, never-regress semantics, `/app/achievements`.
+- **`packages/functions` extracted to a private companion repo** (2026-07-17): `NelsonGrey/wishlist-wizard-functions`. Local `packages/functions/` is now gitignored.
+- **All public-invoker-requiring callables migrated to the `api` HTTP router** (~2026-07-23), due to an org policy blocking new `allUsers` Cloud Run invoker bindings.
+- **Mobile native IAP, real AdMob App IDs, App Store Connect/Play Console subscription scripts, Firebase Auth password policy, account/data deletion** all shipped 2026-07 through 2026-08-06.
+- **1280px content confinement + CRUD toolset wording standard** applied app-wide (2026-07-23).
 
 ### Recent Updates (May 6-8, 2026)
 - **CI/CD Consolidation Complete**: Production smoke unified into reusable workflow; master-pipeline simplified (84 lines removed); test command standardized for monorepo (`npm run test --workspaces --if-present`).
@@ -61,7 +69,11 @@ A component is ✅ only when all are true:
 | Notification dropdown interactions | ✅ | Dropdown render, event handling, Radix UI portal behavior stabilized via testid-based queries | Continue refining dropdown state coverage | packages/web/client-src/test/components/NotificationDropdown.test.tsx (7 passing) |
 | Privacy controls | ✅ | Production-facing controls present (demo action removed) | Add smoke tests for key toggles | packages/web/client-src/components/privacy/PrivacyControls.tsx |
 | Price tracking surfaces | ✅ | Price drop/volatility loading, empty, and populated states are validated with dedicated tests; WishlistCard interactions stabilized | Continue monitoring backend signal quality in production | packages/web/client-src/pages/PriceTracking.tsx; packages/web/client-src/test/components/PriceTracking.test.tsx (3 passing); packages/web/client-src/test/components/wishlist/WishlistCard.test.tsx (7 passing) |
-| Navigation/layout integrity | ✅ | Single-shell ownership spec and cleanup completed; password-gate behavior locked in | Run routing smoke tests on every nav PR | packages/web/client-src/AppRouter.test.tsx (19 passing) |
+| Affiliate/creator payout backend + creator dashboard | ✅ | Commission ledger state machine (Tracked→Pending→Approved→Payable→Paid, Reversed), Stripe Connect Express payouts, tier-gated creator dashboard, admin tooling; deployed to wishlist-wizard-dev, live-verified via free-tier 403 UpgradePrompt against real deployed backend | Get admin/creator-tier live verification with real credentials (currently emulator-verified pre-deploy only) | packages/functions/src/api/commissionLedger.ts, payouts.ts, creatorPayoutAccount.ts, creatorTracking.ts, affiliateReconciliation.ts; packages/web/client-src/pages/admin/AffiliateAdmin.tsx; components/creator-dashboard/* |
+| Achievements v1 | ✅ | Real computed-on-read achievements backend (12 achievements: Foundation, Tracker, Extension Power User, Gift Giver, Well-Loved, Sharer); merge-never-regress semantics; served via `GET /api/achievements` through the api router | Extend to remaining deferred achievements (Bargain Hunter, Wishlist Builder, Group Organizer, Chip In, Collaborator, Creator track) | packages/functions/src/api/achievements.ts; packages/web/client-src/pages/AchievementsGuide.tsx; packages/shared/src/achievements.ts |
+| Account/data deletion | ✅ | Real account and data deletion wired into web UI | Verify mobile deletion path end-to-end on device | packages/web/client-src (account deletion flow); commit 2299930 |
+| Firebase Auth password policy | ✅ | Live enforcement via Firebase Auth `validatePassword()`; password reset via Firebase `verifyPasswordResetCode`/`confirmPasswordReset` | — | packages/web/client-src/lib/firebase.ts; commits fd247eb, 6c6f3d4 |
+| Navigation/layout integrity | ✅ | Single-shell ownership spec and cleanup completed; password-gate behavior locked in; 1280px content confinement (white outside, header/footer exempt) and CRUD toolset wording standard applied app-wide (2026-07-23) | Run routing smoke tests on every nav PR | packages/web/client-src/AppRouter.test.tsx (19 passing); packages/web/client-src/components/layout/AppLayout.tsx, AuthLayout.tsx |
 | Demo/placeholder route removal | ✅ | Demo routes/pages removed from production router | Prevent reintroduction via PR checklist | packages/web/client-src/AppRouter.tsx |
 | React Query + Radix UI test mocking | ✅ | Hoisted mock pattern stabilizes all React Query hooks; Radix dropdown tests use testid queries | Keep hoisted pattern as template for new React Query tests | packages/web/client-src/test/components/NotificationsPage.test.tsx (hoisted pattern documented); packages/web/client-src/test/components/NotificationDropdown.test.tsx (Radix mocking pattern) |
 
@@ -80,6 +92,9 @@ A component is ✅ only when all are true:
 | Notification deep-link routing | ✅ | Item-first resolution, wishlist fallback, query/path parsing, parser tests | routing logic validated by deeplink tests | packages/mobile/test/dialog_and_notification_validation_test.dart (deep-link routing tests); packages/mobile/test/notification_deeplink_parser_test.dart |
 | Push delivery pipeline (end-to-end) | 🟡 | Client-side handling exists; server-side price-alert push dispatch is now wired through centralized FCM utility with transient retry handling | Validate delivery on real devices and confirm retry behavior in telemetry | packages/mobile/lib/services/fcm_service.dart; packages/functions/src/firebase-price-tracking.ts; packages/functions/src/fcm.ts |
 | Native release pipelines (iOS/Android) | 🟡 | CI/docs are in place and local release artifacts now build (`app-release.apk`, `Runner.app` no-codesign), but store submission evidence remains process-driven | Execute and record `docs/MOBILE_RELEASE_CHECKLIST.md` per release | docs/IOS_DOCUMENTATION_INDEX.md; docs/MOBILE_RELEASE_CHECKLIST.md; docs/DELIVERABLE_EXECUTION_LOG_2026-02-20.md |
+| Native in-app purchases (StoreKit/Play Billing) | ✅ | Replaced Stripe checkout on mobile with native IAP | Verify a live purchase round-trip on real devices | commit ab09174 |
+| Real AdMob App IDs (iOS/Android) | ✅ | Real production AdMob App IDs wired for both platforms (previously placeholder/test IDs) | Monitor live ad fill/revenue | commits c60c204, 5a11659, 15c8ee8 |
+| App Store Connect / Play Console subscription mgmt scripts | ✅ | Scripted subscription status/draft management via ASC + Play Console APIs | — | commits ace3086, e84b1b1 |
 
 ---
 

@@ -1070,3 +1070,244 @@ The `/users/{uid}` document gains the following fields:
 
 > **Denormalization note**: `subscriptionTier` and `subscriptionStatus` are denormalized onto the user document so that a single Firestore read at login populates both profile and tier. The canonical source of truth remains `/subscriptions/{uid}`, updated by Stripe webhooks.
 
+---
+
+## 🎯 Creator Affiliate Attribution Collections (Added July 2026)
+
+> Verified against `packages/functions/src/api/creatorTracking.ts` in a local clone of the (gitignored, externally-sourced) `packages/functions` directory — see the note in [SYSTEM_ARCHITECTURE.md](SYSTEM_ARCHITECTURE.md) section 2.1.
+
+**Purpose**: Per-creator affiliate attribution. Previously every outbound affiliate link was tagged with one platform-wide tracking ID per network, so a retailer's conversion report could only tell us "Wishlist Wizard earned $X" — never which creator's wishlist drove the sale. These collections assign each creator their own tracking tag per network so a report row can be joined back to a `creatorUserId`.
+
+### AffiliateTrackingIdPool Collection
+
+**Path**: `/affiliateTrackingIdPool/{network}` with a subcollection `/affiliateTrackingIdPool/{network}/ids/{poolIdDocId}`
+
+**Purpose**: Admin-managed pool of pre-created tracking IDs for networks (like Amazon Associates) whose Tracking IDs must be pre-created in the network's own console — there's no public API to mint them, and they're capped (~100/account for Amazon by default) — so assignment draws from this pool rather than generating tags on demand.
+
+```typescript
+// /affiliateTrackingIdPool/{network} (parent doc)
+interface AffiliateTrackingIdPoolDocument {
+  network: string;
+  updatedAt: Timestamp;
+}
+
+// /affiliateTrackingIdPool/{network}/ids/{poolIdDocId}
+interface AffiliateTrackingIdPoolEntry {
+  trackingId: string;
+  network: string;
+  status: 'available' | 'assigned';
+  assignedToUid: string | null;
+  assignedAt: Timestamp | null;
+  addedBy: string;                        // Admin UID
+  createdAt: Timestamp;
+}
+```
+
+**Note**: Networks with `trackingTagStrategy: 'free_form_subid'` can mint a tag on the fly (the creator's own UID) with no pool needed — not exercised by any configured network today (only Amazon Associates is live), but the assignment code path supports it.
+
+### CreatorAffiliateTrackingIds Collection
+
+**Path**: `/creatorAffiliateTrackingIds/{creatorUid}_{network}`
+
+**Purpose**: A creator's assigned tracking tag for a given network. Doc ID is deterministic (`${creatorUid}_${network}`) so assignment is naturally idempotent — a creator requesting a tag twice for the same network gets back the existing assignment rather than a second one.
+
+```typescript
+interface CreatorAffiliateTrackingIdDocument {
+  creatorUid: string;
+  network: string;
+  trackingTag: string;
+  poolIdRef: string | null;               // Firestore path into affiliateTrackingIdPool, or null for free_form_subid networks
+  assignedAt: Timestamp;
+}
+```
+
+---
+
+## 💵 Commission Ledger Collections (Added July 2026)
+
+> Verified against `packages/functions/src/api/commissionLedger.ts` in a local clone of `packages/functions`.
+
+**Purpose**: The financial record of record for affiliate commissions earned by creators. A ledger entry moves through a state machine as reconciliation reports come in and payouts run:
+
+```
+Tracked -> Pending -> Approved -> Payable -> Paid
+               \          \          \         \
+                -----------+----------+---------+--> Reversed
+```
+
+An entry is born at `Pending` or `Approved` when a reconciliation report first shows evidence of an order — never at `Tracked` (which would mean minting a row per click; 98%+ of clicks never convert, so click-level tracking lives in a separate `affiliateClicks` collection, not this financial ledger). `Tracked` stays in the state enum for schema completeness against a future network offering real-time postbacks.
+
+Ledger entries are never mutated once `Approved`+ except by the state machine itself; corrections are always a separate `commissionAdjustments` document — this keeps a post-payout clawback safe (the original entry stays `Paid`, because it was) and makes re-importing the same or an overlapping report file idempotent rather than silently double-counting or overwriting history.
+
+### CommissionLedger Collection
+
+**Path**: `/commissionLedger/{ledgerEntryId}` — `ledgerEntryId` is deterministic: `${network}:${trackingTag}:${networkOrderId}:${networkOrderItemId ?? 'default'}` (slashes sanitized), which is what makes report re-imports idempotent.
+
+```typescript
+type CommissionLedgerState = 'Tracked' | 'Pending' | 'Approved' | 'Payable' | 'Paid' | 'Reversed';
+
+interface CommissionLedgerEntry {
+  network: string;
+  trackingTag: string;
+  creatorUserId: string;
+  clickId: string | null;
+  wishlistId: string | null;
+  wishlistItemId: string | null;
+
+  networkOrderId: string;
+  networkOrderItemId: string | null;
+  networkReportedStatus: string;
+  saleAmountUsd: number | null;
+  currency: string;
+
+  estimatedCommissionUsd: number;
+  estimatedCommissionRate: number;
+  actualCommissionUsd: number | null;
+  actualCommissionRate: number | null;
+
+  creatorShareRateAtEarn: number;         // Snapshot of the tier's commission share at the moment the entry was earned
+  creatorTierAtEarn: SubscriptionTier;
+  creatorCommissionUsd: number | null;
+
+  state: CommissionLedgerState;
+  trackedAt: Timestamp | null;
+  pendingAt: Timestamp | null;
+  approvedAt: Timestamp | null;
+  payableAt: Timestamp | null;
+  paidAt: Timestamp | null;
+  reversedAt: Timestamp | null;
+
+  holdUntil: Timestamp | null;            // Network-specific return/chargeback hold period before an entry can advance to Payable
+  fraudFlags: string[];
+
+  payoutBatchId: string | null;           // Set once grouped into a /payoutBatches/{id}
+  stripeTransferId: string | null;
+
+  hasReversal: boolean;
+  netCreatorCommissionUsd: number | null; // creatorCommissionUsd net of any commissionAdjustments
+
+  source: 'network_report_import' | 'manual_admin_adjustment';
+  importBatchId: string | null;
+  rawReportRow: Record<string, unknown>;  // Original report row, retained for audit/dispute
+
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+```
+
+### CommissionAdjustments Collection
+
+**Path**: `/commissionAdjustments/{adjustmentId}`
+
+**Purpose**: Append-only corrections against an existing `commissionLedger` entry (returns, chargebacks, fraud holds, manual/network corrections). Never overwrites the original entry — this is what makes a clawback after payout safe to represent.
+
+```typescript
+interface CommissionAdjustment {
+  originalLedgerEntryId: string;
+  creatorUserId: string;
+  type: 'return' | 'chargeback' | 'fraud_hold' | 'manual_correction' | 'network_correction';
+  amountUsd: number;
+  reasonCode: string;
+  reasonNote: string | null;
+  createdBy: string;
+  importBatchId: string | null;
+  createdAt: Timestamp;
+}
+```
+
+**Admin callables**: `commissionApprove`, `commissionFlagFraud`, `commissionAdjustmentCreate` (via the `api` router). Creator-facing reads: `creatorCommissionDashboardSummary`, `creatorCommissionLedgerList`, `creatorAdjustmentsList` (also via the router).
+
+---
+
+## 🏦 Payout Batches & Creator Payout Accounts (Added July 2026)
+
+> Verified against `packages/functions/src/api/payouts.ts` and `packages/functions/src/api/creatorPayoutAccount.ts` in a local clone of `packages/functions`. This repo's DATABASE_SCHEMA.md previously had no `creatorPayoutAccounts` entry at all (not just a missing field) — documented here in full rather than as a delta.
+
+### PayoutBatches Collection
+
+**Path**: `/payoutBatches/{batchId}` with a subcollection `/payoutBatches/{batchId}/items/{ledgerEntryId}`
+
+**Purpose**: Groups a creator's `Payable` commission ledger entries into one Stripe Connect transfer per run. Batches are one-per-creator-per-run (not one multi-destination transfer) so one restricted/failed Connect account never blocks anyone else's payout.
+
+```typescript
+interface PayoutBatchDocument {
+  creatorUserId: string;
+  runId: string;                          // Groups all batches created by the same scheduled run
+  periodLabel: string;                    // "YYYY-MM"
+  state: 'Queued' | 'Processing' | 'Completed' | 'Failed';
+  totalAmountUsd: number;                 // Net of any outstanding clawback balance applied at batch creation
+  currency: 'USD';
+  stripeConnectedAccountId: string;
+  stripeTransferId: string | null;
+  stripeIdempotencyKey: string;           // `${batchId}:1`
+  failureReason: string | null;
+  initiatedBy: string;                    // UID (admin) or 'scheduler'
+  createdAt: Timestamp;
+  processingStartedAt: Timestamp | null;
+  completedAt: Timestamp | null;
+}
+
+// /payoutBatches/{batchId}/items/{ledgerEntryId}
+interface PayoutBatchItem {
+  ledgerEntryId: string;
+  amountUsd: number;
+}
+```
+
+**Eligibility gate** (checked before a batch is created): the creator's `creatorPayoutAccounts` doc must have `payoutsEnabled: true` and a `stripeConnectedAccountId`; the creator's tier must have `creatorDashboardEnabled`; and `totalAmountUsd` (after subtracting `outstandingClawbackBalanceUsd`) must meet `minimumPayoutThresholdUsd` (default $25). If not eligible, entries simply stay `Payable`, unbatched, for the next run — never silently dropped.
+
+**Callables**: `processPayoutBatch`, `creatorPayoutHistory`, `adminPayoutBatchList` (via the `api` router); `scheduledPayoutBatchRun` stays a standalone scheduled trigger (not client-callable).
+
+### CreatorPayoutAccounts Collection
+
+**Path**: `/creatorPayoutAccounts/{uid}`
+
+**Purpose**: Mirrors the handful of Stripe Connect Express account status fields the payout batch eligibility gate needs. Stripe's own hosted onboarding collects identity verification and tax forms (W-9/W-8BEN); nothing here re-implements that.
+
+```typescript
+interface CreatorPayoutAccountDocument {
+  creatorUserId: string;
+  stripeConnectedAccountId: string;
+  stripeAccountStatus: string;            // e.g. 'onboarding_incomplete'; kept in sync by stripeWebhook.ts's account.updated handler
+  payoutsEnabled: boolean;
+  requirementsCurrentlyDue: string[];
+  taxFormStatus: string;                  // e.g. 'not_started' — exact enum not independently verified beyond this default
+  fraudReviewStatus: string;              // e.g. 'clear' — exact enum not independently verified beyond this default
+  minimumPayoutThresholdUsd: number;      // Default 25
+  outstandingClawbackBalanceUsd: number;  // Net negative adjustments not yet recovered from a prior payout; applied against the next eligible batch, then reset to 0
+  lastEligibilityCheckAt: Timestamp;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+```
+
+**Callables**: `creatorConnectAccountCreate`, `creatorConnectOnboardingLink`, `creatorConnectAccountStatus` (via the `api` router).
+
+---
+
+## 🏆 Achievements Collection (Added July 2026)
+
+> Verified against `packages/functions/src/api/achievements.ts` in a local clone of `packages/functions`.
+
+### UserAchievements Collection
+
+**Path**: `/userAchievements/{uid}`
+
+**Purpose**: Computed-on-read cache for the Achievements & Rewards feature. `getUserAchievements` serves this cache and only recomputes when it's missing or stale (>1 hour old). Recomputation reads every achievement's real data source (wishlist counts, price alerts, extension usage, etc.) and **merges** the result with whatever was already earned — so an achievement never regresses even if the underlying signal later drops (e.g. a user deletes their only wishlist, or disables push notifications, after already earning the achievement for it).
+
+```typescript
+interface UserAchievementsDocument {
+  uid: string;
+  achievements: Record<string, AchievementState>;
+  computedAt: Timestamp;
+}
+
+interface AchievementState {
+  earned: boolean;
+  tier: number;    // 0 = not earned. Tiered achievements: 1-5 (Apprentice..Wizard). One-time achievements: 1 once earned.
+  count: number;    // Raw current count backing a tiered achievement's progress display. Always 0 for one-time achievements.
+}
+```
+
+**Access pattern**: Not a standalone `onCall` function — `getUserAchievements` is a plain function routed through the `api` HTTP router at `GET /api/achievements`, same org-policy reason as the rest of the router-dispatched surface.
+

@@ -26,25 +26,28 @@ This document outlines the infrastructure setup, deployment strategies, monitori
 ### Multi-Environment Architecture
 
 ```
-┌──────────────────────────────────────────────────────┐
-│                    Staging Environment                │
-├──────────────────────────────────────────────────────┤
-│ Firebase Project: wishlist-wizard-staging             │
-│ Database: wishlist_wizard_staging                     │
-│ URL: https://staging.wishlist-wizard.com              │
-│ Branch: develop                                        │
-└──────────────────────────────────────────────────────┘
+Development Environment
+  Firebase Project: wishlist-wizard-dev
+  URL:              https://wishlist-wizard-dev.web.app
+  Branch:           develop
+  Deploy path:      firebase-hosting-dev.yml only (Hosting only;
+                     does NOT trigger master-pipeline.yml / Functions)
 
-┌──────────────────────────────────────────────────────┐
-│                   Production Environment              │
-├──────────────────────────────────────────────────────┤
-│ Firebase Project: wishlist-wizard-prod                │
-│ Database: wishlist_wizard_prod                        │
-│ URL: https://wishlist-wizard.com                      │
-│ Branch: main                                          │
-│ Backup: Daily automated backups                       │
-│ Redundancy: Multi-region with failover                │
-└──────────────────────────────────────────────────────┘
+Staging Environment
+  Firebase Project: wishlist-wizard-staging
+  URL:              https://wishlist-wizard-staging.web.app
+  Branch:           staging
+  Deploy path:      firebase-hosting-staging.yml (Hosting) +
+                     master-pipeline.yml (Functions, Android internal
+                     track, iOS TestFlight "Staging" group)
+
+Production Environment
+  Firebase Project: wishlist-wizard-prod
+  URL:              https://wishlist-wizard.com / wishlist-wizard-prod.web.app
+  Branch:           main
+  Deploy path:      firebase-hosting-merge.yml (Hosting) +
+                     master-pipeline.yml (Functions, Android internal
+                     track, iOS TestFlight "Beta Testers" group)
 ```
 
 ---
@@ -53,60 +56,22 @@ This document outlines the infrastructure setup, deployment strategies, monitori
 
 ### Automatic Deployments
 
-**Development/Staging** (On push to develop):
-```yaml
-# .github/workflows/deploy-staging.yml
-on:
-  push:
-    branches: [develop]
+All automatic deployment runs on **GitHub-hosted runners** through GitHub Actions — there are no self-hosted runners in this repository. The real workflow files (in `.github/workflows/`) are:
 
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
+| File | Trigger | What it does |
+|------|---------|---------------|
+| `master-pipeline.yml` | `push` to `staging`/`main` (path-filtered), `pull_request`, `workflow_dispatch` | Build/test/quality-gate, then deploys Firebase Functions + Hosting, Android (Play Store internal track), iOS (TestFlight); Chrome extension publish only on the `build_and_deploy` dispatch action |
+| `firebase-hosting-dev.yml` | `push` to `develop` | Deploys web app to Firebase Hosting on the dev project (this is `develop`'s only automatic deploy — it does **not** run `master-pipeline.yml`) |
+| `firebase-hosting-staging.yml` | `push` to `staging` | Deploys web app to Firebase Hosting on the staging project |
+| `firebase-hosting-merge.yml` | `push` to `main` | Deploys web app to Firebase Hosting on the production project |
+| `firebase-deploy-local.yml` | `workflow_call` (reusable) | Checks out the functions companion repo and deploys Firebase Functions |
+| `release-readiness-gate.yml` | `workflow_dispatch` (manual) | Pre-launch readiness gate, run deliberately before a production release |
 
-      - run: npm install
-      - run: npm run build
-      - run: npm run test
+`master-pipeline.yml` maps branches to environments: `refs/heads/main` → `production`, `refs/heads/staging` → `staging`. `develop` is deliberately excluded from that workflow's push trigger, so it never drives a Functions deploy automatically — only the lighter-weight Hosting-only deploy above.
 
-      - name: Deploy to Firebase Staging
-        run: firebase deploy --project wishlist-wizard-staging
-```
+**Important**: `packages/functions/` is gitignored in this repo. The real function source lives in the private companion repo `NelsonGrey/wishlist-wizard-functions`. Any job that builds/tests/deploys functions (in `master-pipeline.yml`'s `test` and `build-web` jobs, `firebase-deploy-local.yml`, and `release-readiness-gate.yml`) checks out that companion repo into `packages/functions/` first, using the `FUNCTIONS_REPO_PAT` secret, before running `npm ci`.
 
-**Production** (On push to main or via release):
-```yaml
-# .github/workflows/deploy-production.yml
-on:
-  push:
-    branches: [main]
-  workflow_dispatch:
-
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
-    environment: production
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
-
-      - run: npm install
-      - run: npm run build
-      - run: npm run test
-      - run: npm run test:e2e
-
-      - name: Create Release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Deploy to Firebase Production
-        run: |
-          firebase deploy \
-            --project wishlist-wizard-prod \
-            --token ${{ secrets.FIREBASE_TOKEN }}
-```
+See `docs/CICD_SETUP_GUIDE.md` for the complete workflow list and gate set.
 
 ### Manual Deployment
 
@@ -116,19 +81,14 @@ jobs:
 firebase deploy --project wishlist-wizard-staging
 
 # Deploy specific services
-firebase deploy:hosting --project wishlist-wizard-staging
-firebase deploy:functions --project wishlist-wizard-staging
+firebase deploy --only hosting --project wishlist-wizard-staging
+firebase deploy --only functions --project wishlist-wizard-staging
 
 # Deploy to production
 firebase deploy --project wishlist-wizard-prod
 ```
 
-**Using deployment script**:
-```bash
-./scripts/deploy.sh staging    # Deploy to staging
-./scripts/deploy.sh production # Deploy to production
-./scripts/deploy.sh rollback   # Rollback to previous version
-```
+For a local Functions deploy, clone the companion repo into `packages/functions/` first (see `docs/DEPLOYMENT.md`) — there is no `./scripts/deploy.sh` wrapper script in this repository.
 
 ---
 
@@ -454,108 +414,18 @@ gcloud secrets versions add api-key --data-file=new_secret.txt
 
 ### CI/CD Configuration
 
-**.github/workflows/ci.yml**:
-```yaml
-name: CI/CD Pipeline
+There is no `.github/workflows/ci.yml` in this repository, and no `postgres` service container in any workflow (the app has no Postgres dependency). The real gate set that runs on pushes/PRs is:
 
-on:
-  push:
-    branches: [develop, main]
-  pull_request:
-    branches: [develop, main]
+1. **Secret Scan** (`secret-scan.yml`) — gitleaks scan on `push`/`pull_request` to `main`/`staging`/`develop`
+2. **CodeQL** (`codeql.yml`) — static analysis on `push`/`pull_request` plus a weekly schedule
+3. **Master CI/CD Pipeline** (`master-pipeline.yml`) — lint/type-check/test/build via its `test` and `quality-gate` jobs, on `pull_request` (all three branches) and `push` (`staging`/`main`)
+4. **CI Gate Auto-Approve** (`ci-gate-approve.yml`) — auto-approves the PR once `master-pipeline.yml` succeeds for its head SHA
+5. **Production Validation** (`production-validation.yml`) — runs automatically after a production deploy inside `master-pipeline.yml`
+6. **Release Readiness Gate** (`release-readiness-gate.yml`) — manual pre-launch gate, `workflow_dispatch` only
 
-jobs:
-  lint-and-test:
-    runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:15
-        env:
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: test
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
+Deployment (not just test/build) happens inside `master-pipeline.yml` itself rather than a separate `deploy-staging`/`deploy-production` job file — see the workflow table above for the branch → environment mapping and the App Check/Functions companion-repo prerequisites.
 
-    steps:
-      - uses: actions/checkout@v3
-
-      - uses: actions/setup-node@v3
-        with:
-          node-version: '20'
-          cache: 'npm'
-
-      - run: npm install
-
-      - run: npm run lint
-      - run: npm run type-check
-      - run: npm run test -- --coverage
-
-      - uses: codecov/codecov-action@v3
-        if: always()
-
-      - run: npm run build
-
-      - name: Run E2E Tests
-        run: npm run test:e2e
-        if: github.event_name == 'push'
-
-  deploy-staging:
-    needs: lint-and-test
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/develop'
-
-    steps:
-      - uses: actions/checkout@v3
-      - run: npm install
-      - run: npm run build
-
-      - name: Deploy to Firebase Staging
-        run: |
-          firebase deploy \
-            --project wishlist-wizard-staging \
-            --token ${{ secrets.FIREBASE_TOKEN }}
-
-  deploy-production:
-    needs: lint-and-test
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
-    environment: production
-
-    steps:
-      - uses: actions/checkout@v3
-      - run: npm install
-      - run: npm run build
-
-      - name: Deploy to Firebase Production
-        run: |
-          firebase deploy \
-            --project wishlist-wizard-prod \
-            --token ${{ secrets.FIREBASE_TOKEN }}
-
-      - name: Notify Slack
-        uses: slackapi/slack-github-action@v1.24.0
-        with:
-          webhook-url: ${{ secrets.SLACK_WEBHOOK }}
-          payload: |
-            {
-              "text": "✅ Production deployment successful",
-              "attachments": [
-                {
-                  "color": "good",
-                  "fields": [
-                    {
-                      "title": "Commit",
-                      "value": "${{ github.sha }}",
-                      "short": true
-                    }
-                  ]
-                }
-              ]
-            }
-```
+App Check enforcement (reCAPTCHA v3, wired via `VITE_FIREBASE_APPCHECK_SITE_KEY`) is live on all three web Hosting deploy paths and on iOS; Android has App Check code in place but is unverified pending a test device. Password policy is not something CI enforces or configures — the app reads Firebase Auth's live password policy at runtime via `validatePassword()` (`packages/web/client-src/lib/firebase.ts`) rather than hard-coding rules in application code.
 
 ---
 
