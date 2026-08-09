@@ -2,6 +2,15 @@ name: "Master CI/CD Pipeline"
 
 permissions:
   contents: read
+  # Needed so deploy-firebase can pass an OIDC token to the reusable
+  # firebase-deploy-local.yml workflow for Workload Identity Federation
+  # (replaces deprecated `firebase deploy --token` auth). Only actually
+  # exercised by that one job; granting it workflow-wide (rather than at
+  # job level) sidesteps an observed GitHub Actions quirk where adding a
+  # job-level `permissions:` block to deploy-firebase made its `if:`
+  # (referencing needs.*.outputs) stop evaluating true, for reasons not
+  # fully root-caused.
+  id-token: write
 
 on:
   workflow_dispatch:
@@ -867,9 +876,6 @@ jobs:
     name: Deploy Firebase
     needs: [load-config, build-web]
     if: ${{ needs.load-config.outputs.firebase_enabled == 'true' && (needs.load-config.outputs.trigger_context == 'build_and_deploy' || needs.load-config.outputs.trigger_context == 'deploy_only') }}
-    permissions:
-      contents: read
-      id-token: write
     uses: ./.github/workflows/firebase-deploy-local.yml
     with:
       project_name: ${{ needs.load-config.outputs.project_name }}
