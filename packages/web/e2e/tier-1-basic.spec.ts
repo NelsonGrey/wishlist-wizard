@@ -257,7 +257,10 @@ test.describe('Tier 1: Basic Features', () => {
         await saveButton.click();
       }
 
-      await page.goto('/dashboard');
+      // Editing happens in place on the Wishlists list; forcing a reload here
+      // (as this used to do) raced the in-flight update request the same way
+      // the create flow did - see ensureWishlistExists. Wait for the updated
+      // card in place instead.
       await expect(findWishlistCardByName(updatedName)).toBeVisible({ timeout: 10000 });
       return;
     }
