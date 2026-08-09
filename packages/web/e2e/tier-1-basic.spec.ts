@@ -216,12 +216,10 @@ test.describe('Tier 1: Basic Features', () => {
     const submitButton = page.getByTestId('create-wishlist-submit').first();
     await submitButton.click();
 
-    await page.waitForURL(/\/dashboard/, { timeout: 10000 });
-    // /dashboard is a client-side redirect shim to /app/dashboard (see
-    // AppRouter.tsx) — waitForURL's regex matches both, so it can resolve
-    // before the actual redirect + wishlist-list fetch finishes. 10s (matching
-    // the equivalent check in getWishlistCardOnDashboard) gives that real
-    // completion room instead of racing a too-tight 5s timeout.
+    // Create is submitted from the Wishlists list itself (/dashboard redirects
+    // to /app/wishlists, not /app/dashboard — see AppRouter.tsx), so no
+    // navigation happens on success: the dialog closes and the new card
+    // appears in place on the same page. There is no URL change to wait for.
     await expect(findWishlistCardByName(wishlistName)).toBeVisible({ timeout: 10000 });
   });
 
