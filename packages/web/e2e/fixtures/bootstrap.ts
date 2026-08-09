@@ -120,5 +120,9 @@ export async function ensureWishlistExists(page: Page, wishlistName: string): Pr
   // latency before the request even fires, so the reload could abort it
   // before the wishlist was actually created.
   listLink = page.locator(`text="${wishlistName}"`).first();
-  await expect(listLink).toBeVisible({ timeout: 10000 });
+  // 20s not 10s: App Check's reCAPTCHA v3 challenge runs before the actual
+  // create request fires, and that alone has been observed taking several
+  // seconds under load - 10s was intermittently too tight (seen flaking at
+  // different points in the suite across otherwise-clean runs).
+  await expect(listLink).toBeVisible({ timeout: 20000 });
 }
