@@ -113,7 +113,12 @@ export async function ensureWishlistExists(page: Page, wishlistName: string): Pr
   const submitCreate = page.getByTestId('create-wishlist-submit').first();
   await submitCreate.click();
 
-  await page.goto('/dashboard');
+  // Create is submitted from the Wishlists list itself, so success closes the
+  // dialog and shows the new card in place - no navigation happens. Forcing a
+  // page.goto('/dashboard') reload here (as this used to do) raced the
+  // in-flight create request: App Check's reCAPTCHA challenge adds real
+  // latency before the request even fires, so the reload could abort it
+  // before the wishlist was actually created.
   listLink = page.locator(`text="${wishlistName}"`).first();
   await expect(listLink).toBeVisible({ timeout: 10000 });
 }
