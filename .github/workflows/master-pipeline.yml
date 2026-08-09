@@ -866,10 +866,7 @@ jobs:
   deploy-firebase:
     name: Deploy Firebase
     needs: [load-config, build-web]
-    if: |
-      needs.load-config.outputs.firebase_enabled == 'true' &&
-      (needs.load-config.outputs.trigger_context == 'build_and_deploy' ||
-       needs.load-config.outputs.trigger_context == 'deploy_only')
+    if: ${{ needs.load-config.outputs.firebase_enabled == 'true' && (needs.load-config.outputs.trigger_context == 'build_and_deploy' || needs.load-config.outputs.trigger_context == 'deploy_only') }}
     uses: ./.github/workflows/firebase-deploy-local.yml
     with:
       project_name: ${{ needs.load-config.outputs.project_name }}
