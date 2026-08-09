@@ -60,7 +60,7 @@ interface ContributionDialogProps {
   item: {
     id: number;
     title: string;
-    price: string;
+    price?: string | null;
     imageUrl?: string;
     store?: string;
   };
@@ -202,7 +202,7 @@ function ContributionForm({
     }
   };
 
-  const targetPrice = parseFloat(item.price.replace(/[$,]/g, '')) || 0;
+  const targetPrice = parseFloat(String(item.price ?? '').replace(/[$,]/g, '')) || 0;
   const remainingAmount = Math.max(0, targetPrice - currentTotal);
   const maxAllowedContribution = getContributionLimit(targetPrice, currentTotal);
   const canContribute = maxAllowedContribution >= MIN_CONTRIBUTION_AMOUNT;
