@@ -542,6 +542,8 @@ jobs:
       needs.load-config.outputs.android_enabled == 'true' &&
       (needs.load-config.outputs.trigger_context == 'build_and_deploy' ||
        needs.load-config.outputs.trigger_context == 'android_deploy_only') &&
+      (needs.load-config.outputs.target_environment == 'staging' ||
+       needs.load-config.outputs.target_environment == 'production') &&
       needs.build-android.result == 'success'
     runs-on: ubuntu-latest
     environment: ${{ needs.load-config.outputs.target_environment == 'production' && 'PRODUCTION' || 'STAGING' }}
@@ -911,9 +913,12 @@ jobs:
     uses: ./.github/workflows/extension-build.yml
     with:
       project_name: ${{ needs.load-config.outputs.project_name }}
-      # Only real deploy pushes (staging/main) attempt to publish — PR runs
-      # and develop stay build-only, unchanged.
-      publish: ${{ needs.load-config.outputs.trigger_context == 'build_and_deploy' }}
+      # There is exactly one real Chrome Web Store listing (no per-environment
+      # equivalent to separate Firebase projects), so publish is gated on
+      # target_environment == 'production', not just the action name — a
+      # manual build_and_deploy run against develop/staging must never
+      # publish. PR runs and develop stay build-only, unchanged.
+      publish: ${{ needs.load-config.outputs.trigger_context == 'build_and_deploy' && needs.load-config.outputs.target_environment == 'production' }}
       node_version: "20"
     secrets:
       chrome_extension_id: ${{ secrets.CHROME_EXTENSION_ID }}
