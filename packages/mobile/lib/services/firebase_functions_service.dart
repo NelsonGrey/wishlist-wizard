@@ -144,6 +144,181 @@ class FirebaseFunctionsService {
   }
 
   // =============================================================================
+  // USER PROFILE
+  // =============================================================================
+
+  /// Idempotent — no-ops if a users/{uid} profile doc already exists. Call
+  /// after every sign-in (new account or returning), same as web's
+  /// AuthContext.ensureProfileExists.
+  Future<void> ensureProfile() async {
+    try {
+      await _apiRequest('POST', '/profile/ensure');
+    } catch (e) {
+      _logger.warning('Error calling ensureProfile: $e');
+    }
+  }
+
+  // =============================================================================
+  // WISHLIST ITEM MUTATIONS
+  //
+  // Routed through the api HTTP router (same as createWishlist/updateWishlist
+  // above) rather than direct Firestore writes via FirebaseFirestoreService.
+  // This is required, not just a style choice: the backend's collaborator
+  // role checks (owner/editor/commenter/viewer) only apply to requests that
+  // go through these callables — a direct Firestore write from the client
+  // bypasses them entirely. See the "Shared with Me" feature notes.
+  // =============================================================================
+
+  Future<Map<String, dynamic>> addWishlistItem(
+    Map<String, dynamic> data,
+  ) async {
+    try {
+      final result = await _apiRequest('POST', '/items', body: data);
+      return Map<String, dynamic>.from(result as Map);
+    } catch (e) {
+      _logger.severe('Error calling addWishlistItem: $e');
+      rethrow;
+    }
+  }
+
+  Future<Map<String, dynamic>> updateWishlistItem(
+    String itemId,
+    Map<String, dynamic> updates,
+  ) async {
+    try {
+      final result = await _apiRequest(
+        'PATCH',
+        '/items/$itemId',
+        body: updates,
+      );
+      return Map<String, dynamic>.from(result as Map);
+    } catch (e) {
+      _logger.severe('Error calling updateWishlistItem: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> deleteWishlistItem(String itemId) async {
+    try {
+      await _apiRequest('DELETE', '/items/$itemId');
+    } catch (e) {
+      _logger.severe('Error calling deleteWishlistItem: $e');
+      rethrow;
+    }
+  }
+
+  Future<Map<String, dynamic>> reserveWishlistItem(String itemId) async {
+    try {
+      final result = await _apiRequest('POST', '/items/$itemId/reserve');
+      return Map<String, dynamic>.from(result as Map);
+    } catch (e) {
+      _logger.severe('Error calling reserveWishlistItem: $e');
+      rethrow;
+    }
+  }
+
+  Future<Map<String, dynamic>> purchaseWishlistItem(String itemId) async {
+    try {
+      final result = await _apiRequest('POST', '/items/$itemId/purchase');
+      return Map<String, dynamic>.from(result as Map);
+    } catch (e) {
+      _logger.severe('Error calling purchaseWishlistItem: $e');
+      rethrow;
+    }
+  }
+
+  // =============================================================================
+  // COLLABORATION FUNCTIONS ("Shared with Me")
+  // =============================================================================
+
+  Future<List<Map<String, dynamic>>> listSharedWishlists() async {
+    try {
+      final result = await _apiRequest('GET', '/wishlists/shared-with-me');
+      return List<Map<String, dynamic>>.from(
+        (result as List).map((item) => Map<String, dynamic>.from(item as Map)),
+      );
+    } catch (e) {
+      _logger.severe('Error calling listSharedWishlists: $e');
+      rethrow;
+    }
+  }
+
+  Future<Map<String, dynamic>> listCollaborators(String wishlistId) async {
+    try {
+      final result = await _apiRequest(
+        'GET',
+        '/wishlists/$wishlistId/collaborators',
+      );
+      return Map<String, dynamic>.from(result as Map);
+    } catch (e) {
+      _logger.severe('Error calling listCollaborators: $e');
+      rethrow;
+    }
+  }
+
+  /// [role] must be one of 'editor', 'commenter', 'viewer'.
+  Future<Map<String, dynamic>> inviteCollaborator(
+    String wishlistId,
+    String email,
+    String role,
+  ) async {
+    try {
+      final result = await _apiRequest(
+        'POST',
+        '/wishlists/$wishlistId/collaborators/invite',
+        body: {'email': email, 'role': role},
+      );
+      return Map<String, dynamic>.from(result as Map);
+    } catch (e) {
+      _logger.severe('Error calling inviteCollaborator: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> updateCollaboratorRole(
+    String wishlistId,
+    String targetUserId,
+    String role,
+  ) async {
+    try {
+      await _apiRequest(
+        'PATCH',
+        '/wishlists/$wishlistId/collaborators/$targetUserId',
+        body: {'role': role},
+      );
+    } catch (e) {
+      _logger.severe('Error calling updateCollaboratorRole: $e');
+      rethrow;
+    }
+  }
+
+  /// Also used for "leave this wishlist" when [targetUserId] is the caller's
+  /// own uid.
+  Future<void> removeCollaborator(
+    String wishlistId,
+    String targetUserId,
+  ) async {
+    try {
+      await _apiRequest(
+        'DELETE',
+        '/wishlists/$wishlistId/collaborators/$targetUserId',
+      );
+    } catch (e) {
+      _logger.severe('Error calling removeCollaborator: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> revokePendingInvite(String inviteId) async {
+    try {
+      await _apiRequest('DELETE', '/invites/$inviteId');
+    } catch (e) {
+      _logger.severe('Error calling revokePendingInvite: $e');
+      rethrow;
+    }
+  }
+
+  // =============================================================================
   // SUBSCRIPTION FUNCTIONS
   // =============================================================================
 

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'wouter';
 import {
   Card,
@@ -101,10 +101,29 @@ const PrivacySettingsPage = () => {
   const [activeTab, setActiveTab] = useState('overview');
   const [selectedEntity, setSelectedEntity] = useState<EntityWithPrivacy | null>(null);
   const [showAddUserDialog, setShowAddUserDialog] = useState(false);
+  const [userSearchQuery, setUserSearchQuery] = useState('');
+  const [debouncedUserSearchQuery, setDebouncedUserSearchQuery] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState<'all' | 'wishlist' | 'item'>('all');
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  useEffect(() => {
+    const timeout = setTimeout(() => setDebouncedUserSearchQuery(userSearchQuery.trim()), 300);
+    return () => clearTimeout(timeout);
+  }, [userSearchQuery]);
+
+  // GET /api/users/search (searchUsers, packages/functions/src/api/userProfile.ts)
+  // — for granting a specific user custom access to a wishlist/item.
+  const { data: userSearchResults, isFetching: isSearchingUsers } = useQuery<{
+    users: Array<{ id: string; username: string | null; displayName: string | null; photoURL: string | null }>;
+  }>({
+    queryKey: ['/api/users/search', debouncedUserSearchQuery],
+    queryFn: () => apiRequest(`/api/users/search?q=${encodeURIComponent(debouncedUserSearchQuery)}`) as Promise<{
+      users: Array<{ id: string; username: string | null; displayName: string | null; photoURL: string | null }>;
+    }>,
+    enabled: showAddUserDialog && debouncedUserSearchQuery.length >= 2,
+  });
 
   // Fetch user's entities with privacy settings
   const { data: entities, isLoading: entitiesLoading } = useQuery<EntityWithPrivacy[]>({
@@ -196,7 +215,7 @@ const PrivacySettingsPage = () => {
     }: {
       entityType: string;
       entityId: number;
-      userIds: number[]
+      userIds: string[]
     }) => {
       return apiRequest(`/api/privacy/settings/${entityType}/${entityId}/access-list`, {
         method: 'PUT',
@@ -251,7 +270,7 @@ const PrivacySettingsPage = () => {
   };
 
   // Handle access list update
-  const handleAccessListUpdate = (entity: EntityWithPrivacy, userIds: number[]) => {
+  const handleAccessListUpdate = (entity: EntityWithPrivacy, userIds: string[]) => {
     updateAccessListMutation.mutate({
       entityType: entity.type,
       entityId: entity.id,
@@ -565,10 +584,10 @@ const PrivacySettingsPage = () => {
                     <Button
                       variant="outline"
                       size="sm"
-                      disabled
+                      onClick={() => setShowAddUserDialog(true)}
                     >
                       <UserPlus className="h-4 w-4 mr-2" />
-                      User Search Pending
+                      Add User
                     </Button>
                   </div>
 
@@ -694,7 +713,15 @@ const PrivacySettingsPage = () => {
       )}
 
       {/* Add User to Access List Dialog */}
-      <Dialog open={showAddUserDialog} onOpenChange={setShowAddUserDialog}>
+      <Dialog
+        open={showAddUserDialog}
+        onOpenChange={(open) => {
+          setShowAddUserDialog(open);
+          if (!open) {
+            setUserSearchQuery('');
+          }
+        }}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Add User to Access List</DialogTitle>
@@ -708,15 +735,52 @@ const PrivacySettingsPage = () => {
               <Label htmlFor="user-search">Search Users</Label>
               <Input
                 id="user-search"
-                placeholder="Enter username or email..."
+                placeholder="Enter a username or name..."
                 className="mt-1"
+                value={userSearchQuery}
+                onChange={(e) => setUserSearchQuery(e.target.value)}
               />
             </div>
 
             <div className="max-h-48 overflow-y-auto space-y-2">
-              <div className="p-4 border rounded-lg text-sm text-muted-foreground">
-                User search and access assignment will be available once the user directory API is enabled.
-              </div>
+              {debouncedUserSearchQuery.length < 2 ? (
+                <p className="p-4 text-center text-sm text-muted-foreground">
+                  Type at least 2 characters to search.
+                </p>
+              ) : isSearchingUsers ? (
+                <p className="p-4 text-center text-sm text-muted-foreground">Searching...</p>
+              ) : (userSearchResults?.users.length ?? 0) === 0 ? (
+                <p className="p-4 text-center text-sm text-muted-foreground">No users found.</p>
+              ) : (
+                userSearchResults!.users.map((result) => {
+                  const alreadyAdded = selectedEntity?.privacySettings?.customAccessList?.includes(result.id);
+                  return (
+                    <div key={result.id} className="flex items-center justify-between p-3 border rounded-lg">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-8 h-8 bg-muted rounded-full flex items-center justify-center">
+                          <Users className="h-4 w-4" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium">{result.displayName || result.username || 'User'}</p>
+                          {result.username && <p className="text-xs text-muted-foreground">@{result.username}</p>}
+                        </div>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant={alreadyAdded ? 'outline' : 'default'}
+                        disabled={alreadyAdded || !selectedEntity}
+                        onClick={() => {
+                          if (!selectedEntity) return;
+                          const currentList = selectedEntity.privacySettings?.customAccessList || [];
+                          handleAccessListUpdate(selectedEntity, [...currentList, result.id]);
+                        }}
+                      >
+                        {alreadyAdded ? 'Added' : 'Add'}
+                      </Button>
+                    </div>
+                  );
+                })
+              )}
             </div>
           </div>
 

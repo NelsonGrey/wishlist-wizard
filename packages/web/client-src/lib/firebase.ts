@@ -4,6 +4,7 @@
 
 import {
   FirebaseClient,
+  StorageHelpers,
   getAnalyticsTracker,
   getRemoteConfig,
   initializeAnalytics,
@@ -12,6 +13,7 @@ import {
 import type { User, Auth, AuthCredential } from 'firebase/auth';
 import type { FirebaseApp } from 'firebase/app';
 import type { Firestore } from 'firebase/firestore';
+import type { FirebaseStorage } from 'firebase/storage';
 import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
@@ -283,6 +285,7 @@ let firebaseClient: FirebaseClient | null = null;
 export let firebaseApp: FirebaseApp | null = null;
 export let firebaseAuth: Auth | null = null;
 export let firebaseFirestore: Firestore | null = null;
+export let firebaseStorage: FirebaseStorage | null = null;
 let analyticsInitialized = false;
 let remoteConfigInitialized = false;
 
@@ -301,6 +304,7 @@ function ensureFirebaseCoreInitialized(): boolean {
     firebaseApp = firebaseClient.app;
     firebaseAuth = firebaseClient.auth;
     firebaseFirestore = firebaseClient.firestore;
+    firebaseStorage = firebaseClient.storage;
     return true;
   }
 
@@ -312,6 +316,7 @@ function ensureFirebaseCoreInitialized(): boolean {
   firebaseApp = firebaseClient.app;
   firebaseAuth = firebaseClient.auth;
   firebaseFirestore = firebaseClient.firestore;
+  firebaseStorage = firebaseClient.storage;
 
   if (import.meta.env.DEV && shouldUseFirebaseEmulators()) {
     firebaseClient.connectToEmulators();
@@ -388,6 +393,28 @@ export async function initFirebase(options?: {
     firestore: client.firestore,
     remoteConfig: remoteConfigInitialized ? getRemoteConfig() : null,
   };
+}
+
+const MAX_AVATAR_BYTES = 5 * 1024 * 1024;
+
+/** Uploads a profile avatar to Storage (avatars/{uid}/{fileName}, see
+ * storage.rules) and returns its public download URL. Caller is
+ * responsible for persisting that URL via updateMyProfile. */
+export async function uploadAvatar(uid: string, file: File): Promise<string> {
+  if (!file.type.startsWith('image/')) {
+    throw new Error('Please choose an image file.');
+  }
+  if (file.size > MAX_AVATAR_BYTES) {
+    throw new Error('Image must be smaller than 5MB.');
+  }
+  if (!firebaseClient) {
+    await initFirebase({ enableAuth: true, enableFirestore: true });
+  }
+  if (!firebaseClient) throw createFirebaseNotConfiguredError();
+
+  const extension = file.name.includes('.') ? file.name.split('.').pop() : 'jpg';
+  const path = `avatars/${uid}/avatar.${extension}`;
+  return StorageHelpers.uploadFile(firebaseClient.storage, path, file);
 }
 
 // Web Push (FCM) helper to request permission & acquire token

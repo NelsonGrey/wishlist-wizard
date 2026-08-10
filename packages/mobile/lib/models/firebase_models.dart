@@ -24,14 +24,35 @@ enum NotificationType {
   system,
 }
 
+/// Collaborator role for the "Shared with Me" feature. 'owner' is never
+/// stored server-side (implicit via userId) but is used client-side as the
+/// default when myRole isn't present on the response (i.e. the caller's own
+/// wishlist).
+enum CollaboratorRole { owner, editor, commenter, viewer }
+
+CollaboratorRole _parseCollaboratorRole(dynamic value) {
+  switch (value) {
+    case 'editor':
+      return CollaboratorRole.editor;
+    case 'commenter':
+      return CollaboratorRole.commenter;
+    case 'viewer':
+      return CollaboratorRole.viewer;
+    default:
+      return CollaboratorRole.owner;
+  }
+}
+
 class FirebaseWishlist {
   final String id;
   final String name;
   final String? description;
   final String userId;
   final bool isPublic;
+  final bool isCollaborative;
   final String? shareId;
   final List<String> tags;
+  final CollaboratorRole myRole;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -41,8 +62,10 @@ class FirebaseWishlist {
     this.description,
     required this.userId,
     required this.isPublic,
+    this.isCollaborative = false,
     this.shareId,
     this.tags = const [],
+    this.myRole = CollaboratorRole.owner,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -69,8 +92,10 @@ class FirebaseWishlist {
       description: data['description'],
       userId: data['userId'] ?? '',
       isPublic: data['isPublic'] ?? false,
+      isCollaborative: data['isCollaborative'] ?? false,
       shareId: data['shareId'],
       tags: List<String>.from(data['tags'] ?? []),
+      myRole: _parseCollaboratorRole(data['myRole']),
       createdAt: _parseDate(data['createdAt']),
       updatedAt: _parseDate(data['updatedAt']),
     );
@@ -170,7 +195,8 @@ class FirebaseWishlistItem {
       store: data['store'],
       wishlistId: data['wishlistId'] ?? '',
       userId: data['userId'] ?? data['addedBy'] ?? '',
-      isPurchased: (data['isPurchased'] as bool? ?? false) || purchasedByUserId != null,
+      isPurchased:
+          (data['isPurchased'] as bool? ?? false) || purchasedByUserId != null,
       purchasedBy: data['purchasedBy'] ?? purchasedByUserId,
       purchasedAt: _parseDateNullable(data['purchasedAt']),
       tags: List<String>.from(data['tags'] ?? []),

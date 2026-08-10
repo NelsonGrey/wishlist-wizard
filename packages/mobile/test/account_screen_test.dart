@@ -20,6 +20,9 @@ class MockFirebaseAuthService extends Mock implements FirebaseAuthService {}
 
 class MockPasswordPolicyService extends Mock implements PasswordPolicyService {}
 
+class MockFirebaseFunctionsService extends Mock
+    implements FirebaseFunctionsService {}
+
 final _fakeUser = User(
   id: 'u1',
   email: 'user@example.com',
@@ -29,10 +32,14 @@ final _fakeUser = User(
 Widget wrapAccountScreen({
   required FirebaseAuthService authService,
   required PasswordPolicyService passwordPolicyService,
+  FirebaseFunctionsService? functionsService,
 }) {
   return MaterialApp(
     home: ChangeNotifierProvider<AuthProvider>(
-      create: (_) => AuthProvider(authService: authService),
+      create: (_) => AuthProvider(
+        authService: authService,
+        functionsService: functionsService,
+      ),
       child: AccountScreen(passwordPolicyService: passwordPolicyService),
     ),
   );
@@ -61,10 +68,12 @@ Future<void> fillForm(
 void main() {
   late MockFirebaseAuthService authService;
   late MockPasswordPolicyService policyService;
+  late MockFirebaseFunctionsService functionsService;
 
   setUp(() {
     authService = MockFirebaseAuthService();
     policyService = MockPasswordPolicyService();
+    functionsService = MockFirebaseFunctionsService();
 
     // AuthProvider's constructor calls _initializeAuth(), which listens to
     // authStateChanges and fetches the current user -- stub both so the
@@ -72,9 +81,12 @@ void main() {
     when(
       () => authService.authStateChanges,
     ).thenAnswer((_) => Stream<User?>.value(_fakeUser));
-    when(
-      () => authService.getCurrentUser(),
-    ).thenAnswer((_) async => _fakeUser);
+    when(() => authService.getCurrentUser()).thenAnswer((_) async => _fakeUser);
+
+    // The auth-state-changed listener also calls ensureProfile() on every
+    // sign-in -- stub it to a no-op so it doesn't leave a pending timer
+    // from a real (mocked-away) network call after the widget is disposed.
+    when(() => functionsService.ensureProfile()).thenAnswer((_) async {});
 
     when(
       () => policyService.loadPolicy(),
@@ -85,9 +97,10 @@ void main() {
   });
 
   Widget buildScreen() => wrapAccountScreen(
-        authService: authService,
-        passwordPolicyService: policyService,
-      );
+    authService: authService,
+    passwordPolicyService: policyService,
+    functionsService: functionsService,
+  );
 
   testWidgets('shows the new-password hint sourced from the policy service', (
     tester,
@@ -102,10 +115,8 @@ void main() {
     'quickCheck failure blocks submission before reauthentication is attempted',
     (tester) async {
       when(
-        () => policyService.quickCheck(
-          'weak',
-          PasswordPolicyState.defaultPolicy,
-        ),
+        () =>
+            policyService.quickCheck('weak', PasswordPolicyState.defaultPolicy),
       ).thenReturn('too weak (test)');
 
       await tester.pumpWidget(buildScreen());
@@ -198,10 +209,7 @@ void main() {
       when(
         () => authService.reauthenticateWithPassword('CurrentPass1!'),
       ).thenAnswer((_) async => AuthResult.success(user: _fakeUser));
-      final invalidStatus = PasswordValidationStatus(
-        false,
-        PasswordPolicy({}),
-      );
+      final invalidStatus = PasswordValidationStatus(false, PasswordPolicy({}));
       when(
         () => policyService.checkPassword(newPassword),
       ).thenAnswer((_) async => invalidStatus);

@@ -28,28 +28,52 @@ import {
   UserPlus
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
+import { apiRequest, queryClient } from '@/lib/queryClient';
+import { getApiErrorMessage } from '@/lib/api-errors';
+import { uploadAvatar } from '@/lib/firebase';
 import { useAuth } from '@/contexts/AuthContext';
 import { ACHIEVEMENT_DEFINITIONS, ACHIEVEMENT_TIER_NAMES, ACHIEVEMENT_TIER_BADGE_CLASSES, WIZARD_TIER } from '@/lib/achievements';
 import { useAchievements } from '@/hooks/use-achievements';
 import { useSubscriptionStatus } from '@/hooks/use-subscription-status';
 
-const createInitialProfile = (user?: {
-  uid?: string;
+interface RemoteProfile {
   displayName?: string | null;
-  email?: string | null;
   photoURL?: string | null;
-}) => ({
+  bio?: string;
+  location?: string;
+  interests?: string[];
+  favoriteStores?: string[];
+  giftPreferences?: {
+    sizes?: { clothing?: string; shoes?: string };
+    colors?: string[];
+    doNotWant?: string[];
+    giftCards?: string[];
+  };
+}
+
+const createInitialProfile = (
+  user?: {
+    uid?: string;
+    displayName?: string | null;
+    email?: string | null;
+    photoURL?: string | null;
+    metadata?: { creationTime?: string };
+  },
+  remote?: RemoteProfile
+) => ({
   id: user?.uid ? Number.parseInt(user.uid, 10) || 0 : 0,
   username: user?.email?.split('@')[0] || "",
-  firstName: user?.displayName?.split(' ')[0] || "",
-  lastName: user?.displayName?.split(' ').slice(1).join(' ') || "",
+  firstName: (remote?.displayName ?? user?.displayName)?.split(' ')[0] || "",
+  lastName: (remote?.displayName ?? user?.displayName)?.split(' ').slice(1).join(' ') || "",
   email: user?.email || "",
-  avatar: user?.photoURL || "",
-  bio: "",
-  location: "",
-  joinDate: "",
-  interests: [] as string[],
+  avatar: remote?.photoURL || user?.photoURL || "",
+  bio: remote?.bio || "",
+  location: remote?.location || "",
+  joinDate: user?.metadata?.creationTime
+    ? new Date(user.metadata.creationTime).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+    : "",
+  interests: (remote?.interests || []) as string[],
   notifications: {
     email: true,
     push: true,
@@ -78,12 +102,12 @@ const createInitialProfile = (user?: {
   }>,
   giftPreferences: {
     sizes: {
-      clothing: "Medium",
-      shoes: "US 8"
+      clothing: remote?.giftPreferences?.sizes?.clothing || "Medium",
+      shoes: remote?.giftPreferences?.sizes?.shoes || "US 8"
     },
-    colors: [] as string[],
-    doNotWant: [] as string[],
-    giftCards: [] as string[]
+    colors: (remote?.giftPreferences?.colors || []) as string[],
+    doNotWant: (remote?.giftPreferences?.doNotWant || []) as string[],
+    giftCards: (remote?.giftPreferences?.giftCards || []) as string[]
   },
   exchangeHistory: [] as Array<{
     id: number;
@@ -94,7 +118,7 @@ const createInitialProfile = (user?: {
     to?: string;
     status: string;
   }>,
-  favoriteStores: [] as string[]
+  favoriteStores: (remote?.favoriteStores || []) as string[]
 });
 
 // Common clothing sizes
@@ -111,11 +135,15 @@ const UserProfile = () => {
   const [selectedTab, setSelectedTab] = useState("profile");
   const [editMode, setEditMode] = useState(false);
   const [editedProfile, setEditedProfile] = useState(() => createInitialProfile(user || undefined));
-  const [savingProfile, setSavingProfile] = useState(false);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [showConnections, setShowConnections] = useState(false);
   const { toast } = useToast();
   const { data: achievementsData } = useAchievements();
   const { data: subscriptionStatus } = useSubscriptionStatus();
+  const { data: remoteProfile, isLoading: isLoadingProfile } = useQuery<RemoteProfile>({
+    queryKey: ['/api/profile'],
+    enabled: Boolean(user),
+  });
   const stats = {
     itemsTracked: achievementsData?.achievements?.tracker?.count ?? 0,
     wishlistsCreated: subscriptionStatus?.usage?.wishlistsOwned ?? 0,
@@ -127,39 +155,69 @@ const UserProfile = () => {
       return;
     }
 
-    const mergedProfile = {
-      ...profile,
-      username: user.email?.split('@')[0] || profile.username,
-      firstName: user.displayName?.split(' ')[0] || profile.firstName,
-      lastName: user.displayName?.split(' ').slice(1).join(' ') || profile.lastName,
-      email: user.email || profile.email,
-      avatar: user.photoURL || profile.avatar,
-    };
-
+    const mergedProfile = createInitialProfile(user, remoteProfile);
     setProfile(mergedProfile);
     setEditedProfile(mergedProfile);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.uid, user?.email, user?.displayName, user?.photoURL, editMode]);
+  }, [user?.uid, user?.email, user?.displayName, user?.photoURL, remoteProfile, editMode]);
 
-  // Update profile settings
-  const { mutate: updateProfile } = useMutation({
+  // Update profile settings — PATCH /api/profile (updateMyProfile,
+  // packages/functions/src/api/userProfile.ts). email isn't included:
+  // changing it needs Firebase Auth's updateEmail + reverification, a
+  // separate flow this doesn't build (see the disabled email input below).
+  const { mutate: updateProfile, isPending: savingProfile } = useMutation({
     mutationFn: async (updatedProfile: typeof profile) => {
-      // Simulate API call to update profile
-      setSavingProfile(true);
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      setSavingProfile(false);
+      await apiRequest('/api/profile', {
+        method: 'PATCH',
+        body: {
+          displayName: `${updatedProfile.firstName} ${updatedProfile.lastName}`.trim(),
+          bio: updatedProfile.bio,
+          location: updatedProfile.location,
+          interests: updatedProfile.interests,
+          favoriteStores: updatedProfile.favoriteStores,
+          giftPreferences: updatedProfile.giftPreferences,
+          photoURL: updatedProfile.avatar,
+        },
+      });
       return updatedProfile;
     },
     onSuccess: (data) => {
       setProfile(data);
       setEditMode(false);
+      queryClient.invalidateQueries({ queryKey: ['/api/profile'] });
       toast({
         title: "Profile Updated",
         description: "Your profile has been successfully updated.",
         duration: 3000
       });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: getApiErrorMessage(error, "Failed to update profile."),
+        variant: "destructive",
+      });
     }
   });
+
+  const handleAvatarFileSelected = async (file: File | null) => {
+    if (!file || !user) {
+      return;
+    }
+    setIsUploadingAvatar(true);
+    try {
+      const url = await uploadAvatar(user.uid, file);
+      setEditedProfile((prev) => ({ ...prev, avatar: url }));
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to upload photo.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploadingAvatar(false);
+    }
+  };
 
   // Add an interest
   const addInterest = (interest: string) => {
@@ -356,6 +414,7 @@ const UserProfile = () => {
                     data-testid="user-profile-edit-toggle"
                     variant="outline"
                     onClick={() => setEditMode(true)}
+                    disabled={isLoadingProfile}
                   >
                     <Edit3 size={16} className="mr-2" />
                     Edit
@@ -371,7 +430,30 @@ const UserProfile = () => {
                       <AvatarFallback>{profile.firstName.charAt(0) + profile.lastName.charAt(0)}</AvatarFallback>
                     </Avatar>
                     {editMode && (
-                      <Button variant="outline" size="sm">Change Photo</Button>
+                      <>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          id="avatar-file-input"
+                          className="hidden"
+                          onChange={(e) => handleAvatarFileSelected(e.target.files?.[0] ?? null)}
+                        />
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={isUploadingAvatar}
+                          onClick={() => document.getElementById('avatar-file-input')?.click()}
+                        >
+                          {isUploadingAvatar ? (
+                            <>
+                              <Loader2 size={14} className="mr-2 animate-spin" />
+                              Uploading...
+                            </>
+                          ) : (
+                            'Change Photo'
+                          )}
+                        </Button>
+                      </>
                     )}
                     <div className="text-center mt-2">
                       <h3 className="font-medium text-lg">{profile.firstName} {profile.lastName}</h3>
@@ -406,14 +488,17 @@ const UserProfile = () => {
                         
                         <div className="space-y-2">
                           <Label htmlFor="email">Email</Label>
-                          <Input 
-                            id="email" 
-                            type="email" 
+                          <Input
+                            id="email"
+                            type="email"
                             value={editedProfile.email}
-                            onChange={e => setEditedProfile({...editedProfile, email: e.target.value})}
+                            disabled
                           />
+                          <p className="text-xs text-muted-foreground">
+                            Changing your email isn't supported here yet — contact support if you need to update it.
+                          </p>
                         </div>
-                        
+
                         <div className="space-y-2">
                           <Label htmlFor="location">Location</Label>
                           <Input 
