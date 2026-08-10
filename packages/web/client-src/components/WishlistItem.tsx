@@ -34,7 +34,7 @@ type WishlistItem = DbWishlistItem;
 interface WishlistItemProps {
   item: WishlistItem;
   onEdit?: () => void;
-  onDelete: () => void;
+  onDelete?: () => void;
   onReserve?: () => void;
   onPurchase?: () => void;
   reserveLabel?: string;
@@ -72,7 +72,7 @@ export default function WishlistItem({
   };
 
   const confirmDelete = () => {
-    onDelete();
+    onDelete?.();
     setIsDeleteDialogOpen(false);
   };
 
@@ -316,23 +316,25 @@ export default function WishlistItem({
                       </TooltipContent>
                     </Tooltip>
                   )}
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        onClick={handleDelete}
-                        className="text-gray-500 hover:text-red-500 h-8 w-8"
-                        aria-label="Delete item"
-                        data-testid={`wishlist-item-delete-${normalizedItemId}`}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      Delete item
-                    </TooltipContent>
-                  </Tooltip>
+                  {onDelete && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={handleDelete}
+                          className="text-gray-500 hover:text-red-500 h-8 w-8"
+                          aria-label="Delete item"
+                          data-testid={`wishlist-item-delete-${normalizedItemId}`}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        Delete item
+                      </TooltipContent>
+                    </Tooltip>
+                  )}
                 </div>
               </div>
               <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1">

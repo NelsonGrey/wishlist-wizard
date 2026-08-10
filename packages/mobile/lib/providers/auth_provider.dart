@@ -1,15 +1,24 @@
 import 'package:flutter/foundation.dart';
 import '../models/models.dart';
 import '../services/firebase_auth_service.dart';
+import '../services/firebase_functions_service.dart';
 
 class AuthProvider extends ChangeNotifier {
   final FirebaseAuthService _authService;
+  final FirebaseFunctionsService _functionsService;
 
-  // Injectable (defaulting to the real singleton) so tests can substitute a
-  // mock instead of needing a live Firebase connection -- mirrors
-  // FirebaseWishlistProvider's constructor-level DI.
-  AuthProvider({FirebaseAuthService? authService})
-      : _authService = authService ?? FirebaseAuthService() {
+  // Injectable (defaulting to the real singletons) so tests can substitute
+  // mocks instead of needing a live Firebase connection -- mirrors
+  // FirebaseWishlistProvider's constructor-level DI. functionsService in
+  // particular must be injectable: without it, tests that trigger a real
+  // auth-state change have no way to suppress the real ensureProfile()
+  // network call below, which leaves a pending timer after the widget tree
+  // is disposed and fails the test framework's invariant checks.
+  AuthProvider({
+    FirebaseAuthService? authService,
+    FirebaseFunctionsService? functionsService,
+  }) : _authService = authService ?? FirebaseAuthService(),
+       _functionsService = functionsService ?? FirebaseFunctionsService() {
     _initializeAuth();
   }
 
@@ -36,6 +45,13 @@ class AuthProvider extends ChangeNotifier {
           );
         }
         _setUser(user);
+        if (user != null) {
+          // Idempotent — no-ops if a users/{uid} profile doc already
+          // exists. Single hook point covering every sign-in path (email,
+          // Google, Apple; new account or returning session), mirroring
+          // web's AuthContext.ensureProfileExists.
+          _functionsService.ensureProfile();
+        }
         if (!_isLoading) {
           _setLoading(false);
         }

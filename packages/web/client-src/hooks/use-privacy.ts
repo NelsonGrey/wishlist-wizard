@@ -8,7 +8,11 @@ export interface PrivacySettings {
   entityType: 'wishlist' | 'item' | 'user_profile';
   entityId: number;
   visibilityLevel: 'public' | 'friends' | 'private' | 'custom';
-  customAccessList: number[];
+  // Firebase user UIDs — the backend (router.ts) always normalizes this
+  // list via .map(String)/String(userId) regardless of what's stored, so
+  // string is correct here despite the misleading number[] this used to be
+  // typed as (a leftover from the pre-Firebase integer-ID schema).
+  customAccessList: string[];
   expirationDate?: string;
   allowComments: boolean;
   allowReservations: boolean;
@@ -49,7 +53,7 @@ export const useUpdatePrivacySettings = () => {
       entityType: string;
       entityId: number;
       visibilityLevel?: string;
-      customAccessList?: number[];
+      customAccessList?: string[];
       expirationDate?: Date;
       allowComments?: boolean;
       allowReservations?: boolean;
@@ -84,7 +88,7 @@ export const useUpdateAccessList = () => {
     }: {
       entityType: string;
       entityId: number;
-      userIds: number[]
+      userIds: string[]
     }) => {
       return apiRequest(`/api/privacy/settings/${entityType}/${entityId}/access-list`, {
         method: 'PUT',

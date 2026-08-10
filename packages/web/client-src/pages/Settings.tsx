@@ -31,9 +31,12 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import { useMutation } from '@tanstack/react-query';
 import { NotificationSettings } from '@/components/notifications/NotificationSettings';
 import ChangePasswordDialog from '@/components/ChangePasswordDialog';
 import { useToast } from '@/hooks/use-toast';
+import { apiRequest } from '@/lib/queryClient';
+import { getApiErrorMessage } from '@/lib/api-errors';
 import {
   useDefaultPrivacySettings,
   useUpdateDefaultPrivacySettings,
@@ -116,6 +119,53 @@ export default function Settings() {
         }),
     });
   };
+
+  // GDPR/CCPA data export — POST /api/account/export (exportMyData,
+  // packages/functions/src/api/userProfile.ts). Triggers a browser
+  // download rather than navigating, since the response is JSON, not a
+  // hosted file URL.
+  const exportData = useMutation({
+    mutationFn: () => apiRequest('/api/account/export', { method: 'POST' }),
+    onSuccess: (data) => {
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `wishlist-wizard-data-${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      toast({ title: 'Data export downloaded' });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Error',
+        description: getApiErrorMessage(error, 'Failed to export your data.'),
+        variant: 'destructive',
+      });
+    },
+  });
+
+  // "Log out of all devices" — POST /api/account/revoke-sessions
+  // (revokeAllSessions), then sign this tab out too: revoking refresh
+  // tokens server-side doesn't invalidate the current in-memory ID token
+  // until it naturally expires/refreshes.
+  const revokeAllSessions = useMutation({
+    mutationFn: () => apiRequest('/api/account/revoke-sessions', { method: 'POST' }),
+    onSuccess: async () => {
+      toast({ title: 'Logged out of all devices' });
+      await signOut();
+      setLocation('/login');
+    },
+    onError: (error) => {
+      toast({
+        title: 'Error',
+        description: getApiErrorMessage(error, 'Failed to log out of all devices.'),
+        variant: 'destructive',
+      });
+    },
+  });
 
   useEffect(() => {
     if (defaultPrivacy) {
@@ -264,13 +314,23 @@ export default function Settings() {
                   <div className="space-y-3 pt-4">
                     <h3 className="text-base font-medium">Account Actions</h3>
                     <div className="flex flex-wrap gap-2">
-                      <Button variant="outline" size="sm">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => exportData.mutate()}
+                        disabled={exportData.isPending}
+                      >
                         <History size={16} className="mr-2" />
-                        Download Your Data
+                        {exportData.isPending ? 'Preparing...' : 'Download Your Data'}
                       </Button>
-                      <Button variant="outline" size="sm">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => revokeAllSessions.mutate()}
+                        disabled={revokeAllSessions.isPending}
+                      >
                         <LogOut size={16} className="mr-2" />
-                        Log Out of All Devices
+                        {revokeAllSessions.isPending ? 'Logging out...' : 'Log Out of All Devices'}
                       </Button>
                       <Dialog
                         open={deleteDialogOpen}

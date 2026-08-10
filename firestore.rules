@@ -18,12 +18,51 @@ service cloud.firestore {
     function isCollaborator(wishlistId) {
       return exists(/databases/$(database)/documents/collaborators/$(wishlistId + '_' + request.auth.uid));
     }
-    
+
+    function collaboratorRole(wishlistId) {
+      return get(/databases/$(database)/documents/collaborators/$(wishlistId + '_' + request.auth.uid)).data.role;
+    }
+
+    // 'owner' is never stored in a collaborators doc (implicit via
+    // wishlists/{id}.userId) — callers combine this with an owner check.
+    function isEditorCollaborator(wishlistId) {
+      return isCollaborator(wishlistId) && collaboratorRole(wishlistId) == 'editor';
+    }
+
+    function isReserveCapableCollaborator(wishlistId) {
+      return isCollaborator(wishlistId) &&
+        (collaboratorRole(wishlistId) == 'editor' || collaboratorRole(wishlistId) == 'commenter');
+    }
+
     function canAccessWishlist(wishlistId) {
       let wishlist = get(/databases/$(database)/documents/wishlists/$(wishlistId));
       return wishlist.data.userId == request.auth.uid ||
              wishlist.data.isPublic == true ||
              isCollaborator(wishlistId);
+    }
+
+    function isWishlistOwner(wishlistId) {
+      return get(/databases/$(database)/documents/wishlists/$(wishlistId)).data.userId == request.auth.uid;
+    }
+
+    // Full item edit rights (add/edit/delete): owner or editor collaborator.
+    function canEditWishlistItems(wishlistId) {
+      return isWishlistOwner(wishlistId) || isEditorCollaborator(wishlistId);
+    }
+
+    // Reserve/purchase rights: owner, editor, or commenter collaborator.
+    function canReserveOrPurchaseItems(wishlistId) {
+      return isWishlistOwner(wishlistId) || isReserveCapableCollaborator(wishlistId);
+    }
+
+    // A commenter's item update must touch only reservation/purchase
+    // fields, matching exactly what reserveWishlistItem/purchaseWishlistItem
+    // (packages/functions/src/api/wishlists.ts) write server-side — this is
+    // the field-scoping that lets a commenter reserve/purchase without
+    // being able to edit the item itself.
+    function isReservationOnlyUpdate() {
+      return request.resource.data.diff(resource.data).affectedKeys()
+        .hasOnly(['reservedByUserId', 'reservedBy', 'purchasedByUserId', 'purchasedBy', 'purchasedAt', 'updatedAt']);
     }
     
     // Users collection - users can only read/write their own document
@@ -41,21 +80,32 @@ service cloud.firestore {
       allow create: if isAuthenticated() && 
         request.auth.uid == request.resource.data.userId;
       
-      allow update: if isAuthenticated() && 
-        (isOwner(resource) || isCollaborator(wishlistId));
-      
+      // Editing the wishlist itself (name/description/settings) is an
+      // owner/editor action — a viewer or commenter collaborator must not
+      // be able to rename or reconfigure a wishlist they don't own.
+      allow update: if isAuthenticated() &&
+        (isOwner(resource) || isEditorCollaborator(wishlistId));
+
       allow delete: if isAuthenticated() && isOwner(resource);
     }
-    
-    // Wishlist items - access based on wishlist permissions
+
+    // Wishlist items - access based on wishlist permissions and role.
+    // Read stays open to any collaborator (viewer included) or public
+    // access, matching canAccessWishlist. Writes are role-scoped: full
+    // add/edit/delete needs owner/editor; a commenter may only touch
+    // reservation/purchase fields (see isReservationOnlyUpdate); a viewer
+    // can do neither.
     match /wishlistItems/{itemId} {
       allow read: if isAuthenticated() && canAccessWishlist(resource.data.wishlistId);
-      
-      allow create: if isAuthenticated() && canAccessWishlist(request.resource.data.wishlistId);
-      
-      allow update: if isAuthenticated() && canAccessWishlist(resource.data.wishlistId);
-      
-      allow delete: if isAuthenticated() && canAccessWishlist(resource.data.wishlistId);
+
+      allow create: if isAuthenticated() && canEditWishlistItems(request.resource.data.wishlistId);
+
+      allow update: if isAuthenticated() && (
+        canEditWishlistItems(resource.data.wishlistId) ||
+        (canReserveOrPurchaseItems(resource.data.wishlistId) && isReservationOnlyUpdate())
+      );
+
+      allow delete: if isAuthenticated() && canEditWishlistItems(resource.data.wishlistId);
     }
     
     // Beneficiaries - users can only access their own beneficiaries
@@ -87,11 +137,27 @@ service cloud.firestore {
         (get(/databases/$(database)/documents/wishlists/$(resource.data.wishlistId)).data.userId == request.auth.uid ||
          request.auth.uid == resource.data.userId);
       
-      allow delete: if isAuthenticated() && 
+      allow delete: if isAuthenticated() &&
         (get(/databases/$(database)/documents/wishlists/$(resource.data.wishlistId)).data.userId == request.auth.uid ||
          request.auth.uid == resource.data.userId);
     }
-    
+
+    // Pending collaboration invites (email invites to accounts that don't
+    // exist yet) - Admin SDK only. inviteCollaborator/the auth onCreate
+    // trigger (packages/functions) are the only writers/readers; no client
+    // ever needs direct access, and an invitee shouldn't be able to read
+    // pending invites for other emails.
+    match /pendingInvites/{inviteId} {
+      allow read, write: if false;
+    }
+
+    // Outbound collaboration invite emails - same as above, Admin SDK only
+    // (written by inviteCollaborator, consumed by
+    // triggers/collaboration.ts's sendCollaborationInviteEmail trigger).
+    match /outboundCollaborationEmails/{emailId} {
+      allow read, write: if false;
+    }
+
     // Group gifts / gift coordination (if you have this collection)
     match /giftReservations/{reservationId} {
       allow read: if isAuthenticated();

@@ -87,7 +87,7 @@ export default function PrivacyControls({
     });
   };
 
-  const handleAccessListUpdate = (userIds: number[]) => {
+  const handleAccessListUpdate = (userIds: string[]) => {
     updateAccessListMutation.mutate({
       entityType,
       entityId,
@@ -218,7 +218,7 @@ interface PrivacySettingsFormProps {
   entityType: string;
   entityName: string;
   onUpdate: (updates: Partial<PrivacySettings>) => void;
-  onAccessListUpdate: (userIds: number[]) => void;
+  onAccessListUpdate: (userIds: string[]) => void;
   onReset: () => void;
   onClose: () => void;
   isLoading: boolean;
@@ -232,7 +232,7 @@ function PrivacySettingsForm({
   onClose,
   isLoading
 }: PrivacySettingsFormProps) {
-  const [customAccessList, setCustomAccessList] = useState<number[]>(
+  const [customAccessList, setCustomAccessList] = useState<string[]>(
     privacySettings?.customAccessList || []
   );
 
@@ -248,13 +248,13 @@ function PrivacySettingsForm({
     onUpdate({ expirationDate: date || undefined });
   };
 
-  const handleAddUser = (userId: number) => {
+  const handleAddUser = (userId: string) => {
     const newList = [...customAccessList, userId];
     setCustomAccessList(newList);
     onAccessListUpdate(newList);
   };
 
-  const handleRemoveUser = (userId: number) => {
+  const handleRemoveUser = (userId: string) => {
     const newList = customAccessList.filter(id => id !== userId);
     setCustomAccessList(newList);
     onAccessListUpdate(newList);

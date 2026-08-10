@@ -23,6 +23,7 @@ import {
   linkPendingCredential
 } from '../lib/firebase';
 import { isAccountExistsWithDifferentCredentialError } from '../lib/firebase-auth-errors';
+import { apiRequest } from '../lib/queryClient';
 
 interface AuthContextType {
   user: User | null;
@@ -110,6 +111,23 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  // Idempotent — ensureMyProfile (packages/functions/src/api/userProfile.ts)
+  // no-ops if a users/{uid} profile doc already exists. This is the single
+  // hook point covering every sign-in path (email, Google, Apple; new
+  // account or returning session) rather than duplicating the call across
+  // signUp/signInWithGoogle/signInWithApple individually, since all of
+  // them funnel through this same onAuthStateChanged callback. Fire-and-
+  // forget: a failure here just means self-healing falls to getMyProfile's
+  // own ensureUserProfile call the next time the profile is read.
+  const ensureProfileExists = (currentUser: User | null) => {
+    if (!currentUser) {
+      return;
+    }
+    apiRequest('/api/profile/ensure', { method: 'POST' }).catch((error) => {
+      console.warn('[AuthContext] Failed to ensure user profile:', error);
+    });
+  };
+
   useEffect(() => {
     let unsubscribe: (() => void) | undefined;
     const analyticsTracker = getAnalyticsTracker();
@@ -141,6 +159,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           setUser(user);
           userRef.current = user;
           broadcastAuthTokenToExtension(user);
+          ensureProfileExists(user);
 
           analyticsTracker.setUserProperties({
             platform: 'web',

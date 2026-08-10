@@ -1,7 +1,7 @@
 # Wishlist Wizard — Go Live Document
 
-> **Version:** 1.2  
-> **Last Updated:** 2026-07-16  
+> **Version:** 1.3  
+> **Last Updated:** 2026-08-10  
 > **Repo:** https://github.com/mnelson3/wishlist-wizard (default branch: `develop`)  
 > **Production URL:** https://wishlist-wizard.web.app  
 > **Staging URL:** https://wishlist-wizard-staging.web.app  
@@ -30,18 +30,18 @@ Owner columns should be filled in with initials or role before launch begins.
 
 ---
 
-## Current Deliverable Status (as of 2026-07-16)
+## Current Deliverable Status (as of 2026-08-10)
 
-A 2026-07-16 audit found this document's — and `docs/PRODUCT_DESIGN.md`'s — prior status claims materially overstated in places, including a launch-blocking bug neither document knew about (§1.7). A same-day recovery pass fixed most of what was found. Table below reflects verified code state; see `docs/PRODUCT_DESIGN.md` for full per-feature detail and evidence.
+A 2026-07-16 audit found this document's — and `docs/PRODUCT_DESIGN.md`'s — prior status claims materially overstated in places, including a launch-blocking bug neither document knew about (§1.7). A same-day recovery pass fixed most of what was found, and per-feature rigor passes through 2026-07-23 (web, extension, mobile) closed most of what that audit couldn't reach. Since the last refresh of this document (2026-08-04), three more significant threads landed: the App Check blocker that had been open since §1.15 is **fully resolved** end-to-end including a Functions deploy migration to Workload Identity Federation (§1.19); `main` was promoted to parity with `develop`/`staging` for the first time since 2026-06-05 (§1.19); and a mobile launch-readiness pass fixed three real user-facing crash bugs plus CI/deploy issues, with one (Android `versionCode`) fixed in code but **not yet confirmed by a live pipeline run** (§1.20). Table below reflects verified code state; see `docs/PRODUCT_DESIGN.md` for full per-feature detail and evidence.
 
 | Deliverable | State | Notes |
 |---|---|---|
-| **Web app** | 🟢 Core loop live and App Check-verified in dev | Production gate bug (§1.7) fixed — `/app/*` and `/shared/:shareId` now render in prod, matching dev/staging. **2026-07-18 (§1.15/§1.16): `createWishlist` was found broken in `wishlist-wizard-dev`/`wishlist-wizard-staging`** (Firebase App Check unconditionally enforced server-side, no client-side App Check SDK anywhere) **and then fixed** — the user set up App Check (reCAPTCHA v3 web, DeviceCheck/App Attest iOS) and provided the site key; the client SDK is now wired for both platforms, verified live: real E2E test passes went from 14 to 25 against the real `wishlist-wizard-dev` project. Staging/production still need App Check configured and re-verified there (staging confirmed broken as of this writing; prod not tested, still behind a "Coming Soon" gate). Two other real bugs found and fixed the same day: a shared-wishlist privacy check that always evaluated visitors as anonymous, and a registration form that rejected leaving its "(optional)" display name blank. Add item (incl. paste-a-link auto-fetch) and share were code-reviewed clean. |
-| **Browser extension** | 🟡 Core "killer app" flow now genuinely real and covered by automated tests, two features still stubbed | The floating-button add-to-wishlist flow — the intended flagship feature — was found completely non-functional (silent no-op) and fixed 2026-07-18, along with two more severe pre-existing bugs: a minified-identifier collision that broke content.js on every retailer, not just new ones, and a missing `await` that meant the enhanced/JSON-LD extractor was never actually reachable at all (see §1.12, §1.13). One-click add now works end-to-end via real Cloud Functions on any website, verified live **and** via a committed Playwright E2E suite (`packages/browser-extension/e2e/`, wired into CI). Unit test suite grew from 40 → 52 tests covering the new code; the CI test-gate itself was also fixed (it previously couldn't fail the build). Coupon finder and price comparison call backend endpoints that don't exist — deferred to Phase 2 (§ Part 5), not launch-blocking since they fail silently rather than crash. The auth bridge (reuse the web app's login instead of a separate one) was **verified 2026-07-18 in a real Chrome instance against a live Firebase Auth emulator**: sign-in propagates to the extension (confirmed via direct `chrome.storage.local` inspection, not just UI), and sign-out now propagates immediately too (a gap found during verification and fixed the same session — see §1.11), without clobbering an independently-logged-in extension session that was never bridged. |
-| **Mobile (iOS/Android, Flutter)** | 🟡 Thin but real | Push notifications, Firestore offline caching, and wishlist sharing are now actually wired up (were previously dead code). Still missing: Shared-with-Me, Creator Mode, and all native platform features (Siri Shortcuts, App Clips, iCloud, widgets) — these were never built, not regressions. |
-| **Backend (Firebase Functions + Firestore)** | 🟢 Live, confirmed | Root `server/`/`client/` (old Express+Postgres) are dead — do not resurrect or reference them. Affiliate tracking and calendar OAuth sync are solid. Personal price-drop alerts are coded but not exported from the Functions deploy entrypoint, so they don't run in production (comparison-shopping, a related but different feature, is live). |
+| **Web app** | 🟢 Core loop live and App Check-verified in dev **and now staging/prod deploy path** | Production gate bug (§1.7) fixed — `/app/*` and `/shared/:shareId` render in prod, matching dev/staging (still behind the deliberate `production` Coming Soon code-gate per §1.17 until real launch). App Check (§1.15/§1.16) was found broken, then fixed client-side, and **as of §1.19 the Functions deploy pipeline itself was migrated to Workload Identity Federation** — the first-ever fully green `build_and_deploy`-class run landed 2026-08-09 (Web UAT, Quality Gate, Android build, Web build, and Deploy Firebase to dev all green in the same run). Three copy-pasted null-`item.price` crashes found and fixed 2026-08-08/09 (§1.20) — real user-facing bugs, not test artifacts. `main` was promoted to content parity with `staging`/`develop` on 2026-08-05 for the first time since 2026-06-05, restoring its deploy workflow. |
+| **Browser extension** | 🟡 Core "killer app" flow real and tested; still no confirmed Chrome Web Store listing | The floating-button add-to-wishlist flow was fixed and verified 2026-07-18 (§1.12/§1.13), with a real committed Playwright E2E suite wired into CI. Coupon finder and price comparison still call backend endpoints that don't exist — deferred to Phase 2, not launch-blocking. **Confirmed 2026-08-09: Chrome Web Store submission is genuinely manual-only** (no API path for first-time listing) and is deliberately deferred by the user — not an oversight. |
+| **Mobile (iOS/Android, Flutter)** | 🟢 Thin but real, Android deploy path confirmed live | Push notifications, offline caching, and sharing are wired. Barcode lookup — backend-ready since the functions/api-router migration but never called from the UI — was wired into the Add Item screen 2026-08-08. A real crash bug (`FirebaseWishlistProvider.createWishlist()` discarding the real doc id) was found and fixed 2026-07-18 with a regression-proven test. **2026-08-09: found and fixed a genuine Play Console `versionCode` collision** (bumped `pubspec.yaml` to `1.0.0+3`); **confirmed live 2026-08-10** via a real Play Console internal-track upload (§1.20). Also fixed: `google-services.json` committed as a symlink, which broke Android CI's environment-switching. Still missing: Shared-with-Me, Creator Mode, native platform features (Siri Shortcuts, App Clips, iCloud, widgets) — never built, not regressions. |
+| **Backend (Firebase Functions + Firestore)** | 🟢 Live, confirmed; deploy pipeline hardened | Root `server/`/`client/` (old Express+Postgres) are dead. Affiliate tracking, calendar OAuth sync, and the router-pattern migration (§ router-migration memory, 2026-07-23 — all 63 callables) are solid. **Creator/business-tier Stripe checkout was found broken in all three environments** (`router.ts` never bound the Creator/Business price-ID secrets, and the dev/staging secret values themselves held the wrong field from a pasted list) — both fixed and pushed 2026-08-09. **Deploy-verification on 2026-08-10 fixed one blocker (root-lockfile drift) and uncovered a second, deeper one: `staging`/`main` Functions currently fail to `tsc`-compile at all** (missing `lib: ES2022` in their `tsconfig.json` vs. an `.at()` call in `admin.ts` — see §1.20 addendum). The Stripe fix itself is still unconfirmed live. The affiliate/creator payout backend (ledger, reconciliation, Stripe Connect) is fully built and deployed to dev with a tier-gated creator dashboard live-verified — see the corrected Part 5 entry below; prior versions of this document incorrectly said this was unstarted. |
 
-**Important:** Part 2.3's automated code-quality gates (npm audit, lint, secret scan, functions smoke tests, e2e tests, `go-live-gate.sh`) have **not** been re-run end-to-end since 2026-06-26. This pass verified unit/component test suites (web 182 passing, shared 106, extension 40, mobile 40) and TypeScript compilation across all packages — that is necessary but not sufficient for a go-live decision. Re-run Part 2.3 in full before relying on this document to green-light a launch.
+**Important:** Part 2.3's automated code-quality gates (npm audit, lint, secret scan, functions smoke tests, e2e tests, `go-live-gate.sh`) have **not** been re-run end-to-end as a single pass since 2026-07-16, and `go-live-gate.sh`'s Firebase/user-flow checks were already known-stale even then (§2.3). Individual pieces (unit suites, E2E, requirements traceability, CI) have been exercised piecemeal through 2026-08-09 and are green where noted in §1.17/§1.19, but nobody has run the full §2.3 sequence end-to-end recently. Re-run Part 2.3 in full before relying on this document to green-light a launch.
 
 ---
 
@@ -66,12 +66,14 @@ Promotion path: `develop` → `main` → production. `.github/workflows/firebase
 
 ---
 
-### 1.3 Open Issues Triage [BLOCKER]
+### 1.3 Open Issues Triage [STATUS CHANGED — 2026-08-10, needs owner confirmation]
 
-**Problem:** The repository has 44 open GitHub issues. Before launch, each issue must be classified as: (a) pre-launch blocker, (b) known acceptable debt, or (c) closed/invalid.
+**Original problem (2026-06-16):** The repository had 44 open GitHub issues requiring triage.
 
-- [ ] **Triage all 44 open issues and assign milestone: pre-launch, post-launch, or close** — Owner: _______ — Due: _______
-- [ ] **Resolve all issues marked pre-launch blocker** — Owner: _______ — Due: _______
+**Found 2026-08-10:** The GitHub Issues feature is now **disabled** on `NelsonGrey/wishlist-wizard` (`gh repo view` → `hasIssuesEnabled: false`). This means either (a) the 44 issues were triaged/closed and Issues deliberately turned off, or (b) Issues was disabled with open items still in it and now inaccessible via the GitHub UI/API for this repo. Not something this session can determine from the repo alone — needs the account owner to confirm via GitHub's org/repo settings (Issues can be re-enabled without losing prior issue data). If tracking moved elsewhere (a project board, an external tracker), this section should be updated to point at it instead.
+
+- [ ] **Confirm whether the 44 issues were triaged before Issues was disabled, or are dormant and inaccessible** — Owner: _______
+- [ ] **If pre-launch-blocking issues exist in the dormant tracker, re-enable Issues and resolve them; otherwise close this item** — Owner: _______
 
 ---
 
@@ -328,7 +330,9 @@ Per the user's explicit direction ("production should show Coming Soon since we'
 - [x] **Add a real production launch gate** (`ComingSoon.tsx` wired unconditionally for the `production` environment in `AppRouter.tsx`) — Completed 2026-07-20
 - [x] **Remove the now-obsolete "no coming-soon copy" CI check and correct the stale `VITE_SHOW_COMING_SOON_*` doc reference** — Completed 2026-07-20
 - [ ] **Before real launch: deliberately remove/flip the `environment === 'production'` check in `AppRouter.tsx`** — Owner: _______ (this is now the actual "go live" code change — there's no env var to toggle, it's a direct code edit)
-- [ ] **Live-verify staging App Check** — still open, carried over from §1.16 (this investigation started as an attempt to do this and got diverted by the CI findings above)
+- [x] **Live-verify staging App Check** — Completed 2026-08-08/09, see §1.19 (the fix required migrating the Functions/Firestore deploy pipeline itself to Workload Identity Federation, not just re-testing the existing setup)
+
+**Update 2026-08-05:** `main` was promoted to content parity with `staging` (which was itself parity with `develop`), via a direct tree replacement rather than a merge — `main` held 109 commits from before a history rewrite that aren't reachable from `develop`/`staging` at all, so a normal merge conflicted across nearly the entire tree. This also restored `main`'s own `firebase-hosting-merge.yml`, which had gone stale as a `.disabled`-suffixed file GitHub Actions doesn't register as a workflow — pushes to `main` deploy again. `main` has since fallen behind `develop` again as normal day-to-day work continued; treat this as "the promotion pipe was proven to work once," not "main is permanently in sync." The production `Coming Soon` gate item directly above is unaffected either way — Remote Config values on `wishlist-wizard-prod` already matched, so nothing changed for real visitors.
 
 ---
 
@@ -390,6 +394,67 @@ Replicated the `marketing-tools-service` pattern set up on the sibling `modulo-s
 - [ ] **Invite the SA in GTM, GA4, and Search Console consoles** — Owner: _______ (confirm exact account/property/site IDs first via the live API once the key exists)
 - [ ] **Re-run the live GTM/GA4/Search Console audit with real read access and confirm no contaminated tags / duplicate or orphaned properties**, mirroring the modulo-squares finding — Owner: _______
 - [ ] **Check whether `wishlist-wizard-demo` (referenced in `.firebaserc`) is a real, live project or a stale alias** — Owner: _______
+
+---
+
+### 1.19 App Check E2E Blocker Fully Resolved — 12+ Cascading Bugs, Functions Deploy Migrated to WIF [RESOLVED — 2026-08-08/09]
+
+What started as an attempt to close the §1.17 "live-verify staging App Check" item turned into the longest bug chain of this project's history. In rough order: the App Check debug-token gate needed reconfiguring; the `requirements:verify` CI gate was found broken by an earlier `REQUIREMENTS.md` rewrite and had to be restored (`cc99e31`); the `FIREBASE_TOKEN` GitHub secret had expired; a `deploy_only` job's `if:` condition never evaluated true — fixed once (`7d6040c`), then recurred from a job-level `permissions:` quirk and had to be fixed again (`24f1018`, moving `id-token` permission to workflow level); two E2E test races plus general flakiness required widening post-mutation wait timeouts from 10s to 20s (`7e78628`) and removing race-prone reloads from `T1.4`/`T1.6`/`ensureWishlistExists` (`321145c`, `97ac78b`, `7c9c01a`); three copy-pasted null-price crashes were found and fixed as a real user-facing bug (see §1.20); an Android `google-services.json` symlink broke CI's environment-switching (see §1.20); and — the largest single piece of work — the Firebase Functions/Firestore deploy was migrated from a long-lived service-account-key secret to Workload Identity Federation (`175bf5a`), discovering the required IAM roles incrementally across dev/staging/prod.
+
+**Result:** run `31333669130` (2026-08-09) was the first time this pipeline has ever gone green across Web UAT (webkit/firefox/chromium), Quality Gate, Build Android App, Build Web App, and Deploy Firebase to development simultaneously. (The overall workflow still shows red on that run — see §1.20 for why: an Android Play Store upload failure that predates the versionCode fix, and the Chrome Web Store publish step, which is deliberately manual-only per §1.20 — neither is an App Check or WIF regression.)
+
+- [x] **Diagnose and fix the App Check debug-token / enforcement gate blocking automated E2E** — Completed 2026-08-08/09
+- [x] **Restore the `requirements:verify` CI gate broken by the `REQUIREMENTS.md` rewrite** — Completed 2026-08-09 (`cc99e31`)
+- [x] **Rotate the expired `FIREBASE_TOKEN` GitHub secret** — Completed 2026-08-09
+- [x] **Fix `deploy_only`'s `if:` condition never evaluating true (twice — second time from a job-level `permissions:` quirk)** — Completed 2026-08-09 (`7d6040c`, `24f1018`)
+- [x] **Fix E2E test races and widen post-mutation timeouts (10s → 20s)** — Completed 2026-08-09
+- [x] **Migrate Firebase Functions/Firestore deploy to Workload Identity Federation** — Completed 2026-08-09 (`175bf5a`), 11 IAM roles across dev/staging/prod, discovered incrementally
+- [x] **Achieve a fully green run of Web UAT + Quality Gate + Android/Web build + Deploy Firebase in the same pipeline execution** — Completed 2026-08-09, run `31333669130`
+
+---
+
+### 1.20 Mobile Launch-Readiness Closeout — Three Crash Bugs, a CI Config Bug, an Unverified Android Fix [PARTIALLY RESOLVED — 2026-08-08/09]
+
+A launch-readiness pass on mobile found and fixed real bugs, separate from the App Check/CI chain in §1.19:
+
+- **Three copy-pasted `item.price.replace()` null crashes** (`905fc82`, `827ecdb`) — `ContributionDialog` and two other call sites crashed the whole page for any item with no price set. Real user-facing bug, not a test artifact. Fixed 2026-08-08/09.
+- **`google-services.json` committed as a symlink** (`d6eb0fc`) — broke Android CI's environment-switching (dev/staging/prod use different Firebase configs); a symlink checked out on a CI runner doesn't resolve the way a real per-environment file needs to. Fixed by committing the real files.
+- **Barcode lookup wired into the Add Item screen** (`a7054f4`, 2026-08-08) — `lookupBarcode` has been live on the backend since the functions/api-router migration, but nothing in the mobile app ever called it; the scan screen only offered camera-photo-capture and manual text entry. This was flagged as dead UI in the 2026-08-08 doc-alignment audit and fixed the same window.
+- **Android Play Console `versionCode` collision** (`f658db0`, 2026-08-09) — a real deploy blocker: "Deploy Android to Play Store" failed with `Version code 1 has already been used` on run `31333669130` and its immediate predecessors. Fixed by bumping `pubspec.yaml` to `1.0.0+3`. **Confirmed live 2026-08-10**: a targeted `android_deploy_only` run against `development` (run `31400683595`) succeeded — "Deploy Android to Play Store" → "Upload to Google Play (internal track)" completed in 49s. The run's overall status still shows red, but only from the unrelated, already-known-deferred Chrome Web Store publish step (see below) — not an Android/versionCode regression.
+- **Confirmed 2026-08-09: Chrome Web Store submission is genuinely manual-only** for a first-time listing — no API path exists — and is deliberately deferred by the user, not an oversight or gap.
+
+- [x] **Fix three copy-pasted null-price crash bugs** — Completed 2026-08-08/09
+- [x] **Fix `google-services.json` symlink breaking Android CI env-switching** — Completed 2026-08-09
+- [x] **Wire barcode lookup into the mobile Add Item screen** — Completed 2026-08-08
+- [x] **Fix Android Play Console `versionCode` collision in code** — Completed 2026-08-09
+- [x] **Trigger a pipeline run and confirm "Deploy Android to Play Store" actually succeeds** — Completed 2026-08-10, run `31400683595` (`android_deploy_only`/`development`), upload succeeded in 49s
+
+**Addendum, 2026-08-10 — a new instance of the §1.17 root-lockfile-drift bug blocked Stripe fix verification.** Attempting to deploy-verify the §1.18/Part 5 Creator/Business Stripe fix (`deploy_only`/`staging`, run `31400850560`) failed at "Build Web App → Install Dependencies," before Functions ever deployed:
+
+```
+npm error Invalid: lock file's @typescript-eslint/eslint-plugin@8.66.0 does not satisfy @typescript-eslint/eslint-plugin@5.62.0
+```
+
+Root cause, same shape as §1.17's original finding: the private `wishlist-wizard-functions` companion repo is checked out fresh into `packages/functions/` on every CI run, and its `staging` branch now declares `@typescript-eslint/eslint-plugin: ^5.12.0` (commit `124e56b`, "resolve typescript/@typescript-eslint peer conflict from Dependabot") — but the root `package-lock.json` in *this* repo is locked to `^8.66.0`/`^8.65.0`. The 2026-08-09 lockfile sync (`6d23b27`) fixed this exact tension once; the companion repo has since drifted again. This will block **any** deploy off `staging` (or likely `main`, worth checking) until the root lockfile is regenerated against the companion repo's current `staging` branch, per the fix procedure already documented in §1.17.
+
+- [x] **Regenerate root `package-lock.json` against `wishlist-wizard-functions`'s current `staging` branch** — Completed 2026-08-10 (commit `3d8b927`); nests a nested `@typescript-eslint/*@5.x` copy under `packages/functions` alongside the root's hoisted `8.x`, satisfying both without touching root/shared/web's own `^8.0.0` requirement. Verified `npm ci` + `npm run lint` clean before pushing.
+- [x] **Re-attempt the Stripe Creator/Business `deploy_only`/`staging` verification** — Attempted 2026-08-10 (run `31402756524`); the lockfile fix worked (`Install Dependencies` now passes), but surfaced a **second, unrelated real bug that blocks this same deploy**: `packages/functions/src/api/admin.ts` (both `staging` and `main` branches of the companion repo — confirmed identical, `git diff origin/staging origin/main -- src/api/admin.ts` is empty) calls `Array.prototype.at()` three times, which needs an ES2022+ `lib` target. `staging`/`main`'s `tsconfig.json` has no `lib` override (defaults from `target: es2017`); `develop`'s does (`"lib": ["ES2022", "DOM"]`) — that's why this has never surfaced before: no staging/main Functions deploy has reached the `tsc` build step since `.at()` was introduced on `develop` and the code (but not the tsconfig fix) made it into `staging`/`main`. **This means Functions on `staging` and `main` currently cannot build at all — a deploy-blocker independent of the Stripe fix.** Not yet fixed — flagged for a decision below rather than fixed unprompted, since it's a code change in the private companion repo affecting two branches.
+- [x] **Add `"lib": ["ES2022", "DOM"]` to `staging`/`main`'s `tsconfig.json` in `wishlist-wizard-functions`, mirroring `develop`'s already-working config, then re-verify the staging deploy** — Completed 2026-08-10 (commits `53aade0`/staging, `c12e39f`/main), verified with a real local `tsc`/`npm run build` pass on both branches before pushing.
+
+**Addendum 2, 2026-08-10 — a third, more severe finding: `staging` is currently locked out for everyone, not just CI.** With the lockfile and tsconfig bugs both fixed, a re-triggered `deploy_only`/`staging` run (`31403440280`) revealed a separate, already-documented bug: **`deploy_only` skips the "Deploy Firebase" job outright** (it shows "skipped," not "success" — this is the still-open `deploy_only` if-condition issue named in the App Check saga memory; use `build_and_deploy` instead). Re-triggering with `build_and_deploy`/`staging` (run `31403715222`) got further and failed at **Web UAT**, all three browsers, on a `beforeAll` timeout trying to fill `register-email-input` — the test never found that element.
+
+Root cause: `EnvironmentPasswordGate.tsx` password-gates the `staging`/`demonstration` environments behind `VITE_NON_PROD_SITE_PASSWORD` (added in the §1.17-era `ComingSoon.tsx`→`EnvironmentPasswordGate` swap). **No `NON_PROD_SITE_PASSWORD_STAGING` GitHub secret exists** (confirmed via `gh secret list`, repo- and org-level, and via `gh secret list --env staging`) — so the built staging site renders `EnvironmentPasswordGate`'s "Environment Is Locked" misconfiguration page (`data-testid="env-password-misconfigured"`) for **every visitor**, not a deliberate 30-second password box. There is no password anyone could type to get in — the gate has no configured secret to check against. This means:
+
+- Any human wanting to manually test staging right now hits the same locked page.
+- The Playwright E2E suite has **zero** handling for this gate anywhere (`grep` across `packages/web/e2e/` for `NON_PROD_SITE_PASSWORD`/`SitePassword` returns nothing) — even with a real password configured, Web UAT against staging would still fail today.
+- This has likely been broken since the `EnvironmentPasswordGate` mechanism was introduced (§1.17, ~2026-07-20) — no staging Web UAT run had gotten this far past the lockfile/tsconfig blockers to surface it until today.
+- **The Stripe Creator/Business fix still has not been confirmed live** — this is now the fourth blocker in the chain, and unlike the first three it isn't something to silently fix (it needs either a real password value from the user, or a decision to disable the gate for staging).
+
+**Deliberately not pursued further as of 2026-08-10.** This project is not close enough to launch for staging-access CI green to be the priority, and `EnvironmentPasswordGate`/environment-gating is exactly the kind of on/off-switch infrastructure that shouldn't be touched without a real product decision behind it — not fixed reflexively while chasing an unrelated CI run green. Left here as a documented, real, currently-live gap rather than an active to-do:
+
+- [ ] **Decide and set a real `NON_PROD_SITE_PASSWORD_STAGING` GitHub secret, or deliberately disable the staging gate** — Owner: _______ (not urgent pre-launch; revisit if/when staging needs to be shown to anyone, human or automated)
+- [ ] **Add E2E handling for the environment password gate** so Web UAT can run against `staging`/`demonstration` at all — Owner: _______ (same priority as above)
+- [ ] **The Stripe Creator/Business fix can still be verified against `wishlist-wizard-dev`** (not password-gated) **without touching the staging gate at all** — a lower-effort path forward whenever this becomes a priority again — Owner: _______
 
 ---
 
@@ -580,7 +645,7 @@ flutter build ios --release
 ### 2.7 Android Mobile Release
 
 - [ ] Keystore file secured and backed up (NOT in the repo) — Owner: _______
-- [ ] App version set, `versionCode` incremented — Owner: _______
+- [x] App version set (`1.0.0+3`), `versionCode` incremented past the collision found 2026-08-09 — **confirmed live 2026-08-10 via a real internal-track upload, see §1.20**
 - [ ] App icons present for all densities — Owner: _______
 - [ ] AAB (Android App Bundle) built: `flutter build appbundle --release` — Owner: _______
 - [ ] AAB signed with release keystore — Owner: _______
@@ -653,6 +718,8 @@ npm run package:extension:release
 - [ ] **FCM (Firebase Cloud Messaging):** Push notifications working on web (VAPID key configured), iOS (APNs token configured), and Android — Owner: _______
 - [ ] **Firebase Analytics:** Events flowing into Firebase console — Owner: _______
 - [ ] **Google Analytics:** Measurement ID producing traffic in GA4 dashboard — Owner: _______
+- [x] **AdMob:** Real ad unit IDs and App IDs wired for Android and iOS (2026-08-05, replacing test IDs) — not yet independently live-verified from this document's audit trail, but shipped and promoted through staging/main
+- [ ] **Auth password policy:** Firebase Auth password policy enforcement added 2026-08-09, alongside a fix for a broken password-reset flow found in the same pass — re-verify the reset flow end-to-end before launch (ties into §3.4's "Password reset email sent and received" smoke test)
 
 ---
 
@@ -911,15 +978,15 @@ firebase deploy --only firestore:rules --project wishlist-wizard-prod
 
 The following features are explicitly documented as deferred to Phase 2. Do not launch with them enabled unless fully tested. List reconciled against the 2026-07-16 code audit — several entries below were corrected or added based on what's actually in the codebase today.
 
-- **Personal price-drop alerts** — coded (`firebase-price-tracking.ts`) but not exported from the Functions deploy entrypoint; not launch-blocking since nothing calls it, but don't assume it works. (Multi-retailer comparison-shopping, a related but separate feature, **is** live via SerpAPI — no action needed there.)
-- **Affiliate monetization** — click/conversion tracking and revenue aggregation are already live and deployed; only the creator-facing dashboard and payout system below remain undone.
-- **Browser extension coupon finder & price comparison** — UI is complete but calls backend endpoints that don't exist anywhere in the repo (`/api/extension/coupons`, `/api/extension/price-comparisons`); either implement the backend or remove the UI before it's user-facing at scale.
-- **Creator dashboard & payouts** — no code exists anywhere (dashboard, commission tracking, payout processing). Docs previously called this "ready, payment system next" — that was inaccurate; treat as unstarted.
-- **Social network & discovery** — no code beyond a page literally named `SocialIntegrationDemo.tsx`. Treat as unstarted, not partial.
-- **iOS/Android native platform features** — Siri Shortcuts, App Clips, iCloud sync, Handoff, Google Assistant integration, home-screen widgets: zero code exists (the app is Flutter, not native Swift/Kotlin as earlier docs claimed — see `docs/PRODUCT_DESIGN.md` Feature 6).
-- **Stripe group gifting payments** — partially scaffolded (2 Stripe callables warn in smoke tests); must be either fully implemented and tested, or gated behind a feature flag set to OFF at launch
+- **Personal price-drop alerts** — status as of 2026-07-16 was coded (`firebase-price-tracking.ts`) but not exported from the Functions deploy entrypoint. The 2026-07-23 router-pattern migration touched all 63 callables and the price-intelligence feature saw substantial work afterward (retailer scope, market coverage, replay-status observability — see `packages/functions` companion-repo history), but whether price-drop alerts specifically are now exported/live has **not been re-checked since** — verify before assuming either way. (Multi-retailer comparison-shopping, a related but separate feature, **is** live via SerpAPI.)
+- **Affiliate monetization** — click/conversion tracking, revenue aggregation, **and** the creator-facing dashboard and payout system are now all live and deployed to dev (built 2026-07-20/21: full ledger/reconciliation/Stripe Connect backend, tier-gated creator dashboard live-verified). See the corrected "Creator dashboard & payouts" entry below — this bullet and that one describe the same, now-complete body of work.
+- **Browser extension coupon finder & price comparison** — UI is complete but calls backend endpoints that don't exist anywhere in the repo (`/api/extension/coupons`, `/api/extension/price-comparisons`); either implement the backend or remove the UI before it's user-facing at scale. No change since 2026-07-16.
+- **Creator dashboard & payouts** — **corrected 2026-08-10: this is built, not unstarted.** `packages/web/client-src/pages/CreatorProgram.tsx`, `components/creator-dashboard/PayoutReadinessPanel.tsx`, and `components/dashboard/CreatorOverview.tsx` exist and are wired up; the backend ledger/reconciliation/Stripe Connect payout system was built and deployed to dev 2026-07-20/21, and the dashboard's tier-gating was live-verified. **However, as of 2026-08-09 the Creator/Business Stripe checkout tier itself was found broken in all three environments** — `router.ts` never bound the Creator/Business price-ID secrets (a code bug present since the router migration), compounded by the dev/staging secret values themselves holding the wrong field from a pasted `KEY=LABEL=price_id=amount` list (a data bug across all 16 price secrets). Both were fixed and pushed 2026-08-09. A deploy-verification attempt 2026-08-10 (staging) was blocked before it reached the Functions deploy step by a fresh lockfile-drift bug — see the §1.20 addendum. **Don't treat Creator/Business signup as launch-ready until that's confirmed live.**
+- **Social network & discovery** — no code beyond a page literally named `SocialIntegrationDemo.tsx`. Treat as unstarted, not partial. No change since 2026-07-16.
+- **iOS/Android native platform features** — Siri Shortcuts, App Clips, iCloud sync, Handoff, Google Assistant integration, home-screen widgets: zero code exists (the app is Flutter, not native Swift/Kotlin as earlier docs claimed — see `docs/PRODUCT_DESIGN.md` Feature 6). No change since 2026-07-16.
+- **Stripe group gifting payments** — status unclear post-router-migration; the Creator/Business price-ID binding bug found 2026-08-09 (above) is evidence this area hasn't had a full pass recently. Must be either fully implemented and tested, or gated behind a feature flag set to OFF at launch — verify current state before assuming the 2026-07-16 "2 callables warn in smoke tests" characterization still holds.
 - **AI-powered recommendations** — **not applicable / do not provision.** `OPENAI_API_KEY` does not appear anywhere in the live codebase; recommendations are Firestore-backed (pattern-matching on user activity), not model-backed, and public copy was deliberately reworded away from "AI" framing. Re-introduce only if a real model integration is built.
-- **Barcode lookup** — 1 upstream dependency gap noted in smoke tests
+- **Barcode lookup** — **corrected 2026-08-10: wired into the mobile Add Item screen 2026-08-08** (see §1.20). The backend has been ready since the router migration; the gap was purely a dead UI path, now closed.
 - **AR features** — Phase 3
 - **White-label / creator economy** — Phase 3
 
