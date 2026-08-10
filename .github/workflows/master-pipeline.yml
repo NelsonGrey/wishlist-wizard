@@ -907,6 +907,7 @@ jobs:
     permissions:
       contents: read
       issues: write
+      id-token: write
     uses: ./.github/workflows/extension-build.yml
     with:
       project_name: ${{ needs.load-config.outputs.project_name }}
@@ -917,9 +918,6 @@ jobs:
     secrets:
       chrome_extension_id: ${{ secrets.CHROME_EXTENSION_ID }}
       chrome_publisher_id: ${{ secrets.CHROME_PUBLISHER_ID }}
-      chrome_client_id: ${{ secrets.CHROME_CLIENT_ID }}
-      chrome_client_secret: ${{ secrets.CHROME_CLIENT_SECRET }}
-      chrome_refresh_token: ${{ secrets.CHROME_REFRESH_TOKEN }}
 
   pipeline-summary:
     name: Pipeline Summary
