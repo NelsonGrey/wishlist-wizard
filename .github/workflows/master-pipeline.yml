@@ -916,6 +916,7 @@ jobs:
       node_version: "20"
     secrets:
       chrome_extension_id: ${{ secrets.CHROME_EXTENSION_ID }}
+      chrome_publisher_id: ${{ secrets.CHROME_PUBLISHER_ID }}
       chrome_client_id: ${{ secrets.CHROME_CLIENT_ID }}
       chrome_client_secret: ${{ secrets.CHROME_CLIENT_SECRET }}
       chrome_refresh_token: ${{ secrets.CHROME_REFRESH_TOKEN }}

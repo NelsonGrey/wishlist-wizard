@@ -21,6 +21,8 @@ on:
     secrets:
       chrome_extension_id:
         required: false
+      chrome_publisher_id:
+        required: false
       chrome_client_id:
         required: false
       chrome_client_secret:
@@ -187,13 +189,14 @@ jobs:
         if: success() && inputs.publish == true
         env:
           CHROME_EXTENSION_ID: ${{ secrets.chrome_extension_id }}
+          PUBLISHER_ID: ${{ secrets.chrome_publisher_id }}
           CLIENT_ID: ${{ secrets.chrome_client_id }}
           CLIENT_SECRET: ${{ secrets.chrome_client_secret }}
           REFRESH_TOKEN: ${{ secrets.chrome_refresh_token }}
         run: |
-          if [ -z "$CHROME_EXTENSION_ID" ] || [ -z "$CLIENT_ID" ] || [ -z "$CLIENT_SECRET" ] || [ -z "$REFRESH_TOKEN" ]; then
+          if [ -z "$CHROME_EXTENSION_ID" ] || [ -z "$PUBLISHER_ID" ] || [ -z "$CLIENT_ID" ] || [ -z "$CLIENT_SECRET" ] || [ -z "$REFRESH_TOKEN" ]; then
             echo "❌ Chrome Web Store publish secrets are not fully configured."
-            echo "   Required: chrome_extension_id, chrome_client_id, chrome_client_secret, chrome_refresh_token."
+            echo "   Required: chrome_extension_id, chrome_publisher_id, chrome_client_id, chrome_client_secret, chrome_refresh_token."
             echo "   The first-ever Chrome Web Store listing must be created manually via the"
             echo "   Developer Dashboard before these can point at anything real; the refresh"
             echo "   token requires a one-time interactive OAuth consent flow and can't be"
