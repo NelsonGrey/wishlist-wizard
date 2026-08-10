@@ -187,11 +187,11 @@ jobs:
         if: success() && inputs.publish == true
         env:
           CHROME_EXTENSION_ID: ${{ secrets.chrome_extension_id }}
-          CHROME_CLIENT_ID: ${{ secrets.chrome_client_id }}
-          CHROME_CLIENT_SECRET: ${{ secrets.chrome_client_secret }}
-          CHROME_REFRESH_TOKEN: ${{ secrets.chrome_refresh_token }}
+          CLIENT_ID: ${{ secrets.chrome_client_id }}
+          CLIENT_SECRET: ${{ secrets.chrome_client_secret }}
+          REFRESH_TOKEN: ${{ secrets.chrome_refresh_token }}
         run: |
-          if [ -z "$CHROME_EXTENSION_ID" ] || [ -z "$CHROME_CLIENT_ID" ] || [ -z "$CHROME_CLIENT_SECRET" ] || [ -z "$CHROME_REFRESH_TOKEN" ]; then
+          if [ -z "$CHROME_EXTENSION_ID" ] || [ -z "$CLIENT_ID" ] || [ -z "$CLIENT_SECRET" ] || [ -z "$REFRESH_TOKEN" ]; then
             echo "❌ Chrome Web Store publish secrets are not fully configured."
             echo "   Required: chrome_extension_id, chrome_client_id, chrome_client_secret, chrome_refresh_token."
             echo "   The first-ever Chrome Web Store listing must be created manually via the"
@@ -201,22 +201,20 @@ jobs:
             exit 1
           fi
 
+          # Pinned: chrome-webstore-upload-cli@4.0.1 removed the
+          # --client-id/--client-secret/--refresh-token flags in favor of
+          # CLIENT_ID/CLIENT_SECRET/REFRESH_TOKEN env vars. An unpinned npx
+          # call silently picked up that breaking change and broke this step.
           # Uses dist/chrome from the build:all output above, not the
           # separate root-level `npm run package:extension:release` flow
           # (a different, flat single-vite-build dist/ shape used only for
           # local ad-hoc packaging).
-          npx chrome-webstore-upload-cli upload \
+          npx chrome-webstore-upload-cli@4.0.1 upload \
             --source packages/browser-extension/dist/chrome \
-            --extension-id "$CHROME_EXTENSION_ID" \
-            --client-id "$CHROME_CLIENT_ID" \
-            --client-secret "$CHROME_CLIENT_SECRET" \
-            --refresh-token "$CHROME_REFRESH_TOKEN"
+            --extension-id "$CHROME_EXTENSION_ID"
 
-          npx chrome-webstore-upload-cli publish \
-            --extension-id "$CHROME_EXTENSION_ID" \
-            --client-id "$CHROME_CLIENT_ID" \
-            --client-secret "$CHROME_CLIENT_SECRET" \
-            --refresh-token "$CHROME_REFRESH_TOKEN"
+          npx chrome-webstore-upload-cli@4.0.1 publish \
+            --extension-id "$CHROME_EXTENSION_ID"
           # Firefox AMO / Edge Add-ons publishing could follow this same
           # upload-then-publish shape with their own CLIs (web-ext for AMO,
           # the Partner Center API for Edge) — deliberately out of scope
