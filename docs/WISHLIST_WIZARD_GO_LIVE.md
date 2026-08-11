@@ -452,8 +452,8 @@ Root cause: `EnvironmentPasswordGate.tsx` password-gates the `staging`/`demonstr
 
 **Deliberately not pursued further as of 2026-08-10.** This project is not close enough to launch for staging-access CI green to be the priority, and `EnvironmentPasswordGate`/environment-gating is exactly the kind of on/off-switch infrastructure that shouldn't be touched without a real product decision behind it — not fixed reflexively while chasing an unrelated CI run green. Left here as a documented, real, currently-live gap rather than an active to-do:
 
-- [ ] **Decide and set a real `NON_PROD_SITE_PASSWORD_STAGING` GitHub secret, or deliberately disable the staging gate** — Owner: _______ (not urgent pre-launch; revisit if/when staging needs to be shown to anyone, human or automated)
-- [ ] **Add E2E handling for the environment password gate** so Web UAT can run against `staging`/`demonstration` at all — Owner: _______ (same priority as above)
+- [x] **Decide and set a real `NON_PROD_SITE_PASSWORD_STAGING` GitHub secret, or deliberately disable the staging gate** — Resolved 2026-08-10: real secret set (also removed the hardcoded fallback passwords the workflow had been silently using), manually deployed to staging, verified live.
+- [x] ~~Add E2E handling for the environment password gate so Web UAT can run against `staging`/`demonstration` at all~~ — Moot: the `demonstration` environment was removed entirely on 2026-08-10 (never had real infrastructure behind it). E2E handling for the `staging` gate is still an open item if Web UAT needs to run against staging in the future.
 - [ ] **The Stripe Creator/Business fix can still be verified against `wishlist-wizard-dev`** (not password-gated) **without touching the staging gate at all** — a lower-effort path forward whenever this becomes a priority again — Owner: _______
 
 ---

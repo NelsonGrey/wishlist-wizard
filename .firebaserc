@@ -3,8 +3,7 @@
     "default": "wishlist-wizard-dev",
     "production": "wishlist-wizard-prod",
     "staging": "wishlist-wizard-staging",
-    "development": "wishlist-wizard-dev",
-    "demonstration": "wishlist-wizard-demo"
+    "development": "wishlist-wizard-dev"
   },
   "targets": {},
   "etags": {}

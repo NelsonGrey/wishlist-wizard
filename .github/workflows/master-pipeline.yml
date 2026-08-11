@@ -31,7 +31,6 @@ on:
         type: choice
         options:
           - development
-          - demonstration
           - staging
           - production
         default: "development"
@@ -125,7 +124,6 @@ jobs:
       APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
       APP_STORE_CONNECT_KEY: ${{ secrets.APP_STORE_CONNECT_KEY }}
       FIREBASE_PROJECT_DEV: ${{ secrets.FIREBASE_PROJECT_DEVELOPMENT || 'wishlist-wizard-dev' }}
-      FIREBASE_PROJECT_DEMO: ${{ secrets.FIREBASE_PROJECT_DEMONSTRATION || 'wishlist-wizard-demo' }}
       FIREBASE_PROJECT_STAGING: ${{ secrets.FIREBASE_PROJECT_STAGING || 'wishlist-wizard-staging' }}
       FIREBASE_PROJECT_PROD: ${{ secrets.FIREBASE_PROJECT_PRODUCTION || 'wishlist-wizard-prod' }}
       MATCH_GIT_BRANCH: main
@@ -192,9 +190,6 @@ jobs:
           elif [ "${{ github.ref }}" = "refs/heads/staging" ]; then
             TRIGGER="build_and_deploy"
             ENVIRONMENT="staging"
-          elif [ "${{ github.ref }}" = "refs/heads/demonstration" ]; then
-            TRIGGER="build_and_deploy"
-            ENVIRONMENT="demonstration"
           elif [ "${{ github.ref }}" = "refs/heads/develop" ]; then
             TRIGGER="build_and_deploy"
             ENVIRONMENT="development"
@@ -359,9 +354,6 @@ jobs:
               ;;
             staging)
               export TEST_URL="https://wishlist-wizard-staging.web.app"
-              ;;
-            demonstration)
-              export TEST_URL="https://wishlist-wizard-demo.web.app"
               ;;
             *)
               export TEST_URL="https://wishlist-wizard-dev.web.app"
@@ -579,7 +571,6 @@ jobs:
     env:
       FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
       FIREBASE_PROJECT_DEV: ${{ secrets.FIREBASE_PROJECT_DEVELOPMENT || 'wishlist-wizard-dev' }}
-      FIREBASE_PROJECT_DEMO: ${{ secrets.FIREBASE_PROJECT_DEMONSTRATION || 'wishlist-wizard-demo' }}
       FIREBASE_PROJECT_STAGING: ${{ secrets.FIREBASE_PROJECT_STAGING || 'wishlist-wizard-staging' }}
       FIREBASE_PROJECT_PROD: ${{ secrets.FIREBASE_PROJECT_PRODUCTION || 'wishlist-wizard-prod' }}
       VITE_FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY }}
@@ -596,13 +587,6 @@ jobs:
       VITE_FIREBASE_MESSAGING_SENDER_ID_DEVELOPMENT: ${{ secrets.VITE_FIREBASE_MESSAGING_SENDER_ID_DEVELOPMENT }}
       VITE_FIREBASE_APP_ID_DEVELOPMENT: ${{ secrets.VITE_FIREBASE_APP_ID_DEVELOPMENT }}
       VITE_FIREBASE_MEASUREMENT_ID_DEVELOPMENT: ${{ secrets.VITE_FIREBASE_MEASUREMENT_ID_DEVELOPMENT }}
-      VITE_FIREBASE_API_KEY_DEMONSTRATION: ${{ secrets.VITE_FIREBASE_API_KEY_DEMONSTRATION }}
-      VITE_FIREBASE_AUTH_DOMAIN_DEMONSTRATION: ${{ secrets.VITE_FIREBASE_AUTH_DOMAIN_DEMONSTRATION }}
-      VITE_FIREBASE_PROJECT_ID_DEMONSTRATION: ${{ secrets.VITE_FIREBASE_PROJECT_ID_DEMONSTRATION }}
-      VITE_FIREBASE_STORAGE_BUCKET_DEMONSTRATION: ${{ secrets.VITE_FIREBASE_STORAGE_BUCKET_DEMONSTRATION }}
-      VITE_FIREBASE_MESSAGING_SENDER_ID_DEMONSTRATION: ${{ secrets.VITE_FIREBASE_MESSAGING_SENDER_ID_DEMONSTRATION }}
-      VITE_FIREBASE_APP_ID_DEMONSTRATION: ${{ secrets.VITE_FIREBASE_APP_ID_DEMONSTRATION }}
-      VITE_FIREBASE_MEASUREMENT_ID_DEMONSTRATION: ${{ secrets.VITE_FIREBASE_MEASUREMENT_ID_DEMONSTRATION }}
       VITE_FIREBASE_API_KEY_STAGING: ${{ secrets.VITE_FIREBASE_API_KEY_STAGING }}
       VITE_FIREBASE_AUTH_DOMAIN_STAGING: ${{ secrets.VITE_FIREBASE_AUTH_DOMAIN_STAGING }}
       VITE_FIREBASE_PROJECT_ID_STAGING: ${{ secrets.VITE_FIREBASE_PROJECT_ID_STAGING }}
@@ -633,7 +617,6 @@ jobs:
       # _STAGING/_PRODUCTION equivalent secret exists.
       VITE_FIREBASE_APPCHECK_DEBUG_TOKEN: ${{ secrets.VITE_FIREBASE_APPCHECK_DEBUG_TOKEN_DEVELOPMENT }}
       NON_PROD_SITE_PASSWORD_DEVELOPMENT: ${{ secrets.NON_PROD_SITE_PASSWORD_DEVELOPMENT }}
-      NON_PROD_SITE_PASSWORD_DEMONSTRATION: ${{ secrets.NON_PROD_SITE_PASSWORD_DEMONSTRATION }}
       NON_PROD_SITE_PASSWORD_STAGING: ${{ secrets.NON_PROD_SITE_PASSWORD_STAGING }}
     steps:
       - name: Checkout Code
@@ -683,11 +666,6 @@ jobs:
               PROJECT_ID="$FIREBASE_PROJECT_PROD"
               CONFIG_FILE="firebase.prod.json"
               ENV_SUFFIX="PRODUCTION"
-              ;;
-            demonstration)
-              PROJECT_ID="$FIREBASE_PROJECT_DEMO"
-              CONFIG_FILE="firebase.demo.json"
-              ENV_SUFFIX="DEMONSTRATION"
               ;;
             staging)
               PROJECT_ID="$FIREBASE_PROJECT_STAGING"
@@ -759,12 +737,6 @@ jobs:
                 production)
                   eval "value=\${${base_name}_PRODUCTION:-}"
                   ;;
-                demonstration)
-                  eval "value=\${${base_name}_DEMONSTRATION:-}"
-                  if [ -z "$value" ]; then
-                    eval "value=\${${base_name}_STAGING:-}"
-                  fi
-                  ;;
                 staging)
                   eval "value=\${${base_name}_STAGING:-}"
                   ;;
@@ -828,7 +800,6 @@ jobs:
           // this file, defeating the point of the gate.
           const nonProdPasswords = {
             development: process.env.NON_PROD_SITE_PASSWORD_DEVELOPMENT || '',
-            demonstration: process.env.NON_PROD_SITE_PASSWORD_DEMONSTRATION || '',
             staging: process.env.NON_PROD_SITE_PASSWORD_STAGING || ''
           };
 
