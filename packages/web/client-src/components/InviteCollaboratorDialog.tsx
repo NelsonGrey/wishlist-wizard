@@ -30,6 +30,34 @@ interface UserSearchResult {
   photoURL: string | null;
 }
 
+type ExternalProviderStatus = {
+  provider: "google" | "outlook" | "apple" | "facebook";
+  connected: boolean;
+  supported: boolean;
+  message?: string;
+};
+
+type ExternalContact = {
+  id: string;
+  name: string;
+  email?: string;
+  phone?: string;
+  sources: Array<{ provider: ExternalProviderStatus["provider"]; sourceContactId: string }>;
+};
+
+type ExternalContactsResponse = {
+  contacts: ExternalContact[];
+  providerStatuses: ExternalProviderStatus[];
+};
+
+function formatProviderName(provider: string): string {
+  if (provider === "google") return "Google";
+  if (provider === "outlook") return "Outlook";
+  if (provider === "apple") return "Apple";
+  if (provider === "facebook") return "Facebook";
+  return provider;
+}
+
 export type InvitableRole = "editor" | "commenter" | "viewer";
 
 const ROLE_DESCRIPTIONS: Record<InvitableRole, string> = {
@@ -53,7 +81,7 @@ export default function InviteCollaboratorDialog({
   onOpenChange,
   onInvited,
 }: InviteCollaboratorDialogProps) {
-  const [mode, setMode] = useState<"email" | "search">("email");
+  const [mode, setMode] = useState<"email" | "search" | "contacts">("email");
   const [email, setEmail] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
@@ -73,6 +101,26 @@ export default function InviteCollaboratorDialog({
       }>,
     enabled: mode === "search" && open && debouncedSearchQuery.length >= 2,
   });
+
+  // Same /api/contacts/external endpoint CreateWishlistDialog.tsx uses for
+  // recipient selection — real Google/Outlook/Facebook contacts via the
+  // OAuth connections set up in Calendar Settings, Apple via vCard. Reused
+  // here so inviting a collaborator can start from "someone I already know"
+  // instead of requiring their exact email or an existing account to search for.
+  const { data: contactsResponse, isFetching: isLoadingContacts } = useQuery<ExternalContactsResponse>({
+    queryKey: ["/api/contacts/external"],
+    queryFn: () =>
+      apiRequest("/api/contacts/external", {
+        method: "POST",
+        body: { providers: ["google", "outlook", "apple", "facebook"], limit: 200 },
+      }) as Promise<ExternalContactsResponse>,
+    enabled: mode === "contacts" && open,
+    staleTime: 60_000,
+  });
+
+  const contacts = contactsResponse?.contacts || [];
+  const connectedProviders = (contactsResponse?.providerStatuses || []).filter((status) => status.connected);
+  const hasConnectedProvider = connectedProviders.length > 0;
 
   const inviteMutation = useMutation({
     mutationFn: async (variables: { email?: string; targetUserId?: string; label: string }) => {
@@ -123,6 +171,14 @@ export default function InviteCollaboratorDialog({
     });
   };
 
+  // Contacts don't carry a Wishlist Wizard uid — invite by email either way.
+  // inviteCollaborator already resolves an existing account or falls back
+  // to a pending invite, so this needs no new backend logic.
+  const inviteByContact = (contact: ExternalContact) => {
+    if (!contact.email) return;
+    inviteMutation.mutate({ email: contact.email, label: contact.name });
+  };
+
   return (
     <Dialog
       open={open}
@@ -140,13 +196,16 @@ export default function InviteCollaboratorDialog({
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-3">
-          <Tabs value={mode} onValueChange={(value) => setMode(value as "email" | "search")}>
+          <Tabs value={mode} onValueChange={(value) => setMode(value as "email" | "search" | "contacts")}>
             <TabsList className="w-full">
               <TabsTrigger value="email" className="flex-1" data-testid="invite-collaborator-mode-email">
                 By Email
               </TabsTrigger>
               <TabsTrigger value="search" className="flex-1" data-testid="invite-collaborator-mode-search">
                 Search by Name
+              </TabsTrigger>
+              <TabsTrigger value="contacts" className="flex-1" data-testid="invite-collaborator-mode-contacts">
+                From Contacts
               </TabsTrigger>
             </TabsList>
           </Tabs>
@@ -167,7 +226,7 @@ export default function InviteCollaboratorDialog({
                 If they don&apos;t have an account yet, they&apos;ll get access automatically when they sign up.
               </p>
             </div>
-          ) : (
+          ) : mode === "search" ? (
             <div className="space-y-1.5">
               <Label htmlFor="invite-collaborator-search">Search by username or name</Label>
               <Input
@@ -201,6 +260,46 @@ export default function InviteCollaboratorDialog({
                   ))
                 )}
               </div>
+            </div>
+          ) : (
+            <div className="space-y-1.5" data-testid="invite-collaborator-contacts-panel">
+              {isLoadingContacts ? (
+                <p className="py-3 text-center text-sm text-muted-foreground">Loading contacts...</p>
+              ) : !hasConnectedProvider ? (
+                <p className="text-xs text-muted-foreground">
+                  No contact sources connected yet. Connect Google, Outlook, or Facebook in Calendar Settings to
+                  invite people straight from your contacts.
+                </p>
+              ) : contacts.length === 0 ? (
+                <p className="py-3 text-center text-sm text-muted-foreground">No contacts found.</p>
+              ) : (
+                <div className="max-h-48 overflow-y-auto space-y-1.5">
+                  {contacts.map((contact) => {
+                    const sources = contact.sources.map((source) => formatProviderName(source.provider)).join(", ");
+                    return (
+                      <div
+                        key={contact.id}
+                        className="flex items-center justify-between rounded-md border p-2"
+                        data-testid={`invite-collaborator-contact-${contact.id}`}
+                      >
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-medium">{contact.name}</p>
+                          <p className="truncate text-xs text-muted-foreground">
+                            {contact.email || "No email available"} • {sources}
+                          </p>
+                        </div>
+                        <Button
+                          size="sm"
+                          disabled={inviteMutation.isPending || !contact.email}
+                          onClick={() => inviteByContact(contact)}
+                        >
+                          Invite
+                        </Button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           )}
 
