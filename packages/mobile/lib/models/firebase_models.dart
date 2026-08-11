@@ -1,5 +1,4 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'wishlist.dart';
 
 DateTime _parseDate(dynamic v, {DateTime? fallback}) {
   if (v is Timestamp) return v.toDate();
@@ -101,19 +100,6 @@ class FirebaseWishlist {
     );
   }
 
-  // Convert to legacy Wishlist model for backward compatibility
-  Wishlist toLegacyWishlist() {
-    return Wishlist(
-      id: int.tryParse(id) ?? 0,
-      name: name,
-      description: description,
-      ownerId: int.tryParse(userId) ?? 0,
-      isPublic: isPublic,
-      createdAt: createdAt,
-      updatedAt: updatedAt,
-      items: const [],
-    );
-  }
 }
 
 class FirebaseWishlistItem {
@@ -217,22 +203,6 @@ class FirebaseWishlistItem {
       default:
         return Priority.medium;
     }
-  }
-
-  // Convert to legacy WishlistItem model for backward compatibility
-  WishlistItem toLegacyWishlistItem() {
-    return WishlistItem(
-      id: int.tryParse(id) ?? 0,
-      name: name,
-      description: description,
-      imageUrl: imageUrl,
-      productUrl: url,
-      price: price,
-      wishlistId: int.tryParse(wishlistId) ?? 0,
-      createdAt: createdAt,
-      isPurchased: isPurchased,
-      purchasedBy: int.tryParse(purchasedBy ?? '') ?? 0,
-    );
   }
 }
 

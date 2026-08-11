@@ -7,4 +7,3 @@ export 'firebase_initialization_service.dart';
 export 'firestore_service.dart';
 export 'password_policy_service.dart';
 export 'social_share_service.dart';
-export 'wishlist_service.dart';
