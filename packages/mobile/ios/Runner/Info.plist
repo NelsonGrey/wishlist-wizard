@@ -36,6 +36,8 @@
 	</array>
 	<key>NSCameraUsageDescription</key>
 	<string>This app uses the camera to scan product barcodes and images for wishlist management.</string>
+	<key>NSContactsUsageDescription</key>
+	<string>This app accesses your contacts so you can invite people you know to collaborate on a wishlist.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>This app accesses your photo library to attach images to wishlist items.</string>
 	<key>NSLocalNetworkUsageDescription</key>

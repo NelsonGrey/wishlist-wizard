@@ -55,7 +55,13 @@ dependencies:
 
   # In-App Purchase (native StoreKit/Play Billing subscriptions)
   in_app_purchase: ^3.2.0
-  
+
+  # Contacts (native picker for inviting collaborators — the picker UI
+  # itself is permissionless, but the properties fetch that follows needs
+  # NSContactsUsageDescription on iOS and READ_CONTACTS on Android; see
+  # Info.plist / AndroidManifest.xml)
+  flutter_contacts: ^1.1.9+2
+
   # Utils
   intl: ^0.20.2
   url_launcher: ^6.3.1
