@@ -1,6 +1,6 @@
 import { FormEvent, useMemo, useState } from 'react';
 
-const PROTECTED_ENVIRONMENTS = new Set(['staging', 'demonstration']);
+const PROTECTED_ENVIRONMENTS = new Set(['staging']);
 
 interface EnvironmentPasswordGateProps {
   environment: string;

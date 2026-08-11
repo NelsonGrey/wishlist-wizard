@@ -35,7 +35,6 @@ There is no `deploy-staging.yml`, `deploy-production.yml`, `ci.yml`, `ios-distri
 
 - `refs/heads/main` → `production`
 - `refs/heads/staging` → `staging`
-- `refs/heads/demonstration` → `demonstration`
 - `refs/heads/develop` → present in the mapping logic, but `develop` is **deliberately excluded** from the `push` trigger, so this branch never drives a `master-pipeline.yml` run automatically. `develop` still gets its own web deploy via `firebase-hosting-dev.yml`, which triggers independently on every push to `develop`.
 
 Push-triggered runs on `staging` and `main` are scoped with `paths:` filters (only fire when `packages/mobile/**`, `packages/web/**`, `packages/browser-extension/**`, `packages/functions/**`, `.github/workflows/**`, `.cicd/projects/**`, `pubspec.yaml`, or `firebase*.json` change).
