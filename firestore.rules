@@ -163,6 +163,14 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // Username reservations (doc ID is the username itself) - Admin SDK
+    // only. setUsername's transaction is the only writer; nothing needs
+    // direct client access, and a client-side read wouldn't be atomic
+    // with the transaction anyway.
+    match /usernames/{username} {
+      allow read, write: if false;
+    }
+
     // Group gifts / gift coordination (if you have this collection)
     match /giftReservations/{reservationId} {
       allow read: if isAuthenticated();
