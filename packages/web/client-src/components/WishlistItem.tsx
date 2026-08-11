@@ -241,7 +241,7 @@ export default function WishlistItem({
                   
                   <PrivacyControls
                     entityType="item"
-                    entityId={item.id}
+                    entityId={String(item.id)}
                     entityName={item.title}
                     showAsBadge={true}
                   />

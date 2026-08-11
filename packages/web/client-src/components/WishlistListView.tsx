@@ -27,9 +27,6 @@ function WishlistListRow({ wishlist }: { wishlist: Wishlist }) {
   const occasionDate = parseOccasionDate(wishlist.occasionDate);
   const nextOccurrenceDate = getNextOccurrenceDate(occasionDate, wishlist.recurrence);
   const displayDate = nextOccurrenceDate || occasionDate;
-  const numericWishlistId = typeof wishlist.id === 'number' ? wishlist.id : Number(wishlist.id);
-  const hasNumericWishlistId = Number.isFinite(numericWishlistId);
-
   const handleShare = () => {
     if (isSharing) return;
     const shareUrl = `${window.location.origin}/shared/${wishlist.shareId}`;
@@ -67,10 +64,10 @@ function WishlistListRow({ wishlist }: { wishlist: Wishlist }) {
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
           <h3 className="font-semibold text-gray-900 truncate">{wishlist.name}</h3>
-          {hasNumericWishlistId && (
+          {wishlist.id && (
             <PrivacyControls
               entityType="wishlist"
-              entityId={numericWishlistId}
+              entityId={String(wishlist.id)}
               entityName={wishlist.name}
               showAsBadge={true}
             />

@@ -234,9 +234,6 @@ export default function WishlistCard({ wishlist, onRefresh }: WishlistCardProps)
     month: 'short',
     day: 'numeric'
   });
-  const numericWishlistId = typeof wishlist.id === 'number' ? wishlist.id : Number(wishlist.id);
-  const hasNumericWishlistId = Number.isFinite(numericWishlistId);
-
   return (
     <>
       <Card data-testid={`wishlist-card-${wishlist.id}`} className="hover:shadow-md transition">
@@ -249,10 +246,10 @@ export default function WishlistCard({ wishlist, onRefresh }: WishlistCardProps)
                   <p className="text-sm text-gray-500">
                     {wishlist.itemCount} {wishlist.itemCount === 1 ? 'item' : 'items'} • Created {formattedDate}
                   </p>
-                  {hasNumericWishlistId && (
+                  {wishlist.id && (
                     <PrivacyControls
                       entityType="wishlist"
-                      entityId={numericWishlistId}
+                      entityId={String(wishlist.id)}
                       entityName={wishlist.name}
                       showAsBadge={true}
                     />
