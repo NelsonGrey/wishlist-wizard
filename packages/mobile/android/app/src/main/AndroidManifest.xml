@@ -1,4 +1,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Only used for the invite-collaborator contact picker
+         (FlutterContacts.openExternalPick, which internally fetches the
+         picked contact's properties via getContact) — the picker itself is
+         a system UI the app doesn't otherwise touch. -->
+    <uses-permission android:name="android.permission.READ_CONTACTS"/>
     <application
         android:label="Wishlist Wizard"
         android:name="${applicationName}"

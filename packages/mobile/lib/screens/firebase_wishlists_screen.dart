@@ -6,6 +6,7 @@ import '../models/models.dart';
 import '../providers/providers.dart';
 import '../services/social_share_service.dart';
 import '../widgets/admob_widgets.dart';
+import '../widgets/invite_collaborator_dialog.dart';
 import '../main.dart';
 
 // Production web app origin used to build shareable wishlist links from mobile
@@ -958,89 +959,10 @@ class _FirebaseWishlistItemsScreenState
   }
 
   Future<void> _showInviteCollaboratorDialog(BuildContext context) async {
-    final emailController = TextEditingController();
-    String role = 'editor';
-
     await showDialog<void>(
       context: context,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (dialogContext, setDialogState) => AlertDialog(
-          title: const Text('Invite Collaborator'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: emailController,
-                keyboardType: TextInputType.emailAddress,
-                decoration: const InputDecoration(
-                  labelText: 'Email',
-                  hintText: 'name@example.com',
-                ),
-              ),
-              const SizedBox(height: 16),
-              DropdownButtonFormField<String>(
-                initialValue: role,
-                decoration: const InputDecoration(labelText: 'Role'),
-                items: const [
-                  DropdownMenuItem(
-                    value: 'editor',
-                    child: Text('Editor — can add/edit/remove items'),
-                  ),
-                  DropdownMenuItem(
-                    value: 'commenter',
-                    child: Text('Commenter — can reserve/purchase items'),
-                  ),
-                  DropdownMenuItem(
-                    value: 'viewer',
-                    child: Text('Viewer — can only view'),
-                  ),
-                ],
-                onChanged: (value) {
-                  if (value != null) {
-                    setDialogState(() => role = value);
-                  }
-                },
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                final email = emailController.text.trim();
-                if (email.isEmpty || !email.contains('@')) {
-                  return;
-                }
-                Navigator.pop(dialogContext);
-                if (!context.mounted) return;
-                final wishlistProvider = Provider.of<FirebaseWishlistProvider>(
-                  context,
-                  listen: false,
-                );
-                final success = await wishlistProvider.inviteCollaborator(
-                  widget.wishlist.id,
-                  email,
-                  role,
-                );
-                if (!context.mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      success
-                          ? 'Invitation sent to $email'
-                          : 'Failed to send invitation',
-                    ),
-                  ),
-                );
-              },
-              child: const Text('Send Invite'),
-            ),
-          ],
-        ),
-      ),
+      builder: (dialogContext) =>
+          InviteCollaboratorDialog(wishlistId: widget.wishlist.id),
     );
   }
 
