@@ -133,10 +133,15 @@ service cloud.firestore {
       allow create: if isAuthenticated() && 
         get(/databases/$(database)/documents/wishlists/$(request.resource.data.wishlistId)).data.userId == request.auth.uid;
       
-      allow update: if isAuthenticated() && 
-        (get(/databases/$(database)/documents/wishlists/$(resource.data.wishlistId)).data.userId == request.auth.uid ||
-         request.auth.uid == resource.data.userId);
-      
+      // Owner-only — a collaborator has no legitimate reason to update
+      // their own doc (role changes go through updateCollaboratorRole,
+      // owner-only server-side; leaving a wishlist is a delete, not an
+      // update, see removeCollaborator). A self-update branch here would
+      // let a viewer set role:'editor' on themselves directly via the
+      // Firestore SDK, bypassing the callable's owner-only check entirely.
+      allow update: if isAuthenticated() &&
+        get(/databases/$(database)/documents/wishlists/$(resource.data.wishlistId)).data.userId == request.auth.uid;
+
       allow delete: if isAuthenticated() &&
         (get(/databases/$(database)/documents/wishlists/$(resource.data.wishlistId)).data.userId == request.auth.uid ||
          request.auth.uid == resource.data.userId);
