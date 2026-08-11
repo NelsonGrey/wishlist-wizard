@@ -1248,9 +1248,13 @@ async function addItemToWishlist(itemData) {
       throw new Error('Authentication required. Please sign in to your account.');
     }
     
-    // Validate item data before sending to server
-    if (!itemData.title || !itemData.price || !itemData.productUrl) {
-      throw new Error('Invalid product data. Missing required fields.');
+    // Validate item data before sending to server. Only title is actually
+    // required server-side (extensionAddItem defaults both price and
+    // productUrl to null) — requiring price here rejected valid adds on
+    // any page where extraction couldn't find one, even though the
+    // backend would have accepted it fine.
+    if (!itemData.title) {
+      throw new Error('Invalid product data. A product title is required.');
     }
     
     // Add timestamp to track when the item was added
