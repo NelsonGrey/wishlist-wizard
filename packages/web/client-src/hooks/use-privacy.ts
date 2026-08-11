@@ -3,10 +3,10 @@ import { apiRequest } from '@/lib/queryClient';
 
 // Types
 export interface PrivacySettings {
-  id: number;
-  userId: number;
+  id: string;
+  userId: string;
   entityType: 'wishlist' | 'item' | 'user_profile';
-  entityId: number;
+  entityId: string;
   visibilityLevel: 'public' | 'friends' | 'private' | 'custom';
   // Firebase user UIDs — the backend (router.ts) always normalizes this
   // list via .map(String)/String(userId) regardless of what's stored, so
@@ -36,7 +36,7 @@ export interface UserDefaultPrivacy {
 }
 
 // Hook to get privacy settings for an entity
-export const usePrivacySettings = (entityType: string, entityId: number) => {
+export const usePrivacySettings = (entityType: string, entityId: string) => {
   return useQuery<PrivacySettings | undefined>({
     queryKey: ['privacy-settings', entityType, entityId],
     queryFn: () => apiRequest(`/api/privacy/settings/${entityType}/${entityId}`) as Promise<PrivacySettings>,
@@ -51,7 +51,7 @@ export const useUpdatePrivacySettings = () => {
   return useMutation({
     mutationFn: (settings: {
       entityType: string;
-      entityId: number;
+      entityId: string;
       visibilityLevel?: string;
       customAccessList?: string[];
       expirationDate?: Date;
@@ -87,7 +87,7 @@ export const useUpdateAccessList = () => {
       userIds
     }: {
       entityType: string;
-      entityId: number;
+      entityId: string;
       userIds: string[]
     }) => {
       return apiRequest(`/api/privacy/settings/${entityType}/${entityId}/access-list`, {
@@ -117,8 +117,8 @@ export const useAddToAccessList = () => {
       userId
     }: {
       entityType: string;
-      entityId: number;
-      userId: number
+      entityId: string;
+      userId: string
     }) => {
       return apiRequest(`/api/privacy/settings/${entityType}/${entityId}/access-list/add`, {
         method: 'POST',
@@ -147,8 +147,8 @@ export const useRemoveFromAccessList = () => {
       userId
     }: {
       entityType: string;
-      entityId: number;
-      userId: number
+      entityId: string;
+      userId: string
     }) => {
       return apiRequest(`/api/privacy/settings/${entityType}/${entityId}/access-list/${userId}`, {
         method: 'DELETE'
@@ -175,7 +175,7 @@ export const useDeletePrivacySettings = () => {
       entityId
     }: {
       entityType: string;
-      entityId: number
+      entityId: string
     }) => {
       return apiRequest(`/api/privacy/settings/${entityType}/${entityId}`, {
         method: 'DELETE'
@@ -197,7 +197,7 @@ export const useCheckPrivacyAccess = () => {
   return useMutation({
     mutationFn: (params: {
       entityType: string;
-      entityId: number;
+      entityId: string;
       interactionType?: 'view' | 'comment' | 'reserve';
     }) => {
       return apiRequest('/api/privacy/check-access', {
@@ -234,7 +234,7 @@ export const useUpdateDefaultPrivacySettings = () => {
 };
 
 // Hook to get bulk privacy settings for multiple entities
-export const useBulkPrivacySettings = (entities: Array<{ entityType: string; entityId: number }>) => {
+export const useBulkPrivacySettings = (entities: Array<{ entityType: string; entityId: string }>) => {
   return useQuery({
     queryKey: ['bulk-privacy-settings', entities],
     queryFn: async () => {

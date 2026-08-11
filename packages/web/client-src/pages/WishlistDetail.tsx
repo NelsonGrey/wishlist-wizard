@@ -1057,7 +1057,7 @@ export default function WishlistDetail() {
               {resolvedWishlist && (
                 <PrivacyControls
                   entityType="wishlist"
-                  entityId={resolvedWishlist.id}
+                  entityId={String(resolvedWishlist.id)}
                   entityName={resolvedWishlist.name}
                 />
               )}
