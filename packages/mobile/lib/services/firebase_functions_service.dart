@@ -429,6 +429,81 @@ class FirebaseFunctionsService {
   }
 
   // =============================================================================
+  // PRICE TRACKING (see packages/functions/src/api/router.ts's
+  // /api/price-alerts, /api/price-drops, /api/wishlist-items routes)
+  // =============================================================================
+
+  /// Each entry: `{id, itemId, targetPrice, currentPrice, createdAt, status,
+  /// notified, item: {title, price, imageUrl, store}}`.
+  Future<List<Map<String, dynamic>>> getPriceAlerts() async {
+    try {
+      final result = await _apiRequest('GET', '/price-alerts');
+      return List<Map<String, dynamic>>.from(
+        (result as List).map((item) => Map<String, dynamic>.from(item as Map)),
+      );
+    } catch (e) {
+      _logger.severe('Error calling getPriceAlerts: $e');
+      rethrow;
+    }
+  }
+
+  Future<Map<String, dynamic>> createPriceAlert({
+    required String itemId,
+    required double targetPrice,
+  }) async {
+    try {
+      final result = await _apiRequest(
+        'POST',
+        '/price-alerts',
+        body: {'itemId': itemId, 'targetPrice': targetPrice},
+      );
+      return Map<String, dynamic>.from(result as Map);
+    } catch (e) {
+      _logger.severe('Error calling createPriceAlert: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> deletePriceAlert(String alertId) async {
+    try {
+      await _apiRequest('DELETE', '/price-alerts/$alertId');
+    } catch (e) {
+      _logger.severe('Error calling deletePriceAlert: $e');
+      rethrow;
+    }
+  }
+
+  /// Wishlist items with a significant recent price reduction. Each entry:
+  /// `{id, title, imageUrl, price, currentPrice, previousPrice,
+  /// dropPercentage, percentDrop, store}`.
+  Future<List<Map<String, dynamic>>> getPriceDrops() async {
+    try {
+      final result = await _apiRequest('GET', '/price-drops');
+      return List<Map<String, dynamic>>.from(
+        (result as List).map((item) => Map<String, dynamic>.from(item as Map)),
+      );
+    } catch (e) {
+      _logger.severe('Error calling getPriceDrops: $e');
+      rethrow;
+    }
+  }
+
+  /// Flat list of every item across the caller's wishlists — used to pick a
+  /// target item when creating a price alert. Each entry: `{id, title,
+  /// price, store, imageUrl, isRetailerSpecific}`.
+  Future<List<Map<String, dynamic>>> getAllWishlistItems() async {
+    try {
+      final result = await _apiRequest('GET', '/wishlist-items');
+      return List<Map<String, dynamic>>.from(
+        (result as List).map((item) => Map<String, dynamic>.from(item as Map)),
+      );
+    } catch (e) {
+      _logger.severe('Error calling getAllWishlistItems: $e');
+      rethrow;
+    }
+  }
+
+  // =============================================================================
   // SUBSCRIPTION FUNCTIONS
   // =============================================================================
 
