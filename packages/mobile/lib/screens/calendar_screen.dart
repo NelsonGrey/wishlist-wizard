@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_web_auth_2/flutter_web_auth_2.dart';
 import 'package:intl/intl.dart';
 
 import '../services/firebase_functions_service.dart';
@@ -10,6 +11,15 @@ const List<Map<String, String>> _eventTypes = [
   {'value': 'reminder', 'label': 'Reminder'},
   {'value': 'deadline', 'label': 'Deadline'},
   {'value': 'occasion', 'label': 'Occasion'},
+];
+
+const String _oauthCallbackScheme = 'wishlistwizard';
+const String _oauthRedirectUri = '$_oauthCallbackScheme://calendar-callback';
+
+const List<Map<String, String>> _oauthProviders = [
+  {'value': 'google', 'label': 'Google Calendar'},
+  {'value': 'outlook', 'label': 'Outlook Calendar'},
+  {'value': 'facebook', 'label': 'Facebook Events'},
 ];
 
 IconData _iconForType(String type) {
@@ -36,15 +46,45 @@ String _labelForType(String type) {
   return 'Reminder';
 }
 
+IconData _iconForProvider(String provider) {
+  switch (provider) {
+    case 'google':
+      return Icons.event_outlined;
+    case 'outlook':
+      return Icons.mail_outline;
+    case 'facebook':
+      return Icons.facebook_outlined;
+    case 'apple':
+      return Icons.apple;
+    default:
+      return Icons.calendar_month_outlined;
+  }
+}
+
+String _labelForProvider(String provider) {
+  switch (provider) {
+    case 'google':
+      return 'Google Calendar';
+    case 'outlook':
+      return 'Outlook Calendar';
+    case 'facebook':
+      return 'Facebook Events';
+    case 'apple':
+      return 'Apple Calendar';
+    default:
+      return provider;
+  }
+}
+
 DateTime? _parseDate(dynamic value) {
   if (value == null) return null;
   return DateTime.tryParse(value.toString());
 }
 
-/// Personal calendar events -- mirrors web's Calendar.tsx "My Calendar" tab
-/// as a flat grouped list rather than a month grid (external-provider
-/// "Connections" sync is a paid web-only feature, not ported here).
-/// Reached from the Profile tab.
+/// Calendar -- "My Calendar" (personal events, computed lists) and
+/// "Connections" (external provider sync: Google/Outlook/Facebook via real
+/// OAuth 2.0, Apple via a pasted iCal subscription URL) tabs, mirroring
+/// web's Calendar.tsx split. Reached from the Profile tab.
 class CalendarScreen extends StatefulWidget {
   const CalendarScreen({super.key, FirebaseFunctionsService? functionsService})
       : _functionsService = functionsService;
@@ -55,38 +95,60 @@ class CalendarScreen extends StatefulWidget {
   State<CalendarScreen> createState() => _CalendarScreenState();
 }
 
-class _CalendarScreenState extends State<CalendarScreen> {
+class _CalendarScreenState extends State<CalendarScreen>
+    with SingleTickerProviderStateMixin {
   late final FirebaseFunctionsService _service =
       widget._functionsService ?? FirebaseFunctionsService();
+  late final TabController _tabController;
 
-  bool _isLoading = true;
-  String? _error;
+  // My Calendar tab state
+  bool _isLoadingEvents = true;
+  String? _eventsError;
   List<Map<String, dynamic>> _events = [];
   String? _busyEventId;
+
+  // Connections tab state
+  bool _isLoadingConnections = true;
+  bool _connectionsUpgradeRequired = false;
+  String? _connectionsError;
+  List<Map<String, dynamic>> _connections = [];
+  String? _busyConnectionId;
+  String? _connectingProvider;
 
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(length: 2, vsync: this)
+      ..addListener(() {
+        if (!_tabController.indexIsChanging) setState(() {});
+      });
     _loadEvents();
+    _loadConnections();
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadEvents() async {
     setState(() {
-      _isLoading = true;
-      _error = null;
+      _isLoadingEvents = true;
+      _eventsError = null;
     });
     try {
       final events = await _service.getCalendarEvents();
       if (!mounted) return;
       setState(() {
         _events = events;
-        _isLoading = false;
+        _isLoadingEvents = false;
       });
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _error = 'Failed to load calendar events.';
-        _isLoading = false;
+        _eventsError = 'Failed to load calendar events.';
+        _isLoadingEvents = false;
       });
     }
   }
@@ -125,43 +187,182 @@ class _CalendarScreenState extends State<CalendarScreen> {
     if (saved == true) _loadEvents();
   }
 
+  Future<void> _loadConnections() async {
+    setState(() {
+      _isLoadingConnections = true;
+      _connectionsUpgradeRequired = false;
+      _connectionsError = null;
+    });
+    try {
+      final connections = await _service.getCalendarConnections();
+      if (!mounted) return;
+      setState(() {
+        _connections = connections;
+        _isLoadingConnections = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      if (e.toString().contains('(403')) {
+        setState(() {
+          _connectionsUpgradeRequired = true;
+          _isLoadingConnections = false;
+        });
+      } else {
+        setState(() {
+          _connectionsError = 'Failed to load calendar connections.';
+          _isLoadingConnections = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _connectOAuthProvider(String provider) async {
+    setState(() => _connectingProvider = provider);
+    try {
+      final authResult = await _service.getCalendarAuthUrl(provider, redirectUri: _oauthRedirectUri);
+      if (authResult['supported'] == false) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(authResult['message']?.toString() ?? '$provider is not available yet.')),
+          );
+        }
+        return;
+      }
+
+      final callbackUrl = await FlutterWebAuth2.authenticate(
+        url: authResult['url'] as String,
+        callbackUrlScheme: _oauthCallbackScheme,
+      );
+      final params = Uri.parse(callbackUrl).queryParameters;
+      final code = params['code'];
+      if (code == null) {
+        throw Exception('No authorization code returned.');
+      }
+
+      await _service.connectCalendar({
+        'provider': provider,
+        'code': code,
+        'state': params['state'],
+        'redirectUri': _oauthRedirectUri,
+      });
+      await _loadConnections();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Couldn\'t connect $provider.'), backgroundColor: Colors.red),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _connectingProvider = null);
+    }
+  }
+
+  Future<void> _openConnectAppleSheet() async {
+    final connected = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) => _AppleCalendarSheet(service: _service),
+    );
+    if (connected == true) _loadConnections();
+  }
+
+  Future<void> _syncConnection(String connectionId) async {
+    setState(() => _busyConnectionId = connectionId);
+    try {
+      await _service.syncCalendarConnection(connectionId);
+      await _loadConnections();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Sync failed.'), backgroundColor: Colors.red),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _busyConnectionId = null);
+    }
+  }
+
+  Future<void> _disconnectConnection(String connectionId) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Disconnect calendar?'),
+        content: const Text('This stops syncing events from this calendar. You can reconnect it later.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Disconnect')),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    setState(() => _busyConnectionId = connectionId);
+    try {
+      await _service.disconnectCalendar(connectionId);
+      await _loadConnections();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to disconnect calendar.'), backgroundColor: Colors.red),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _busyConnectionId = null);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Calendar')),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _openCreateSheet,
-        tooltip: 'Add calendar event',
-        child: const Icon(Icons.add),
+      appBar: AppBar(
+        title: const Text('Calendar'),
+        bottom: TabBar(
+          controller: _tabController,
+          tabs: const [Tab(text: 'My Calendar'), Tab(text: 'Connections')],
+        ),
       ),
-      body: RefreshIndicator(
-        onRefresh: _loadEvents,
-        child: _isLoading
-            ? const Center(child: CircularProgressIndicator())
-            : _error != null
-                ? ListView(
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    children: [
-                      const SizedBox(height: 80),
-                      Center(child: Text(_error!, style: const TextStyle(color: Colors.red))),
-                    ],
-                  )
-                : _events.isEmpty
-                    ? ListView(
-                        physics: const AlwaysScrollableScrollPhysics(),
-                        padding: const EdgeInsets.all(16),
-                        children: const [
-                          SizedBox(height: 60),
-                          Center(
-                            child: Text(
-                              'No calendar events yet. Tap + to add one.',
-                              textAlign: TextAlign.center,
-                            ),
+      floatingActionButton: _tabController.index == 0
+          ? FloatingActionButton(
+              onPressed: _openCreateSheet,
+              tooltip: 'Add calendar event',
+              child: const Icon(Icons.add),
+            )
+          : null,
+      body: TabBarView(
+        controller: _tabController,
+        children: [_buildMyCalendarTab(), _buildConnectionsTab()],
+      ),
+    );
+  }
+
+  Widget _buildMyCalendarTab() {
+    return RefreshIndicator(
+      onRefresh: _loadEvents,
+      child: _isLoadingEvents
+          ? const Center(child: CircularProgressIndicator())
+          : _eventsError != null
+              ? ListView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  children: [
+                    const SizedBox(height: 80),
+                    Center(child: Text(_eventsError!, style: const TextStyle(color: Colors.red))),
+                  ],
+                )
+              : _events.isEmpty
+                  ? ListView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      padding: const EdgeInsets.all(16),
+                      children: const [
+                        SizedBox(height: 60),
+                        Center(
+                          child: Text(
+                            'No calendar events yet. Tap + to add one.',
+                            textAlign: TextAlign.center,
                           ),
-                        ],
-                      )
-                    : _buildEventList(),
-      ),
+                        ),
+                      ],
+                    )
+                  : _buildEventList(),
     );
   }
 
@@ -241,6 +442,142 @@ class _CalendarScreenState extends State<CalendarScreen> {
                     ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildConnectionsTab() {
+    if (_isLoadingConnections) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (_connectionsUpgradeRequired) {
+      return _buildConnectionsUpgradePrompt();
+    }
+    return RefreshIndicator(
+      onRefresh: _loadConnections,
+      child: ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.all(16),
+        children: [
+          if (_connectionsError != null) ...[
+            Center(child: Text(_connectionsError!, style: const TextStyle(color: Colors.red))),
+            const SizedBox(height: 16),
+          ],
+          Text('Connect a calendar', style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: 8),
+          ..._oauthProviders.map((entry) {
+            final provider = entry['value']!;
+            final busy = _connectingProvider == provider;
+            return Card(
+              margin: const EdgeInsets.only(bottom: 8),
+              child: ListTile(
+                leading: Icon(_iconForProvider(provider)),
+                title: Text(entry['label']!),
+                trailing: busy
+                    ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                    : const Icon(Icons.chevron_right),
+                onTap: busy ? null : () => _connectOAuthProvider(provider),
+              ),
+            );
+          }),
+          Card(
+            margin: const EdgeInsets.only(bottom: 8),
+            child: ListTile(
+              leading: Icon(_iconForProvider('apple')),
+              title: const Text('Apple Calendar'),
+              subtitle: const Text('Read-only, via a subscription URL'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: _openConnectAppleSheet,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text('Connected calendars', style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: 8),
+          if (_connections.isEmpty)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 16),
+              child: Text('No calendars connected yet.'),
+            )
+          else
+            ..._connections.map(_buildConnectionCard),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildConnectionsUpgradePrompt() {
+    return ListView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      padding: const EdgeInsets.all(24),
+      children: const [
+        SizedBox(height: 60),
+        Icon(Icons.calendar_month_outlined, size: 48, color: Colors.grey),
+        SizedBox(height: 16),
+        Text(
+          'Calendar connections are a paid feature',
+          textAlign: TextAlign.center,
+          style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18),
+        ),
+        SizedBox(height: 8),
+        Text(
+          'Upgrade to sync Google, Outlook, Facebook, or Apple calendars with your Wishlist Wizard events.',
+          textAlign: TextAlign.center,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildConnectionCard(Map<String, dynamic> connection) {
+    final id = connection['id'] as String;
+    final calendarType = connection['calendarType'] as String? ?? '';
+    final displayName = connection['displayName'] as String? ?? _labelForProvider(calendarType);
+    final isActive = connection['isActive'] != false;
+    final lastSyncedAt = _parseDate(connection['lastSyncedAt']);
+    final busy = _busyConnectionId == id;
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Row(
+          children: [
+            Icon(_iconForProvider(calendarType), color: Colors.grey[700]),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(displayName, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 4),
+                  Text(
+                    lastSyncedAt != null
+                        ? 'Last synced ${DateFormat('MMM d, yyyy').format(lastSyncedAt)}'
+                        : 'Not synced yet',
+                    style: const TextStyle(fontSize: 12, color: Colors.grey),
+                  ),
+                  if (!isActive) ...[
+                    const SizedBox(height: 4),
+                    const _TypeBadge(label: 'Inactive'),
+                  ],
+                ],
+              ),
+            ),
+            if (busy)
+              const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))
+            else ...[
+              IconButton(
+                icon: const Icon(Icons.sync),
+                tooltip: 'Sync now',
+                onPressed: calendarType == 'apple' ? null : () => _syncConnection(id),
+              ),
+              IconButton(
+                icon: const Icon(Icons.link_off),
+                tooltip: 'Disconnect calendar',
+                onPressed: () => _disconnectConnection(id),
+              ),
+            ],
+          ],
         ),
       ),
     );
@@ -426,6 +763,118 @@ class _EventFormSheetState extends State<_EventFormSheet> {
                   child: _isSubmitting
                       ? const SizedBox(height: 16, width: 16, child: CircularProgressIndicator(strokeWidth: 2))
                       : const Text('Save'),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AppleCalendarSheet extends StatefulWidget {
+  const _AppleCalendarSheet({required this.service});
+
+  final FirebaseFunctionsService service;
+
+  @override
+  State<_AppleCalendarSheet> createState() => _AppleCalendarSheetState();
+}
+
+class _AppleCalendarSheetState extends State<_AppleCalendarSheet> {
+  final _urlController = TextEditingController();
+  final _displayNameController = TextEditingController(text: 'Apple Calendar');
+  bool _isSubmitting = false;
+  String? _submitError;
+
+  @override
+  void dispose() {
+    _urlController.dispose();
+    _displayNameController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    final subscriptionUrl = _urlController.text.trim();
+    if (subscriptionUrl.isEmpty) {
+      setState(() => _submitError = 'Enter a subscription URL.');
+      return;
+    }
+
+    setState(() {
+      _isSubmitting = true;
+      _submitError = null;
+    });
+
+    try {
+      await widget.service.connectCalendar({
+        'provider': 'apple',
+        'subscriptionUrl': subscriptionUrl,
+        'displayName': _displayNameController.text.trim(),
+      });
+      if (!mounted) return;
+      Navigator.pop(context, true);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _submitError = 'Failed to connect Apple Calendar.';
+        _isSubmitting = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(
+        left: 16,
+        right: 16,
+        top: 16,
+        bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text('Connect Apple Calendar', style: Theme.of(context).textTheme.titleLarge),
+          const SizedBox(height: 8),
+          const Text(
+            'Apple Calendar syncs read-only via a public subscription URL. In the Calendar app '
+            'on iCloud.com, share your calendar publicly and paste its link below.',
+          ),
+          const SizedBox(height: 16),
+          TextField(
+            controller: _urlController,
+            enabled: !_isSubmitting,
+            decoration: const InputDecoration(labelText: 'Subscription URL'),
+          ),
+          const SizedBox(height: 16),
+          TextField(
+            controller: _displayNameController,
+            enabled: !_isSubmitting,
+            decoration: const InputDecoration(labelText: 'Display name'),
+          ),
+          if (_submitError != null) ...[
+            const SizedBox(height: 8),
+            Text(_submitError!, style: const TextStyle(color: Colors.red)),
+          ],
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: _isSubmitting ? null : () => Navigator.pop(context, false),
+                  child: const Text('Cancel'),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: _isSubmitting ? null : _submit,
+                  child: _isSubmitting
+                      ? const SizedBox(height: 16, width: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                      : const Text('Connect'),
                 ),
               ),
             ],
