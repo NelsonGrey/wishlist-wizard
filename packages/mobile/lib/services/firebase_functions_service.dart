@@ -413,6 +413,22 @@ class FirebaseFunctionsService {
   }
 
   // =============================================================================
+  // ACHIEVEMENTS (computed-on-read — see
+  // packages/functions/src/api/achievements.ts)
+  // =============================================================================
+
+  /// Returns `{achievements: {<id>: {earned, tier, count}}, computedAt}`.
+  Future<Map<String, dynamic>> getAchievements() async {
+    try {
+      final result = await _apiRequest('GET', '/achievements');
+      return Map<String, dynamic>.from(result as Map);
+    } catch (e) {
+      _logger.severe('Error calling getAchievements: $e');
+      rethrow;
+    }
+  }
+
+  // =============================================================================
   // SUBSCRIPTION FUNCTIONS
   // =============================================================================
 
