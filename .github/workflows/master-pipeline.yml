@@ -608,6 +608,12 @@ jobs:
       VITE_FIREBASE_APPCHECK_SITE_KEY_DEVELOPMENT: ${{ secrets.VITE_FIREBASE_APPCHECK_SITE_KEY_DEVELOPMENT }}
       VITE_FIREBASE_APPCHECK_SITE_KEY_STAGING: ${{ secrets.VITE_FIREBASE_APPCHECK_SITE_KEY_STAGING }}
       VITE_FIREBASE_APPCHECK_SITE_KEY_PRODUCTION: ${{ secrets.VITE_FIREBASE_APPCHECK_SITE_KEY_PRODUCTION }}
+      # Publishable keys are safe to expose client-side by design (Stripe's
+      # own docs: they identify the account, not authorize charges) — no
+      # equivalent security concern to the secret keys above.
+      VITE_STRIPE_PUBLISHABLE_KEY_DEVELOPMENT: ${{ secrets.VITE_STRIPE_PUBLISHABLE_KEY_DEVELOPMENT }}
+      VITE_STRIPE_PUBLISHABLE_KEY_STAGING: ${{ secrets.VITE_STRIPE_PUBLISHABLE_KEY_STAGING }}
+      VITE_STRIPE_PUBLISHABLE_KEY_PRODUCTION: ${{ secrets.VITE_STRIPE_PUBLISHABLE_KEY_PRODUCTION }}
       # Lets the automated Web UAT suite (packages/web/e2e) pass real App
       # Check enforcement without a live reCAPTCHA v3 challenge, which
       # reliably gets scored as bot traffic and rejected server-side for a
@@ -826,6 +832,15 @@ jobs:
 
           fs.appendFileSync(envFile, `${lines.join('\n')}\n`);
           NODE
+
+      - name: Resolve Stripe Publishable Key
+        run: |
+          case "${{ needs.load-config.outputs.target_environment }}" in
+            production) VALUE="$VITE_STRIPE_PUBLISHABLE_KEY_PRODUCTION" ;;
+            staging) VALUE="$VITE_STRIPE_PUBLISHABLE_KEY_STAGING" ;;
+            development|*) VALUE="$VITE_STRIPE_PUBLISHABLE_KEY_DEVELOPMENT" ;;
+          esac
+          echo "VITE_STRIPE_PUBLISHABLE_KEY=$VALUE" >> "$GITHUB_ENV"
 
       - name: Build Web App
         run: npm run build
