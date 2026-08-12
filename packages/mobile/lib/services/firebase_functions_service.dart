@@ -825,4 +825,103 @@ class FirebaseFunctionsService {
       rethrow;
     }
   }
+
+  // =============================================================================
+  // CALENDAR CONNECTIONS (external provider sync -- see
+  // packages/functions/src/api/calendar.ts. Google/Outlook/Facebook are real
+  // OAuth 2.0; Apple is a pasted iCal subscription URL, not OAuth. Tier-gated
+  // the same way as Creator Tools -- getCalendarConnections throws on a 403
+  // for tiers without calendarEnabled.)
+  // =============================================================================
+
+  /// Returns `{url, provider}` for OAuth providers, or `{supported: false,
+  /// message}` if that provider's OAuth app isn't configured server-side yet.
+  Future<Map<String, dynamic>> getCalendarAuthUrl(
+    String provider, {
+    required String redirectUri,
+  }) async {
+    try {
+      final result = await _apiRequest(
+        'POST',
+        '/calendar/auth/$provider',
+        body: {'redirectUri': redirectUri},
+      );
+      return Map<String, dynamic>.from(result as Map);
+    } catch (e) {
+      _logger.severe('Error calling getCalendarAuthUrl: $e');
+      rethrow;
+    }
+  }
+
+  /// `fields` is either `{provider, code, state, redirectUri, displayName}`
+  /// (OAuth providers) or `{provider: 'apple', subscriptionUrl, displayName}`.
+  Future<Map<String, dynamic>> connectCalendar(
+    Map<String, dynamic> fields,
+  ) async {
+    try {
+      final result = await _apiRequest('POST', '/calendar/connect', body: fields);
+      return Map<String, dynamic>.from(result as Map);
+    } catch (e) {
+      _logger.severe('Error calling connectCalendar: $e');
+      rethrow;
+    }
+  }
+
+  /// Each entry: `{id, calendarType, displayName, isActive, settings,
+  /// hasRefreshToken, lastSyncedAt}` -- tokens are never sent to the client.
+  Future<List<Map<String, dynamic>>> getCalendarConnections() async {
+    try {
+      final result = await _apiRequest('GET', '/calendar/connections');
+      return List<Map<String, dynamic>>.from(
+        (result as List).map((item) => Map<String, dynamic>.from(item as Map)),
+      );
+    } catch (e) {
+      _logger.severe('Error calling getCalendarConnections: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> syncCalendarConnection(String connectionId) async {
+    try {
+      await _apiRequest('POST', '/calendar/connections/$connectionId/sync');
+    } catch (e) {
+      _logger.severe('Error calling syncCalendarConnection: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> updateCalendarConnectionSettings(
+    String connectionId,
+    Map<String, dynamic> settings,
+  ) async {
+    try {
+      await _apiRequest(
+        'POST',
+        '/calendar/connections/$connectionId/settings',
+        body: {'settings': settings},
+      );
+    } catch (e) {
+      _logger.severe('Error calling updateCalendarConnectionSettings: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> disconnectCalendar(String connectionId) async {
+    try {
+      await _apiRequest('DELETE', '/calendar/connections/$connectionId');
+    } catch (e) {
+      _logger.severe('Error calling disconnectCalendar: $e');
+      rethrow;
+    }
+  }
+
+  Future<Map<String, dynamic>> getCalendarSyncSettings() async {
+    try {
+      final result = await _apiRequest('GET', '/calendar/sync-settings');
+      return Map<String, dynamic>.from(result as Map);
+    } catch (e) {
+      _logger.severe('Error calling getCalendarSyncSettings: $e');
+      rethrow;
+    }
+  }
 }

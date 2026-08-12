@@ -25,6 +25,7 @@ void main() {
   setUp(() {
     functionsService = MockFirebaseFunctionsService();
     when(() => functionsService.getCalendarEvents()).thenAnswer((_) async => []);
+    when(() => functionsService.getCalendarConnections()).thenAnswer((_) async => []);
   });
 
   testWidgets('shows empty state', (tester) async {
@@ -158,5 +159,114 @@ void main() {
     await tester.pumpAndSettle();
 
     verify(() => functionsService.updateCalendarEvent('e1', any())).called(1);
+  });
+
+  group('Connections tab', () {
+    Future<void> goToConnectionsTab(WidgetTester tester) async {
+      await tester.tap(find.text('Connections'));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('shows an upgrade prompt on a 403 and skips other calls', (tester) async {
+      when(() => functionsService.getCalendarConnections())
+          .thenThrow(Exception('API request to /calendar/connections failed (403): denied'));
+
+      await tester.pumpWidget(wrapScreen(functionsService));
+      await tester.pumpAndSettle();
+      await goToConnectionsTab(tester);
+
+      expect(find.text('Calendar connections are a paid feature'), findsOneWidget);
+      verifyNever(() => functionsService.getCalendarAuthUrl(any(), redirectUri: any(named: 'redirectUri')));
+    });
+
+    testWidgets('shows connected calendars with sync/disconnect actions', (tester) async {
+      when(() => functionsService.getCalendarConnections()).thenAnswer(
+        (_) async => [
+          {
+            'id': 'c1',
+            'calendarType': 'google',
+            'displayName': 'Personal Gmail',
+            'isActive': true,
+            'lastSyncedAt': '2026-08-01T00:00:00.000Z',
+          },
+        ],
+      );
+      when(() => functionsService.syncCalendarConnection('c1')).thenAnswer((_) async {});
+      when(() => functionsService.disconnectCalendar('c1')).thenAnswer((_) async {});
+
+      await tester.pumpWidget(wrapScreen(functionsService));
+      await tester.pumpAndSettle();
+      await goToConnectionsTab(tester);
+
+      expect(find.text('Personal Gmail'), findsOneWidget);
+
+      await tester.tap(find.byTooltip('Sync now'));
+      await tester.pumpAndSettle();
+      verify(() => functionsService.syncCalendarConnection('c1')).called(1);
+
+      await tester.tap(find.byTooltip('Disconnect calendar'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(TextButton, 'Disconnect'));
+      await tester.pumpAndSettle();
+      verify(() => functionsService.disconnectCalendar('c1')).called(1);
+    });
+
+    testWidgets('connecting Apple Calendar calls connectCalendar with the subscription URL', (tester) async {
+      when(() => functionsService.connectCalendar(any())).thenAnswer((_) async => {'id': 'c1'});
+
+      await tester.pumpWidget(wrapScreen(functionsService));
+      await tester.pumpAndSettle();
+      await goToConnectionsTab(tester);
+
+      await tester.tap(find.text('Apple Calendar'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Connect Apple Calendar'), findsOneWidget);
+      await tester.enterText(
+        find.widgetWithText(TextField, 'Subscription URL'),
+        'webcal://p01-caldav.icloud.com/published/2/abc123',
+      );
+      await tester.tap(find.widgetWithText(ElevatedButton, 'Connect'));
+      await tester.pumpAndSettle();
+
+      final captured = verify(() => functionsService.connectCalendar(captureAny())).captured.single as Map;
+      expect(captured['provider'], 'apple');
+      expect(captured['subscriptionUrl'], 'webcal://p01-caldav.icloud.com/published/2/abc123');
+    });
+
+    testWidgets('rejects an empty Apple subscription URL', (tester) async {
+      await tester.pumpWidget(wrapScreen(functionsService));
+      await tester.pumpAndSettle();
+      await goToConnectionsTab(tester);
+
+      await tester.tap(find.text('Apple Calendar'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(ElevatedButton, 'Connect'));
+      await tester.pump();
+
+      verifyNever(() => functionsService.connectCalendar(any()));
+      expect(find.text('Enter a subscription URL.'), findsOneWidget);
+    });
+
+    testWidgets('shows an unavailable message when a provider is not configured', (tester) async {
+      when(() => functionsService.getCalendarAuthUrl('google', redirectUri: any(named: 'redirectUri')))
+          .thenAnswer((_) async => {
+                'provider': 'google',
+                'supported': false,
+                'message': 'google OAuth is not configured in this environment yet.',
+              });
+
+      await tester.pumpWidget(wrapScreen(functionsService));
+      await tester.pumpAndSettle();
+      await goToConnectionsTab(tester);
+
+      await tester.tap(find.text('Google Calendar'));
+      await tester.pumpAndSettle();
+
+      verify(() => functionsService.getCalendarAuthUrl('google', redirectUri: 'wishlistwizard://calendar-callback'))
+          .called(1);
+      verifyNever(() => functionsService.connectCalendar(any()));
+      expect(find.text('google OAuth is not configured in this environment yet.'), findsOneWidget);
+    });
   });
 }
