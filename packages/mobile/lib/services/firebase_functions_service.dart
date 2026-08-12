@@ -718,4 +718,111 @@ class FirebaseFunctionsService {
       rethrow;
     }
   }
+
+  // =============================================================================
+  // CREATOR DASHBOARD (see packages/functions/src/api/commissionLedger.ts,
+  // creatorPayoutAccount.ts, payouts.ts, affiliate.ts. Tier-gated --
+  // getCreatorCommissionSummary throws on a 403 for non-creator tiers,
+  // same as web's CreatorOverview.tsx.)
+  // =============================================================================
+
+  /// `{byState: {<state>: {count, totalUsd}}, payoutReadiness: {...}}`.
+  /// Throws (message contains "(403") if the caller isn't on a
+  /// creator-enabled tier -- this doubles as the tier-gate check.
+  Future<Map<String, dynamic>> getCreatorCommissionSummary() async {
+    try {
+      final result = await _apiRequest('GET', '/creator/commission-summary');
+      return Map<String, dynamic>.from(result as Map);
+    } catch (e) {
+      _logger.severe('Error calling getCreatorCommissionSummary: $e');
+      rethrow;
+    }
+  }
+
+  /// `{entries: [{id, network, networkOrderId, saleAmountUsd,
+  /// actualCommissionUsd, netCreatorCommissionUsd, state, createdAt}]}`.
+  Future<List<Map<String, dynamic>>> getCreatorCommissionLedger({int limit = 100}) async {
+    try {
+      final result = await _apiRequest(
+        'POST',
+        '/creator/commission-ledger',
+        body: {'limit': limit},
+      );
+      final entries = (result as Map)['entries'] as List;
+      return List<Map<String, dynamic>>.from(
+        entries.map((item) => Map<String, dynamic>.from(item as Map)),
+      );
+    } catch (e) {
+      _logger.severe('Error calling getCreatorCommissionLedger: $e');
+      rethrow;
+    }
+  }
+
+  /// Each entry: `{id, type, amountUsd, reasonCode, reasonNote, createdAt}`.
+  Future<List<Map<String, dynamic>>> getCreatorAdjustments() async {
+    try {
+      final result = await _apiRequest('GET', '/creator/adjustments');
+      final adjustments = (result as Map)['adjustments'] as List;
+      return List<Map<String, dynamic>>.from(
+        adjustments.map((item) => Map<String, dynamic>.from(item as Map)),
+      );
+    } catch (e) {
+      _logger.severe('Error calling getCreatorAdjustments: $e');
+      rethrow;
+    }
+  }
+
+  /// Each entry: `{id, state, totalAmountUsd, periodLabel, createdAt,
+  /// completedAt}`.
+  Future<List<Map<String, dynamic>>> getCreatorPayoutHistory() async {
+    try {
+      final result = await _apiRequest('GET', '/creator/payout-history');
+      final batches = (result as Map)['batches'] as List;
+      return List<Map<String, dynamic>>.from(
+        batches.map((item) => Map<String, dynamic>.from(item as Map)),
+      );
+    } catch (e) {
+      _logger.severe('Error calling getCreatorPayoutHistory: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> createCreatorConnectAccount() async {
+    try {
+      await _apiRequest('POST', '/creator/connect/create');
+    } catch (e) {
+      _logger.severe('Error calling createCreatorConnectAccount: $e');
+      rethrow;
+    }
+  }
+
+  /// Returns `{url}` -- a Stripe-hosted onboarding link to open externally.
+  Future<Map<String, dynamic>> getCreatorConnectOnboardingLink({
+    required String returnUrl,
+    required String refreshUrl,
+  }) async {
+    try {
+      final result = await _apiRequest(
+        'POST',
+        '/creator/connect/onboarding-link',
+        body: {'returnUrl': returnUrl, 'refreshUrl': refreshUrl},
+      );
+      return Map<String, dynamic>.from(result as Map);
+    } catch (e) {
+      _logger.severe('Error calling getCreatorConnectOnboardingLink: $e');
+      rethrow;
+    }
+  }
+
+  /// `{stats: {totalClicks, totalConversions, topPrograms: [{program,
+  /// clicks, conversions, revenue}]}}`.
+  Future<Map<String, dynamic>> getAffiliateStats() async {
+    try {
+      final result = await _apiRequest('POST', '/affiliate/stats');
+      return Map<String, dynamic>.from(result as Map);
+    } catch (e) {
+      _logger.severe('Error calling getAffiliateStats: $e');
+      rethrow;
+    }
+  }
 }
