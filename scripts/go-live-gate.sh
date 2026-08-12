@@ -216,8 +216,8 @@ fi
 section_header "CHECK 7: Release Documentation"
 
 required_docs=(
-  "RELEASE_READINESS_TIERED.md"
-  "LAUNCH_CHECKLIST.md"
+  "WISHLIST_WIZARD_GO_LIVE.md"
+  "RELEASE_SUMMARY.md"
   "E2E_TESTING_GUIDE.md"
 )
 

@@ -1,7 +1,7 @@
 # Wishlist Wizard - Documentation Index
 
-**Version**: 1.1  
-**Last Updated**: August 8, 2026  
+**Version**: 1.2  
+**Last Updated**: August 12, 2026  
 **Owner**: Mark Nelson
 
 ---
@@ -19,7 +19,7 @@ Complete documentation for the Wishlist Wizard project, including architecture, 
 Start here to get up and running:
 
 1. [DEVELOPER.md](DEVELOPER.md) - Tech stack overview and project structure
-2. [ENVIRONMENT_SETUP.md](ENVIRONMENT_SETUP.md) - Local development setup
+2. [DEPLOYMENT.md](DEPLOYMENT.md) - Environment setup and deployment procedures
 3. [DEVELOPMENT_WORKFLOW.md](DEVELOPMENT_WORKFLOW.md) - Git workflow and PR process
 4. [CODE_STANDARDS.md](CODE_STANDARDS.md) - Coding conventions and best practices
 5. [TROUBLESHOOTING_GUIDE.md](TROUBLESHOOTING_GUIDE.md) - Solutions for common issues
@@ -31,7 +31,7 @@ Understanding the system:
 1. [SYSTEM_ARCHITECTURE.md](SYSTEM_ARCHITECTURE.md) - High-level system design
 2. [DATABASE_SCHEMA.md](DATABASE_SCHEMA.md) - Data modeling and schema design
 3. [API_REFERENCE.md](API_REFERENCE.md) - Firebase callable API documentation
-4. [FIREBASE_IMPLEMENTATION_SUMMARY.md](FIREBASE_IMPLEMENTATION_SUMMARY.md) - Firebase integration details
+4. [FIREBASE_STRATEGY.md](FIREBASE_STRATEGY.md) - Firebase integration details
 
 ### For Building Features
 
@@ -61,7 +61,6 @@ Project overview and planning:
 4. [REQUIREMENTS.md](REQUIREMENTS.md) - Implementation status
 5. [DELIVERABLE_COMPONENT_MATRIX.md](DELIVERABLE_COMPONENT_MATRIX.md) - Component-level completion tracker for website/mobile/extension
 6. [RELEASE_SUMMARY.md](RELEASE_SUMMARY.md) - Latest incremental release notes and shipped scope
-7. [WP05_REALTIME_COLLABORATION_PLAN.md](WP05_REALTIME_COLLABORATION_PLAN.md) - WP-05 kickoff scope, acceptance criteria, and execution checklist
 
 ---
 
@@ -79,7 +78,7 @@ Project overview and planning:
 | Document | Purpose | Audience |
 |----------|---------|----------|
 | [API_REFERENCE.md](API_REFERENCE.md) | Firebase API documentation (router-first, with a small legacy-callable appendix) | Integration Devs, QA |
-| [FIREBASE_IMPLEMENTATION_SUMMARY.md](FIREBASE_IMPLEMENTATION_SUMMARY.md) | Firebase services integration | Backend Devs |
+| [FIREBASE_STRATEGY.md](FIREBASE_STRATEGY.md) | Firebase services integration | Backend Devs |
 | [AFFILIATE_IMPLEMENTATION.md](AFFILIATE_IMPLEMENTATION.md) | Affiliate program integration (commission ledger, Stripe Connect payouts) | Product, Backend |
 | [Achievements_And_Rewards_Design.md](Achievements_And_Rewards_Design.md) | Achievements & rewards design + as-built v1 implementation notes | Product, Backend |
 
@@ -88,7 +87,7 @@ Project overview and planning:
 | Document | Purpose | Audience |
 |----------|---------|----------|
 | [DEVELOPER.md](DEVELOPER.md) | Tech stack and project structure | All Developers |
-| [ENVIRONMENT_SETUP.md](ENVIRONMENT_SETUP.md) | Local development environment setup | All Developers |
+| [DEPLOYMENT.md](DEPLOYMENT.md) | Environment setup and deployment procedures | All Developers |
 | [DEVELOPMENT_WORKFLOW.md](DEVELOPMENT_WORKFLOW.md) | Git workflow, PR process, collaboration | All Developers |
 | [CODE_STANDARDS.md](CODE_STANDARDS.md) | Code style, conventions, best practices | All Developers |
 | [TESTING_STRATEGY.md](TESTING_STRATEGY.md) | Testing approach, guidelines, examples | QA, Code Reviewers |
@@ -124,14 +123,13 @@ Project overview and planning:
 | [REQUIREMENTS.md](REQUIREMENTS.md) | Feature status and implementation details | All |
 | [DELIVERABLE_COMPONENT_MATRIX.md](DELIVERABLE_COMPONENT_MATRIX.md) | Execution tracker for component completion by deliverable | Product, Engineering Leads, PM |
 | [RELEASE_SUMMARY.md](RELEASE_SUMMARY.md) | Incremental releases, shipped features, and delivery notes | Product, Engineering Leads, PM |
-| [WP05_REALTIME_COLLABORATION_PLAN.md](WP05_REALTIME_COLLABORATION_PLAN.md) | Real-time collaboration kickoff plan, risks, and acceptance checks | Product, Engineering Leads, PM |
 
 ### Platform-Specific
 
 | Document | Purpose | Audience |
 |----------|---------|----------|
-| [IOS_DOCUMENTATION_INDEX.md](IOS_DOCUMENTATION_INDEX.md) | iOS-specific setup and build | iOS Devs |
-| [MACOS_RUNNER_SETUP.md](MACOS_RUNNER_SETUP.md) | macOS CI/CD runners | DevOps |
+| [packages/mobile/IOS_DISTRIBUTION_SETUP.md](packages/mobile/IOS_DISTRIBUTION_SETUP.md) | iOS code-signing/Fastlane setup | iOS Devs |
+| [packages/mobile/ANDROID_DISTRIBUTION_SETUP.md](packages/mobile/ANDROID_DISTRIBUTION_SETUP.md) | Android keystore/Play Console release pipeline | Android Devs |
 | [BROWSER_EXTENSION_ENHANCEMENTS.md](BROWSER_EXTENSION_ENHANCEMENTS.md) | Extension features and development | Extension Devs |
 
 ---
@@ -143,8 +141,7 @@ Project overview and planning:
 - [API Reference](API_REFERENCE.md) - Auth endpoints
 
 ### Database & Data
-- [Database Schema](DATABASE_SCHEMA.md) - Collections, tables, relationships
-- [Firestore Migration](FIRESTORE_MIGRATION.md) - Migration strategy
+- [Database Schema](DATABASE_SCHEMA.md) - Collections, relationships
 
 ### API Development
 - [API Reference](API_REFERENCE.md) - Complete endpoint documentation
@@ -166,7 +163,8 @@ Project overview and planning:
 - [Deployment](DEPLOYMENT.md) - Release procedures
 
 ### Mobile Development
-- [IOS Documentation Index](IOS_DOCUMENTATION_INDEX.md) - iOS-specific guides
+- [iOS Distribution Setup](packages/mobile/IOS_DISTRIBUTION_SETUP.md) - iOS code-signing/Fastlane
+- [Android Distribution Setup](packages/mobile/ANDROID_DISTRIBUTION_SETUP.md) - Android keystore/Play Console
 - [Developer Guide](DEVELOPER.md) - Flutter app setup
 
 ### Browser Extension
@@ -177,7 +175,7 @@ Project overview and planning:
 
 ## 📊 Documentation Statistics
 
-- **Total Documents**: 30+ comprehensive guides
+- **Total Documents**: ~60 comprehensive guides (reduced from 123 in the 2026-08-12 cleanup — see Version History)
 - **Total Pages**: 200+ pages of detailed documentation
 - **Code Examples**: 100+ working examples
 - **Diagrams**: 20+ architecture diagrams
@@ -198,7 +196,7 @@ Project overview and planning:
 ### Scenario: I'm a new developer joining the team
 
 1. Read [DEVELOPER.md](DEVELOPER.md) - Tech stack overview (15 min)
-2. Follow [ENVIRONMENT_SETUP.md](ENVIRONMENT_SETUP.md) - Setup development (30 min)
+2. Follow [DEPLOYMENT.md](DEPLOYMENT.md) - Setup development environment (30 min)
 3. Review [DEVELOPMENT_WORKFLOW.md](DEVELOPMENT_WORKFLOW.md) - Git/PR process (15 min)
 4. Study [CODE_STANDARDS.md](CODE_STANDARDS.md) - Code conventions (30 min)
 5. Explore [SYSTEM_ARCHITECTURE.md](SYSTEM_ARCHITECTURE.md) - Understand design (45 min)
@@ -260,9 +258,9 @@ Project overview and planning:
 
 **Errors**: [TROUBLESHOOTING_GUIDE.md](TROUBLESHOOTING_GUIDE.md)
 
-**Firebase**: [FIREBASE_IMPLEMENTATION_SUMMARY.md](FIREBASE_IMPLEMENTATION_SUMMARY.md)
+**Firebase**: [FIREBASE_STRATEGY.md](FIREBASE_STRATEGY.md)
 
-**iOS/Android**: [IOS_DOCUMENTATION_INDEX.md](IOS_DOCUMENTATION_INDEX.md), [DEVELOPER.md](DEVELOPER.md)
+**iOS/Android**: [packages/mobile/IOS_DISTRIBUTION_SETUP.md](packages/mobile/IOS_DISTRIBUTION_SETUP.md), [packages/mobile/ANDROID_DISTRIBUTION_SETUP.md](packages/mobile/ANDROID_DISTRIBUTION_SETUP.md), [DEVELOPER.md](DEVELOPER.md)
 
 ---
 
@@ -360,10 +358,11 @@ Ensure documentation is complete and accurate:
 |---------|------|---------|
 | 1.0 | Feb 16, 2026 | Initial comprehensive documentation |
 | 1.1 | Aug 8, 2026 | Doc alignment pass: corrected drift across ~19 core docs against actual shipped code (affiliate/creator payout backend, achievements v1, the `api` HTTP router migration, the `packages/functions` companion-repo extraction, real CI/CD workflow set, mobile IAP/AdMob, password policy, account deletion, 1280px/CRUD UI standards). Full rewrites: REQUIREMENTS.md, API_REFERENCE.md, CICD_SETUP_GUIDE.md. The large one-off dated session-summary/status docs elsewhere in `docs/` were intentionally left untouched as historical record. |
+| 1.2 | Aug 12, 2026 | Full cleanup pass on the backlog left untouched in 1.1: deleted 64 files (point-in-time status/session snapshots; the fully-retired self-hosted-CI-runner, keychain-popup, and "zero-touch devops" clusters; a generic iOS-certificate template cluster superseded by a real project-specific doc; assorted redundant browser-extension docs), relocated `packages/browser-extension/FIREFOX_TESTING.md` under `docs/`, stripped dead Postgres/Drizzle/SendGrid/OpenAI references from 10 still-live docs, and added `packages/mobile/ANDROID_DISTRIBUTION_SETUP.md` (a real gap — the Android release pipeline had zero documentation despite iOS having a current one). ~65 files remaining, down from 123. |
 
 ---
 
-**Last Updated**: August 8, 2026  
+**Last Updated**: August 12, 2026  
 **Maintained By**: Mark Nelson  
 **Status**: 🟢 Complete & Current
 

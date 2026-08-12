@@ -283,7 +283,10 @@ Wishlist Wizard includes a complete **zero-touch DevOps automation suite** that 
 - **GitHub Secrets Sync**: Automatic synchronization of secrets
 - **Audit Logging**: Comprehensive logging for all operations
 
-See `ZERO_TOUCH_DEVOPS_IMPLEMENTATION_GUIDE.md` and `AUTOMATION_README.md` for complete automation details.
+See `docs/CICD_SETUP_GUIDE.md` for the current CI/CD pipeline as it actually runs today
+(GitHub-hosted runners only). Note: this section describes `automate.sh`, which predates
+that pipeline and has not been re-verified against it — treat with caution until confirmed
+current.
 
 ## 🚀 Automated Deployment
 

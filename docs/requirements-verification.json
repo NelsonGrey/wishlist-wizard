@@ -5,7 +5,7 @@
     "mode": "phased",
     "description": "Only enforced requirements block CI. Expand enforced coverage over time until all completed requirements are mapped and verified.",
     "strictAllEnvVar": "REQUIREMENTS_STRICT_ALL",
-    "designExecutionMatrix": "docs/DESIGN_EXECUTION_MATRIX.md"
+    "designExecutionMatrix": "docs/DELIVERABLE_COMPONENT_MATRIX.md"
   },
   "items": [
     {

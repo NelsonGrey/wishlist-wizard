@@ -283,7 +283,7 @@ jobs:
             To submit to stores:
             
             1. Download \`extension-deployment-packages\`
-            2. Follow the store-specific guidelines in \`docs/EXTENSION_STORE_SUBMISSION_DETAILED_RUNBOOK.md\`
+            2. Follow the store-specific guidelines in \`docs/EXTENSION_STORE_SUBMISSION_RUNBOOK.md\`
             3. Submit \`wishlist-wizard-chrome-*.zip\` to Chrome Web Store
             4. Submit \`wishlist-wizard-firefox-*.zip\` to Mozilla Add-ons
             5. Submit \`wishlist-wizard-edge-*.zip\` to Microsoft Edge Store

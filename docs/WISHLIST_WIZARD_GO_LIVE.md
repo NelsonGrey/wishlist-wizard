@@ -748,11 +748,10 @@ npm run metrics:baseline
 
 The `go-live-gate.sh` checks for these specific docs at launch:
 
-- [ ] `RELEASE_READINESS_TIERED.md` exists (in root or `docs/`) — Owner: _______
-- [ ] `LAUNCH_CHECKLIST.md` exists (in root or `docs/`) — Owner: _______
+- [ ] `WISHLIST_WIZARD_GO_LIVE.md` exists (in root or `docs/`) — Owner: _______
+- [ ] `RELEASE_SUMMARY.md` exists (in root or `docs/`) — Owner: _______
 - [ ] `E2E_TESTING_GUIDE.md` exists (in root or `docs/`) — Owner: _______
 - [ ] `FIREBASE_STRATEGY.md` exists (referenced in README) — Owner: _______
-- [ ] `ZERO_TOUCH_DEVOPS_IMPLEMENTATION_GUIDE.md` exists — Owner: _______
 - [ ] `AUTOMATED_DEPLOYMENT.md` exists — Owner: _______
 - [ ] README.md is accurate for the `1.0.0` public release — Owner: _______
 - [ ] Support email `support@wishlistwizard.com` is a live, monitored inbox — Owner: _______
@@ -1083,8 +1082,8 @@ The automated gate at `./scripts/go-live-gate.sh` enforces:
 | GitHub Actions E2E workflow | File present | Warn |
 | Tier 1 features (10 core callables) | All 10 passing | Yes |
 | Tier 2 features (6 advanced callables) | ≥ 5 passing | Warn |
-| Documentation: RELEASE_READINESS_TIERED.md | Exists | Warn |
-| Documentation: LAUNCH_CHECKLIST.md | Exists | Warn |
+| Documentation: WISHLIST_WIZARD_GO_LIVE.md | Exists | Warn |
+| Documentation: RELEASE_SUMMARY.md | Exists | Warn |
 | Documentation: E2E_TESTING_GUIDE.md | Exists | Warn |
 | Playwright in package.json | Present | Warn |
 | Node modules installed | node_modules/ exists | Warn |

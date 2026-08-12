@@ -91,7 +91,7 @@ A component is ✅ only when all are true:
 | Notifications stream + mark as read | ✅ | Real notification stream and read updates are active | Notification payload and deep-link tests passing | packages/mobile/test/notification_deeplink_parser_test.dart (5 passing) |
 | Notification deep-link routing | ✅ | Item-first resolution, wishlist fallback, query/path parsing, parser tests | routing logic validated by deeplink tests | packages/mobile/test/dialog_and_notification_validation_test.dart (deep-link routing tests); packages/mobile/test/notification_deeplink_parser_test.dart |
 | Push delivery pipeline (end-to-end) | 🟡 | Client-side handling exists; server-side price-alert push dispatch is now wired through centralized FCM utility with transient retry handling | Validate delivery on real devices and confirm retry behavior in telemetry | packages/mobile/lib/services/fcm_service.dart; packages/functions/src/firebase-price-tracking.ts; packages/functions/src/fcm.ts |
-| Native release pipelines (iOS/Android) | 🟡 | CI/docs are in place and local release artifacts now build (`app-release.apk`, `Runner.app` no-codesign), but store submission evidence remains process-driven | Execute and record `docs/MOBILE_RELEASE_CHECKLIST.md` per release | docs/IOS_DOCUMENTATION_INDEX.md; docs/MOBILE_RELEASE_CHECKLIST.md; docs/DELIVERABLE_EXECUTION_LOG_2026-02-20.md |
+| Native release pipelines (iOS/Android) | 🟡 | CI/docs are in place and local release artifacts now build (`app-release.apk`, `Runner.app` no-codesign), but store submission evidence remains process-driven | Execute and record `docs/MOBILE_RELEASE_CHECKLIST.md` per release | docs/packages/mobile/IOS_DISTRIBUTION_SETUP.md; docs/packages/mobile/ANDROID_DISTRIBUTION_SETUP.md; docs/MOBILE_RELEASE_CHECKLIST.md |
 | Native in-app purchases (StoreKit/Play Billing) | ✅ | Replaced Stripe checkout on mobile with native IAP | Verify a live purchase round-trip on real devices | commit ab09174 |
 | Real AdMob App IDs (iOS/Android) | ✅ | Real production AdMob App IDs wired for both platforms (previously placeholder/test IDs) | Monitor live ad fill/revenue | commits c60c204, 5a11659, 15c8ee8 |
 | App Store Connect / Play Console subscription mgmt scripts | ✅ | Scripted subscription status/draft management via ASC + Play Console APIs | — | commits ace3086, e84b1b1 |
@@ -108,8 +108,8 @@ A component is ✅ only when all are true:
 | Quick add workflow | ✅ | One-click add path present and wired | Add QA checks for unsupported retailer fallback | packages/browser-extension/src/quick-add.js |
 | Coupon lookup | ✅ | Backend-driven coupon behavior (mock fallback removed from core path) | Validate provider reliability and UX fallback text | packages/browser-extension/src/coupons.js |
 | Price comparison lookup | ✅ | Backend lookup enabled; graceful handling for no-results | Add storefront-specific regression fixtures | packages/browser-extension/src/comparison.js |
-| Popup UX and routing | ✅ | Functional implementation remains stable and extension docs/runbooks are aligned to current architecture | Add popup routing integration test in future hardening phase | packages/browser-extension/src/popup.js; docs/packages/browser-extension/src/DEVELOPER-GUIDE.md; docs/EXTENSION_STORE_SUBMISSION_RUNBOOK.md |
-| Store submission operations | 🟡 | Store submission runbook and preflight automation are now aligned to current dist artifacts; dashboard submission remains manual | Execute and record `docs/EXTENSION_STORE_SUBMISSION_RUNBOOK.md` per release | docs/EXTENSION_STORE_SUBMISSION_RUNBOOK.md; scripts/extension-release-preflight.sh; docs/DELIVERABLE_EXECUTION_LOG_2026-02-20.md |
+| Popup UX and routing | ✅ | Functional implementation remains stable and extension docs/runbooks are aligned to current architecture | Add popup routing integration test in future hardening phase | packages/browser-extension/src/popup.js; docs/EXTENSION_STORE_SUBMISSION_RUNBOOK.md |
+| Store submission operations | 🟡 | Store submission runbook and preflight automation are now aligned to current dist artifacts; dashboard submission remains manual | Execute and record `docs/EXTENSION_STORE_SUBMISSION_RUNBOOK.md` per release | docs/EXTENSION_STORE_SUBMISSION_RUNBOOK.md; scripts/extension-release-preflight.sh |
 
 ---
 
@@ -138,7 +138,7 @@ A component is ✅ only when all are true:
 - [x] Non-prod password gate verified + regression tested (homepage + non-home protected in non-production)
 - [ ] Notifications and wishlist CRUD core flows manually verified
 - [x] Build/check commands pass for web workspace (`npm run lint`, `npm run check`, `npm run test`)
-- [ ] Persona outcome coverage reviewed against `docs/DESIGN_EXECUTION_MATRIX.md` (P0/P1 rows)
+- [ ] Persona outcome coverage reviewed against `docs/PRODUCT_DESIGN.md`'s persona flows (P0/P1 rows)
 - [x] Design linkage validation passes (`npm run requirements:verify`) with 0 enforced design-link failures
 - [ ] Production post-deploy validation workflow completed for current release candidate (`production-validation.yml`)
 - [ ] Ad monetization KPI gate reviewed from `/api/analytics/ad-revenue-summary` (trailing 7 days)
