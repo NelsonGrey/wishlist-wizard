@@ -84,6 +84,11 @@ dev_dependencies:
   # re-export that type, only PasswordValidationStatus) -- listed explicitly
   # per the depend_on_referenced_packages lint.
   firebase_auth_platform_interface: ^9.0.5
+  # Transitive via url_launcher, but creator_dashboard_screen_test.dart
+  # installs a fake UrlLauncherPlatform so the "set up payouts" button's
+  # launchUrl call resolves instead of hanging on the real platform
+  # channel under test -- listed explicitly per the same lint as above.
+  url_launcher_platform_interface: ^2.3.2
 
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is

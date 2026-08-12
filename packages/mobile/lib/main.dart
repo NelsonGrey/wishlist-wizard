@@ -19,6 +19,7 @@ import 'screens/account_screen.dart';
 import 'screens/achievements_screen.dart';
 import 'screens/calendar_screen.dart';
 import 'screens/connections_screen.dart';
+import 'screens/creator_dashboard_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/firebase_wishlists_screen.dart';
@@ -738,6 +739,19 @@ class ProfileScreen extends StatelessWidget {
               },
               icon: const Icon(Icons.calendar_today_outlined),
               label: const Text('Calendar'),
+            ),
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const CreatorDashboardScreen(),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.storefront_outlined),
+              label: const Text('Creator Tools'),
             ),
             const SizedBox(height: 12),
             OutlinedButton.icon(
