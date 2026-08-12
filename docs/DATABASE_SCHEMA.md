@@ -610,76 +610,6 @@ interface PriceTrackingJob {
 
 ---
 
-## 🐘 PostgreSQL Tables (Supplementary)
-
-### Why PostgreSQL?
-
-PostgreSQL is used for:
-- Complex queries and analytics
-- Transactional consistency
-- Session management
-- Audit logging
-
-### Table: users
-
-```sql
-CREATE TABLE users (
-  id UUID PRIMARY KEY,
-  firebase_uid VARCHAR(255) UNIQUE NOT NULL,
-  email VARCHAR(255) UNIQUE NOT NULL,
-  display_name VARCHAR(255),
-  avatar_url TEXT,
-  account_type VARCHAR(50),
-  account_status VARCHAR(50),
-  created_at TIMESTAMP WITH TIME ZONE,
-  updated_at TIMESTAMP WITH TIME ZONE,
-  last_login_at TIMESTAMP WITH TIME ZONE
-);
-
-CREATE INDEX idx_users_email ON users(email);
-CREATE INDEX idx_users_firebase_uid ON users(firebase_uid);
-```
-
-### Table: sessions
-
-```sql
-CREATE TABLE sessions (
-  id VARCHAR(255) PRIMARY KEY,
-  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  token VARCHAR(500) NOT NULL,
-  ip_address INET,
-  user_agent TEXT,
-  expires_at TIMESTAMP WITH TIME ZONE,
-  created_at TIMESTAMP WITH TIME ZONE,
-  updated_at TIMESTAMP WITH TIME ZONE
-);
-
-CREATE INDEX idx_sessions_user_id ON sessions(user_id);
-CREATE INDEX idx_sessions_expires_at ON sessions(expires_at);
-```
-
-### Table: audit_logs
-
-```sql
-CREATE TABLE audit_logs (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID REFERENCES users(id),
-  action VARCHAR(100) NOT NULL,
-  resource_type VARCHAR(100),
-  resource_id VARCHAR(255),
-  changes JSONB,
-  ip_address INET,
-  user_agent TEXT,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
-CREATE INDEX idx_audit_logs_user_id ON audit_logs(user_id);
-CREATE INDEX idx_audit_logs_created_at ON audit_logs(created_at);
-CREATE INDEX idx_audit_logs_action ON audit_logs(action);
-```
-
----
-
 ## 🔄 Relationships & Foreign Keys
 
 ### Primary Relationships
@@ -811,8 +741,7 @@ WishlistItem (1) ──→ (1) GroupGift
 
 - [System Architecture](SYSTEM_ARCHITECTURE.md)
 - [API Reference](API_REFERENCE.md)
-- [Firebase Implementation](FIREBASE_IMPLEMENTATION_SUMMARY.md)
-- [Subscription Plan](SUBSCRIPTION_PLAN.md)
+- [Firebase Strategy](FIREBASE_STRATEGY.md)
 
 ---
 

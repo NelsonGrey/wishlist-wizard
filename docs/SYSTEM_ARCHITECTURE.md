@@ -1,7 +1,7 @@
 # Wishlist Wizard - System Architecture
 
-**Version**: 1.1
-**Last Updated**: January 2025
+**Version**: 1.2
+**Last Updated**: 2026-08-12
 **Owner**: Mark Nelson
 
 ---
@@ -737,7 +737,7 @@ See API_REFERENCE.md for complete callable documentation
 
 - [Database Schema Reference](DATABASE_SCHEMA.md)
 - [API Reference](API_REFERENCE.md)
-- [Firebase Implementation](FIREBASE_IMPLEMENTATION_SUMMARY.md)
+- [Firebase Strategy](FIREBASE_STRATEGY.md)
 - [Security Architecture](SECURITY_ARCHITECTURE.md)
 - [Developer Guide](DEVELOPER.md)
 

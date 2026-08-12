@@ -7,7 +7,7 @@ Status Legend:
 
 Verification Policy:
 - ✅ only counts as release-ready when the requirement is mapped in `docs/requirements-verification.json`.
-- Execution sequencing is persona-first via `docs/DESIGN_EXECUTION_MATRIX.md` derived from `docs/PRODUCT_DESIGN.md`.
+- Execution sequencing is persona-first via `docs/DELIVERABLE_COMPONENT_MATRIX.md` derived from `docs/PRODUCT_DESIGN.md`.
 - Enforced requirements in the matrix must be `verificationStatus: "verified"` with evidence and `lastVerifiedAt`.
 - Enforced requirements must also include `persona`, `flow`, and `designRef` linkage to product design intent.
 - CI validation runs via `npm run requirements:verify` and publishes `artifacts/requirements-verification-report.json`.

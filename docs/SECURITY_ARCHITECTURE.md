@@ -1,7 +1,7 @@
 # Wishlist Wizard - Security Architecture
 
-**Version**: 1.1  
-**Last Updated**: May 15, 2026  
+**Version**: 1.2  
+**Last Updated**: 2026-08-12  
 **Owner**: Mark Nelson
 
 ---
@@ -162,34 +162,25 @@ async function canEditWishlist(userId: string, wishlistId: string): Promise<bool
 - Encryption enabled by default
 - Google manages encryption keys
 - Data encrypted using AES-256
-
-**PostgreSQL**:
-- Encryption enabled (AWS RDS)
-- Automated backups encrypted
-- Encryption keys managed by AWS KMS
+- No Postgres/other database exists in this project — Firestore is the only datastore
 
 ---
 
 ## 🚫 OWASP Top 10 Mitigation
 
-### 1. Injection (SQL, NoSQL, Command)
+### 1. Injection (NoSQL, Command)
 
 **Prevention**:
-- Use parameterized queries (Drizzle ORM for PostgreSQL)
-- Input validation & sanitization
+- Firestore's Admin SDK query builder is inherently parameterized — there is no raw
+  query string to inject into (no SQL database exists in this project)
+- Input validation & sanitization on all callable/router request bodies
 - Firestore security rules prevent invalid queries
 - No command execution from user input
 
 **Implementation**:
 ```typescript
-// ✅ Correct - Parameterized
-const user = await db.query(
-  'SELECT * FROM users WHERE email = ?',
-  [email]
-);
-
-// ❌ Wrong - String concatenation
-const user = await db.query(`SELECT * FROM users WHERE email = '${email}'`);
+// ✅ Correct - Firestore query builder, not a raw query string
+const snapshot = await db.collection('users').where('email', '==', email).get();
 ```
 
 ### 2. Broken Authentication
@@ -451,17 +442,20 @@ const corsOptions = {
 
 **Protected Keys**:
 - Firebase API key (restricted to specific IPs)
-- SendGrid API key
-- OpenAI API key
+- Stripe secret key
+- Workspace SMTP credentials (Nodemailer)
 - Third-party API keys
+
+> Neither SendGrid nor OpenAI is used anywhere in this codebase — there is no
+> `SENDGRID_API_KEY`/`OPENAI_API_KEY` to protect, and there is no `DATABASE_URL`
+> (Firestore is the only datastore, accessed via the Firebase Admin SDK, not a
+> connection string).
 
 **Example .env.local**:
 ```
 FIREBASE_API_KEY=AIza...
 FIREBASE_PROJECT_ID=wishlist-wizard
-SENDGRID_API_KEY=SG.xxx...
-OPENAI_API_KEY=sk-...
-DATABASE_URL=postgresql://...
+STRIPE_SECRET_KEY=sk_live...
 ```
 
 ### Client-Side API Keys
@@ -645,7 +639,6 @@ Before each release:
 - [System Architecture](SYSTEM_ARCHITECTURE.md)
 - [API Reference](API_REFERENCE.md)
 - [Database Schema](DATABASE_SCHEMA.md)
-- [Subscription Plan](SUBSCRIPTION_PLAN.md)
 
 ---
 

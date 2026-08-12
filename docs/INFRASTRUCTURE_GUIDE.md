@@ -20,7 +20,6 @@ This document outlines the infrastructure setup, deployment strategies, monitori
 - **Firebase**: All application services (Hosting, Functions, Firestore, Auth)
 - **Cloud Run**: Optional for containerized workloads
 - **Cloud Storage**: User uploads and backups
-- **Cloud SQL**: PostgreSQL database (supplementary)
 - **Cloud Monitoring**: Observability and alerting
 
 ### Multi-Environment Architecture
@@ -94,22 +93,9 @@ For a local Functions deploy, clone the companion repo into `packages/functions/
 
 ## 🗄️ Database Management
 
-### PostgreSQL Setup (GCP Cloud SQL)
-
-**Instance Configuration**:
-- **Machine Type**: db-custom-2-8192 (2 vCPU, 8GB RAM)
-- **Storage**: 100GB SSD with automatic backups
-- **Failover**: Automatic failover replica in different zone
-- **SSL**: Required for all connections
-
-**Connection**:
-```bash
-# Using Cloud SQL Proxy
-cloud_sql_proxy -instances=wishlist-wizard-prod:us-central1:postgres=tcp:5432 &
-
-# Connect via psql
-psql "host=localhost user=postgres dbname=wishlist_wizard_prod"
-```
+There is no Postgres/Cloud SQL database in this project — Firestore is the only
+database. Any prior reference to Cloud SQL, `psql`, or Drizzle migrations describes
+architecture deleted in the 2025-10-16 Firebase-first migration.
 
 ### Firestore Configuration
 
@@ -135,31 +121,9 @@ gcloud firestore restore <BACKUP_ID>
 
 ### Database Migrations
 
-**Using Drizzle ORM**:
-```bash
-# Generate migration
-npm run db:migrate:generate -- --name add_user_preferences
-
-# Apply migration
-npm run db:migrate:apply
-
-# Preview migration
-npm run db:migrate:preview
-```
-
-**Migration file structure**:
-```sql
--- migrations/001_initial_schema.sql
-CREATE TABLE wishlists (
-  id UUID PRIMARY KEY,
-  user_id UUID NOT NULL REFERENCES users(id),
-  title VARCHAR(255) NOT NULL,
-  created_at TIMESTAMP WITH TIME ZONE,
-  updated_at TIMESTAMP WITH TIME ZONE
-);
-
-CREATE INDEX idx_wishlists_user_id ON wishlists(user_id);
-```
+Not applicable — Firestore is schemaless, so there is no migration system. Firestore
+index changes go through `firestore.indexes.json` and `firebase deploy --only
+firestore:indexes`.
 
 ---
 
@@ -169,7 +133,6 @@ CREATE INDEX idx_wishlists_user_id ON wishlists(user_id);
 
 **Frequency**:
 - **Firestore**: Daily automated backups
-- **PostgreSQL**: Continuous transaction logs + daily snapshots
 - **Cloud Storage**: Daily incremental backups
 
 **Retention**:
@@ -198,10 +161,6 @@ CREATE INDEX idx_wishlists_user_id ON wishlists(user_id);
    ```bash
    # Restore from backup
    gcloud firestore restore <BACKUP_ID>
-   
-   # Or restore PostgreSQL
-   gcloud sql backups restore <BACKUP_ID> \
-     --backup-instance=postgres-prod
    ```
 
 4. **Verify**:
@@ -439,8 +398,7 @@ App Check enforcement (reCAPTCHA v3, wired via `VITE_FIREBASE_APPCHECK_SITE_KEY`
 - Cloud Run: Auto-scales based on CPU/memory
 
 **Vertical Scaling**:
-- Cloud SQL: Can upgrade machine type
-- Increase read replicas for read-heavy workloads
+- Firestore scales automatically — no instance size to manage
 - Add caching (Redis) for frequently accessed data
 
 ### Performance Optimization
@@ -452,10 +410,9 @@ App Check enforcement (reCAPTCHA v3, wired via `VITE_FIREBASE_APPCHECK_SITE_KEY`
 - Caching with Service Workers
 
 **Database**:
-- Index frequently queried fields
+- Index frequently queried fields (`firestore.indexes.json`)
 - Avoid N+1 queries
 - Batch operations where possible
-- Regular vacuum and analyze
 
 **API**:
 - Implement pagination
@@ -492,7 +449,7 @@ App Check enforcement (reCAPTCHA v3, wired via `VITE_FIREBASE_APPCHECK_SITE_KEY`
 1. **Immediate**:
    - Check Cloud Functions logs
    - Check Cloud Run dashboard
-   - Verify database connectivity
+   - Check the [Firebase status dashboard](https://status.firebase.google.com/) for a Firestore incident
 
 2. **Troubleshoot**:
    ```bash
@@ -501,36 +458,12 @@ App Check enforcement (reCAPTCHA v3, wired via `VITE_FIREBASE_APPCHECK_SITE_KEY`
 
    # View function logs
    gcloud functions logs read api-function --limit 50
-
-   # Check database
-   gcloud sql describe postgres-prod
    ```
 
 3. **Remediate**:
    - Redeploy functions
    - Check recent deployments for issues
    - Roll back if recent change caused it
-
----
-
-### Database Down - Cannot Connect
-
-1. **Verify Issue**:
-   ```bash
-   gcloud sql describe postgres-prod |grep -i status
-   ```
-
-2. **Failover**:
-   ```bash
-   gcloud sql promote-replica \
-     --backup-configuration-name postgres-replica
-   ```
-
-3. **Restore**:
-   ```bash
-   gcloud sql backups restore <BACKUP_ID> \
-     --backup-instance=postgres-prod
-   ```
 
 ---
 

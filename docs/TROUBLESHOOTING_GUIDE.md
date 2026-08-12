@@ -223,49 +223,6 @@ This guide provides solutions for common issues encountered during development, 
 
 ---
 
-### Issue: Database connection errors (legacy SQL only)
-
-**Symptom**: "Unable to connect to database" errors
-
-**Solutions**:
-
-1. **Check PostgreSQL is running**:
-   ```bash
-   # macOS
-   brew services list | grep postgres
-
-   # Linux
-   systemctl status postgresql
-
-   # Docker
-   docker ps | grep postgres
-   ```
-
-2. **Verify DATABASE_URL**:
-   ```bash
-   # Should be in .env.local
-   DATABASE_URL=postgresql://username:password@localhost:5432/wishlist_wizard_dev
-   ```
-
-3. **Test connection**:
-   ```bash
-   psql $DATABASE_URL -c "SELECT 1"
-   ```
-
-4. **Create database if missing**:
-   ```bash
-   npm run db:setup
-   # or
-   createdb wishlist_wizard_dev
-   ```
-
-5. **Run migrations**:
-   ```bash
-   npm run db:migrate
-   ```
-
----
-
 ## 🧪 Testing Issues
 
 ### Issue: Tests timeout
@@ -519,23 +476,18 @@ This guide provides solutions for common issues encountered during development, 
    npm run logs --workspace=functions
    ```
 
-2. **Check database connection**:
-   ```bash
-   npm run db:check-connection
-   ```
-
-3. **Verify environment variables** on server:
+2. **Verify environment variables** on server:
    ```bash
    echo $FIREBASE_ADMIN_SDK_PATH
    ```
 
-4. **Check for syntax errors**:
+3. **Check for syntax errors**:
    ```bash
    npm run lint
    npm run check
    ```
 
-5. **Check API logs for stack trace**:
+4. **Check API logs for stack trace**:
    ```javascript
    // In error handler
    console.error('Full error:', error);
@@ -823,7 +775,7 @@ import { Component } from '@/components/Component';
 
 ## 📚 Related Documentation
 
-- [Development Setup](ENVIRONMENT_SETUP.md)
+- [Deployment Guide](DEPLOYMENT.md)
 - [Code Standards](CODE_STANDARDS.md)
 - [Testing Strategy](TESTING_STRATEGY.md)
 

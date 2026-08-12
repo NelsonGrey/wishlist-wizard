@@ -16,7 +16,7 @@ This document provides technical information for developers working on the Wishl
 - **Platform**: Firebase Cloud Functions (v2)
 - **Database**: Cloud Firestore
 - **Authentication**: Firebase Auth (ID tokens)
-- **Email**: SendGrid (when configured)
+- **Email**: Google Workspace SMTP via Nodemailer (no SendGrid)
 - **Payments**: Stripe (optional)
 
 ### Mobile
@@ -117,8 +117,10 @@ See [API_REFERENCE.md](API_REFERENCE.md) for payloads and examples.
 
 ### Functions (Server)
 - `FIREBASE_ADMIN_SDK_PATH`
-- `SENDGRID_API_KEY` (optional)
-- `OPENAI_API_KEY` (optional)
+- Workspace SMTP credentials for Nodemailer (see `packages/functions/src/email.ts`)
+
+> `SENDGRID_API_KEY` and `OPENAI_API_KEY` are **not required** — neither SendGrid nor
+> OpenAI is used anywhere in this codebase.
 
 ---
 

@@ -130,4 +130,3 @@ export DEBUG=test-ci-cd:*
 
 - [Master CI/CD Pipeline](../.github/workflows/master-pipeline.yml)
 - [Deployment Guide](../docs/DEPLOYMENT.md)
-- [Development Setup](../docs/ENVIRONMENT_SETUP.md)

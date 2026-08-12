@@ -22,10 +22,10 @@
 
 **Business Model**: 
 1. **Primary**: Affiliate commissions (2–8%) on items purchased through Wishlist Wizard links
-2. **Secondary**: Tiered subscriptions (Free → Starter $39/yr → Plus $79/yr → Creator Pro $149/yr → Business $299/yr) — see [SUBSCRIPTION_PLAN.md](./SUBSCRIPTION_PLAN.md)
+2. **Secondary**: Tiered subscriptions (Free → Starter $39/yr → Plus $79/yr → Creator Pro $149/yr → Business $299/yr) — see `packages/shared/src/subscription.ts` for the live tier limits
 3. **Tertiary**: B2B (influencers, content creators, brands) partnerships and Enterprise licensing
 
-> ⚠️ **Note (May 2026)**: The original single-tier $99/year premium model has been replaced with a five-tier subscription structure. Analysis showed the advertising-only model is structurally loss-making for users who create 6+ wishlists or track 20+ items for price drops. See [SUBSCRIPTION_PLAN.md](./SUBSCRIPTION_PLAN.md) for the full analysis and rationale.
+> ⚠️ **Note (May 2026)**: The original single-tier $99/year premium model has been replaced with a five-tier subscription structure. Analysis showed the advertising-only model is structurally loss-making for users who create 6+ wishlists or track 20+ items for price drops. The proposed-pricing analysis doc that originally justified this has since been superseded by the shipped, live Stripe billing implementation itself.
 
 **Current Status**: ✅ MVP complete with Web, Mobile, Browser Extension. 100% core features implemented, including live affiliate monetization (commission ledger, Stripe Connect creator payouts, creator dashboard) shipped 2026-07-21. In growth phase.
 
@@ -455,7 +455,7 @@
 ---
 
 #### Stream 2: Subscription Revenue (30% of total)
-**Model**: Tiered annual/monthly subscriptions. See [SUBSCRIPTION_PLAN.md](./SUBSCRIPTION_PLAN.md) for full analysis.
+**Model**: Tiered annual/monthly subscriptions, live via Stripe Checkout/Portal — see `packages/functions/src/api/subscriptions.ts` and `packages/shared/src/subscription.ts`.
 
 | Tier | Price | Features | Target Users (Y1) | Revenue |
 |------|-------|----------|--------------|---------|
