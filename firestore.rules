@@ -147,11 +147,13 @@ service cloud.firestore {
          request.auth.uid == resource.data.userId);
     }
 
-    // Pending collaboration invites (email invites to accounts that don't
-    // exist yet) - Admin SDK only. inviteCollaborator/the auth onCreate
-    // trigger (packages/functions) are the only writers/readers; no client
-    // ever needs direct access, and an invitee shouldn't be able to read
-    // pending invites for other emails.
+    // Pending invites (email invites to accounts that don't exist yet) -
+    // Admin SDK only. Holds both collaboration invites (email invites to a
+    // specific wishlist) and connection-request invites (a `type` field
+    // distinguishes them) - inviteCollaborator/sendConnectionRequest/the
+    // auth onCreate trigger (packages/functions) are the only
+    // writers/readers; no client ever needs direct access, and an invitee
+    // shouldn't be able to read pending invites for other emails.
     match /pendingInvites/{inviteId} {
       allow read, write: if false;
     }
@@ -160,6 +162,25 @@ service cloud.firestore {
     // (written by inviteCollaborator, consumed by
     // triggers/collaboration.ts's sendCollaborationInviteEmail trigger).
     match /outboundCollaborationEmails/{emailId} {
+      allow read, write: if false;
+    }
+
+    // Outbound connection-request emails - same as above, Admin SDK only
+    // (written by sendConnectionRequest, consumed by
+    // triggers/collaboration.ts's sendConnectionRequestEmail trigger).
+    match /outboundConnectionEmails/{emailId} {
+      allow read, write: if false;
+    }
+
+    // User-to-user connections (persistent, mutual-consent relationships -
+    // distinct from wishlist collaborators, which are scoped to one
+    // wishlist and don't require the other side's agreement). Admin SDK
+    // only - sendConnectionRequest/respondToConnectionRequest/
+    // removeConnection/the auth onCreate trigger are the only writers;
+    // listConnections/listPendingConnectionRequests are the only readers,
+    // both real callables so results can be scoped and profile data joined
+    // in, not a raw client query.
+    match /connections/{connectionId} {
       allow read, write: if false;
     }
 
