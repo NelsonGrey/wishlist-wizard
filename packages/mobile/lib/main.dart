@@ -21,6 +21,7 @@ import 'screens/connections_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/firebase_wishlists_screen.dart';
+import 'screens/price_tracking_screen.dart';
 import 'screens/subscription_screen.dart';
 import 'widgets/error_boundary.dart';
 
@@ -697,6 +698,19 @@ class ProfileScreen extends StatelessWidget {
               },
               icon: const Icon(Icons.emoji_events_outlined),
               label: const Text('Achievements'),
+            ),
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const PriceTrackingScreen(),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.trending_down_outlined),
+              label: const Text('Price Tracking'),
             ),
             const SizedBox(height: 12),
             OutlinedButton.icon(
