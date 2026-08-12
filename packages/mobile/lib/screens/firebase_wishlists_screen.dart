@@ -8,6 +8,7 @@ import '../services/social_share_service.dart';
 import '../widgets/admob_widgets.dart';
 import '../widgets/invite_collaborator_dialog.dart';
 import '../main.dart';
+import 'contribution_screen.dart';
 
 // Production web app origin used to build shareable wishlist links from mobile
 // (mirrors the `${window.location.origin}/shared/:shareId` link built on web).
@@ -1221,6 +1222,22 @@ class _FirebaseWishlistItemsScreenState
                                   return;
                                 }
 
+                                if (value == 'contribute') {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => ContributionScreen(
+                                        itemId: item.id,
+                                        itemTitle: item.name,
+                                        itemPrice: item.price,
+                                        itemImageUrl: item.imageUrl,
+                                        itemStore: item.store,
+                                      ),
+                                    ),
+                                  );
+                                  return;
+                                }
+
                                 if (value == 'toggle') {
                                   if (item.isPurchased) {
                                     final updated = FirebaseWishlistItem(
@@ -1287,6 +1304,17 @@ class _FirebaseWishlistItemsScreenState
                                               ? 'Mark unpurchased'
                                               : 'Mark purchased',
                                         ),
+                                      ],
+                                    ),
+                                  ),
+                                if (_canReserveOrPurchase && !item.isPurchased)
+                                  const PopupMenuItem(
+                                    value: 'contribute',
+                                    child: Row(
+                                      children: [
+                                        Icon(Icons.volunteer_activism_outlined),
+                                        SizedBox(width: 8),
+                                        Text('Contribute'),
                                       ],
                                     ),
                                   ),
