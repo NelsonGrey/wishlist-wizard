@@ -504,6 +504,72 @@ class FirebaseFunctionsService {
   }
 
   // =============================================================================
+  // GROUP GIFTING (real Stripe card payments -- see
+  // packages/functions/src/api/groupPayments.ts)
+  // =============================================================================
+
+  /// Returns `{publishableKey: string | null}` -- null when Stripe isn't
+  /// configured for this environment.
+  Future<Map<String, dynamic>> getStripeConfig() async {
+    try {
+      final result = await _apiRequest('GET', '/billing/stripe-config');
+      return Map<String, dynamic>.from(result as Map);
+    } catch (e) {
+      _logger.severe('Error calling getStripeConfig: $e');
+      rethrow;
+    }
+  }
+
+  /// Returns `{clientSecret, contributionId}`.
+  Future<Map<String, dynamic>> createGroupPaymentIntent({
+    required String itemId,
+    required double amount,
+    String message = '',
+    bool isAnonymous = false,
+  }) async {
+    try {
+      final result = await _apiRequest(
+        'POST',
+        '/group-payments/payment-intent',
+        body: {
+          'itemId': itemId,
+          'amount': amount,
+          'message': message,
+          'isAnonymous': isAnonymous,
+        },
+      );
+      return Map<String, dynamic>.from(result as Map);
+    } catch (e) {
+      _logger.severe('Error calling createGroupPaymentIntent: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> confirmGroupContribution(String contributionId) async {
+    try {
+      await _apiRequest(
+        'POST',
+        '/group-payments/confirm',
+        body: {'contributionId': contributionId},
+      );
+    } catch (e) {
+      _logger.severe('Error calling confirmGroupContribution: $e');
+      rethrow;
+    }
+  }
+
+  /// Returns `{itemId, targetAmount, totalAmount, participants: [...]}`.
+  Future<Map<String, dynamic>> getGroupGiftSummary(String itemId) async {
+    try {
+      final result = await _apiRequest('GET', '/group-payments/item/$itemId');
+      return Map<String, dynamic>.from(result as Map);
+    } catch (e) {
+      _logger.severe('Error calling getGroupGiftSummary: $e');
+      rethrow;
+    }
+  }
+
+  // =============================================================================
   // SUBSCRIPTION FUNCTIONS
   // =============================================================================
 

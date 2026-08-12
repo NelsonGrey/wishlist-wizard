@@ -62,6 +62,11 @@ dependencies:
   # Info.plist / AndroidManifest.xml)
   flutter_contacts: ^1.1.9+2
 
+  # Group gifting (real Stripe card payments — see
+  # packages/functions/src/api/groupPayments.ts). CardField + confirmPayment
+  # only; native Apple Pay / Google Pay wallets aren't wired up.
+  flutter_stripe: ^11.5.0
+
   # Utils
   intl: ^0.20.2
   url_launcher: ^6.3.1
