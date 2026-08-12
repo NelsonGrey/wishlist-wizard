@@ -655,4 +655,67 @@ class FirebaseFunctionsService {
       rethrow;
     }
   }
+
+  // =============================================================================
+  // CALENDAR (personal events only — see
+  // packages/functions/src/api/calendar.ts. External provider sync is a
+  // paid web-only feature for now, not ported to mobile.)
+  // =============================================================================
+
+  /// Each entry: `{id, title, description, startDate, endDate, allDay,
+  /// location, type, recurYearly, reminderDays, beneficiaryId, wishlistId,
+  /// color}`, sorted by startDate ascending.
+  Future<List<Map<String, dynamic>>> getCalendarEvents() async {
+    try {
+      final result = await _apiRequest('GET', '/calendar/events');
+      return List<Map<String, dynamic>>.from(
+        (result as List).map((item) => Map<String, dynamic>.from(item as Map)),
+      );
+    } catch (e) {
+      _logger.severe('Error calling getCalendarEvents: $e');
+      rethrow;
+    }
+  }
+
+  Future<Map<String, dynamic>> createCalendarEvent(
+    Map<String, dynamic> fields,
+  ) async {
+    try {
+      final result = await _apiRequest(
+        'POST',
+        '/calendar/events',
+        body: fields,
+      );
+      return Map<String, dynamic>.from(result as Map);
+    } catch (e) {
+      _logger.severe('Error calling createCalendarEvent: $e');
+      rethrow;
+    }
+  }
+
+  Future<Map<String, dynamic>> updateCalendarEvent(
+    String eventId,
+    Map<String, dynamic> fields,
+  ) async {
+    try {
+      final result = await _apiRequest(
+        'PATCH',
+        '/calendar/events/$eventId',
+        body: fields,
+      );
+      return Map<String, dynamic>.from(result as Map);
+    } catch (e) {
+      _logger.severe('Error calling updateCalendarEvent: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> deleteCalendarEvent(String eventId) async {
+    try {
+      await _apiRequest('DELETE', '/calendar/events/$eventId');
+    } catch (e) {
+      _logger.severe('Error calling deleteCalendarEvent: $e');
+      rethrow;
+    }
+  }
 }
