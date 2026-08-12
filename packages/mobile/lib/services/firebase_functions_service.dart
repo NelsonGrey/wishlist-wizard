@@ -319,6 +319,100 @@ class FirebaseFunctionsService {
   }
 
   // =============================================================================
+  // CONNECTIONS (friends/social graph — see
+  // packages/functions/src/api/connections.ts)
+  // =============================================================================
+
+  Future<List<Map<String, dynamic>>> listConnections() async {
+    try {
+      final result = await _apiRequest('GET', '/connections');
+      final connections = (result as Map)['connections'] as List;
+      return List<Map<String, dynamic>>.from(
+        connections.map((item) => Map<String, dynamic>.from(item as Map)),
+      );
+    } catch (e) {
+      _logger.severe('Error calling listConnections: $e');
+      rethrow;
+    }
+  }
+
+  /// Returns `{incoming: [...], outgoing: [...]}`, both lists of
+  /// `{connectionId, user}` — same shape as listConnections' entries.
+  Future<Map<String, dynamic>> listPendingConnectionRequests() async {
+    try {
+      final result = await _apiRequest('GET', '/connections/pending');
+      return Map<String, dynamic>.from(result as Map);
+    } catch (e) {
+      _logger.severe('Error calling listPendingConnectionRequests: $e');
+      rethrow;
+    }
+  }
+
+  /// Exactly one of [targetUserId] or [email] must be set — mirrors
+  /// sendConnectionRequest's dual-path shape. Returns `{status: 'active' |
+  /// 'pending'}`.
+  Future<Map<String, dynamic>> sendConnectionRequest({
+    String? targetUserId,
+    String? email,
+  }) async {
+    try {
+      final result = await _apiRequest(
+        'POST',
+        '/connections/request',
+        body: targetUserId != null
+            ? {'targetUserId': targetUserId}
+            : {'email': email},
+      );
+      return Map<String, dynamic>.from(result as Map);
+    } catch (e) {
+      _logger.severe('Error calling sendConnectionRequest: $e');
+      rethrow;
+    }
+  }
+
+  Future<Map<String, dynamic>> respondToConnectionRequest(
+    String connectionId,
+    bool accept,
+  ) async {
+    try {
+      final result = await _apiRequest(
+        'POST',
+        '/connections/$connectionId/respond',
+        body: {'accept': accept},
+      );
+      return Map<String, dynamic>.from(result as Map);
+    } catch (e) {
+      _logger.severe('Error calling respondToConnectionRequest: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> removeConnection(String connectionId) async {
+    try {
+      await _apiRequest('DELETE', '/connections/$connectionId');
+    } catch (e) {
+      _logger.severe('Error calling removeConnection: $e');
+      rethrow;
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> searchUsers(String query) async {
+    try {
+      final result = await _apiRequest(
+        'GET',
+        '/users/search?q=${Uri.encodeComponent(query)}',
+      );
+      final users = (result as Map)['users'] as List;
+      return List<Map<String, dynamic>>.from(
+        users.map((item) => Map<String, dynamic>.from(item as Map)),
+      );
+    } catch (e) {
+      _logger.severe('Error calling searchUsers: $e');
+      rethrow;
+    }
+  }
+
+  // =============================================================================
   // SUBSCRIPTION FUNCTIONS
   // =============================================================================
 
