@@ -81,6 +81,7 @@ Project overview and planning:
 | [FIREBASE_STRATEGY.md](FIREBASE_STRATEGY.md) | Firebase services integration | Backend Devs |
 | [AFFILIATE_IMPLEMENTATION.md](AFFILIATE_IMPLEMENTATION.md) | Affiliate program integration (commission ledger, Stripe Connect payouts) | Product, Backend |
 | [Achievements_And_Rewards_Design.md](Achievements_And_Rewards_Design.md) | Achievements & rewards design + as-built v1 implementation notes | Product, Backend |
+| [CALENDAR_OAUTH_PROVIDER_SETUP.md](CALENDAR_OAUTH_PROVIDER_SETUP.md) | Google/Microsoft/Facebook OAuth app registration for calendar sync (manual, external, not yet done in any environment) | Product, Backend, Owner |
 
 ### Development
 
