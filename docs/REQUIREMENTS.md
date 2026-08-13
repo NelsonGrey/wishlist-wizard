@@ -60,7 +60,7 @@ a tracked package and is not part of the current architecture.
 | Affiliate Link Generation & Tracking | Convert product links to affiliate links, track clicks | ✅ | `linkConvert`/`linkConvertBatch`/`linkConvertWishlist`/`linkTrackClick`/`linkPrograms`/`linkStats`/`linkDisclosure` on the `api` router. Public marketing pages `AffiliateCommissions.tsx`, `CreatorProgram.tsx`. |
 | Affiliate/Creator Monetization | Commission ledger, reconciliation, Stripe Connect payouts | ✅ | Shipped 2026-07-21. Commission ledger state machine `Tracked → Pending → Approved → Payable → Paid`, with a `Reversed` branch reachable from any pre-Paid state and a post-payout-Paid clawback path — `packages/functions/src/api/commissionLedger.ts`. Report-based reconciliation ingestion in `affiliateReconciliation.ts`. Stripe Connect Express account creation/onboarding/status in `creatorPayoutAccount.ts`. Payout batch processing (`processPayoutBatch`, scheduled `scheduledPayoutBatchRun`) and creator payout history in `payouts.ts`. Tracking-ID pool management in `creatorTracking.ts`. All admin/creator-facing callables now live on the `api` router (moved off standalone `onCall`, same org-policy reason as elsewhere); `advanceCommissionsPastHold`, `affiliateReportImportProcess`, `scheduledPayoutBatchRun` remain standalone as scheduled/trigger functions. Creator-facing UI folded into the unified `Dashboard.tsx`'s Creator tab (`/app/creator-dashboard` now redirects to `/app/dashboard?tab=creator`) via `packages/web/client-src/components/creator-dashboard/*` (`CommissionStatusPanel`, `PayoutReadinessPanel`, `PerformancePanel`, `AdjustmentsPanel`, `CommissionStateBadge`). Admin tooling at `/admin/affiliate` (`pages/admin/AffiliateAdmin.tsx`). |
 | AR Visualization | AR model lookup | 🟡 | `getARModel` (exported as `arModelLookup`) remains a standalone `onCall` in `packages/functions/src/api/ar.ts` — not yet moved to the router, so its live reachability under the org's invoker-binding policy was not independently verified this pass. |
-| Barcode Scanning | Scan-to-add items | 🟡 | Mobile `scan_item_screen.dart` offers camera photo capture (`image_picker`) plus manual URL/name entry, **not** live barcode decoding — a code comment notes `mobile_scanner` was dropped due to a `GTMSessionFetcher` version conflict with Firebase 12.x. A barcode *lookup* backend exists (`lookupBarcode` in `packages/functions/src/api/mobile.ts`, queries Open Food Facts) but nothing in the mobile UI currently calls it with a scanned code. |
+| Barcode Scanning | Scan-to-add items | ✅ | Live camera decode shipped 2026-08-12 via `mobile_scanner` (`packages/mobile/lib/screens/barcode_scanner_screen.dart`) — the previously-documented `GTMSessionFetcher`/Firebase 12.x conflict was re-tested and no longer reproduces with current package versions (verified via a clean `pod install`). Detected codes auto-populate and look up through the existing `lookupBarcode` backend (`packages/functions/src/api/mobile.ts`, Open Food Facts). Manual barcode entry remains as a fallback. |
 | Cross-Device Sync | Device registry & sync logs | ✅ | `registerDevice`/`listDevices`/`updateDevice`/`logSyncEvent`/`getSyncLogs`/`syncMobileActions` all live on the `api` router (`packages/functions/src/api/sync.ts`); mobile `sync_service.dart` present. Upgraded from the prior "tables exist, unused" status. |
 | In-App Purchases (mobile) | Native StoreKit/Play Billing subscriptions | ✅ | Replaced Stripe checkout on mobile (commit `ab09174`). `packages/mobile/pubspec.yaml` depends on `in_app_purchase: ^3.2.0`; `packages/mobile/lib/services/iap_service.dart`; backend verification via `verifyPurchase`/`restorePurchase` on the `api` router (`packages/functions/src/api/iap.ts`). |
 | AdMob (mobile) | Ad monetization | ✅ | `google_mobile_ads: ^6.0.0` in `pubspec.yaml`; real production AdMob App IDs wired for both platforms (commits `c60c204`, `5a11659`, `15c8ee8`) — `ca-app-pub-5198775482699756~1528233576` in `android/app/src/main/AndroidManifest.xml`, `ca-app-pub-5198775482699756~9682055763` in `ios/Runner/Info.plist`. `admob_service.dart` present. |
@@ -87,7 +87,7 @@ a tracked package and is not part of the current architecture.
 | AdMob | Ad monetization | ✅ | See section 2 — `admob_service.dart`, real production App IDs. |
 | Price Tracking | Mobile price tracking screen | ✅ | `screens/price_tracking_screen.dart`. |
 | Cross-Device Sync | Sync mobile actions to backend | ✅ | `services/sync_service.dart` + `syncMobileActions` on the `api` router. |
-| Barcode / Camera Add | Add via camera / barcode scan | 🟡 | See section 2 — camera photo capture only; no live barcode decode wired despite a lookup backend existing. |
+| Barcode / Camera Add | Add via camera / barcode scan | ✅ | See section 2 — live barcode decode plus camera photo capture. |
 | AR & Camera Integration | AR view | 🔴 | No AR UI found under `packages/mobile/lib`; only the backend `arModelLookup` stub exists (see section 2). |
 
 ### 5. Data Model
@@ -107,7 +107,7 @@ Type definitions shared between backend and frontend live in `packages/shared/`.
 | Account/Data Deletion | ✅ | See section 1. |
 | App Check | ✅ | `requireAppCheckHTTP` gate used in the `api` router (`packages/functions/src/api/router.ts`, `packages/functions/src/utils/app-check.js`). A documented gotcha exists where `requireAppCheck` + the router needed careful wiring (see project memory `project_product_preview_router_fix.md`). |
 | Super-Admin | ✅ | `bootstrapSuperAdmin`, `grantAdminRole`, `revokeAdminRole` standalone `onCall`; `adminGetUsers`/`adminSuspendUser`/`adminModifySubscription`/`adminGetSupportTickets`/`adminRespondToTicket`/`adminGetAuditLog` on the `api` router (confirmed via live gcloud IAM audit that none had a working `allUsers` invoker binding as standalone functions). Frontend admin pages under `pages/admin/`. |
-| 2FA | 🔴 | No evidence of a 2FA flow found in web, mobile, or functions source. |
+| 2FA | 🔴 | No evidence of a 2FA flow found in web, mobile, or functions source. **Scheduled for the release after Go-Live** (decided 2026-08-12) — explicitly not a Go-Live blocker. |
 
 ### 7. Notifications & Email
 | Component | Status | Notes |
@@ -126,7 +126,7 @@ Type definitions shared between backend and frontend live in `packages/shared/`.
 | Analytics (GA) | ✅ | GTM container loaded in `index.html` with Consent Mode v2; `useAnalytics`/`trackPageView` in `AppRouter.tsx`. |
 | AdMob | ✅ | See section 2/4. |
 | Calendar Providers (Google/Outlook/Apple) | 🟡 | Router endpoints exist (`calendar.ts`); OAuth token-exchange depth not re-verified this pass — carried forward as partial. |
-| Open Food Facts (barcode lookup) | 🟡 | Backend call exists (`lookupBarcode`) but not wired to a live mobile scan UI — see section 2/4. |
+| Open Food Facts (barcode lookup) | ✅ | Backend call (`lookupBarcode`) wired to a live mobile scan UI — see section 2/4. |
 
 ### 9. Frontend (Web) Feature Routes
 From `packages/web/client-src/AppRouter.tsx` (current as of the router migration to a unified Dashboard
@@ -189,8 +189,11 @@ OAuth credentials remain referenced for the partial calendar integration (sectio
   have the real fix (an org-policy override) that this project lacks. Not urgent, but worth knowing this
   isn't the "intended" long-term shape of the API.
 - Barcode scanning (section 2/4) — a real barcode-lookup UI was wired into the mobile scan screen on
-  2026-08-08 (manual entry + `lookupBarcode` call, since live camera decode remains blocked by the
-  `mobile_scanner`/Firebase 12.x dependency conflict); no longer "looks-wired-but-dead" as of that fix.
+  2026-08-08 (manual entry + `lookupBarcode` call); live camera decode was added 2026-08-12 once the
+  previously-documented `mobile_scanner`/Firebase 12.x `GTMSessionFetcher` conflict was re-tested and found
+  not to reproduce with current package versions. That same fix also found and fixed a real bug: the scan
+  screen was calling the `FirebaseFunctionsService()` singleton directly instead of the injectable instance
+  every other screen uses, making it untestable — now consistent with the rest of the app.
 - AR (`arModelLookup`) was migrated to the `api` router on 2026-08-08 (previously a standalone `onCall`,
   unreachable under the org's invoker-binding policy, same as everything else that had already been
   migrated) — see section 15. Still no AR UI anywhere in the app; the backend remains a demo stub
@@ -200,12 +203,14 @@ OAuth credentials remain referenced for the partial calendar integration (sectio
 1. ~~Verify `arModelLookup`'s live reachability and either migrate it to the router or explicitly document
    it as broken.~~ Done 2026-08-08 — migrated to the router (section 15).
 2. ~~Wire a real barcode-scan UI on mobile to the existing `lookupBarcode` backend, or remove the backend if
-   it's genuinely not planned.~~ Done 2026-08-08 — manual barcode entry + lookup wired into
-   `scan_item_screen.dart`.
-3. Full audit pass across the rest of `docs/` (100+ files) for the same 2025-10-16 architecture-migration
-   staleness found in this file.
+   it's genuinely not planned.~~ Done 2026-08-08 (manual entry) and 2026-08-12 (live camera decode via
+   `mobile_scanner` — the documented dependency conflict no longer reproduces).
+3. ~~Full audit pass across the rest of `docs/` (100+ files) for the same 2025-10-16
+   architecture-migration staleness found in this file.~~ Done 2026-08-12 — 123 files audited,
+   64 deleted, 10 updated, see `DOCUMENTATION_INDEX.md`'s version history.
 4. Re-verify browser-extension product-detection/quick-add/manual-entry claims (section 3) — carried
    forward unverified from the prior audit rather than independently re-checked this pass.
+5. 2FA (section 6) — scheduled for the release after Go-Live, not before. Not yet scoped/designed.
 
 ### 15. API Architecture — router vs. standalone `onCall`
 Around 2026-07-23, most `onCall` functions requiring public (unauthenticated-caller) invocation were moved

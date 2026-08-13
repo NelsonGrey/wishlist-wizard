@@ -5,24 +5,30 @@ import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import '../providers/providers.dart';
 import '../services/firebase_functions_service.dart';
+import 'barcode_scanner_screen.dart';
 
-/// Screen for adding wishlist items via camera, barcode lookup, or URL entry.
+/// Screen for adding wishlist items via camera, barcode scan/lookup, or URL
+/// entry.
 ///
-/// Uses image_picker for photo capture (avoids the GTMSessionFetcher version
-/// conflict that prevents mobile_scanner from coexisting with Firebase 12.x).
-/// Barcode entry is manual (no live camera decode, same dependency
-/// constraint) but looks the code up server-side via
+/// Barcode entry supports live camera scanning (mobile_scanner) with manual
+/// entry as a fallback; both paths look the code up server-side via
 /// FirebaseFunctionsService.lookupBarcode, which hits
 /// packages/functions/src/api/mobile.ts's lookupBarcode through the api
 /// router.
 class ScanItemScreen extends StatefulWidget {
-  const ScanItemScreen({super.key});
+  const ScanItemScreen({super.key, FirebaseFunctionsService? functionsService})
+      : _functionsService = functionsService;
+
+  // Injectable for tests; defaults to the real Firebase-backed singleton.
+  final FirebaseFunctionsService? _functionsService;
 
   @override
   State<ScanItemScreen> createState() => _ScanItemScreenState();
 }
 
 class _ScanItemScreenState extends State<ScanItemScreen> {
+  late final FirebaseFunctionsService _service =
+      widget._functionsService ?? FirebaseFunctionsService();
   final _formKey = GlobalKey<FormState>();
   final _nameCtrl = TextEditingController();
   final _urlCtrl = TextEditingController();
@@ -45,6 +51,16 @@ class _ScanItemScreenState extends State<ScanItemScreen> {
     super.dispose();
   }
 
+  Future<void> _scanBarcode() async {
+    final code = await Navigator.push<String>(
+      context,
+      MaterialPageRoute(builder: (context) => const BarcodeScannerScreen()),
+    );
+    if (code == null || !mounted) return;
+    _barcodeCtrl.text = code;
+    _lookUpBarcode();
+  }
+
   Future<void> _lookUpBarcode() async {
     final barcode = _barcodeCtrl.text.trim();
     if (barcode.isEmpty) {
@@ -56,7 +72,7 @@ class _ScanItemScreenState extends State<ScanItemScreen> {
 
     setState(() => _lookingUpBarcode = true);
     try {
-      final result = await FirebaseFunctionsService().lookupBarcode(barcode);
+      final result = await _service.lookupBarcode(barcode);
       if (!mounted) return;
 
       final found = result['found'] == true;
@@ -178,6 +194,18 @@ class _ScanItemScreenState extends State<ScanItemScreen> {
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  Tooltip(
+                    message: 'Scan barcode',
+                    child: SizedBox(
+                      height: 56,
+                      child: OutlinedButton(
+                        onPressed: _scanBarcode,
+                        style: OutlinedButton.styleFrom(padding: EdgeInsets.zero),
+                        child: const Icon(Icons.camera_alt_outlined),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
                   Expanded(
                     child: TextFormField(
                       controller: _barcodeCtrl,
