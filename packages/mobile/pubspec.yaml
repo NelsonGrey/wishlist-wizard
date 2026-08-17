@@ -50,7 +50,7 @@ dependencies:
   flutter_local_notifications: ^22.1.0
   
   # Advertising
-  google_mobile_ads: ^6.0.0
+  google_mobile_ads: ^9.1.0
   webview_flutter_wkwebview: ^3.23.0
 
   # Live barcode camera scanning (scan_item_screen.dart). A GTMSessionFetcher
