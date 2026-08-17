@@ -84,7 +84,7 @@ dependencies:
   # provider's auth URL and suspends until it redirects to the
   # wishlistwizard://calendar-callback scheme registered in
   # Info.plist/AndroidManifest.xml, returning the full callback URL.
-  flutter_web_auth_2: ^4.1.0
+  flutter_web_auth_2: ^5.1.0
 
 dev_dependencies:
   flutter_test:
