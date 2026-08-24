@@ -865,15 +865,23 @@ jobs:
             --message="Deployment from GitHub Actions for ${{ needs.load-config.outputs.project_name }} to ${{ needs.load-config.outputs.target_environment }}" \
             --non-interactive
 
-  deploy-firebase:
+  firebase-deploy-v2:
     name: Deploy Firebase
-    needs: [load-config, build-web]
-    # Single output reference, not a compound &&/|| expression — see
-    # "Compute Deploy Gate" in load-config. NOTE: isolated 2026-08-24 and
-    # this did NOT fix the underlying issue (even `if: true` still skips
-    # this job) — the real cause is still unknown. Kept anyway since a
-    # single-reference condition is still better practice, but don't
-    # assume this line is why deploy-firebase runs or doesn't.
+    # NOT depending on build-web deliberately: confirmed via extensive
+    # isolation testing on 2026-08-24 that including build-web in this
+    # job's `needs:` causes GitHub Actions to skip it unconditionally —
+    # even `if: true` skipped when build-web was a dependency, and
+    # removing just that one dependency (nothing else) fixed it
+    # immediately. Real cause unknown; this is an empirically-found
+    # workaround, not a diagnosis. This job only deploys
+    # functions/firestore (see firebase-deploy-local.yml) — it does NOT
+    # deploy Hosting, which needs the web build build-web produces.
+    # Hosting deploy currently has no working automated path (the old
+    # token-based firebase-hosting-staging.yml/firebase-hosting-merge.yml
+    # workflows are broken — expired FIREBASE_TOKEN) and needs to be
+    # solved separately, ideally without re-introducing a needs: build-web
+    # dependency here.
+    needs: [load-config]
     if: needs.load-config.outputs.should_deploy_firebase == 'true'
     uses: ./.github/workflows/firebase-deploy-local.yml
     with:
@@ -888,12 +896,12 @@ jobs:
 
   validate-production:
     name: Validate Production Deployment
-    needs: [load-config, build-web, deploy-firebase]
+    needs: [load-config, build-web, firebase-deploy-v2]
     if: |
       needs.load-config.outputs.target_environment == 'production' &&
       (needs.load-config.outputs.trigger_context == 'build_and_deploy' ||
        needs.load-config.outputs.trigger_context == 'deploy_only') &&
-      (needs.build-web.result == 'success' || needs.deploy-firebase.result == 'success')
+      (needs.build-web.result == 'success' || needs.firebase-deploy-v2.result == 'success')
     uses: ./.github/workflows/production-validation.yml
     with:
       base_url: https://wishlist-wizard-prod.web.app
@@ -923,7 +931,7 @@ jobs:
 
   pipeline-summary:
     name: Pipeline Summary
-    needs: [load-config, test, web-uat-tests, quality-gate, build-ios, build-android, deploy-android, build-web, deploy-firebase, validate-production, build-chrome-extension]
+    needs: [load-config, test, web-uat-tests, quality-gate, build-ios, build-android, deploy-android, build-web, firebase-deploy-v2, validate-production, build-chrome-extension]
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -943,6 +951,6 @@ jobs:
           echo "- Android Build: ${{ needs.build-android.result }}" >> $GITHUB_STEP_SUMMARY
           echo "- Android Deploy: ${{ needs.deploy-android.result }}" >> $GITHUB_STEP_SUMMARY
           echo "- Web: ${{ needs.build-web.result }}" >> $GITHUB_STEP_SUMMARY
-          echo "- Firebase: ${{ needs.deploy-firebase.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Firebase: ${{ needs.firebase-deploy-v2.result }}" >> $GITHUB_STEP_SUMMARY
           echo "- Production Validation: ${{ needs.validate-production.result }}" >> $GITHUB_STEP_SUMMARY
           echo "- Chrome Extension: ${{ needs.build-chrome-extension.result }}" >> $GITHUB_STEP_SUMMARY
