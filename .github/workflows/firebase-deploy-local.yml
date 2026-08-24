@@ -39,8 +39,6 @@ jobs:
   deploy-firebase:
     name: Deploy Firebase to ${{ inputs.environment }}
     runs-on: ubuntu-latest
-    environment:
-      name: ${{ inputs.environment == 'production' && 'PRODUCTION' || inputs.environment == 'staging' && 'STAGING' || 'DEVELOPMENT' }}
 
     steps:
       - name: Checkout Code
