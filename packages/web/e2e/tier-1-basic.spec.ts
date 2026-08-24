@@ -1,6 +1,7 @@
 /// <reference types="@playwright/test" />
 import { test, expect, Page, Locator } from '@playwright/test';
 import { ensureAuthenticated, ensureWishlistExists } from './fixtures/bootstrap';
+import './fixtures/gate-bypass';
 
 /**
  * TIER 1: BASIC FEATURES (MUST WORK)
