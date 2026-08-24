@@ -423,6 +423,28 @@ jobs:
 
           echo "All quality gates passed"
 
+  debug-build-ios-gate:
+    name: Debug Build iOS Gate
+    needs: [load-config, quality-gate]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Print gate values
+        run: |
+          echo "ios_enabled=[${{ needs.load-config.outputs.ios_enabled }}]"
+          echo "trigger_context=[${{ needs.load-config.outputs.trigger_context }}]"
+          echo "target_environment=[${{ needs.load-config.outputs.target_environment }}]"
+          echo "quality-gate.result=[${{ needs.quality-gate.result }}]"
+
+  debug-build-ios-plain:
+    name: Debug Build iOS Plain Job
+    needs: [load-config, quality-gate]
+    if: true
+    runs-on: ubuntu-latest
+    steps:
+      - name: Print if this ran at all
+        run: echo "debug-build-ios-plain ran — needs:[load-config, quality-gate] with if:true does NOT hit the build-web-style skip bug"
+
   build-ios:
     name: Build iOS App
     needs: [load-config, quality-gate]
