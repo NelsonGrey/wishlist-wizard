@@ -137,6 +137,7 @@ jobs:
       mobile_build: ${{ steps.manifest.outputs.mobile_build }}
       trigger_context: ${{ steps.context.outputs.trigger }}
       target_environment: ${{ steps.context.outputs.environment }}
+      should_deploy_firebase: ${{ steps.deploy_gate.outputs.should_deploy }}
     steps:
       - name: Checkout Code
         uses: actions/checkout@v7
@@ -200,6 +201,25 @@ jobs:
 
           echo "trigger=$TRIGGER" >> $GITHUB_OUTPUT
           echo "environment=$ENVIRONMENT" >> $GITHUB_OUTPUT
+
+      # deploy-firebase's `if:` (below) is a `uses:` reusable-workflow-call
+      # job — GitHub Actions has an observed quirk where a compound boolean
+      # `if:` on that kind of job, combining multiple needs.*.outputs
+      # references with &&/||, can silently evaluate false even though the
+      # identical expression evaluates true on a normal job (confirmed via a
+      # temporary debug job on 2026-08-24). Pre-computing a single boolean
+      # here, so deploy-firebase's `if:` is just one output reference, works
+      # around it.
+      - name: Compute Deploy Gate
+        id: deploy_gate
+        run: |
+          if [ "${{ steps.manifest.outputs.firebase_enabled }}" = "true" ] && \
+             { [ "${{ steps.context.outputs.trigger }}" = "build_and_deploy" ] || \
+               [ "${{ steps.context.outputs.trigger }}" = "deploy_only" ]; }; then
+            echo "should_deploy=true" >> $GITHUB_OUTPUT
+          else
+            echo "should_deploy=false" >> $GITHUB_OUTPUT
+          fi
 
   test:
     name: Run Tests
@@ -845,24 +865,14 @@ jobs:
             --message="Deployment from GitHub Actions for ${{ needs.load-config.outputs.project_name }} to ${{ needs.load-config.outputs.target_environment }}" \
             --non-interactive
 
-  debug-deploy-gate:
-    name: Debug Deploy Gate
-    needs: [load-config, build-web]
-    if: always()
-    runs-on: ubuntu-latest
-    steps:
-      - name: Print gate values
-        run: |
-          echo "firebase_enabled=[${{ needs.load-config.outputs.firebase_enabled }}]"
-          echo "trigger_context=[${{ needs.load-config.outputs.trigger_context }}]"
-          echo "target_environment=[${{ needs.load-config.outputs.target_environment }}]"
-          echo "build-web.result=[${{ needs.build-web.result }}]"
-          echo "computed_if=[${{ needs.load-config.outputs.firebase_enabled == 'true' && (needs.load-config.outputs.trigger_context == 'build_and_deploy' || needs.load-config.outputs.trigger_context == 'deploy_only') }}]"
-
   deploy-firebase:
     name: Deploy Firebase
     needs: [load-config, build-web]
-    if: ${{ needs.load-config.outputs.firebase_enabled == 'true' && (needs.load-config.outputs.trigger_context == 'build_and_deploy' || needs.load-config.outputs.trigger_context == 'deploy_only') }}
+    # Single output reference, not a compound &&/|| expression — see
+    # "Compute Deploy Gate" in load-config for why (an observed GitHub
+    # Actions quirk with `uses:` reusable-workflow-call jobs and compound
+    # if: conditions referencing needs.*.outputs).
+    if: needs.load-config.outputs.should_deploy_firebase == 'true'
     uses: ./.github/workflows/firebase-deploy-local.yml
     with:
       project_name: ${{ needs.load-config.outputs.project_name }}
