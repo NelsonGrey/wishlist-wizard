@@ -867,11 +867,11 @@ jobs:
 
   firebase-deploy-v2:
     name: Deploy Firebase
-    needs: [load-config, build-web]
+    needs: [load-config]
     if: needs.load-config.outputs.should_deploy_firebase == 'true'
     runs-on: ubuntu-latest
     steps:
-      - name: "Debug isolation: is the job id deploy-firebase cursed?"
+      - name: "Debug isolation: is build-web the culprit?"
         run: echo "firebase-deploy-v2 ran as a plain job"
 
   validate-production:
