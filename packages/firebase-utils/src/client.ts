@@ -1,6 +1,5 @@
 // Firebase Client SDK Utilities
 import { initializeApp, getApps, FirebaseApp } from 'firebase/app';
-import { initializeAppCheck, ReCaptchaV3Provider, AppCheck } from 'firebase/app-check';
 import { getAuth, Auth, connectAuthEmulator } from 'firebase/auth';
 import { getFirestore, Firestore, connectFirestoreEmulator, serverTimestamp, FieldValue } from 'firebase/firestore';
 import { getFunctions, Functions, connectFunctionsEmulator } from 'firebase/functions';
@@ -14,13 +13,6 @@ export interface FirebaseConfig {
   messagingSenderId: string;
   appId: string;
   measurementId?: string;
-  // App Check is opt-in at the config level: pass a reCAPTCHA v3 site key to
-  // enable it. appCheckDebugToken registers this client as a debug client
-  // (must match a token already registered in the Firebase Console/API for
-  // this app) so local dev and automated E2E tests can pass App Check
-  // without solving a real reCAPTCHA challenge.
-  appCheckSiteKey?: string;
-  appCheckDebugToken?: string;
 }
 
 /**
@@ -33,32 +25,12 @@ export class FirebaseClient {
   private _firestore: Firestore;
   private _functions: Functions;
   private _storage: FirebaseStorage;
-  private _appCheck: AppCheck | null = null;
 
   private constructor(config: FirebaseConfig) {
     // Initialize Firebase app
     this._app = getApps().length === 0
       ? initializeApp(config)
       : getApps()[0];
-
-    // App Check must be initialized before any Auth/Firestore/Functions/
-    // Storage calls are made — those SDKs pick up the token provider from
-    // the app instance automatically once it's set up. The debug token (if
-    // provided) has to be assigned to self.FIREBASE_APPCHECK_DEBUG_TOKEN
-    // before initializeAppCheck() runs, per the SDK's documented contract.
-    if (config.appCheckSiteKey) {
-      if (config.appCheckDebugToken && typeof self !== 'undefined') {
-        (self as unknown as { FIREBASE_APPCHECK_DEBUG_TOKEN?: string }).FIREBASE_APPCHECK_DEBUG_TOKEN = config.appCheckDebugToken;
-      }
-      try {
-        this._appCheck = initializeAppCheck(this._app, {
-          provider: new ReCaptchaV3Provider(config.appCheckSiteKey),
-          isTokenAutoRefreshEnabled: true,
-        });
-      } catch (error) {
-        console.warn('⚠️  App Check initialization failed:', error);
-      }
-    }
 
     // Initialize services
     this._auth = getAuth(this._app);
@@ -100,10 +72,6 @@ export class FirebaseClient {
 
   get app(): FirebaseApp {
     return this._app;
-  }
-
-  get appCheck(): AppCheck | null {
-    return this._appCheck;
   }
 
   /**

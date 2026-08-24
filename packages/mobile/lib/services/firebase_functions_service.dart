@@ -1,6 +1,5 @@
 import 'dart:convert';
 
-import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import 'package:http/http.dart' as http;
 import 'package:logging/logging.dart';
@@ -46,15 +45,6 @@ class FirebaseFunctionsService {
     final headers = <String, String>{'Authorization': 'Bearer $idToken'};
     if (hasBody) {
       headers['Content-Type'] = 'application/json';
-    }
-
-    try {
-      final appCheckToken = await FirebaseAppCheck.instance.getToken();
-      if (appCheckToken != null) {
-        headers['X-Firebase-AppCheck'] = appCheckToken;
-      }
-    } catch (e) {
-      _logger.warning('Failed to get App Check token: $e');
     }
 
     return headers;
