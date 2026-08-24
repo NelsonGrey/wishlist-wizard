@@ -1,7 +1,7 @@
 /// <reference types="@playwright/test" />
 import { test, expect, Page, Locator } from '@playwright/test';
 import { ensureAuthenticated, ensureWishlistExists } from './fixtures/bootstrap';
-import './fixtures/gate-bypass';
+import { seedGateBypass } from './fixtures/gate-bypass';
 
 /**
  * TIER 1: BASIC FEATURES (MUST WORK)
@@ -131,15 +131,13 @@ test.describe('Tier 1: Basic Features', () => {
   let isAuthenticated = false;
 
   test.beforeAll(async ({ browser }: { browser: any }) => {
-    // Default 30s hook timeout is too tight here: by the time this runs,
-    // auth-flow.spec.ts has already registered one fresh user against the
-    // same real staging Firebase Auth/App Check backend moments earlier
-    // (CI runs workers=1, so files run sequentially) — a second signup in
-    // quick succession plausibly hits extra challenge friction, the same
-    // kind of real-backend latency already tuned around elsewhere in this
-    // file (see the 20s note on ensureWishlistExists below).
-    test.setTimeout(60_000);
     page = await browser.newPage();
+    // This file drives its own manually-created `page` rather than
+    // Playwright's injected page fixture, so the shared gate-bypass
+    // beforeEach (registered on the fixture page) never reaches it — seed
+    // it directly here, once, before the first navigation. See
+    // fixtures/gate-bypass.ts for why this is needed on staging.
+    await seedGateBypass(page);
     // Run once up front rather than letting each test silently discover this
     // on its own: every test below opens with `if (await
     // shouldBypassAuthGatedFlow()) return;` or an equivalent early return, so
