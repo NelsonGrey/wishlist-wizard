@@ -872,7 +872,7 @@ jobs:
     # "Compute Deploy Gate" in load-config for why (an observed GitHub
     # Actions quirk with `uses:` reusable-workflow-call jobs and compound
     # if: conditions referencing needs.*.outputs).
-    if: needs.load-config.outputs.should_deploy_firebase == 'true'
+    if: true
     uses: ./.github/workflows/firebase-deploy-local.yml
     with:
       project_name: ${{ needs.load-config.outputs.project_name }}
