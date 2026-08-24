@@ -845,6 +845,20 @@ jobs:
             --message="Deployment from GitHub Actions for ${{ needs.load-config.outputs.project_name }} to ${{ needs.load-config.outputs.target_environment }}" \
             --non-interactive
 
+  debug-deploy-gate:
+    name: Debug Deploy Gate
+    needs: [load-config, build-web]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Print gate values
+        run: |
+          echo "firebase_enabled=[${{ needs.load-config.outputs.firebase_enabled }}]"
+          echo "trigger_context=[${{ needs.load-config.outputs.trigger_context }}]"
+          echo "target_environment=[${{ needs.load-config.outputs.target_environment }}]"
+          echo "build-web.result=[${{ needs.build-web.result }}]"
+          echo "computed_if=[${{ needs.load-config.outputs.firebase_enabled == 'true' && (needs.load-config.outputs.trigger_context == 'build_and_deploy' || needs.load-config.outputs.trigger_context == 'deploy_only') }}]"
+
   deploy-firebase:
     name: Deploy Firebase
     needs: [load-config, build-web]
