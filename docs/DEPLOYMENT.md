@@ -39,40 +39,45 @@ All production-ready builds have been generated and are available in the followi
 
 ## 🚢 Deployment Instructions
 
-### Web Application Deployment
+### Primary Path: GitHub Actions (`master-pipeline.yml`)
 
-#### Option 1: Firebase Hosting (Recommended)
+Deployment is normally **not** a manual step — it happens through GitHub Actions:
+
+- **Automatic**: pushing to `staging` or `main` (with changes under `packages/mobile/**`, `packages/web/**`, `packages/browser-extension/**`, `packages/functions/**`, `.github/workflows/**`, `.cicd/projects/**`, `pubspec.yaml`, or `firebase*.json`) triggers `master-pipeline.yml`, which maps `main` → `production` and `staging` → `staging`, then runs build/test/quality-gate jobs before deploying Firebase Hosting + Functions, Android (Play Store internal track), iOS (TestFlight), and — for the `build_and_deploy` action — the Chrome extension.
+- **Manual**: trigger `master-pipeline.yml` via `workflow_dispatch` in the GitHub Actions UI, choosing an `action` (`build_all`, `test_all`, `build_and_deploy`, `deploy_only`, `android_deploy_only`) and target `environment`.
+- **`develop` branch**: pushes to `develop` do **not** trigger `master-pipeline.yml` (it's deliberately excluded from that workflow's push trigger). `develop` instead gets a lighter-weight web-only deploy via `firebase-hosting-dev.yml`, which fires on every push to `develop` and deploys just Firebase Hosting to the dev project.
+
+See `docs/CICD_SETUP_GUIDE.md` for the full workflow list and gate set.
+
+### Manual Local Deployment (for one-off / emergency use)
+
+#### Web Application
 ```bash
 # Install Firebase CLI
 npm install -g firebase-tools
-
-# Login and initialize (if not done)
 firebase login
-firebase init hosting
 
-# Deploy from project root
+# Build and deploy from the web package
+cd packages/web
+npm run build
 firebase deploy --only hosting
 ```
 
-#### Option 2: Netlify
+#### Firebase Functions
+
+`packages/functions/` is **gitignored in this repo** — the real function source lives in the private companion repo `NelsonGrey/wishlist-wizard-functions`. Before you can deploy functions locally, clone that repo into `packages/functions/`:
+
 ```bash
-# Install Netlify CLI
-npm install -g netlify-cli
+# Clone the companion repo into place (requires access to NelsonGrey/wishlist-wizard-functions)
+git clone https://github.com/NelsonGrey/wishlist-wizard-functions.git packages/functions
 
-# Deploy (from repo root)
-netlify deploy --prod --dir=packages/web/dist
-```
-
-#### Option 3: Static File Hosting
-Upload the entire `packages/web/dist/` directory to your static file host.
-
-### API Server Deployment
-
-#### Firebase Functions (Recommended)
-```bash
-# Deploy functions
+cd packages/functions
+npm ci
+npm run build
 firebase deploy --only functions
 ```
+
+CI does this automatically via a `FUNCTIONS_REPO_PAT`-authenticated checkout step in `master-pipeline.yml`, `firebase-deploy-local.yml`, and `release-readiness-gate.yml` — see `docs/CICD_SETUP_GUIDE.md` for details.
 
 ### Chrome Extension Deployment
 
@@ -105,22 +110,27 @@ flutter build apk --release
 
 ### Environment Variables Required
 
-#### Web Application (.env)
+There is no Postgres-backed API server or `DATABASE_URL`/`JWT_SECRET` in this project — that describes an earlier Express+Postgres backend that has since been fully replaced by Firebase (Auth, Firestore, Functions). Auth and password policy are managed by Firebase Auth itself, not application code.
+
+#### Web Application (Vite `VITE_*` vars, set per-environment as `..._DEVELOPMENT`/`..._STAGING`/`..._PRODUCTION` suffixed vars, with plain `VITE_FIREBASE_*` as a fallback)
 ```
-VITE_API_URL=https://your-api-domain.com
-VITE_FIREBASE_API_KEY=your-firebase-key
-VITE_FIREBASE_AUTH_DOMAIN=your-project.firebaseapp.com
-VITE_FIREBASE_PROJECT_ID=your-project-id
+VITE_FIREBASE_API_KEY[_DEVELOPMENT|_STAGING|_PRODUCTION]
+VITE_FIREBASE_AUTH_DOMAIN[_DEVELOPMENT|_STAGING|_PRODUCTION]
+VITE_FIREBASE_PROJECT_ID[_DEVELOPMENT|_STAGING|_PRODUCTION]
+VITE_FIREBASE_STORAGE_BUCKET[_DEVELOPMENT|_STAGING|_PRODUCTION]
+VITE_FIREBASE_MESSAGING_SENDER_ID[_DEVELOPMENT|_STAGING|_PRODUCTION]
+VITE_FIREBASE_APP_ID[_DEVELOPMENT|_STAGING|_PRODUCTION]
+VITE_FIREBASE_MEASUREMENT_ID[_DEVELOPMENT|_STAGING|_PRODUCTION]
+VITE_FIREBASE_APPCHECK_SITE_KEY[_DEVELOPMENT|_STAGING|_PRODUCTION]  # reCAPTCHA v3 site key for App Check
+VITE_FIREBASE_APPCHECK_DEBUG_TOKEN     # dev-only, lets local/E2E runs pass App Check without solving reCAPTCHA
+VITE_USE_FIREBASE_EMULATORS            # true/false, local dev only
+VITE_ENVIRONMENT                       # explicit environment override (development|staging|production)
 ```
 
-#### API Server (.env)
-```
-NODE_ENV=production
-PORT=3000
-DATABASE_URL=postgresql://user:password@host:port/database
-JWT_SECRET=your-jwt-secret
-FIREBASE_PROJECT_ID=your-project-id
-```
+These are read in `packages/web/client-src/lib/firebase.ts`. In deployed environments (`wishlist-wizard-dev.web.app`, `-staging.web.app`, and the production domains), the app also has a runtime-config fallback that can source these values from Firebase Hosting rather than build-time env vars — see `mergeWithRuntimeFirebaseConfig()` in the same file.
+
+#### Firebase Functions
+Functions configuration is managed through Firebase (Secret Manager / `firebase functions:config` or `.env` files inside the companion repo `NelsonGrey/wishlist-wizard-functions`), not through a generic `NODE_ENV`/`PORT`/`DATABASE_URL` `.env` file.
 
 ## 📊 Build Sizes & Performance
 

@@ -1,253 +1,84 @@
-# CI/CD Setup for Multiple Repositories
+# CI/CD Setup Guide
 
-This repository contains a complete self-hosted CI/CD infrastructure that can be applied to other repositories for cost-effective continuous integration and deployment.
+This document describes the actual GitHub Actions CI/CD setup for Wishlist Wizard as it exists today. All jobs run on **GitHub-hosted runners** (`ubuntu-latest` / `macos-latest`) — there are no self-hosted runners, Docker runner containers, or per-repo setup scripts in this repository. If you're looking for `./apply-cicd-setup.sh`, `.env.runner.template`, `docker-compose.runner.yml`, or `scripts/setup-macos-runner.sh`, they don't exist here; this repo previously used self-hosted runners, but that approach was retired in favor of GitHub-hosted runners.
 
 ## 🎯 Overview
 
-The setup includes:
-- **Self-hosted GitHub Actions runners** (macOS + Linux Docker)
-- **Automated workflows** for CI/CD, testing, and deployment
-- **Cost monitoring** and infrastructure management
-- **Documentation** and setup guides
+- **Runners**: GitHub-hosted only (`ubuntu-latest`, `macos-latest` for iOS builds)
+- **Orchestration**: A manifest file (`.cicd/projects/wishlist-wizard.yml`) drives environment/branch mapping consumed by `master-pipeline.yml`
+- **Functions source**: `packages/functions/` is gitignored in this repo — the real backend source lives in a private companion repo, `NelsonGrey/wishlist-wizard-functions`. Any workflow job that builds, tests, or deploys functions checks out that companion repo into `packages/functions/` first, authenticated with the `FUNCTIONS_REPO_PAT` secret, before running `npm ci`.
 
-**Cost Savings**: ~90% reduction compared to GitHub-hosted runners
+## 📋 Actual Workflow Files (`.github/workflows/`)
 
-## 🚀 Quick Apply to Other Repositories
+| File | Trigger | Purpose |
+|------|---------|---------|
+| `master-pipeline.yml` | `push` to `staging`/`main` (path-filtered), `pull_request` to `develop`/`staging`/`main`, `workflow_dispatch` | Main pipeline: test, quality gate, build web/iOS/Android/Chrome extension, deploy Firebase Functions + Hosting, deploy Android (internal track), build iOS (TestFlight) |
+| `firebase-deploy-local.yml` | `workflow_call` (reusable) | Checks out the functions companion repo and deploys Firebase Functions for a given environment; called by `master-pipeline.yml` and `release-readiness-gate.yml` |
+| `firebase-hosting-dev.yml` | `push` to `develop` | Deploys the web app to Firebase Hosting on the dev project |
+| `firebase-hosting-staging.yml` | `push` to `staging` | Deploys the web app to Firebase Hosting on the staging project |
+| `firebase-hosting-merge.yml` | `push` to `main` | Deploys the web app to Firebase Hosting on the production project |
+| `secret-scan.yml` | `push`/`pull_request` on `main`/`staging`/`develop`, `workflow_dispatch` | Gitleaks secret scanning |
+| `codeql.yml` | `push`/`pull_request` on `main`/`staging`/`develop`, weekly `schedule`, `workflow_dispatch` | CodeQL static analysis (CodeQL Advanced) |
+| `release-readiness-gate.yml` | `workflow_dispatch` (manual) | Production launch readiness gate — checks out the functions companion repo and validates the release is safe to ship |
+| `ci-gate-approve.yml` | `workflow_run` (after `master-pipeline.yml` completes) | Auto-approves a PR once the master pipeline succeeds on it, via a bot account |
+| `production-validation.yml` | `workflow_call` (reusable), `workflow_dispatch` | Post-deploy validation against a live production URL; called from `master-pipeline.yml` when the target environment is `production` |
+| `ios-mobile-release.yml` | `workflow_call` (reusable), `workflow_dispatch` | Builds and ships the iOS app to TestFlight (or App Store, via manual `workflow_dispatch` with `release_type`); called from `master-pipeline.yml` for staging/production targets |
+| `extension-build.yml` | `workflow_call` (reusable), `workflow_dispatch` | Builds/tests the Chrome extension and optionally publishes it |
+| `e2e-tests.yml` | `workflow_dispatch` | Manual end-to-end smoke tests against dev/staging/production |
+| `manage-asc-subscriptions.yml` | `workflow_dispatch` | One-off App Store Connect subscription management (status check / draft product creation) |
 
-### Option 1: Automated Script (Recommended)
+There is no `deploy-staging.yml`, `deploy-production.yml`, `ci.yml`, `ios-distribution.yml`, `android-distribution.yml`, `test-ci-cd.yml`, `chrome-extension-submit.yml`, or `test-secrets.yml` in this repository — docs that reference those file names are describing a setup this repo no longer (or never) had.
 
-```bash
-# Clone this repository
-git clone https://github.com/mnelson3/wishlist-wizard.git
-cd wishlist-wizard
+## 🚦 Environment / Branch Mapping
 
-# Run the setup script for your target repository
-./apply-cicd-setup.sh https://github.com/mnelson3/modulo-squares
-./apply-cicd-setup.sh https://github.com/mnelson3/vehicle-vitals
-```
+`master-pipeline.yml`'s `load-config` job maps the triggering ref to a deployment environment:
 
-The script will:
-- Clone the target repository
-- Copy all CI/CD files with repository-specific customizations
-- Create setup documentation
-- Stage and commit the changes
+- `refs/heads/main` → `production`
+- `refs/heads/staging` → `staging`
+- `refs/heads/develop` → present in the mapping logic, but `develop` is **deliberately excluded** from the `push` trigger, so this branch never drives a `master-pipeline.yml` run automatically. `develop` still gets its own web deploy via `firebase-hosting-dev.yml`, which triggers independently on every push to `develop`.
 
-### Option 2: Manual Copy
+Push-triggered runs on `staging` and `main` are scoped with `paths:` filters (only fire when `packages/mobile/**`, `packages/web/**`, `packages/browser-extension/**`, `packages/functions/**`, `.github/workflows/**`, `.cicd/projects/**`, `pubspec.yaml`, or `firebase*.json` change).
 
-If you prefer manual control:
+**Deploy scope caveats** (the app is not yet publicly launched):
+- **Android**: deploys go to the Play Store **internal track only**. Nothing auto-publishes to a public track.
+- **iOS**: automatic runs land in **TestFlight only** (Beta Testers group for `production`, Staging group for `staging`). A full App Store submission is a separate, manual `workflow_dispatch` of `ios-mobile-release.yml` with `release_type: appstore`.
+- **Chrome extension**: publish to the Chrome Web Store only fires for the `build_and_deploy` `workflow_dispatch` action; ordinary push/PR runs build and test the extension without publishing.
 
-```bash
-# 1. Copy workflow files
-cp .github/workflows/*.yml /path/to/target/repo/.github/workflows/
+## 🔑 Gate Set
 
-# 2. Copy scripts
-cp -r scripts /path/to/target/repo/
+The checks that run on pushes/PRs (in addition to the master pipeline's own test/build/quality-gate jobs):
 
-# 3. Copy Docker configuration
-cp docker-compose.runner.yml /path/to/target/repo/
+1. **Secret Scan** (`secret-scan.yml`) — gitleaks, blocks on any detected secret pattern
+2. **CodeQL** (`codeql.yml`) — static analysis for security vulnerabilities, also runs on a weekly schedule
+3. **CI Gate Auto-Approve** (`ci-gate-approve.yml`) — auto-approves a PR once `master-pipeline.yml` succeeds for it, via a dedicated bot account (`admin-nelsongrey`), guarded against stale/duplicate approvals
+4. **Production Validation** (`production-validation.yml`) — runs automatically after a production deploy inside `master-pipeline.yml`
+5. **Release Readiness Gate** (`release-readiness-gate.yml`) — manual (`workflow_dispatch`) pre-launch readiness check, run deliberately before a production release rather than on every push
 
-# 4. Copy documentation
-cp docs/SELF_HOSTED_RUNNERS.md /path/to/target/repo/docs/
-cp docs/COST_EFFECTIVE_CICD.md /path/to/target/repo/docs/
+## 🧩 Functions Companion-Repo Checkout
 
-# 5. Update repository references
-find /path/to/target/repo -name "*.yml" -o -name "*.sh" | xargs sed -i '' "s/wishlist-wizard/your-repo-name/g"
-```
+Because `packages/functions/` is gitignored (see `.gitignore`), any job that needs real function source clones the companion repo before installing dependencies:
 
-## 📋 What's Included
-
-### Workflows (`.github/workflows/`)
-- `master-pipeline.yml` - Main CI/CD pipeline with build, test, deploy
-- `ios-distribution.yml` - iOS app distribution to TestFlight/App Store
-- `android-distribution.yml` - Android app distribution to Play Store
-- `test-ci-cd.yml` - Comprehensive testing and validation
-- `chrome-extension-submit.yml` - Chrome extension publishing
-- `test-secrets.yml` - Secret validation testing
-
-### Scripts (`scripts/`)
-- `setup-macos-runner.sh` - macOS runner installation
-- `manage-macos-runner.sh` - macOS runner lifecycle management
-- `setup-linux-runner.sh` - Linux Docker runner setup
-- `infrastructure-status.sh` - Comprehensive status dashboard
-- `monitor-github-actions-costs.sh` - Cost analysis and monitoring
-
-### Docker Configuration
-- `docker-compose.runner.yml` - Linux runner container setup
-- `.env.runner.template` - Environment configuration template
-
-### Documentation (`docs/`)
-- `SELF_HOSTED_RUNNERS.md` - Complete setup guide
-- `COST_EFFECTIVE_CICD.md` - Cost analysis and benefits
-- `SELF_HOSTED_RUNNER_SETUP.md` - Detailed setup instructions
-
-## 🛠️ Repository-Specific Customization
-
-After applying the setup, customize for your repository:
-
-### 1. Update Workflow Configuration
-
-Edit `.github/workflows/master-pipeline.yml`:
 ```yaml
-env:
-  NODE_VERSION: '18'  # Adjust for your tech stack
-  # Add your environment variables
-```
-
-### 2. Modify Build Commands
-
-Update build steps to match your tech stack:
-```yaml
-- name: 🏗️ Build Your App
-  run: |
-    # Replace with your build commands
-    npm run build
-    # or
-    ./gradlew build
-    # or
-    flutter build apk
-```
-
-### 3. Configure Deployment
-
-Update deployment targets in workflow files:
-```yaml
-- name: 🔥 Deploy to Firebase
-  uses: FirebaseExtended/action-hosting-deploy@v0
+- uses: actions/checkout@v5
   with:
-    projectId: your-firebase-project
+    repository: NelsonGrey/wishlist-wizard-functions
+    token: ${{ secrets.FUNCTIONS_REPO_PAT }}
+    path: packages/functions
 ```
 
-### 4. Update Runner Labels
+This happens in four places today: `master-pipeline.yml`'s `test` job, its `build-web` job, the reusable `firebase-deploy-local.yml`, and `release-readiness-gate.yml`. If you're reproducing a CI job locally or writing a new workflow that touches `packages/functions`, you need this checkout step (with a PAT that has read access to the companion repo) before `npm ci` will succeed.
 
-Ensure workflow labels match your runner configuration:
-```yaml
-runs-on: [self-hosted, macos-latest, your-repo-name]
-```
+## 🛡️ App Check & Auth Notes Relevant to CI
 
-## 🏗️ Infrastructure Setup
+- App Check is wired into every web hosting deploy path (`firebase-hosting-dev.yml`, `firebase-hosting-staging.yml`, `firebase-hosting-merge.yml`, and `master-pipeline.yml`'s web build) and into the iOS build. Android has App Check integration in code but it is unverified (no test device available) — treat it as on hold, not confirmed working.
+- Password policy is not managed by application code or CI — it's read live from the Firebase Auth console via the `validatePassword()` SDK call in `packages/web/client-src/lib/firebase.ts`. There is nothing to configure in a workflow for this.
 
-### Linux Docker Runner (Automated)
+## 💰 Cost
 
-```bash
-# 1. Copy environment template
-cp .env.runner.template .env.runner
+Since all runners are GitHub-hosted, cost is standard GitHub Actions per-minute billing (Linux and macOS runner minutes). There is no self-hosted runner cost-savings model in this repository anymore.
 
-# 2. Add your GitHub token
-nano .env.runner
-# ACCESS_TOKEN=your_github_personal_access_token
+## 🆘 Troubleshooting
 
-# 3. Start the runner
-docker-compose -f docker-compose.runner.yml up -d
-
-# 4. Check status
-docker-compose -f docker-compose.runner.yml logs
-```
-
-### macOS Runner (Manual Setup)
-
-**CRITICAL**: Install macOS runner OUTSIDE project directory to avoid ES module conflicts.
-
-```bash
-# 1. Create isolated runner directory (outside project)
-mkdir ~/actions-runner-wishlist-wizard
-cd ~/actions-runner-wishlist-wizard
-
-# 2. Download and extract GitHub runner
-# (Download from: https://github.com/actions/runner/releases)
-
-# 3. Configure with GitHub token
-./config.sh --url https://github.com/mnelson3/wishlist-wizard \
-            --token YOUR_TOKEN \
-            --labels "self-hosted,macos-latest,wishlist-wizard" \
-            --name "wishlist-wizard-macos-runner"
-
-# 4. Install as service (auto-restart on reboot)
-./svc.sh install
-./svc.sh start
-```
-
-**Why Outside Project?**
-Projects with `"type": "module"` in `package.json` cause runner failures:
-`ReferenceError: require is not defined in ES module scope`
-
-### Monitoring Dashboard
-
-```bash
-# View comprehensive status
-./scripts/infrastructure-status.sh
-
-# Monitor costs
-./scripts/monitor-github-actions-costs.sh
-```
-
-## 💰 Cost Analysis
-
-| Runner Type | GitHub-Hosted Cost | Self-Hosted Cost | Savings |
-|-------------|-------------------|------------------|---------|
-| macOS (per minute) | $0.08 | ~$0.001 | 98% |
-| Linux (per minute) | $0.008 | ~$0.0003 | 96% |
-| **Monthly (1000 min)** | **$64** | **$2.50** | **96%** |
-
-**Annual Savings**: ~$700+ per repository
-
-## 🔧 Troubleshooting
-
-### Runner Not Connecting
-- Verify GitHub token has `repo` scope
-- Check runner labels match workflow requirements
-- Ensure firewall allows outbound connections
-
-### ES Module Conflicts (macOS Runner)
-- **Error**: `ReferenceError: require is not defined in ES module scope`
-- **Cause**: macOS runner installed inside project with `"type": "module"` in `package.json`
-- **Solution**: Move runner to isolated directory outside project
-  ```bash
-  mv ~/Projects/my-project/actions-runner ~/actions-runner-my-project
-  ```
-
-### Workflow Failures
-- Check runner status: `./scripts/infrastructure-status.sh`
-- View runner logs: `./scripts/manage-macos-runner.sh logs`
-- Verify required tools are installed on runners
-
-### Permission Issues
-- macOS runner needs admin access for Xcode
-- Linux runner needs Docker socket access
-- Ensure proper file permissions on runner directories
-
-## 📊 Monitoring & Maintenance
-
-### Regular Tasks
-```bash
-# Weekly: Check runner health
-./scripts/infrastructure-status.sh
-
-# Monthly: Review costs
-./scripts/monitor-github-actions-costs.sh
-
-# Quarterly: Update runner software
-./scripts/manage-macos-runner.sh update
-```
-
-### Auto-Restart Configuration
-- **macOS**: Installed as launchd service (restarts on reboot)
-- **Linux**: Docker container with `restart: unless-stopped`
-
-## 🎯 Best Practices
-
-1. **Use repository-specific labels** for runner targeting
-2. **Keep runners updated** with latest GitHub runner versions
-3. **Monitor costs regularly** to track savings
-4. **Document customizations** for team members
-5. **Test workflows thoroughly** before going to production
-6. **CRITICAL: Isolate macOS runners** outside project directories to prevent ES module conflicts
-
-## 📞 Support
-
-- Check logs: `./scripts/manage-macos-runner.sh logs`
-- View status: `./scripts/infrastructure-status.sh`
-- Documentation: `docs/SELF_HOSTED_RUNNERS.md`
-
----
-
-**Ready to save 90% on CI/CD costs?** Apply this setup to your repositories today! 🚀
+- **Functions-related job fails on `npm ci` / missing files**: check that the `FUNCTIONS_REPO_PAT` secret is valid and that the companion-repo checkout step ran before the install step.
+- **Deploy job silently no-ops**: confirm the branch actually matches a push trigger — `develop` does not trigger `master-pipeline.yml`'s deploy jobs (see Environment/Branch Mapping above), only `firebase-hosting-dev.yml`.
+- **PR not auto-approved**: `ci-gate-approve.yml` only fires after `master-pipeline.yml` completes for that PR's head SHA, and skips if the PR has since moved on or already has a bot approval.

@@ -15,9 +15,15 @@ import 'services/services.dart';
 import 'services/admob_service.dart';
 import 'services/fcm_service.dart';
 import 'services/iap_service.dart';
+import 'screens/account_screen.dart';
+import 'screens/achievements_screen.dart';
+import 'screens/calendar_screen.dart';
+import 'screens/connections_screen.dart';
+import 'screens/creator_dashboard_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/firebase_wishlists_screen.dart';
+import 'screens/price_tracking_screen.dart';
 import 'screens/subscription_screen.dart';
 import 'widgets/error_boundary.dart';
 
@@ -100,7 +106,6 @@ class WishlistWizardApp extends StatelessWidget {
       child: MultiProvider(
         providers: [
           ChangeNotifierProvider(create: (_) => AuthProvider()),
-          ChangeNotifierProvider(create: (_) => WishlistProvider()),
           ChangeNotifierProvider(create: (_) => FirebaseWishlistProvider()),
           ChangeNotifierProvider(create: (_) => SubscriptionProvider()),
           ChangeNotifierProvider(create: (_) => IapService()..initialize()),
@@ -682,6 +687,84 @@ class ProfileScreen extends StatelessWidget {
               },
               icon: const Icon(Icons.workspace_premium),
               label: const Text('Manage Subscription'),
+            ),
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const AchievementsScreen(),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.emoji_events_outlined),
+              label: const Text('Achievements'),
+            ),
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const PriceTrackingScreen(),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.trending_down_outlined),
+              label: const Text('Price Tracking'),
+            ),
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const ConnectionsScreen(),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.people_outline),
+              label: const Text('Connections'),
+            ),
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const CalendarScreen(),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.calendar_today_outlined),
+              label: const Text('Calendar'),
+            ),
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const CreatorDashboardScreen(),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.storefront_outlined),
+              label: const Text('Creator Tools'),
+            ),
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const AccountScreen(),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.security),
+              label: const Text('Account & Security'),
             ),
             const SizedBox(height: 12),
             ElevatedButton(

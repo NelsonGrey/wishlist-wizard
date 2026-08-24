@@ -3,10 +3,16 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
+import '../services/password_policy_service.dart';
 import 'forgot_password_screen.dart';
 
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+  const LoginScreen({super.key, PasswordPolicyService? passwordPolicyService})
+      : _passwordPolicyService = passwordPolicyService;
+
+  // Injectable for tests; defaults to a real Firebase-backed service (see
+  // _LoginScreenState._passwordPolicyService below).
+  final PasswordPolicyService? _passwordPolicyService;
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -20,6 +26,27 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _isLogin = true;
   bool _obscurePassword = true;
 
+  late final PasswordPolicyService _passwordPolicyService =
+      widget._passwordPolicyService ?? PasswordPolicyService();
+
+  // Cached live policy, used for hint text and _validatePassword's quick
+  // client-side check while typing. Only relevant in register mode --
+  // _submit() authoritatively re-checks against the real policy regardless
+  // of whether this fetch succeeded.
+  PasswordPolicyState _passwordPolicy = PasswordPolicyState.defaultPolicy;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPasswordPolicy();
+  }
+
+  Future<void> _loadPasswordPolicy() async {
+    final policy = await _passwordPolicyService.loadPolicy();
+    if (!mounted) return;
+    setState(() => _passwordPolicy = policy);
+  }
+
   @override
   void dispose() {
     _emailController.dispose();
@@ -28,21 +55,54 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
+  String? _validatePassword(String? value) {
+    if (value == null || value.isEmpty) {
+      return 'Please enter your password';
+    }
+    if (!_isLogin) {
+      return _passwordPolicyService.quickCheck(value, _passwordPolicy);
+    }
+    return null;
+  }
+
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
 
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final password = _passwordController.text;
     bool success;
 
     if (_isLogin) {
       success = await authProvider.login(
         _emailController.text.trim(),
-        _passwordController.text,
+        password,
       );
     } else {
+      // Authoritative check against the live Firebase policy -- catches
+      // drift between the cached _passwordPolicy and the real policy
+      // (e.g. it changed after this screen loaded, or the initial fetch
+      // failed) before spending a round-trip on account creation.
+      final status = await _passwordPolicyService.checkPassword(password);
+      if (!status.isValid) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                _passwordPolicyService.describeFailure(
+                  status,
+                  _passwordPolicy,
+                ),
+              ),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+        return;
+      }
+
       success = await authProvider.register(
         _emailController.text.trim(),
-        _passwordController.text,
+        password,
         _nameController.text.trim().isEmpty
             ? null
             : _nameController.text.trim(),
@@ -143,6 +203,13 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                             keyboardType: TextInputType.emailAddress,
                             textInputAction: TextInputAction.next,
+                            // Android's Autofill Framework hint -- also what
+                            // Firebase Test Lab / Play Console pre-launch
+                            // report Robo crawls use to auto-detect the login
+                            // field, since a Flutter TextField has no native
+                            // Android resource-id for Robo's "resource name"
+                            // login-credential setting to target directly.
+                            autofillHints: const [AutofillHints.email],
                             validator: (value) {
                               if (value == null || value.isEmpty) {
                                 return 'Please enter your email';
@@ -161,6 +228,15 @@ class _LoginScreenState extends State<LoginScreen> {
                             decoration: InputDecoration(
                               labelText: 'Password',
                               prefixIcon: const Icon(Icons.lock),
+                              // Only shown in register mode -- on login,
+                              // the password's requirements are whatever
+                              // they were when the account was created.
+                              helperText: !_isLogin
+                                  ? _passwordPolicyService.hint(
+                                      _passwordPolicy,
+                                    )
+                                  : null,
+                              helperMaxLines: 2,
                               suffixIcon: IconButton(
                                 icon: Icon(
                                   _obscurePassword
@@ -175,17 +251,10 @@ class _LoginScreenState extends State<LoginScreen> {
                               ),
                             ),
                             obscureText: _obscurePassword,
+                            autofillHints: const [AutofillHints.password],
                             textInputAction: TextInputAction.done,
                             onFieldSubmitted: (_) => _submit(),
-                            validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return 'Please enter your password';
-                              }
-                              if (!_isLogin && value.length < 6) {
-                                return 'Password must be at least 6 characters';
-                              }
-                              return null;
-                            },
+                            validator: _validatePassword,
                           ),
                           const SizedBox(height: 24),
 

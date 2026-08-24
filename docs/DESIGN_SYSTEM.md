@@ -47,6 +47,26 @@ Auth Background:     from-emerald-50 via-white to-green-50
 
 This width matches the shared web-product shell used by Modulo Squares and prevents navigation, hero, content, and footer edges from drifting between products.
 
+### App-wide content confinement (standing rule, 2026-07-23)
+
+Body content and backgrounds are capped at `var(--site-content-width)` (1280px); everything outside that
+column is white. **Only the global header and footer are exempt** and span full width via `site-container`.
+
+Enforced in `packages/web/client-src/components/layout/AppLayout.tsx` and `AuthLayout.tsx` — the outer shell
+is `bg-white`, and `<main>` wraps page content in a `max-w-[var(--site-content-width)]` column. New pages
+should not introduce full-bleed backgrounds outside this column; if a page needs a colored/gradient
+background, confine it to the content column, not the shell.
+
+### CRUD toolset conventions (standing rule, 2026-07-23)
+
+- **Verb labels**: use exactly `Edit` / `Save` / `Cancel` / `Close` / `View Details` / `Add {Entity}` (e.g.
+  "Add Wishlist", "Add Item") — don't invent synonyms ("Modify", "Update", "Done" for a close action, etc.).
+- **Placement**: each page or card exposes a single top-right toolbar for these actions rather than
+  scattering action buttons around the component.
+- Applied across ~30 files in the same pass that added the 1280px rule; reference implementations:
+  `packages/web/client-src/components/wishlist/WishlistItem.tsx`,
+  `packages/web/client-src/pages/UserProfile.tsx`.
+
 ## Typography
 
 ### Headings

@@ -1,5 +1,30 @@
 # Firebase Functions API Migration Guide
 
+> ⚠️ **Superseded for new-endpoint guidance.** This document describes the
+> original Express.js → Firebase Functions (callable) migration as the
+> current end state. That migration itself is historically accurate and
+> this doc is kept as a record of it, but two later architectural changes
+> mean **new endpoints should not follow the patterns below**:
+>
+> 1. **Router migration (~2026-07-23)**: This GCP org enforces a policy that
+>    blocks granting a *new* `allUsers` Cloud Run invoker binding, so a
+>    freshly deployed standalone `onCall` function can silently be
+>    unreachable by clients. Endpoints that need public/client invocation
+>    now go through a single HTTP router, `api` (`onRequest`, defined in
+>    `packages/functions/src/api/router.ts`), dispatched by path under
+>    `/api/*`. See [SYSTEM_ARCHITECTURE.md](SYSTEM_ARCHITECTURE.md#-api-architecture)
+>    for the current pattern. A defined subset of functions (auth/profile
+>    CRUD, generic CRUD, browser extension, FCM triggers, and a few others)
+>    remain standalone `onCall` exports — this is not a total migration.
+> 2. **`packages/functions` extraction (2026-07-17)**: the backend source
+>    shown throughout this doc no longer lives in this repo. It moved to
+>    the private companion repo `NelsonGrey/wishlist-wizard-functions`;
+>    `packages/functions/` is gitignored here.
+>
+> Everything below this banner describes the original migration and is left
+> unedited as a historical record — do not use its callable-function
+> examples as a template for new work.
+
 This document outlines the migration from the Express.js API server to Firebase Functions v2 with Firestore integration.
 
 ## 🎯 Migration Overview

@@ -1,1 +1,47 @@
-google-services.dev.json
+{
+  "project_info": {
+    "project_number": "1055615167809",
+    "project_id": "wishlist-wizard-dev",
+    "storage_bucket": "wishlist-wizard-dev.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1055615167809:android:9dde4f0315d2dd075485c0",
+        "android_client_info": {
+          "package_name": "com.wishlistwizard.app.android"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1055615167809-7o8ss6p72kahvmprfvn0dolli1v2hcad.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAvV2MI-A0pJAsCHu9mSIBXhZGNL42Qz8M"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1055615167809-7o8ss6p72kahvmprfvn0dolli1v2hcad.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "1055615167809-jpp4b0uk7e1v2301nu3bp8307pp7i70l.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.wishlistwizard.app.ios",
+                "app_store_id": "6783932988"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,5 +1,50 @@
 # Wishlist Wizard - Major Feature Release Summary
 
+## 📌 2026-07/08 Release: Affiliate/Creator Monetization, Achievements, Mobile Monetization
+
+### ✅ **Affiliate Revenue + Creator Payout Backend** (2026-07-21)
+- Per-creator affiliate attribution (`creatorAffiliateTrackingIds`, `affiliateTrackingIdPool`).
+- Commission ledger (`commissionLedger`, `commissionAdjustments`) with state machine `Tracked → Pending →
+  Approved → Payable → Paid`, `Reversed` branch. Idempotent CSV reconciliation (Amazon Associates adapter
+  live). Stripe Connect Express payouts (`payoutBatches`, monthly scheduled + manual admin retry).
+- Creator dashboard (`/app/creator-dashboard`, tier-gated) and admin tooling (`/admin/affiliate`).
+- Deployed to `wishlist-wizard-dev`; live-verified via a free-tier account hitting the real deployed backend.
+
+### ✅ **Achievements & Rewards v1** (2026-07-23)
+- Real computed-on-read backend (`GET /api/achievements`) replaces earlier fake/mock achievement data.
+- 12 achievements shipped (7 Foundation + Tracker + Extension Power User + Gift Giver + Well-Loved + Sharer);
+  merge-never-regress semantics.
+- Trophy Case / tier badges reward surface in `UserProfile.tsx`.
+
+### ✅ **`packages/functions` Extracted to a Private Companion Repo** (2026-07-17)
+- Real backend source now lives in `NelsonGrey/wishlist-wizard-functions`; the public repo's
+  `packages/functions/` is gitignored. CI checks out the companion repo via `FUNCTIONS_REPO_PAT` before
+  `npm ci` in 4 job locations (test, build-web, `firebase-deploy-local.yml`, `release-readiness-gate.yml`).
+
+### ✅ **Router Migration for Public-Invoker Callables** (~2026-07-23)
+- All callables requiring a public (`allUsers`) invoker binding — including the ~20 new affiliate/creator
+  callables — migrated off standalone `onCall` functions onto the single `api` HTTP router, working around a
+  GCP org policy that blocks new `allUsers` Cloud Run invoker bindings. New public-facing endpoints must be
+  added to the router, not deployed as standalone `onCall` functions.
+
+### ✅ **Mobile Monetization**
+- Native in-app purchases (StoreKit/Play Billing) replace Stripe checkout on mobile.
+- Real production AdMob App IDs wired for iOS and Android (previously placeholder/test IDs).
+- App Store Connect and Play Console subscription management scripts (status/create-draft).
+
+### ✅ **Security & Account Hardening**
+- Firebase Auth password policy enforced live via `validatePassword()`.
+- Real account/data deletion wired into web and mobile UIs.
+- App Check wired for web (all 3 deploy paths) and iOS; Android on hold pending a test device.
+- js-yaml and postcss bumped to patched versions; App Store Connect workflow permissions scoped down.
+
+### ✅ **UI Standards**
+- 1280px content confinement (body content/backgrounds capped, white outside, header/footer exempt) and the
+  CRUD toolset wording standard (Edit/Save/Cancel/Close/View Details/Add {Entity}, single top-right toolbar)
+  applied app-wide (2026-07-23).
+
+---
+
 ## 📌 2026-02-27 Incremental Release: Wishlist Search & Keyboard UX
 
 ### ✅ **Web Wishlist Detail Enhancements Shipped**
@@ -112,10 +157,11 @@ This commit represents a major milestone in the Wishlist Wizard development with
 - **Plan**: Real-time synchronization using Firebase features
 - **Components**: Web app, mobile app, and browser extension sync
 
-### ❌ **10. Affiliate Link Integration**
-- **Status**: NOT STARTED  
-- **Plan**: Backend link transformation and reporting
-- **Components**: Partner integrations, conversion tracking, link management
+### ✅ **10. Affiliate Link Integration** — superseded, see 2026-07/08 section above
+- **Status at time of this entry (2026-02-27)**: NOT STARTED
+- **Current status**: Shipped 2026-07-21 as the full affiliate/creator-payout backend (commission ledger,
+  Stripe Connect payouts, creator dashboard, admin tooling) — see "📌 2026-07/08 Release" at the top of this
+  document.
 
 ## 🏗️ **Infrastructure Improvements**
 

@@ -31,9 +31,8 @@ async function hasPrimaryNavigation(page: Page) {
 }
 
 async function isComingSoonShell(page: Page) {
-  const comingSoonBadge = await page.getByText('Coming Soon', { exact: false }).count();
-  const comingSoonHeading = await page.getByRole('heading', { name: /something amazing is coming soon/i }).count();
-  return comingSoonBadge > 0 || comingSoonHeading > 0;
+  const holdingHeading = await page.getByRole('heading', { name: /we'll be right back/i }).count();
+  return holdingHeading > 0;
 }
 
 test.describe('Smoke Test: Critical Features', () => {

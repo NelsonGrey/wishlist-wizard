@@ -490,7 +490,7 @@ Wedding/Event Planner creates event wishlist
 
 ### Feature 5: Affiliate & Creator Program
 
-**Status**: 🟡 Partial for affiliate tracking (link rewriting, click/conversion logging, and revenue aggregation are genuinely deployed) / 🟡 Planned for the Creator Dashboard and payments below — no creator-dashboard or payout code exists yet.
+**Status**: ✅ Shipped 2026-07-21 — affiliate tracking (link rewriting, click/conversion logging, revenue aggregation), commission ledger, Stripe Connect creator payouts, and the tier-gated creator dashboard are all deployed and live-verified against a real backend.
 
 **Affiliate Tracking**:
 - Unique link per retailer (Amazon, Etsy, etc.)
@@ -508,17 +508,32 @@ Wedding/Event Planner creates event wishlist
 | Best Buy | 3-4% | ✅ Integrated |
 | Custom Retailers | 5-15% | ✅ Case-by-case |
 
-**Creator Dashboard** (see Flow 5) — 🟡 Planned, no code yet:
-- Real-time analytics
-- Commission tracking per wishlist
-- Payout management
-- Performance trends
+**Creator Dashboard** (see Flow 5) — ✅ Shipped, `/app/creator-dashboard` (tier-gated on `creatorDashboardEnabled`):
+- Performance, commission status, payout readiness, and adjustments panels
+- Admin tooling at `/admin/affiliate`
 
-**Payment Processing** — 🟡 Planned, no code yet:
-- Minimum payout: $25 (prevents micro-transactions)
-- Frequency: Monthly (payout on 15th)
-- Methods: PayPal, direct bank transfer, check
-- Hold period: 30 days (prevent fraud refunds)
+**Payment Processing** — ✅ Shipped via Stripe Connect Express:
+- Payout batches (`payoutBatches`), one per creator per run, monthly scheduled + manual admin retry
+- Post-payout clawback nets against `creatorPayoutAccounts.outstandingClawbackBalanceUsd`
+- Note: current implementation is Stripe Connect Express only — PayPal/direct bank transfer/check are not
+  supported payout methods; minimum payout and hold-period specifics should be confirmed against
+  `packages/functions/src/api/payouts.ts` rather than assumed from this doc
+
+---
+
+### Feature 6: Achievements & Rewards (v1)
+
+**Status**: ✅ Shipped 2026-07-23, `/app/achievements`.
+
+Real computed-on-read backend (`GET /api/achievements`) — not stored/precomputed fake data. Merge-never-
+regress semantics: an earned achievement or tier can never be taken away on a later recompute.
+
+**v1 scope (12 achievements)**: 7 Foundation-tier + Tracker + Extension Power User + Gift Giver + Well-Loved
++ Sharer. Reward surface: Trophy Case / tier badges in `UserProfile.tsx`.
+
+**Deferred to a later phase**: Bargain Hunter, Wishlist Builder, Group Organizer, Chip In, Collaborator, and
+a Creator track — not yet implemented. See `docs/Achievements_And_Rewards_Design.md` for the full design and
+as-built notes.
 
 ---
 

@@ -6,6 +6,7 @@ import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { getFirebaseAuthErrorMessage } from "@/lib/firebase-auth-errors";
+import { usePasswordPolicy } from "@/hooks/usePasswordPolicy";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,7 +27,10 @@ const registerSchema = z.object({
   // makes an empty string valid too.
   displayName: z.string().min(2, "Display name must be at least 2 characters").optional().or(z.literal('')),
   email: z.string().trim().email("Please enter a valid email address"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
+  // zod still needs some rule, but the real gating happens via
+  // usePasswordPolicy's quickCheck (on submit) and the authoritative
+  // checkPolicy() against the live Firebase policy right before signUp().
+  password: z.string().min(1, "Password is required"),
   confirmPassword: z.string(),
 }).refine(data => data.password === data.confirmPassword, {
   message: "Passwords do not match",
@@ -41,7 +45,8 @@ export default function Register() {
   const [oauthLoading, setOauthLoading] = useState<OAuthProviderId | null>(null);
   const [, setLocation] = useLocation();
   const { toast } = useToast();
-  const { signUp, signInWithGoogle, signInWithApple } = useAuth();
+  const { signUp, signInWithGoogle, signInWithApple, checkPasswordPolicy } = useAuth();
+  const { hint, quickCheck, checkPolicy, describeFailure } = usePasswordPolicy(checkPasswordPolicy);
 
   // Initialize form with react-hook-form
   const form = useForm<RegisterFormValues>({
@@ -60,15 +65,32 @@ export default function Register() {
       return;
     }
 
+    // Quick client-side pass using the cached live policy, for immediate
+    // feedback without a network round-trip.
+    const quickCheckError = quickCheck(data.password);
+    if (quickCheckError) {
+      form.setError("password", { type: "manual", message: quickCheckError });
+      return;
+    }
+
     setIsLoading(true);
     try {
+      // Authoritative check against the live Firebase policy -- catches
+      // drift between the cached copy and the real policy before spending a
+      // round-trip on account creation.
+      const status = await checkPolicy(data.password);
+      if (!status.isValid) {
+        form.setError("password", { type: "manual", message: describeFailure(status) });
+        return;
+      }
+
       await signUp(data.email.trim(), data.password, data.displayName?.trim() || undefined);
-      
+
       toast({
         title: "Registration successful",
         description: "Your account has been created successfully!",
       });
-      
+
       // Redirect will be handled by ProtectedRoute and auth state change
     } catch (error: unknown) {
       console.error("Registration error:", error);
@@ -197,11 +219,14 @@ export default function Register() {
                         {...field}
                       />
                     </FormControl>
+                    <p className="text-xs text-muted-foreground" data-testid="register-password-hint">
+                      {hint}
+                    </p>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-              
+
               <FormField
                 control={form.control}
                 name="confirmPassword"

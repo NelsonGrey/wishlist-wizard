@@ -2,7 +2,7 @@ name: wishlist_wizard_mobile
 description: "Wishlist Wizard Mobile App - Flutter version"
 publish_to: 'none'
 
-version: 1.0.0+1
+version: 1.0.0+4
 
 environment:
   sdk: ^3.8.0
@@ -53,14 +53,38 @@ dependencies:
   google_mobile_ads: ^6.0.0
   webview_flutter_wkwebview: ^3.23.0
 
+  # Live barcode camera scanning (scan_item_screen.dart). A GTMSessionFetcher
+  # conflict with Firebase previously blocked this package -- verified
+  # 2026-08-12 that current versions of both resolve and pod-install cleanly
+  # together, so it's no longer blocked.
+  mobile_scanner: ^7.1.2
+
   # In-App Purchase (native StoreKit/Play Billing subscriptions)
   in_app_purchase: ^3.2.0
-  
+
+  # Contacts (native picker for inviting collaborators — the picker UI
+  # itself is permissionless, but the properties fetch that follows needs
+  # NSContactsUsageDescription on iOS and READ_CONTACTS on Android; see
+  # Info.plist / AndroidManifest.xml)
+  flutter_contacts: ^1.1.9+2
+
+  # Group gifting (real Stripe card payments — see
+  # packages/functions/src/api/groupPayments.ts). CardField + confirmPayment
+  # only; native Apple Pay / Google Pay wallets aren't wired up.
+  flutter_stripe: ^11.5.0
+
   # Utils
   intl: ^0.20.2
   url_launcher: ^6.3.1
   share_plus: ^12.0.0
   logging: ^1.3.0
+
+  # Calendar-provider OAuth (Google/Outlook/Facebook connect flow) — launches
+  # an ASWebAuthenticationSession (iOS) / Custom Tab (Android) against the
+  # provider's auth URL and suspends until it redirects to the
+  # wishlistwizard://calendar-callback scheme registered in
+  # Info.plist/AndroidManifest.xml, returning the full callback URL.
+  flutter_web_auth_2: ^4.1.0
 
 dev_dependencies:
   flutter_test:
@@ -68,6 +92,16 @@ dev_dependencies:
   integration_test:
     sdk: flutter
   mocktail: ^1.0.4
+  # Transitive via firebase_auth, but password_policy_service_test.dart
+  # constructs PasswordPolicy fixtures directly (firebase_auth doesn't
+  # re-export that type, only PasswordValidationStatus) -- listed explicitly
+  # per the depend_on_referenced_packages lint.
+  firebase_auth_platform_interface: ^9.0.5
+  # Transitive via url_launcher, but creator_dashboard_screen_test.dart
+  # installs a fake UrlLauncherPlatform so the "set up payouts" button's
+  # launchUrl call resolves instead of hanging on the real platform
+  # channel under test -- listed explicitly per the same lint as above.
+  url_launcher_platform_interface: ^2.3.2
 
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is

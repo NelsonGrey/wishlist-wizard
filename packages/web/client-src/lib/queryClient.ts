@@ -66,11 +66,14 @@ function shouldUseFirebaseFunctions(url: string, _method: string): boolean {
     return false;
   }
 
-  // List of API endpoints that are backed by callable Firebase Functions
-  const firebaseFunctionEndpoints = [
-    '/api/auth/me',
-    '/api/users/search'
-  ];
+  // List of API endpoints that are backed by callable Firebase Functions.
+  // /api/auth/me and /api/users/search used to be listed here, but they
+  // pointed at standalone callables (getCurrentUser/searchUsers) that were
+  // dead code with the wrong deployed function name to ever match this
+  // file's url->functionName derivation anyway — removed 2026-08-10 along
+  // with the dead functions themselves. Profile/search now go through the
+  // api HTTP router instead (see shouldUseFirebaseApiRouter below).
+  const firebaseFunctionEndpoints: string[] = [];
 
   return firebaseFunctionEndpoints.some(endpoint => url.startsWith(endpoint));
 }
@@ -104,6 +107,9 @@ function shouldUseFirebaseApiRouter(url: string, _method: string): boolean {
     '/api/notifications',
     '/api/calendar',
     '/api/wishlists',
+    '/api/invites',
+    '/api/profile',
+    '/api/users',
     '/api/shared',
     '/api/items',
     '/api/price-intelligence',

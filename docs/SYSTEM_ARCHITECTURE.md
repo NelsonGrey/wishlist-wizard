@@ -1,7 +1,7 @@
 # Wishlist Wizard - System Architecture
 
-**Version**: 1.1
-**Last Updated**: January 2025
+**Version**: 1.2
+**Last Updated**: 2026-08-12
 **Owner**: Mark Nelson
 
 ---
@@ -203,6 +203,12 @@ packages/mobile/
 **Database**: Cloud Firestore  
 **Authentication**: Firebase Auth (ID tokens with callable functions)  
 
+> **Note (2026-07-17):** `packages/functions/` is gitignored in this repo. The
+> backend source of record now lives in the private companion repo
+> `NelsonGrey/wishlist-wizard-functions`. A local clone into this path is
+> used for emulator/reference work, but it is not part of this repo's own
+> git history — don't expect a fresh `git clone` of this repo to include it.
+
 **Core Services**:
 - User authentication and profile management
 - Wishlist CRUD operations
@@ -216,17 +222,19 @@ packages/mobile/
 **Callable API Surface**:
 ```
 packages/functions/src/
-├── api/                     # Callable function handlers
-│   ├── wishlists.ts          # getUserWishlists, createWishlist, addWishlistItem
-│   ├── notifications.ts      # getUserNotifications, markAllNotificationsAsRead
-│   ├── extension.ts          # browser extension endpoints
-│   ├── affiliate.ts          # affiliate link conversion
-│   ├── calendar.ts           # calendar integration
-│   ├── analytics.ts          # event tracking
+├── api/
+│   ├── router.ts              # `api` HTTP router — primary pattern for
+│   │                           # public-facing endpoints (see below)
+│   ├── wishlists.ts           # getUserWishlists, createWishlist, addWishlistItem — router-dispatched
+│   ├── notifications.ts       # getUserNotifications, markAllNotificationsAsRead — router-dispatched
+│   ├── extension.ts           # browser extension endpoints (standalone onCall)
+│   ├── affiliate.ts           # affiliate link conversion — router-dispatched
+│   ├── calendar.ts            # calendar integration — router-dispatched
+│   ├── analytics.ts           # event tracking — router-dispatched
 │   └── ...
-├── auth/                     # auth helpers
-├── crud/                     # generic Firestore CRUD
-└── utils/                    # shared utilities
+├── auth/                      # auth helpers (standalone onCall)
+├── crud/                      # generic Firestore CRUD (standalone onCall)
+└── utils/                     # shared utilities
 ```
 
 **Authentication Flow**:
@@ -474,23 +482,60 @@ Activity Logs (Subcollection)
 
 ## 📡 API Architecture
 
-### Firebase Callable API
+### Router-First HTTP API (current pattern, since 2026-07-23)
 
-**Invocation**: Firebase SDK `httpsCallable` functions
+**Why**: This GCP org enforces a Domain Restricted Sharing policy that blocks
+granting a *new* `allUsers` Cloud Run invoker binding. A standalone `onCall`
+function is only reachable by a client if it has that binding — so any
+function needing public/client invocation can no longer be deployed as a
+standalone `onCall` export and expect it to actually work (a live gcloud IAM
+audit found several that looked wired but were silently unreachable).
 
-**Authentication**: Firebase Auth ID tokens attached by SDK
+**Pattern**: Public-facing endpoints are implemented as plain functions and
+dispatched by path/method from a single HTTP router — `api`, an `onRequest`
+function defined in `packages/functions/src/api/router.ts` — exposed under
+`/api/*`. The router itself is the one Cloud Run service that carries the
+`allUsers` invoker binding; everything behind it is reached by internal
+dispatch, not a per-function binding. This covers wishlists/items,
+notifications, admin, billing/subscriptions, calendar, contacts, sync,
+creator/affiliate tracking, commission ledger, payouts, analytics, and more.
 
-**Response Format**: Callable functions return data directly or throw `HttpsError`.
+**New public-facing endpoints must be added to `api/router.ts`, not deployed
+as standalone `onCall` exports.**
 
-### Callable API Summary
+**Authentication**: The router validates the bearer ID token itself
+(`getBearerTokenFromHeaders` + `getAuth().verifyIdToken`) and reconstructs a
+`CallableRequest`-shaped object for the underlying handler, so handler code
+looks the same whether it's called via the router or (for the functions that
+still are) as a real `onCall` export.
+
+### Callable API (`httpsCallable`) — still used for a defined subset
+
+A number of functions remain standalone `onCall` exports, invoked directly
+via the Firebase SDK's `httpsCallable`. This is not something being migrated
+away — it's the correct end state for functions that don't need the
+public-invoker workaround, or that predate the org-policy discovery and were
+simply never affected:
+
+- **Auth/profile CRUD**: `createUserProfile`, `getUserProfile`, `updateUserProfile`
+- **Generic Firestore CRUD**: `createDocument`, `getDocument`, `updateDocument`, `deleteDocument`, `listDocuments`, `batchCreateDocuments`, `batchUpdateDocuments`
+- **Browser extension**: `authenticateExtension`, `getExtensionWishlists`, `addItemFromExtension`, `getExtensionRecentItems`, `createExtensionWishlist`, `deleteExtensionItem`, `shareExtensionWishlist`, `getExtensionAnalytics`, `trackExtensionEvent`
+- **FCM / notification triggers**: `sendTestNotification`, `sendBatchNotification`, `notifyItemAdded`, `notifyItemReserved`, `notifyItemPurchased`, `notifyPriceAlert`, `replayDeferredPriceAlerts`, `createSystemNotification`, `cleanOldNotifications`
+- **Group payments, AR lookup, admin bootstrap, checkout session**: `groupPaymentCreateIntent`, `confirmGroupContribution` (as `groupPaymentConfirm`), `getGroupGiftSummary` (as `groupGiftSummary`), `arModelLookup`, `bootstrapSuperAdmin`, `grantAdminRole`, `revokeAdminRole`, `createSupportTicket`, `checkoutSessionCreate`
+
+**Response Format**: Both patterns return data directly or throw
+`HttpsError` — client code doesn't need to distinguish which transport a
+given callable uses.
+
+### Callable/Router API Summary
 
 ```
-Authentication & Profiles
+Authentication & Profiles (standalone onCall)
   createUserProfile
   getUserProfile
   updateUserProfile
 
-Wishlists
+Wishlists (via `api` router)
   getUserWishlists
   getWishlistById
   getSharedWishlist
@@ -498,27 +543,36 @@ Wishlists
   updateWishlist
   deleteWishlist
 
-Items
+Items (via `api` router)
   getWishlistItems
   addWishlistItem
   updateWishlistItem
   deleteWishlistItem
 
-Notifications
+Notifications (via `api` router, except where noted)
   getUserNotifications
   markNotificationAsRead
   markAllNotificationsAsRead
   deleteNotification
-  createSystemNotification
+  createSystemNotification        # standalone onCall
   getNotificationSettings
   updateNotificationSettings
 
-Browser Extension
+Browser Extension (standalone onCall)
   authenticateExtension
   getExtensionWishlists
   addItemFromExtension
   getExtensionRecentItems
   createExtensionWishlist
+
+Creator/Affiliate & Commission Ledger (via `api` router)
+  creatorAffiliateTrackingTagRequest, creatorAffiliateTrackingTagList
+  creatorCommissionDashboardSummary, creatorCommissionLedgerList
+  creatorConnectAccountCreate, creatorConnectOnboardingLink, creatorConnectAccountStatus
+  creatorPayoutHistory
+
+Achievements (via `api` router)
+  getUserAchievements
 
 See API_REFERENCE.md for complete callable documentation
 ```
@@ -683,7 +737,7 @@ See API_REFERENCE.md for complete callable documentation
 
 - [Database Schema Reference](DATABASE_SCHEMA.md)
 - [API Reference](API_REFERENCE.md)
-- [Firebase Implementation](FIREBASE_IMPLEMENTATION_SUMMARY.md)
+- [Firebase Strategy](FIREBASE_STRATEGY.md)
 - [Security Architecture](SECURITY_ARCHITECTURE.md)
 - [Developer Guide](DEVELOPER.md)
 

@@ -694,6 +694,24 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         });
       return true; // Keep sendResponse valid after async operation
     }
+
+    else if (message.action === 'findPriceComparisons') {
+      const productInfo = message.productInfo || null;
+      if (!productInfo || !productInfo.title) {
+        sendResponse({ success: false, error: 'Missing product information' });
+        return true;
+      }
+
+      findPriceComparisons(productInfo)
+        .then(results => {
+          sendResponse({ success: true, results });
+        })
+        .catch(error => {
+          trackError(error, 'findPriceComparisons');
+          sendResponse({ success: false, error: error.message });
+        });
+      return true; // Keep sendResponse valid after async operation
+    }
     
     else if (message.action === 'getActiveTab') {
       // Get the active tab (for popup to use)
@@ -1230,9 +1248,13 @@ async function addItemToWishlist(itemData) {
       throw new Error('Authentication required. Please sign in to your account.');
     }
     
-    // Validate item data before sending to server
-    if (!itemData.title || !itemData.price || !itemData.productUrl) {
-      throw new Error('Invalid product data. Missing required fields.');
+    // Validate item data before sending to server. Only title is actually
+    // required server-side (extensionAddItem defaults both price and
+    // productUrl to null) — requiring price here rejected valid adds on
+    // any page where extraction couldn't find one, even though the
+    // backend would have accepted it fine.
+    if (!itemData.title) {
+      throw new Error('Invalid product data. A product title is required.');
     }
     
     // Add timestamp to track when the item was added
@@ -1256,6 +1278,39 @@ async function addItemToWishlist(itemData) {
   } catch (error) {
     console.error('Error adding item to wishlist:', error);
     trackError(error, 'addItemToWishlist');
+    throw error;
+  }
+}
+
+// Live cross-retailer price comparison for the product on the current page.
+// Routed through here (not fetched directly from the popup) because
+// comparison.js runs in the popup document, which doesn't have access to
+// the stored auth token — makeAuthenticatedRequest and authToken only live
+// in this background service worker, same reason addItemToWishlist works
+// this way. Goes through the hosting-routed `api` function (baseUrl), not
+// cloudFunctionsBaseUrl — a brand-new standalone Cloud Function can't get a
+// public invoker binding under this org's policy (see api's own comments).
+async function findPriceComparisons(productInfo) {
+  try {
+    const authenticated = await isAuthenticated();
+    if (!authenticated) {
+      throw new Error('Authentication required. Please sign in to your account.');
+    }
+
+    const response = await makeAuthenticatedRequest(`${baseUrl}/api/extension/price-comparisons`, {
+      method: 'POST',
+      body: JSON.stringify({
+        title: productInfo.title,
+        store: productInfo.store,
+        price: productInfo.price,
+        productUrl: productInfo.productUrl
+      })
+    });
+
+    return Array.isArray(response) ? response : [];
+  } catch (error) {
+    console.error('Error finding price comparisons:', error);
+    trackError(error, 'findPriceComparisons');
     throw error;
   }
 }

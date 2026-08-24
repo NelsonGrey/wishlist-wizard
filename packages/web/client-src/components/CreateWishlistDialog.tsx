@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { useQuery } from "@tanstack/react-query";
@@ -168,6 +169,24 @@ export default function CreateWishlistDialog({
     }) as Promise<ExternalContactsResponse>,
     staleTime: 60_000,
   });
+
+  // Applies the user's saved default wishlist visibility (Settings > Privacy)
+  // to a fresh "Add Wishlist" dialog. Previously this form always started
+  // isPublic: false regardless of what the user had saved as their default,
+  // and always sent that explicit value — silently overriding the backend's
+  // own default-visibility fallback for every wishlist created this way.
+  const { data: privacyDefaults } = useQuery<{ defaultWishlistVisibility?: string }>({
+    queryKey: ["/api/privacy/defaults"],
+    enabled: open,
+    staleTime: 60_000,
+  });
+
+  useEffect(() => {
+    if (open && privacyDefaults) {
+      form.setValue("isPublic", privacyDefaults.defaultWishlistVisibility === "public");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, privacyDefaults]);
 
   const externalContacts = externalContactsResponse?.contacts || [];
   const providerStatuses = externalContactsResponse?.providerStatuses || [];

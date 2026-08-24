@@ -4,27 +4,41 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import '../providers/providers.dart';
+import '../services/firebase_functions_service.dart';
+import 'barcode_scanner_screen.dart';
 
-/// Screen for adding wishlist items via camera or URL entry.
+/// Screen for adding wishlist items via camera, barcode scan/lookup, or URL
+/// entry.
 ///
-/// Uses image_picker for photo capture (avoids the GTMSessionFetcher version
-/// conflict that prevents mobile_scanner from coexisting with Firebase 12.x).
+/// Barcode entry supports live camera scanning (mobile_scanner) with manual
+/// entry as a fallback; both paths look the code up server-side via
+/// FirebaseFunctionsService.lookupBarcode, which hits
+/// packages/functions/src/api/mobile.ts's lookupBarcode through the api
+/// router.
 class ScanItemScreen extends StatefulWidget {
-  const ScanItemScreen({super.key});
+  const ScanItemScreen({super.key, FirebaseFunctionsService? functionsService})
+      : _functionsService = functionsService;
+
+  // Injectable for tests; defaults to the real Firebase-backed singleton.
+  final FirebaseFunctionsService? _functionsService;
 
   @override
   State<ScanItemScreen> createState() => _ScanItemScreenState();
 }
 
 class _ScanItemScreenState extends State<ScanItemScreen> {
+  late final FirebaseFunctionsService _service =
+      widget._functionsService ?? FirebaseFunctionsService();
   final _formKey = GlobalKey<FormState>();
   final _nameCtrl = TextEditingController();
   final _urlCtrl = TextEditingController();
   final _priceCtrl = TextEditingController();
   final _descCtrl = TextEditingController();
+  final _barcodeCtrl = TextEditingController();
 
   String? _selectedWishlistId;
   bool _submitting = false;
+  bool _lookingUpBarcode = false;
   XFile? _photo;
 
   @override
@@ -33,7 +47,65 @@ class _ScanItemScreenState extends State<ScanItemScreen> {
     _urlCtrl.dispose();
     _priceCtrl.dispose();
     _descCtrl.dispose();
+    _barcodeCtrl.dispose();
     super.dispose();
+  }
+
+  Future<void> _scanBarcode() async {
+    final code = await Navigator.push<String>(
+      context,
+      MaterialPageRoute(builder: (context) => const BarcodeScannerScreen()),
+    );
+    if (code == null || !mounted) return;
+    _barcodeCtrl.text = code;
+    _lookUpBarcode();
+  }
+
+  Future<void> _lookUpBarcode() async {
+    final barcode = _barcodeCtrl.text.trim();
+    if (barcode.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Enter a barcode first')),
+      );
+      return;
+    }
+
+    setState(() => _lookingUpBarcode = true);
+    try {
+      final result = await _service.lookupBarcode(barcode);
+      if (!mounted) return;
+
+      final found = result['found'] == true;
+      if (!found) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No product found for that barcode')),
+        );
+        return;
+      }
+
+      final product = result['product'] as Map<String, dynamic>?;
+      setState(() {
+        if (product?['title'] != null) {
+          _nameCtrl.text = product!['title'] as String;
+        }
+        if (product?['store'] != null) {
+          _descCtrl.text = product!['store'] as String;
+        }
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Product found — details filled in below')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Barcode lookup failed: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _lookingUpBarcode = false);
+    }
   }
 
   Future<void> _pickPhoto(ImageSource source) async {
@@ -111,6 +183,58 @@ class _ScanItemScreenState extends State<ScanItemScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              // Barcode lookup section
+              Text(
+                'Barcode Lookup',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Tooltip(
+                    message: 'Scan barcode',
+                    child: SizedBox(
+                      height: 56,
+                      child: OutlinedButton(
+                        onPressed: _scanBarcode,
+                        style: OutlinedButton.styleFrom(padding: EdgeInsets.zero),
+                        child: const Icon(Icons.camera_alt_outlined),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: TextFormField(
+                      controller: _barcodeCtrl,
+                      decoration: const InputDecoration(
+                        labelText: 'Barcode',
+                        hintText: 'e.g. 012345678905',
+                        prefixIcon: Icon(Icons.qr_code_scanner),
+                      ),
+                      keyboardType: TextInputType.number,
+                      onFieldSubmitted: (_) => _lookUpBarcode(),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  SizedBox(
+                    height: 56,
+                    child: ElevatedButton(
+                      onPressed: _lookingUpBarcode ? null : _lookUpBarcode,
+                      child: _lookingUpBarcode
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Text('Look Up'),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
               // Photo capture section
               _PhotoSection(
                 photo: _photo,
