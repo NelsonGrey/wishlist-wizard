@@ -59,7 +59,11 @@ Pages:
 - `/app/calendar`
 - `/app/notifications`
 - `/app/privacy-settings`
-- `/app/analytics`
+- `/app/analytics` (redirects to `/app/dashboard?tab=analytics`)
+- `/app/achievements` — Achievements & Rewards v1 (shipped 2026-07-23)
+- `/app/subscription`
+- `/app/settings`
+- `/app/creator-dashboard` (redirects to `/app/dashboard?tab=creator`)
 - `/shared/:shareId` (public shared view)
 
 Design characteristics:
@@ -80,6 +84,7 @@ The router in `AppRouter.tsx` applies a layout wrapper based on route category.
 /app/dashboard, /app/wishlists, /app/dashboard-firebase, /app/user-profile,
 /app/wishlist/*, /app/wishlists/*, /app/recommendations, /app/price-tracking,
 /app/calendar, /app/notifications, /app/privacy-settings, /app/analytics,
+/app/achievements, /app/subscription, /app/settings, /app/creator-dashboard,
 /shared/*
 
 // Public pages (PublicLayout)

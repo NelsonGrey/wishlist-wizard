@@ -12,6 +12,12 @@ vi.mock('@/contexts/AuthContext', () => ({
       displayName: 'Mark Nelson',
       photoURL: null,
     },
+    checkPasswordPolicy: vi.fn(async () => ({
+      isValid: true,
+      passwordPolicy: { customStrengthOptions: {} },
+    })),
+    reauthenticateWithPassword: vi.fn(),
+    updatePassword: vi.fn(),
   }),
 }));
 

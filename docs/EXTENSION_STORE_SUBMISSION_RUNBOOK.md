@@ -2,9 +2,8 @@
 
 Last updated: February 20, 2026
 
-Canonical runbook for shipping `@wishlist-wizard/browser-extension`.
-
-Execution evidence for the latest run: `docs/DELIVERABLE_EXECUTION_LOG_2026-02-20.md`
+Canonical runbook for shipping `@wishlist-wizard/browser-extension`. Record execution
+evidence for each run in the release's PR description or `docs/RELEASE_SUMMARY.md`.
 
 ## 1) Build and package
 

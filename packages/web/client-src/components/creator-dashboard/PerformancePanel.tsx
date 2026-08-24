@@ -16,7 +16,7 @@ type AffiliateStats = {
 export default function PerformancePanel() {
   const { data, isLoading, isError } = useQuery<AffiliateStats>({
     queryKey: ["/api/affiliate/stats"],
-    queryFn: () => apiRequest("/api/affiliate/stats") as Promise<AffiliateStats>,
+    queryFn: () => apiRequest("/api/affiliate/stats", { method: "POST" }) as Promise<AffiliateStats>,
     staleTime: 5 * 60 * 1000,
   });
 

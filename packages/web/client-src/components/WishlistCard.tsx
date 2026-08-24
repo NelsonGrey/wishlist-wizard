@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
-import { Edit, Share2, MoreVertical, Trash2 } from "lucide-react";
+import { Edit, Share2, MoreVertical, Trash2, UserPlus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { getApiErrorMessage } from "@/lib/api-errors";
 import { apiRequest } from "@/lib/queryClient";
@@ -8,6 +8,7 @@ import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Wishlist as DbWishlist } from "@wishlist-wizard/shared";
 import PrivacyControls from "@/components/privacy/PrivacyControls";
+import InviteCollaboratorDialog from "@/components/InviteCollaboratorDialog";
 import { getNextOccurrenceDate, parseOccasionDate } from "@/lib/wishlist-dates";
 import {
   DropdownMenu,
@@ -46,6 +47,7 @@ type Wishlist = Omit<DbWishlist, 'id' | 'userId' | 'beneficiaryId'> & {
   } | null;
   recipientName?: string | null;
   itemCount: number;
+  myRole?: 'owner' | 'editor' | 'commenter' | 'viewer';
 };
 
 interface WishlistCardProps {
@@ -55,8 +57,12 @@ interface WishlistCardProps {
 
 export default function WishlistCard({ wishlist, onRefresh }: WishlistCardProps) {
   const [, setLocation] = useLocation();
+  const viewerRole = wishlist.myRole || 'owner';
+  const canEdit = viewerRole === 'owner' || viewerRole === 'editor';
+  const isOwner = viewerRole === 'owner';
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
   const [newName, setNewName] = useState(wishlist.name);
   const [newOccasion, setNewOccasion] = useState(wishlist.occasion || '');
   const [newOccasionDate, setNewOccasionDate] = useState(
@@ -228,9 +234,6 @@ export default function WishlistCard({ wishlist, onRefresh }: WishlistCardProps)
     month: 'short',
     day: 'numeric'
   });
-  const numericWishlistId = typeof wishlist.id === 'number' ? wishlist.id : Number(wishlist.id);
-  const hasNumericWishlistId = Number.isFinite(numericWishlistId);
-
   return (
     <>
       <Card data-testid={`wishlist-card-${wishlist.id}`} className="hover:shadow-md transition">
@@ -243,10 +246,10 @@ export default function WishlistCard({ wishlist, onRefresh }: WishlistCardProps)
                   <p className="text-sm text-gray-500">
                     {wishlist.itemCount} {wishlist.itemCount === 1 ? 'item' : 'items'} • Created {formattedDate}
                   </p>
-                  {hasNumericWishlistId && (
+                  {wishlist.id && (
                     <PrivacyControls
                       entityType="wishlist"
-                      entityId={numericWishlistId}
+                      entityId={String(wishlist.id)}
                       entityName={wishlist.name}
                       showAsBadge={true}
                     />
@@ -304,14 +307,27 @@ export default function WishlistCard({ wishlist, onRefresh }: WishlistCardProps)
                     <TooltipContent>More options</TooltipContent>
                   </Tooltip>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem data-testid={`wishlist-edit-action-${wishlist.id}`} onClick={handleEditClick}>
-                      <Edit className="h-4 w-4 mr-2" />
-                      Edit
-                    </DropdownMenuItem>
-                    <DropdownMenuItem data-testid={`wishlist-delete-action-${wishlist.id}`} onClick={handleDeleteClick} className="text-red-600">
-                      <Trash2 className="h-4 w-4 mr-2" />
-                      Delete
-                    </DropdownMenuItem>
+                    {canEdit && (
+                      <DropdownMenuItem data-testid={`wishlist-edit-action-${wishlist.id}`} onClick={handleEditClick}>
+                        <Edit className="h-4 w-4 mr-2" />
+                        Edit
+                      </DropdownMenuItem>
+                    )}
+                    {isOwner && (
+                      <DropdownMenuItem
+                        data-testid={`wishlist-invite-action-${wishlist.id}`}
+                        onClick={() => setIsInviteDialogOpen(true)}
+                      >
+                        <UserPlus className="h-4 w-4 mr-2" />
+                        Invite Collaborator
+                      </DropdownMenuItem>
+                    )}
+                    {isOwner && (
+                      <DropdownMenuItem data-testid={`wishlist-delete-action-${wishlist.id}`} onClick={handleDeleteClick} className="text-red-600">
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Delete
+                      </DropdownMenuItem>
+                    )}
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
@@ -460,6 +476,16 @@ export default function WishlistCard({ wishlist, onRefresh }: WishlistCardProps)
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {isOwner && (
+        <InviteCollaboratorDialog
+          wishlistId={wishlist.id}
+          wishlistName={wishlist.name}
+          open={isInviteDialogOpen}
+          onOpenChange={setIsInviteDialogOpen}
+          onInvited={onRefresh}
+        />
+      )}
     </>
   );
 }

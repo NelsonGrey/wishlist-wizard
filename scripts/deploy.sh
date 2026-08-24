@@ -100,9 +100,6 @@ NODE
         DEVELOPMENT)
             non_prod_password="${NON_PROD_SITE_PASSWORD_DEVELOPMENT:-}"
             ;;
-        DEMONSTRATION)
-            non_prod_password="${NON_PROD_SITE_PASSWORD_DEMONSTRATION:-}"
-            ;;
         STAGING)
             non_prod_password="${NON_PROD_SITE_PASSWORD_STAGING:-}"
             ;;
@@ -133,9 +130,6 @@ resolve_environment() {
         staging)
             echo "staging"
             ;;
-        demonstration)
-            echo "demonstration"
-            ;;
         develop)
             echo "development"
             ;;
@@ -155,14 +149,11 @@ resolve_project_alias() {
         staging)
             echo "staging"
             ;;
-        demonstration)
-            echo "demonstration"
-            ;;
         development)
             echo "development"
             ;;
         *)
-            log_error "Invalid environment '$environment'. Use: development | demonstration | staging | production"
+            log_error "Invalid environment '$environment'. Use: development | staging | production"
             return 1
             ;;
     esac
@@ -274,9 +265,9 @@ show_usage() {
     echo "  package-ext     Create Chrome extension package"
     echo "  help            Show this help message"
     echo ""
-    echo "Environment (optional): development | demonstration | staging | production"
+    echo "Environment (optional): development | staging | production"
     echo "If omitted, environment is inferred from current branch:"
-    echo "  develop -> development, demonstration -> demonstration, staging -> staging, main -> production"
+    echo "  develop -> development, staging -> staging, main -> production"
     echo ""
     echo "Examples:"
     echo "  $0 build"

@@ -92,28 +92,27 @@ class PriceComparison {
     this.comparisonResults = [];
 
     try {
-      const baseUrl = await this.resolveBaseUrl();
-      const response = await fetch(`${baseUrl}/api/extension/price-comparisons`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        credentials: 'include',
-        body: JSON.stringify({
-          title: this.productInfo.title,
-          store: this.productInfo.store,
-          price: this.productInfo.price,
-          productUrl: this.productInfo.productUrl
-        })
+      // Popup context has no access to the stored auth token, so this
+      // routes through background.js (same pattern as adding an item to a
+      // wishlist) rather than fetching directly.
+      const response = await new Promise((resolve, reject) => {
+        chrome.runtime.sendMessage(
+          { action: 'findPriceComparisons', productInfo: this.productInfo },
+          (result) => {
+            if (chrome.runtime.lastError) {
+              reject(new Error(chrome.runtime.lastError.message));
+              return;
+            }
+            if (!result || !result.success) {
+              reject(new Error(result?.error || 'Failed to find price comparisons'));
+              return;
+            }
+            resolve(result.results);
+          }
+        );
       });
 
-      if (response.ok) {
-        const results = await response.json();
-        this.comparisonResults = Array.isArray(results) ? results : [];
-      } else {
-        this.comparisonResults = [];
-      }
-      
+      this.comparisonResults = Array.isArray(response) ? response : [];
       return this.comparisonResults;
     } catch (error) {
       console.error('PriceComparison: Error finding comparison results', error);
@@ -121,36 +120,6 @@ class PriceComparison {
     } finally {
       this.isSearching = false;
     }
-  }
-
-  async resolveBaseUrl() {
-    const envConfig = {
-      development: 'https://wishlist-wizard-dev.web.app',
-      staging: 'https://wishlist-wizard-staging.web.app',
-      production: 'https://wishlist-wizard-prod.web.app',
-      local: 'http://localhost:3001'
-    };
-
-    const normalize = (value) => {
-      const env = String(value || 'development').toLowerCase();
-      if (env === 'dev') return 'development';
-      if (env === 'stage') return 'staging';
-      if (env === 'prod') return 'production';
-      if (env === 'localhost') return 'local';
-      return Object.prototype.hasOwnProperty.call(envConfig, env) ? env : 'development';
-    };
-
-    return new Promise((resolve) => {
-      if (!chrome?.storage?.local?.get) {
-        resolve(envConfig.development);
-        return;
-      }
-
-      chrome.storage.local.get(['wwEnvironment', 'wwBaseUrlOverride'], (result) => {
-        const env = normalize(result?.wwEnvironment);
-        resolve(result?.wwBaseUrlOverride || envConfig[env]);
-      });
-    });
   }
 
   /**

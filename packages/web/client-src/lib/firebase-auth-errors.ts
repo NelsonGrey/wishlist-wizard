@@ -1,4 +1,4 @@
-type AuthErrorContext = 'login' | 'signup' | 'reset-password';
+type AuthErrorContext = 'login' | 'signup' | 'reset-password' | 'confirm-reset-password';
 
 const FIREBASE_NOT_CONFIGURED_MESSAGE = 'Firebase is not configured for this environment. Ask your admin to set VITE_FIREBASE_* env vars.';
 
@@ -6,6 +6,7 @@ const CONTEXT_DEFAULT_MESSAGES: Record<AuthErrorContext, string> = {
   login: 'Failed to sign in. Please try again.',
   signup: 'Failed to create account. Please try again.',
   'reset-password': 'Failed to send password reset email. Please try again.',
+  'confirm-reset-password': 'Failed to reset password. The link may be expired or invalid.',
 };
 
 const OAUTH_CODE_MESSAGES: Record<string, string> = {
@@ -37,6 +38,16 @@ const CONTEXT_CODE_MESSAGES: Record<AuthErrorContext, Record<string, string>> = 
   'reset-password': {
     'auth/user-not-found': 'No account found with this email address.',
     'auth/invalid-email': 'Invalid email address.',
+    'auth/too-many-requests': 'Too many requests. Please try again later.',
+  },
+  'confirm-reset-password': {
+    'app/firebase-not-configured': FIREBASE_NOT_CONFIGURED_MESSAGE,
+    'auth/expired-action-code': 'This password reset link has expired. Please request a new one.',
+    'auth/invalid-action-code': 'This password reset link is invalid or has already been used. Please request a new one.',
+    'auth/user-disabled': 'This account has been disabled. Contact support for help.',
+    'auth/user-not-found': 'No account found for this password reset link.',
+    'auth/weak-password': 'Password is too weak. Please choose a stronger password.',
+    'auth/password-does-not-meet-requirements': 'Password does not meet the required strength policy.',
     'auth/too-many-requests': 'Too many requests. Please try again later.',
   },
 };

@@ -26,6 +26,17 @@
 	<string>????</string>
 	<key>CFBundleVersion</key>
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>com.wishlistwizard.app.calendar-oauth</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>wishlistwizard</string>
+			</array>
+		</dict>
+	</array>
 	<key>GADApplicationIdentifier</key>
 	<string>ca-app-pub-5198775482699756~9682055763</string>
 	<key>LSRequiresIPhoneOS</key>
@@ -36,6 +47,8 @@
 	</array>
 	<key>NSCameraUsageDescription</key>
 	<string>This app uses the camera to scan product barcodes and images for wishlist management.</string>
+	<key>NSContactsUsageDescription</key>
+	<string>This app accesses your contacts so you can invite people you know to collaborate on a wishlist.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>This app accesses your photo library to attach images to wishlist items.</string>
 	<key>NSLocalNetworkUsageDescription</key>

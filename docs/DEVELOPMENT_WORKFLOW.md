@@ -268,10 +268,11 @@ FIREBASE_ADMIN_SDK_PATH=./firebase-dev.json
 NODE_ENV=development
 DEBUG=true
 
-# External APIs (optional for local development)
-SENDGRID_API_KEY=
-OPENAI_API_KEY=
 ```
+
+> Neither `SENDGRID_API_KEY` nor `OPENAI_API_KEY` is used anywhere in this codebase —
+> email goes through Google Workspace SMTP via Nodemailer, and recommendations are
+> Firestore-data-driven, not model-backed.
 
 **Testing (.env.test)**:
 ```env
@@ -587,10 +588,10 @@ function complexFunction() {
 
 **Using Node Inspector**:
 ```bash
-# Start with inspector
-node --inspect=0.0.0.0:9229 server.js
-
-# Then open in VS Code or chrome://inspect
+# Debug Firebase Functions locally via the emulator
+npm --prefix packages/functions run serve
+# Attach a Node inspector to the emulator process, or use functions:shell
+# (npm --prefix packages/functions run shell) for an interactive REPL.
 ```
 
 **Logging**:
@@ -602,21 +603,11 @@ const log = debug('wishlist:service:wishlist');
 log('Creating wishlist:', data);  // Shows only with DEBUG=wishlist:* env var
 ```
 
-### Database Debugging
+### Firestore Debugging
 
-```bash
-# Connect to dev database
-psql postgresql://localhost/wishlist_wizard_dev
-
-# List tables
-\dt
-
-# Query data
-SELECT * FROM wishlists LIMIT 5;
-
-# Exit
-\q
-```
+Firestore has no SQL shell — use the Firebase Console's Firestore Data tab, the
+Firestore emulator UI (`firebase emulators:start`, then open the printed emulator UI
+URL), or `mcp__firebase__firestore_*` tooling for programmatic queries.
 
 ---
 

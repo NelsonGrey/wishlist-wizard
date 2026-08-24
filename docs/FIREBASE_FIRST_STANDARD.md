@@ -8,17 +8,24 @@ All projects implement a **Firebase-first** approach where client applications (
 
 ## Current Implementation Status
 
-### ✅ Completed
-- **Mobile Config Standardization**: All projects have environment-specific Firebase configs with symlinks
+> Status as last verified from wishlist-wizard: `modulo-squares-functions` and
+> `vehicle-vitals-functions` package manifests still show no `@shared/firebase-utils`
+> dependency, so the items below marked "In Progress" are still accurate. This section
+> is cross-repo and should be re-confirmed from each project directly rather than
+> assumed current from here.
+
+### ✅ Completed (within wishlist-wizard)
+- **Mobile Config Standardization**: environment-specific Firebase configs with symlinks
 - **Shared Utilities Package**: `@shared/firebase-utils` created and linked across projects
-- **Client-Side Adoption**: Vehicle-vitals and wishlist-wizard use `FirebaseClient` for initialization
+- **Client-Side Adoption**: uses `FirebaseClient` for initialization
 - **Auth Standardization**: `FunctionsAuthHelpers` implemented in wishlist-wizard functions
 - **CRUD Standardization**: `FirestoreCrudHelpers` implemented in wishlist-wizard functions
-- **Wishlist-Wizard Migration**: Complete migration from Express API to Firebase Functions
+- **Wishlist-Wizard Migration**: Complete migration from Express API to Firebase Functions (2025-10-16)
 
-### 🔄 In Progress
+### 🔄 In Progress (cross-repo)
 - **Modulo-Squares Migration**: JavaScript functions need shared utilities integration
-- **Package Publishing**: `@shared/firebase-utils` needs npm publication
+- **Vehicle-Vitals Functions**: no `@shared/firebase-utils` dependency yet either
+- **Package Publishing**: `@shared/firebase-utils` needs npm publication (still consumed via `npm link`/local path)
 
 ## Architecture Components
 

@@ -3,7 +3,6 @@
 This repository enforces environment security controls for lifecycle branches:
 
 - develop -> development
-- demonstration -> demonstration
 - staging -> staging
 - main -> production
 
@@ -25,12 +24,7 @@ This repository enforces environment security controls for lifecycle branches:
 Configure these repository secrets before deploying non-production branches:
 
 - `NON_PROD_SITE_PASSWORD_DEVELOPMENT`
-- `NON_PROD_SITE_PASSWORD_DEMONSTRATION`
 - `NON_PROD_SITE_PASSWORD_STAGING`
-
-Optional Firebase project secret for the demonstration environment:
-
-- `FIREBASE_PROJECT_DEMONSTRATION` (defaults to `wishlist-wizard-demo`)
 
 ## Files Updated
 
@@ -38,7 +32,6 @@ Optional Firebase project secret for the demonstration environment:
 - `scripts/deploy.sh`
 - `.firebaserc`
 - `firebase.prod.json`
-- `firebase.demo.json`
 - `packages/web/client-src/App.tsx`
 - `packages/web/client-src/AppRouter.tsx`
 - `packages/web/client-src/components/security/EnvironmentPasswordGate.tsx`

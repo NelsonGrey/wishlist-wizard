@@ -13,24 +13,27 @@ This document is the source of truth for which features are promoted in the webs
 - Calendar integration (events, reminders, external connections)
 - Social network and discovery (public profiles/discovery and trusted sharing)
 - Basic analytics
+- Price tracking (basic + advanced multi-retailer) — shipped
+- Affiliate integrations and creator monetization tools — shipped 2026-07-21 (commission ledger state
+  machine, Stripe Connect Express payouts, creator dashboard at `/app/creator-dashboard`, admin tooling at
+  `/admin/affiliate`)
+- Achievements & rewards (v1) — shipped 2026-07-23, computed on read, `/app/achievements`
+- Mobile native in-app purchases (StoreKit/Play Billing, replacing Stripe checkout on mobile)
 
 UI policy:
 - Marketing pages and logged-in navigation should promote only these features.
-- Phase 2+ features may exist behind direct routes but must not be primary promoted CTAs.
+- Phase 3+ features may exist behind direct routes but must not be primary promoted CTAs.
 
-## Phase 2: Intelligence and Monetization Expansion
+## Phase 2: Intelligence and Monetization Expansion (remaining)
 
-- Price tracking (basic + advanced multi-retailer)
-- Affiliate integrations and creator monetization tools
 - AI recommendations
-- Creator economy tooling and advanced dashboards
 - Group gifting payments
+- Advanced creator monetization dashboards beyond v1 (deeper analytics, more payout networks)
 
 Release policy:
-- Validate ad revenue performance before broad price-tracking and affiliate expansion.
 - Roll out incrementally behind feature flags and controlled cohorts.
 
-Phase 1 ad KPI gate (must be reviewed weekly before expanding monetization scope):
+Ad KPI gate (reviewed weekly; was satisfied before affiliate/creator monetization launched 2026-07-21, and applies to any further monetization expansion):
 - Viewable impressions: >= 1,000 in trailing 7 days.
 - Viewability rate: >= 60% in trailing 7 days.
 - Estimated ad revenue: >= $5.00 in trailing 7 days.

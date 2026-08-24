@@ -1,18 +1,39 @@
 import { useEffect, useState } from "react";
-import { useParams, useLocation } from "wouter";
+import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { CheckCircle, XCircle, Loader2, Eye, EyeOff } from "lucide-react";
-import { apiRequest } from "@/lib/queryClient";
+import { useAuth } from "@/contexts/AuthContext";
+import { usePasswordPolicy } from "@/hooks/usePasswordPolicy";
+import { getFirebaseAuthErrorMessage } from "@/lib/firebase-auth-errors";
+
+type Status = 'verifying' | 'form' | 'loading' | 'success' | 'error';
+
+/**
+ * Reads Firebase's standard action-link query params. The reset email is
+ * sent with actionCodeSettings pointing back at this page (see
+ * lib/firebase.ts resetPassword()), so a real link always includes these —
+ * `mode=resetPassword&oobCode=...` — rather than the old custom `token`
+ * param this page used to expect.
+ */
+function getResetLinkParams(): { mode: string | null; oobCode: string | null } {
+  const params = new URLSearchParams(window.location.search);
+  return {
+    mode: params.get('mode'),
+    oobCode: params.get('oobCode'),
+  };
+}
 
 export default function ResetPassword() {
-  const params = useParams();
-  const token = params.token;
   const [, setLocation] = useLocation();
-  
-  const [status, setStatus] = useState<'form' | 'loading' | 'success' | 'error'>('form');
+  const { verifyResetPasswordCode, confirmResetPassword, checkPasswordPolicy } = useAuth();
+  const { hint, quickCheck } = usePasswordPolicy(checkPasswordPolicy);
+
+  const [oobCode, setOobCode] = useState<string | null>(null);
+  const [accountEmail, setAccountEmail] = useState<string | null>(null);
+  const [status, setStatus] = useState<Status>('verifying');
   const [message, setMessage] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -20,15 +41,42 @@ export default function ResetPassword() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   useEffect(() => {
-    if (!token) {
+    const { mode, oobCode: code } = getResetLinkParams();
+
+    if (mode !== 'resetPassword' || !code) {
       setStatus('error');
       setMessage('Invalid password reset link');
+      return;
     }
-  }, [token]);
+
+    setOobCode(code);
+
+    let cancelled = false;
+    verifyResetPasswordCode(code)
+      .then((email) => {
+        if (cancelled) return;
+        setAccountEmail(email);
+        setStatus('form');
+      })
+      .catch((error: unknown) => {
+        if (cancelled) return;
+        setStatus('error');
+        setMessage(getFirebaseAuthErrorMessage(error, 'confirm-reset-password'));
+      });
+
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
+    if (!oobCode) {
+      return;
+    }
+
     if (!password || !confirmPassword) {
       setMessage('Please fill in all fields');
       return;
@@ -39,8 +87,9 @@ export default function ResetPassword() {
       return;
     }
 
-    if (password.length < 8) {
-      setMessage('Password must be at least 8 characters long');
+    const quickCheckError = quickCheck(password);
+    if (quickCheckError) {
+      setMessage(quickCheckError);
       return;
     }
 
@@ -48,28 +97,31 @@ export default function ResetPassword() {
     setMessage('');
 
     try {
-      await apiRequest('/api/auth/reset-password', {
-        method: 'POST',
-        body: {
-          token,
-          newPassword: password
-        }
-      });
+      await confirmResetPassword(oobCode, password);
       setStatus('success');
       setMessage('Your password has been successfully reset!');
-    } catch (error) {
-      setStatus('error');
-      if (error instanceof Error) {
-        setMessage(error.message);
-      } else {
-        setMessage('Failed to reset password. The link may be expired or invalid.');
-      }
+    } catch (error: unknown) {
+      setStatus('form');
+      setMessage(getFirebaseAuthErrorMessage(error, 'confirm-reset-password'));
     }
   };
 
   const handleContinue = () => {
     setLocation('/login');
   };
+
+  if (status === 'verifying') {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+        <Card className="w-full max-w-md">
+          <CardContent className="flex flex-col items-center justify-center gap-4 py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-gray-400" aria-hidden="true" />
+            <p className="text-gray-600" role="status" aria-live="polite">Verifying your reset link...</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   if (status === 'success') {
     return (
@@ -83,7 +135,7 @@ export default function ResetPassword() {
             <div className="flex justify-center">
               <CheckCircle className="h-12 w-12 text-green-500" />
             </div>
-            
+
             <div className="text-center">
               <p className="text-gray-600">{message}</p>
             </div>
@@ -97,7 +149,7 @@ export default function ResetPassword() {
     );
   }
 
-  if (status === 'error' && !token) {
+  if (status === 'error') {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
         <Card className="w-full max-w-md">
@@ -109,13 +161,13 @@ export default function ResetPassword() {
             <div className="flex justify-center">
               <XCircle className="h-12 w-12 text-red-500" />
             </div>
-            
+
             <div className="text-center">
-              <p className="text-gray-600">The password reset link is invalid or has expired.</p>
+              <p className="text-gray-600" role="alert" aria-live="assertive">{message || 'The password reset link is invalid or has expired.'}</p>
             </div>
 
-            <Button type="button" onClick={() => setLocation('/login')} className="w-full" variant="outline">
-              Back to Login
+            <Button type="button" onClick={() => setLocation('/forgot-password')} className="w-full" variant="outline">
+              Request a New Link
             </Button>
           </CardContent>
         </Card>
@@ -128,7 +180,9 @@ export default function ResetPassword() {
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl font-bold">Reset Your Password</CardTitle>
-          <CardDescription>Enter your new password below</CardDescription>
+          <CardDescription>
+            {accountEmail ? `Enter a new password for ${accountEmail}` : 'Enter your new password below'}
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
@@ -161,6 +215,9 @@ export default function ResetPassword() {
                   )}
                 </Button>
               </div>
+              <p className="text-xs text-gray-500" data-testid="reset-password-hint">
+                {hint}
+              </p>
             </div>
 
             <div className="space-y-2">
@@ -195,7 +252,7 @@ export default function ResetPassword() {
             </div>
 
             {message && (
-              <div role={status === 'error' ? 'alert' : 'status'} aria-live={status === 'error' ? 'assertive' : 'polite'} className={`text-sm ${status === 'error' ? 'text-red-600' : 'text-gray-600'}`}>
+              <div role="alert" aria-live="assertive" className="text-sm text-red-600">
                 {message}
               </div>
             )}

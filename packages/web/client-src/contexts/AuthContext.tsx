@@ -11,15 +11,19 @@ import {
   signUp as firebaseSignUp,
   signOutUser,
   resetPassword,
+  verifyResetPasswordCode,
+  confirmResetPassword,
   verifyEmail,
   changePassword,
   checkPasswordPolicy,
+  reauthenticateWithPassword as firebaseReauthenticateWithPassword,
   signInWithGoogle as firebaseSignInWithGoogle,
   signInWithApple as firebaseSignInWithApple,
   credentialFromOAuthError,
   linkPendingCredential
 } from '../lib/firebase';
 import { isAccountExistsWithDifferentCredentialError } from '../lib/firebase-auth-errors';
+import { apiRequest } from '../lib/queryClient';
 
 interface AuthContextType {
   user: User | null;
@@ -31,8 +35,11 @@ interface AuthContextType {
   signInWithApple: () => Promise<void>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
+  verifyResetPasswordCode: (oobCode: string) => Promise<string>;
+  confirmResetPassword: (oobCode: string, newPassword: string) => Promise<void>;
   sendEmailVerification: () => Promise<void>;
   updatePassword: (password: string) => Promise<void>;
+  reauthenticateWithPassword: (currentPassword: string) => Promise<void>;
   isAuthenticated: boolean;
 }
 
@@ -104,6 +111,23 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  // Idempotent — ensureMyProfile (packages/functions/src/api/userProfile.ts)
+  // no-ops if a users/{uid} profile doc already exists. This is the single
+  // hook point covering every sign-in path (email, Google, Apple; new
+  // account or returning session) rather than duplicating the call across
+  // signUp/signInWithGoogle/signInWithApple individually, since all of
+  // them funnel through this same onAuthStateChanged callback. Fire-and-
+  // forget: a failure here just means self-healing falls to getMyProfile's
+  // own ensureUserProfile call the next time the profile is read.
+  const ensureProfileExists = (currentUser: User | null) => {
+    if (!currentUser) {
+      return;
+    }
+    apiRequest('/api/profile/ensure', { method: 'POST' }).catch((error) => {
+      console.warn('[AuthContext] Failed to ensure user profile:', error);
+    });
+  };
+
   useEffect(() => {
     let unsubscribe: (() => void) | undefined;
     const analyticsTracker = getAnalyticsTracker();
@@ -135,6 +159,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           setUser(user);
           userRef.current = user;
           broadcastAuthTokenToExtension(user);
+          ensureProfileExists(user);
 
           analyticsTracker.setUserProperties({
             platform: 'web',
@@ -286,6 +311,24 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  const verifyResetPasswordCodeHandler = async (oobCode: string): Promise<string> => {
+    try {
+      return await verifyResetPasswordCode(oobCode);
+    } catch (error) {
+      console.error('[AuthContext] Password reset code verification failed:', error);
+      throw error;
+    }
+  };
+
+  const confirmResetPasswordHandler = async (oobCode: string, newPassword: string): Promise<void> => {
+    try {
+      await confirmResetPassword(oobCode, newPassword);
+    } catch (error) {
+      console.error('[AuthContext] Password reset confirmation failed:', error);
+      throw error;
+    }
+  };
+
   const sendEmailVerification = async (): Promise<void> => {
     if (!user) {
       throw new Error('No user is currently signed in');
@@ -310,6 +353,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  const reauthenticateWithPasswordHandler = async (currentPassword: string): Promise<void> => {
+    if (!user) {
+      throw new Error('No user is currently signed in');
+    }
+    try {
+      await firebaseReauthenticateWithPassword(user, currentPassword);
+    } catch (error) {
+      console.error('[AuthContext] Re-authentication failed:', error);
+      throw error;
+    }
+  };
+
   const value: AuthContextType = {
     user,
     loading,
@@ -320,8 +375,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     signInWithApple,
     signOut,
     resetPassword: resetPasswordHandler,
+    verifyResetPasswordCode: verifyResetPasswordCodeHandler,
+    confirmResetPassword: confirmResetPasswordHandler,
     sendEmailVerification,
     updatePassword,
+    reauthenticateWithPassword: reauthenticateWithPasswordHandler,
     isAuthenticated: !!user,
   };
 

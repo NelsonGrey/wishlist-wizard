@@ -191,7 +191,7 @@ describe('AppRouter Smoke Tests', () => {
       render(<AppRouter />);
 
       await waitFor(() => {
-        expect(screen.getByText('Something Amazing is')).toBeInTheDocument();
+        expect(screen.getByRole('heading', { name: "We'll Be Right Back" })).toBeInTheDocument();
       });
     });
 
@@ -202,7 +202,7 @@ describe('AppRouter Smoke Tests', () => {
       render(<AppRouter />);
 
       await waitFor(() => {
-        expect(screen.queryByText('Something Amazing is')).not.toBeInTheDocument();
+        expect(screen.queryByRole('heading', { name: "We'll Be Right Back" })).not.toBeInTheDocument();
       });
     });
 
@@ -213,7 +213,7 @@ describe('AppRouter Smoke Tests', () => {
       render(<AppRouter />);
 
       await waitFor(() => {
-        expect(screen.queryByText('Something Amazing is')).not.toBeInTheDocument();
+        expect(screen.queryByRole('heading', { name: "We'll Be Right Back" })).not.toBeInTheDocument();
       });
     });
 
@@ -224,7 +224,7 @@ describe('AppRouter Smoke Tests', () => {
       render(<AppRouter />);
 
       await waitFor(() => {
-        expect(screen.queryByText('Something Amazing is')).not.toBeInTheDocument();
+        expect(screen.queryByRole('heading', { name: "We'll Be Right Back" })).not.toBeInTheDocument();
       });
     });
   });
