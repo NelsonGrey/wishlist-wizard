@@ -227,8 +227,8 @@ test.describe('Tier 1: Basic Features', () => {
     // to /app/wishlists, not /app/dashboard — see AppRouter.tsx), so no
     // navigation happens on success: the dialog closes and the new card
     // appears in place on the same page. There is no URL change to wait for.
-    // 20s not 10s: App Check's reCAPTCHA v3 challenge runs before the actual
-    // create request fires and can itself take several seconds under load.
+    // 20s not 10s: create-then-render has been observed taking several
+    // seconds under load.
     await expect(findWishlistCardByName(wishlistName)).toBeVisible({ timeout: 20000 });
   });
 
@@ -269,8 +269,8 @@ test.describe('Tier 1: Basic Features', () => {
       // Editing happens in place on the Wishlists list; forcing a reload here
       // (as this used to do) raced the in-flight update request the same way
       // the create flow did - see ensureWishlistExists. Wait for the updated
-      // card in place instead. 20s not 10s: App Check's reCAPTCHA v3
-      // challenge can itself take several seconds under load.
+      // card in place instead. 20s not 10s: update-then-render has been
+      // observed taking several seconds under load.
       await expect(findWishlistCardByName(updatedName)).toBeVisible({ timeout: 20000 });
       return;
     }

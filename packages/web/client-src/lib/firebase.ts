@@ -175,27 +175,6 @@ let firebaseConfig = {
     import.meta.env.VITE_FIREBASE_MEASUREMENT_ID_PRODUCTION,
     import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
   ) || undefined,
-  // App Check: enforced server-side on Auth/Firestore/Storage in
-  // wishlist-wizard-dev as of 2026-07-18; wiring the client through so real
-  // requests aren't rejected. appCheckDebugToken lets local dev / automated
-  // E2E tests pass without solving a real reCAPTCHA challenge — it must
-  // match a token already registered for this app (see
-  // e2e/fixtures/bootstrap.ts / .env.local for the local one).
-  appCheckSiteKey: pickEnvValue(
-    import.meta.env.VITE_FIREBASE_APPCHECK_SITE_KEY_DEVELOPMENT,
-    import.meta.env.VITE_FIREBASE_APPCHECK_SITE_KEY_STAGING,
-    import.meta.env.VITE_FIREBASE_APPCHECK_SITE_KEY_PRODUCTION,
-    import.meta.env.VITE_FIREBASE_APPCHECK_SITE_KEY
-  ) || undefined,
-  // Deliberately NOT gated on import.meta.env.DEV (Vite's local-dev-server
-  // flag) — that's false in every deployed bundle, including the dev
-  // project's own deployed build, which is exactly what the automated E2E
-  // suite hits (a real reCAPTCHA v3 challenge reliably gets scored as bot
-  // traffic and rejected server-side for a headless browser, see the T1.4
-  // Create Wishlist CI failure this fixed). Safe to leave ungated: the value
-  // only exists at all when a build's own env explicitly sets it, which
-  // must never happen for the production build.
-  appCheckDebugToken: import.meta.env.VITE_FIREBASE_APPCHECK_DEBUG_TOKEN || undefined,
 };
 
 function mergeWithRuntimeFirebaseConfig(runtimeConfig: Record<string, unknown>) {
@@ -288,16 +267,6 @@ export let firebaseFirestore: Firestore | null = null;
 export let firebaseStorage: FirebaseStorage | null = null;
 let analyticsInitialized = false;
 let remoteConfigInitialized = false;
-
-/**
- * The initialized App Check instance, if App Check is configured — needed by
- * callers that make raw fetch() requests (e.g. the api router) instead of
- * going through the Firebase Functions SDK, since httpsCallable() attaches
- * the App Check token automatically but a plain fetch() does not.
- */
-export function getFirebaseAppCheck() {
-  return firebaseClient?.appCheck ?? null;
-}
 
 function ensureFirebaseCoreInitialized(): boolean {
   if (firebaseClient) {
