@@ -875,16 +875,10 @@ jobs:
     # single-reference condition is still better practice, but don't
     # assume this line is why deploy-firebase runs or doesn't.
     if: needs.load-config.outputs.should_deploy_firebase == 'true'
-    uses: ./.github/workflows/firebase-deploy-local.yml
-    with:
-      project_name: ${{ needs.load-config.outputs.project_name }}
-      environment: ${{ needs.load-config.outputs.target_environment }}
-      deploy_rules: true
-    secrets:
-      firebase_project_dev: ${{ secrets.FIREBASE_PROJECT_DEV }}
-      firebase_project_staging: ${{ secrets.FIREBASE_PROJECT_STAGING }}
-      firebase_project_prod: ${{ secrets.FIREBASE_PROJECT_PROD }}
-      functions_repo_pat: ${{ secrets.FUNCTIONS_REPO_PAT }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Debug isolation: is this a uses-job problem?"
+        run: echo "deploy-firebase ran as a plain job"
 
   validate-production:
     name: Validate Production Deployment
