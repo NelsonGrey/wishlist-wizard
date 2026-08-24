@@ -1,47 +1,47 @@
 import { Sparkles } from "lucide-react";
+import Footer from "@/components/Footer";
 
 /**
  * Shown in place of the marketing route group when the marketing_offline
  * Remote Config flag is on (see hooks/useMarketingOffline). Legal/support
  * pages, auth pages, and the app itself are not gated by this — see
  * lib/marketingRoutes.ts and AppRouter.tsx's MarketingRoutesGate.
+ *
+ * Deliberately generic copy ("We'll Be Right Back") rather than "Coming
+ * Soon" — this same flag and page get reused post-launch for planned
+ * full-site maintenance windows, not just the pre-launch state.
+ *
+ * Reuses the real Footer (legal links stay reachable, and it inherits any
+ * future brand changes automatically) but keeps a bare, nav-less header —
+ * every other marketing route is gated too, so there's nowhere for a nav
+ * link to usefully go.
  */
 export default function MarketingHoldingPage() {
   return (
     <div className="min-h-screen bg-white flex flex-col">
-      <header className="border-b bg-white/80 backdrop-blur-sm">
-        <div className="site-container flex items-center space-x-2 py-4">
-          <Sparkles className="h-8 w-8 text-blue-600" />
-          <span className="text-2xl font-bold text-gray-900">Wishlist Wizard</span>
-          <span className="ml-2 inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-800">
-            Coming Soon
-          </span>
+      <header className="border-b border-gray-200 bg-white">
+        <div className="site-container flex items-center py-4">
+          <img src="/logo.svg" alt="Wishlist Wizard" className="h-9 w-9 mr-2.5" />
+          <span className="font-bold text-xl tracking-tight text-emerald-800">Wishlist Wizard</span>
         </div>
       </header>
 
-      <main className="flex-1 flex items-center justify-center mx-auto w-full max-w-[var(--site-content-width)] bg-gradient-to-br from-blue-50 via-white to-purple-50 px-4 py-20">
-        <div className="text-center max-w-2xl">
-          <Sparkles className="h-16 w-16 text-blue-600 mx-auto mb-6" />
-          <h1 className="text-5xl md:text-6xl font-bold text-gray-900 mb-6">
-            Something Amazing is
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600"> Coming Soon</span>
-          </h1>
-          <p className="text-xl text-gray-600">
-            We're building the ultimate wishlist management platform that makes shopping,
-            sharing, and gifting more delightful than ever before.
-          </p>
+      <main className="flex-1 flex items-center bg-white px-4 py-16">
+        <div className="site-container">
+          <div className="mx-auto max-w-2xl rounded-lg border border-emerald-100 bg-emerald-900 px-6 py-12 text-center text-white shadow-sm sm:px-10 sm:py-16">
+            <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-emerald-200/50 bg-white/10 px-4 py-2 text-sm font-semibold text-emerald-50">
+              <Sparkles className="h-4 w-4 text-emerald-100" />
+              We'll Be Right Back
+            </div>
+            <h1 className="text-4xl font-extrabold leading-tight sm:text-5xl">We'll Be Right Back</h1>
+            <p className="mt-4 text-lg leading-7 text-slate-200">
+              We're working behind the scenes to make Wishlist Wizard even better. Thanks for your patience.
+            </p>
+          </div>
         </div>
       </main>
 
-      <footer className="bg-gray-900 text-white py-8 px-4">
-        <div className="site-container text-center">
-          <div className="flex items-center justify-center space-x-2 mb-2">
-            <Sparkles className="h-5 w-5" />
-            <span className="text-lg font-bold">Wishlist Wizard</span>
-          </div>
-          <p className="text-sm text-gray-400">Coming soon to a browser near you.</p>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }
