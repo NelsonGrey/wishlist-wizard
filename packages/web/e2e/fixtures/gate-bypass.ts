@@ -1,4 +1,4 @@
-import { test } from '@playwright/test';
+import { test, Page } from '@playwright/test';
 
 /**
  * Staging is gated behind EnvironmentPasswordGate (see
@@ -9,11 +9,8 @@ import { test } from '@playwright/test';
  * flag the gate sets on a successful unlock, before the app's own scripts
  * run on every navigation — this only ever matters on staging (the only
  * entry in PROTECTED_ENVIRONMENTS), so it's a no-op everywhere else.
- *
- * Importing this module for its side effect (`import
- * './fixtures/gate-bypass'`) registers the hook for that spec file.
  */
-test.beforeEach(async ({ page }) => {
+export async function seedGateBypass(page: Page): Promise<void> {
   await page.addInitScript(() => {
     try {
       sessionStorage.setItem('ww:env-password-unlocked:staging', 'true');
@@ -22,4 +19,17 @@ test.beforeEach(async ({ page }) => {
       // fails with a clear timeout, same as before this fixture existed.
     }
   });
+}
+
+/**
+ * For spec files that use Playwright's injected `page` fixture directly.
+ * Importing this module for its side effect (`import
+ * './fixtures/gate-bypass'`) registers the hook for that spec file.
+ *
+ * Files that create their own page manually (e.g. via `browser.newPage()`
+ * in a `beforeAll`) must call `seedGateBypass(page)` on that page instead —
+ * this hook only reaches the fixture-provided `page`.
+ */
+test.beforeEach(async ({ page }) => {
+  await seedGateBypass(page);
 });
