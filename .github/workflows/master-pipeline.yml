@@ -873,14 +873,11 @@ jobs:
     # even `if: true` skipped when build-web was a dependency, and
     # removing just that one dependency (nothing else) fixed it
     # immediately. Real cause unknown; this is an empirically-found
-    # workaround, not a diagnosis. This job only deploys
-    # functions/firestore (see firebase-deploy-local.yml) — it does NOT
-    # deploy Hosting, which needs the web build build-web produces.
-    # Hosting deploy currently has no working automated path (the old
-    # token-based firebase-hosting-staging.yml/firebase-hosting-merge.yml
-    # workflows are broken — expired FIREBASE_TOKEN) and needs to be
-    # solved separately, ideally without re-introducing a needs: build-web
-    # dependency here.
+    # workaround, not a diagnosis. This job deploys functions/firestore AND
+    # Hosting (firebase-deploy-local.yml builds the web app itself, fetching
+    # Firebase config live via the Management API instead of depending on
+    # build-web's artifact) — don't reintroduce a needs: build-web
+    # dependency to "share" a build; it will silently break this job again.
     needs: [load-config]
     if: needs.load-config.outputs.should_deploy_firebase == 'true'
     uses: ./.github/workflows/firebase-deploy-local.yml
@@ -893,6 +890,11 @@ jobs:
       firebase_project_staging: ${{ secrets.FIREBASE_PROJECT_STAGING }}
       firebase_project_prod: ${{ secrets.FIREBASE_PROJECT_PROD }}
       functions_repo_pat: ${{ secrets.FUNCTIONS_REPO_PAT }}
+      stripe_publishable_key_development: ${{ secrets.VITE_STRIPE_PUBLISHABLE_KEY_DEVELOPMENT }}
+      stripe_publishable_key_staging: ${{ secrets.VITE_STRIPE_PUBLISHABLE_KEY_STAGING }}
+      stripe_publishable_key_production: ${{ secrets.VITE_STRIPE_PUBLISHABLE_KEY_PRODUCTION }}
+      non_prod_site_password_development: ${{ secrets.NON_PROD_SITE_PASSWORD_DEVELOPMENT }}
+      non_prod_site_password_staging: ${{ secrets.NON_PROD_SITE_PASSWORD_STAGING }}
 
   validate-production:
     name: Validate Production Deployment
