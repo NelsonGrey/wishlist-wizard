@@ -13,10 +13,8 @@ This document describes the actual GitHub Actions CI/CD setup for Wishlist Wizar
 | File | Trigger | Purpose |
 |------|---------|---------|
 | `master-pipeline.yml` | `push` to `staging`/`main` (path-filtered), `pull_request` to `develop`/`staging`/`main`, `workflow_dispatch` | Main pipeline: test, quality gate, build web/iOS/Android/Chrome extension, deploy Firebase Functions + Hosting, deploy Android (internal track), build iOS (TestFlight) |
-| `firebase-deploy-local.yml` | `workflow_call` (reusable) | Checks out the functions companion repo and deploys Firebase Functions for a given environment; called by `master-pipeline.yml` and `release-readiness-gate.yml` |
-| `firebase-hosting-dev.yml` | `push` to `develop` | Deploys the web app to Firebase Hosting on the dev project |
-| `firebase-hosting-staging.yml` | `push` to `staging` | Deploys the web app to Firebase Hosting on the staging project |
-| `firebase-hosting-merge.yml` | `push` to `main` | Deploys the web app to Firebase Hosting on the production project |
+| `firebase-deploy-local.yml` | `workflow_call` (reusable) | Checks out the functions companion repo, deploys Firebase Functions/Firestore for a given environment, builds the web app (fetching its Firebase config live from the Management API via the same WIF credentials, rather than storing per-environment `VITE_FIREBASE_*` secrets), and deploys Hosting; called by `master-pipeline.yml` and `release-readiness-gate.yml` |
+| `firebase-hosting-dev.yml` | `push` to `develop` | Deploys the web app to Firebase Hosting on the dev project (staging/main's equivalents, `firebase-hosting-staging.yml`/`firebase-hosting-merge.yml`, were retired 2026-08-25 — broken/redundant once `firebase-deploy-local.yml` started deploying Hosting) |
 | `secret-scan.yml` | `push`/`pull_request` on `main`/`staging`/`develop`, `workflow_dispatch` | Gitleaks secret scanning |
 | `codeql.yml` | `push`/`pull_request` on `main`/`staging`/`develop`, weekly `schedule`, `workflow_dispatch` | CodeQL static analysis (CodeQL Advanced) |
 | `release-readiness-gate.yml` | `workflow_dispatch` (manual) | Production launch readiness gate — checks out the functions companion repo and validates the release is safe to ship |
@@ -68,9 +66,9 @@ Because `packages/functions/` is gitignored (see `.gitignore`), any job that nee
 
 This happens in four places today: `master-pipeline.yml`'s `test` job, its `build-web` job, the reusable `firebase-deploy-local.yml`, and `release-readiness-gate.yml`. If you're reproducing a CI job locally or writing a new workflow that touches `packages/functions`, you need this checkout step (with a PAT that has read access to the companion repo) before `npm ci` will succeed.
 
-## 🛡️ App Check & Auth Notes Relevant to CI
+## 🛡️ Auth Notes Relevant to CI
 
-- App Check is wired into every web hosting deploy path (`firebase-hosting-dev.yml`, `firebase-hosting-staging.yml`, `firebase-hosting-merge.yml`, and `master-pipeline.yml`'s web build) and into the iOS build. Android has App Check integration in code but it is unverified (no test device available) — treat it as on hold, not confirmed working.
+- Firebase App Check was removed entirely 2026-08-24 (web, iOS, and backend enforcement) — it caused more operational friction (headless-browser reCAPTCHA failures, CI blockers) than the protection was worth, matching the same decision already made on this org's other two projects. No workflow does anything App-Check-related anymore.
 - Password policy is not managed by application code or CI — it's read live from the Firebase Auth console via the `validatePassword()` SDK call in `packages/web/client-src/lib/firebase.ts`. There is nothing to configure in a workflow for this.
 
 ## 💰 Cost
