@@ -34,6 +34,16 @@ on:
         required: false
       functions_repo_pat:
         required: true
+      stripe_publishable_key_development:
+        required: false
+      stripe_publishable_key_staging:
+        required: false
+      stripe_publishable_key_production:
+        required: false
+      non_prod_site_password_development:
+        required: false
+      non_prod_site_password_staging:
+        required: false
 
 jobs:
   deploy-firebase:
@@ -79,10 +89,12 @@ jobs:
       # org's iam.disableServiceAccountKeyCreation policy. The identity pool
       # provider is scoped (via an attribute condition) to only this repo.
       - name: Authenticate to Google Cloud
+        id: auth
         uses: google-github-actions/auth@v3
         with:
           workload_identity_provider: projects/1055615167809/locations/global/workloadIdentityPools/github-actions-pool/providers/github-actions-provider
           service_account: github-actions-deploy@wishlist-wizard-dev.iam.gserviceaccount.com
+          token_format: access_token
 
       - name: Enforce No Data Migration Policy
         run: |
@@ -123,6 +135,7 @@ jobs:
         run: |
           npm ci --legacy-peer-deps 2>/dev/null || npm ci --force
           npm run build --workspace=@wishlist-wizard/shared
+          npm run build --workspace=@shared/firebase-utils
           npm run build --workspace=functions
 
       - name: Deploy Firebase Functions
@@ -167,4 +180,109 @@ jobs:
             --only=firestore:indexes \
             --message="Firestore indexes deployment for ${{ inputs.project_name }} to ${{ inputs.environment }}" \
             --force \
+            --non-interactive
+
+      # Firebase Hosting has never had a working automated deploy path since
+      # the WIF migration (this job used to stop at functions/firestore) —
+      # the old token-based firebase-hosting-*.yml workflows that used to
+      # cover it are broken (expired FIREBASE_TOKEN). This closes that gap
+      # using the same WIF credentials already authenticated above, instead
+      # of reviving the deprecated token flow.
+      #
+      # Fetches the real Firebase Web SDK config (apiKey, authDomain, etc.)
+      # live from the Firebase Management API rather than storing 21
+      # VITE_FIREBASE_*_{DEVELOPMENT,STAGING,PRODUCTION} secrets here —
+      # these values are safe to expose client-side by design (Firebase's
+      # own docs), so fetching them fresh avoids secret drift entirely.
+      - name: Fetch Firebase Web App Config
+        id: webconfig
+        run: |
+          set -euo pipefail
+          PROJECT_ID="${{ steps.config.outputs.project_id }}"
+          TOKEN="${{ steps.auth.outputs.access_token }}"
+
+          APP_ID="$(curl -sf -H "Authorization: Bearer $TOKEN" -H "x-goog-user-project: $PROJECT_ID" \
+            "https://firebase.googleapis.com/v1beta1/projects/$PROJECT_ID/webApps" \
+            | node -e 'let d="";process.stdin.on("data",c=>d+=c);process.stdin.on("end",()=>{const o=JSON.parse(d);process.stdout.write((o.apps&&o.apps[0]&&o.apps[0].appId)||"");})')"
+
+          if [ -z "$APP_ID" ]; then
+            echo "::error::No web app registered for Firebase project $PROJECT_ID"
+            exit 1
+          fi
+
+          curl -sf -H "Authorization: Bearer $TOKEN" -H "x-goog-user-project: $PROJECT_ID" \
+            "https://firebase.googleapis.com/v1beta1/projects/$PROJECT_ID/webApps/$APP_ID/config" \
+            | node -e '
+                let d="";process.stdin.on("data",c=>d+=c);process.stdin.on("end",()=>{
+                  const c = JSON.parse(d);
+                  const fs = require("fs");
+                  const lines = [
+                    `api_key=${c.apiKey||""}`,
+                    `auth_domain=${c.authDomain||""}`,
+                    `project_id=${c.projectId||""}`,
+                    `storage_bucket=${c.storageBucket||""}`,
+                    `messaging_sender_id=${c.messagingSenderId||""}`,
+                    `app_id=${c.appId||""}`,
+                    `measurement_id=${c.measurementId||""}`,
+                  ];
+                  fs.appendFileSync(process.env.GITHUB_OUTPUT, lines.join("\n") + "\n");
+                });
+              '
+
+      - name: Resolve Web Build Secrets
+        id: web_secrets
+        run: |
+          case "${{ inputs.environment }}" in
+            production)
+              echo "stripe_key=${{ secrets.stripe_publishable_key_production }}" >> $GITHUB_OUTPUT
+              echo "site_password=" >> $GITHUB_OUTPUT
+              ;;
+            staging)
+              echo "stripe_key=${{ secrets.stripe_publishable_key_staging }}" >> $GITHUB_OUTPUT
+              echo "site_password=${{ secrets.non_prod_site_password_staging }}" >> $GITHUB_OUTPUT
+              ;;
+            *)
+              echo "stripe_key=${{ secrets.stripe_publishable_key_development }}" >> $GITHUB_OUTPUT
+              echo "site_password=${{ secrets.non_prod_site_password_development }}" >> $GITHUB_OUTPUT
+              ;;
+          esac
+
+      - name: Build Web App
+        env:
+          VITE_ENVIRONMENT: ${{ inputs.environment }}
+          VITE_FIREBASE_API_KEY_DEVELOPMENT: ${{ inputs.environment == 'development' && steps.webconfig.outputs.api_key || '' }}
+          VITE_FIREBASE_AUTH_DOMAIN_DEVELOPMENT: ${{ inputs.environment == 'development' && steps.webconfig.outputs.auth_domain || '' }}
+          VITE_FIREBASE_PROJECT_ID_DEVELOPMENT: ${{ inputs.environment == 'development' && steps.webconfig.outputs.project_id || '' }}
+          VITE_FIREBASE_STORAGE_BUCKET_DEVELOPMENT: ${{ inputs.environment == 'development' && steps.webconfig.outputs.storage_bucket || '' }}
+          VITE_FIREBASE_MESSAGING_SENDER_ID_DEVELOPMENT: ${{ inputs.environment == 'development' && steps.webconfig.outputs.messaging_sender_id || '' }}
+          VITE_FIREBASE_APP_ID_DEVELOPMENT: ${{ inputs.environment == 'development' && steps.webconfig.outputs.app_id || '' }}
+          VITE_FIREBASE_MEASUREMENT_ID_DEVELOPMENT: ${{ inputs.environment == 'development' && steps.webconfig.outputs.measurement_id || '' }}
+          VITE_FIREBASE_API_KEY_STAGING: ${{ inputs.environment == 'staging' && steps.webconfig.outputs.api_key || '' }}
+          VITE_FIREBASE_AUTH_DOMAIN_STAGING: ${{ inputs.environment == 'staging' && steps.webconfig.outputs.auth_domain || '' }}
+          VITE_FIREBASE_PROJECT_ID_STAGING: ${{ inputs.environment == 'staging' && steps.webconfig.outputs.project_id || '' }}
+          VITE_FIREBASE_STORAGE_BUCKET_STAGING: ${{ inputs.environment == 'staging' && steps.webconfig.outputs.storage_bucket || '' }}
+          VITE_FIREBASE_MESSAGING_SENDER_ID_STAGING: ${{ inputs.environment == 'staging' && steps.webconfig.outputs.messaging_sender_id || '' }}
+          VITE_FIREBASE_APP_ID_STAGING: ${{ inputs.environment == 'staging' && steps.webconfig.outputs.app_id || '' }}
+          VITE_FIREBASE_MEASUREMENT_ID_STAGING: ${{ inputs.environment == 'staging' && steps.webconfig.outputs.measurement_id || '' }}
+          VITE_FIREBASE_API_KEY_PRODUCTION: ${{ inputs.environment == 'production' && steps.webconfig.outputs.api_key || '' }}
+          VITE_FIREBASE_AUTH_DOMAIN_PRODUCTION: ${{ inputs.environment == 'production' && steps.webconfig.outputs.auth_domain || '' }}
+          VITE_FIREBASE_PROJECT_ID_PRODUCTION: ${{ inputs.environment == 'production' && steps.webconfig.outputs.project_id || '' }}
+          VITE_FIREBASE_STORAGE_BUCKET_PRODUCTION: ${{ inputs.environment == 'production' && steps.webconfig.outputs.storage_bucket || '' }}
+          VITE_FIREBASE_MESSAGING_SENDER_ID_PRODUCTION: ${{ inputs.environment == 'production' && steps.webconfig.outputs.messaging_sender_id || '' }}
+          VITE_FIREBASE_APP_ID_PRODUCTION: ${{ inputs.environment == 'production' && steps.webconfig.outputs.app_id || '' }}
+          VITE_FIREBASE_MEASUREMENT_ID_PRODUCTION: ${{ inputs.environment == 'production' && steps.webconfig.outputs.measurement_id || '' }}
+          VITE_STRIPE_PUBLISHABLE_KEY: ${{ steps.web_secrets.outputs.stripe_key }}
+          VITE_NON_PROD_SITE_PASSWORD: ${{ steps.web_secrets.outputs.site_password }}
+        run: npm run build --workspace=@wishlist-wizard/web
+
+      - name: Deploy Firebase Hosting
+        run: |
+          if [ -f "${{ steps.config.outputs.config_file }}" ]; then
+            cp "${{ steps.config.outputs.config_file }}" firebase.json
+          fi
+
+          firebase deploy \
+            --project="${{ steps.config.outputs.project_id }}" \
+            --only=hosting \
+            --message="Hosting deployment from GitHub Actions for ${{ inputs.project_name }} to ${{ inputs.environment }}" \
             --non-interactive
