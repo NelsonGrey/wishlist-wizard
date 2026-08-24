@@ -36,17 +36,15 @@ Staging Environment
   Firebase Project: wishlist-wizard-staging
   URL:              https://wishlist-wizard-staging.web.app
   Branch:           staging
-  Deploy path:      firebase-hosting-staging.yml (Hosting) +
-                     master-pipeline.yml (Functions, Android internal
-                     track, iOS TestFlight "Staging" group)
+  Deploy path:      master-pipeline.yml (Hosting, Functions, Android
+                     internal track, iOS TestFlight "Staging" group)
 
 Production Environment
   Firebase Project: wishlist-wizard-prod
   URL:              https://wishlist-wizard.com / wishlist-wizard-prod.web.app
   Branch:           main
-  Deploy path:      firebase-hosting-merge.yml (Hosting) +
-                     master-pipeline.yml (Functions, Android internal
-                     track, iOS TestFlight "Beta Testers" group)
+  Deploy path:      master-pipeline.yml (Hosting, Functions, Android
+                     internal track, iOS TestFlight "Beta Testers" group)
 ```
 
 ---
@@ -61,9 +59,7 @@ All automatic deployment runs on **GitHub-hosted runners** through GitHub Action
 |------|---------|---------------|
 | `master-pipeline.yml` | `push` to `staging`/`main` (path-filtered), `pull_request`, `workflow_dispatch` | Build/test/quality-gate, then deploys Firebase Functions + Hosting, Android (Play Store internal track), iOS (TestFlight); Chrome extension publish only on the `build_and_deploy` dispatch action |
 | `firebase-hosting-dev.yml` | `push` to `develop` | Deploys web app to Firebase Hosting on the dev project (this is `develop`'s only automatic deploy — it does **not** run `master-pipeline.yml`) |
-| `firebase-hosting-staging.yml` | `push` to `staging` | Deploys web app to Firebase Hosting on the staging project |
-| `firebase-hosting-merge.yml` | `push` to `main` | Deploys web app to Firebase Hosting on the production project |
-| `firebase-deploy-local.yml` | `workflow_call` (reusable) | Checks out the functions companion repo and deploys Firebase Functions |
+| `firebase-deploy-local.yml` | `workflow_call` (reusable) | Checks out the functions companion repo, deploys Firebase Functions/Firestore, builds the web app (fetching its Firebase config live from the Management API) and deploys Hosting — called by `master-pipeline.yml`'s `firebase-deploy-v2` job |
 | `release-readiness-gate.yml` | `workflow_dispatch` (manual) | Pre-launch readiness gate, run deliberately before a production release |
 
 `master-pipeline.yml` maps branches to environments: `refs/heads/main` → `production`, `refs/heads/staging` → `staging`. `develop` is deliberately excluded from that workflow's push trigger, so it never drives a Functions deploy automatically — only the lighter-weight Hosting-only deploy above.

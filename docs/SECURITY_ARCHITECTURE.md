@@ -63,20 +63,9 @@ Password policy and storage are entirely delegated to **Firebase Authentication*
 
 ---
 
-## 🔐 App Check
+## 🔐 App Check (removed)
 
-Firebase App Check is used to verify that requests to Auth, Firestore, and callable Functions come from the genuine app, not a script or forged client.
-
-**Platform coverage**:
-- **Web**: live and enforced. Uses the reCAPTCHA v3 provider, initialized with `VITE_FIREBASE_APPCHECK_SITE_KEY` in `packages/web/client-src/lib/firebase.ts` / `packages/firebase-utils/src/client.ts`. Wired into all three web hosting deploy paths (`firebase-hosting-dev.yml`, `firebase-hosting-staging.yml`, `firebase-hosting-merge.yml`) plus `master-pipeline.yml`'s own web build/deploy.
-- **iOS**: live and enforced.
-- **Android**: integration exists in the mobile app's code, but is currently **unverified** — there's no test device available to confirm it end-to-end, so treat Android App Check as on hold rather than confirmed working.
-
-**Requests that bypass the SDK**: `httpsCallable()` attaches the App Check token automatically, but code that makes a raw `fetch()` (e.g. against the `api` router pattern used for some endpoints) must attach the token manually — see `getFirebaseAppCheck()` in `packages/web/client-src/lib/firebase.ts`.
-
-**Debug tokens**: `VITE_FIREBASE_APPCHECK_DEBUG_TOKEN` (dev-only, gated behind `import.meta.env.DEV`) lets local development and automated E2E tests pass App Check without solving a real reCAPTCHA challenge, by registering as a pre-approved debug client.
-
-**Incident history**: App Check enforcement on the dev/staging Firebase projects once blocked real app traffic — a 2026-07-18 incident where enabling server-side enforcement without the client wired through broke `createWishlist` and other calls on staging until the client-side integration above was added. Any future project that turns on App Check enforcement server-side must have the corresponding client wiring shipped first (or simultaneously), not after.
+Firebase App Check was used from 2026-07-18 to 2026-08-24 to verify that requests to Auth, Firestore, and callable Functions came from the genuine app. It was **removed entirely** on 2026-08-24 — web, iOS, and backend enforcement all gone — because it caused more operational friction than the protection was worth (reCAPTCHA v3 reliably scores headless/CI browsers as bot traffic, which repeatedly blocked automated testing and deploys). The same tradeoff had already led to App Check being disabled on this org's other two projects; this just brought wishlist-wizard in line with that decision. There is currently no equivalent anti-abuse check on these endpoints — if bot/abuse protection is needed again later, don't default back to App Check without confirming the friction won't recur; consider alternatives like rate limiting instead.
 
 ---
 
