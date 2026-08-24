@@ -869,10 +869,12 @@ jobs:
     name: Deploy Firebase
     needs: [load-config, build-web]
     # Single output reference, not a compound &&/|| expression — see
-    # "Compute Deploy Gate" in load-config for why (an observed GitHub
-    # Actions quirk with `uses:` reusable-workflow-call jobs and compound
-    # if: conditions referencing needs.*.outputs).
-    if: true
+    # "Compute Deploy Gate" in load-config. NOTE: isolated 2026-08-24 and
+    # this did NOT fix the underlying issue (even `if: true` still skips
+    # this job) — the real cause is still unknown. Kept anyway since a
+    # single-reference condition is still better practice, but don't
+    # assume this line is why deploy-firebase runs or doesn't.
+    if: needs.load-config.outputs.should_deploy_firebase == 'true'
     uses: ./.github/workflows/firebase-deploy-local.yml
     with:
       project_name: ${{ needs.load-config.outputs.project_name }}
