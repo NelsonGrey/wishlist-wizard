@@ -131,6 +131,14 @@ test.describe('Tier 1: Basic Features', () => {
   let isAuthenticated = false;
 
   test.beforeAll(async ({ browser }: { browser: any }) => {
+    // Default 30s hook timeout is too tight here: by the time this runs,
+    // auth-flow.spec.ts has already registered one fresh user against the
+    // same real staging Firebase Auth/App Check backend moments earlier
+    // (CI runs workers=1, so files run sequentially) — a second signup in
+    // quick succession plausibly hits extra challenge friction, the same
+    // kind of real-backend latency already tuned around elsewhere in this
+    // file (see the 20s note on ensureWishlistExists below).
+    test.setTimeout(60_000);
     page = await browser.newPage();
     // Run once up front rather than letting each test silently discover this
     // on its own: every test below opens with `if (await
