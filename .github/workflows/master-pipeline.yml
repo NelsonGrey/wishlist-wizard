@@ -867,12 +867,32 @@ jobs:
 
   firebase-deploy-v2:
     name: Deploy Firebase
+    # NOT depending on build-web deliberately: confirmed via extensive
+    # isolation testing on 2026-08-24 that including build-web in this
+    # job's `needs:` causes GitHub Actions to skip it unconditionally —
+    # even `if: true` skipped when build-web was a dependency, and
+    # removing just that one dependency (nothing else) fixed it
+    # immediately. Real cause unknown; this is an empirically-found
+    # workaround, not a diagnosis. This job only deploys
+    # functions/firestore (see firebase-deploy-local.yml) — it does NOT
+    # deploy Hosting, which needs the web build build-web produces.
+    # Hosting deploy currently has no working automated path (the old
+    # token-based firebase-hosting-staging.yml/firebase-hosting-merge.yml
+    # workflows are broken — expired FIREBASE_TOKEN) and needs to be
+    # solved separately, ideally without re-introducing a needs: build-web
+    # dependency here.
     needs: [load-config]
     if: needs.load-config.outputs.should_deploy_firebase == 'true'
-    runs-on: ubuntu-latest
-    steps:
-      - name: "Debug isolation: is build-web the culprit?"
-        run: echo "firebase-deploy-v2 ran as a plain job"
+    uses: ./.github/workflows/firebase-deploy-local.yml
+    with:
+      project_name: ${{ needs.load-config.outputs.project_name }}
+      environment: ${{ needs.load-config.outputs.target_environment }}
+      deploy_rules: true
+    secrets:
+      firebase_project_dev: ${{ secrets.FIREBASE_PROJECT_DEV }}
+      firebase_project_staging: ${{ secrets.FIREBASE_PROJECT_STAGING }}
+      firebase_project_prod: ${{ secrets.FIREBASE_PROJECT_PROD }}
+      functions_repo_pat: ${{ secrets.FUNCTIONS_REPO_PAT }}
 
   validate-production:
     name: Validate Production Deployment
