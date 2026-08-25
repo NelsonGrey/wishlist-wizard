@@ -37,22 +37,6 @@ on:
         required: false
       FASTLANE_TEAM_ID:
         required: false
-      MATCH_GIT_BRANCH:
-        required: false
-      MATCH_GIT_URL:
-        required: false
-      MATCH_GIT_URL_TOKEN:
-        required: false
-      MATCH_GIT_PASSWORD:
-        required: false
-      MATCH_KEYCHAIN_PASSWORD:
-        required: false
-      MATCH_PASSWORD:
-        required: false
-      MATCH_SSH_PRIVATE_KEY:
-        required: false
-      NELSON_GREY_PAT:
-        required: false
   workflow_dispatch:
     inputs:
       release_type:
@@ -105,14 +89,6 @@ jobs:
       APP_STORE_CONNECT_KEY: ${{ secrets.APP_STORE_CONNECT_KEY }}
       FASTLANE_APPLE_ID: ${{ secrets.FASTLANE_APPLE_ID }}
       FASTLANE_TEAM_ID: ${{ secrets.FASTLANE_TEAM_ID }}
-      MATCH_GIT_BRANCH: ${{ secrets.MATCH_GIT_BRANCH || 'develop' }}
-      MATCH_GIT_URL: ${{ secrets.MATCH_GIT_URL }}
-      MATCH_GIT_URL_TOKEN: ${{ secrets.MATCH_GIT_URL_TOKEN }}
-      MATCH_GIT_PASSWORD: ${{ secrets.MATCH_GIT_PASSWORD }}
-      MATCH_KEYCHAIN_PASSWORD: ${{ secrets.MATCH_KEYCHAIN_PASSWORD }}
-      MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
-      MATCH_SSH_PRIVATE_KEY: ${{ secrets.MATCH_SSH_PRIVATE_KEY }}
-      NELSON_GREY_PAT: ${{ secrets.NELSON_GREY_PAT }}
 
     steps:
       - name: Checkout code
@@ -120,6 +96,21 @@ jobs:
         with:
           fetch-depth: 0
           submodules: recursive
+
+      # Xcode 16.4 has a provisioning-profile resolution bug with automatic
+      # signing (the mode used since certificates stopped being stored in a
+      # git repo via fastlane match); newer Xcode handles it correctly. Same
+      # fix applied in vehicle-vitals after hitting this directly.
+      - name: Select Xcode Version
+        run: |
+          LATEST=$(ls /Applications/ | grep -E "^Xcode_2[6-9]\.[0-9]+\.app$|^Xcode_[3-9][0-9]\.[0-9]+\.app$" | sort -t_ -k2 -V | tail -1)
+          if [ -n "$LATEST" ]; then
+            sudo xcode-select -s "/Applications/${LATEST}"
+            echo "Selected $LATEST"
+          else
+            echo "No Xcode 26+ found; using default $(xcode-select -p)"
+          fi
+          xcodebuild -version
 
       - name: Set up Ruby
         uses: ruby/setup-ruby@v1
@@ -137,65 +128,6 @@ jobs:
         run: |
           cd packages/mobile
           flutter pub get
-
-      - name: Prepare match credentials
-        run: |
-          set -euo pipefail
-
-          if [ -z "${MATCH_GIT_BRANCH:-}" ]; then
-            echo "MATCH_GIT_BRANCH=develop" >> "$GITHUB_ENV"
-          fi
-
-          MATCH_SSH_AUTH=false
-          if [ -n "${MATCH_SSH_PRIVATE_KEY:-}" ]; then
-            mkdir -p "$HOME/.ssh"
-            chmod 700 "$HOME/.ssh"
-
-            MATCH_SSH_KEY_FILE="$HOME/.ssh/match_repo_key"
-            printf '%s' "$MATCH_SSH_PRIVATE_KEY" > "$MATCH_SSH_KEY_FILE"
-            if [ -n "$(tail -c 1 "$MATCH_SSH_KEY_FILE" 2>/dev/null || true)" ]; then
-              printf '\n' >> "$MATCH_SSH_KEY_FILE"
-            fi
-            chmod 600 "$MATCH_SSH_KEY_FILE"
-
-            if ! ssh-keygen -y -f "$MATCH_SSH_KEY_FILE" >/dev/null 2>&1; then
-              echo "⚠️ MATCH_SSH_PRIVATE_KEY is invalid; falling back to URL/token auth"
-            else
-              ssh-keyscan -t rsa,ecdsa,ed25519 github.com >> "$HOME/.ssh/known_hosts" 2>/dev/null || true
-              echo "GIT_SSH_COMMAND=ssh -i $MATCH_SSH_KEY_FILE -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile=$HOME/.ssh/known_hosts" >> "$GITHUB_ENV"
-              echo "MATCH_GIT_URL=git@github.com:mnelson3/nelson-grey.git" >> "$GITHUB_ENV"
-              MATCH_SSH_AUTH=true
-            fi
-          fi
-
-          if [ "$MATCH_SSH_AUTH" != "true" ] && [ -n "${MATCH_GIT_URL:-}" ]; then
-            if [[ "$MATCH_GIT_URL" != *"@"* ]]; then
-              TOKEN="${MATCH_GIT_PASSWORD:-${MATCH_GIT_URL_TOKEN:-${NELSON_GREY_PAT:-}}}"
-              if [ -z "$TOKEN" ]; then
-                echo "❌ MATCH_GIT_URL does not include credentials and no PAT/SSH key is configured"
-                exit 1
-              fi
-
-              if [[ "$MATCH_GIT_URL" == https://* ]]; then
-                MATCH_GIT_URL="https://x-access-token:${TOKEN}@${MATCH_GIT_URL#https://}"
-              else
-                MATCH_GIT_URL="https://x-access-token:${TOKEN}@github.com/${MATCH_GIT_URL#github.com/}"
-              fi
-            fi
-
-            echo "MATCH_GIT_URL=$MATCH_GIT_URL" >> "$GITHUB_ENV"
-          elif [ "$MATCH_SSH_AUTH" != "true" ]; then
-            TOKEN="${MATCH_GIT_PASSWORD:-${MATCH_GIT_URL_TOKEN:-${NELSON_GREY_PAT:-}}}"
-            if [ -z "$TOKEN" ]; then
-              echo "❌ No match repo auth configured"
-              exit 1
-            fi
-
-            echo "MATCH_GIT_URL=https://x-access-token:${TOKEN}@github.com/mnelson3/nelson-grey.git" >> "$GITHUB_ENV"
-          fi
-
-          echo "MATCH_PASSWORD=${MATCH_PASSWORD:-}" >> "$GITHUB_ENV"
-          echo "MATCH_KEYCHAIN_PASSWORD=${MATCH_KEYCHAIN_PASSWORD:-}" >> "$GITHUB_ENV"
 
       - name: Run mobile tests
         if: ${{ !inputs.skip_tests }}
