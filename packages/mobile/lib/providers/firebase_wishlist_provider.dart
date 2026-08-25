@@ -491,6 +491,28 @@ class FirebaseWishlistProvider extends ChangeNotifier {
     }
   }
 
+  // Mark all of a user's notifications as read. Doesn't touch the local
+  // _notifications cache (unlike markNotificationAsRead above) — the
+  // notifications screen renders from getNotificationsStream, which picks
+  // up the Firestore batch update in real time regardless.
+  Future<bool> markAllNotificationsAsRead(String userId) async {
+    try {
+      return await _firestoreService.markAllNotificationsAsRead(userId);
+    } catch (e) {
+      _setError('Failed to mark all notifications as read: $e');
+      return false;
+    }
+  }
+
+  Future<bool> deleteNotification(String notificationId) async {
+    try {
+      return await _firestoreService.deleteNotification(notificationId);
+    } catch (e) {
+      _setError('Failed to delete notification: $e');
+      return false;
+    }
+  }
+
   // Private helper methods
   void _setWishlists(List<FirebaseWishlist> wishlists) {
     _wishlists.clear();
