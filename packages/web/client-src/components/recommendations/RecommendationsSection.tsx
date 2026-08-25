@@ -274,7 +274,7 @@ export default function RecommendationsSection({
         <CardContent>
           <div className="text-center py-8">
             <p className="text-gray-600 mb-4">
-              Add more items to your wishlist to get personalized recommendations.
+              Track a price on an item to start seeing similar recommendations here.
             </p>
             <Button onClick={() => refetch()} variant="outline">
               <RefreshCw className="mr-2 h-4 w-4" /> Refresh
