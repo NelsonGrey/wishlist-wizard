@@ -210,15 +210,6 @@ function ContributionForm({
   const newTotal = currentTotal + contributionAmount;
   const progressPercentage = Math.min(100, (newTotal / targetPrice) * 100);
 
-
-    if (!canContribute) {
-      toast({
-        title: "Contribution unavailable",
-        description: "This group gift is fully funded or below the minimum contribution threshold.",
-        variant: "destructive",
-      });
-      return;
-    }
   // Update progress bar width when currentTotal or targetPrice changes
   useEffect(() => {
     if (progressBarRef.current) {
@@ -527,9 +518,11 @@ export default function ContributionDialog(props: ContributionDialogProps) {
 
   return (
     <Dialog open={props.open} onOpenChange={(open) => !open && props.onClose()}>
-      <Elements stripe={stripePromise}>
-        <ContributionForm {...props} />
-      </Elements>
+      {props.open && (
+        <Elements stripe={stripePromise}>
+          <ContributionForm {...props} />
+        </Elements>
+      )}
     </Dialog>
   );
 }
