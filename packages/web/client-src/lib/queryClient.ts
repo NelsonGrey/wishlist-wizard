@@ -26,6 +26,19 @@ let functionsEmulatorConnected = false;
  * settled its first real auth state, so awaiting it before reading
  * `currentUser` closes that race for every caller, not just the ones that
  * happen to already gate on AuthContext's own `loading` flag.
+ *
+ * getIdToken() is called WITHOUT forcing a refresh — the SDK already
+ * caches the current token and proactively refreshes it in the background
+ * before real expiry, so a plain call returns instantly in the normal
+ * case. Forcing a refresh on every single call (the previous behavior)
+ * meant every page mount fired several concurrent forced-refresh calls at
+ * once (this app's dashboard alone fires 4+ authenticated queries in
+ * parallel) — confirmed via staging's Cloud Functions logs that some of
+ * those freshly-minted tokens got rejected by the backend's verification
+ * while a sibling request's slightly-older token succeeded milliseconds
+ * later on the very same warm instance, consistent with a freshly-issued
+ * token's `iat` claim being too close to "now" for the verifier's clock-
+ * skew tolerance. A cached token doesn't have that problem.
  */
 async function getAuthToken(): Promise<string | null> {
   try {
@@ -34,8 +47,7 @@ async function getAuthToken(): Promise<string | null> {
     const user = auth.currentUser;
 
     if (user) {
-      // Force refresh token to ensure it's valid
-      const token = await user.getIdToken(true);
+      const token = await user.getIdToken();
       return token;
     }
 
