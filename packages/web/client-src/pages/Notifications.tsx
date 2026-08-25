@@ -49,8 +49,8 @@ export default function Notifications() {
   
   // Mark a notification as read
   const markAsReadMutation = useMutation({
-    mutationFn: (id: number) => 
-      apiRequest(`/api/notifications/${id}/read`, { method: 'PATCH' }),
+    mutationFn: (id: number) =>
+      apiRequest(`/api/notifications/${id}/read`, { method: 'POST' }),
     onMutate: (id) => {
       setMarkingNotificationId(id);
     },

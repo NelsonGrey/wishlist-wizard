@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:wishlist_wizard_mobile/main.dart';
 import 'package:wishlist_wizard_mobile/models/models.dart';
+import 'package:wishlist_wizard_mobile/screens/notifications_screen.dart';
 
 FirebaseNotification _buildNotification({Map<String, dynamic>? metadata}) {
   return FirebaseNotification(
