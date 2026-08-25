@@ -379,9 +379,7 @@ platform :ios do
     raw_contact_phone = ENV["BETA_CONTACT_PHONE"].to_s.strip
 
     if raw_contact_phone.empty?
-      UI.message("No contact phone provided")
-    else
-      UI.message("Contact phone provided (will be recorded but not passed to upload_to_testflight)")
+      UI.message("No contact phone provided; using default beta_app_review_info contact phone")
     end
 
     # Use pilot (wrapped by upload_to_testflight)
@@ -393,6 +391,19 @@ platform :ios do
       ipa: ipa_path,
       skip_waiting_for_build_processing: true,
       beta_app_feedback_email: "mark.a.nelson@outlook.com",
+      # Required once per app before Apple allows distributing a build to an
+      # EXTERNAL testing group (distribute_external: true below) — found the
+      # hard way: the build itself succeeds and uploads fine, only the final
+      # distribute step rejects with "Beta App Description is missing" /
+      # "betaAppLocalizations not found for this app" until this is set.
+      beta_app_description: "Wishlist Wizard is a smart wishlist management app. Create and share wishlists for any occasion, track prices on items you want, and coordinate group gifting with friends and family so everyone can chip in on bigger gifts.",
+      beta_app_review_info: {
+        contact_email: ENV["BETA_FEEDBACK_EMAIL"] || "mark.a.nelson@outlook.com",
+        contact_first_name: "Mark",
+        contact_last_name: "Nelson",
+        contact_phone: raw_contact_phone.empty? ? "+16307158474" : raw_contact_phone,
+        notes: "No demo account needed — sign-in supports Google, email, or continuing as a guest."
+      },
       changelog: "Automated TestFlight build from CI/CD pipeline",
       distribute_external: true,
       groups: [ENV["BETA_GROUP_NAME"] || "Internal Testers"]
