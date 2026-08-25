@@ -40,7 +40,13 @@ class FirebaseFunctionsService {
     if (user == null) {
       throw Exception('Not signed in');
     }
-    final idToken = await user.getIdToken(true);
+    // Not forcing a refresh — the SDK already caches the current token and
+    // proactively refreshes it before real expiry. Forcing one on every
+    // call (the previous behavior) meant concurrent requests each fired
+    // their own forced-refresh, and the web app's equivalent code hit real
+    // 401s from freshly-minted tokens racing the backend's verification —
+    // see packages/web/client-src/lib/queryClient.ts's getAuthToken().
+    final idToken = await user.getIdToken();
 
     final headers = <String, String>{'Authorization': 'Bearer $idToken'};
     if (hasBody) {
