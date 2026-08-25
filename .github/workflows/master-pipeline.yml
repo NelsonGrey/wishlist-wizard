@@ -913,7 +913,7 @@ jobs:
     secrets:
       firebase_project_dev: ${{ secrets.FIREBASE_PROJECT_DEV }}
       firebase_project_staging: ${{ secrets.FIREBASE_PROJECT_STAGING }}
-      firebase_project_prod: ${{ secrets.FIREBASE_PROJECT_PROD }}
+      firebase_project_prod: ${{ secrets.FIREBASE_PROJECT_PRODUCTION }}
       functions_repo_pat: ${{ secrets.FUNCTIONS_REPO_PAT }}
       stripe_publishable_key_development: ${{ secrets.VITE_STRIPE_PUBLISHABLE_KEY_DEVELOPMENT }}
       stripe_publishable_key_staging: ${{ secrets.VITE_STRIPE_PUBLISHABLE_KEY_STAGING }}
