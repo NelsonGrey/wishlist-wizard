@@ -423,38 +423,41 @@ jobs:
 
           echo "All quality gates passed"
 
-  debug-build-ios-gate:
-    name: Debug Build iOS Gate
+  # Plain job (not a uses: reusable-workflow call) computing a single
+  # boolean — build-ios's if: must be a single needs.*.outputs reference,
+  # not a compound expression combining multiple needs.*.outputs/needs.*.result
+  # values, or GitHub Actions silently skips it regardless of the actual
+  # condition. Confirmed via a temporary debug job on 2026-08-25: even
+  # `if: true` on a plain job with needs: [load-config, quality-gate] got
+  # skipped — the same unexplained platform quirk found on deploy-firebase
+  # (see firebase-deploy-v2's comment), this time triggered by depending on
+  # quality-gate rather than build-web. Root cause still unknown.
+  ios-gate:
+    name: Compute iOS Build Gate
     needs: [load-config, quality-gate]
     if: always()
     runs-on: ubuntu-latest
+    outputs:
+      should_build: ${{ steps.gate.outputs.should_build }}
     steps:
-      - name: Print gate values
+      - name: Compute gate
+        id: gate
         run: |
-          echo "ios_enabled=[${{ needs.load-config.outputs.ios_enabled }}]"
-          echo "trigger_context=[${{ needs.load-config.outputs.trigger_context }}]"
-          echo "target_environment=[${{ needs.load-config.outputs.target_environment }}]"
-          echo "quality-gate.result=[${{ needs.quality-gate.result }}]"
-
-  debug-build-ios-plain:
-    name: Debug Build iOS Plain Job
-    needs: [load-config, quality-gate]
-    if: true
-    runs-on: ubuntu-latest
-    steps:
-      - name: Print if this ran at all
-        run: echo "debug-build-ios-plain ran — needs:[load-config, quality-gate] with if:true does NOT hit the build-web-style skip bug"
+          if [ "${{ needs.load-config.outputs.ios_enabled }}" = "true" ] && \
+             { [ "${{ needs.load-config.outputs.trigger_context }}" = "build_all" ] || \
+               [ "${{ needs.load-config.outputs.trigger_context }}" = "build_and_deploy" ]; } && \
+             { [ "${{ needs.load-config.outputs.target_environment }}" = "staging" ] || \
+               [ "${{ needs.load-config.outputs.target_environment }}" = "production" ]; } && \
+             [ "${{ needs.quality-gate.result }}" = "success" ]; then
+            echo "should_build=true" >> $GITHUB_OUTPUT
+          else
+            echo "should_build=false" >> $GITHUB_OUTPUT
+          fi
 
   build-ios:
     name: Build iOS App
-    needs: [load-config, quality-gate]
-    if: |
-      needs.load-config.outputs.ios_enabled == 'true' &&
-      (needs.load-config.outputs.trigger_context == 'build_all' ||
-       needs.load-config.outputs.trigger_context == 'build_and_deploy') &&
-      (needs.load-config.outputs.target_environment == 'staging' ||
-       needs.load-config.outputs.target_environment == 'production') &&
-      needs.quality-gate.result == 'success'
+    needs: [load-config, ios-gate]
+    if: needs.ios-gate.outputs.should_build == 'true'
     uses: ./.github/workflows/ios-mobile-release.yml
     with:
       release_type: ${{ needs.load-config.outputs.trigger_context == 'build_all' && 'build_only' || 'testflight' }}
