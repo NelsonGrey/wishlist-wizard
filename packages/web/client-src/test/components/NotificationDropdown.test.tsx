@@ -162,7 +162,7 @@ describe('NotificationDropdown', () => {
     fireEvent.click(notificationElement);
     
     // Assert - check that apiRequest was called
-    expect(apiRequest).toHaveBeenCalledWith('/api/notifications/1/read', { method: 'PATCH' });
+    expect(apiRequest).toHaveBeenCalledWith('/api/notifications/1/read', { method: 'POST' });
   });
 
   it('should handle loading state', async () => {
