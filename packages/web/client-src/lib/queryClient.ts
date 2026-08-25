@@ -16,19 +16,29 @@ const USE_FIREBASE_EMULATORS = String(import.meta.env.VITE_USE_FIREBASE_EMULATOR
 let functionsEmulatorConnected = false;
 
 /**
- * Get Firebase Auth ID token for authenticated requests
+ * Get Firebase Auth ID token for authenticated requests.
+ *
+ * On a fresh page load, `auth.currentUser` is null for a brief window
+ * while the SDK asynchronously restores the persisted session (reading
+ * IndexedDB) — any request fired in that window silently goes out
+ * unauthenticated and gets a 401 that nothing here retries (queryClient's
+ * default `retry: false`). `authStateReady()` resolves once the SDK has
+ * settled its first real auth state, so awaiting it before reading
+ * `currentUser` closes that race for every caller, not just the ones that
+ * happen to already gate on AuthContext's own `loading` flag.
  */
 async function getAuthToken(): Promise<string | null> {
   try {
     const auth = getAuth();
+    await auth.authStateReady();
     const user = auth.currentUser;
-    
+
     if (user) {
       // Force refresh token to ensure it's valid
       const token = await user.getIdToken(true);
       return token;
     }
-    
+
     return null;
   } catch (error) {
     console.warn('Failed to get Firebase auth token:', error);
