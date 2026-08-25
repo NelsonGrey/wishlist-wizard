@@ -144,20 +144,22 @@ export default function Recommendations() {
             title={recommendationsTitle}
           />
 
-          {/* Coming soon notice */}
-          <Card className="border-amber-200 bg-amber-50">
+          {/* How recommendations work */}
+          <Card className="border-emerald-200 bg-emerald-50">
             <CardHeader>
               <div className="flex items-center gap-3">
-                <InboxIcon className="h-6 w-6 text-amber-700" />
-                <CardTitle className="text-amber-900">Personalized Recommendations — Coming Soon</CardTitle>
+                <InboxIcon className="h-6 w-6 text-emerald-700" />
+                <CardTitle className="text-emerald-900">How these are picked</CardTitle>
               </div>
-              <CardDescription className="text-amber-800">
-                We&apos;re building a recommendation engine that will suggest products based on your wishlist preferences. Check back soon.
+              <CardDescription className="text-emerald-800">
+                Recommendations come from items similar to what you&apos;re already tracking prices on — not a
+                general marketplace search.
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <p className="text-sm text-amber-700">
-                In the meantime, use the filter above to browse any recommendations that have been manually curated, or explore items through your wishlists and the browser extension.
+              <p className="text-sm text-emerald-700">
+                Track a price on an item to start surfacing similar picks here. If a wishlist has no
+                price-tracked items yet, this section stays empty rather than showing something unrelated.
               </p>
             </CardContent>
           </Card>
