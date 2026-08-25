@@ -126,7 +126,6 @@ jobs:
       FIREBASE_PROJECT_DEV: ${{ secrets.FIREBASE_PROJECT_DEVELOPMENT || 'wishlist-wizard-dev' }}
       FIREBASE_PROJECT_STAGING: ${{ secrets.FIREBASE_PROJECT_STAGING || 'wishlist-wizard-staging' }}
       FIREBASE_PROJECT_PROD: ${{ secrets.FIREBASE_PROJECT_PRODUCTION || 'wishlist-wizard-prod' }}
-      MATCH_GIT_BRANCH: main
     outputs:
       project_name: ${{ steps.manifest.outputs.project_name }}
       ios_enabled: ${{ steps.manifest.outputs.ios_enabled }}
