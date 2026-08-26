@@ -18,10 +18,14 @@ Verification Policy:
 
 The stack described in this document is **Firebase-first**, not the earlier Express/Postgres design. On
 2025-10-16, commit `8581cfa` ("Complete Firebase-first migration: remove Express API server") deleted the
-Express server, session/JWT auth, and the Drizzle/Postgres schema entirely. Every row below reflects the
-codebase as it exists today, 2026-08-08. Any evidence path under `server/`, `shared/schema.ts` (Drizzle
-tables), `emailService.ts`, or `recommendationService.ts` describes dead code and should not appear here —
-if you find it elsewhere in the docs tree, treat it as historical/stale.
+Express server, session/JWT auth, and the Drizzle/Postgres schema entirely. Rows below were refreshed
+2026-08-26 (see the footer for what changed since the 2026-08-08 rewrite); anything not explicitly
+mentioned there still reflects 2026-08-08. Any evidence path under `server/`, `shared/schema.ts` (Drizzle
+tables), or `emailService.ts` describes dead code and should not appear here — if you find it elsewhere in
+the docs tree, treat it as historical/stale. **Firebase App Check was fully removed 2026-08-24** (web, iOS,
+and backend enforcement) — it caused more CI/deploy friction (headless-browser reCAPTCHA failures) than the
+protection was worth, the same call already made on this org's other two projects. Any evidence path under
+`app-check.js`/`requireAppCheckHTTP` describes removed code.
 
 | Layer | Technology | Location |
 |---|---|---|
@@ -48,14 +52,15 @@ a tracked package and is not part of the current architecture.
 | Beneficiaries | Manage beneficiaries, link wishlists | ✅ | `CreateWishlistDialog.tsx`'s `recipientType`/`recipientName`/`recipientMembers`/`externalContactId` fields (self / specific person / group, with optional import from connected contact sources) link a wishlist to a beneficiary at creation and edit time. |
 | Reservations & Purchasing | Reserve & purchase items with audit fields | ✅ | `reserveWishlistItem`/`purchaseWishlistItem` on the `api` router (`packages/functions/src/api/wishlists.ts`), same migration/verification history as the other wishlist-item functions above. |
 | Achievements | Computed-on-read achievement/reward program with tiers | ✅ | `getUserAchievements` on the `api` router at `GET /api/achievements` (`packages/functions/src/api/achievements.ts`), shipped 2026-07-23. Merge-never-regress semantics: recompute merges with prior earned state so an achievement can never be lost if the underlying signal later drops (e.g. deleting the wishlist that earned it). Frontend page `packages/web/client-src/pages/AchievementsGuide.tsx` at `/app/achievements`; Trophy Case tier badges added since. |
+| Connections / Social Graph | Send/accept connection requests, list connections, gate visibility | ✅ | Real `/api/connections`, `/api/connections/pending` etc. on the `api` router (`packages/functions/src/api/connections.ts`), shipped 2026-08-11. Frontend: web UI folded into `UserProfile.tsx` (not a standalone route); mobile has a dedicated `packages/mobile/lib/screens/connections_screen.dart`. Missing from this document until the 2026-08-26 refresh caught the gap — the feature itself predates that. |
 
 ### 2. Advanced Features
 | Feature | Requirement | Status | Evidence / Notes |
 |---------|-------------|--------|------------------|
 | Price Tracking | Track price history, manual update, price alerts, price drop query | ✅ | Live, not a future item. `packages/web/client-src/pages/PriceTracking.tsx`; backend `packages/functions/src/api/priceHistory.ts`, `priceIntelligenceRefresh.ts` (`refreshPriceIntelligenceOffers` on the router; `scheduledRefreshPriceIntelligenceOffers`/`scheduledEvaluatePriceAlerts` as Cloud Scheduler triggers, unaffected by the router migration). |
-| Recommendations | Personalized item recommendations, Firestore-backed | 🟡 | **Not model-backed** — no OpenAI or any LLM call anywhere in the codebase (confirmed: no `openai` reference in `packages/functions/src`; README.md states this explicitly). Frontend `Recommendations.tsx` + `components/recommendations/RecommendationsSection.tsx` calls `/api/recommendations*`; status/dismissal flow exists. Depth of the underlying ranking logic wasn't independently audited beyond confirming it is Firestore-data-driven, not AI-driven — flagged partial pending a closer read of the recommendations endpoint implementation. |
-| Calendar Integration | Internal events + external calendar connections & sync | 🟡 | `getCalendarEvents`/`createCalendarEvent`/`updateCalendarEvent`/`deleteCalendarEvent`/`getCalendarAuthUrl`/`connectCalendar`/`getCalendarConnections`/`syncCalendarConnection`/`syncCalendar` etc. all moved to the `api` router (`packages/functions/src/api/calendar.ts`). Frontend `Calendar.tsx`. External provider OAuth depth not independently re-verified this pass — carried as partial from the prior audit. |
-| Group / Social Gifting | Group contributions, Stripe-based payment intents | ✅ | `createGroupPaymentIntent`/`confirmGroupContribution`/`getGroupGiftSummary` — standalone `onCall` functions in `packages/functions/src/api/groupPayments.ts` (exported as `groupPaymentCreateIntent`/`groupPaymentConfirm`/`groupGiftSummary`), using real Stripe PaymentIntents rather than a placeholder. |
+| Recommendations | Personalized item recommendations, Firestore-backed | ✅ | **Fixed 2026-08-26 — was a complete dead end, not "partial."** Traced every reference to the `recommendations` Firestore collection: nothing anywhere ever wrote to it, so `GET /api/recommendations` returned an empty array for every user, forever, regardless of the frontend's status/dismissal UI existing. Real generation added in `packages/functions/src/api/recommendationsGenerator.ts`: derives recommendations from `priceOffers` — the Google Shopping results already fetched by price tracking's own SerpAPI refresh cycle — using entries with `matchType: 'probable'` (a shopping result that came back for a tracked item's search but wasn't a strong title match, i.e. a genuinely different, similar product). No new external API calls or SerpAPI quota cost. Excludes already-owned items and regenerates once per 24h per user. Still **not** model-backed (no OpenAI/LLM anywhere in the codebase, by design) and empty until a user has price-tracked at least one item — that's the real dependency now, not a bug. Verified against the Firestore emulator (`npm run smoke:recommendations` in the companion functions repo). The beneficiary-scoped endpoint (`GET /api/recommendations/beneficiary/:id`) is **not** populated by this generator yet — only the general (`/api/recommendations`) pool. |
+| Calendar Integration | Internal events + external calendar connections & sync | 🟡 | Backend is genuinely complete, not a stub — real OAuth code-exchange for Google/Outlook/Facebook, calendar fetching, token storage (`packages/functions/src/api/calendar.ts`). **Confirmed 2026-08-26 via direct GCP Secret Manager inspection: every OAuth credential (`GOOGLE_CLIENT_ID/SECRET`, `MICROSOFT_CLIENT_ID/SECRET`, `FACEBOOK_CLIENT_ID/SECRET`) is still the `__unconfigured__` placeholder in all three environments (dev/staging/prod)** — no one has ever registered an OAuth app with any of the three providers, so this code path has never been exercised against a real provider. Not a launch-blocking bug: the frontend (`ConnectCalendarDialog.tsx`) checks the backend's `supported: false` response and disables the Connect buttons with an honest "not configured yet" message rather than presenting a broken flow. Apple Calendar (subscription-URL import, no OAuth) works today. Registration steps for all three providers, including exact redirect URIs and the scopes actually requested, are documented for whoever does this next — ask for the link if needed. |
+| Group / Social Gifting | Group contributions, Stripe-based payment intents | ✅ | `createGroupPaymentIntent`/`confirmGroupContribution`/`getGroupGiftSummary` — standalone `onCall` functions in `packages/functions/src/api/groupPayments.ts` (exported as `groupPaymentCreateIntent`/`groupPaymentConfirm`/`groupGiftSummary`), using real Stripe PaymentIntents rather than a placeholder. **Real crash bug found+fixed 2026-08-25**: `ContributionDialog.tsx`'s `ContributionForm` had a bare conditional `return` between plain variable declarations and two `useEffect` calls — on any render where a contribution wasn't allowed (no price, or fully funded), the hooks were skipped entirely, a Rules-of-Hooks violation that crashed the whole page (not just the dialog) via the top-level error boundary. Also fixed: the form was mounting unconditionally regardless of the dialog's `open` state, firing a fetch for every item card on page load. |
 | Privacy / Sharing Controls | Per-entity privacy settings, custom access lists | ✅ | Frontend `PrivacySettings.tsx` at `/app/privacy-settings`; enforcement wired per the 2026-07 drift-audit recovery. Carried forward from the prior verified record — the "custom access lists" half wasn't independently re-exercised this pass. |
 | Affiliate Link Generation & Tracking | Convert product links to affiliate links, track clicks | ✅ | `linkConvert`/`linkConvertBatch`/`linkConvertWishlist`/`linkTrackClick`/`linkPrograms`/`linkStats`/`linkDisclosure` on the `api` router. Public marketing pages `AffiliateCommissions.tsx`, `CreatorProgram.tsx`. |
 | Affiliate/Creator Monetization | Commission ledger, reconciliation, Stripe Connect payouts | ✅ | Shipped 2026-07-21. Commission ledger state machine `Tracked → Pending → Approved → Payable → Paid`, with a `Reversed` branch reachable from any pre-Paid state and a post-payout-Paid clawback path — `packages/functions/src/api/commissionLedger.ts`. Report-based reconciliation ingestion in `affiliateReconciliation.ts`. Stripe Connect Express account creation/onboarding/status in `creatorPayoutAccount.ts`. Payout batch processing (`processPayoutBatch`, scheduled `scheduledPayoutBatchRun`) and creator payout history in `payouts.ts`. Tracking-ID pool management in `creatorTracking.ts`. All admin/creator-facing callables now live on the `api` router (moved off standalone `onCall`, same org-policy reason as elsewhere); `advanceCommissionsPastHold`, `affiliateReportImportProcess`, `scheduledPayoutBatchRun` remain standalone as scheduled/trigger functions. Creator-facing UI folded into the unified `Dashboard.tsx`'s Creator tab (`/app/creator-dashboard` now redirects to `/app/dashboard?tab=creator`) via `packages/web/client-src/components/creator-dashboard/*` (`CommissionStatusPanel`, `PayoutReadinessPanel`, `PerformancePanel`, `AdjustmentsPanel`, `CommissionStateBadge`). Admin tooling at `/admin/affiliate` (`pages/admin/AffiliateAdmin.tsx`). |
@@ -83,6 +88,7 @@ a tracked package and is not part of the current architecture.
 |------|-------------|--------|------------------|
 | Core App | Auth, wishlist list/detail, add item | ✅ | Flutter/Dart, `packages/mobile/lib/`: `screens/home_screen.dart`, `firebase_wishlists_screen.dart`, `login_screen.dart`, `account_screen.dart`, Provider-based state (`providers/`), `services/firestore_service.dart`, `services/wishlist_service.dart`, `services/api_client.dart`. Firebase Auth via `firebase_auth_service.dart`. |
 | Push Notifications | Price drops, updates | ✅ | `services/fcm_service.dart`, `fcm_integration_example.dart`; backend triggers in `packages/functions/src/fcm.ts` (`notifyPriceAlert`, etc.). |
+| In-App Notification History | Notification list, mark read, delete, filter | ✅ | Built 2026-08-25 to close a real parity gap — mobile had FCM push registration but no browsable notification history at all, unlike web's `Notifications.tsx`. New `packages/mobile/lib/screens/notifications_screen.dart` against the same `/api/notifications*` endpoints as web. |
 | In-App Purchases | Native subscription billing | ✅ | See section 2 — `iap_service.dart` + `in_app_purchase` package, replacing Stripe checkout on mobile. |
 | AdMob | Ad monetization | ✅ | See section 2 — `admob_service.dart`, real production App IDs. |
 | Price Tracking | Mobile price tracking screen | ✅ | `screens/price_tracking_screen.dart`. |
@@ -105,7 +111,7 @@ Type definitions shared between backend and frontend live in `packages/shared/`.
 | Extension Tokens | ✅ | See section 3 — `authenticateExtension` issues the browser extension's own JWT, separate from the web app's Firebase ID token flow, with refresh support. |
 | Password Policy | ✅ | See section 1 — enforced via `validatePassword()`, not app-level rules. |
 | Account/Data Deletion | ✅ | See section 1. |
-| App Check | ✅ | `requireAppCheckHTTP` gate used in the `api` router (`packages/functions/src/api/router.ts`, `packages/functions/src/utils/app-check.js`). A documented gotcha exists where `requireAppCheck` + the router needed careful wiring (see project memory `project_product_preview_router_fix.md`). |
+| App Check | 🔴 removed | **Fully removed 2026-08-24** (web, iOS, and backend enforcement all gone) — it caused more CI/deploy friction than the protection was worth (headless-browser reCAPTCHA failures blocking automated tests/deploys), the same call already made on this org's other two projects. `requireAppCheckHTTP`/`app-check.js` no longer exist. Don't reason about current security posture using anything that describes App Check as configured. |
 | Super-Admin | ✅ | `bootstrapSuperAdmin`, `grantAdminRole`, `revokeAdminRole` standalone `onCall`; `adminGetUsers`/`adminSuspendUser`/`adminModifySubscription`/`adminGetSupportTickets`/`adminRespondToTicket`/`adminGetAuditLog` on the `api` router (confirmed via live gcloud IAM audit that none had a working `allUsers` invoker binding as standalone functions). Frontend admin pages under `pages/admin/`. |
 | 2FA | 🔴 | No evidence of a 2FA flow found in web, mobile, or functions source. **Scheduled for the release after Go-Live** (decided 2026-08-12) — explicitly not a Go-Live blocker. |
 
@@ -122,10 +128,10 @@ Type definitions shared between backend and frontend live in `packages/shared/`.
 | OpenAI | 🔴 removed | Not present anywhere in the codebase. Recommendations are Firestore-backed, not model-backed (README.md explicit note). Any doc still describing `recommendationService.ts`/`OPENAI_API_KEY` usage is describing deleted pre-migration code. |
 | SendGrid | 🔴 removed | Not present anywhere in the codebase; replaced by Workspace SMTP + Nodemailer (see section 7). |
 | Stripe | ✅ | Checkout/Portal billing (`stripe.ts`, `subscriptions.ts`, `stripeWebhook.ts`), Stripe Connect Express for creator payouts (`creatorPayoutAccount.ts`, `payouts.ts`), and PaymentIntents for group gifting (`groupPayments.ts`). |
-| Firebase (Auth, Firestore, Functions, App Check, FCM, Cloud Scheduler) | ✅ | Core platform — see section 0. |
+| Firebase (Auth, Firestore, Functions, FCM, Cloud Scheduler) | ✅ | Core platform — see section 0. App Check was part of this list until it was fully removed 2026-08-24 (see section 6). |
 | Analytics (GA) | ✅ | GTM container loaded in `index.html` with Consent Mode v2; `useAnalytics`/`trackPageView` in `AppRouter.tsx`. |
 | AdMob | ✅ | See section 2/4. |
-| Calendar Providers (Google/Outlook/Apple) | 🟡 | Router endpoints exist (`calendar.ts`); OAuth token-exchange depth not re-verified this pass — carried forward as partial. |
+| Calendar Providers (Google/Outlook/Apple) | 🟡 | Backend OAuth exchange is complete for all three — see section 2. No provider has ever been registered (`__unconfigured__` in Secret Manager across all environments); this is a business/ops task (register 3 OAuth apps), not a code gap. |
 | Open Food Facts (barcode lookup) | ✅ | Backend call (`lookupBarcode`) wired to a live mobile scan UI — see section 2/4. |
 
 ### 9. Frontend (Web) Feature Routes
@@ -156,9 +162,10 @@ separate pages, which differs from earlier flat-route documentation):
 |------|--------|-------|
 | Unit Tests (Shared Schemas) | ✅ | `npm run test --workspace=@wishlist-wizard/shared`, part of the standing quality gate (`docs/DELIVERABLE_COMPONENT_MATRIX.md`'s "Current Quality Gates"). |
 | Type Safety | ✅ | TypeScript across web/functions/shared packages; Dart's sound null safety on mobile. |
-| Frontend Tests | 🟡 | Test infrastructure present (e.g. `AppRouter.test.tsx`); coverage depth not re-audited this pass. |
-| Functions Tests | 🟡 | `packages/functions/test/` exists in the (gitignored, private-repo) local clone when present; not independently re-verified this pass. |
-| Mobile CI | ✅ | Per project memory (`project_extension_killer_app_2026-07-18.md`), a mobile CI integration test was closed out, including fixing a `skip_tests` gate that had made it dead. |
+| Frontend Tests | 🟡 | Test infrastructure present (e.g. `AppRouter.test.tsx`); coverage depth not re-audited this pass. Vitest suite (221/222, 1 skip) run repeatedly through 2026-08-26 and stayed clean through the day's changes. |
+| Functions Tests | 🟡 | `packages/functions/test/` exists in the (gitignored, private-repo) local clone when present; not independently re-verified this pass. New feature work (recommendations engine) got its own targeted emulator test instead — `npm run smoke:recommendations`. |
+| Web E2E (Tier 1 UAT) | ✅ | **T1.8/T1.9 flake fully root-caused and fixed 2026-08-25** — two independent causes: an auth-token force-refresh race (`getIdToken(true)` on every API call) and a genuine Rules-of-Hooks crash in `ContributionDialog.tsx` (see section 2). Verified live on staging across chromium/firefox/webkit, repeatedly, including after later unrelated changes — first time `Quality Gate` has gone green on a real (non-structural-trust) run. |
+| Mobile CI | ✅ | Per project memory (`project_extension_killer_app_2026-07-18.md`), a mobile CI integration test was closed out, including fixing a `skip_tests` gate that had made it dead. iOS: fully automated build→sign→upload→TestFlight-distribute pipeline verified live end-to-end 2026-08-25 (see section 11's Firebase Deploy row for the signing-approach rewrite that made this possible). |
 
 ### 11. Build & Tooling
 | Item | Status | Notes |
@@ -167,7 +174,7 @@ separate pages, which differs from earlier flat-route documentation):
 | Dev Workflow | ✅ | `npm run dev --workspace=@wishlist-wizard/web` (Vite); `npm run lint`/`npm run check` across workspaces for the standing quality gate. |
 | Production Build | ✅ | `npm run build` (web + functions where applicable via `--workspaces --if-present`); mobile via `npm run build:mobile` → `flutter build web --release` (native iOS/Android builds go through Flutter/Fastlane separately). |
 | Mobile Build | ✅ | `npm run build:mobile` → `flutter build web --release` (also native iOS/Android builds via Flutter/Fastlane, not covered by this npm script). |
-| Firebase Deploy | ✅ | `npm run deploy` / `deploy:web` / `deploy:api` via `scripts/deploy.sh`; Firebase Functions deploy per project (`wishlist-wizard-dev`/`-staging`/`-prod`) as documented in the functions repo's README. |
+| Firebase Deploy | ✅ | CI-driven, not the manual `scripts/deploy.sh` path this row used to describe. `master-pipeline.yml` → `firebase-deploy-local.yml` (WIF-authenticated) deploys Functions, Firestore rules/indexes, **and Hosting** — Hosting deploy automation was only added 2026-08-25 (previously depended entirely on separate token-based workflows that had been silently broken for a while). Android: automated build→sign→Play Store internal-track upload, versionCode collision fixed and verified live. iOS: the old `fastlane match` setup pointed at a private repo that had never actually held any certificates (dead/abandoned tooling, not a working setup with a credential problem) — replaced with fully automatic Xcode signing via `xcodebuild -allowProvisioningUpdates` against the existing App Store Connect API key, matching the pattern already proven in the sibling `vehicle-vitals` project. Verified live 2026-08-25: build→sign→upload→TestFlight-distribute succeeded fully automated, first time ever. |
 | Lint/Type Check | ✅ | `npm run lint`, `npm run check` across workspaces. |
 | Database Migration | N/A | No relational schema/migrations — Firestore is schemaless; any prior `drizzle.config.ts`/`db:push` references are obsolete. Unenforced in `docs/requirements-verification.json` as of 2026-08-08 rather than marked falsely ✅ — see that file's `tooling-database-migration` entry for the rationale. |
 
@@ -198,6 +205,17 @@ OAuth credentials remain referenced for the partial calendar integration (sectio
   unreachable under the org's invoker-binding policy, same as everything else that had already been
   migrated) — see section 15. Still no AR UI anywhere in the app; the backend remains a demo stub
   (`packages/functions/src/api/ar.ts`'s hardcoded `MODEL_LIBRARY`), not a real feature.
+- The `fastlane match` git-based iOS certificate storage (previously documented in `MATCH_GIT_URL`/
+  `MATCH_SSH_PRIVATE_KEY`/etc. GitHub secrets) pointed at a private repo that, on inspection 2026-08-25,
+  turned out to have never held any certificates on any branch — an abandoned approach the project moved
+  away from months ago project-wide, with this project's CI config simply never updated to match. Those
+  secrets are now dead (safe to delete, not urgent) — see section 11 for the replacement (automatic Xcode
+  signing).
+- `Secret Scan` (gitleaks) was silently failing on every single push for an unknown stretch of time — a
+  documentation string in `docs/WISHLIST_WIZARD_GO_LIVE.md` describing the *format* of a pasted Stripe
+  price-ID list (`KEY=LABEL=price_id=amount`) pattern-matched gitleaks' generic-API-key rule. Fixed
+  2026-08-25 via `.gitleaksignore` fingerprints, verified locally with gitleaks 8.30.1 (0 findings) and
+  confirmed green in CI on both `develop` and `staging`.
 
 ### 14. Suggested Next Priorities
 1. ~~Verify `arModelLookup`'s live reachability and either migrate it to the router or explicitly document
@@ -211,6 +229,24 @@ OAuth credentials remain referenced for the partial calendar integration (sectio
 4. Re-verify browser-extension product-detection/quick-add/manual-entry claims (section 3) — carried
    forward unverified from the prior audit rather than independently re-checked this pass.
 5. 2FA (section 6) — scheduled for the release after Go-Live, not before. Not yet scoped/designed.
+6. ~~Fix the Web UAT flake blocking `Quality Gate` from ever going green on a real run.~~ Done 2026-08-25 —
+   see section 10.
+7. ~~Get a fully automated iOS build→sign→upload→TestFlight pipeline working.~~ Done 2026-08-25 — see
+   section 11. The old git-based match cert-repo setup was fully dead (never held any certificates); replaced
+   with automatic Xcode signing.
+8. ~~Fix `Recommendations` returning nothing for every user.~~ Done 2026-08-26 — see section 2. Was a
+   complete dead end (nothing ever wrote to the collection), not just weak ranking logic.
+9. **Register OAuth apps for Google/Microsoft/Facebook calendar sync** — the only remaining piece of
+   Calendar Integration (section 2/8); backend code is done, this is a human task in 3 external developer
+   consoles, not more coding. Google and Facebook both require an app-review submission for the scopes this
+   app requests (full calendar + contacts.readonly for Google; `user_friends`/`user_birthday` for Facebook)
+   before non-test-user accounts can use it — budget real calendar time, not a single sitting.
+10. **Add a DMARC record** (`_dmarc.wishlist-wizard.com`) — confirmed missing 2026-08-25 via direct DNS
+    lookup. SPF and MX (Google Workspace routing) are both already correctly configured; DMARC is the one
+    gap in email authentication.
+11. App Store / Play Store listings — App Store Connect shows the iOS app still in `PREPARE_FOR_SUBMISSION`
+    (confirmed live via the App Store Connect API 2026-08-25); screenshots, descriptions, and content-rating
+    questionnaires haven't been independently re-verified as complete this pass.
 
 ### 15. API Architecture — router vs. standalone `onCall`
 Around 2026-07-23, most `onCall` functions requiring public (unauthenticated-caller) invocation were moved
@@ -247,3 +283,15 @@ Firebase-era feature set shipped without this doc being updated alongside it). S
 shifting every section after it and breaking `npm run requirements:verify`'s exact section+requirement text
 matching against `docs/requirements-verification.json` — the API Architecture section was moved to the end
 instead to avoid renumbering ever again for future additions.
+
+**Refreshed 2026-08-26** (targeted, not a full resync — sections not mentioned below still reflect
+2026-08-08): App Check's full removal (sections 0/6/8); a previously-undocumented real feature,
+Connections/Social Graph (section 1); Recommendations fixed from a complete dead end to a working
+generator (section 2); Calendar Integration's actual state precisely diagnosed via direct Secret Manager
+inspection rather than carried forward as "partial, unverified" (section 2/8); a real crash bug found+fixed
+in Group Gifting (section 2); mobile's new in-app Notification History screen (section 4); Web E2E's
+long-standing flake fully resolved (section 10); the deploy pipeline overhaul — Hosting automation, Android
+versionCode fix, and iOS's git-based match replaced with automatic signing (section 11); a silently-failing
+Secret Scan fixed (section 13); and next priorities rewritten to reflect what's actually still open (section
+14). Everything above was verified directly this pass (live API/Secret-Manager checks, a real emulator test,
+or a green CI run), not carried forward from memory.
