@@ -142,6 +142,24 @@
       "lastVerifiedAt": "2026-07-23"
     },
     {
+      "id": "advanced-recommendations",
+      "section": "2. Advanced Features",
+      "requirement": "Personalized item recommendations, Firestore-backed",
+      "enforced": true,
+      "verificationStatus": "verified",
+      "persona": "Budget-Conscious Shopper",
+      "flow": "Flow 2: Add Item to Wishlist",
+      "designRef": "docs/PRODUCT_DESIGN.md#flow-2-add-item-to-wishlist-product-discovery",
+      "owner": "backend",
+      "evidence": [
+        "2026-08-26: the prior 'partial' status here understated the problem - nothing anywhere in the backend ever wrote a document to the `recommendations` Firestore collection, confirmed by grepping every reference to that collection across the whole functions source. GET /api/recommendations returned an empty array for every user, permanently, regardless of the frontend's status/dismissal UI existing.",
+        "2026-08-26: implemented ensureRecommendationsFresh() in recommendationsGenerator.ts, called inline from GET /api/recommendations. Derives recommendations from `priceOffers` - Google Shopping results already fetched by price tracking's own SerpAPI refresh cycle - using entries with matchType 'probable' (a shopping result that came back for a tracked item's search but wasn't a strong title match, i.e. a genuinely different, similar product). No new external API calls or SerpAPI quota cost; excludes already-owned items and regenerates once per 24h per user.",
+        "2026-08-26: verified against a real Firestore emulator via scripts/verify-recommendations.cjs (wired as `npm run smoke:recommendations` in the companion functions repo) - 10 assertions covering correct exclusion of same-product ('strong' matchType) offers, correct exclusion of already-owned items even among 'probable' matches, correct price/relevanceScore/matchReason generation, no duplicate generation on repeat calls within the 24h freshness window, and graceful no-op for a user with no wishlist items. All passed.",
+        "2026-08-26: deployed to staging (packages/functions companion repo, develop->staging), confirmed live via a green `Deploy Firebase to staging` step and a subsequent full green Web UAT / Quality Gate run."
+      ],
+      "lastVerifiedAt": "2026-08-26"
+    },
+    {
       "id": "advanced-privacy-sharing-controls",
       "section": "2. Advanced Features",
       "requirement": "Per-entity privacy settings, custom access lists",
