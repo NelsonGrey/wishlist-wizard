@@ -13,7 +13,7 @@ dependencies:
   
   # UI & Navigation
   cupertino_icons: ^1.0.8
-  go_router: ^16.2.4
+  go_router: ^17.5.0
   
   # State Management
   provider: ^6.1.2
@@ -49,7 +49,7 @@ dependencies:
   flutter_local_notifications: ^22.1.0
   
   # Advertising
-  google_mobile_ads: ^6.0.0
+  google_mobile_ads: ^9.1.0
   webview_flutter_wkwebview: ^3.23.0
 
   # Live barcode camera scanning (scan_item_screen.dart). A GTMSessionFetcher
@@ -70,7 +70,7 @@ dependencies:
   # Group gifting (real Stripe card payments — see
   # packages/functions/src/api/groupPayments.ts). CardField + confirmPayment
   # only; native Apple Pay / Google Pay wallets aren't wired up.
-  flutter_stripe: ^11.5.0
+  flutter_stripe: ^14.0.0
 
   # Utils
   intl: ^0.20.2
@@ -83,7 +83,7 @@ dependencies:
   # provider's auth URL and suspends until it redirects to the
   # wishlistwizard://calendar-callback scheme registered in
   # Info.plist/AndroidManifest.xml, returning the full callback URL.
-  flutter_web_auth_2: ^4.1.0
+  flutter_web_auth_2: ^5.1.0
 
 dev_dependencies:
   flutter_test:
