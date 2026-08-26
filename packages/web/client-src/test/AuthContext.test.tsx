@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { screen, waitFor } from '@testing-library/react';
+import { screen, waitFor, fireEvent } from '@testing-library/react';
 import { render } from './utils';
 import { ReactNode } from 'react';
 
@@ -32,6 +32,7 @@ vi.mock('@/lib/firebase', () => ({
     isValid: true,
     passwordPolicy: { customStrengthOptions: {} },
   })),
+  reauthenticateWithPassword: vi.fn(),
 }));
 
 vi.mock('@shared/firebase-utils', () => ({
@@ -45,8 +46,10 @@ vi.mock('@shared/firebase-utils', () => ({
 }));
 
 // Import after mocking
-import { initFirebase } from '@/lib/firebase';
+import { initFirebase, onAuthStateChange, reauthenticateWithPassword as firebaseReauthenticateWithPassword } from '@/lib/firebase';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
+import { useState } from 'react';
+import type { User } from 'firebase/auth';
 
 // Test component that uses auth context
 function TestAuthComponent() {
@@ -159,6 +162,91 @@ describe('Authentication Context', () => {
         platform: 'web',
       });
       expect(remoteConfigMock.isFeatureEnabled).toHaveBeenCalled();
+    });
+  });
+
+  describe('reauthenticateWithPassword', () => {
+    function ReauthTestComponent() {
+      const { reauthenticateWithPassword } = useAuth();
+      const [result, setResult] = useState('idle');
+      return (
+        <div>
+          <div data-testid="reauth-result">{result}</div>
+          <button
+            onClick={async () => {
+              try {
+                await reauthenticateWithPassword('current-pass');
+                setResult('success');
+              } catch (error) {
+                setResult(error instanceof Error ? error.message : 'error');
+              }
+            }}
+          >
+            Reauth
+          </button>
+        </div>
+      );
+    }
+
+    it('rejects when no user is currently signed in', async () => {
+      render(
+        <AuthProvider>
+          <ReauthTestComponent />
+        </AuthProvider>
+      );
+
+      await waitFor(() => screen.getByText('Reauth'));
+      fireEvent.click(screen.getByText('Reauth'));
+
+      await waitFor(() => {
+        expect(screen.getByTestId('reauth-result')).toHaveTextContent('No user is currently signed in');
+      });
+      expect(firebaseReauthenticateWithPassword).not.toHaveBeenCalled();
+    });
+
+    it('delegates to the bound firebase reauthenticateWithPassword with the signed-in user', async () => {
+      const mockUser = { uid: 'u1', email: 'user@example.com' } as User;
+      vi.mocked(onAuthStateChange).mockImplementationOnce((callback) => {
+        callback(mockUser);
+        return vi.fn();
+      });
+      vi.mocked(firebaseReauthenticateWithPassword).mockResolvedValue(undefined);
+
+      render(
+        <AuthProvider>
+          <ReauthTestComponent />
+        </AuthProvider>
+      );
+
+      await waitFor(() => screen.getByText('Reauth'));
+      fireEvent.click(screen.getByText('Reauth'));
+
+      await waitFor(() => {
+        expect(screen.getByTestId('reauth-result')).toHaveTextContent('success');
+      });
+      expect(firebaseReauthenticateWithPassword).toHaveBeenCalledWith(mockUser, 'current-pass');
+    });
+
+    it('propagates a reauth failure (e.g. wrong password) to the caller', async () => {
+      const mockUser = { uid: 'u1', email: 'user@example.com' } as User;
+      vi.mocked(onAuthStateChange).mockImplementationOnce((callback) => {
+        callback(mockUser);
+        return vi.fn();
+      });
+      vi.mocked(firebaseReauthenticateWithPassword).mockRejectedValue(new Error('auth/wrong-password'));
+
+      render(
+        <AuthProvider>
+          <ReauthTestComponent />
+        </AuthProvider>
+      );
+
+      await waitFor(() => screen.getByText('Reauth'));
+      fireEvent.click(screen.getByText('Reauth'));
+
+      await waitFor(() => {
+        expect(screen.getByTestId('reauth-result')).toHaveTextContent('auth/wrong-password');
+      });
     });
   });
 });

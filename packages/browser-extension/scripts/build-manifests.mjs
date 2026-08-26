@@ -56,12 +56,25 @@ const BASE_MANIFEST = {
   icons: ICON_SIZES,
 };
 
+// Pins a stable extension ID (pjfinnpofmkojnbdgdkaafamgggdjfgi) for local
+// unpacked-extension testing -- without a "key" field, Chrome assigns a new
+// random ID on every unpacked load, which breaks anything keyed to a fixed
+// ID (OAuth redirect URIs, native messaging host allowlists). Opt-in only
+// (EXTENSION_DEV_KEY=1) so a real release package never picks this up by
+// accident -- the Chrome Web Store assigns its own canonical ID on first
+// upload regardless of this field. Private key: not committed, lives at
+// ~/Downloads/wishlist-wizard/extension-dev-key.pem locally.
+const DEV_PUBLIC_KEY =
+  'MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAqMZrtQCD9b7HnNfGROfKDwXw7VHD51hDQzRsEf4ug/8cxP5zfGINIL02ys69jSxifOodrgIZiyyZrj80F8VveMFy/4bm/wssxt0Ggz3KwDsu+/CLfqSNdUJihi/UvRkLrK7bS0IYbVkfgiEdhK54bKGW8RkZA8MicihQbtIY9vhn+Zk93ZAyXDDPbltzMS2V6+xVZrecge44s+vmO6VLdOr79p5hMluDyvbc0Aw54nQ4y+eYaFBHe0lSo2d2/4k6z6uGBTyv/wLhLVLyigYqNNYojUSL/7P53w3l8kQCSZWwzLMQwwDTRJGa7E2r7iX3mZ8TcvNhHr6ZZ8KbOVbuhwIDAQAB';
+const DEV_KEY_FIELD = process.env.EXTENSION_DEV_KEY === '1' ? { key: DEV_PUBLIC_KEY } : {};
+
 /**
  * Manifest V3 (Chrome/Edge)
  */
 function manifestV3() {
   return {
     ...BASE_MANIFEST,
+    ...DEV_KEY_FIELD,
     manifest_version: 3,
     action: {
       default_popup: 'popup.html',

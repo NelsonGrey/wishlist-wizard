@@ -1,7 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Shield, Globe, Users, Lock, UserCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { apiRequest } from '@/lib/queryClient';
 import {
   Dialog,
   DialogContent,
@@ -31,7 +33,7 @@ import {
 
 interface PrivacyControlsProps {
   entityType: 'wishlist' | 'item';
-  entityId: number;
+  entityId: string;
   entityName: string;
   showAsBadge?: boolean; // If true, shows as a badge with icon, otherwise as a button
 }
@@ -87,7 +89,7 @@ export default function PrivacyControls({
     });
   };
 
-  const handleAccessListUpdate = (userIds: number[]) => {
+  const handleAccessListUpdate = (userIds: string[]) => {
     updateAccessListMutation.mutate({
       entityType,
       entityId,
@@ -218,7 +220,7 @@ interface PrivacySettingsFormProps {
   entityType: string;
   entityName: string;
   onUpdate: (updates: Partial<PrivacySettings>) => void;
-  onAccessListUpdate: (userIds: number[]) => void;
+  onAccessListUpdate: (userIds: string[]) => void;
   onReset: () => void;
   onClose: () => void;
   isLoading: boolean;
@@ -232,9 +234,26 @@ function PrivacySettingsForm({
   onClose,
   isLoading
 }: PrivacySettingsFormProps) {
-  const [customAccessList, setCustomAccessList] = useState<number[]>(
+  const [customAccessList, setCustomAccessList] = useState<string[]>(
     privacySettings?.customAccessList || []
   );
+  const [userSearchQuery, setUserSearchQuery] = useState('');
+  const [debouncedUserSearchQuery, setDebouncedUserSearchQuery] = useState('');
+
+  useEffect(() => {
+    const timeout = setTimeout(() => setDebouncedUserSearchQuery(userSearchQuery.trim()), 300);
+    return () => clearTimeout(timeout);
+  }, [userSearchQuery]);
+
+  const { data: userSearchResults, isFetching: isSearchingUsers } = useQuery<{
+    users: Array<{ id: string; username: string | null; displayName: string | null }>;
+  }>({
+    queryKey: ['/api/users/search', debouncedUserSearchQuery],
+    queryFn: () => apiRequest(`/api/users/search?q=${encodeURIComponent(debouncedUserSearchQuery)}`) as Promise<{
+      users: Array<{ id: string; username: string | null; displayName: string | null }>;
+    }>,
+    enabled: debouncedUserSearchQuery.length >= 2,
+  });
 
   const handleVisibilityChange = (value: string) => {
     onUpdate({ visibilityLevel: value as 'public' | 'friends' | 'private' | 'custom' });
@@ -248,13 +267,13 @@ function PrivacySettingsForm({
     onUpdate({ expirationDate: date || undefined });
   };
 
-  const handleAddUser = (userId: number) => {
+  const handleAddUser = (userId: string) => {
     const newList = [...customAccessList, userId];
     setCustomAccessList(newList);
     onAccessListUpdate(newList);
   };
 
-  const handleRemoveUser = (userId: number) => {
+  const handleRemoveUser = (userId: string) => {
     const newList = customAccessList.filter(id => id !== userId);
     setCustomAccessList(newList);
     onAccessListUpdate(newList);
@@ -297,7 +316,7 @@ function PrivacySettingsForm({
       {privacySettings?.visibilityLevel === 'custom' && (
         <div>
           <Label className="text-base font-medium mb-2 block">Custom Access List</Label>
-          <div className="space-y-2">
+          <div className="space-y-2 mb-3">
             {customAccessList.map((userId) => (
               <div key={userId} className="flex items-center justify-between p-2 border rounded">
                 <span className="text-sm">User {userId}</span>
@@ -317,9 +336,40 @@ function PrivacySettingsForm({
               </p>
             )}
           </div>
-          <p className="text-xs text-muted-foreground mt-2 text-center">
-            Direct user lookup for custom access is not available yet.
-          </p>
+
+          <Label htmlFor="privacy-user-search" className="text-sm">Add someone</Label>
+          <Input
+            id="privacy-user-search"
+            placeholder="Search by username or name..."
+            className="mt-1"
+            value={userSearchQuery}
+            onChange={(e) => setUserSearchQuery(e.target.value)}
+            disabled={isLoading}
+          />
+          <div className="mt-2 max-h-40 overflow-y-auto space-y-1">
+            {debouncedUserSearchQuery.length < 2 ? null : isSearchingUsers ? (
+              <p className="p-2 text-center text-xs text-muted-foreground">Searching...</p>
+            ) : (userSearchResults?.users.length ?? 0) === 0 ? (
+              <p className="p-2 text-center text-xs text-muted-foreground">No users found.</p>
+            ) : (
+              userSearchResults!.users.map((result) => {
+                const alreadyAdded = customAccessList.includes(result.id);
+                return (
+                  <div key={result.id} className="flex items-center justify-between p-2 border rounded text-sm">
+                    <span>{result.displayName || result.username || 'User'}</span>
+                    <Button
+                      size="sm"
+                      variant={alreadyAdded ? 'outline' : 'default'}
+                      disabled={alreadyAdded || isLoading}
+                      onClick={() => handleAddUser(result.id)}
+                    >
+                      {alreadyAdded ? 'Added' : 'Add'}
+                    </Button>
+                  </div>
+                );
+              })
+            )}
+          </div>
         </div>
       )}
 

@@ -37,7 +37,7 @@ interface PriceAlertDialogProps {
   item: {
     id: number;
     title: string;
-    price: string;
+    price?: string | null;
     imageUrl?: string;
     store?: string;
   };
@@ -61,7 +61,7 @@ export default function PriceAlertDialog({
     },
   });
 
-  const currentPrice = parseFloat(item.price.replace(/[$,]/g, '')) || 0;
+  const currentPrice = parseFloat(String(item.price ?? '').replace(/[$,]/g, '')) || 0;
   const targetPrice = form.watch("targetPrice") || 0;
 
   const defaultTargetPrice = useMemo(() => {

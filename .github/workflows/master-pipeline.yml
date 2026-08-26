@@ -2,6 +2,15 @@ name: "Master CI/CD Pipeline"
 
 permissions:
   contents: read
+  # Needed so deploy-firebase can pass an OIDC token to the reusable
+  # firebase-deploy-local.yml workflow for Workload Identity Federation
+  # (replaces deprecated `firebase deploy --token` auth). Only actually
+  # exercised by that one job; granting it workflow-wide (rather than at
+  # job level) sidesteps an observed GitHub Actions quirk where adding a
+  # job-level `permissions:` block to deploy-firebase made its `if:`
+  # (referencing needs.*.outputs) stop evaluating true, for reasons not
+  # fully root-caused.
+  id-token: write
 
 on:
   workflow_dispatch:
@@ -22,7 +31,6 @@ on:
         type: choice
         options:
           - development
-          - demonstration
           - staging
           - production
         default: "development"
@@ -116,10 +124,8 @@ jobs:
       APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
       APP_STORE_CONNECT_KEY: ${{ secrets.APP_STORE_CONNECT_KEY }}
       FIREBASE_PROJECT_DEV: ${{ secrets.FIREBASE_PROJECT_DEVELOPMENT || 'wishlist-wizard-dev' }}
-      FIREBASE_PROJECT_DEMO: ${{ secrets.FIREBASE_PROJECT_DEMONSTRATION || 'wishlist-wizard-demo' }}
       FIREBASE_PROJECT_STAGING: ${{ secrets.FIREBASE_PROJECT_STAGING || 'wishlist-wizard-staging' }}
       FIREBASE_PROJECT_PROD: ${{ secrets.FIREBASE_PROJECT_PRODUCTION || 'wishlist-wizard-prod' }}
-      MATCH_GIT_BRANCH: main
     outputs:
       project_name: ${{ steps.manifest.outputs.project_name }}
       ios_enabled: ${{ steps.manifest.outputs.ios_enabled }}
@@ -130,6 +136,7 @@ jobs:
       mobile_build: ${{ steps.manifest.outputs.mobile_build }}
       trigger_context: ${{ steps.context.outputs.trigger }}
       target_environment: ${{ steps.context.outputs.environment }}
+      should_deploy_firebase: ${{ steps.deploy_gate.outputs.should_deploy }}
     steps:
       - name: Checkout Code
         uses: actions/checkout@v7
@@ -183,9 +190,6 @@ jobs:
           elif [ "${{ github.ref }}" = "refs/heads/staging" ]; then
             TRIGGER="build_and_deploy"
             ENVIRONMENT="staging"
-          elif [ "${{ github.ref }}" = "refs/heads/demonstration" ]; then
-            TRIGGER="build_and_deploy"
-            ENVIRONMENT="demonstration"
           elif [ "${{ github.ref }}" = "refs/heads/develop" ]; then
             TRIGGER="build_and_deploy"
             ENVIRONMENT="development"
@@ -196,6 +200,25 @@ jobs:
 
           echo "trigger=$TRIGGER" >> $GITHUB_OUTPUT
           echo "environment=$ENVIRONMENT" >> $GITHUB_OUTPUT
+
+      # deploy-firebase's `if:` (below) is a `uses:` reusable-workflow-call
+      # job — GitHub Actions has an observed quirk where a compound boolean
+      # `if:` on that kind of job, combining multiple needs.*.outputs
+      # references with &&/||, can silently evaluate false even though the
+      # identical expression evaluates true on a normal job (confirmed via a
+      # temporary debug job on 2026-08-24). Pre-computing a single boolean
+      # here, so deploy-firebase's `if:` is just one output reference, works
+      # around it.
+      - name: Compute Deploy Gate
+        id: deploy_gate
+        run: |
+          if [ "${{ steps.manifest.outputs.firebase_enabled }}" = "true" ] && \
+             { [ "${{ steps.context.outputs.trigger }}" = "build_and_deploy" ] || \
+               [ "${{ steps.context.outputs.trigger }}" = "deploy_only" ]; }; then
+            echo "should_deploy=true" >> $GITHUB_OUTPUT
+          else
+            echo "should_deploy=false" >> $GITHUB_OUTPUT
+          fi
 
   test:
     name: Run Tests
@@ -296,11 +319,7 @@ jobs:
   web-uat-tests:
     name: Web UAT (${{ matrix.browser }})
     needs: [load-config, test]
-    # TEMPORARY: skipped on pull_request while the live dev-environment UAT
-    # failures (timeouts on T1-4 Create Wishlist, all 3 browsers) are
-    # investigated separately. push/workflow_dispatch behavior unchanged.
     if: |
-      github.event_name != 'pull_request' &&
       needs.load-config.outputs.web_enabled == 'true' &&
       (needs.load-config.outputs.trigger_context == 'test_all' ||
        needs.load-config.outputs.trigger_context == 'build_all' ||
@@ -351,9 +370,6 @@ jobs:
             staging)
               export TEST_URL="https://wishlist-wizard-staging.web.app"
               ;;
-            demonstration)
-              export TEST_URL="https://wishlist-wizard-demo.web.app"
-              ;;
             *)
               export TEST_URL="https://wishlist-wizard-dev.web.app"
               ;;
@@ -397,8 +413,8 @@ jobs:
             exit 1
           fi
 
-          if [ "${{ github.event_name }}" = "pull_request" ] && [ "${{ needs.web-uat-tests.result }}" = "skipped" ]; then
-            echo "Web UAT skipped on pull_request (temporarily disabled — see web-uat-tests job comment)"
+          if [ "${{ needs.web-uat-tests.result }}" = "skipped" ]; then
+            echo "Web UAT skipped (web_enabled=false or trigger_context doesn't run it)"
           elif [ "${{ needs.web-uat-tests.result }}" != "success" ]; then
             echo "::error::Web UAT matrix did not pass"
             exit 1
@@ -406,16 +422,41 @@ jobs:
 
           echo "All quality gates passed"
 
+  # Plain job (not a uses: reusable-workflow call) computing a single
+  # boolean — build-ios's if: must be a single needs.*.outputs reference,
+  # not a compound expression combining multiple needs.*.outputs/needs.*.result
+  # values, or GitHub Actions silently skips it regardless of the actual
+  # condition. Confirmed via a temporary debug job on 2026-08-25: even
+  # `if: true` on a plain job with needs: [load-config, quality-gate] got
+  # skipped — the same unexplained platform quirk found on deploy-firebase
+  # (see firebase-deploy-v2's comment), this time triggered by depending on
+  # quality-gate rather than build-web. Root cause still unknown.
+  ios-gate:
+    name: Compute iOS Build Gate
+    needs: [load-config, quality-gate]
+    if: always()
+    runs-on: ubuntu-latest
+    outputs:
+      should_build: ${{ steps.gate.outputs.should_build }}
+    steps:
+      - name: Compute gate
+        id: gate
+        run: |
+          if [ "${{ needs.load-config.outputs.ios_enabled }}" = "true" ] && \
+             { [ "${{ needs.load-config.outputs.trigger_context }}" = "build_all" ] || \
+               [ "${{ needs.load-config.outputs.trigger_context }}" = "build_and_deploy" ]; } && \
+             { [ "${{ needs.load-config.outputs.target_environment }}" = "staging" ] || \
+               [ "${{ needs.load-config.outputs.target_environment }}" = "production" ]; } && \
+             [ "${{ needs.quality-gate.result }}" = "success" ]; then
+            echo "should_build=true" >> $GITHUB_OUTPUT
+          else
+            echo "should_build=false" >> $GITHUB_OUTPUT
+          fi
+
   build-ios:
     name: Build iOS App
-    needs: [load-config, quality-gate]
-    if: |
-      needs.load-config.outputs.ios_enabled == 'true' &&
-      (needs.load-config.outputs.trigger_context == 'build_all' ||
-       needs.load-config.outputs.trigger_context == 'build_and_deploy') &&
-      (needs.load-config.outputs.target_environment == 'staging' ||
-       needs.load-config.outputs.target_environment == 'production') &&
-      needs.quality-gate.result == 'success'
+    needs: [load-config, ios-gate]
+    if: needs.ios-gate.outputs.should_build == 'true'
     uses: ./.github/workflows/ios-mobile-release.yml
     with:
       release_type: ${{ needs.load-config.outputs.trigger_context == 'build_all' && 'build_only' || 'testflight' }}
@@ -456,7 +497,7 @@ jobs:
           java-version: '21'
 
       - name: Cache Gradle
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: |
             ~/.gradle/caches
@@ -533,6 +574,8 @@ jobs:
       needs.load-config.outputs.android_enabled == 'true' &&
       (needs.load-config.outputs.trigger_context == 'build_and_deploy' ||
        needs.load-config.outputs.trigger_context == 'android_deploy_only') &&
+      (needs.load-config.outputs.target_environment == 'staging' ||
+       needs.load-config.outputs.target_environment == 'production') &&
       needs.build-android.result == 'success'
     runs-on: ubuntu-latest
     environment: ${{ needs.load-config.outputs.target_environment == 'production' && 'PRODUCTION' || 'STAGING' }}
@@ -568,7 +611,6 @@ jobs:
     env:
       FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
       FIREBASE_PROJECT_DEV: ${{ secrets.FIREBASE_PROJECT_DEVELOPMENT || 'wishlist-wizard-dev' }}
-      FIREBASE_PROJECT_DEMO: ${{ secrets.FIREBASE_PROJECT_DEMONSTRATION || 'wishlist-wizard-demo' }}
       FIREBASE_PROJECT_STAGING: ${{ secrets.FIREBASE_PROJECT_STAGING || 'wishlist-wizard-staging' }}
       FIREBASE_PROJECT_PROD: ${{ secrets.FIREBASE_PROJECT_PRODUCTION || 'wishlist-wizard-prod' }}
       VITE_FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY }}
@@ -585,13 +627,6 @@ jobs:
       VITE_FIREBASE_MESSAGING_SENDER_ID_DEVELOPMENT: ${{ secrets.VITE_FIREBASE_MESSAGING_SENDER_ID_DEVELOPMENT }}
       VITE_FIREBASE_APP_ID_DEVELOPMENT: ${{ secrets.VITE_FIREBASE_APP_ID_DEVELOPMENT }}
       VITE_FIREBASE_MEASUREMENT_ID_DEVELOPMENT: ${{ secrets.VITE_FIREBASE_MEASUREMENT_ID_DEVELOPMENT }}
-      VITE_FIREBASE_API_KEY_DEMONSTRATION: ${{ secrets.VITE_FIREBASE_API_KEY_DEMONSTRATION }}
-      VITE_FIREBASE_AUTH_DOMAIN_DEMONSTRATION: ${{ secrets.VITE_FIREBASE_AUTH_DOMAIN_DEMONSTRATION }}
-      VITE_FIREBASE_PROJECT_ID_DEMONSTRATION: ${{ secrets.VITE_FIREBASE_PROJECT_ID_DEMONSTRATION }}
-      VITE_FIREBASE_STORAGE_BUCKET_DEMONSTRATION: ${{ secrets.VITE_FIREBASE_STORAGE_BUCKET_DEMONSTRATION }}
-      VITE_FIREBASE_MESSAGING_SENDER_ID_DEMONSTRATION: ${{ secrets.VITE_FIREBASE_MESSAGING_SENDER_ID_DEMONSTRATION }}
-      VITE_FIREBASE_APP_ID_DEMONSTRATION: ${{ secrets.VITE_FIREBASE_APP_ID_DEMONSTRATION }}
-      VITE_FIREBASE_MEASUREMENT_ID_DEMONSTRATION: ${{ secrets.VITE_FIREBASE_MEASUREMENT_ID_DEMONSTRATION }}
       VITE_FIREBASE_API_KEY_STAGING: ${{ secrets.VITE_FIREBASE_API_KEY_STAGING }}
       VITE_FIREBASE_AUTH_DOMAIN_STAGING: ${{ secrets.VITE_FIREBASE_AUTH_DOMAIN_STAGING }}
       VITE_FIREBASE_PROJECT_ID_STAGING: ${{ secrets.VITE_FIREBASE_PROJECT_ID_STAGING }}
@@ -606,15 +641,13 @@ jobs:
       VITE_FIREBASE_MESSAGING_SENDER_ID_PRODUCTION: ${{ secrets.VITE_FIREBASE_MESSAGING_SENDER_ID_PRODUCTION }}
       VITE_FIREBASE_APP_ID_PRODUCTION: ${{ secrets.VITE_FIREBASE_APP_ID_PRODUCTION }}
       VITE_FIREBASE_MEASUREMENT_ID_PRODUCTION: ${{ secrets.VITE_FIREBASE_MEASUREMENT_ID_PRODUCTION }}
-      # App Check's reCAPTCHA site key isn't part of Firebase Hosting's
-      # runtime auto-config (/__/firebase/init.json only covers the standard
-      # FirebaseOptions fields above), so unlike those it MUST be baked in
-      # correctly at build time — there's no runtime fallback for it.
-      VITE_FIREBASE_APPCHECK_SITE_KEY_DEVELOPMENT: ${{ secrets.VITE_FIREBASE_APPCHECK_SITE_KEY_DEVELOPMENT }}
-      VITE_FIREBASE_APPCHECK_SITE_KEY_STAGING: ${{ secrets.VITE_FIREBASE_APPCHECK_SITE_KEY_STAGING }}
-      VITE_FIREBASE_APPCHECK_SITE_KEY_PRODUCTION: ${{ secrets.VITE_FIREBASE_APPCHECK_SITE_KEY_PRODUCTION }}
+      # Publishable keys are safe to expose client-side by design (Stripe's
+      # own docs: they identify the account, not authorize charges) — no
+      # equivalent security concern to the secret keys above.
+      VITE_STRIPE_PUBLISHABLE_KEY_DEVELOPMENT: ${{ secrets.VITE_STRIPE_PUBLISHABLE_KEY_DEVELOPMENT }}
+      VITE_STRIPE_PUBLISHABLE_KEY_STAGING: ${{ secrets.VITE_STRIPE_PUBLISHABLE_KEY_STAGING }}
+      VITE_STRIPE_PUBLISHABLE_KEY_PRODUCTION: ${{ secrets.VITE_STRIPE_PUBLISHABLE_KEY_PRODUCTION }}
       NON_PROD_SITE_PASSWORD_DEVELOPMENT: ${{ secrets.NON_PROD_SITE_PASSWORD_DEVELOPMENT }}
-      NON_PROD_SITE_PASSWORD_DEMONSTRATION: ${{ secrets.NON_PROD_SITE_PASSWORD_DEMONSTRATION }}
       NON_PROD_SITE_PASSWORD_STAGING: ${{ secrets.NON_PROD_SITE_PASSWORD_STAGING }}
     steps:
       - name: Checkout Code
@@ -664,11 +697,6 @@ jobs:
               PROJECT_ID="$FIREBASE_PROJECT_PROD"
               CONFIG_FILE="firebase.prod.json"
               ENV_SUFFIX="PRODUCTION"
-              ;;
-            demonstration)
-              PROJECT_ID="$FIREBASE_PROJECT_DEMO"
-              CONFIG_FILE="firebase.demo.json"
-              ENV_SUFFIX="DEMONSTRATION"
               ;;
             staging)
               PROJECT_ID="$FIREBASE_PROJECT_STAGING"
@@ -740,12 +768,6 @@ jobs:
                 production)
                   eval "value=\${${base_name}_PRODUCTION:-}"
                   ;;
-                demonstration)
-                  eval "value=\${${base_name}_DEMONSTRATION:-}"
-                  if [ -z "$value" ]; then
-                    eval "value=\${${base_name}_STAGING:-}"
-                  fi
-                  ;;
                 staging)
                   eval "value=\${${base_name}_STAGING:-}"
                   ;;
@@ -803,10 +825,13 @@ jobs:
           const suffix = process.env.ENV_SUFFIX;
           const environment = process.env.VITE_ENVIRONMENT_VALUE || 'development';
           const envFile = process.env.GITHUB_ENV;
+          // Deliberately no hardcoded fallback here — the gate is meant to
+          // be fail-closed (see docs/ENVIRONMENT_SECURITY_HARDENING.md). A
+          // baked-in default password would be visible to anyone who reads
+          // this file, defeating the point of the gate.
           const nonProdPasswords = {
-            development: process.env.NON_PROD_SITE_PASSWORD_DEVELOPMENT || 'ww-dev-preview',
-            demonstration: process.env.NON_PROD_SITE_PASSWORD_DEMONSTRATION || 'ww-demo-preview',
-            staging: process.env.NON_PROD_SITE_PASSWORD_STAGING || 'ww-staging-preview'
+            development: process.env.NON_PROD_SITE_PASSWORD_DEVELOPMENT || '',
+            staging: process.env.NON_PROD_SITE_PASSWORD_STAGING || ''
           };
 
           const mappings = {
@@ -833,6 +858,15 @@ jobs:
           fs.appendFileSync(envFile, `${lines.join('\n')}\n`);
           NODE
 
+      - name: Resolve Stripe Publishable Key
+        run: |
+          case "${{ needs.load-config.outputs.target_environment }}" in
+            production) VALUE="$VITE_STRIPE_PUBLISHABLE_KEY_PRODUCTION" ;;
+            staging) VALUE="$VITE_STRIPE_PUBLISHABLE_KEY_STAGING" ;;
+            development|*) VALUE="$VITE_STRIPE_PUBLISHABLE_KEY_DEVELOPMENT" ;;
+          esac
+          echo "VITE_STRIPE_PUBLISHABLE_KEY=$VALUE" >> "$GITHUB_ENV"
+
       - name: Build Web App
         run: npm run build
 
@@ -855,33 +889,45 @@ jobs:
             --message="Deployment from GitHub Actions for ${{ needs.load-config.outputs.project_name }} to ${{ needs.load-config.outputs.target_environment }}" \
             --non-interactive
 
-  deploy-firebase:
+  firebase-deploy-v2:
     name: Deploy Firebase
-    needs: [load-config, build-web]
-    if: |
-      needs.load-config.outputs.firebase_enabled == 'true' &&
-      (needs.load-config.outputs.trigger_context == 'build_and_deploy' ||
-       needs.load-config.outputs.trigger_context == 'deploy_only')
+    # NOT depending on build-web deliberately: confirmed via extensive
+    # isolation testing on 2026-08-24 that including build-web in this
+    # job's `needs:` causes GitHub Actions to skip it unconditionally —
+    # even `if: true` skipped when build-web was a dependency, and
+    # removing just that one dependency (nothing else) fixed it
+    # immediately. Real cause unknown; this is an empirically-found
+    # workaround, not a diagnosis. This job deploys functions/firestore AND
+    # Hosting (firebase-deploy-local.yml builds the web app itself, fetching
+    # Firebase config live via the Management API instead of depending on
+    # build-web's artifact) — don't reintroduce a needs: build-web
+    # dependency to "share" a build; it will silently break this job again.
+    needs: [load-config]
+    if: needs.load-config.outputs.should_deploy_firebase == 'true'
     uses: ./.github/workflows/firebase-deploy-local.yml
     with:
       project_name: ${{ needs.load-config.outputs.project_name }}
       environment: ${{ needs.load-config.outputs.target_environment }}
       deploy_rules: true
     secrets:
-      firebase_token: ${{ secrets.FIREBASE_TOKEN }}
       firebase_project_dev: ${{ secrets.FIREBASE_PROJECT_DEV }}
       firebase_project_staging: ${{ secrets.FIREBASE_PROJECT_STAGING }}
-      firebase_project_prod: ${{ secrets.FIREBASE_PROJECT_PROD }}
+      firebase_project_prod: ${{ secrets.FIREBASE_PROJECT_PRODUCTION }}
       functions_repo_pat: ${{ secrets.FUNCTIONS_REPO_PAT }}
+      stripe_publishable_key_development: ${{ secrets.VITE_STRIPE_PUBLISHABLE_KEY_DEVELOPMENT }}
+      stripe_publishable_key_staging: ${{ secrets.VITE_STRIPE_PUBLISHABLE_KEY_STAGING }}
+      stripe_publishable_key_production: ${{ secrets.VITE_STRIPE_PUBLISHABLE_KEY_PRODUCTION }}
+      non_prod_site_password_development: ${{ secrets.NON_PROD_SITE_PASSWORD_DEVELOPMENT }}
+      non_prod_site_password_staging: ${{ secrets.NON_PROD_SITE_PASSWORD_STAGING }}
 
   validate-production:
     name: Validate Production Deployment
-    needs: [load-config, build-web, deploy-firebase]
+    needs: [load-config, build-web, firebase-deploy-v2]
     if: |
       needs.load-config.outputs.target_environment == 'production' &&
       (needs.load-config.outputs.trigger_context == 'build_and_deploy' ||
        needs.load-config.outputs.trigger_context == 'deploy_only') &&
-      (needs.build-web.result == 'success' || needs.deploy-firebase.result == 'success')
+      (needs.build-web.result == 'success' || needs.firebase-deploy-v2.result == 'success')
     uses: ./.github/workflows/production-validation.yml
     with:
       base_url: https://wishlist-wizard-prod.web.app
@@ -894,22 +940,24 @@ jobs:
     permissions:
       contents: read
       issues: write
+      id-token: write
     uses: ./.github/workflows/extension-build.yml
     with:
       project_name: ${{ needs.load-config.outputs.project_name }}
-      # Only real deploy pushes (staging/main) attempt to publish — PR runs
-      # and develop stay build-only, unchanged.
-      publish: ${{ needs.load-config.outputs.trigger_context == 'build_and_deploy' }}
+      # There is exactly one real Chrome Web Store listing (no per-environment
+      # equivalent to separate Firebase projects), so publish is gated on
+      # target_environment == 'production', not just the action name — a
+      # manual build_and_deploy run against develop/staging must never
+      # publish. PR runs and develop stay build-only, unchanged.
+      publish: ${{ needs.load-config.outputs.trigger_context == 'build_and_deploy' && needs.load-config.outputs.target_environment == 'production' }}
       node_version: "20"
     secrets:
       chrome_extension_id: ${{ secrets.CHROME_EXTENSION_ID }}
-      chrome_client_id: ${{ secrets.CHROME_CLIENT_ID }}
-      chrome_client_secret: ${{ secrets.CHROME_CLIENT_SECRET }}
-      chrome_refresh_token: ${{ secrets.CHROME_REFRESH_TOKEN }}
+      chrome_publisher_id: ${{ secrets.CHROME_PUBLISHER_ID }}
 
   pipeline-summary:
     name: Pipeline Summary
-    needs: [load-config, test, web-uat-tests, quality-gate, build-ios, build-android, deploy-android, build-web, deploy-firebase, validate-production, build-chrome-extension]
+    needs: [load-config, test, web-uat-tests, quality-gate, build-ios, build-android, deploy-android, build-web, firebase-deploy-v2, validate-production, build-chrome-extension]
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -929,6 +977,6 @@ jobs:
           echo "- Android Build: ${{ needs.build-android.result }}" >> $GITHUB_STEP_SUMMARY
           echo "- Android Deploy: ${{ needs.deploy-android.result }}" >> $GITHUB_STEP_SUMMARY
           echo "- Web: ${{ needs.build-web.result }}" >> $GITHUB_STEP_SUMMARY
-          echo "- Firebase: ${{ needs.deploy-firebase.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Firebase: ${{ needs.firebase-deploy-v2.result }}" >> $GITHUB_STEP_SUMMARY
           echo "- Production Validation: ${{ needs.validate-production.result }}" >> $GITHUB_STEP_SUMMARY
           echo "- Chrome Extension: ${{ needs.build-chrome-extension.result }}" >> $GITHUB_STEP_SUMMARY

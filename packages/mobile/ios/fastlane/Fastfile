@@ -5,28 +5,69 @@
 # fastlane add_plugin firebase_app_distribution
 
 require 'fileutils'
+require 'shellwords'
 
 default_platform(:ios)
 
 platform :ios do
-  # Helper to set key partition list to avoid UI prompts
-  def set_partition_list(keychain_path, keychain_password)
-    UI.message("🔐 Setting key partition list for keychain: #{keychain_path}")
-    # Use system security command to allow access to the key by apple tools (codesign, etc.)
-    # This prevents the UI prompt for keychain access
-    cmd = "security set-key-partition-list -S apple-tool:,apple: -s -k #{keychain_password.shellescape} #{keychain_path.shellescape}"
-    
-    # Execute command and suppress output unless it fails
-    begin
-      sh(cmd, log: false)
-      UI.success("✅ Key partition list set successfully")
-    rescue => e
-      UI.error("⚠️ Failed to set key partition list: #{e.message}")
-      # Don't fail the build, just warn
+  # Writes APP_STORE_CONNECT_KEY to a temp .p8 FILE PATH, for xcodebuild's
+  # -authenticationKeyPath flag (automatic signing via -allowProvisioningUpdates
+  # authenticates at the xcodebuild CLI level, not through fastlane's Spaceship
+  # session, so it needs a path rather than an api_key object). Same pattern
+  # proven working in vehicle-vitals/packages/mobile/ios/fastlane/Fastfile.
+  def app_store_connect_key_file_path
+    private_key_content = ENV["APP_STORE_CONNECT_KEY"]
+    if private_key_content.nil? || private_key_content.empty?
+      UI.user_error!("APP_STORE_CONNECT_KEY environment variable is not set or empty")
     end
+
+    unless private_key_content.include?("-----BEGIN")
+      require 'base64'
+      decoded = Base64.decode64(private_key_content.gsub(/\s+/, ""))
+      private_key_content = decoded if decoded.include?("-----BEGIN")
+    end
+
+    private_key_content = private_key_content.gsub(/\A['\"]|['\"]\z/, '')
+    private_key_content = private_key_content.gsub(/\\n/, "\n")
+    private_key_content = private_key_content.gsub(/\r\n?/, "\n")
+    private_key_content = private_key_content.lines.map { |l| l.strip }.reject { |l| l.empty? }.join("\n") + "\n"
+
+    unless private_key_content.include?("-----BEGIN PRIVATE KEY-----") || private_key_content.include?("-----BEGIN EC PRIVATE KEY-----")
+      UI.user_error!("APP_STORE_CONNECT_KEY could not be converted to a valid .p8 key file")
+    end
+
+    require 'tempfile'
+    key_file = Tempfile.new(['app_store_connect_xcode_auth', '.p8'])
+    key_file.write(private_key_content)
+    key_file.flush
+    key_file.close
+
+    # Keep a strong reference so Ruby GC does not unlink the tempfile before xcodebuild uses it.
+    @xcode_auth_key_tempfile = key_file
+    key_file.path
   end
 
-  # before_all block removed to align with modulo-squares and trust ephemeral_keychain script
+  # Forces the Runner target into automatic signing, then hands signing off
+  # to xcodebuild's -allowProvisioningUpdates (via the App Store Connect API
+  # key) so Apple creates/reuses the distribution cert + profile directly —
+  # no git-based cert storage (match) involved. Same pattern as
+  # vehicle-vitals, adopted here after confirming wishlist-wizard's old
+  # git-based match setup (pointed at mnelson3/nelson-grey, a repo that
+  # never actually held any certificates) was dead/abandoned tooling, not a
+  # working setup with a credential problem.
+  def ensure_xcode_automatic_signing!
+    team_id = ENV["FASTLANE_TEAM_ID"].to_s.strip
+    raise "Missing FASTLANE_TEAM_ID" if team_id.empty?
+
+    update_code_signing_settings(
+      use_automatic_signing: true,
+      path: "Runner.xcodeproj",
+      targets: ["Runner"],
+      team_id: team_id
+    )
+
+    team_id
+  end
 
   desc "Load App Store Connect API Key information to use in subsequent lanes"
   lane :load_asc_api_key do
@@ -204,315 +245,68 @@ platform :ios do
     end
   end
 
-  desc "Helper to purge App Store assets from the match repo (nuke) without revoking on Apple Developer Portal"
-  def purge_match_repo_appstore_assets!
-    UI.message("💣  Purging App Store assets from the match git repository (skipping Apple Dev Portal revocation)...")
-    
-    # We use the 'nuke' action but we want to avoid revoking the actual certs on Apple's side 
-    # if we just want to clear the repo state. However, 'match nuke' is designed to revoke.
-    #
-    # Instead, we can use the 'match' action with 'readonly: false' and 'force: true' 
-    # which usually regenerates. But if we hit the limit, we need to clear the repo's knowledge 
-    # of the certs so it tries to generate a new one (and hopefully we have room or can revoke manually).
-    #
-    # ACTUALLY, the error is "reached the maximum number of available Distribution certificates".
-    # This means we DO need to revoke them on Apple's side to free up a slot.
-    # So we should use 'match nuke' to clear them out.
-    
-    # Nuke distribution certificates and profiles
-    begin
-      match_nuke(
-        type: "appstore",
-        skip_confirmation: true
-      )
-      UI.success("✅  Successfully nuked App Store assets.")
-    rescue => e
-      UI.error("⚠️  Failed to nuke App Store assets: #{e.message}")
-      # We continue, hoping that maybe enough was cleared or that the retry might work
-    end
-  end
-
-  desc "Sync code signing certificates and provisioning profiles"
-  lane :sync_signing do
-    # Set up API key authentication
-    private_key_content = ENV["APP_STORE_CONNECT_KEY"]
-    if private_key_content.nil? || private_key_content.empty?
-      UI.error("APP_STORE_CONNECT_KEY environment variable is not set or empty")
-      raise "Missing APP_STORE_CONNECT_KEY"
-    end
-
-    # Detect key format
-    is_pem = private_key_content.include?("-----BEGIN")
-    cleaned = private_key_content.gsub(/\s+/, "")
-    looks_base64 = cleaned =~ /\A[A-Za-z0-9+\/=]+\z/ && cleaned.length > 100
-
-    if !is_pem && looks_base64
-      UI.message("Detected APP_STORE_CONNECT_KEY as base64; passing directly as key_content (is_key_content_base64: true)")
-      api_key = app_store_connect_api_key(
-        key_id: ENV["APP_STORE_CONNECT_KEY_ID"],
-        issuer_id: ENV["APP_STORE_CONNECT_ISSUER_ID"],
-        key_content: cleaned,
-        is_key_content_base64: true,
-        in_house: false
-      )
-    else
-      # Process as PEM
-      private_key_content = private_key_content.strip
-      private_key_content = private_key_content.gsub(/\A['\"]|['\"]\z/, '')
-      private_key_content = private_key_content.gsub(/\\n/, "\n")
-      private_key_content = private_key_content.gsub(/\r\n?/, "\n")
-      private_key_content = private_key_content.lines.map { |l| l.strip }.reject { |l| l.empty? }.join("\n") + "\n"
-
-      unless private_key_content.match?(/-----BEGIN [A-Z ]+-----/)
-        begin
-          require 'base64'
-          decoded = Base64.decode64(private_key_content)
-          if decoded.include?("-----BEGIN")
-            private_key_content = decoded
-            UI.message("Decoded APP_STORE_CONNECT_KEY from base64")
-          end
-        rescue => e
-          UI.message("Failed to decode APP_STORE_CONNECT_KEY as base64: #{e.message}")
-        end
-      end
-
-      require 'tempfile'
-      key_file = Tempfile.new(['app_store_connect_key', '.p8'])
-      key_file.write(private_key_content)
-      key_file.close
-
-      UI.message("Created temporary App Store Connect key file: #{key_file.path}")
-
-      api_key = app_store_connect_api_key(
-        key_id: ENV["APP_STORE_CONNECT_KEY_ID"],
-        issuer_id: ENV["APP_STORE_CONNECT_ISSUER_ID"],
-        key_filepath: key_file.path
-      )
-    end
-
-    # Clean up ALL distribution certificates from the login keychain before starting
-    UI.message("🧹 Cleaning up all distribution certificates from login keychain...")
-    begin
-      login_keychain = File.expand_path("~/Library/Keychains/login.keychain-db")
-      cert_list = `security find-certificate -a -c "Apple Distribution" -Z "#{login_keychain}" 2>/dev/null`
-      sha1_hashes = cert_list.scan(/SHA-1 hash: ([A-F0-9]{40})/).flatten
-      
-      if sha1_hashes.any?
-        UI.message("Found #{sha1_hashes.length} distribution certificate(s), removing them...")
-        sha1_hashes.each do |sha1|
-          sh("security delete-certificate -Z #{sha1} \"#{login_keychain}\" 2>/dev/null || true", log: false)
-        end
-        UI.success("✅ Cleaned #{sha1_hashes.length} certificate(s) from login keychain")
-      end
-    rescue => e
-      UI.message("⚠️ Login keychain cleanup: #{e.message}")
-    end
-
-    # Explicitly create/unlock a specifically named keychain
-    keychain_name = ENV["MATCH_KEYCHAIN_NAME"]
-    if keychain_name.to_s.empty?
-      keychain_name = "fastlane_build_keychain"
-    end
-    keychain_password = ENV["MATCH_KEYCHAIN_PASSWORD"] || "fastlane_password"
-
-    keychain_path = ENV["MATCH_KEYCHAIN_PATH"]
-    if keychain_path.to_s.empty?
-      keychain_path = File.expand_path("~/Library/Keychains/#{keychain_name}-db")
-    end
-    
-    # Create and unlock keychain
-    if File.exist?(keychain_path)
-      sh("security unlock-keychain -p #{keychain_password.shellescape} #{keychain_path.shellescape} || true", log: false)
-      sh("security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k #{keychain_password.shellescape} #{keychain_path.shellescape} 2>/dev/null || true", log: false)
-    else
-      create_keychain(
-        name: keychain_name,
-        password: keychain_password,
-        default_keychain: false,
-        unlock: true,
-        timeout: 3600,
-        add_to_search_list: true
-      )
-      sh("security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k #{keychain_password.shellescape} #{keychain_path.shellescape} 2>/dev/null || true", log: false)
-    end
-
-    match_keychain_arg = keychain_path
-
-    # ZERO-TOUCH certificate management
-    should_retry = false
-    creation_attempt = 0
-
-    begin
-      # Try readonly first
-      UI.message("🔄 Attempting to use existing certificates...")
-      match(
-        type: "appstore",
-        readonly: true,
-        verbose: true,
-        keychain_name: keychain_name,
-        keychain_password: keychain_password,
-        api_key: api_key,
-        skip_confirmation: true
-      )
-      UI.success("✅ Using existing certificates")
-
-    rescue => e
-      if e.message.include?("No code signing identity found") || e.message.include?("No matching provisioning profiles found")
-        creation_attempt += 1
-        if creation_attempt > 1
-          UI.error("❌ Failed after multiple attempts")
-          raise e
-        end
-        
-        UI.message("⚠️  Creating new certificates...")
-        begin
-          # Ensure keychain is unlocked before attempting to create certs
-          kc_path = ENV['MATCH_KEYCHAIN_PATH']
-          kc_pass = ENV['MATCH_KEYCHAIN_PASSWORD']
-          if kc_path && kc_pass
-            system("security unlock-keychain -p '#{kc_pass}' '#{kc_path}' || true")
-            system("security set-key-partition-list -S apple-tool:,apple:,codesign: -s -t private -k '#{kc_pass}' '#{kc_path}' 2>/dev/null || true")
-          end
-          
-          match(
-            type: "appstore",
-            readonly: false,
-            verbose: true,
-            keychain_name: ENV['MATCH_KEYCHAIN_NAME'],
-            keychain_password: keychain_password,
-            api_key: api_key,
-            skip_confirmation: true,
-            git_full_name: "Fastlane Bot",
-            git_user_email: "fastlane@example.com"
-          )
-          UI.success("✅ Created new certificates")
-          
-        rescue => create_error
-          if create_error.message.include?("Maximum number of certificates") || create_error.message.include?("reached the maximum number")
-            UI.important("⚠️  Hit Apple's certificate limit. Using match_nuke...")
-            
-            begin
-              match_nuke(
-                type: "appstore",
-                skip_confirmation: true,
-                readonly: false,
-                api_key: api_key
-              )
-              
-              UI.success("✅ Revoked old certificates")
-              should_retry = true
-              creation_attempt = 0
-              retry
-            rescue => nuke_error
-              UI.error("❌ Failed to nuke certificates: #{nuke_error.message}")
-              raise create_error
-            end
-          else
-            raise create_error
-          end
-        end
-      else
-        raise e
-      end
-      
-      if should_retry
-        should_retry = false
-        creation_attempt = 0
-        retry
-      end
-    end
-
-    # Ensure partition list is set to prevent UI prompts
-    if keychain_name && !keychain_name.empty? && keychain_password && !keychain_password.empty?
-      keychain_path = nil
-      if !ENV["MATCH_KEYCHAIN_PATH"].to_s.empty?
-         keychain_path = ENV["MATCH_KEYCHAIN_PATH"]
-      else
-         # Handle both .keychain and .keychain-db extensions
-         keychain_path = File.expand_path("~/Library/Keychains/#{keychain_name}-db")
-         unless File.exist?(keychain_path)
-           keychain_path = File.expand_path("~/Library/Keychains/#{keychain_name}")
-         end
-      end
-      
-      if keychain_path && File.exist?(keychain_path)
-        set_partition_list(keychain_path, keychain_password)
-      end
-    end
-  end
-
   desc "Build and sign iOS app for App Store distribution"
   lane :build_appstore do
     ensure_prod_firebase_config!
-    flutter_deps
+    team_id = ensure_xcode_automatic_signing!
+    authentication_key_path = app_store_connect_key_file_path
+    authentication_key_id = ENV["APP_STORE_CONNECT_KEY_ID"].to_s.strip
+    authentication_issuer_id = ENV["APP_STORE_CONNECT_ISSUER_ID"].to_s.strip
 
-    # Sync signing certificates (ensures correct branch via env or Matchfile)
-    sync_signing
+    flutter_deps
 
     # Clean legacy build artifacts to avoid linker errors
     clear_derived_data
     sh("rm -rf ../Pods")
     sh("rm -f ../Podfile.lock")
 
-    Dir.chdir("../../") do
-      # Build the app with proper code signing
-      sh("flutter clean")
-      sh("flutter pub get")
-      # Use --no-codesign to avoid Flutter trying to sign with default (likely Dev) identity
-      sh("flutter build ios --release --no-codesign --dart-define=FIREBASE_ENV=production")
+    begin
+      Dir.chdir("../../") do
+        sh("flutter clean")
+        sh("flutter pub get")
+        # Use --no-codesign to avoid Flutter trying to sign with default (likely Dev) identity
+        sh("flutter build ios --release --no-codesign --dart-define=FIREBASE_ENV=production")
 
-      # Force manual signing with the identity/profile we just fetched
-      app_id = "com.wishlistwizard.app.ios"
-      profile_name = ENV["sigh_#{app_id}_appstore_profile-name"]
-      team_id = ENV["sigh_#{app_id}_appstore_team-id"] || ENV["FASTLANE_TEAM_ID"]
-      cert_name = ENV["sigh_#{app_id}_appstore_certificate-name"] || "Apple Distribution"
-
-      # Ensure keychain is unlocked and searchable BEFORE build_app
-      # This is critical for Xcode to find the code signing certificate
-      keychain_name = ENV["MATCH_KEYCHAIN_NAME"]
-      keychain_password = ENV["MATCH_KEYCHAIN_PASSWORD"]
-      
-      if keychain_name && keychain_password
-        keychain_path = ENV["MATCH_KEYCHAIN_PATH"]
-        if keychain_path.to_s.empty?
-          keychain_path = File.expand_path("~/Library/Keychains/#{keychain_name}-db")
-        end
-        
-        if File.exist?(keychain_path)
-          UI.message("🔓 Unlocking dedicated keychain for build: #{keychain_path}")
-          sh("security unlock-keychain -p #{keychain_password.shellescape} #{keychain_path.shellescape}", log: false)
-          sh("security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k #{keychain_password.shellescape} #{keychain_path.shellescape} 2>/dev/null || true", log: false)
-          # Add keychain to search list
-          sh("security list-keychains -d user -s #{keychain_path.shellescape} $(security list-keychains -d user | tr -d '\"')", log: false)
-        else
-          UI.important("⚠️ Keychain not found at: #{keychain_path}")
-        end
+        build_app(
+          xcargs: [
+            "-allowProvisioningUpdates",
+            "-authenticationKeyPath #{Shellwords.escape(authentication_key_path)}",
+            "-authenticationKeyID #{Shellwords.escape(authentication_key_id)}",
+            "-authenticationKeyIssuerID #{Shellwords.escape(authentication_issuer_id)}"
+          ].join(" "),
+          workspace: "ios/Runner.xcworkspace",
+          scheme: "Runner",
+          configuration: "Release",
+          export_method: "app-store",
+          export_options: {
+            signingStyle: "automatic",
+            teamID: team_id
+          },
+          clean: true
+        )
       end
-
-      # Build the Xcode project
-      build_app(
-        xcargs: "CODE_SIGN_STYLE='Manual' DEVELOPMENT_TEAM='#{team_id}' PROVISIONING_PROFILE_SPECIFIER='#{profile_name}' CODE_SIGN_IDENTITY='#{cert_name}'",
-        workspace: "ios/Runner.xcworkspace",
-        scheme: "Runner",
-        configuration: "Release",
-        export_method: "app-store",
-        clean: true
-      )
+    ensure
+      if @xcode_auth_key_tempfile
+        @xcode_auth_key_tempfile.unlink
+        @xcode_auth_key_tempfile = nil
+      end
     end
   end
 
   desc "Build and sign iOS app for TestFlight distribution"
   lane :build_testflight do
     ensure_prod_firebase_config!
+    team_id = ensure_xcode_automatic_signing!
+    authentication_key_path = app_store_connect_key_file_path
+    authentication_key_id = ENV["APP_STORE_CONNECT_KEY_ID"].to_s.strip
+    authentication_issuer_id = ENV["APP_STORE_CONNECT_ISSUER_ID"].to_s.strip
+
     clear_derived_data
     # Clean workspace to prevent abseil/grpc linking issues
     sh("rm -rf ../Pods")
     sh("rm -f ../Podfile.lock")
-    
-    flutter_deps
 
-    # Sync signing certificates
-    sync_signing
+    flutter_deps
 
     # Ensure a clean build environment BEFORE dependencies
     Dir.chdir("../../") do
@@ -527,82 +321,38 @@ platform :ios do
       sh("flutter build ios --release --no-codesign --dart-define=FIREBASE_ENV=production")
     end
 
-    # Build the iOS app using gym (standard fastlane action, handles signing better than manual flutter build)
-    # We rely on 'flutter pub get' having run previously to set up the environment
-    
-    # Force manual signing with the identity/profile we just fetched
-    # match sets these environment variables:
-    # sigh_<bundle_id>_<type>_profile-name
-    # sigh_<bundle_id>_<type>_team-id
-    # sigh_<bundle_id>_<type>_certificate-name
-    
-    app_id = "com.wishlistwizard.app.ios"
-    # Fallback to standard env vars if match didn't set specific ones (e.g. if cached)
-    # But usually match sets them.
-    
-    # Debug: log available sigh variables
-    # ENV.keys.select { |k| k.to_s.start_with?("sigh_") }.each { |k| UI.message("ENV[#{k}] = #{ENV[k]}") }
-
-    profile_name = ENV["sigh_#{app_id}_appstore_profile-name"]
-    team_id = ENV["sigh_#{app_id}_appstore_team-id"] || ENV["FASTLANE_TEAM_ID"]
-    cert_name = ENV["sigh_#{app_id}_appstore_certificate-name"] || "Apple Distribution"
-
-    # Use update_code_signing_settings to specifically target the Runner project
-    # This avoids setting global xcodebuild args that break Pods signing (like FirebaseAppCheck)
-    update_code_signing_settings(
-      use_automatic_signing: false,
-      path: "Runner.xcodeproj",
-      targets: ["Runner"],
-      code_sign_identity: cert_name,
-      bundle_identifier: app_id,
-      profile_name: profile_name,
-      team_id: team_id
-    )
-
-    # Ensure keychain is unlocked and searchable BEFORE build_app
-    # This is critical for Xcode to find the code signing certificate
-    keychain_name = ENV["MATCH_KEYCHAIN_NAME"]
-    keychain_password = ENV["MATCH_KEYCHAIN_PASSWORD"]
-    
-    if keychain_name && keychain_password
-      keychain_path = ENV["MATCH_KEYCHAIN_PATH"]
-      if keychain_path.to_s.empty?
-        keychain_path = File.expand_path("~/Library/Keychains/#{keychain_name}-db")
-      end
-      
-      if File.exist?(keychain_path)
-        UI.message("🔓 Unlocking dedicated keychain for build: #{keychain_path}")
-        sh("security unlock-keychain -p #{keychain_password.shellescape} #{keychain_path.shellescape}", log: false)
-        sh("security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k #{keychain_password.shellescape} #{keychain_path.shellescape} 2>/dev/null || true", log: false)
-        # Add keychain to search list
-        sh("security list-keychains -d user -s #{keychain_path.shellescape} $(security list-keychains -d user | tr -d '\"')", log: false)
-      else
-        UI.important("⚠️ Keychain not found at: #{keychain_path}")
+    begin
+      build_app(
+        workspace: "Runner.xcworkspace",
+        scheme: "Runner",
+        clean: true,
+        export_method: "app-store",
+        output_directory: "../../build/ios/ipa",
+        output_name: "WishlistWizard.ipa",
+        export_options: {
+          signingStyle: "automatic",
+          teamID: team_id
+        },
+        xcargs: [
+          "-allowProvisioningUpdates",
+          "-authenticationKeyPath #{Shellwords.escape(authentication_key_path)}",
+          "-authenticationKeyID #{Shellwords.escape(authentication_key_id)}",
+          "-authenticationKeyIssuerID #{Shellwords.escape(authentication_issuer_id)}"
+        ].join(" ")
+      )
+    ensure
+      if @xcode_auth_key_tempfile
+        @xcode_auth_key_tempfile.unlink
+        @xcode_auth_key_tempfile = nil
       end
     end
 
-    # Use sync_signing (match) variables
-    build_app(
-      workspace: "Runner.xcworkspace",
-      scheme: "Runner",
-      clean: true,
-      skip_profile_detection: true,
-      export_method: "app-store",
-      output_directory: "../../build/ios/ipa",
-      output_name: "WishlistWizard.ipa",
-      export_options: {
-        provisioningProfiles: {
-          app_id => profile_name
-        }
-      }
-    )
-    
-     # Get the actual IPA path from build_app result
-     ipa_path = Actions.lane_context[SharedValues::IPA_OUTPUT_PATH]
-     unless ipa_path && File.exist?(ipa_path)
-       UI.user_error!("gym failed to create IPA at #{ipa_path || '../../build/ios/ipa/WishlistWizard.ipa'}")
-     end
-    
+    # Get the actual IPA path from build_app result
+    ipa_path = Actions.lane_context[SharedValues::IPA_OUTPUT_PATH]
+    unless ipa_path && File.exist?(ipa_path)
+      UI.user_error!("gym failed to create IPA at #{ipa_path || '../../build/ios/ipa/WishlistWizard.ipa'}")
+    end
+
     UI.message("✅ Successfully created signed IPA at: #{ipa_path}")
   end
 
@@ -629,9 +379,7 @@ platform :ios do
     raw_contact_phone = ENV["BETA_CONTACT_PHONE"].to_s.strip
 
     if raw_contact_phone.empty?
-      UI.message("No contact phone provided")
-    else
-      UI.message("Contact phone provided (will be recorded but not passed to upload_to_testflight)")
+      UI.message("No contact phone provided; using default beta_app_review_info contact phone")
     end
 
     # Use pilot (wrapped by upload_to_testflight)
@@ -643,6 +391,19 @@ platform :ios do
       ipa: ipa_path,
       skip_waiting_for_build_processing: true,
       beta_app_feedback_email: "mark.a.nelson@outlook.com",
+      # Required once per app before Apple allows distributing a build to an
+      # EXTERNAL testing group (distribute_external: true below) — found the
+      # hard way: the build itself succeeds and uploads fine, only the final
+      # distribute step rejects with "Beta App Description is missing" /
+      # "betaAppLocalizations not found for this app" until this is set.
+      beta_app_description: "Wishlist Wizard is a smart wishlist management app. Create and share wishlists for any occasion, track prices on items you want, and coordinate group gifting with friends and family so everyone can chip in on bigger gifts.",
+      beta_app_review_info: {
+        contact_email: ENV["BETA_FEEDBACK_EMAIL"] || "mark.a.nelson@outlook.com",
+        contact_first_name: "Mark",
+        contact_last_name: "Nelson",
+        contact_phone: raw_contact_phone.empty? ? "+16307158474" : raw_contact_phone,
+        notes: "No demo account needed — sign-in supports Google, email, or continuing as a guest."
+      },
       changelog: "Automated TestFlight build from CI/CD pipeline",
       distribute_external: true,
       groups: [ENV["BETA_GROUP_NAME"] || "Internal Testers"]

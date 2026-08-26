@@ -4,20 +4,25 @@ import 'dart:io' show Platform;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:logging/logging.dart';
 import 'package:flutter/foundation.dart';
 import 'firebase_options.dart';
-import 'models/models.dart';
 import 'providers/providers.dart';
 import 'services/services.dart';
 import 'services/admob_service.dart';
 import 'services/fcm_service.dart';
 import 'services/iap_service.dart';
+import 'screens/account_screen.dart';
+import 'screens/achievements_screen.dart';
+import 'screens/calendar_screen.dart';
+import 'screens/connections_screen.dart';
+import 'screens/creator_dashboard_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/firebase_wishlists_screen.dart';
+import 'screens/notifications_screen.dart';
+import 'screens/price_tracking_screen.dart';
 import 'screens/subscription_screen.dart';
 import 'widgets/error_boundary.dart';
 
@@ -45,17 +50,6 @@ void main() async {
   } on FirebaseException catch (e) {
     if (e.code != 'duplicate-app') rethrow;
   }
-
-  // App Check is enforced server-side (Auth/Firestore/Storage) in
-  // wishlist-wizard-dev as of 2026-07-18 — without this, every real
-  // request gets rejected with a 403. Debug providers are used in debug
-  // builds (including simulators, which can't do real App Attest/Play
-  // Integrity attestation) and print a token to the console that must be
-  // registered once via the Firebase Console/App Check API before it works.
-  await FirebaseAppCheck.instance.activate(
-    providerApple: kDebugMode ? const AppleDebugProvider() : const AppleAppAttestWithDeviceCheckFallbackProvider(),
-    providerAndroid: kDebugMode ? const AndroidDebugProvider() : const AndroidPlayIntegrityProvider(),
-  );
 
   // Explicitly enable Firestore's offline cache (settings must be applied before
   // any Firestore read/write) so wishlists remain viewable without a connection.
@@ -100,7 +94,6 @@ class WishlistWizardApp extends StatelessWidget {
       child: MultiProvider(
         providers: [
           ChangeNotifierProvider(create: (_) => AuthProvider()),
-          ChangeNotifierProvider(create: (_) => WishlistProvider()),
           ChangeNotifierProvider(create: (_) => FirebaseWishlistProvider()),
           ChangeNotifierProvider(create: (_) => SubscriptionProvider()),
           ChangeNotifierProvider(create: (_) => IapService()..initialize()),
@@ -303,332 +296,6 @@ class _MainNavigatorState extends State<MainNavigator> {
   }
 }
 
-class NotificationDeepLinkParser {
-  static String? extractWishlistId(FirebaseNotification notification) {
-    final metadata = notification.metadata;
-
-    final directValue = _extractStringValue(metadata, const [
-      'wishlistId',
-      'wishlist_id',
-      'wishlist',
-    ]);
-    if (directValue != null) {
-      return directValue;
-    }
-
-    final actionUrl = _extractActionUrl(metadata);
-    if (actionUrl != null) {
-      final fromQuery = _extractFromActionUrlQuery(actionUrl, const [
-        'wishlistId',
-        'wishlist_id',
-        'wishlist',
-      ]);
-      if (fromQuery != null) {
-        return fromQuery;
-      }
-
-      final match = RegExp(r'/wishlists?/([^/\s]+)').firstMatch(actionUrl);
-      if (match != null && match.groupCount >= 1) {
-        return match.group(1);
-      }
-    }
-
-    return null;
-  }
-
-  static String? extractItemId(FirebaseNotification notification) {
-    final metadata = notification.metadata;
-
-    final directValue = _extractStringValue(metadata, const [
-      'itemId',
-      'item_id',
-      'wishlistItemId',
-      'wishlist_item_id',
-      'item',
-    ]);
-    if (directValue != null) {
-      return directValue;
-    }
-
-    final actionUrl = _extractActionUrl(metadata);
-    if (actionUrl != null) {
-      final fromQuery = _extractFromActionUrlQuery(actionUrl, const [
-        'itemId',
-        'item_id',
-        'wishlistItemId',
-        'wishlist_item_id',
-        'item',
-      ]);
-      if (fromQuery != null) {
-        return fromQuery;
-      }
-
-      final match = RegExp(r'/items?/([^/\s]+)').firstMatch(actionUrl);
-      if (match != null && match.groupCount >= 1) {
-        return match.group(1);
-      }
-    }
-
-    return null;
-  }
-
-  static String? _extractStringValue(
-    Map<String, dynamic> metadata,
-    List<String> keys,
-  ) {
-    for (final key in keys) {
-      final value = metadata[key];
-      if (value is String && value.isNotEmpty) {
-        return value;
-      }
-      if (value is num) {
-        return value.toString();
-      }
-    }
-    return null;
-  }
-
-  static String? _extractActionUrl(Map<String, dynamic> metadata) {
-    return _extractStringValue(metadata, const [
-      'actionUrl',
-      'action_url',
-      'url',
-      'deepLink',
-      'deep_link',
-    ]);
-  }
-
-  static String? _extractFromActionUrlQuery(
-    String actionUrl,
-    List<String> keys,
-  ) {
-    final uri = Uri.tryParse(actionUrl);
-    if (uri == null) {
-      return null;
-    }
-
-    for (final key in keys) {
-      final value = uri.queryParameters[key];
-      if (value != null && value.isNotEmpty) {
-        return value;
-      }
-    }
-
-    return null;
-  }
-}
-
-class NotificationsScreen extends StatelessWidget {
-  const NotificationsScreen({super.key});
-
-  String? _extractWishlistId(FirebaseNotification notification) {
-    return NotificationDeepLinkParser.extractWishlistId(notification);
-  }
-
-  String? _extractItemId(FirebaseNotification notification) {
-    return NotificationDeepLinkParser.extractItemId(notification);
-  }
-
-  Future<void> _handleNotificationTap(
-    BuildContext context,
-    FirebaseNotification notification,
-    FirebaseWishlistProvider wishlistProvider,
-  ) async {
-    if (!notification.isRead) {
-      await wishlistProvider.markNotificationAsRead(notification.id);
-    }
-
-    final extractedWishlistId = _extractWishlistId(notification);
-    final itemId = _extractItemId(notification);
-
-    String? resolvedWishlistId;
-    if (itemId != null && itemId.isNotEmpty) {
-      final item = await wishlistProvider.getWishlistItemById(itemId);
-      resolvedWishlistId = item?.wishlistId;
-    }
-
-    resolvedWishlistId ??= extractedWishlistId;
-
-    if (resolvedWishlistId == null || resolvedWishlistId.isEmpty) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('No linked wishlist found for this notification.'),
-          ),
-        );
-      }
-      return;
-    }
-
-    final wishlist = await wishlistProvider.getWishlistById(resolvedWishlistId);
-    if (wishlist != null && context.mounted) {
-      await Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => FirebaseWishlistItemsScreen(
-            wishlist: wishlist,
-            initialItemId: itemId,
-          ),
-        ),
-      );
-      return;
-    }
-
-    if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Unable to open related wishlist.')),
-      );
-    }
-  }
-
-  IconData _iconForType(NotificationType type) {
-    switch (type) {
-      case NotificationType.priceDrop:
-        return Icons.trending_down;
-      case NotificationType.backInStock:
-        return Icons.inventory_2;
-      case NotificationType.wishlistShared:
-        return Icons.share;
-      case NotificationType.itemPurchased:
-        return Icons.shopping_bag;
-      case NotificationType.system:
-        return Icons.info;
-    }
-  }
-
-  String _formatDate(DateTime date) {
-    final now = DateTime.now();
-    final difference = now.difference(date);
-
-    if (difference.inDays > 7) {
-      return '${date.day}/${date.month}/${date.year}';
-    } else if (difference.inDays > 0) {
-      return '${difference.inDays} day${difference.inDays == 1 ? '' : 's'} ago';
-    } else if (difference.inHours > 0) {
-      return '${difference.inHours} hour${difference.inHours == 1 ? '' : 's'} ago';
-    } else if (difference.inMinutes > 0) {
-      return '${difference.inMinutes} minute${difference.inMinutes == 1 ? '' : 's'} ago';
-    }
-
-    return 'Just now';
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: const CustomAppBar(title: 'Notifications'),
-      body: Consumer2<AuthProvider, FirebaseWishlistProvider>(
-        builder: (context, authProvider, wishlistProvider, child) {
-          if (authProvider.user == null) {
-            return const Center(
-              child: Text('Please log in to view notifications'),
-            );
-          }
-
-          return StreamBuilder<List<FirebaseNotification>>(
-            stream: wishlistProvider.getNotificationsStream(
-              authProvider.user!.id,
-            ),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator());
-              }
-
-              if (snapshot.hasError) {
-                return Center(
-                  child: Text(
-                    'Failed to load notifications: ${snapshot.error}',
-                    style: const TextStyle(color: Colors.red),
-                    textAlign: TextAlign.center,
-                  ),
-                );
-              }
-
-              final notifications = snapshot.data ?? [];
-
-              if (notifications.isEmpty) {
-                return Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.notifications_none,
-                        size: 64,
-                        color: Colors.grey[400],
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'No notifications yet',
-                        style: Theme.of(context).textTheme.headlineSmall
-                            ?.copyWith(color: Colors.grey[600]),
-                      ),
-                    ],
-                  ),
-                );
-              }
-
-              return ListView.builder(
-                padding: const EdgeInsets.all(16),
-                itemCount: notifications.length,
-                itemBuilder: (context, index) {
-                  final notification = notifications[index];
-
-                  return Card(
-                    margin: const EdgeInsets.only(bottom: 12),
-                    color: notification.isRead
-                        ? null
-                        : Theme.of(
-                            context,
-                          ).primaryColor.withValues(alpha: 0.05),
-                    child: ListTile(
-                      leading: CircleAvatar(
-                        backgroundColor: Theme.of(
-                          context,
-                        ).primaryColor.withValues(alpha: 0.1),
-                        child: Icon(
-                          _iconForType(notification.type),
-                          color: Theme.of(context).primaryColor,
-                        ),
-                      ),
-                      title: Text(
-                        notification.title,
-                        style: TextStyle(
-                          fontWeight: notification.isRead
-                              ? FontWeight.w500
-                              : FontWeight.w700,
-                        ),
-                      ),
-                      subtitle: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(notification.message),
-                          const SizedBox(height: 4),
-                          Text(
-                            _formatDate(notification.createdAt),
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey[600],
-                            ),
-                          ),
-                        ],
-                      ),
-                      onTap: () => _handleNotificationTap(
-                        context,
-                        notification,
-                        wishlistProvider,
-                      ),
-                    ),
-                  );
-                },
-              );
-            },
-          );
-        },
-      ),
-    );
-  }
-}
-
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
 
@@ -682,6 +349,84 @@ class ProfileScreen extends StatelessWidget {
               },
               icon: const Icon(Icons.workspace_premium),
               label: const Text('Manage Subscription'),
+            ),
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const AchievementsScreen(),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.emoji_events_outlined),
+              label: const Text('Achievements'),
+            ),
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const PriceTrackingScreen(),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.trending_down_outlined),
+              label: const Text('Price Tracking'),
+            ),
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const ConnectionsScreen(),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.people_outline),
+              label: const Text('Connections'),
+            ),
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const CalendarScreen(),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.calendar_today_outlined),
+              label: const Text('Calendar'),
+            ),
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const CreatorDashboardScreen(),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.storefront_outlined),
+              label: const Text('Creator Tools'),
+            ),
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const AccountScreen(),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.security),
+              label: const Text('Account & Security'),
             ),
             const SizedBox(height: 12),
             ElevatedButton(

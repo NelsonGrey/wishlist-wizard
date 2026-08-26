@@ -1,6 +1,7 @@
 /// <reference types="@playwright/test" />
 import { test, expect, Page, Locator } from '@playwright/test';
 import { ensureAuthenticated, ensureWishlistExists } from './fixtures/bootstrap';
+import { seedGateBypass } from './fixtures/gate-bypass';
 
 /**
  * TIER 1: BASIC FEATURES (MUST WORK)
@@ -131,6 +132,12 @@ test.describe('Tier 1: Basic Features', () => {
 
   test.beforeAll(async ({ browser }: { browser: any }) => {
     page = await browser.newPage();
+    // This file drives its own manually-created `page` rather than
+    // Playwright's injected page fixture, so the shared gate-bypass
+    // beforeEach (registered on the fixture page) never reaches it — seed
+    // it directly here, once, before the first navigation. See
+    // fixtures/gate-bypass.ts for why this is needed on staging.
+    await seedGateBypass(page);
     // Run once up front rather than letting each test silently discover this
     // on its own: every test below opens with `if (await
     // shouldBypassAuthGatedFlow()) return;` or an equivalent early return, so
@@ -216,13 +223,13 @@ test.describe('Tier 1: Basic Features', () => {
     const submitButton = page.getByTestId('create-wishlist-submit').first();
     await submitButton.click();
 
-    await page.waitForURL(/\/dashboard/, { timeout: 10000 });
-    // /dashboard is a client-side redirect shim to /app/dashboard (see
-    // AppRouter.tsx) — waitForURL's regex matches both, so it can resolve
-    // before the actual redirect + wishlist-list fetch finishes. 10s (matching
-    // the equivalent check in getWishlistCardOnDashboard) gives that real
-    // completion room instead of racing a too-tight 5s timeout.
-    await expect(findWishlistCardByName(wishlistName)).toBeVisible({ timeout: 10000 });
+    // Create is submitted from the Wishlists list itself (/dashboard redirects
+    // to /app/wishlists, not /app/dashboard — see AppRouter.tsx), so no
+    // navigation happens on success: the dialog closes and the new card
+    // appears in place on the same page. There is no URL change to wait for.
+    // 20s not 10s: create-then-render has been observed taking several
+    // seconds under load.
+    await expect(findWishlistCardByName(wishlistName)).toBeVisible({ timeout: 20000 });
   });
 
   test('T1.5: Get Wishlist by ID', async () => {
@@ -259,8 +266,12 @@ test.describe('Tier 1: Basic Features', () => {
         await saveButton.click();
       }
 
-      await page.goto('/dashboard');
-      await expect(findWishlistCardByName(updatedName)).toBeVisible({ timeout: 10000 });
+      // Editing happens in place on the Wishlists list; forcing a reload here
+      // (as this used to do) raced the in-flight update request the same way
+      // the create flow did - see ensureWishlistExists. Wait for the updated
+      // card in place instead. 20s not 10s: update-then-render has been
+      // observed taking several seconds under load.
+      await expect(findWishlistCardByName(updatedName)).toBeVisible({ timeout: 20000 });
       return;
     }
 

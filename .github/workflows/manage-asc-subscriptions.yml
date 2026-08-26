@@ -1,0 +1,40 @@
+name: "Manage App Store Connect subscriptions (one-off)"
+
+permissions:
+  contents: read
+
+on:
+  workflow_dispatch:
+    inputs:
+      command:
+        description: "status (read-only) or create_draft (creates missing DRAFT products, never submits/activates)"
+        required: true
+        default: "status"
+        type: choice
+        options:
+          - status
+          - create_draft
+
+jobs:
+  manage-subscriptions:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.2"
+          bundler-cache: true
+
+      - name: Run manage_subscriptions.rb
+        env:
+          APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          APP_STORE_CONNECT_KEY: ${{ secrets.APP_STORE_CONNECT_KEY }}
+        run: bundle exec ruby packages/mobile/ios/fastlane/scripts/manage_subscriptions.rb ${{ inputs.command }}
+
+      # create_draft only creates DRAFT products with USD-only pricing and
+      # never calls subscriptionSubmissions — real submission/activation
+      # stays a separate, deliberate human step. This workflow file can be
+      # deleted once no longer needed.

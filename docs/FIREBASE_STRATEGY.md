@@ -1,5 +1,25 @@
 # Firebase-First Architecture Strategy for Wishlist Wizard
 
+> ⚠️ **Superseded for new-endpoint guidance.** This is a pre-migration
+> planning document; its roadmap and code examples (including standalone
+> `onCall` as the target pattern for new functions) predate two later
+> architectural changes:
+>
+> 1. **Router migration (~2026-07-23)**: a Domain Restricted Sharing org
+>    policy blocks granting a *new* `allUsers` Cloud Run invoker binding, so
+>    a newly deployed standalone `onCall` function can be silently
+>    unreachable by clients. Public-facing endpoints now go through a
+>    single HTTP router, `api` (`packages/functions/src/api/router.ts`),
+>    dispatched under `/api/*`. See
+>    [SYSTEM_ARCHITECTURE.md](SYSTEM_ARCHITECTURE.md#-api-architecture) for
+>    the current pattern.
+> 2. **`packages/functions` extraction (2026-07-17)**: backend source moved
+>    to the private companion repo `NelsonGrey/wishlist-wizard-functions`;
+>    `packages/functions/` is gitignored in this repo.
+>
+> The rest of this document is left as-is as a historical planning record —
+> its `onCall`-as-target-pattern guidance is no longer correct for new work.
+
 ## Overview
 This document outlines the strategy to fully leverage Firebase services throughout the Wishlist Wizard project, emphasizing Firebase as the primary infrastructure platform for authentication, data storage, serverless functions, hosting, and analytics.
 

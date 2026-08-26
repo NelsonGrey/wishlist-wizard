@@ -292,6 +292,80 @@ class FirebaseAuthService {
     }
   }
 
+  // Re-authenticates the current user with their password. Firebase
+  // requires a "recent" sign-in before allowing sensitive operations (e.g.
+  // updatePassword below) -- this is how that recency is re-established.
+  Future<AuthResult> reauthenticateWithPassword(String currentPassword) async {
+    if (!await _ensureFirebaseInitialized()) {
+      return AuthResult.failure(
+        error: 'Firebase not available. Please check your connection.',
+      );
+    }
+
+    try {
+      final user = _auth.currentUser;
+      final email = user?.email;
+      if (user == null || email == null) {
+        return AuthResult.failure(
+          error: 'Please sign in again before changing your password.',
+        );
+      }
+
+      final credential = firebase_auth.EmailAuthProvider.credential(
+        email: email,
+        password: currentPassword,
+      );
+      await user.reauthenticateWithCredential(credential);
+
+      return AuthResult.success(user: _firebaseUserToUser(user));
+    } on firebase_auth.FirebaseAuthException catch (e) {
+      if (kDebugMode) {
+        debugPrint(
+          '[FirebaseAuthService] reauthenticate FirebaseAuthException code=${e.code} message=${e.message}',
+        );
+      }
+      return AuthResult.failure(error: _getErrorMessage(e.code));
+    } catch (e) {
+      return AuthResult.failure(error: 'An unexpected error occurred: $e');
+    }
+  }
+
+  // Updates the signed-in user's password. Must be called shortly after a
+  // successful reauthenticateWithPassword() -- Firebase rejects this with
+  // 'requires-recent-login' otherwise.
+  Future<AuthResult> updatePassword(String newPassword) async {
+    if (!await _ensureFirebaseInitialized()) {
+      return AuthResult.failure(
+        error: 'Firebase not available. Please check your connection.',
+      );
+    }
+
+    try {
+      final user = _auth.currentUser;
+      if (user == null) {
+        return AuthResult.failure(
+          error: 'Please sign in again before changing your password.',
+        );
+      }
+
+      await user.updatePassword(newPassword);
+      await user.reload();
+
+      return AuthResult.success(
+        user: _firebaseUserToUser(_auth.currentUser ?? user),
+      );
+    } on firebase_auth.FirebaseAuthException catch (e) {
+      if (kDebugMode) {
+        debugPrint(
+          '[FirebaseAuthService] updatePassword FirebaseAuthException code=${e.code} message=${e.message}',
+        );
+      }
+      return AuthResult.failure(error: _getErrorMessage(e.code));
+    } catch (e) {
+      return AuthResult.failure(error: 'An unexpected error occurred: $e');
+    }
+  }
+
   Future<AuthResult> resetPassword(String email) async {
     if (!await _ensureFirebaseInitialized()) {
       return AuthResult.failure(
@@ -362,6 +436,8 @@ class FirebaseAuthService {
         return 'Email/password accounts are not enabled.';
       case 'invalid-credential':
         return 'Invalid email or password.';
+      case 'requires-recent-login':
+        return 'Please sign in again before changing your password.';
       default:
         return 'An error occurred. Please try again.';
     }

@@ -4,6 +4,7 @@
 
 import {
   FirebaseClient,
+  StorageHelpers,
   getAnalyticsTracker,
   getRemoteConfig,
   initializeAnalytics,
@@ -12,6 +13,7 @@ import {
 import type { User, Auth, AuthCredential } from 'firebase/auth';
 import type { FirebaseApp } from 'firebase/app';
 import type { Firestore } from 'firebase/firestore';
+import type { FirebaseStorage } from 'firebase/storage';
 import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
@@ -25,9 +27,14 @@ import {
   browserLocalPersistence,
   GoogleAuthProvider,
   OAuthProvider,
+  EmailAuthProvider,
   signInWithPopup,
   linkWithCredential,
+  reauthenticateWithCredential,
   validatePassword,
+  verifyPasswordResetCode,
+  confirmPasswordReset,
+  type ActionCodeSettings,
   type PasswordValidationStatus
 } from 'firebase/auth';
 import { getToken, isSupported as messagingIsSupported } from 'firebase/messaging';
@@ -168,19 +175,6 @@ let firebaseConfig = {
     import.meta.env.VITE_FIREBASE_MEASUREMENT_ID_PRODUCTION,
     import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
   ) || undefined,
-  // App Check: enforced server-side on Auth/Firestore/Storage in
-  // wishlist-wizard-dev as of 2026-07-18; wiring the client through so real
-  // requests aren't rejected. appCheckDebugToken lets local dev / automated
-  // E2E tests pass without solving a real reCAPTCHA challenge — it must
-  // match a token already registered for this app (see
-  // e2e/fixtures/bootstrap.ts / .env.local for the local one).
-  appCheckSiteKey: pickEnvValue(
-    import.meta.env.VITE_FIREBASE_APPCHECK_SITE_KEY_DEVELOPMENT,
-    import.meta.env.VITE_FIREBASE_APPCHECK_SITE_KEY_STAGING,
-    import.meta.env.VITE_FIREBASE_APPCHECK_SITE_KEY_PRODUCTION,
-    import.meta.env.VITE_FIREBASE_APPCHECK_SITE_KEY
-  ) || undefined,
-  appCheckDebugToken: (import.meta.env.DEV && import.meta.env.VITE_FIREBASE_APPCHECK_DEBUG_TOKEN) || undefined,
 };
 
 function mergeWithRuntimeFirebaseConfig(runtimeConfig: Record<string, unknown>) {
@@ -270,24 +264,16 @@ let firebaseClient: FirebaseClient | null = null;
 export let firebaseApp: FirebaseApp | null = null;
 export let firebaseAuth: Auth | null = null;
 export let firebaseFirestore: Firestore | null = null;
+export let firebaseStorage: FirebaseStorage | null = null;
 let analyticsInitialized = false;
 let remoteConfigInitialized = false;
-
-/**
- * The initialized App Check instance, if App Check is configured — needed by
- * callers that make raw fetch() requests (e.g. the api router) instead of
- * going through the Firebase Functions SDK, since httpsCallable() attaches
- * the App Check token automatically but a plain fetch() does not.
- */
-export function getFirebaseAppCheck() {
-  return firebaseClient?.appCheck ?? null;
-}
 
 function ensureFirebaseCoreInitialized(): boolean {
   if (firebaseClient) {
     firebaseApp = firebaseClient.app;
     firebaseAuth = firebaseClient.auth;
     firebaseFirestore = firebaseClient.firestore;
+    firebaseStorage = firebaseClient.storage;
     return true;
   }
 
@@ -299,6 +285,7 @@ function ensureFirebaseCoreInitialized(): boolean {
   firebaseApp = firebaseClient.app;
   firebaseAuth = firebaseClient.auth;
   firebaseFirestore = firebaseClient.firestore;
+  firebaseStorage = firebaseClient.storage;
 
   if (import.meta.env.DEV && shouldUseFirebaseEmulators()) {
     firebaseClient.connectToEmulators();
@@ -375,6 +362,28 @@ export async function initFirebase(options?: {
     firestore: client.firestore,
     remoteConfig: remoteConfigInitialized ? getRemoteConfig() : null,
   };
+}
+
+const MAX_AVATAR_BYTES = 5 * 1024 * 1024;
+
+/** Uploads a profile avatar to Storage (avatars/{uid}/{fileName}, see
+ * storage.rules) and returns its public download URL. Caller is
+ * responsible for persisting that URL via updateMyProfile. */
+export async function uploadAvatar(uid: string, file: File): Promise<string> {
+  if (!file.type.startsWith('image/')) {
+    throw new Error('Please choose an image file.');
+  }
+  if (file.size > MAX_AVATAR_BYTES) {
+    throw new Error('Image must be smaller than 5MB.');
+  }
+  if (!firebaseClient) {
+    await initFirebase({ enableAuth: true, enableFirestore: true });
+  }
+  if (!firebaseClient) throw createFirebaseNotConfiguredError();
+
+  const extension = file.name.includes('.') ? file.name.split('.').pop() : 'jpg';
+  const path = `avatars/${uid}/avatar.${extension}`;
+  return StorageHelpers.uploadFile(firebaseClient.storage, path, file);
 }
 
 // Web Push (FCM) helper to request permission & acquire token
@@ -488,12 +497,53 @@ export async function checkPasswordPolicy(password: string): Promise<PasswordVal
   return await validatePassword(firebaseClient.auth, password);
 }
 
+/**
+ * Points the emailed reset link back at this app's own /reset-password page
+ * (with Firebase's standard mode/oobCode query params attached) instead of
+ * Firebase's generic hosted action page on <project>.firebaseapp.com.
+ */
+function buildResetPasswordActionCodeSettings(): ActionCodeSettings | undefined {
+  if (typeof window === 'undefined' || !window.location?.origin) {
+    return undefined;
+  }
+  return {
+    url: `${window.location.origin}/reset-password`,
+    handleCodeInApp: false,
+  };
+}
+
 export async function resetPassword(email: string) {
   if (!firebaseClient) {
     await initFirebase({ enableAuth: true, enableFirestore: true });
   }
   if (!firebaseClient) throw createFirebaseNotConfiguredError();
-  return await sendPasswordResetEmail(firebaseClient.auth, email);
+  return await sendPasswordResetEmail(firebaseClient.auth, email, buildResetPasswordActionCodeSettings());
+}
+
+/**
+ * Verifies a password-reset oobCode from the emailed link is valid (not
+ * expired/already-used) and returns the account email it belongs to, for
+ * display and error-handling before showing the new-password form.
+ */
+export async function verifyResetPasswordCode(oobCode: string): Promise<string> {
+  if (!firebaseClient) {
+    await initFirebase({ enableAuth: true, enableFirestore: true });
+  }
+  if (!firebaseClient) throw createFirebaseNotConfiguredError();
+  return await verifyPasswordResetCode(firebaseClient.auth, oobCode);
+}
+
+/**
+ * Completes the reset: Identity Platform enforces the console-configured
+ * password policy on this call itself, so this is authoritative server-side
+ * enforcement, not just the client-side usePasswordPolicy hint/quickCheck.
+ */
+export async function confirmResetPassword(oobCode: string, newPassword: string): Promise<void> {
+  if (!firebaseClient) {
+    await initFirebase({ enableAuth: true, enableFirestore: true });
+  }
+  if (!firebaseClient) throw createFirebaseNotConfiguredError();
+  return await confirmPasswordReset(firebaseClient.auth, oobCode, newPassword);
 }
 
 export async function verifyEmail(user: User) {
@@ -502,6 +552,23 @@ export async function verifyEmail(user: User) {
 
 export async function changePassword(user: User, newPassword: string) {
   return await updatePassword(user, newPassword);
+}
+
+/**
+ * Re-authenticates the current user with their current password. Firebase
+ * requires a "recent login" before allowing a sensitive operation like
+ * updatePassword() (it throws auth/requires-recent-login otherwise), so this
+ * must be called right before changePassword() in any change-password flow.
+ */
+export async function reauthenticateWithPassword(user: User, currentPassword: string): Promise<void> {
+  const email = user.email;
+  if (!email) {
+    const error = new Error('This account has no email/password sign-in method to re-authenticate with.') as FirebaseAppError;
+    error.code = 'auth/no-password-provider';
+    throw error;
+  }
+  const credential = EmailAuthProvider.credential(email, currentPassword);
+  await reauthenticateWithCredential(user, credential);
 }
 
 export function onAuthStateChange(callback: (user: User | null) => void) {

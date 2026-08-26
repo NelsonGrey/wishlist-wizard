@@ -26,9 +26,11 @@ type Wishlist = Omit<DbWishlist, 'id' | 'userId' | 'beneficiaryId'> & {
   } | null;
   recipientName?: string | null;
   itemCount: number;
+  myRole?: 'owner' | 'editor' | 'commenter' | 'viewer';
 };
 
 type ViewMode = 'card' | 'list';
+type WishlistScope = 'mine' | 'shared';
 
 const VIEW_MODE_STORAGE_KEY = 'wishlists.viewMode';
 const GETTING_STARTED_DISMISSED_KEY = 'wishlists.gettingStartedDismissed';
@@ -56,13 +58,23 @@ function getInitialGettingStartedDismissed(): boolean {
 export default function Wishlists() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>(getInitialViewMode);
+  const [scope, setScope] = useState<WishlistScope>('mine');
   const [gettingStartedDismissed, setGettingStartedDismissed] = useState(getInitialGettingStartedDismissed);
   const { toast } = useToast();
 
-  // Fetch wishlists
-  const { data: wishlists, isLoading, error } = useQuery<Wishlist[]>({
+  // Fetch wishlists — owned and shared-with-me are separate queries so
+  // switching scope doesn't refetch the other one unnecessarily.
+  const { data: ownedWishlists, isLoading: isLoadingOwned, error: ownedError } = useQuery<Wishlist[]>({
     queryKey: ['/api/wishlists'],
   });
+  const { data: sharedWishlists, isLoading: isLoadingShared, error: sharedError } = useQuery<Wishlist[]>({
+    queryKey: ['/api/wishlists/shared-with-me'],
+    enabled: scope === 'shared',
+  });
+
+  const wishlists = scope === 'mine' ? ownedWishlists : sharedWishlists;
+  const isLoading = scope === 'mine' ? isLoadingOwned : isLoadingShared;
+  const error = scope === 'mine' ? ownedError : sharedError;
 
   // Create wishlist mutation
   const createWishlistMutation = useMutation({
@@ -135,7 +147,10 @@ export default function Wishlists() {
     }
   };
 
-  const isGettingStartedExpanded = (wishlists?.length ?? 0) === 0 ? true : !gettingStartedDismissed;
+  // Based on owned wishlists specifically (not the scope-dependent
+  // `wishlists` above) — onboarding shouldn't reappear just because the
+  // Shared with Me tab happens to be empty.
+  const isGettingStartedExpanded = (ownedWishlists?.length ?? 0) === 0 ? true : !gettingStartedDismissed;
 
   return (
     <>
@@ -158,7 +173,7 @@ export default function Wishlists() {
             <Card className="mb-6 border-emerald-100" data-testid="wishlists-getting-started">
               <CardHeader className="flex flex-row items-center justify-between space-y-0">
                 <CardTitle className="text-lg">Getting Started</CardTitle>
-                {(wishlists?.length ?? 0) > 0 && (
+                {(ownedWishlists?.length ?? 0) > 0 && (
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button
@@ -186,18 +201,31 @@ export default function Wishlists() {
             </Card>
           )}
 
-          <Tabs value={viewMode} onValueChange={handleViewModeChange} className="mb-6">
-            <TabsList data-testid="wishlists-view-mode-tabs">
-              <TabsTrigger value="card" className="flex items-center gap-2" data-testid="wishlists-view-mode-card">
-                <LayoutGrid className="h-4 w-4" />
-                Card
-              </TabsTrigger>
-              <TabsTrigger value="list" className="flex items-center gap-2" data-testid="wishlists-view-mode-list">
-                <List className="h-4 w-4" />
-                List
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
+          <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <Tabs value={scope} onValueChange={(value) => setScope(value as WishlistScope)}>
+              <TabsList data-testid="wishlists-scope-tabs">
+                <TabsTrigger value="mine" data-testid="wishlists-scope-mine">
+                  My Wishlists
+                </TabsTrigger>
+                <TabsTrigger value="shared" data-testid="wishlists-scope-shared">
+                  Shared with Me
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+
+            <Tabs value={viewMode} onValueChange={handleViewModeChange}>
+              <TabsList data-testid="wishlists-view-mode-tabs">
+                <TabsTrigger value="card" className="flex items-center gap-2" data-testid="wishlists-view-mode-card">
+                  <LayoutGrid className="h-4 w-4" />
+                  Card
+                </TabsTrigger>
+                <TabsTrigger value="list" className="flex items-center gap-2" data-testid="wishlists-view-mode-list">
+                  <List className="h-4 w-4" />
+                  List
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+          </div>
 
           {isLoading ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -219,7 +247,7 @@ export default function Wishlists() {
               <Button
                 variant="outline"
                 className="mt-4"
-                onClick={() => queryClient.invalidateQueries({ queryKey: ['/api/wishlists'] })}
+                onClick={() => queryClient.invalidateQueries({ queryKey: [scope === 'mine' ? '/api/wishlists' : '/api/wishlists/shared-with-me'] })}
               >
                 Retry
               </Button>
@@ -231,13 +259,18 @@ export default function Wishlists() {
                   <WishlistCard
                     key={wishlist.id}
                     wishlist={wishlist}
-                    onRefresh={() => queryClient.invalidateQueries({ queryKey: ['/api/wishlists'] })}
+                    onRefresh={() => queryClient.invalidateQueries({ queryKey: [scope === 'mine' ? '/api/wishlists' : '/api/wishlists/shared-with-me'] })}
                   />
                 ))}
               </div>
             ) : (
               <WishlistListView wishlists={wishlists} />
             )
+          ) : scope === 'shared' ? (
+            <div className="text-center py-16 bg-white rounded-lg shadow-sm border">
+              <h3 className="text-lg font-medium text-gray-900 mb-2">Nothing shared with you yet</h3>
+              <p className="text-gray-500">When someone invites you to collaborate on their wishlist, it&apos;ll show up here.</p>
+            </div>
           ) : (
             <div className="text-center py-16 bg-white rounded-lg shadow-sm border">
               <h3 className="text-lg font-medium text-gray-900 mb-2">No wishlists yet</h3>

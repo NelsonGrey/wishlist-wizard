@@ -1,7 +1,7 @@
 # Wishlist Wizard - Testing Strategy & Guidelines
 
-**Version**: 1.1
-**Last Updated**: January 2025
+**Version**: 1.2
+**Last Updated**: 2026-08-12
 **Owner**: Mark Nelson
 
 ---

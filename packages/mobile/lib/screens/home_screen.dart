@@ -5,6 +5,7 @@ import '../providers/providers.dart';
 import '../main.dart';
 import '../widgets/admob_widgets.dart';
 import 'firebase_wishlists_screen.dart';
+import 'notifications_screen.dart';
 import 'scan_item_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -32,9 +33,18 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: const CustomAppBar(
+      appBar: CustomAppBar(
         title: 'Home',
-        actions: [Icon(Icons.notifications_outlined), SizedBox(width: 16)],
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.notifications_outlined),
+            tooltip: 'Notifications',
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const NotificationsScreen()),
+            ),
+          ),
+        ],
       ),
       body: Consumer2<AuthProvider, FirebaseWishlistProvider>(
         builder: (context, authProvider, wishlistProvider, child) {

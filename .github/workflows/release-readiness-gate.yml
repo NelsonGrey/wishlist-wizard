@@ -108,8 +108,8 @@ jobs:
           
           echo "" >> /tmp/readiness-report.md
           echo "## Documentation" >> /tmp/readiness-report.md
-          echo "- [Release Readiness](./RELEASE_READINESS_TIERED.md)" >> /tmp/readiness-report.md
-          echo "- [Launch Checklist](./LAUNCH_CHECKLIST.md)" >> /tmp/readiness-report.md
+          echo "- [Go-Live Readiness](./WISHLIST_WIZARD_GO_LIVE.md)" >> /tmp/readiness-report.md
+          echo "- [Release Summary](./RELEASE_SUMMARY.md)" >> /tmp/readiness-report.md
           echo "- [E2E Testing Guide](./E2E_TESTING_GUIDE.md)" >> /tmp/readiness-report.md
           
           cat /tmp/readiness-report.md

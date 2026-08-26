@@ -14,6 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   User,
   Gift,
@@ -28,28 +29,52 @@ import {
   UserPlus
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
+import { apiRequest, queryClient } from '@/lib/queryClient';
+import { getApiErrorMessage } from '@/lib/api-errors';
+import { uploadAvatar } from '@/lib/firebase';
 import { useAuth } from '@/contexts/AuthContext';
 import { ACHIEVEMENT_DEFINITIONS, ACHIEVEMENT_TIER_NAMES, ACHIEVEMENT_TIER_BADGE_CLASSES, WIZARD_TIER } from '@/lib/achievements';
 import { useAchievements } from '@/hooks/use-achievements';
 import { useSubscriptionStatus } from '@/hooks/use-subscription-status';
 
-const createInitialProfile = (user?: {
-  uid?: string;
+interface RemoteProfile {
   displayName?: string | null;
-  email?: string | null;
   photoURL?: string | null;
-}) => ({
+  bio?: string;
+  location?: string;
+  interests?: string[];
+  favoriteStores?: string[];
+  giftPreferences?: {
+    sizes?: { clothing?: string; shoes?: string };
+    colors?: string[];
+    doNotWant?: string[];
+    giftCards?: string[];
+  };
+}
+
+const createInitialProfile = (
+  user?: {
+    uid?: string;
+    displayName?: string | null;
+    email?: string | null;
+    photoURL?: string | null;
+    metadata?: { creationTime?: string };
+  },
+  remote?: RemoteProfile
+) => ({
   id: user?.uid ? Number.parseInt(user.uid, 10) || 0 : 0,
   username: user?.email?.split('@')[0] || "",
-  firstName: user?.displayName?.split(' ')[0] || "",
-  lastName: user?.displayName?.split(' ').slice(1).join(' ') || "",
+  firstName: (remote?.displayName ?? user?.displayName)?.split(' ')[0] || "",
+  lastName: (remote?.displayName ?? user?.displayName)?.split(' ').slice(1).join(' ') || "",
   email: user?.email || "",
-  avatar: user?.photoURL || "",
-  bio: "",
-  location: "",
-  joinDate: "",
-  interests: [] as string[],
+  avatar: remote?.photoURL || user?.photoURL || "",
+  bio: remote?.bio || "",
+  location: remote?.location || "",
+  joinDate: user?.metadata?.creationTime
+    ? new Date(user.metadata.creationTime).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+    : "",
+  interests: (remote?.interests || []) as string[],
   notifications: {
     email: true,
     push: true,
@@ -78,12 +103,12 @@ const createInitialProfile = (user?: {
   }>,
   giftPreferences: {
     sizes: {
-      clothing: "Medium",
-      shoes: "US 8"
+      clothing: remote?.giftPreferences?.sizes?.clothing || "Medium",
+      shoes: remote?.giftPreferences?.sizes?.shoes || "US 8"
     },
-    colors: [] as string[],
-    doNotWant: [] as string[],
-    giftCards: [] as string[]
+    colors: (remote?.giftPreferences?.colors || []) as string[],
+    doNotWant: (remote?.giftPreferences?.doNotWant || []) as string[],
+    giftCards: (remote?.giftPreferences?.giftCards || []) as string[]
   },
   exchangeHistory: [] as Array<{
     id: number;
@@ -94,7 +119,7 @@ const createInitialProfile = (user?: {
     to?: string;
     status: string;
   }>,
-  favoriteStores: [] as string[]
+  favoriteStores: (remote?.favoriteStores || []) as string[]
 });
 
 // Common clothing sizes
@@ -103,7 +128,48 @@ const CLOTHING_SIZES = ["XS", "S", "M", "L", "XL", "XXL"];
 // Common shoe sizes (US)
 const SHOE_SIZES = ["US 5", "US 6", "US 7", "US 8", "US 9", "US 10", "US 11", "US 12", "US 13"];
 
-const CONNECTIONS: Array<{ id: number; name: string; avatar: string; mutualFriends: number }> = [];
+interface ConnectionUser {
+  uid: string;
+  displayName: string | null;
+  username: string | null;
+  photoURL: string | null;
+}
+
+interface ConnectionEntry {
+  connectionId: string;
+  user: ConnectionUser;
+}
+
+interface UserSearchResult {
+  id: string;
+  username: string | null;
+  displayName: string | null;
+  photoURL: string | null;
+}
+
+type ExternalProviderStatus = {
+  provider: "google" | "outlook" | "apple" | "facebook";
+  connected: boolean;
+  supported: boolean;
+  message?: string;
+};
+
+type ExternalContact = {
+  id: string;
+  name: string;
+  email?: string;
+  phone?: string;
+  sources: Array<{ provider: ExternalProviderStatus["provider"]; sourceContactId: string }>;
+};
+
+type ExternalContactsResponse = {
+  contacts: ExternalContact[];
+  providerStatuses: ExternalProviderStatus[];
+};
+
+function connectionDisplayName(connectionUser: ConnectionUser): string {
+  return connectionUser.displayName || (connectionUser.username ? `@${connectionUser.username}` : "Wishlist Wizard user");
+}
 
 const UserProfile = () => {
   const { user } = useAuth();
@@ -111,11 +177,152 @@ const UserProfile = () => {
   const [selectedTab, setSelectedTab] = useState("profile");
   const [editMode, setEditMode] = useState(false);
   const [editedProfile, setEditedProfile] = useState(() => createInitialProfile(user || undefined));
-  const [savingProfile, setSavingProfile] = useState(false);
-  const [showConnections, setShowConnections] = useState(false);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const [connectionFindMode, setConnectionFindMode] = useState<"search" | "contacts" | "email">("search");
+  const [connectionSearchQuery, setConnectionSearchQuery] = useState("");
+  const [debouncedConnectionSearchQuery, setDebouncedConnectionSearchQuery] = useState("");
+  const [connectionEmail, setConnectionEmail] = useState("");
   const { toast } = useToast();
   const { data: achievementsData } = useAchievements();
   const { data: subscriptionStatus } = useSubscriptionStatus();
+  const { data: remoteProfile, isLoading: isLoadingProfile } = useQuery<RemoteProfile>({
+    queryKey: ['/api/profile'],
+    enabled: Boolean(user),
+  });
+
+  useEffect(() => {
+    const timeout = setTimeout(() => setDebouncedConnectionSearchQuery(connectionSearchQuery.trim()), 300);
+    return () => clearTimeout(timeout);
+  }, [connectionSearchQuery]);
+
+  const { data: connectionsData, isLoading: isLoadingConnections } = useQuery<{ connections: ConnectionEntry[] }>({
+    queryKey: ['/api/connections'],
+    enabled: Boolean(user) && selectedTab === 'connections',
+  });
+
+  const { data: pendingConnectionsData } = useQuery<{ incoming: ConnectionEntry[]; outgoing: ConnectionEntry[] }>({
+    queryKey: ['/api/connections/pending'],
+    enabled: Boolean(user) && selectedTab === 'connections',
+  });
+
+  const { data: connectionSearchResults, isFetching: isSearchingConnections } = useQuery<{ users: UserSearchResult[] }>({
+    queryKey: ['/api/users/search', debouncedConnectionSearchQuery],
+    queryFn: () =>
+      apiRequest(`/api/users/search?q=${encodeURIComponent(debouncedConnectionSearchQuery)}`) as Promise<{
+        users: UserSearchResult[];
+      }>,
+    enabled: selectedTab === 'connections' && connectionFindMode === 'search' && debouncedConnectionSearchQuery.length >= 2,
+  });
+
+  // Same /api/contacts/external endpoint InviteCollaboratorDialog.tsx uses -
+  // real Google/Outlook/Facebook contacts via the OAuth connections set up
+  // in Calendar Settings, Apple via vCard.
+  const { data: connectionContactsResponse, isFetching: isLoadingConnectionContacts } = useQuery<ExternalContactsResponse>({
+    queryKey: ['/api/contacts/external'],
+    queryFn: () =>
+      apiRequest('/api/contacts/external', {
+        method: 'POST',
+        body: { providers: ['google', 'outlook', 'apple', 'facebook'], limit: 200 },
+      }) as Promise<ExternalContactsResponse>,
+    enabled: selectedTab === 'connections' && connectionFindMode === 'contacts',
+    staleTime: 60_000,
+  });
+
+  const connections = connectionsData?.connections || [];
+  const incomingConnectionRequests = pendingConnectionsData?.incoming || [];
+  const outgoingConnectionRequests = pendingConnectionsData?.outgoing || [];
+  const connectionContacts = connectionContactsResponse?.contacts || [];
+  const connectedConnectionProviders = (connectionContactsResponse?.providerStatuses || []).filter((status) => status.connected);
+
+  const sendConnectionRequestMutation = useMutation({
+    mutationFn: async (variables: { targetUserId?: string; email?: string; label: string }) => {
+      const result = (await apiRequest('/api/connections/request', {
+        method: 'POST',
+        body: variables.targetUserId ? { targetUserId: variables.targetUserId } : { email: variables.email },
+      })) as { status: 'active' | 'pending' };
+      return { ...result, label: variables.label };
+    },
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/connections'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/connections/pending'] });
+      setConnectionSearchQuery("");
+      setConnectionEmail("");
+      toast({
+        title: result.status === 'active' ? "Connected" : "Request sent",
+        description: result.status === 'active'
+          ? `You're now connected with ${result.label}.`
+          : `Your connection request to ${result.label} is pending.`,
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: getApiErrorMessage(error, "Failed to send connection request."),
+        variant: "destructive",
+      });
+    },
+  });
+
+  const respondToConnectionMutation = useMutation({
+    mutationFn: async (variables: { connectionId: string; accept: boolean }) => {
+      return apiRequest(`/api/connections/${variables.connectionId}/respond`, {
+        method: 'POST',
+        body: { accept: variables.accept },
+      }) as Promise<{ success: boolean; status: 'accepted' | 'declined' }>;
+    },
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/connections'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/connections/pending'] });
+      toast({ title: result.status === 'accepted' ? "Connection accepted" : "Request declined" });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: getApiErrorMessage(error, "Failed to respond to connection request."),
+        variant: "destructive",
+      });
+    },
+  });
+
+  const removeConnectionMutation = useMutation({
+    mutationFn: async (connectionId: string) => {
+      return apiRequest(`/api/connections/${connectionId}`, { method: 'DELETE' }) as Promise<{ success: boolean }>;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/connections'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/connections/pending'] });
+      toast({ title: "Connection removed" });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: getApiErrorMessage(error, "Failed to remove connection."),
+        variant: "destructive",
+      });
+    },
+  });
+
+  const requestConnectionByUser = (result: UserSearchResult) => {
+    sendConnectionRequestMutation.mutate({
+      targetUserId: result.id,
+      label: result.displayName || (result.username ? `@${result.username}` : "this user"),
+    });
+  };
+
+  const requestConnectionByContact = (contact: ExternalContact) => {
+    if (!contact.email) return;
+    sendConnectionRequestMutation.mutate({ email: contact.email, label: contact.name });
+  };
+
+  const requestConnectionByEmail = () => {
+    const normalizedEmail = connectionEmail.trim();
+    if (!normalizedEmail || !normalizedEmail.includes("@")) {
+      toast({ title: "Error", description: "Enter a valid email address.", variant: "destructive" });
+      return;
+    }
+    sendConnectionRequestMutation.mutate({ email: normalizedEmail, label: normalizedEmail });
+  };
+
   const stats = {
     itemsTracked: achievementsData?.achievements?.tracker?.count ?? 0,
     wishlistsCreated: subscriptionStatus?.usage?.wishlistsOwned ?? 0,
@@ -127,39 +334,69 @@ const UserProfile = () => {
       return;
     }
 
-    const mergedProfile = {
-      ...profile,
-      username: user.email?.split('@')[0] || profile.username,
-      firstName: user.displayName?.split(' ')[0] || profile.firstName,
-      lastName: user.displayName?.split(' ').slice(1).join(' ') || profile.lastName,
-      email: user.email || profile.email,
-      avatar: user.photoURL || profile.avatar,
-    };
-
+    const mergedProfile = createInitialProfile(user, remoteProfile);
     setProfile(mergedProfile);
     setEditedProfile(mergedProfile);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.uid, user?.email, user?.displayName, user?.photoURL, editMode]);
+  }, [user?.uid, user?.email, user?.displayName, user?.photoURL, remoteProfile, editMode]);
 
-  // Update profile settings
-  const { mutate: updateProfile } = useMutation({
+  // Update profile settings — PATCH /api/profile (updateMyProfile,
+  // packages/functions/src/api/userProfile.ts). email isn't included:
+  // changing it needs Firebase Auth's updateEmail + reverification, a
+  // separate flow this doesn't build (see the disabled email input below).
+  const { mutate: updateProfile, isPending: savingProfile } = useMutation({
     mutationFn: async (updatedProfile: typeof profile) => {
-      // Simulate API call to update profile
-      setSavingProfile(true);
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      setSavingProfile(false);
+      await apiRequest('/api/profile', {
+        method: 'PATCH',
+        body: {
+          displayName: `${updatedProfile.firstName} ${updatedProfile.lastName}`.trim(),
+          bio: updatedProfile.bio,
+          location: updatedProfile.location,
+          interests: updatedProfile.interests,
+          favoriteStores: updatedProfile.favoriteStores,
+          giftPreferences: updatedProfile.giftPreferences,
+          photoURL: updatedProfile.avatar,
+        },
+      });
       return updatedProfile;
     },
     onSuccess: (data) => {
       setProfile(data);
       setEditMode(false);
+      queryClient.invalidateQueries({ queryKey: ['/api/profile'] });
       toast({
         title: "Profile Updated",
         description: "Your profile has been successfully updated.",
         duration: 3000
       });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: getApiErrorMessage(error, "Failed to update profile."),
+        variant: "destructive",
+      });
     }
   });
+
+  const handleAvatarFileSelected = async (file: File | null) => {
+    if (!file || !user) {
+      return;
+    }
+    setIsUploadingAvatar(true);
+    try {
+      const url = await uploadAvatar(user.uid, file);
+      setEditedProfile((prev) => ({ ...prev, avatar: url }));
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to upload photo.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploadingAvatar(false);
+    }
+  };
 
   // Add an interest
   const addInterest = (interest: string) => {
@@ -356,6 +593,7 @@ const UserProfile = () => {
                     data-testid="user-profile-edit-toggle"
                     variant="outline"
                     onClick={() => setEditMode(true)}
+                    disabled={isLoadingProfile}
                   >
                     <Edit3 size={16} className="mr-2" />
                     Edit
@@ -371,7 +609,30 @@ const UserProfile = () => {
                       <AvatarFallback>{profile.firstName.charAt(0) + profile.lastName.charAt(0)}</AvatarFallback>
                     </Avatar>
                     {editMode && (
-                      <Button variant="outline" size="sm">Change Photo</Button>
+                      <>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          id="avatar-file-input"
+                          className="hidden"
+                          onChange={(e) => handleAvatarFileSelected(e.target.files?.[0] ?? null)}
+                        />
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={isUploadingAvatar}
+                          onClick={() => document.getElementById('avatar-file-input')?.click()}
+                        >
+                          {isUploadingAvatar ? (
+                            <>
+                              <Loader2 size={14} className="mr-2 animate-spin" />
+                              Uploading...
+                            </>
+                          ) : (
+                            'Change Photo'
+                          )}
+                        </Button>
+                      </>
                     )}
                     <div className="text-center mt-2">
                       <h3 className="font-medium text-lg">{profile.firstName} {profile.lastName}</h3>
@@ -406,14 +667,17 @@ const UserProfile = () => {
                         
                         <div className="space-y-2">
                           <Label htmlFor="email">Email</Label>
-                          <Input 
-                            id="email" 
-                            type="email" 
+                          <Input
+                            id="email"
+                            type="email"
                             value={editedProfile.email}
-                            onChange={e => setEditedProfile({...editedProfile, email: e.target.value})}
+                            disabled
                           />
+                          <p className="text-xs text-muted-foreground">
+                            Changing your email isn't supported here yet — contact support if you need to update it.
+                          </p>
                         </div>
-                        
+
                         <div className="space-y-2">
                           <Label htmlFor="location">Location</Label>
                           <Input 
@@ -759,114 +1023,245 @@ const UserProfile = () => {
 
           {/* Connections Tab */}
           {selectedTab === 'connections' && (
-            <Card>
-              <CardHeader className="pb-2">
-                <div className="flex justify-between">
-                  <div>
-                    <CardTitle>Friends & Connections</CardTitle>
-                    <CardDescription>Manage your network</CardDescription>
-                  </div>
-                  <Button variant="outline" onClick={() => setShowConnections(!showConnections)}>
-                    {showConnections ? "Hide Friends" : "Show All Friends"}
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent>
-                {showConnections ? (
-                  <div className="space-y-6">
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <h3 className="text-base font-medium">Your Friends ({CONNECTIONS.length})</h3>
-                        <Button size="sm" variant="outline">
-                          <UserPlus size={16} className="mr-2" />
-                          Add Friend
-                        </Button>
-                      </div>
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-2">
-                        {CONNECTIONS.map(friend => (
-                          <div key={friend.id} className="flex items-center space-x-3 border rounded-lg p-3">
+            <div className="space-y-6">
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle>Your Connections ({connections.length})</CardTitle>
+                  <CardDescription>People you're connected with on Wishlist Wizard</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {isLoadingConnections ? (
+                    <p className="text-sm text-muted-foreground text-center py-6">Loading connections...</p>
+                  ) : connections.length === 0 ? (
+                    <p className="text-sm text-muted-foreground p-4 text-center border border-dashed rounded-lg">
+                      No connections yet. Find friends below to get started.
+                    </p>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {connections.map(({ connectionId, user: connectionUser }) => {
+                        const name = connectionDisplayName(connectionUser);
+                        return (
+                          <div key={connectionId} className="flex items-center space-x-3 border rounded-lg p-3" data-testid={`connection-${connectionId}`}>
                             <Avatar>
-                              <AvatarImage src={friend.avatar} alt={friend.name} />
-                              <AvatarFallback>{friend.name.charAt(0)}</AvatarFallback>
+                              <AvatarImage src={connectionUser.photoURL || undefined} alt={name} />
+                              <AvatarFallback>{name.charAt(0).toUpperCase()}</AvatarFallback>
                             </Avatar>
-                            <div className="flex-1">
-                              <p className="font-medium">{friend.name}</p>
-                              <p className="text-xs text-muted-foreground">{friend.mutualFriends} mutual friends</p>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium truncate">{name}</p>
+                              {connectionUser.username && connectionUser.displayName && (
+                                <p className="text-xs text-muted-foreground truncate">@{connectionUser.username}</p>
+                              )}
                             </div>
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" aria-label={`Open actions for ${friend.name}`}>
+                                <Button variant="ghost" size="icon" aria-label={`Open actions for ${name}`}>
                                   <ChevronDown size={16} aria-hidden="true" />
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
-                                <DropdownMenuItem>View Profile</DropdownMenuItem>
-                                <DropdownMenuItem>View Wishlists</DropdownMenuItem>
-                                <DropdownMenuItem>Send Message</DropdownMenuItem>
-                                <DropdownMenuItem className="text-red-600">Remove Friend</DropdownMenuItem>
+                                <DropdownMenuItem
+                                  className="text-red-600"
+                                  disabled={removeConnectionMutation.isPending}
+                                  onClick={() => removeConnectionMutation.mutate(connectionId)}
+                                >
+                                  Remove Connection
+                                </DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>
                           </div>
-                        ))}
+                        );
+                      })}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {(incomingConnectionRequests.length > 0 || outgoingConnectionRequests.length > 0) && (
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle>Pending Requests</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {incomingConnectionRequests.length > 0 && (
+                      <div className="space-y-2">
+                        <h3 className="text-sm font-medium text-muted-foreground">Incoming</h3>
+                        {incomingConnectionRequests.map(({ connectionId, user: requestUser }) => {
+                          const name = connectionDisplayName(requestUser);
+                          return (
+                            <div key={connectionId} className="flex items-center justify-between border rounded-lg p-3" data-testid={`incoming-request-${connectionId}`}>
+                              <div className="flex items-center space-x-3 min-w-0">
+                                <Avatar>
+                                  <AvatarImage src={requestUser.photoURL || undefined} alt={name} />
+                                  <AvatarFallback>{name.charAt(0).toUpperCase()}</AvatarFallback>
+                                </Avatar>
+                                <p className="font-medium truncate">{name}</p>
+                              </div>
+                              <div className="flex gap-2 shrink-0">
+                                <Button
+                                  size="sm"
+                                  disabled={respondToConnectionMutation.isPending}
+                                  onClick={() => respondToConnectionMutation.mutate({ connectionId, accept: true })}
+                                >
+                                  <Check size={14} className="mr-1" />
+                                  Accept
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  disabled={respondToConnectionMutation.isPending}
+                                  onClick={() => respondToConnectionMutation.mutate({ connectionId, accept: false })}
+                                >
+                                  <X size={14} className="mr-1" />
+                                  Decline
+                                </Button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                    {outgoingConnectionRequests.length > 0 && (
+                      <div className="space-y-2">
+                        <h3 className="text-sm font-medium text-muted-foreground">Sent</h3>
+                        {outgoingConnectionRequests.map(({ connectionId, user: requestUser }) => {
+                          const name = connectionDisplayName(requestUser);
+                          return (
+                            <div key={connectionId} className="flex items-center justify-between border rounded-lg p-3" data-testid={`outgoing-request-${connectionId}`}>
+                              <div className="flex items-center space-x-3 min-w-0">
+                                <Avatar>
+                                  <AvatarImage src={requestUser.photoURL || undefined} alt={name} />
+                                  <AvatarFallback>{name.charAt(0).toUpperCase()}</AvatarFallback>
+                                </Avatar>
+                                <div className="min-w-0">
+                                  <p className="font-medium truncate">{name}</p>
+                                  <p className="text-xs text-muted-foreground">Pending</p>
+                                </div>
+                              </div>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                disabled={removeConnectionMutation.isPending}
+                                onClick={() => removeConnectionMutation.mutate(connectionId)}
+                              >
+                                Cancel
+                              </Button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle>Find Friends</CardTitle>
+                  <CardDescription>Connect with friends to share wishlists, collaborate on gifts, and get gift suggestions</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <Tabs value={connectionFindMode} onValueChange={(value) => setConnectionFindMode(value as "search" | "contacts" | "email")}>
+                    <TabsList className="w-full">
+                      <TabsTrigger value="search" className="flex-1" data-testid="find-friends-mode-search">
+                        Search by Name
+                      </TabsTrigger>
+                      <TabsTrigger value="contacts" className="flex-1" data-testid="find-friends-mode-contacts">
+                        From Contacts
+                      </TabsTrigger>
+                      <TabsTrigger value="email" className="flex-1" data-testid="find-friends-mode-email">
+                        By Email
+                      </TabsTrigger>
+                    </TabsList>
+                  </Tabs>
+
+                  {connectionFindMode === 'search' ? (
+                    <div className="space-y-1.5">
+                      <Input
+                        value={connectionSearchQuery}
+                        onChange={(e) => setConnectionSearchQuery(e.target.value)}
+                        placeholder="Type at least 2 characters..."
+                        data-testid="find-friends-search-input"
+                      />
+                      <div className="max-h-56 overflow-y-auto space-y-1.5">
+                        {debouncedConnectionSearchQuery.length < 2 ? null : isSearchingConnections ? (
+                          <p className="py-3 text-center text-sm text-muted-foreground">Searching...</p>
+                        ) : (connectionSearchResults?.users.filter((result) => result.id !== user?.uid).length ?? 0) === 0 ? (
+                          <p className="py-3 text-center text-sm text-muted-foreground">No users found.</p>
+                        ) : (
+                          connectionSearchResults!.users
+                            .filter((result) => result.id !== user?.uid)
+                            .map((result) => (
+                              <div key={result.id} className="flex items-center justify-between rounded-md border p-2" data-testid={`find-friends-result-${result.id}`}>
+                                <div className="min-w-0">
+                                  <p className="truncate text-sm font-medium">{result.displayName || result.username || "User"}</p>
+                                  {result.username && <p className="truncate text-xs text-muted-foreground">@{result.username}</p>}
+                                </div>
+                                <Button size="sm" disabled={sendConnectionRequestMutation.isPending} onClick={() => requestConnectionByUser(result)}>
+                                  <UserPlus size={14} className="mr-1" />
+                                  Connect
+                                </Button>
+                              </div>
+                            ))
+                        )}
                       </div>
                     </div>
-                    
-                    <div className="space-y-2">
-                      <h3 className="text-base font-medium">Pending Requests</h3>
-                      <div className="text-sm text-muted-foreground p-4 text-center border border-dashed rounded-lg">
-                        No pending friend requests
-                      </div>
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <h3 className="text-base font-medium">Find Friends</h3>
-                      <div className="flex gap-2">
-                        <Input placeholder="Search by name or email" className="flex-1" />
-                        <Button variant="outline">Search</Button>
-                      </div>
-                      <div className="flex flex-wrap gap-2 mt-2">
-                        <Button variant="outline" size="sm">
-                          <Mail size={14} className="mr-1" />
-                          Invite via Email
-                        </Button>
-                        <Button variant="outline" size="sm" className="bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border-emerald-200">
-                          Import from Facebook
-                        </Button>
-                        <Button variant="outline" size="sm" className="bg-slate-50 text-slate-700 hover:bg-slate-100 border-slate-200">
-                          Import from Contacts
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    <p className="text-sm">Connect with friends to share wishlists, collaborate on gifts, and get gift suggestions.</p>
-                    
-                    <div className="flex flex-col sm:flex-row gap-3">
-                      {CONNECTIONS.slice(0, 3).map(friend => (
-                        <div key={friend.id} className="flex items-center space-x-3 border rounded-lg p-3 flex-1">
-                          <Avatar>
-                            <AvatarImage src={friend.avatar} alt={friend.name} />
-                            <AvatarFallback>{friend.name.charAt(0)}</AvatarFallback>
-                          </Avatar>
-                          <div>
-                            <p className="font-medium">{friend.name}</p>
-                            <p className="text-xs text-muted-foreground">{friend.mutualFriends} mutual friends</p>
-                          </div>
+                  ) : connectionFindMode === 'contacts' ? (
+                    <div className="space-y-1.5" data-testid="find-friends-contacts-panel">
+                      {isLoadingConnectionContacts ? (
+                        <p className="py-3 text-center text-sm text-muted-foreground">Loading contacts...</p>
+                      ) : connectedConnectionProviders.length === 0 ? (
+                        <p className="text-xs text-muted-foreground">
+                          No contact sources connected yet. Connect Google, Outlook, or Facebook in Calendar Settings to find friends from your contacts.
+                        </p>
+                      ) : connectionContacts.length === 0 ? (
+                        <p className="py-3 text-center text-sm text-muted-foreground">No contacts found.</p>
+                      ) : (
+                        <div className="max-h-56 overflow-y-auto space-y-1.5">
+                          {connectionContacts.map((contact) => (
+                            <div key={contact.id} className="flex items-center justify-between rounded-md border p-2" data-testid={`find-friends-contact-${contact.id}`}>
+                              <div className="min-w-0">
+                                <p className="truncate text-sm font-medium">{contact.name}</p>
+                                <p className="truncate text-xs text-muted-foreground">{contact.email || "No email available"}</p>
+                              </div>
+                              <Button
+                                size="sm"
+                                disabled={sendConnectionRequestMutation.isPending || !contact.email}
+                                onClick={() => requestConnectionByContact(contact)}
+                              >
+                                <UserPlus size={14} className="mr-1" />
+                                Connect
+                              </Button>
+                            </div>
+                          ))}
                         </div>
-                      ))}
+                      )}
                     </div>
-                    
-                    <div className="mt-4">
-                      <Button variant="outline" size="sm" onClick={() => setShowConnections(true)}>
-                        Show All Friends
+                  ) : (
+                    <div className="space-y-1.5">
+                      <Input
+                        type="email"
+                        value={connectionEmail}
+                        onChange={(e) => setConnectionEmail(e.target.value)}
+                        placeholder="name@example.com"
+                        data-testid="find-friends-email-input"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        If they don't have an account yet, they'll get a connection request once they sign up.
+                      </p>
+                      <Button
+                        size="sm"
+                        disabled={sendConnectionRequestMutation.isPending || !connectionEmail.trim()}
+                        onClick={requestConnectionByEmail}
+                        data-testid="find-friends-email-submit"
+                      >
+                        <Mail size={14} className="mr-1" />
+                        Send Request
                       </Button>
                     </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
           )}
           
           {/* Stats & Achievements Tab */}

@@ -68,7 +68,8 @@
     "npm": ">=9.0.0"
   },
   "dependencies": {
-    "esbuild": "^0.28.1"
+    "esbuild": "^0.28.1",
+    "postcss": "^8.5.26"
   },
   "overrides": {
     "@grpc/grpc-js": "1.14.4",

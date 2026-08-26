@@ -12,7 +12,7 @@ Primary source documents:
 - docs/BUSINESS_REQUIREMENTS.md
 - docs/PRODUCT_DESIGN.md
 - docs/REQUIREMENTS.md
-- docs/DESIGN_EXECUTION_MATRIX.md
+- docs/DELIVERABLE_COMPONENT_MATRIX.md
 
 ## Business Requirements
 

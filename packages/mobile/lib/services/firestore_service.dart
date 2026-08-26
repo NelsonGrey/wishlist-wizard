@@ -375,6 +375,57 @@ class FirebaseFirestoreService {
     }
   }
 
+  // Mirrors the backend's markAllNotificationsAsRead
+  // (packages/functions/src/api/notifications.ts) client-side, since this
+  // screen reads/writes Firestore directly rather than through the router —
+  // security rules (firestore.rules) already scope every notification
+  // document to request.auth.uid == resource.data.userId.
+  Future<bool> markAllNotificationsAsRead(String userId) async {
+    if (!await _ensureFirebaseInitialized()) {
+      return false;
+    }
+
+    try {
+      final unread = await _db
+          .collection('notifications')
+          .where('userId', isEqualTo: userId)
+          .where('isRead', isEqualTo: false)
+          .get();
+
+      if (unread.docs.isEmpty) {
+        return true;
+      }
+
+      final batch = _db.batch();
+      for (final doc in unread.docs) {
+        batch.update(doc.reference, {
+          'isRead': true,
+          'read': true,
+          'readAt': FieldValue.serverTimestamp(),
+        });
+      }
+      await batch.commit();
+      return true;
+    } catch (e) {
+      print('Error marking all notifications as read: $e');
+      return false;
+    }
+  }
+
+  Future<bool> deleteNotification(String notificationId) async {
+    if (!await _ensureFirebaseInitialized()) {
+      return false;
+    }
+
+    try {
+      await _db.collection('notifications').doc(notificationId).delete();
+      return true;
+    } catch (e) {
+      print('Error deleting notification: $e');
+      return false;
+    }
+  }
+
   // Safely parse a Firestore timestamp field that may be stored as a
   // Firestore Timestamp OR as an ISO-8601 String (written by Functions/web).
   DateTime _parseTimestamp(dynamic value, {DateTime? fallback}) {
