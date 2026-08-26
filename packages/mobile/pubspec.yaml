@@ -65,7 +65,7 @@ dependencies:
   # itself is permissionless, but the properties fetch that follows needs
   # NSContactsUsageDescription on iOS and READ_CONTACTS on Android; see
   # Info.plist / AndroidManifest.xml)
-  flutter_contacts: ^1.1.9+2
+  flutter_contacts: ^2.3.1
 
   # Group gifting (real Stripe card payments — see
   # packages/functions/src/api/groupPayments.ts). CardField + confirmPayment

@@ -20,3 +20,9 @@ paths = [
 regexes = [
   '''AIza[0-9A-Za-z_-]{20,}''',
 ]
+
+[[allowlists]]
+description = "Not a secret -- the literal *format description* of a pasted Stripe price-ID list (see docs/WISHLIST_WIZARD_GO_LIVE.md, docs/REQUIREMENTS.md) that happens to pattern-match generic-api-key. Fingerprinting individual commits doesn't scale here: every new commit/branch/promotion that carries this documentation forward gets a new SHA and a new 'leak'. A content-level allowlist in its own block is the only fix that actually converges."
+regexes = [
+  '''LABEL=price_id=amount''',
+]
