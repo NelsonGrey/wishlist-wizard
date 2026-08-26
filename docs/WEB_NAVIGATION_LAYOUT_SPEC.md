@@ -9,8 +9,10 @@ Applies to `packages/web/client-src` route rendering and page components.
 ## Layout Ownership Rules
 
 ### Global shell owner
-- `MainLayout` is the sole owner of global header and footer UI.
-- `AppRouter` is responsible for wrapping routable pages with `MainLayout` where standard app chrome is required.
+- `PublicLayout`, `AuthLayout`, and `AppLayout` (`packages/web/client-src/components/layout/`) are the sole
+  owners of global header and footer UI, one per route category. There is no single `MainLayout` component —
+  `AppRouter` selects the layout per route category via `LayoutRouter`.
+- `AppRouter` is responsible for wrapping routable pages with the correct layout where standard app chrome is required.
 
 ### Page component responsibilities
 - Route pages must render only page content (`main` and page-specific sections).
@@ -35,6 +37,12 @@ A page may bypass `MainLayout` only when explicitly required (for example: fully
 
 ## Approved Exceptions
 None currently.
+
+## Content Confinement (standing rule, 2026-07-23)
+Body content and backgrounds are capped at `var(--site-content-width)` (1280px); everything outside that
+column is white. Only the global header and footer span full width. See
+`docs/DESIGN_SYSTEM.md#app-wide-content-confinement-standing-rule-2026-07-23` for the full rule and enforcement
+points (`AppLayout.tsx`, `AuthLayout.tsx`).
 
 ## Regression Signals
 Treat any of the following as a layout/navigation regression:

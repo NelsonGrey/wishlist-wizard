@@ -1,8 +1,7 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
 import { getAuth } from "firebase/auth";
 import { connectFunctionsEmulator, getFunctions, httpsCallable } from "firebase/functions";
-import { getToken as getAppCheckToken } from "firebase/app-check";
-import { firebaseApp, getFirebaseAppCheck, initFirebase } from "@/lib/firebase";
+import { firebaseApp, initFirebase } from "@/lib/firebase";
 
 // API Base URL
 // - Uses explicit env override when provided
@@ -17,43 +16,44 @@ const USE_FIREBASE_EMULATORS = String(import.meta.env.VITE_USE_FIREBASE_EMULATOR
 let functionsEmulatorConnected = false;
 
 /**
- * Get Firebase Auth ID token for authenticated requests
+ * Get Firebase Auth ID token for authenticated requests.
+ *
+ * On a fresh page load, `auth.currentUser` is null for a brief window
+ * while the SDK asynchronously restores the persisted session (reading
+ * IndexedDB) — any request fired in that window silently goes out
+ * unauthenticated and gets a 401 that nothing here retries (queryClient's
+ * default `retry: false`). `authStateReady()` resolves once the SDK has
+ * settled its first real auth state, so awaiting it before reading
+ * `currentUser` closes that race for every caller, not just the ones that
+ * happen to already gate on AuthContext's own `loading` flag.
+ *
+ * getIdToken() is called WITHOUT forcing a refresh — the SDK already
+ * caches the current token and proactively refreshes it in the background
+ * before real expiry, so a plain call returns instantly in the normal
+ * case. Forcing a refresh on every single call (the previous behavior)
+ * meant every page mount fired several concurrent forced-refresh calls at
+ * once (this app's dashboard alone fires 4+ authenticated queries in
+ * parallel) — confirmed via staging's Cloud Functions logs that some of
+ * those freshly-minted tokens got rejected by the backend's verification
+ * while a sibling request's slightly-older token succeeded milliseconds
+ * later on the very same warm instance, consistent with a freshly-issued
+ * token's `iat` claim being too close to "now" for the verifier's clock-
+ * skew tolerance. A cached token doesn't have that problem.
  */
 async function getAuthToken(): Promise<string | null> {
   try {
     const auth = getAuth();
+    await auth.authStateReady();
     const user = auth.currentUser;
-    
+
     if (user) {
-      // Force refresh token to ensure it's valid
-      const token = await user.getIdToken(true);
+      const token = await user.getIdToken();
       return token;
     }
-    
+
     return null;
   } catch (error) {
     console.warn('Failed to get Firebase auth token:', error);
-    return null;
-  }
-}
-
-/**
- * Get an App Check token for raw fetch() requests to the api router.
- * httpsCallable() attaches this automatically for callable-path requests;
- * a plain fetch() does not, so router endpoints that call
- * requireAppCheck()/requireAppCheckHTTP() internally need it attached here.
- * Returns null (silently) if App Check isn't configured for this environment.
- */
-async function getAppCheckHeaderToken(): Promise<string | null> {
-  try {
-    const appCheck = getFirebaseAppCheck();
-    if (!appCheck) {
-      return null;
-    }
-    const result = await getAppCheckToken(appCheck, false);
-    return result.token;
-  } catch (error) {
-    console.warn('Failed to get App Check token:', error);
     return null;
   }
 }
@@ -66,11 +66,14 @@ function shouldUseFirebaseFunctions(url: string, _method: string): boolean {
     return false;
   }
 
-  // List of API endpoints that are backed by callable Firebase Functions
-  const firebaseFunctionEndpoints = [
-    '/api/auth/me',
-    '/api/users/search'
-  ];
+  // List of API endpoints that are backed by callable Firebase Functions.
+  // /api/auth/me and /api/users/search used to be listed here, but they
+  // pointed at standalone callables (getCurrentUser/searchUsers) that were
+  // dead code with the wrong deployed function name to ever match this
+  // file's url->functionName derivation anyway — removed 2026-08-10 along
+  // with the dead functions themselves. Profile/search now go through the
+  // api HTTP router instead (see shouldUseFirebaseApiRouter below).
+  const firebaseFunctionEndpoints: string[] = [];
 
   return firebaseFunctionEndpoints.some(endpoint => url.startsWith(endpoint));
 }
@@ -104,6 +107,9 @@ function shouldUseFirebaseApiRouter(url: string, _method: string): boolean {
     '/api/notifications',
     '/api/calendar',
     '/api/wishlists',
+    '/api/invites',
+    '/api/profile',
+    '/api/users',
     '/api/shared',
     '/api/items',
     '/api/price-intelligence',
@@ -259,11 +265,6 @@ export async function apiRequest(
     const token = await getAuthToken();
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
-    }
-
-    const appCheckToken = await getAppCheckHeaderToken();
-    if (appCheckToken) {
-      headers['X-Firebase-AppCheck'] = appCheckToken;
     }
 
     fullUrl = buildFirebaseApiRouterUrl(url);

@@ -32,7 +32,7 @@ interface GroupGiftDetailsProps {
   itemId: number;
   item: {
     title: string;
-    price: string;
+    price?: string | null;
     imageUrl?: string;
     store?: string;
   };
@@ -149,7 +149,7 @@ export default function GroupGiftDetails({ itemId, item }: GroupGiftDetailsProps
     },
   });
 
-  const targetPrice = parseFloat(item.price.replace(/[$,]/g, '')) || 0;
+  const targetPrice = parseFloat(String(item.price ?? '').replace(/[$,]/g, '')) || 0;
   const totalContributed = stats?.totalContributed || 0;
   const progressPercentage = targetPrice > 0 ? Math.min(100, (totalContributed / targetPrice) * 100) : 0;
   const remainingAmount = Math.max(0, targetPrice - totalContributed);

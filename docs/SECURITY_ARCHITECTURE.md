@@ -1,7 +1,7 @@
 # Wishlist Wizard - Security Architecture
 
-**Version**: 1.1  
-**Last Updated**: May 15, 2026  
+**Version**: 1.2  
+**Last Updated**: 2026-08-12  
 **Owner**: Mark Nelson
 
 ---
@@ -48,22 +48,24 @@ This document outlines the security architecture and practices for Wishlist Wiza
 
 ### Password Security
 
-**Requirements**:
-- Minimum 8 characters
-- At least 1 uppercase letter
-- At least 1 lowercase letter
-- At least 1 number
-- At least 1 special character (!@#$%^&*)
+Password policy and storage are entirely delegated to **Firebase Authentication** — there is no application-level password hashing, salting, or hard-coded rule set in this codebase.
+
+**Policy**:
+- The web client calls Firebase Auth's own `validatePassword()` SDK function (`packages/web/client-src/lib/firebase.ts`) to check a candidate password against the policy.
+- That policy is read **live** from the Firebase Auth console/project configuration at call time — it is not hard-coded in application code, so the specific rules (minimum length, character-class requirements, etc.) are whatever is currently configured per-project in Firebase Auth, and can change without a code deploy.
 
 **Storage**:
-- Never stored in plaintext
-- Hashed using bcrypt with salt rounds = 12
-- Salts generated fresh for each password
+- Firebase Auth manages password hashing/salting internally (scrypt-based, per Google's documented Identity Platform implementation) — the application never sees, stores, or hashes a raw password itself.
 
 **Recovery**:
-- Forgot password sends time-limited reset link (24 hours)
-- Reset token is single-use
-- Email verification required for account activation
+- Password reset is handled client-side through Firebase Auth's `verifyPasswordResetCode()` and `confirmPasswordReset()` SDK calls (also in `packages/web/client-src/lib/firebase.ts`), not a custom `/api/auth` reset endpoint.
+- Reset link expiration, single-use enforcement, and email delivery are all managed by Firebase Auth.
+
+---
+
+## 🔐 App Check (removed)
+
+Firebase App Check was used from 2026-07-18 to 2026-08-24 to verify that requests to Auth, Firestore, and callable Functions came from the genuine app. It was **removed entirely** on 2026-08-24 — web, iOS, and backend enforcement all gone — because it caused more operational friction than the protection was worth (reCAPTCHA v3 reliably scores headless/CI browsers as bot traffic, which repeatedly blocked automated testing and deploys). The same tradeoff had already led to App Check being disabled on this org's other two projects; this just brought wishlist-wizard in line with that decision. There is currently no equivalent anti-abuse check on these endpoints — if bot/abuse protection is needed again later, don't default back to App Check without confirming the friction won't recur; consider alternatives like rate limiting instead.
 
 ---
 
@@ -149,34 +151,25 @@ async function canEditWishlist(userId: string, wishlistId: string): Promise<bool
 - Encryption enabled by default
 - Google manages encryption keys
 - Data encrypted using AES-256
-
-**PostgreSQL**:
-- Encryption enabled (AWS RDS)
-- Automated backups encrypted
-- Encryption keys managed by AWS KMS
+- No Postgres/other database exists in this project — Firestore is the only datastore
 
 ---
 
 ## 🚫 OWASP Top 10 Mitigation
 
-### 1. Injection (SQL, NoSQL, Command)
+### 1. Injection (NoSQL, Command)
 
 **Prevention**:
-- Use parameterized queries (Drizzle ORM for PostgreSQL)
-- Input validation & sanitization
+- Firestore's Admin SDK query builder is inherently parameterized — there is no raw
+  query string to inject into (no SQL database exists in this project)
+- Input validation & sanitization on all callable/router request bodies
 - Firestore security rules prevent invalid queries
 - No command execution from user input
 
 **Implementation**:
 ```typescript
-// ✅ Correct - Parameterized
-const user = await db.query(
-  'SELECT * FROM users WHERE email = ?',
-  [email]
-);
-
-// ❌ Wrong - String concatenation
-const user = await db.query(`SELECT * FROM users WHERE email = '${email}'`);
+// ✅ Correct - Firestore query builder, not a raw query string
+const snapshot = await db.collection('users').where('email', '==', email).get();
 ```
 
 ### 2. Broken Authentication
@@ -296,6 +289,12 @@ const validData = WishlistCreateSchema.parse(requestBody);
 npm audit --audit-level=moderate
 # Fails build if moderate or higher severity found
 ```
+
+**Recent patches** (2026-08):
+- `postcss` bumped to `^8.5.26` (CVE fix)
+- `js-yaml` bumped to patched versions (4.3.1 / 3.15.1) for a known CVE
+- App Store Connect–related GitHub Actions workflow permissions scoped down (least-privilege `permissions:` blocks) rather than defaulting to broad repo write access
+- `secret-scan.yml` (gitleaks) was found to be silently failing on every push due to an org license requirement, then fixed — worth checking Actions run history periodically for gates that report green for the wrong reason (e.g. failing to even start) rather than a real pass
 
 ### 10. Insufficient Logging & Monitoring
 
@@ -432,17 +431,20 @@ const corsOptions = {
 
 **Protected Keys**:
 - Firebase API key (restricted to specific IPs)
-- SendGrid API key
-- OpenAI API key
+- Stripe secret key
+- Workspace SMTP credentials (Nodemailer)
 - Third-party API keys
+
+> Neither SendGrid nor OpenAI is used anywhere in this codebase — there is no
+> `SENDGRID_API_KEY`/`OPENAI_API_KEY` to protect, and there is no `DATABASE_URL`
+> (Firestore is the only datastore, accessed via the Firebase Admin SDK, not a
+> connection string).
 
 **Example .env.local**:
 ```
 FIREBASE_API_KEY=AIza...
 FIREBASE_PROJECT_ID=wishlist-wizard
-SENDGRID_API_KEY=SG.xxx...
-OPENAI_API_KEY=sk-...
-DATABASE_URL=postgresql://...
+STRIPE_SECRET_KEY=sk_live...
 ```
 
 ### Client-Side API Keys
@@ -626,7 +628,6 @@ Before each release:
 - [System Architecture](SYSTEM_ARCHITECTURE.md)
 - [API Reference](API_REFERENCE.md)
 - [Database Schema](DATABASE_SCHEMA.md)
-- [Subscription Plan](SUBSCRIPTION_PLAN.md)
 
 ---
 

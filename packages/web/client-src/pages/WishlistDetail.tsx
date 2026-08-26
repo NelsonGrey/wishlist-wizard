@@ -1,9 +1,10 @@
 import { KeyboardEvent as ReactKeyboardEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useRoute, useLocation, Link } from "wouter";
-import { ArrowLeft, Check, ChevronDown, ChevronUp, Download, ExternalLink, Plus, Share2 } from "lucide-react";
+import { ArrowLeft, Check, ChevronDown, ChevronUp, Download, ExternalLink, Plus, Share2, Users } from "lucide-react";
 import WishlistItem from "@/components/WishlistItem";
 import PrivacyControls from "@/components/privacy/PrivacyControls";
+import CollaboratorsDialog from "@/components/CollaboratorsDialog";
 import { getApiErrorMessage } from "@/lib/api-errors";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -61,6 +62,7 @@ export default function WishlistDetail() {
   const [copied, setCopied] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
   const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
+  const [isCollaboratorsDialogOpen, setIsCollaboratorsDialogOpen] = useState(false);
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [isItemDialogOpen, setIsItemDialogOpen] = useState(false);
   const [isEditingWishlist, setIsEditingWishlist] = useState(false);
@@ -148,6 +150,15 @@ export default function WishlistDetail() {
   const resolvedWishlist = wishlist && !Array.isArray(wishlist)
     ? wishlist
     : null;
+  // myRole is a runtime-only field returned by getWishlistById, not part of
+  // the Drizzle-derived Wishlist schema type — 'owner' when unset covers
+  // both "still loading" and legacy non-collaborative wishlists correctly,
+  // since only an actual collaborator's response ever carries a non-owner role.
+  const viewerRole = (resolvedWishlist as (Wishlist & { myRole?: 'owner' | 'editor' | 'commenter' | 'viewer' }) | null)?.myRole || 'owner';
+  const isWishlistOwner = viewerRole === 'owner';
+  const canEditWishlist = viewerRole === 'owner' || viewerRole === 'editor';
+  const canAddItems = viewerRole !== 'viewer';
+  const canReserveOrPurchase = viewerRole !== 'viewer';
   const shareUrl = resolvedWishlist ? `${window.location.origin}/shared/${resolvedWishlist.shareId}` : "";
   const shareMessage = resolvedWishlist
     ? `Check out this wishlist: ${resolvedWishlist.name}`
@@ -1046,9 +1057,28 @@ export default function WishlistDetail() {
               {resolvedWishlist && (
                 <PrivacyControls
                   entityType="wishlist"
-                  entityId={resolvedWishlist.id}
+                  entityId={String(resolvedWishlist.id)}
                   entityName={resolvedWishlist.name}
                 />
+              )}
+
+              {resolvedWishlist && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      data-testid="wishlist-detail-collaborators"
+                      variant="outline"
+                      className="flex items-center gap-2"
+                      onClick={() => setIsCollaboratorsDialogOpen(true)}
+                    >
+                      <Users className="h-4 w-4" />
+                      Collaborators
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    {isWishlistOwner ? 'Manage who can access this wishlist' : 'See who has access to this wishlist'}
+                  </TooltipContent>
+                </Tooltip>
               )}
             </div>
           </div>
@@ -1117,21 +1147,23 @@ export default function WishlistDetail() {
                       Cancel
                     </Button>
                   )}
-                  <Button
-                    className="w-full sm:w-auto"
-                    onClick={() => {
-                      if (isEditingWishlist) {
-                        handleSaveWishlist();
-                        return;
-                      }
+                  {canEditWishlist && (
+                    <Button
+                      className="w-full sm:w-auto"
+                      onClick={() => {
+                        if (isEditingWishlist) {
+                          handleSaveWishlist();
+                          return;
+                        }
 
-                      setIsDetailsExpanded(true);
-                      setIsEditingWishlist(true);
-                    }}
-                    disabled={updateWishlistMutation.isPending}
-                  >
-                    {updateWishlistMutation.isPending ? "Saving..." : isEditingWishlist ? "Save" : "Edit"}
-                  </Button>
+                        setIsDetailsExpanded(true);
+                        setIsEditingWishlist(true);
+                      }}
+                      disabled={updateWishlistMutation.isPending}
+                    >
+                      {updateWishlistMutation.isPending ? "Saving..." : isEditingWishlist ? "Save" : "Edit"}
+                    </Button>
+                  )}
                 </div>
               </div>
 
@@ -1288,14 +1320,16 @@ export default function WishlistDetail() {
                   <h2 className="text-lg font-semibold">Item Details</h2>
                   <p className="text-sm text-gray-500">List and manage all items in this wishlist.</p>
                 </div>
-                <Button
-                  data-testid="wishlist-detail-add-item"
-                  className="w-full sm:w-auto flex items-center justify-center gap-2"
-                  onClick={openCreateItemDialog}
-                >
-                  <Plus className="h-4 w-4" />
-                  Add Item
-                </Button>
+                {canAddItems && (
+                  <Button
+                    data-testid="wishlist-detail-add-item"
+                    className="w-full sm:w-auto flex items-center justify-center gap-2"
+                    onClick={openCreateItemDialog}
+                  >
+                    <Plus className="h-4 w-4" />
+                    Add Item
+                  </Button>
+                )}
               </div>
 
               <div className="text-sm text-gray-500 mb-4">
@@ -1382,10 +1416,10 @@ export default function WishlistDetail() {
                       key={item.id}
                       item={item}
                       searchQuery={itemSearch}
-                      onEdit={() => openEditItemDialog(item)}
-                      onDelete={() => handleDeleteItem(item.id)}
-                      onReserve={() => handleReserveItem(item.id)}
-                      onPurchase={() => handlePurchaseItem(item.id)}
+                      onEdit={canEditWishlist ? () => openEditItemDialog(item) : undefined}
+                      onDelete={canEditWishlist ? () => handleDeleteItem(item.id) : undefined}
+                      onReserve={canReserveOrPurchase ? () => handleReserveItem(item.id) : undefined}
+                      onPurchase={canReserveOrPurchase ? () => handlePurchaseItem(item.id) : undefined}
                       reserveLabel={isReservePendingForItem ? 'Reserving...' : 'Reserve'}
                       purchaseLabel={isPurchasePendingForItem ? 'Marking...' : 'Mark Purchased'}
                       currentUserId={user?.uid}
@@ -1415,10 +1449,12 @@ export default function WishlistDetail() {
                       </Link>{" "}
                       to add items as you browse.
                     </p>
-                    <Button onClick={openCreateItemDialog}>
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add Item
-                    </Button>
+                    {canAddItems && (
+                      <Button onClick={openCreateItemDialog}>
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add Item
+                      </Button>
+                    )}
                   </CardContent>
                 </Card>
               )}
@@ -1431,14 +1467,16 @@ export default function WishlistDetail() {
       <div className="sm:hidden fixed bottom-0 inset-x-0 z-40 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
         <div className="container mx-auto max-w-7xl px-4 py-3">
           <div className="grid grid-cols-2 gap-2">
-            <Button
-              data-testid="wishlist-detail-mobile-add-item"
-              className="w-full"
-              onClick={openCreateItemDialog}
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Add Item
-            </Button>
+            {canAddItems && (
+              <Button
+                data-testid="wishlist-detail-mobile-add-item"
+                className="w-full"
+                onClick={openCreateItemDialog}
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add Item
+              </Button>
+            )}
             <Button
               data-testid="wishlist-detail-mobile-sticky-share"
               variant="outline"
@@ -1637,6 +1675,16 @@ export default function WishlistDetail() {
         </DialogContent>
       </Dialog>
 
+      {resolvedWishlist && (
+        <CollaboratorsDialog
+          wishlistId={resolvedWishlist.id}
+          wishlistName={resolvedWishlist.name}
+          isOwner={isWishlistOwner}
+          currentUserId={user?.uid}
+          open={isCollaboratorsDialogOpen}
+          onOpenChange={setIsCollaboratorsDialogOpen}
+        />
+      )}
     </>
   );
 }

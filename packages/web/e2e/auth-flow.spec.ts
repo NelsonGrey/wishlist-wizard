@@ -1,6 +1,7 @@
 /// <reference types="@playwright/test" />
 import { test, expect } from '@playwright/test';
 import { ensureAuthenticated } from './fixtures/bootstrap';
+import './fixtures/gate-bypass';
 
 test.describe('Auth Flow Reliability', () => {
   test('shows validation feedback for login, signup, and forgot-password forms', async ({ page }) => {

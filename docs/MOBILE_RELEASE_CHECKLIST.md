@@ -2,9 +2,8 @@
 
 Last updated: February 20, 2026
 
-Use this checklist before any production mobile release.
-
-Execution evidence for the latest run: `docs/DELIVERABLE_EXECUTION_LOG_2026-02-20.md`
+Use this checklist before any production mobile release. Record execution evidence for
+each run in the release's PR description or `docs/RELEASE_SUMMARY.md`.
 
 ## 1) Code and quality gates
 

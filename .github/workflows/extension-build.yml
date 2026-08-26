@@ -3,6 +3,7 @@ name: Build & Test Browser Extension
 permissions:
   contents: read
   issues: write
+  id-token: write
 
 on:
   workflow_call:
@@ -21,11 +22,7 @@ on:
     secrets:
       chrome_extension_id:
         required: false
-      chrome_client_id:
-        required: false
-      chrome_client_secret:
-        required: false
-      chrome_refresh_token:
+      chrome_publisher_id:
         required: false
   workflow_dispatch:
     inputs:
@@ -183,40 +180,73 @@ jobs:
           path: packages/browser-extension/dist/*.zip
           retention-days: 90
 
+      - name: Authenticate to Google Cloud
+        if: success() && inputs.publish == true
+        id: gcp-auth
+        uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: projects/1055615167809/locations/global/workloadIdentityPools/github-actions-pool/providers/github-actions-provider
+          service_account: github-actions-deploy@wishlist-wizard-dev.iam.gserviceaccount.com
+          token_format: access_token
+          access_token_scopes: https://www.googleapis.com/auth/chromewebstore
+
       - name: Publish to Chrome Web Store
         if: success() && inputs.publish == true
         env:
           CHROME_EXTENSION_ID: ${{ secrets.chrome_extension_id }}
-          CHROME_CLIENT_ID: ${{ secrets.chrome_client_id }}
-          CHROME_CLIENT_SECRET: ${{ secrets.chrome_client_secret }}
-          CHROME_REFRESH_TOKEN: ${{ secrets.chrome_refresh_token }}
+          CHROME_PUBLISHER_ID: ${{ secrets.chrome_publisher_id }}
+          ACCESS_TOKEN: ${{ steps.gcp-auth.outputs.access_token }}
         run: |
-          if [ -z "$CHROME_EXTENSION_ID" ] || [ -z "$CHROME_CLIENT_ID" ] || [ -z "$CHROME_CLIENT_SECRET" ] || [ -z "$CHROME_REFRESH_TOKEN" ]; then
-            echo "❌ Chrome Web Store publish secrets are not fully configured."
-            echo "   Required: chrome_extension_id, chrome_client_id, chrome_client_secret, chrome_refresh_token."
+          if [ -z "$CHROME_EXTENSION_ID" ] || [ -z "$CHROME_PUBLISHER_ID" ]; then
+            echo "❌ Chrome Web Store publish is not fully configured."
+            echo "   Required: chrome_extension_id, chrome_publisher_id."
             echo "   The first-ever Chrome Web Store listing must be created manually via the"
-            echo "   Developer Dashboard before these can point at anything real; the refresh"
-            echo "   token requires a one-time interactive OAuth consent flow and can't be"
-            echo "   generated headlessly in CI."
+            echo "   Developer Dashboard, and the github-actions-deploy@wishlist-wizard-dev"
+            echo "   service account must be added under Account in that dashboard before"
+            echo "   this can publish anything real (see https://developer.chrome.com/docs/webstore/service-accounts)."
             exit 1
           fi
 
+          # Auth is via WIF service-account impersonation (see the auth step
+          # above), not chrome-webstore-upload-cli's OAuth refresh-token flow
+          # — the Chrome Web Store API doesn't accept OAuth-flow tooling for
+          # service-account tokens, so this calls the v2 REST API directly.
           # Uses dist/chrome from the build:all output above, not the
           # separate root-level `npm run package:extension:release` flow
           # (a different, flat single-vite-build dist/ shape used only for
           # local ad-hoc packaging).
-          npx chrome-webstore-upload-cli upload \
-            --source packages/browser-extension/dist/chrome \
-            --extension-id "$CHROME_EXTENSION_ID" \
-            --client-id "$CHROME_CLIENT_ID" \
-            --client-secret "$CHROME_CLIENT_SECRET" \
-            --refresh-token "$CHROME_REFRESH_TOKEN"
+          cd packages/browser-extension/dist/chrome
+          zip -rq /tmp/chrome-extension-upload.zip .
+          cd - > /dev/null
 
-          npx chrome-webstore-upload-cli publish \
-            --extension-id "$CHROME_EXTENSION_ID" \
-            --client-id "$CHROME_CLIENT_ID" \
-            --client-secret "$CHROME_CLIENT_SECRET" \
-            --refresh-token "$CHROME_REFRESH_TOKEN"
+          echo "Uploading to Chrome Web Store..."
+          UPLOAD_RESPONSE=$(curl -sS -w '\n%{http_code}' -X POST \
+            "https://chromewebstore.googleapis.com/upload/v2/publishers/${CHROME_PUBLISHER_ID}/items/${CHROME_EXTENSION_ID}:upload" \
+            -H "Authorization: Bearer ${ACCESS_TOKEN}" \
+            -H "X-Goog-Upload-Protocol: raw" \
+            -H "X-Goog-Upload-File-Name: extension.zip" \
+            --data-binary @/tmp/chrome-extension-upload.zip)
+          UPLOAD_STATUS=$(echo "$UPLOAD_RESPONSE" | tail -n1)
+          echo "$UPLOAD_RESPONSE" | sed '$d'
+          if [ "$UPLOAD_STATUS" -ge 400 ]; then
+            echo "❌ Upload failed (HTTP $UPLOAD_STATUS)"
+            exit 1
+          fi
+
+          echo "Publishing..."
+          PUBLISH_RESPONSE=$(curl -sS -w '\n%{http_code}' -X POST \
+            "https://chromewebstore.googleapis.com/v2/publishers/${CHROME_PUBLISHER_ID}/items/${CHROME_EXTENSION_ID}:publish" \
+            -H "Authorization: Bearer ${ACCESS_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -d '{"publishType":"DEFAULT_PUBLISH"}')
+          PUBLISH_STATUS=$(echo "$PUBLISH_RESPONSE" | tail -n1)
+          echo "$PUBLISH_RESPONSE" | sed '$d'
+          if [ "$PUBLISH_STATUS" -ge 400 ]; then
+            echo "❌ Publish failed (HTTP $PUBLISH_STATUS)"
+            exit 1
+          fi
+
+          echo "✓ Published successfully"
           # Firefox AMO / Edge Add-ons publishing could follow this same
           # upload-then-publish shape with their own CLIs (web-ext for AMO,
           # the Partner Center API for Edge) — deliberately out of scope
@@ -253,7 +283,7 @@ jobs:
             To submit to stores:
             
             1. Download \`extension-deployment-packages\`
-            2. Follow the store-specific guidelines in \`docs/EXTENSION_STORE_SUBMISSION_DETAILED_RUNBOOK.md\`
+            2. Follow the store-specific guidelines in \`docs/EXTENSION_STORE_SUBMISSION_RUNBOOK.md\`
             3. Submit \`wishlist-wizard-chrome-*.zip\` to Chrome Web Store
             4. Submit \`wishlist-wizard-firefox-*.zip\` to Mozilla Add-ons
             5. Submit \`wishlist-wizard-edge-*.zip\` to Microsoft Edge Store

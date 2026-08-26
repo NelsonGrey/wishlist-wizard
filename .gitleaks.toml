@@ -12,6 +12,10 @@ paths = [
   '''packages/mobile/(ios|macos)/Podfile\.lock''',
   '''packages/mobile-app/ios/Podfile\.lock''',
   '''packages/browser-extension/src/background\.js''',
+  # Metadata file: comments here describe past false positives by quoting
+  # the exact matched text, which otherwise makes this file itself a new
+  # match on every commit that touches it. Never contains real secrets.
+  '''\.gitleaksignore''',
 ]
 regexes = [
   '''AIza[0-9A-Za-z_-]{20,}''',

@@ -1,9 +1,26 @@
 import 'package:flutter/foundation.dart';
 import '../models/models.dart';
 import '../services/firebase_auth_service.dart';
+import '../services/firebase_functions_service.dart';
 
 class AuthProvider extends ChangeNotifier {
-  final FirebaseAuthService _authService = FirebaseAuthService();
+  final FirebaseAuthService _authService;
+  final FirebaseFunctionsService _functionsService;
+
+  // Injectable (defaulting to the real singletons) so tests can substitute
+  // mocks instead of needing a live Firebase connection -- mirrors
+  // FirebaseWishlistProvider's constructor-level DI. functionsService in
+  // particular must be injectable: without it, tests that trigger a real
+  // auth-state change have no way to suppress the real ensureProfile()
+  // network call below, which leaves a pending timer after the widget tree
+  // is disposed and fails the test framework's invariant checks.
+  AuthProvider({
+    FirebaseAuthService? authService,
+    FirebaseFunctionsService? functionsService,
+  }) : _authService = authService ?? FirebaseAuthService(),
+       _functionsService = functionsService ?? FirebaseFunctionsService() {
+    _initializeAuth();
+  }
 
   User? _user;
   bool _isLoading = false;
@@ -13,10 +30,6 @@ class AuthProvider extends ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get error => _error;
   bool get isLoggedIn => _user != null;
-
-  AuthProvider() {
-    _initializeAuth();
-  }
 
   Future<void> _initializeAuth() async {
     _setLoading(true);
@@ -32,6 +45,13 @@ class AuthProvider extends ChangeNotifier {
           );
         }
         _setUser(user);
+        if (user != null) {
+          // Idempotent — no-ops if a users/{uid} profile doc already
+          // exists. Single hook point covering every sign-in path (email,
+          // Google, Apple; new account or returning session), mirroring
+          // web's AuthContext.ensureProfileExists.
+          _functionsService.ensureProfile();
+        }
         if (!_isLoading) {
           _setLoading(false);
         }
@@ -170,6 +190,52 @@ class AuthProvider extends ChangeNotifier {
         return true;
       } else {
         _setError(result.error ?? 'Password reset failed');
+        return false;
+      }
+    } catch (e) {
+      _setError('An unexpected error occurred');
+      return false;
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  Future<bool> reauthenticate(String currentPassword) async {
+    _setLoading(true);
+    _clearError();
+
+    try {
+      final result = await _authService.reauthenticateWithPassword(
+        currentPassword,
+      );
+
+      if (result.isSuccess) {
+        _setUser(result.user);
+        return true;
+      } else {
+        _setError(result.error ?? 'Reauthentication failed');
+        return false;
+      }
+    } catch (e) {
+      _setError('An unexpected error occurred');
+      return false;
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  Future<bool> changePassword(String newPassword) async {
+    _setLoading(true);
+    _clearError();
+
+    try {
+      final result = await _authService.updatePassword(newPassword);
+
+      if (result.isSuccess) {
+        _setUser(result.user);
+        return true;
+      } else {
+        _setError(result.error ?? 'Failed to update password');
         return false;
       }
     } catch (e) {

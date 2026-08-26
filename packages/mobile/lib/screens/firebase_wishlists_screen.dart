@@ -6,7 +6,9 @@ import '../models/models.dart';
 import '../providers/providers.dart';
 import '../services/social_share_service.dart';
 import '../widgets/admob_widgets.dart';
+import '../widgets/invite_collaborator_dialog.dart';
 import '../main.dart';
+import 'contribution_screen.dart';
 
 // Production web app origin used to build shareable wishlist links from mobile
 // (mirrors the `${window.location.origin}/shared/:shareId` link built on web).
@@ -20,7 +22,11 @@ class FirebaseWishlistsScreen extends StatefulWidget {
       _FirebaseWishlistsScreenState();
 }
 
+enum _WishlistScope { mine, shared }
+
 class _FirebaseWishlistsScreenState extends State<FirebaseWishlistsScreen> {
+  _WishlistScope _scope = _WishlistScope.mine;
+
   @override
   void initState() {
     super.initState();
@@ -43,242 +49,391 @@ class _FirebaseWishlistsScreenState extends State<FirebaseWishlistsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: const CustomAppBar(title: 'Firebase Wishlists'),
-      body: Consumer2<AuthProvider, FirebaseWishlistProvider>(
-        builder: (context, authProvider, wishlistProvider, child) {
-          if (authProvider.user == null) {
-            return const Center(child: Text('Please log in to view wishlists'));
-          }
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+            child: SegmentedButton<_WishlistScope>(
+              segments: const [
+                ButtonSegment(
+                  value: _WishlistScope.mine,
+                  label: Text('My Wishlists'),
+                ),
+                ButtonSegment(
+                  value: _WishlistScope.shared,
+                  label: Text('Shared with Me'),
+                ),
+              ],
+              selected: {_scope},
+              onSelectionChanged: (selection) {
+                setState(() => _scope = selection.first);
+                if (selection.first == _WishlistScope.shared) {
+                  Provider.of<FirebaseWishlistProvider>(
+                    context,
+                    listen: false,
+                  ).loadSharedWishlists();
+                }
+              },
+            ),
+          ),
+          Expanded(
+            child: _scope == _WishlistScope.mine
+                ? _buildMyWishlists(context)
+                : _buildSharedWishlists(context),
+          ),
+        ],
+      ),
+      floatingActionButton: _scope == _WishlistScope.mine
+          ? FloatingActionButton(
+              onPressed: () => _showCreateWishlistDialog(context),
+              child: const Icon(Icons.add),
+            )
+          : null,
+    );
+  }
 
-          if (wishlistProvider.isLoading) {
-            return const Center(child: CircularProgressIndicator());
-          }
+  Widget _buildSharedWishlists(BuildContext context) {
+    return Consumer<FirebaseWishlistProvider>(
+      builder: (context, wishlistProvider, child) {
+        if (wishlistProvider.isLoading &&
+            wishlistProvider.sharedWishlists.isEmpty) {
+          return const Center(child: CircularProgressIndicator());
+        }
 
-          if (wishlistProvider.error != null) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    wishlistProvider.error!,
-                    style: const TextStyle(color: Colors.red),
-                    textAlign: TextAlign.center,
+        final sharedWishlists = wishlistProvider.sharedWishlists;
+        if (sharedWishlists.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.people_outline, size: 64, color: Colors.grey[400]),
+                const SizedBox(height: 16),
+                Text(
+                  'Nothing shared with you yet',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.headlineSmall?.copyWith(color: Colors.grey[600]),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  "When someone invites you to collaborate,\nit'll show up here.",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.grey[600]),
+                ),
+              ],
+            ),
+          );
+        }
+
+        return ListView.builder(
+          padding: const EdgeInsets.all(16),
+          itemCount: sharedWishlists.length,
+          itemBuilder: (context, index) {
+            final wishlist = sharedWishlists[index];
+            return Card(
+              margin: const EdgeInsets.only(bottom: 12),
+              child: ListTile(
+                leading: CircleAvatar(
+                  backgroundColor: Theme.of(
+                    context,
+                  ).primaryColor.withValues(alpha: 0.1),
+                  child: Icon(
+                    Icons.group,
+                    color: Theme.of(context).primaryColor,
                   ),
-                  const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: () {
-                      wishlistProvider.clearError();
-                      _loadWishlists();
-                    },
-                    child: const Text('Retry'),
-                  ),
-                ],
+                ),
+                title: Text(
+                  wishlist.name,
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
+                subtitle: Text(
+                  '${wishlist.myRole.name[0].toUpperCase()}${wishlist.myRole.name.substring(1)} access',
+                ),
+                onTap: () => _openWishlistItems(context, wishlist),
+                trailing: IconButton(
+                  icon: const Icon(Icons.exit_to_app),
+                  tooltip: 'Leave this wishlist',
+                  onPressed: () =>
+                      _confirmLeaveSharedWishlist(context, wishlist),
+                ),
               ),
             );
-          }
+          },
+        );
+      },
+    );
+  }
 
-          return StreamBuilder<List<FirebaseWishlist>>(
-            stream: wishlistProvider.getWishlistsStream(authProvider.user!.id),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator());
-              }
+  void _confirmLeaveSharedWishlist(
+    BuildContext context,
+    FirebaseWishlist wishlist,
+  ) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Leave Wishlist'),
+        content: Text(
+          'Leave "${wishlist.name}"? You\'ll need a new invite to access it again.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(dialogContext);
+              final authProvider = Provider.of<AuthProvider>(
+                context,
+                listen: false,
+              );
+              final wishlistProvider = Provider.of<FirebaseWishlistProvider>(
+                context,
+                listen: false,
+              );
+              if (authProvider.user == null) return;
+              await wishlistProvider.removeCollaborator(
+                wishlist.id,
+                authProvider.user!.id,
+              );
+            },
+            child: const Text('Leave', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+  }
 
-              if (snapshot.hasError) {
-                return Center(
-                  child: Text(
-                    'Error: ${snapshot.error}',
-                    style: const TextStyle(color: Colors.red),
-                  ),
-                );
-              }
+  Widget _buildMyWishlists(BuildContext context) {
+    return Consumer2<AuthProvider, FirebaseWishlistProvider>(
+      builder: (context, authProvider, wishlistProvider, child) {
+        if (authProvider.user == null) {
+          return const Center(child: Text('Please log in to view wishlists'));
+        }
 
-              final wishlists = snapshot.data ?? [];
+        if (wishlistProvider.isLoading) {
+          return const Center(child: CircularProgressIndicator());
+        }
 
-              if (wishlists.isEmpty) {
-                return Center(
-                  child: Column(
+        if (wishlistProvider.error != null) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  wishlistProvider.error!,
+                  style: const TextStyle(color: Colors.red),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: () {
+                    wishlistProvider.clearError();
+                    _loadWishlists();
+                  },
+                  child: const Text('Retry'),
+                ),
+              ],
+            ),
+          );
+        }
+
+        return StreamBuilder<List<FirebaseWishlist>>(
+          stream: wishlistProvider.getWishlistsStream(authProvider.user!.id),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
+
+            if (snapshot.hasError) {
+              return Center(
+                child: Text(
+                  'Error: ${snapshot.error}',
+                  style: const TextStyle(color: Colors.red),
+                ),
+              );
+            }
+
+            final wishlists = snapshot.data ?? [];
+
+            if (wishlists.isEmpty) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.list_alt, size: 64, color: Colors.grey[400]),
+                    const SizedBox(height: 16),
+                    Text(
+                      'No wishlists yet',
+                      style: Theme.of(context).textTheme.headlineSmall
+                          ?.copyWith(color: Colors.grey[600]),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Create your first wishlist to get started!',
+                      style: TextStyle(color: Colors.grey[600]),
+                    ),
+                    const SizedBox(height: 24),
+                    ElevatedButton.icon(
+                      onPressed: () => _showCreateWishlistDialog(context),
+                      icon: const Icon(Icons.add),
+                      label: const Text('Create Wishlist'),
+                    ),
+                  ],
+                ),
+              );
+            }
+
+            return Column(
+              children: [
+                // Real-time indicator
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(8),
+                  color: Colors.green.withValues(alpha: 0.1),
+                  child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.list_alt, size: 64, color: Colors.grey[400]),
-                      const SizedBox(height: 16),
-                      Text(
-                        'No wishlists yet',
-                        style: Theme.of(context).textTheme.headlineSmall
-                            ?.copyWith(color: Colors.grey[600]),
+                      Container(
+                        width: 8,
+                        height: 8,
+                        decoration: const BoxDecoration(
+                          color: Colors.green,
+                          shape: BoxShape.circle,
+                        ),
                       ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Create your first wishlist to get started!',
-                        style: TextStyle(color: Colors.grey[600]),
-                      ),
-                      const SizedBox(height: 24),
-                      ElevatedButton.icon(
-                        onPressed: () => _showCreateWishlistDialog(context),
-                        icon: const Icon(Icons.add),
-                        label: const Text('Create Wishlist'),
+                      const SizedBox(width: 8),
+                      const Text(
+                        'Real-time Firebase sync active',
+                        style: TextStyle(
+                          color: Colors.green,
+                          fontWeight: FontWeight.w500,
+                          fontSize: 12,
+                        ),
                       ),
                     ],
                   ),
-                );
-              }
-
-              return Column(
-                children: [
-                  // Real-time indicator
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(8),
-                    color: Colors.green.withValues(alpha: 0.1),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Container(
-                          width: 8,
-                          height: 8,
-                          decoration: const BoxDecoration(
-                            color: Colors.green,
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        const Text(
-                          'Real-time Firebase sync active',
-                          style: TextStyle(
-                            color: Colors.green,
-                            fontWeight: FontWeight.w500,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Consumer<SubscriptionProvider>(
-                    builder: (context, sub, _) {
-                      if (sub.tier == 'free') {
-                        return const AdContainer(
-                          label: 'Advertisement',
-                          child: BannerAdWidget(),
-                        );
-                      }
-                      return const SizedBox.shrink();
-                    },
-                  ),
-                  Expanded(
-                    child: ListView.builder(
-                      padding: const EdgeInsets.all(16),
-                      itemCount: wishlists.length,
-                      itemBuilder: (context, index) {
-                        final wishlist = wishlists[index];
-                        return Card(
-                          margin: const EdgeInsets.only(bottom: 12),
-                          child: ListTile(
-                            leading: CircleAvatar(
-                              backgroundColor: Theme.of(
-                                context,
-                              ).primaryColor.withValues(alpha: 0.1),
-                              child: Icon(
-                                wishlist.isPublic ? Icons.public : Icons.lock,
-                                color: Theme.of(context).primaryColor,
-                              ),
+                ),
+                Consumer<SubscriptionProvider>(
+                  builder: (context, sub, _) {
+                    if (sub.tier == 'free') {
+                      return const AdContainer(
+                        label: 'Advertisement',
+                        child: BannerAdWidget(),
+                      );
+                    }
+                    return const SizedBox.shrink();
+                  },
+                ),
+                Expanded(
+                  child: ListView.builder(
+                    padding: const EdgeInsets.all(16),
+                    itemCount: wishlists.length,
+                    itemBuilder: (context, index) {
+                      final wishlist = wishlists[index];
+                      return Card(
+                        margin: const EdgeInsets.only(bottom: 12),
+                        child: ListTile(
+                          leading: CircleAvatar(
+                            backgroundColor: Theme.of(
+                              context,
+                            ).primaryColor.withValues(alpha: 0.1),
+                            child: Icon(
+                              wishlist.isPublic ? Icons.public : Icons.lock,
+                              color: Theme.of(context).primaryColor,
                             ),
-                            title: Text(
-                              wishlist.name,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            subtitle: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                if (wishlist.description != null)
-                                  Text(wishlist.description!),
-                                const SizedBox(height: 4),
-                                Row(
-                                  children: [
-                                    Icon(
-                                      Icons.access_time,
-                                      size: 14,
+                          ),
+                          title: Text(
+                            wishlist.name,
+                            style: const TextStyle(fontWeight: FontWeight.w600),
+                          ),
+                          subtitle: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              if (wishlist.description != null)
+                                Text(wishlist.description!),
+                              const SizedBox(height: 4),
+                              Row(
+                                children: [
+                                  Icon(
+                                    Icons.access_time,
+                                    size: 14,
+                                    color: Colors.grey[600],
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    _formatDate(wishlist.updatedAt),
+                                    style: TextStyle(
+                                      fontSize: 12,
                                       color: Colors.grey[600],
                                     ),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      _formatDate(wishlist.updatedAt),
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        color: Colors.grey[600],
+                                  ),
+                                ],
+                              ),
+                              if (wishlist.tags.isNotEmpty) ...[
+                                const SizedBox(height: 4),
+                                Wrap(
+                                  spacing: 4,
+                                  children: wishlist.tags.take(3).map((tag) {
+                                    return Chip(
+                                      label: Text(
+                                        tag,
+                                        style: const TextStyle(fontSize: 10),
                                       ),
+                                      visualDensity: VisualDensity.compact,
+                                      materialTapTargetSize:
+                                          MaterialTapTargetSize.shrinkWrap,
+                                    );
+                                  }).toList(),
+                                ),
+                              ],
+                            ],
+                          ),
+                          onTap: () => _openWishlistItems(context, wishlist),
+                          trailing: PopupMenuButton(
+                            itemBuilder: (context) => [
+                              const PopupMenuItem(
+                                value: 'edit',
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.edit),
+                                    SizedBox(width: 8),
+                                    Text('Edit'),
+                                  ],
+                                ),
+                              ),
+                              const PopupMenuItem(
+                                value: 'delete',
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.delete, color: Colors.red),
+                                    SizedBox(width: 8),
+                                    Text(
+                                      'Delete',
+                                      style: TextStyle(color: Colors.red),
                                     ),
                                   ],
                                 ),
-                                if (wishlist.tags.isNotEmpty) ...[
-                                  const SizedBox(height: 4),
-                                  Wrap(
-                                    spacing: 4,
-                                    children: wishlist.tags.take(3).map((tag) {
-                                      return Chip(
-                                        label: Text(
-                                          tag,
-                                          style: const TextStyle(fontSize: 10),
-                                        ),
-                                        visualDensity: VisualDensity.compact,
-                                        materialTapTargetSize:
-                                            MaterialTapTargetSize.shrinkWrap,
-                                      );
-                                    }).toList(),
-                                  ),
-                                ],
-                              ],
-                            ),
-                            onTap: () => _openWishlistItems(context, wishlist),
-                            trailing: PopupMenuButton(
-                              itemBuilder: (context) => [
-                                const PopupMenuItem(
-                                  value: 'edit',
-                                  child: Row(
-                                    children: [
-                                      Icon(Icons.edit),
-                                      SizedBox(width: 8),
-                                      Text('Edit'),
-                                    ],
-                                  ),
-                                ),
-                                const PopupMenuItem(
-                                  value: 'delete',
-                                  child: Row(
-                                    children: [
-                                      Icon(Icons.delete, color: Colors.red),
-                                      SizedBox(width: 8),
-                                      Text(
-                                        'Delete',
-                                        style: TextStyle(color: Colors.red),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                              onSelected: (value) {
-                                if (value == 'edit') {
-                                  _showEditWishlistDialog(context, wishlist);
-                                } else if (value == 'delete') {
-                                  _confirmDeleteWishlist(context, wishlist);
-                                }
-                              },
-                            ),
+                              ),
+                            ],
+                            onSelected: (value) {
+                              if (value == 'edit') {
+                                _showEditWishlistDialog(context, wishlist);
+                              } else if (value == 'delete') {
+                                _confirmDeleteWishlist(context, wishlist);
+                              }
+                            },
                           ),
-                        );
-                      },
-                    ),
+                        ),
+                      );
+                    },
                   ),
-                ],
-              );
-            },
-          );
-        },
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _showCreateWishlistDialog(context),
-        child: const Icon(Icons.add),
-      ),
+                ),
+              ],
+            );
+          },
+        );
+      },
     );
   }
 
@@ -565,6 +720,14 @@ class _FirebaseWishlistItemsScreenState
   final ScrollController _scrollController = ScrollController();
   bool _didAutoScroll = false;
 
+  bool get _isOwner => widget.wishlist.myRole == CollaboratorRole.owner;
+  bool get _canAddItems => widget.wishlist.myRole != CollaboratorRole.viewer;
+  bool get _canEditItems =>
+      widget.wishlist.myRole == CollaboratorRole.owner ||
+      widget.wishlist.myRole == CollaboratorRole.editor;
+  bool get _canReserveOrPurchase =>
+      widget.wishlist.myRole != CollaboratorRole.viewer;
+
   String? _normalizeHttpUrl(String input) {
     final trimmed = input.trim();
     if (trimmed.isEmpty) {
@@ -653,7 +816,9 @@ class _FirebaseWishlistItemsScreenState
     final shareId = widget.wishlist.shareId;
     if (shareId == null || shareId.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('This wishlist doesn\'t have a share link yet.')),
+        const SnackBar(
+          content: Text('This wishlist doesn\'t have a share link yet.'),
+        ),
       );
       return;
     }
@@ -666,10 +831,140 @@ class _FirebaseWishlistItemsScreenState
       );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Unable to share right now.')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Unable to share right now.')),
+      );
     }
+  }
+
+  void _showCollaboratorsSheet(BuildContext context) {
+    final wishlistProvider = Provider.of<FirebaseWishlistProvider>(
+      context,
+      listen: false,
+    );
+
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      builder: (sheetContext) => StatefulBuilder(
+        builder: (sheetContext, setSheetState) {
+          Future<Map<String, dynamic>?>? collaboratorsFuture;
+          collaboratorsFuture ??= wishlistProvider.listCollaborators(
+            widget.wishlist.id,
+          );
+
+          return SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+              child: FutureBuilder<Map<String, dynamic>?>(
+                future: collaboratorsFuture,
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const SizedBox(
+                      height: 120,
+                      child: Center(child: CircularProgressIndicator()),
+                    );
+                  }
+
+                  final collaborators = List<Map<String, dynamic>>.from(
+                    (snapshot.data?['collaborators'] as List?) ?? [],
+                  );
+                  final pendingInvites = List<Map<String, dynamic>>.from(
+                    (snapshot.data?['pendingInvites'] as List?) ?? [],
+                  );
+
+                  return Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Collaborators',
+                        style: Theme.of(context).textTheme.titleLarge,
+                      ),
+                      const SizedBox(height: 12),
+                      if (collaborators.isEmpty && pendingInvites.isEmpty)
+                        const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 16),
+                          child: Text('No collaborators yet.'),
+                        ),
+                      ...collaborators.map(
+                        (collaborator) => ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          title: Text(
+                            (collaborator['displayName'] as String?) ??
+                                (collaborator['email'] as String?) ??
+                                'Collaborator',
+                          ),
+                          subtitle: Text(
+                            (collaborator['role'] as String?) ?? 'editor',
+                          ),
+                          trailing: IconButton(
+                            icon: const Icon(Icons.close),
+                            tooltip: 'Remove',
+                            onPressed: () async {
+                              await wishlistProvider.removeCollaborator(
+                                widget.wishlist.id,
+                                collaborator['userId'] as String,
+                              );
+                              setSheetState(() {
+                                collaboratorsFuture = wishlistProvider
+                                    .listCollaborators(widget.wishlist.id);
+                              });
+                            },
+                          ),
+                        ),
+                      ),
+                      ...pendingInvites.map(
+                        (invite) => ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          title: Text(invite['email'] as String? ?? ''),
+                          subtitle: Text(
+                            '${invite['role'] ?? 'editor'} • awaiting signup',
+                          ),
+                          trailing: IconButton(
+                            icon: const Icon(Icons.close),
+                            tooltip: 'Revoke invite',
+                            onPressed: () async {
+                              await wishlistProvider.revokePendingInvite(
+                                invite['id'] as String,
+                              );
+                              setSheetState(() {
+                                collaboratorsFuture = wishlistProvider
+                                    .listCollaborators(widget.wishlist.id);
+                              });
+                            },
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          onPressed: () async {
+                            Navigator.pop(sheetContext);
+                            await _showInviteCollaboratorDialog(context);
+                          },
+                          icon: const Icon(Icons.person_add),
+                          label: const Text('Invite Collaborator'),
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Future<void> _showInviteCollaboratorDialog(BuildContext context) async {
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) =>
+          InviteCollaboratorDialog(wishlistId: widget.wishlist.id),
+    );
   }
 
   void _showItemDetails(BuildContext context, FirebaseWishlistItem item) {
@@ -787,6 +1082,12 @@ class _FirebaseWishlistItemsScreenState
       appBar: CustomAppBar(
         title: widget.wishlist.name,
         actions: [
+          if (_isOwner)
+            IconButton(
+              icon: const Icon(Icons.people_outline),
+              tooltip: 'Collaborators',
+              onPressed: () => _showCollaboratorsSheet(context),
+            ),
           IconButton(
             icon: const Icon(Icons.share),
             tooltip: 'Share wishlist',
@@ -913,93 +1214,127 @@ class _FirebaseWishlistItemsScreenState
                         ],
                       ),
                       onTap: () => _showItemDetails(context, item),
-                      trailing: PopupMenuButton<String>(
-                        onSelected: (value) async {
-                          if (value == 'edit') {
-                            _showEditItemDialog(context, item);
-                            return;
-                          }
+                      trailing: (_canEditItems || _canReserveOrPurchase)
+                          ? PopupMenuButton<String>(
+                              onSelected: (value) async {
+                                if (value == 'edit') {
+                                  _showEditItemDialog(context, item);
+                                  return;
+                                }
 
-                          if (value == 'toggle') {
-                            if (item.isPurchased) {
-                              final updated = FirebaseWishlistItem(
-                                id: item.id,
-                                name: item.name,
-                                description: item.description,
-                                price: item.price,
-                                currency: item.currency,
-                                url: item.url,
-                                imageUrl: item.imageUrl,
-                                wishlistId: item.wishlistId,
-                                userId: item.userId,
-                                isPurchased: false,
-                                purchasedBy: null,
-                                purchasedAt: null,
-                                tags: item.tags,
-                                priority: item.priority,
-                                createdAt: item.createdAt,
-                                updatedAt: DateTime.now(),
-                              );
-                              await wishlistProvider.updateWishlistItem(
-                                updated,
-                              );
-                            } else {
-                              await wishlistProvider.markItemAsPurchased(
-                                item.id,
-                                authProvider.user!.id,
-                              );
-                            }
-                          }
+                                if (value == 'contribute') {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => ContributionScreen(
+                                        itemId: item.id,
+                                        itemTitle: item.name,
+                                        itemPrice: item.price,
+                                        itemImageUrl: item.imageUrl,
+                                        itemStore: item.store,
+                                      ),
+                                    ),
+                                  );
+                                  return;
+                                }
 
-                          if (value == 'delete') {
-                            await wishlistProvider.deleteWishlistItem(
-                              item.id,
-                              widget.wishlist.id,
-                            );
-                          }
-                        },
-                        itemBuilder: (context) => [
-                          const PopupMenuItem(
-                            value: 'edit',
-                            child: Row(
-                              children: [
-                                Icon(Icons.edit),
-                                SizedBox(width: 8),
-                                Text('Edit'),
+                                if (value == 'toggle') {
+                                  if (item.isPurchased) {
+                                    final updated = FirebaseWishlistItem(
+                                      id: item.id,
+                                      name: item.name,
+                                      description: item.description,
+                                      price: item.price,
+                                      currency: item.currency,
+                                      url: item.url,
+                                      imageUrl: item.imageUrl,
+                                      wishlistId: item.wishlistId,
+                                      userId: item.userId,
+                                      isPurchased: false,
+                                      purchasedBy: null,
+                                      purchasedAt: null,
+                                      tags: item.tags,
+                                      priority: item.priority,
+                                      createdAt: item.createdAt,
+                                      updatedAt: DateTime.now(),
+                                    );
+                                    await wishlistProvider.updateWishlistItem(
+                                      updated,
+                                    );
+                                  } else {
+                                    await wishlistProvider.markItemAsPurchased(
+                                      item.id,
+                                      authProvider.user!.id,
+                                    );
+                                  }
+                                }
+
+                                if (value == 'delete') {
+                                  await wishlistProvider.deleteWishlistItem(
+                                    item.id,
+                                    widget.wishlist.id,
+                                  );
+                                }
+                              },
+                              itemBuilder: (context) => [
+                                if (_canEditItems)
+                                  const PopupMenuItem(
+                                    value: 'edit',
+                                    child: Row(
+                                      children: [
+                                        Icon(Icons.edit),
+                                        SizedBox(width: 8),
+                                        Text('Edit'),
+                                      ],
+                                    ),
+                                  ),
+                                if (_canReserveOrPurchase)
+                                  PopupMenuItem(
+                                    value: 'toggle',
+                                    child: Row(
+                                      children: [
+                                        Icon(
+                                          item.isPurchased
+                                              ? Icons.undo
+                                              : Icons.check,
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Text(
+                                          item.isPurchased
+                                              ? 'Mark unpurchased'
+                                              : 'Mark purchased',
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                if (_canReserveOrPurchase && !item.isPurchased)
+                                  const PopupMenuItem(
+                                    value: 'contribute',
+                                    child: Row(
+                                      children: [
+                                        Icon(Icons.volunteer_activism_outlined),
+                                        SizedBox(width: 8),
+                                        Text('Contribute'),
+                                      ],
+                                    ),
+                                  ),
+                                if (_canEditItems)
+                                  const PopupMenuItem(
+                                    value: 'delete',
+                                    child: Row(
+                                      children: [
+                                        Icon(Icons.delete, color: Colors.red),
+                                        SizedBox(width: 8),
+                                        Text(
+                                          'Delete',
+                                          style: TextStyle(color: Colors.red),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
                               ],
-                            ),
-                          ),
-                          PopupMenuItem(
-                            value: 'toggle',
-                            child: Row(
-                              children: [
-                                Icon(
-                                  item.isPurchased ? Icons.undo : Icons.check,
-                                ),
-                                const SizedBox(width: 8),
-                                Text(
-                                  item.isPurchased
-                                      ? 'Mark unpurchased'
-                                      : 'Mark purchased',
-                                ),
-                              ],
-                            ),
-                          ),
-                          const PopupMenuItem(
-                            value: 'delete',
-                            child: Row(
-                              children: [
-                                Icon(Icons.delete, color: Colors.red),
-                                SizedBox(width: 8),
-                                Text(
-                                  'Delete',
-                                  style: TextStyle(color: Colors.red),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
+                            )
+                          : null,
                     ),
                   );
                 },
@@ -1008,10 +1343,12 @@ class _FirebaseWishlistItemsScreenState
           );
         },
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _showAddItemDialog(context),
-        child: const Icon(Icons.add),
-      ),
+      floatingActionButton: _canAddItems
+          ? FloatingActionButton(
+              onPressed: () => _showAddItemDialog(context),
+              child: const Icon(Icons.add),
+            )
+          : null,
     );
   }
 

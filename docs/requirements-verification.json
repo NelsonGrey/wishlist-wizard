@@ -5,7 +5,7 @@
     "mode": "phased",
     "description": "Only enforced requirements block CI. Expand enforced coverage over time until all completed requirements are mapped and verified.",
     "strictAllEnvVar": "REQUIREMENTS_STRICT_ALL",
-    "designExecutionMatrix": "docs/DESIGN_EXECUTION_MATRIX.md"
+    "designExecutionMatrix": "docs/DELIVERABLE_COMPONENT_MATRIX.md"
   },
   "items": [
     {
@@ -140,6 +140,24 @@
         "2026-07-23: `npm run test:functions:smoke:all` run to a clean pass end-to-end (total=231, passed=221, warned=10, failed=0 - see artifacts/smoke-all-functions-report.json). contract:api-router:price-alerts-create / -create-upserts-duplicate / -create-foreign-item-denied all passed. Getting the suite to run at all required a separate fix first: the ~63-function router migration (moving onCall functions off broken standalone Cloud Run invoker bindings onto the `api` HTTP router) had left this script calling the old direct-callable names for buildFixtureContext and ~15 contract-check blocks, which 404'd immediately. Added callRouterRaw/callRouterExpectSuccess (mirroring callCallableRaw/callCallableExpectSuccess but speaking the router's plain-JSON HTTP contract) and repointed those call sites at the router paths. Also fixed two unrelated pre-existing script bugs surfaced only once the suite ran this far for the first time: parseExportedFunctions was invoking aliased exports (`export { x as y }`) by their original name instead of the deployed name (404 for createGroupPaymentIntent/confirmGroupContribution/getGroupGiftSummary/getARModel), and the privacy-settings-get-after-delete check expected 404 when the handler correctly returns 200 with an isDefaultFallback object. The 10 warned results are expected local-emulator gaps (Stripe not configured, BOOTSTRAP_ADMIN_SECRET unset, permission-denied guards) already covered by ENDPOINT_ALLOWED_ERROR_STATUSES."
       ],
       "lastVerifiedAt": "2026-07-23"
+    },
+    {
+      "id": "advanced-recommendations",
+      "section": "2. Advanced Features",
+      "requirement": "Personalized item recommendations, Firestore-backed",
+      "enforced": true,
+      "verificationStatus": "verified",
+      "persona": "Budget-Conscious Shopper",
+      "flow": "Flow 2: Add Item to Wishlist",
+      "designRef": "docs/PRODUCT_DESIGN.md#flow-2-add-item-to-wishlist-product-discovery",
+      "owner": "backend",
+      "evidence": [
+        "2026-08-26: the prior 'partial' status here understated the problem - nothing anywhere in the backend ever wrote a document to the `recommendations` Firestore collection, confirmed by grepping every reference to that collection across the whole functions source. GET /api/recommendations returned an empty array for every user, permanently, regardless of the frontend's status/dismissal UI existing.",
+        "2026-08-26: implemented ensureRecommendationsFresh() in recommendationsGenerator.ts, called inline from GET /api/recommendations. Derives recommendations from `priceOffers` - Google Shopping results already fetched by price tracking's own SerpAPI refresh cycle - using entries with matchType 'probable' (a shopping result that came back for a tracked item's search but wasn't a strong title match, i.e. a genuinely different, similar product). No new external API calls or SerpAPI quota cost; excludes already-owned items and regenerates once per 24h per user.",
+        "2026-08-26: verified against a real Firestore emulator via scripts/verify-recommendations.cjs (wired as `npm run smoke:recommendations` in the companion functions repo) - 10 assertions covering correct exclusion of same-product ('strong' matchType) offers, correct exclusion of already-owned items even among 'probable' matches, correct price/relevanceScore/matchReason generation, no duplicate generation on repeat calls within the 24h freshness window, and graceful no-op for a user with no wishlist items. All passed.",
+        "2026-08-26: deployed to staging (packages/functions companion repo, develop->staging), confirmed live via a green `Deploy Firebase to staging` step and a subsequent full green Web UAT / Quality Gate run."
+      ],
+      "lastVerifiedAt": "2026-08-26"
     },
     {
       "id": "advanced-privacy-sharing-controls",
@@ -446,8 +464,8 @@
       "id": "tooling-database-migration",
       "section": "11. Build & Tooling",
       "requirement": "Database Migration",
-      "enforced": true,
-      "verificationStatus": "verified",
+      "enforced": false,
+      "verificationStatus": "not-applicable",
       "persona": "Occasion Coordinator",
       "flow": "Flow 6: Group Gifting Coordination",
       "designRef": "docs/PRODUCT_DESIGN.md#flow-6-group-gifting-coordination",
@@ -456,7 +474,8 @@
         "npm run db:push",
         "drizzle.config.ts"
       ],
-      "lastVerifiedAt": "2026-02-27"
+      "lastVerifiedAt": "2026-02-27",
+      "note": "Firestore is schemaless; there is no relational-migration concept in the current Firebase-first architecture. The original evidence (npm run db:push, drizzle.config.ts) described the pre-2025-10-16 Postgres/Drizzle backend, which no longer exists. Unenforced 2026-08-08 rather than marked falsely \u2705 in docs/REQUIREMENTS.md."
     },
     {
       "id": "tooling-lint-type-check",
