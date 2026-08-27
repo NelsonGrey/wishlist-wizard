@@ -107,6 +107,11 @@ dev_dependencies:
   # launchUrl call resolves instead of hanging on the real platform
   # channel under test -- listed explicitly per the same lint as above.
   url_launcher_platform_interface: ^2.3.2
+  # Transitive via share_plus, but social_share_service_test.dart installs
+  # a fake SharePlatform so Share.share() calls resolve (and are
+  # inspectable) instead of hanging on the real platform channel under
+  # test -- listed explicitly per the same lint as above.
+  share_plus_platform_interface: ^6.1.0
 
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is
