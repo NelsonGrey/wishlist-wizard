@@ -7,7 +7,13 @@ export default defineConfig({
     // e2e/ holds Playwright E2E specs (run via `npm run test:e2e`), not
     // vitest unit tests — they use @playwright/test's own test()/expect(),
     // which vitest can't run.
-    exclude: ['**/node_modules/**', '**/dist/**', 'e2e/**']
+    exclude: ['**/node_modules/**', '**/dist/**', 'e2e/**'],
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'html', 'json-summary'],
+      include: ['src/**/*.js'],
+      exclude: ['src/test/**', 'src/**/*.test.js', 'src/dataconnect-generated/**'],
+    },
   },
   resolve: {
     alias: {
