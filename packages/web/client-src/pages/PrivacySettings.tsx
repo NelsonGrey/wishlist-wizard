@@ -170,6 +170,22 @@ const PrivacySettingsPage = () => {
     }
   });
 
+  // `selectedEntity` is a point-in-time snapshot captured when "Manage" is
+  // clicked. Without this, every mutation below (visibility, comments,
+  // reservations, approval, expiration date, custom access list) succeeds
+  // on the server and fires its success toast, but the open dialog itself
+  // keeps showing the pre-update values -- looking broken/unresponsive to
+  // the user -- because it never re-reads the freshly-invalidated
+  // `entities` query. Keep it in sync with the live data for the same
+  // entity instead.
+  useEffect(() => {
+    if (!selectedEntity || !entities) return;
+    const updated = entities.find((e) => e.type === selectedEntity.type && e.id === selectedEntity.id);
+    if (updated && updated !== selectedEntity) {
+      setSelectedEntity(updated);
+    }
+  }, [entities, selectedEntity]);
+
   // Update privacy settings mutation
   const updatePrivacyMutation = useMutation({
     mutationFn: async ({
