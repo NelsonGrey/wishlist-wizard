@@ -60,9 +60,26 @@ export default function Subscription() {
   async function handleUpgrade(tier: SubscriptionTier, billingCycle: 'monthly' | 'annual') {
     setRedirecting(true);
     try {
+      // billingCheckout() falls back to `${process.env.APP_URL}/...` when
+      // these aren't provided, and APP_URL has never actually been
+      // configured on any deployed environment -- Stripe rejects the
+      // resulting schemeless URL outright ("An explicit scheme (such as
+      // https) must be provided"), 500ing checkout for every tier, in every
+      // environment. Passing the browser's own real origin sidesteps that
+      // unconfigured server-side env var entirely instead of requiring a
+      // new secret per environment. Both point back at this same page --
+      // the server's old fallback ("/subscription/success",
+      // "/subscription/upgrade") named routes that don't exist in
+      // AppRouter.tsx either, and there's no dedicated post-checkout page
+      // to send Stripe's session_id to.
       const data = await apiRequest('/api/billing/checkout', {
         method: 'POST',
-        body: { tier, billingCycle },
+        body: {
+          tier,
+          billingCycle,
+          successUrl: `${window.location.origin}/app/subscription`,
+          cancelUrl: `${window.location.origin}/app/subscription`,
+        },
       }) as { url: string; sessionId: string };
       window.location.href = data.url;
     } catch (err: unknown) {

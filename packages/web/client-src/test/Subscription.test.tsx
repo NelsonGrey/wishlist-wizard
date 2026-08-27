@@ -221,7 +221,12 @@ describe('Subscription', () => {
       await waitFor(() => expect(window.location.href).toBe('https://checkout.stripe.com/annual'));
       expect(apiRequest).toHaveBeenCalledWith('/api/billing/checkout', {
         method: 'POST',
-        body: { tier: 'business', billingCycle: 'annual' },
+        body: {
+          tier: 'business',
+          billingCycle: 'annual',
+          successUrl: `${window.location.origin}/app/subscription`,
+          cancelUrl: `${window.location.origin}/app/subscription`,
+        },
       });
     });
 
@@ -235,7 +240,12 @@ describe('Subscription', () => {
       await waitFor(() => expect(window.location.href).toBe('https://checkout.stripe.com/monthly'));
       expect(apiRequest).toHaveBeenCalledWith('/api/billing/checkout', {
         method: 'POST',
-        body: { tier: 'business', billingCycle: 'monthly' },
+        body: {
+          tier: 'business',
+          billingCycle: 'monthly',
+          successUrl: `${window.location.origin}/app/subscription`,
+          cancelUrl: `${window.location.origin}/app/subscription`,
+        },
       });
     });
 
