@@ -16,19 +16,16 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final auth = Provider.of<AuthProvider>(context, listen: false);
-      if (auth.user != null) {
-        Provider.of<FirebaseWishlistProvider>(
-          context,
-          listen: false,
-        ).loadWishlists(auth.user!.id);
-      }
-    });
-  }
+  // Tracks which user's wishlists have been (or are being) loaded, so the
+  // load is triggered reactively rather than as a one-shot check in
+  // initState. AuthProvider resolves the signed-in user asynchronously
+  // (a stream listener plus an awaited getCurrentUser() call, see
+  // AuthProvider._initializeAuth) -- a single post-frame callback that
+  // checks auth.user exactly once can easily run before either of those
+  // resolves, silently skipping loadWishlists() for the rest of this
+  // screen's lifetime and leaving "No wishlists yet" showing even though
+  // the user has wishlists, until a manual pull-to-refresh.
+  String? _loadedForUserId;
 
   @override
   Widget build(BuildContext context) {
@@ -49,6 +46,14 @@ class _HomeScreenState extends State<HomeScreen> {
       body: Consumer2<AuthProvider, FirebaseWishlistProvider>(
         builder: (context, authProvider, wishlistProvider, child) {
           final user = authProvider.user;
+
+          if (user != null && _loadedForUserId != user.id) {
+            _loadedForUserId = user.id;
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (!mounted) return;
+              wishlistProvider.loadWishlists(user.id);
+            });
+          }
 
           return RefreshIndicator(
             onRefresh: () async {
