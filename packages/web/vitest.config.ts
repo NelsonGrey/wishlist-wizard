@@ -28,5 +28,17 @@ export default defineConfig({
     setupFiles: ['./client-src/test/setup.ts'],
     globals: true,
     exclude: ['**/node_modules/**', '**/dist/**', '**/e2e/**', '**/.{idea,git,cache,output,temp}/**'],
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'html', 'json-summary'],
+      include: ['client-src/**/*.{ts,tsx}'],
+      exclude: [
+        'client-src/test/**',
+        'client-src/**/*.test.{ts,tsx}',
+        'client-src/**/*.d.ts',
+        'client-src/components/ui/**', // generated shadcn primitives, not hand-written app logic
+        'client-src/main.tsx',
+      ],
+    },
   },
 });
