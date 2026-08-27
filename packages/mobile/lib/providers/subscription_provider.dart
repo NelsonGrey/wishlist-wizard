@@ -40,7 +40,13 @@ class SubscriptionUpgradeOption {
 }
 
 class SubscriptionProvider extends ChangeNotifier {
-  final FirebaseFunctionsService _functionsService = FirebaseFunctionsService();
+  // Injectable (defaulting to the real singleton) so tests can substitute a
+  // mock instead of needing a live Firebase connection -- mirrors
+  // AuthProvider/FirebaseWishlistProvider's constructor-level DI.
+  SubscriptionProvider({FirebaseFunctionsService? functionsService})
+    : _functionsService = functionsService ?? FirebaseFunctionsService();
+
+  final FirebaseFunctionsService _functionsService;
 
   bool _isLoading = false;
   String? _error;
