@@ -71,7 +71,7 @@ dependencies:
   # different low-level contact CRUD API) that broke compilation the moment
   # Dependabot's #166 auto-merged it. Reverted 2026-08-27; upgrading to 2.x
   # needs a deliberate rewrite of the contacts integration, not a bump.
-  flutter_contacts: ^1.1.9+2
+  flutter_contacts: ^2.3.1
 
   # Group gifting (real Stripe card payments — see
   # packages/functions/src/api/groupPayments.ts). CardField + confirmPayment
