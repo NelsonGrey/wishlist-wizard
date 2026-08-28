@@ -20,13 +20,19 @@ describe('AchievementsGuide', () => {
 
   it('shows an "Earned" badge for an earned one-time achievement', () => {
     mockData = {
-      achievements: { 'welcome-aboard': { earned: true, tier: 0, count: 0 } },
+      // tier: 1, not 0 -- achievements.ts's oneTime() helper always sets
+      // tier: 1 once a one-time achievement is earned (meaningless for a
+      // one-time achievement, but real), and the Earned-badge-vs-tier-badge
+      // branch must key off achievement.tiered, not tier > 0, or this
+      // renders a nonsensical "Apprentice" tier badge instead of "Earned".
+      achievements: { 'welcome-aboard': { earned: true, tier: 1, count: 0 } },
       computedAt: '2026-08-27T00:00:00.000Z',
     };
     render(<AchievementsGuide />);
 
     const card = screen.getByTestId('achievements-guide-item-welcome-aboard');
     expect(card).toHaveTextContent('Earned');
+    expect(card).not.toHaveTextContent('Apprentice');
   });
 
   it('shows the tier name and progress toward the next tier for a tiered achievement', () => {

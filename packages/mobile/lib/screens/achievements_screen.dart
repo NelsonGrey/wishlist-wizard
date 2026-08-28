@@ -82,7 +82,14 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
     final earned = state?['earned'] == true;
     final tier = (state?['tier'] as num?)?.toInt() ?? 0;
     final count = (state?['count'] as num?)?.toInt() ?? 0;
-    final tierName = tier > 0 ? achievementTierNames[tier - 1] : null;
+    // achievement.tiered gates this, not just tier > 0: a one-time
+    // achievement's AchievementState also sets tier: 1 once earned (see
+    // achievements.ts's oneTime() helper), which without this check would
+    // render a nonsensical "Apprentice" tier badge (achievementTierNames[0])
+    // on a plain one-time achievement like Welcome Aboard instead of the
+    // intended checkmark -- found via a real integration test asserting
+    // the checkmark actually renders after signing up.
+    final tierName = achievement.tiered && tier > 0 ? achievementTierNames[tier - 1] : null;
     final isWizard = achievement.tiered && tier == wizardTier;
     final int? nextThreshold = (achievement.tiered && tier < 5 && achievement.thresholds != null)
         ? achievement.thresholds![tier]
