@@ -46,7 +46,9 @@ void main() async {
   // that. Catching core/duplicate-app specifically and treating it as
   // already-configured is the standard fix for this ordering issue.
   try {
-    await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
   } on FirebaseException catch (e) {
     if (e.code != 'duplicate-app') rethrow;
   }
@@ -116,11 +118,16 @@ class WishlistWizardApp extends StatelessWidget {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 12,
+                ),
               ),
             ),
             inputDecorationTheme: InputDecorationTheme(
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
                 borderSide: const BorderSide(color: Color(0xFF064E3B)),
@@ -303,145 +310,151 @@ class ProfileScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: const CustomAppBar(title: 'Profile'),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Consumer<AuthProvider>(
-              builder: (context, authProvider, child) {
-                final user = authProvider.user;
-                return Column(
-                  children: [
-                    CircleAvatar(
-                      radius: 50,
-                      backgroundImage: user?.profileImageUrl != null
-                          ? NetworkImage(user!.profileImageUrl!)
-                          : null,
-                      child: user?.profileImageUrl == null
-                          ? const Icon(Icons.person, size: 50)
-                          : null,
+      // Wrapped in a scroll view: this Column stacks the profile header
+      // plus 7 buttons, which overflows unscrollably on real devices with
+      // less vertical space than the default test/desktop viewport (found
+      // via a real-device integration test run, not previously known).
+      body: SingleChildScrollView(
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Consumer<AuthProvider>(
+                builder: (context, authProvider, child) {
+                  final user = authProvider.user;
+                  return Column(
+                    children: [
+                      CircleAvatar(
+                        radius: 50,
+                        backgroundImage: user?.profileImageUrl != null
+                            ? NetworkImage(user!.profileImageUrl!)
+                            : null,
+                        child: user?.profileImageUrl == null
+                            ? const Icon(Icons.person, size: 50)
+                            : null,
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        user?.name ?? user?.email ?? 'Unknown User',
+                        style: Theme.of(context).textTheme.headlineSmall,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        user?.email ?? '',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              ),
+              const SizedBox(height: 32),
+              ElevatedButton.icon(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const SubscriptionScreen(),
                     ),
-                    const SizedBox(height: 16),
-                    Text(
-                      user?.name ?? user?.email ?? 'Unknown User',
-                      style: Theme.of(context).textTheme.headlineSmall,
+                  );
+                },
+                icon: const Icon(Icons.workspace_premium),
+                label: const Text('Manage Subscription'),
+              ),
+              const SizedBox(height: 12),
+              OutlinedButton.icon(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const AchievementsScreen(),
                     ),
-                    const SizedBox(height: 8),
-                    Text(
-                      user?.email ?? '',
-                      style: Theme.of(
-                        context,
-                      ).textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),
+                  );
+                },
+                icon: const Icon(Icons.emoji_events_outlined),
+                label: const Text('Achievements'),
+              ),
+              const SizedBox(height: 12),
+              OutlinedButton.icon(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const PriceTrackingScreen(),
                     ),
-                  ],
-                );
-              },
-            ),
-            const SizedBox(height: 32),
-            ElevatedButton.icon(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const SubscriptionScreen(),
-                  ),
-                );
-              },
-              icon: const Icon(Icons.workspace_premium),
-              label: const Text('Manage Subscription'),
-            ),
-            const SizedBox(height: 12),
-            OutlinedButton.icon(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const AchievementsScreen(),
-                  ),
-                );
-              },
-              icon: const Icon(Icons.emoji_events_outlined),
-              label: const Text('Achievements'),
-            ),
-            const SizedBox(height: 12),
-            OutlinedButton.icon(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const PriceTrackingScreen(),
-                  ),
-                );
-              },
-              icon: const Icon(Icons.trending_down_outlined),
-              label: const Text('Price Tracking'),
-            ),
-            const SizedBox(height: 12),
-            OutlinedButton.icon(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const ConnectionsScreen(),
-                  ),
-                );
-              },
-              icon: const Icon(Icons.people_outline),
-              label: const Text('Connections'),
-            ),
-            const SizedBox(height: 12),
-            OutlinedButton.icon(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const CalendarScreen(),
-                  ),
-                );
-              },
-              icon: const Icon(Icons.calendar_today_outlined),
-              label: const Text('Calendar'),
-            ),
-            const SizedBox(height: 12),
-            OutlinedButton.icon(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const CreatorDashboardScreen(),
-                  ),
-                );
-              },
-              icon: const Icon(Icons.storefront_outlined),
-              label: const Text('Creator Tools'),
-            ),
-            const SizedBox(height: 12),
-            OutlinedButton.icon(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const AccountScreen(),
-                  ),
-                );
-              },
-              icon: const Icon(Icons.security),
-              label: const Text('Account & Security'),
-            ),
-            const SizedBox(height: 12),
-            ElevatedButton(
-              onPressed: () {
-                Provider.of<AuthProvider>(context, listen: false).logout();
-              },
-              child: const Text('Logout'),
-            ),
-            const SizedBox(height: 24),
-            TextButton(
-              onPressed: () => _showDeleteAccountDialog(context),
-              style: TextButton.styleFrom(foregroundColor: Colors.red),
-              child: const Text('Delete Account'),
-            ),
-          ],
+                  );
+                },
+                icon: const Icon(Icons.trending_down_outlined),
+                label: const Text('Price Tracking'),
+              ),
+              const SizedBox(height: 12),
+              OutlinedButton.icon(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const ConnectionsScreen(),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.people_outline),
+                label: const Text('Connections'),
+              ),
+              const SizedBox(height: 12),
+              OutlinedButton.icon(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const CalendarScreen(),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.calendar_today_outlined),
+                label: const Text('Calendar'),
+              ),
+              const SizedBox(height: 12),
+              OutlinedButton.icon(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const CreatorDashboardScreen(),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.storefront_outlined),
+                label: const Text('Creator Tools'),
+              ),
+              const SizedBox(height: 12),
+              OutlinedButton.icon(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const AccountScreen(),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.security),
+                label: const Text('Account & Security'),
+              ),
+              const SizedBox(height: 12),
+              ElevatedButton(
+                onPressed: () {
+                  Provider.of<AuthProvider>(context, listen: false).logout();
+                },
+                child: const Text('Logout'),
+              ),
+              const SizedBox(height: 24),
+              TextButton(
+                onPressed: () => _showDeleteAccountDialog(context),
+                style: TextButton.styleFrom(foregroundColor: Colors.red),
+                child: const Text('Delete Account'),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -456,7 +469,8 @@ class ProfileScreen extends StatelessWidget {
       builder: (dialogContext) => StatefulBuilder(
         builder: (dialogContext, setDialogState) {
           final confirmed =
-              confirmController.text.trim().toLowerCase() == 'delete my account';
+              confirmController.text.trim().toLowerCase() ==
+              'delete my account';
 
           return AlertDialog(
             title: const Text('Delete Your Account?'),
@@ -474,7 +488,9 @@ class ProfileScreen extends StatelessWidget {
                   controller: confirmController,
                   autofocus: true,
                   enabled: !deleting,
-                  decoration: const InputDecoration(hintText: 'delete my account'),
+                  decoration: const InputDecoration(
+                    hintText: 'delete my account',
+                  ),
                   onChanged: (_) => setDialogState(() {}),
                 ),
               ],
@@ -499,14 +515,19 @@ class ProfileScreen extends StatelessWidget {
                             Navigator.pop(dialogContext);
                           }
                           if (context.mounted) {
-                            Provider.of<AuthProvider>(context, listen: false).logout();
+                            Provider.of<AuthProvider>(
+                              context,
+                              listen: false,
+                            ).logout();
                           }
                         } catch (e) {
                           setDialogState(() => deleting = false);
                           if (dialogContext.mounted) {
                             ScaffoldMessenger.of(dialogContext).showSnackBar(
                               const SnackBar(
-                                content: Text('Failed to delete account. Please try again.'),
+                                content: Text(
+                                  'Failed to delete account. Please try again.',
+                                ),
                                 backgroundColor: Colors.red,
                               ),
                             );
