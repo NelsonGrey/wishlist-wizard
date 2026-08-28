@@ -11,6 +11,12 @@ import 'package:wishlist_wizard_mobile/main.dart';
 // "First Wish", both computed server-side on read (not a client-side
 // guess) -- see packages/functions/src/api/achievements.ts. Run against
 // the real dev Firebase project on a real device/simulator.
+//
+// Also verifies markAchievementsDirtySafely's cache invalidation: without
+// it, getUserAchievements serves a cached result for up to an hour
+// (STALE_AFTER_MS), so First Wish wouldn't show as earned right after
+// creating the wishlist -- it would take an achievements-screen visit
+// from well over an hour later to see it.
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
@@ -70,7 +76,7 @@ void main() {
   }
 
   testWidgets(
-    'signing up earns Welcome Aboard; creating a first wishlist earns First Wish',
+    'signing up earns Welcome Aboard; creating a first wishlist earns First Wish immediately',
     (tester) async {
       // --- Sign up ---
       await tester.pumpWidget(const WishlistWizardApp());
@@ -83,16 +89,23 @@ void main() {
       await tester.pumpAndSettle(const Duration(seconds: 10));
       expect(find.text('Welcome back,'), findsOneWidget);
 
-      // --- Create the first wishlist, then check achievements once ---
-      // getUserAchievements caches its result for up to an hour (see
-      // achievements.ts's STALE_AFTER_MS) with no invalidation hook
-      // anywhere the backend writes a wishlist -- checking achievements
-      // *before* creating the wishlist would cache a stale "not earned"
-      // result and hide First Wish becoming earned moments later, which
-      // isn't a code bug so much as a real, deliberate caching tradeoff
-      // (flagged separately). A single fresh check after both actions
-      // avoids that pitfall and is also a more realistic first-time-user
-      // flow than checking, doing something, then checking again.
+      // --- Welcome Aboard is earned immediately, First Wish is not yet ---
+      await openAchievementsScreen(tester);
+      await tester.scrollUntilVisible(
+        find.text('Welcome Aboard'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      expect(isEarned(tester, 'Welcome Aboard'), isTrue);
+      await tester.scrollUntilVisible(
+        find.text('First Wish'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      expect(isEarned(tester, 'First Wish'), isFalse);
+
+      // --- Create the first wishlist ---
+      await popToTabRoot(tester);
       await tester.tap(find.descendant(
         of: find.byType(BottomNavigationBar),
         matching: find.text('Wishlists'),
@@ -105,13 +118,11 @@ void main() {
       await tester.tap(find.widgetWithText(ElevatedButton, 'Create'));
       await tester.pumpAndSettle(const Duration(seconds: 8));
 
+      // --- First Wish is earned right away too, not up to an hour later --
+      // proves markAchievementsDirtySafely's cache invalidation actually
+      // works: without it, this would still read the cached "not earned"
+      // result from the achievements-screen visit above.
       await openAchievementsScreen(tester);
-      await tester.scrollUntilVisible(
-        find.text('Welcome Aboard'),
-        200,
-        scrollable: find.byType(Scrollable).first,
-      );
-      expect(isEarned(tester, 'Welcome Aboard'), isTrue);
       await tester.scrollUntilVisible(
         find.text('First Wish'),
         200,
