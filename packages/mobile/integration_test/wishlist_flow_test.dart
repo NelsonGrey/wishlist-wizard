@@ -27,16 +27,14 @@ void main() {
     await fb.FirebaseAuth.instance.signOut();
   });
 
-  tearDownAll(() async {
-    // Best-effort cleanup: delete the account this test created so dev
-    // doesn't accumulate throwaway users. Wishlist/item documents are left
-    // for backend TTL/cleanup, same as the web E2E suite's own approach.
-    try {
-      await fb.FirebaseAuth.instance.currentUser?.delete();
-    } catch (_) {
-      // Ignore -- best-effort only, not worth failing the run over.
-    }
-  });
+  // No account-deletion cleanup here (unlike some of the web E2E suite's
+  // approach): deleting the account changes auth state, which notifies the
+  // app's AuthProvider -- but by the time tearDownAll runs, the widget tree
+  // from the test above may already be disposed, and that notification
+  // then trips ChangeNotifier's own "used after being disposed" assertion,
+  // failing the run even though the test itself already passed. Dev
+  // accumulating a few throwaway test users is an accepted tradeoff (same
+  // as auth_smoke_test.dart, which never deletes its account either).
 
   final email = 'e2e-mobile-${DateTime.now().millisecondsSinceEpoch}@wishlist-wizard.test';
   const password = 'Test@Secure123Password';
@@ -62,14 +60,24 @@ void main() {
       expect(find.text('Welcome back,'), findsOneWidget);
 
       // --- Navigate to Wishlists tab ---
-      await tester.tap(find.text('Wishlists'));
+      // The bare text also appears elsewhere once wishlists exist later in
+      // this test (a wishlist named "Wishlists" would collide, and the
+      // FirebaseWishlistsScreen's own AppBar title always does once we're
+      // on it) -- scope to the bottom nav bar specifically.
+      await tester.tap(find.descendant(
+        of: find.byType(BottomNavigationBar),
+        matching: find.text('Wishlists'),
+      ));
       await tester.pumpAndSettle(const Duration(seconds: 5));
       expect(find.text('Firebase Wishlists'), findsOneWidget);
 
       // --- Create a wishlist ---
       await tester.tap(find.byType(FloatingActionButton));
       await tester.pumpAndSettle();
-      expect(find.text('Create Wishlist'), findsOneWidget);
+      // Not find.text('Create Wishlist') -- the empty state (no wishlists
+      // yet on a fresh signup) has its own CTA button with the same label,
+      // colliding with the dialog title once it's open.
+      expect(find.byType(AlertDialog), findsOneWidget);
 
       await tester.enterText(find.widgetWithText(TextField, 'Wishlist Name'), wishlistName);
       await tester.tap(find.widgetWithText(ElevatedButton, 'Create'));
