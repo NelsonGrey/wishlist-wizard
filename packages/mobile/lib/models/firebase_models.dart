@@ -247,12 +247,19 @@ class FirebaseNotification {
     Map<String, dynamic> data,
   ) {
     // Support cross-platform field aliases written by Cloud Functions:
-    //   body → message,  read → isRead,  data → metadata
+    //   content → message,  read → isRead,  data → metadata
+    // `content` is the field every createNotification() call site across
+    // the whole backend actually writes (wishlists.ts, collaboration.ts,
+    // connections.ts, triggers/collaboration.ts) -- web's Notifications.tsx
+    // reads it directly. `message`/`body` were never actually written by
+    // anything; every notification's body text rendered as an empty
+    // string on mobile until this was found (via a real integration test
+    // asserting the text a user would actually see).
     return FirebaseNotification(
       id: docId,
       userId: data['userId'] ?? '',
       title: data['title'] ?? '',
-      message: data['message'] ?? data['body'] ?? '',
+      message: data['message'] ?? data['content'] ?? data['body'] ?? '',
       type: _stringToNotificationType(data['type']),
       isRead: data['isRead'] as bool? ?? data['read'] as bool? ?? false,
       createdAt: _parseDate(data['createdAt']),
