@@ -38,6 +38,14 @@ export default defineConfig({
         'client-src/**/*.d.ts',
         'client-src/components/ui/**', // generated shadcn primitives, not hand-written app logic
         'client-src/main.tsx',
+        // Dead code: zero import sites anywhere in the app (verified via
+        // grep), each superseded by an equivalent that IS wired up --
+        // use-analytics.tsx's page-view tracking duplicates
+        // AppRouter.tsx's own AnalyticsRouteTracker; useFirebaseData.tsx's
+        // hooks duplicate firestore.ts's useUserWishlists/useWishlistItems/
+        // useUserNotifications, which are what pages actually import.
+        'client-src/hooks/use-analytics.tsx',
+        'client-src/hooks/useFirebaseData.tsx',
       ],
     },
   },

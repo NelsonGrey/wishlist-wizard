@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
 
@@ -147,15 +148,27 @@ class _ConnectionsScreenState extends State<ConnectionsScreen> {
 
   Future<void> _pickFromContactsAndConnect() async {
     try {
-      final granted = await FlutterContacts.requestPermission();
-      if (!granted) {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Contacts permission was not granted.')),
+      // native.showPicker's own doc: "permissionless on both platforms" for
+      // the picker itself, but fetching the email property on Android needs
+      // READ_CONTACTS granted first (throws a PlatformException otherwise)
+      // -- iOS never needs it. Request only where it's actually required so
+      // iOS users aren't prompted for nothing.
+      if (defaultTargetPlatform == TargetPlatform.android) {
+        final status = await FlutterContacts.permissions.request(
+          PermissionType.read,
         );
-        return;
+        if (status != PermissionStatus.granted &&
+            status != PermissionStatus.limited) {
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Contacts permission was not granted.')),
+          );
+          return;
+        }
       }
-      final contact = await FlutterContacts.openExternalPick();
+      final contact = await FlutterContacts.native.showPicker(
+        properties: {ContactProperty.email},
+      );
       if (contact == null || !mounted) return;
       if (contact.emails.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -164,7 +177,8 @@ class _ConnectionsScreenState extends State<ConnectionsScreen> {
         return;
       }
       final email = contact.emails.first.address;
-      final name = contact.displayName.isNotEmpty ? contact.displayName : email;
+      final displayName = contact.displayName ?? '';
+      final name = displayName.isNotEmpty ? displayName : email;
       await _sendRequest(email: email, label: name);
     } catch (e) {
       if (!mounted) return;

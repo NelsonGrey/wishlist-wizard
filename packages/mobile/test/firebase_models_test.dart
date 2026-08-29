@@ -268,6 +268,20 @@ void main() {
       expect(n.message, 'Body from Functions');
     });
 
+    // The real one: every createNotification() call site across the whole
+    // backend (wishlists.ts, collaboration.ts, connections.ts,
+    // triggers/collaboration.ts) writes `content`, never `message` or
+    // `body` -- web's Notifications.tsx reads it directly. Without this
+    // alias, every notification's body text rendered as an empty string
+    // on mobile (found via a real integration test asserting the text a
+    // user would actually see, not a synthetic fixture like `base()`'s
+    // own `message` key above).
+    test('"content" is accepted as alias for "message" (the field Functions actually writes)', () {
+      final data = {...base(), 'message': null, 'content': 'Content from Functions'};
+      final n = FirebaseNotification.fromFirestore('n2b', data);
+      expect(n.message, 'Content from Functions');
+    });
+
     test('"read" is accepted as alias for "isRead" (Functions field)', () {
       final data = {...base(), 'isRead': null, 'read': true};
       final n = FirebaseNotification.fromFirestore('n3', data);
