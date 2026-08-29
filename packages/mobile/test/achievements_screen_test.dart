@@ -47,7 +47,13 @@ void main() {
     when(() => functionsService.getAchievements()).thenAnswer(
       (_) async => {
         'achievements': {
-          'welcome-aboard': {'earned': true, 'tier': 0, 'count': 0},
+          // tier: 1, not 0 -- achievements.ts's oneTime() helper always
+          // sets tier: 1 once a one-time achievement is earned (it's
+          // meaningless for a one-time achievement, but real), and the
+          // checkmark-vs-tier-badge branch must key off
+          // achievement.tiered, not tier > 0, or this renders a
+          // nonsensical "Apprentice" tier badge instead of the checkmark.
+          'welcome-aboard': {'earned': true, 'tier': 1, 'count': 0},
         },
         'computedAt': '2026-01-01T00:00:00Z',
       },
@@ -58,6 +64,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byIcon(Icons.check_circle), findsOneWidget);
+    expect(find.text('Apprentice'), findsNothing);
   });
 
   testWidgets('shows tier badge and progress for a tiered achievement', (tester) async {

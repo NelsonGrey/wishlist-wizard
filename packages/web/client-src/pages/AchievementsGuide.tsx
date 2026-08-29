@@ -31,7 +31,14 @@ export default function AchievementsGuide() {
       <div className="space-y-3">
         {ACHIEVEMENT_DEFINITIONS.map((achievement) => {
           const state = achievements[achievement.id];
-          const tierName = state && state.tier > 0 ? ACHIEVEMENT_TIER_NAMES[state.tier - 1] : null;
+          // achievement.tiered gates this, not just state.tier > 0: a
+          // one-time achievement's AchievementState also sets tier: 1 once
+          // earned (see achievements.ts's oneTime() helper), which without
+          // this check renders a nonsensical "Apprentice" tier badge
+          // (ACHIEVEMENT_TIER_NAMES[0]) on a plain one-time achievement
+          // like Welcome Aboard instead of the intended checkmark.
+          const tierName =
+            achievement.tiered && state && state.tier > 0 ? ACHIEVEMENT_TIER_NAMES[state.tier - 1] : null;
           const nextThreshold =
             achievement.tiered && state && state.tier < 5 ? achievement.thresholds?.[state.tier] : undefined;
 

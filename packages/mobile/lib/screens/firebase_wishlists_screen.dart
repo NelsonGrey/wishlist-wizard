@@ -26,12 +26,18 @@ enum _WishlistScope { mine, shared }
 
 class _FirebaseWishlistsScreenState extends State<FirebaseWishlistsScreen> {
   _WishlistScope _scope = _WishlistScope.mine;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadWishlists();
-  }
+  // Tracks which user's wishlists have been (or are being) loaded via the
+  // polling loadWishlists() call, so it's triggered reactively rather than
+  // as a one-shot initState check. AuthProvider resolves the signed-in user
+  // asynchronously (see AuthProvider._initializeAuth) -- a synchronous
+  // initState check of auth.user can run before that resolves, silently
+  // skipping loadWishlists() for this screen's whole lifetime. The "My
+  // Wishlists" list itself still renders correctly regardless (it comes
+  // from a reactive real-time stream, not this polling call), but its
+  // loading spinner and error-with-Retry states are driven entirely by
+  // loadWishlists()'s isLoading/error, so without it neither would ever
+  // show on a genuine failure -- same bug class fixed in home_screen.dart.
+  String? _loadedForUserId;
 
   void _loadWishlists() {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
@@ -207,8 +213,17 @@ class _FirebaseWishlistsScreenState extends State<FirebaseWishlistsScreen> {
   Widget _buildMyWishlists(BuildContext context) {
     return Consumer2<AuthProvider, FirebaseWishlistProvider>(
       builder: (context, authProvider, wishlistProvider, child) {
-        if (authProvider.user == null) {
+        final user = authProvider.user;
+        if (user == null) {
           return const Center(child: Text('Please log in to view wishlists'));
+        }
+
+        if (_loadedForUserId != user.id) {
+          _loadedForUserId = user.id;
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!mounted) return;
+            wishlistProvider.loadWishlists(user.id);
+          });
         }
 
         if (wishlistProvider.isLoading) {
@@ -1368,49 +1383,55 @@ class _FirebaseWishlistItemsScreenState
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Edit Item'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: nameController,
-              decoration: const InputDecoration(labelText: 'Item name'),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: descriptionController,
-              decoration: const InputDecoration(
-                labelText: 'Description (optional)',
+        // Wrapped in a scroll view: 6 fields stacked with MainAxisSize.min
+        // can exceed AlertDialog's bounded height on smaller screens, which
+        // otherwise renders a silent RenderFlex overflow (content clipped
+        // off the bottom, not scrollable) instead of a resolvable one.
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nameController,
+                decoration: const InputDecoration(labelText: 'Item name'),
               ),
-              maxLines: 2,
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: priceController,
-              decoration: const InputDecoration(labelText: 'Price (optional)'),
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
+              const SizedBox(height: 12),
+              TextField(
+                controller: descriptionController,
+                decoration: const InputDecoration(
+                  labelText: 'Description (optional)',
+                ),
+                maxLines: 2,
               ),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: storeController,
-              decoration: const InputDecoration(labelText: 'Store (optional)'),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: urlController,
-              decoration: const InputDecoration(
-                labelText: 'Product URL (optional)',
+              const SizedBox(height: 12),
+              TextField(
+                controller: priceController,
+                decoration: const InputDecoration(labelText: 'Price (optional)'),
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
               ),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: imageUrlController,
-              decoration: const InputDecoration(
-                labelText: 'Image URL (optional)',
+              const SizedBox(height: 12),
+              TextField(
+                controller: storeController,
+                decoration: const InputDecoration(labelText: 'Store (optional)'),
               ),
-            ),
-          ],
+              const SizedBox(height: 12),
+              TextField(
+                controller: urlController,
+                decoration: const InputDecoration(
+                  labelText: 'Product URL (optional)',
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: imageUrlController,
+                decoration: const InputDecoration(
+                  labelText: 'Image URL (optional)',
+                ),
+              ),
+            ],
+          ),
         ),
         actions: [
           TextButton(
@@ -1516,49 +1537,55 @@ class _FirebaseWishlistItemsScreenState
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Add Item'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: nameController,
-              decoration: const InputDecoration(labelText: 'Item name'),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: descriptionController,
-              decoration: const InputDecoration(
-                labelText: 'Description (optional)',
+        // Wrapped in a scroll view: 6 fields stacked with MainAxisSize.min
+        // can exceed AlertDialog's bounded height on smaller screens, which
+        // otherwise renders a silent RenderFlex overflow (content clipped
+        // off the bottom, not scrollable) instead of a resolvable one.
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nameController,
+                decoration: const InputDecoration(labelText: 'Item name'),
               ),
-              maxLines: 2,
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: priceController,
-              decoration: const InputDecoration(labelText: 'Price (optional)'),
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
+              const SizedBox(height: 12),
+              TextField(
+                controller: descriptionController,
+                decoration: const InputDecoration(
+                  labelText: 'Description (optional)',
+                ),
+                maxLines: 2,
               ),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: storeController,
-              decoration: const InputDecoration(labelText: 'Store (optional)'),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: urlController,
-              decoration: const InputDecoration(
-                labelText: 'Product URL (optional)',
+              const SizedBox(height: 12),
+              TextField(
+                controller: priceController,
+                decoration: const InputDecoration(labelText: 'Price (optional)'),
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
               ),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: imageUrlController,
-              decoration: const InputDecoration(
-                labelText: 'Image URL (optional)',
+              const SizedBox(height: 12),
+              TextField(
+                controller: storeController,
+                decoration: const InputDecoration(labelText: 'Store (optional)'),
               ),
-            ),
-          ],
+              const SizedBox(height: 12),
+              TextField(
+                controller: urlController,
+                decoration: const InputDecoration(
+                  labelText: 'Product URL (optional)',
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: imageUrlController,
+                decoration: const InputDecoration(
+                  labelText: 'Image URL (optional)',
+                ),
+              ),
+            ],
+          ),
         ),
         actions: [
           TextButton(

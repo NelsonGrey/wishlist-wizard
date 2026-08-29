@@ -51,7 +51,7 @@ export default function AuditLog() {
 
   const [entries, setEntries] = useState<AuditEntry[]>([]);
   const [loading, setLoading] = useState(true);
-  const [resourceType, setResourceType] = useState('');
+  const [resourceType, setResourceType] = useState('all');
   const [actorUid, setActorUid] = useState('');
 
   function load() {
@@ -62,7 +62,7 @@ export default function AuditLog() {
       body: {
         pageSize: 100,
         filter: {
-          ...(resourceType ? { resourceType } : {}),
+          ...(resourceType !== 'all' ? { resourceType } : {}),
           ...(actorUid.trim() ? { actorUid: actorUid.trim() } : {}),
         },
       },
@@ -95,7 +95,7 @@ export default function AuditLog() {
             <SelectValue placeholder="Resource type" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">All</SelectItem>
+            <SelectItem value="all">All</SelectItem>
             <SelectItem value="subscription">Subscription</SelectItem>
             <SelectItem value="payment">Payment</SelectItem>
             <SelectItem value="user">User</SelectItem>
