@@ -226,19 +226,26 @@ class _UsageCard extends StatelessWidget {
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 12),
+            // Field names must match billingStatus()'s real response
+            // exactly (wishlistsOwned/totalItems/priceTrackedItems) --
+            // usageCount()/usageProgress() default silently to 0 on a
+            // missing key, so a wrong key here doesn't error, it just
+            // always shows 0 regardless of real usage. That's exactly
+            // what happened before this was fixed: wishlists/itemsTotal
+            // were never the real field names.
             _UsageRow(
               label: 'Wishlists',
-              used: provider.usageCount('wishlists'),
+              used: provider.usageCount('wishlistsOwned'),
               limit: provider.limitCount('maxWishlists'),
-              progress: provider.usageProgress('wishlists', 'maxWishlists'),
+              progress: provider.usageProgress('wishlistsOwned', 'maxWishlists'),
             ),
             const SizedBox(height: 10),
             _UsageRow(
               label: 'Items',
-              used: provider.usageCount('itemsTotal'),
+              used: provider.usageCount('totalItems'),
               limit: provider.limitCount('maxItemsPerWishlist'),
               progress: provider.usageProgress(
-                'itemsTotal',
+                'totalItems',
                 'maxItemsPerWishlist',
               ),
             ),

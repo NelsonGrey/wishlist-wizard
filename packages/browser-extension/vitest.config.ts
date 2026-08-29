@@ -12,7 +12,17 @@ export default defineConfig({
       provider: 'v8',
       reporter: ['text', 'html', 'json-summary'],
       include: ['src/**/*.js'],
-      exclude: ['src/test/**', 'src/**/*.test.js', 'src/dataconnect-generated/**'],
+      exclude: [
+        'src/test/**',
+        'src/**/*.test.js',
+        'src/dataconnect-generated/**',
+        // Not part of the shipped extension -- superseded by
+        // build-manifests.mjs/build-extension.sh (zero references anywhere
+        // in the current build system) and a manual browser-console
+        // debugging script respectively, not application logic.
+        'src/package-extension.js',
+        'src/test-refactored-extractor.js',
+      ],
     },
   },
   resolve: {

@@ -48,9 +48,32 @@ post_install do |installer|
 
       # Allow non-modular includes only for specific targets to fix absl/gRPC headers issues
       # Scoped to avoid AST Deserialization issues in other pods
-      if target.name.include?('gRPC') || target.name.include?('abseil') || target.name.include?('BoringSSL') || target.name.include?('Firebase') || target.name.include?('leveldb') || target.name.include?('nanopb')
+      #
+      # google_mobile_ads added separately: its FLTAd_Internal.h/FLTAdPreloader.h
+      # include GoogleMobileAds.framework's private GoogleMobileAds_Beta.h
+      # non-modularly, which fails a from-scratch `pod install` + build
+      # ("Include of non-modular header inside framework module
+      # 'google_mobile_ads.FLTAd_Internal'") against the SDK version CocoaPods
+      # currently resolves (13.7.0) -- not present when the list above was
+      # written.
+      if target.name.include?('gRPC') || target.name.include?('abseil') || target.name.include?('BoringSSL') || target.name.include?('Firebase') || target.name.include?('leveldb') || target.name.include?('nanopb') || target.name.include?('google_mobile_ads')
         config.build_settings['CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES'] = 'YES'
       end
     end
+  end
+
+  # The flag above only reaches Pods.xcodeproj -- it doesn't relax Xcode's
+  # separate "Verify Module" step, which runs from the Runner app target's
+  # own project (a distinct .xcodeproj CocoaPods doesn't otherwise touch)
+  # when it embeds google_mobile_ads' framework module. Without this, the
+  # same non-modular-header error re-surfaces from Runner even though the
+  # pod's own target already allows it.
+  installer.aggregate_targets.each do |aggregate_target|
+    aggregate_target.user_project.native_targets.each do |target|
+      target.build_configurations.each do |config|
+        config.build_settings['CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES'] = 'YES'
+      end
+    end
+    aggregate_target.user_project.save
   end
 end
