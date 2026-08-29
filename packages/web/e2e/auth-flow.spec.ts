@@ -1,9 +1,19 @@
 /// <reference types="@playwright/test" />
 import { test, expect } from '@playwright/test';
 import { ensureAuthenticated } from './fixtures/bootstrap';
+import { isProductionTarget } from './fixtures/environment';
 import './fixtures/gate-bypass';
 
 test.describe('Auth Flow Reliability', () => {
+  test.beforeEach(() => {
+    // Production intentionally serves a marketing holding page instead of
+    // the real app -- these tests exercise real login/register/dashboard
+    // routes, which don't exist to interact with there. Without this,
+    // every test here times out on a locator.fill() against a page that
+    // was never going to render a login form, not a real regression.
+    test.skip(isProductionTarget(), 'Production build intentionally disables authenticated routes.');
+  });
+
   test('shows validation feedback for login, signup, and forgot-password forms', async ({ page }) => {
     await page.goto('/login');
 
