@@ -7,12 +7,18 @@ import 'package:wishlist_wizard_mobile/firebase_options.dart';
 import 'package:wishlist_wizard_mobile/main.dart';
 
 // The Subscription screen for a fresh free-tier user, run against the
-// real dev Firebase project on a real device/simulator. Doesn't attempt
-// a real purchase -- IAP has no real store connection on a Simulator (or
-// in this dev environment at all), so "Upgrade to X" deterministically
-// hits IapService's own not-available fallback, which is itself real,
-// correct behavior worth confirming end-to-end (not a mock standing in
-// for it).
+// real dev Firebase project on a real device/simulator.
+//
+// Doesn't tap "Upgrade to X": this app has real products configured in
+// App Store Connect, so on a real device/simulator that resolves to a
+// genuine StoreKit purchase flow (a native system sheet), not
+// IapService's own "not available" fallback -- there's no store product
+// catalog missing here to short-circuit on, unlike this repo's other
+// real-device-limited flows (the camera-dependent barcode scanner, the
+// native OS share sheet). Completing or even reliably dismissing that
+// system UI isn't something to force through in an automated test, so
+// this only verifies what's real and deterministic: the tier/usage data
+// itself, and that the upgrade options render with their real prices.
 //
 // This test is what actually found two real, previously-undiscovered
 // bugs on its first run (both since fixed): billingPlans() returned a
@@ -43,7 +49,7 @@ void main() {
   const password = 'Test@Secure123Password';
 
   testWidgets(
-    'a fresh account shows the free tier with real usage, and upgrading reports not-available',
+    'a fresh account shows the real free-tier status, usage, and upgrade options',
     (tester) async {
       // --- Sign up ---
       await tester.pumpWidget(const WishlistWizardApp());
@@ -73,15 +79,16 @@ void main() {
       expect(find.text('0 / 25'), findsOneWidget); // Items
       expect(find.text('0 / 5'), findsOneWidget); // Price Tracking
 
-      // --- Tapping Upgrade correctly reports IAP as unavailable here ---
+      // --- Real upgrade options render with real, correctly-mapped prices ---
+      // (billingPlans() previously threw before this ever rendered at all.)
       await tester.scrollUntilVisible(
-        find.textContaining('Upgrade to'),
+        find.textContaining('Upgrade to').first,
         200,
         scrollable: find.byType(Scrollable).first,
       );
-      await tester.tap(find.textContaining('Upgrade to').first);
-      await tester.pumpAndSettle(const Duration(seconds: 5));
-      expect(find.textContaining('is not available for purchase right now'), findsOneWidget);
+      expect(find.text('Starter'), findsOneWidget);
+      expect(find.text('\$3.99'), findsOneWidget);
+      expect(find.widgetWithText(ElevatedButton, 'Upgrade to Starter'), findsOneWidget);
     },
   );
 }
