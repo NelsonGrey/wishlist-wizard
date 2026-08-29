@@ -16,7 +16,11 @@ const _fullStatus = {
   'status': 'active',
   'billingCycle': 'monthly',
   'renewalDate': '2026-12-25T00:00:00.000Z',
-  'usage': {'wishlists': 4, 'itemsTotal': 20, 'priceTrackedItems': 9},
+  // Real field names from billingStatus() -- wishlists/itemsTotal (used
+  // here previously) were never what the backend actually returns, which
+  // made every usage-row test below pass without ever verifying the real
+  // key mapping.
+  'usage': {'wishlistsOwned': 4, 'totalItems': 20, 'priceTrackedItems': 9},
   'limits': {'maxWishlists': 5, 'maxItemsPerWishlist': 100, 'maxPriceTrackedItems': 10},
 };
 const _plansResponse = {
