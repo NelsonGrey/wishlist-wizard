@@ -35,7 +35,10 @@ const BASE_LIMITS = {
 const BASE_STATUS = {
   tier: 'plus' as const,
   status: 'active',
-  usage: { wishlistsOwned: 2, itemsTracked: 5, totalItems: 10 },
+  // priceTrackedItems, not itemsTracked (used here previously) -- that
+  // was never the real field name billingStatus() returns, which made
+  // the price-tracking usage row always show 0 regardless of real usage.
+  usage: { wishlistsOwned: 2, priceTrackedItems: 5, totalItems: 10 },
   limits: BASE_LIMITS,
   pricing: BASE_PRICING,
   availableUpgrades: [],
@@ -126,7 +129,7 @@ describe('Subscription', () => {
     it('shows a percent-based progress readout, with ∞ for unlimited limits', () => {
       mockSubStatus = {
         ...BASE_STATUS,
-        usage: { wishlistsOwned: 3, itemsTracked: 5, totalItems: 10 },
+        usage: { wishlistsOwned: 3, priceTrackedItems: 5, totalItems: 10 },
         limits: { ...BASE_LIMITS, maxWishlists: 10, maxPriceTrackedItems: Number.MAX_SAFE_INTEGER },
       };
       render(<Subscription />);
@@ -138,7 +141,7 @@ describe('Subscription', () => {
     it('shows an approaching-limit alert at or above 80% usage', () => {
       mockSubStatus = {
         ...BASE_STATUS,
-        usage: { wishlistsOwned: 9, itemsTracked: 1, totalItems: 9 },
+        usage: { wishlistsOwned: 9, priceTrackedItems: 1, totalItems: 9 },
         limits: { ...BASE_LIMITS, maxWishlists: 10 },
       };
       render(<Subscription />);
@@ -149,7 +152,7 @@ describe('Subscription', () => {
     it('does not show the alert below 80% usage', () => {
       mockSubStatus = {
         ...BASE_STATUS,
-        usage: { wishlistsOwned: 1, itemsTracked: 1, totalItems: 1 },
+        usage: { wishlistsOwned: 1, priceTrackedItems: 1, totalItems: 1 },
         limits: { ...BASE_LIMITS, maxWishlists: 10 },
       };
       render(<Subscription />);

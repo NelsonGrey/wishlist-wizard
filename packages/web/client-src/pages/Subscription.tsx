@@ -132,7 +132,7 @@ export default function Subscription() {
       subStatus.limits.maxItemsPerWishlist * subStatus.limits.maxWishlists,
     ),
     tracked: getUsagePercent(
-      subStatus.usage.itemsTracked ?? 0,
+      subStatus.usage.priceTrackedItems ?? 0,
       subStatus.limits.maxPriceTrackedItems,
     ),
   };
@@ -231,7 +231,7 @@ export default function Subscription() {
                 <div className="flex justify-between text-sm">
                   <span>Items Tracked for Price</span>
                   <span className="text-muted-foreground">
-                    {subStatus.usage.itemsTracked ?? 0} / {subStatus.limits.maxPriceTrackedItems === Number.MAX_SAFE_INTEGER ? '∞' : subStatus.limits.maxPriceTrackedItems}
+                    {subStatus.usage.priceTrackedItems ?? 0} / {subStatus.limits.maxPriceTrackedItems === Number.MAX_SAFE_INTEGER ? '∞' : subStatus.limits.maxPriceTrackedItems}
                   </span>
                 </div>
                 <Progress value={usagePercent.tracked} className="h-2" />
