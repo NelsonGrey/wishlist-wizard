@@ -1,18 +1,20 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
 import 'package:provider/provider.dart';
 import '../providers/providers.dart';
 
 /// Invite a collaborator by email, or by picking a contact from the
-/// device's native contact picker (FlutterContacts.openExternalPick).
+/// device's native contact picker (FlutterContacts.native.showPicker).
 /// The picker UI itself (CNContactPickerViewController on iOS, ACTION_PICK
-/// on Android) doesn't need contacts access to display — but the
-/// properties fetch that follows (getContact, to read the picked
-/// contact's email) does, via CNContactStore/ContentResolver, so both
-/// platforms need the permission declared: NSContactsUsageDescription in
-/// Info.plist, READ_CONTACTS + a runtime grant on Android. Either invite
-/// path ends up calling the same invite-by-email backend route; a picked
-/// contact just fills the field.
+/// on Android) doesn't need contacts access to display, and fetching the
+/// email property alongside it never needs a permission on iOS either --
+/// only Android's ContentResolver-backed fetch does, so only Android needs
+/// a runtime READ_CONTACTS grant (NSContactsUsageDescription is still
+/// declared in Info.plist regardless, as iOS requires it be present even
+/// though this flow never triggers its prompt). Either invite path ends up
+/// calling the same invite-by-email backend route; a picked contact just
+/// fills the field.
 class InviteCollaboratorDialog extends StatefulWidget {
   final String wishlistId;
 
@@ -37,19 +39,30 @@ class _InviteCollaboratorDialogState extends State<InviteCollaboratorDialog> {
 
   Future<void> _pickFromContacts() async {
     try {
-      final granted = await FlutterContacts.requestPermission();
-      if (!granted) {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Contacts permission was not granted.')),
+      // native.showPicker's own doc: "permissionless on both platforms" for
+      // the picker itself, but fetching the email property on Android needs
+      // READ_CONTACTS granted first (throws a PlatformException otherwise)
+      // -- iOS never needs it. Request only where it's actually required so
+      // iOS users aren't prompted for nothing.
+      if (defaultTargetPlatform == TargetPlatform.android) {
+        final status = await FlutterContacts.permissions.request(
+          PermissionType.read,
         );
-        return;
+        if (status != PermissionStatus.granted &&
+            status != PermissionStatus.limited) {
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Contacts permission was not granted.')),
+          );
+          return;
+        }
       }
 
-      // Opens the OS's own contact-picker UI; returned contact includes
-      // properties (emails, etc.) by default — see getContact's
-      // withProperties default in the flutter_contacts source.
-      final contact = await FlutterContacts.openExternalPick();
+      // Opens the OS's own contact-picker UI, asking it to also include the
+      // email property (id/displayName are always included regardless).
+      final contact = await FlutterContacts.native.showPicker(
+        properties: {ContactProperty.email},
+      );
       if (contact == null || !mounted) return;
 
       if (contact.emails.isEmpty) {
@@ -61,10 +74,11 @@ class _InviteCollaboratorDialogState extends State<InviteCollaboratorDialog> {
         return;
       }
 
+      final displayName = contact.displayName ?? '';
       setState(() {
         _emailController.text = contact.emails.first.address;
         _pickedContactName =
-            contact.displayName.isNotEmpty ? contact.displayName : 'Selected contact';
+            displayName.isNotEmpty ? displayName : 'Selected contact';
       });
     } catch (e) {
       if (!mounted) return;

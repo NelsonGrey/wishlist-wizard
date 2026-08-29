@@ -208,5 +208,67 @@ void main() {
         verify(() => authService.register(email, password, null)).called(1);
       },
     );
+
+    // checkPassword() calls FirebaseAuth.validatePassword(), which always
+    // hits Google's REST API directly rather than the native SDK, on every
+    // platform -- that 403s outright against a properly platform-restricted
+    // API key (Google Cloud's own recommended config, and what this
+    // project's real keys use). A thrown exception here must fall back to
+    // the client-side quickCheck rather than crash sign-up entirely --
+    // found via an integration test that hit this exact uncaught exception
+    // against the real dev Firebase project.
+    //
+    // Only the "still registers" direction is meaningfully testable here:
+    // the form's own password-field validator already runs quickCheck
+    // against the same (password, policy) pair before _submit() is ever
+    // reached, so if that quickCheck would fail, submission is blocked at
+    // the form level first (see the "quickCheck failure blocks submission"
+    // test above) -- checkPassword() throwing can never surface a *new*
+    // quickCheck failure the form validator didn't already catch, since
+    // it's a pure function of the same inputs.
+    testWidgets(
+      'authoritative-check throwing falls back to quickCheck and still registers a strong password',
+      (tester) async {
+        const email = 'user@example.com';
+        const password = 'GoodPass1!';
+        when(
+          () => policyService.quickCheck(
+            password,
+            PasswordPolicyState.defaultPolicy,
+          ),
+        ).thenReturn(null);
+        when(
+          () => policyService.checkPassword(password),
+        ).thenThrow(Exception('Failed to fetch password policy: 403'));
+        when(
+          () => authService.register(email, password, null),
+        ).thenAnswer(
+          (_) async => AuthResult.success(
+            user: User(id: 'u1', email: email, createdAt: DateTime.now()),
+          ),
+        );
+
+        await tester.pumpWidget(buildScreen());
+        await tester.pumpAndSettle();
+        await switchToRegisterMode(tester);
+
+        await tester.enterText(
+          find.widgetWithText(TextFormField, 'Email'),
+          email,
+        );
+        await tester.enterText(
+          find.widgetWithText(TextFormField, 'Password'),
+          password,
+        );
+        await tester.tap(find.widgetWithText(ElevatedButton, 'Sign Up'));
+        await tester.pumpAndSettle();
+
+        // quickCheck is stubbed identically for both calls (pre-submit and
+        // fallback) here since the password is the same in both -- the
+        // real assertion is that registration still goes through despite
+        // checkPassword() throwing.
+        verify(() => authService.register(email, password, null)).called(1);
+      },
+    );
   });
 }

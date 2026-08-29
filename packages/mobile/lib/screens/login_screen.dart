@@ -82,17 +82,36 @@ class _LoginScreenState extends State<LoginScreen> {
       // drift between the cached _passwordPolicy and the real policy
       // (e.g. it changed after this screen loaded, or the initial fetch
       // failed) before spending a round-trip on account creation.
-      final status = await _passwordPolicyService.checkPassword(password);
-      if (!status.isValid) {
+      //
+      // Falls back to the client-side quickCheck against the cached (or
+      // default) policy if the live fetch itself throws --
+      // FirebaseAuth.validatePassword always calls Google's REST API
+      // directly rather than the native SDK, on every platform, which 403s
+      // outright against a properly platform-restricted API key (Google
+      // Cloud's own recommended security config, and what this project's
+      // keys use). Letting that failure block or crash sign-up entirely
+      // would mean nobody could ever create an account; this was found via
+      // an integration test throwing this exact uncaught exception.
+      String? failureMessage;
+      try {
+        final status = await _passwordPolicyService.checkPassword(password);
+        if (!status.isValid) {
+          failureMessage = _passwordPolicyService.describeFailure(
+            status,
+            _passwordPolicy,
+          );
+        }
+      } catch (_) {
+        failureMessage = _passwordPolicyService.quickCheck(
+          password,
+          _passwordPolicy,
+        );
+      }
+      if (failureMessage != null) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(
-                _passwordPolicyService.describeFailure(
-                  status,
-                  _passwordPolicy,
-                ),
-              ),
+              content: Text(failureMessage),
               backgroundColor: Colors.red,
             ),
           );
