@@ -2,6 +2,7 @@
 import { test, expect, Page, Locator } from '@playwright/test';
 import { ensureAuthenticated, ensureWishlistExists } from './fixtures/bootstrap';
 import { seedGateBypass } from './fixtures/gate-bypass';
+import { isProductionTarget } from './fixtures/environment';
 
 /**
  * TIER 1: BASIC FEATURES (MUST WORK)
@@ -131,6 +132,16 @@ test.describe('Tier 1: Basic Features', () => {
   let isAuthenticated = false;
 
   test.beforeAll(async ({ browser }: { browser: any }) => {
+    // Production intentionally serves a marketing holding page instead of
+    // the real app -- this whole suite exercises real account/wishlist/
+    // item routes, none of which exist to interact with there. Checked
+    // here, before ensureAuthenticated below, rather than in a beforeEach:
+    // beforeAll always runs before any beforeEach regardless of hook
+    // registration order, so a beforeEach guard alone can't stop this
+    // file's own beforeAll from hanging on a real login form fill that
+    // production was never going to render.
+    test.skip(isProductionTarget(), 'Production build intentionally disables authenticated routes.');
+
     page = await browser.newPage();
     // This file drives its own manually-created `page` rather than
     // Playwright's injected page fixture, so the shared gate-bypass
