@@ -26,6 +26,16 @@ import 'screens/price_tracking_screen.dart';
 import 'screens/subscription_screen.dart';
 import 'widgets/error_boundary.dart';
 
+// Lets AuthWrapper pop back to the app's root route when the user becomes
+// signed out while a screen is pushed on top (e.g. account_screen.dart's
+// Account & Security, reached via Navigator.push from the Profile tab) --
+// otherwise a sign-out that happens away from the root (a revoked session,
+// or account_screen.dart's own change-password flow re-authenticating and
+// then, in principle, ending up signed out) rebuilds LoginScreen
+// underneath while the pushed route stays on top of the Navigator stack,
+// stranding the user on a stale screen with no way back except a restart.
+final rootNavigatorKey = GlobalKey<NavigatorState>();
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -101,6 +111,7 @@ class WishlistWizardApp extends StatelessWidget {
           ChangeNotifierProvider(create: (_) => IapService()..initialize()),
         ],
         child: MaterialApp(
+          navigatorKey: rootNavigatorKey,
           title: 'Wishlist Wizard',
           theme: ThemeData(
             primarySwatch: Colors.green,
@@ -157,7 +168,7 @@ class AuthWrapper extends StatelessWidget {
     }
     return Consumer<AuthProvider>(
       builder: (context, authProvider, child) {
-        if (authProvider.isLoading) {
+        if (authProvider.isInitializing) {
           if (kDebugMode) {
             debugPrint('[AuthWrapper] showing loading gate');
           }
@@ -200,6 +211,17 @@ class AuthWrapper extends StatelessWidget {
         if (kDebugMode) {
           debugPrint('[AuthWrapper] routing to LoginScreen');
         }
+        // Drop any route pushed on top of this one (Account & Security,
+        // Calendar, etc.) -- otherwise a sign-out that happens while one of
+        // those is open rebuilds LoginScreen underneath it, but the pushed
+        // route stays on top of the Navigator's stack and the user is
+        // stuck looking at a stale screen. A no-op when there's nothing
+        // pushed (the common case: signing out from the Profile tab
+        // itself). Scheduled for after this frame since Navigator can't be
+        // mutated mid-build.
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          rootNavigatorKey.currentState?.popUntil((route) => route.isFirst);
+        });
         return const LoginScreen();
       },
     );
