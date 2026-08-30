@@ -1,9 +1,8 @@
-# Inert unless a future release build enables minifyEnabled -- these silence
-# known-safe R8 warnings from the Stripe Android SDK's push-provisioning
+# Release builds run with minifyEnabled -- these silence known-safe R8
+# "missing class" errors from the Stripe Android SDK's push-provisioning
 # classes (Google/Apple Wallet card provisioning, unused by this app).
-# See flutter_stripe's README "Android Requirements" section.
--dontwarn com.stripe.android.pushProvisioning.PushProvisioningActivity$g
--dontwarn com.stripe.android.pushProvisioning.PushProvisioningActivityStarter$Args
--dontwarn com.stripe.android.pushProvisioning.PushProvisioningActivityStarter$Error
--dontwarn com.stripe.android.pushProvisioning.PushProvisioningActivityStarter
--dontwarn com.stripe.android.pushProvisioning.PushProvisioningEphemeralKeyProvider
+# See flutter_stripe's README "Android Requirements" section. Wildcarded
+# (rather than the exact class list the README suggests) because the
+# SDK's synthetic/inner classes here (e.g. PushProvisioningActivity$f)
+# vary by SDK version and aren't worth chasing one at a time.
+-dontwarn com.stripe.android.pushProvisioning.**
