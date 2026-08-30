@@ -158,8 +158,24 @@ class WishlistWizardApp extends StatelessWidget {
   }
 }
 
-class AuthWrapper extends StatelessWidget {
+class AuthWrapper extends StatefulWidget {
   const AuthWrapper({super.key});
+
+  @override
+  State<AuthWrapper> createState() => _AuthWrapperState();
+}
+
+class _AuthWrapperState extends State<AuthWrapper> {
+  // Tracks isLoggedIn across builds so the pop-to-root below only fires on
+  // an actual signed-in -> signed-out transition, not on every rebuild
+  // that happens to land on the LoginScreen branch -- Consumer rebuilds on
+  // every notifyListeners() call, including the per-operation loading
+  // toggle from resetPassword() (called from ForgotPasswordScreen, itself
+  // pushed on top of LoginScreen while already signed out) or any other
+  // auth call made while already logged out. Unconditionally popping on
+  // every such rebuild would strand that pushed screen right back at
+  // login, the same bug this was meant to fix in the first place.
+  bool? _wasLoggedIn;
 
   @override
   Widget build(BuildContext context) {
@@ -201,6 +217,9 @@ class AuthWrapper extends StatelessWidget {
           );
         }
 
+        final wasLoggedIn = _wasLoggedIn;
+        _wasLoggedIn = authProvider.isLoggedIn;
+
         if (authProvider.isLoggedIn) {
           if (kDebugMode) {
             debugPrint('[AuthWrapper] routing to MainNavigator');
@@ -211,17 +230,19 @@ class AuthWrapper extends StatelessWidget {
         if (kDebugMode) {
           debugPrint('[AuthWrapper] routing to LoginScreen');
         }
-        // Drop any route pushed on top of this one (Account & Security,
-        // Calendar, etc.) -- otherwise a sign-out that happens while one of
-        // those is open rebuilds LoginScreen underneath it, but the pushed
-        // route stays on top of the Navigator's stack and the user is
-        // stuck looking at a stale screen. A no-op when there's nothing
-        // pushed (the common case: signing out from the Profile tab
-        // itself). Scheduled for after this frame since Navigator can't be
-        // mutated mid-build.
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          rootNavigatorKey.currentState?.popUntil((route) => route.isFirst);
-        });
+        if (wasLoggedIn == true) {
+          // A real signed-in -> signed-out transition (as opposed to a
+          // rebuild that merely lands here again while already logged
+          // out) -- drop any route pushed on top of this one (Account &
+          // Security, Calendar, etc.). Otherwise the pushed route stays on
+          // top of the Navigator's stack while LoginScreen rebuilds
+          // underneath it, stranding the user on a stale screen. Scheduled
+          // for after this frame since Navigator can't be mutated
+          // mid-build.
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            rootNavigatorKey.currentState?.popUntil((route) => route.isFirst);
+          });
+        }
         return const LoginScreen();
       },
     );
