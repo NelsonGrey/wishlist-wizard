@@ -86,14 +86,29 @@ class _AccountScreenState extends State<AccountScreen> {
       // drift between the cached _passwordPolicy and the real policy (e.g.
       // it changed after this screen loaded, or the initial fetch failed)
       // before spending a round-trip on the actual password update.
+      //
+      // Falls back to the client-side quickCheck against the cached (or
+      // default) policy if the live fetch itself throws -- same fix as
+      // login_screen.dart's sign-up flow: FirebaseAuth.validatePassword
+      // always calls Google's REST API directly rather than the native
+      // SDK, on every platform, which 403s outright against a properly
+      // platform-restricted API key (Google Cloud's own recommended
+      // security config, and what this project's keys use). Letting that
+      // failure block the entire operation with zero feedback would mean
+      // nobody could ever change their password -- this sibling call site
+      // just never got the same fix.
       final newPassword = _newPasswordController.text;
-      final status = await _passwordPolicyService.checkPassword(newPassword);
-      if (!status.isValid) {
-        if (mounted) {
-          _showError(
-            _passwordPolicyService.describeFailure(status, _passwordPolicy),
-          );
+      String? failureMessage;
+      try {
+        final status = await _passwordPolicyService.checkPassword(newPassword);
+        if (!status.isValid) {
+          failureMessage = _passwordPolicyService.describeFailure(status, _passwordPolicy);
         }
+      } catch (_) {
+        failureMessage = _passwordPolicyService.quickCheck(newPassword, _passwordPolicy);
+      }
+      if (failureMessage != null) {
+        if (mounted) _showError(failureMessage);
         return;
       }
 
@@ -112,6 +127,10 @@ class _AccountScreenState extends State<AccountScreen> {
         );
       } else {
         _showError(authProvider.error ?? 'Failed to update password.');
+      }
+    } catch (_) {
+      if (mounted) {
+        _showError('Something went wrong. Please try again.');
       }
     } finally {
       if (mounted) {
