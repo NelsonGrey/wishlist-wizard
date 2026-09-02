@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../models/models.dart';
 import '../providers/providers.dart';
 import '../services/social_share_service.dart';
+import '../theme/design_tokens.dart';
 import '../widgets/app_scaffold.dart';
 import '../widgets/invite_collaborator_dialog.dart';
 import 'contribution_screen.dart';
@@ -1006,7 +1007,15 @@ class _FirebaseWishlistItemsScreenState
               Text(
                 item.isPurchased
                     ? 'Status: Purchased'
+                    : item.isReserved
+                    ? 'Status: Reserved'
                     : 'Status: Not purchased',
+                style: item.isReserved && !item.isPurchased
+                    ? const TextStyle(
+                        color: AppColors.warning,
+                        fontWeight: FontWeight.w600,
+                      )
+                    : null,
               ),
               const SizedBox(height: 16),
               if ((item.url ?? '').isNotEmpty)
@@ -1276,6 +1285,14 @@ class _FirebaseWishlistItemsScreenState
                                   }
                                 }
 
+                                if (value == 'reserve') {
+                                  await wishlistProvider.reserveItem(item.id);
+                                }
+
+                                if (value == 'unreserve') {
+                                  await wishlistProvider.unreserveItem(item.id);
+                                }
+
                                 if (value == 'delete') {
                                   await wishlistProvider.deleteWishlistItem(
                                     item.id,
@@ -1306,11 +1323,37 @@ class _FirebaseWishlistItemsScreenState
                                               : Icons.check,
                                         ),
                                         const SizedBox(width: 8),
-                                        Text(
-                                          item.isPurchased
-                                              ? 'Mark unpurchased'
-                                              : 'Mark purchased',
+                                        Flexible(
+                                          child: Text(
+                                            item.isPurchased
+                                                ? 'Mark unpurchased'
+                                                : 'Mark purchased',
+                                          ),
                                         ),
+                                      ],
+                                    ),
+                                  ),
+                                if (_canReserveOrPurchase &&
+                                    !item.isPurchased &&
+                                    !item.isReserved)
+                                  const PopupMenuItem(
+                                    value: 'reserve',
+                                    child: Row(
+                                      children: [
+                                        Icon(Icons.bookmark_add_outlined),
+                                        SizedBox(width: 8),
+                                        Text('Reserve'),
+                                      ],
+                                    ),
+                                  ),
+                                if (_canEditItems && item.isReserved)
+                                  const PopupMenuItem(
+                                    value: 'unreserve',
+                                    child: Row(
+                                      children: [
+                                        Icon(Icons.bookmark_remove_outlined),
+                                        SizedBox(width: 8),
+                                        Flexible(child: Text('Release hold')),
                                       ],
                                     ),
                                   ),
