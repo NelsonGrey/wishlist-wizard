@@ -139,6 +139,29 @@ class FirebaseFunctionsService {
     }
   }
 
+  /// GDPR/CCPA data export — returns the full account payload
+  /// (`exportMyData`, packages/functions/src/api/userProfile.ts).
+  Future<Map<String, dynamic>> exportMyData() async {
+    try {
+      final result = await _apiRequest('POST', '/account/export');
+      return Map<String, dynamic>.from(result as Map);
+    } catch (e) {
+      _logger.severe('Error calling exportMyData: $e');
+      rethrow;
+    }
+  }
+
+  /// Revokes every refresh token for the account, signing the user out of
+  /// all other devices (`revokeAllSessions`).
+  Future<void> revokeAllSessions() async {
+    try {
+      await _apiRequest('POST', '/account/revoke-sessions');
+    } catch (e) {
+      _logger.severe('Error calling revokeAllSessions: $e');
+      rethrow;
+    }
+  }
+
   // =============================================================================
   // USER PROFILE
   // =============================================================================
