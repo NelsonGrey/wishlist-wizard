@@ -136,19 +136,30 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
                 ),
                 const SizedBox(height: 8),
-                ...provider.upgradeOptions.map(
-                  (option) => _UpgradeOptionCard(
-                    option: option,
-                    billingCycle: _selectedBillingCycle,
-                    isLoading: iapService.isLoading,
-                    priceOverride: iapService.priceFor(
-                      option.tier,
-                      _selectedBillingCycle,
+                // Only offer tiers that have an in-app purchase product on
+                // this platform. This filters out the contact-sales
+                // "Enterprise" tier the backend returns for web -- offering a
+                // non-IAP plan on mobile gets the app rejected in review.
+                ...provider.upgradeOptions
+                    .where(
+                      (option) =>
+                          iapService.purchasableTiers.contains(option.tier),
+                    )
+                    .map(
+                      (option) => _UpgradeOptionCard(
+                        option: option,
+                        billingCycle: _selectedBillingCycle,
+                        isLoading: iapService.isLoading,
+                        priceOverride: iapService.priceFor(
+                          option.tier,
+                          _selectedBillingCycle,
+                        ),
+                        onUpgrade: () => iapService.purchase(
+                          option.tier,
+                          _selectedBillingCycle,
+                        ),
+                      ),
                     ),
-                    onUpgrade: () =>
-                        iapService.purchase(option.tier, _selectedBillingCycle),
-                  ),
-                ),
                 if (iapService.isAvailable) ...[
                   const SizedBox(height: 12),
                   TextButton(

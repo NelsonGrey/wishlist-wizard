@@ -26,6 +26,9 @@ const _fullStatus = {
 const _plansResponse = {
   'available': [
     {'tier': 'business', 'name': 'Business', 'monthlyPrice': 29.99, 'annualPrice': 299.0, 'annualSavings': 60.88},
+    // The backend also returns the contact-sales Enterprise tier (no IAP
+    // product); the screen must not offer it on mobile.
+    {'tier': 'enterprise', 'name': 'Enterprise', 'monthlyPrice': null, 'annualPrice': null},
   ],
 };
 
@@ -134,6 +137,15 @@ void main() {
 
       expect(find.text('Business'), findsOneWidget);
       expect(find.widgetWithText(ElevatedButton, 'Upgrade to Business'), findsOneWidget);
+    });
+
+    testWidgets('never offers the Enterprise tier (no IAP product)', (tester) async {
+      await tester.pumpWidget(wrapScreen(functionsService));
+      await tester.pumpAndSettle();
+      await scrollToUpgradeOptions(tester);
+
+      expect(find.text('Enterprise'), findsNothing);
+      expect(find.widgetWithText(ElevatedButton, 'Upgrade to Enterprise'), findsNothing);
     });
 
     testWidgets('shows annual savings only when the Annual billing cycle chip is selected', (tester) async {
