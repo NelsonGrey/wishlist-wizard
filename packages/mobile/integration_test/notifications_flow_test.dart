@@ -55,7 +55,7 @@ void main() {
       await tester.enterText(find.widgetWithText(TextFormField, 'Password'), password);
       await tester.tap(find.widgetWithText(ElevatedButton, 'Sign Up'));
       await tester.pumpAndSettle(const Duration(seconds: 10));
-      expect(find.textContaining('Welcome back'), findsOneWidget);
+      expect(find.textContaining('Welcome back,'), findsOneWidget);
 
       // --- Create a wishlist ---
       await tester.tap(find.descendant(
