@@ -1,11 +1,16 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/models.dart';
 import '../providers/providers.dart';
 import '../services/social_share_service.dart';
 import '../theme/design_tokens.dart';
+import '../utils/wishlist_csv.dart';
 import '../widgets/app_scaffold.dart';
 import '../widgets/invite_collaborator_dialog.dart';
 import 'contribution_screen.dart';
@@ -728,6 +733,10 @@ class _FirebaseWishlistItemsScreenState
   final ScrollController _scrollController = ScrollController();
   bool _didAutoScroll = false;
 
+  /// Latest items from the stream, kept so the app-bar CSV export can read
+  /// them without a separate fetch.
+  List<FirebaseWishlistItem> _items = const [];
+
   bool get _isOwner => widget.wishlist.myRole == CollaboratorRole.owner;
   bool get _canAddItems => widget.wishlist.myRole != CollaboratorRole.viewer;
   bool get _canEditItems =>
@@ -841,6 +850,37 @@ class _FirebaseWishlistItemsScreenState
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Unable to share right now.')),
+      );
+    }
+  }
+
+  Future<void> _exportItemsAsCsv() async {
+    if (_items.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Nothing to export yet.')),
+      );
+      return;
+    }
+    try {
+      final safeName = widget.wishlist.name
+          .replaceAll(RegExp(r'[^\w\- ]'), '')
+          .trim()
+          .replaceAll(RegExp(r'\s+'), '-');
+      final dir = await getTemporaryDirectory();
+      final file = File(
+        '${dir.path}/${safeName.isEmpty ? 'wishlist' : safeName}-items.csv',
+      );
+      await file.writeAsString(wishlistItemsToCsv(_items));
+      await SharePlus.instance.share(
+        ShareParams(
+          files: [XFile(file.path, mimeType: 'text/csv')],
+          subject: '${widget.wishlist.name} — wishlist items',
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Unable to export right now.')),
       );
     }
   }
@@ -1108,6 +1148,11 @@ class _FirebaseWishlistItemsScreenState
           tooltip: 'Share wishlist',
           onPressed: _shareWishlist,
         ),
+        IconButton(
+          icon: const Icon(Icons.file_download_outlined),
+          tooltip: 'Export as CSV',
+          onPressed: _exportItemsAsCsv,
+        ),
       ],
       body: Consumer2<AuthProvider, FirebaseWishlistProvider>(
         builder: (context, authProvider, wishlistProvider, child) {
@@ -1135,6 +1180,7 @@ class _FirebaseWishlistItemsScreenState
               }
 
               final items = snapshot.data ?? [];
+              _items = items;
 
               WidgetsBinding.instance.addPostFrameCallback((_) {
                 if (!mounted) {
