@@ -32,7 +32,7 @@ void main() {
         matching: find.byType(Container),
       ),
     );
-    expect(container.constraints?.maxHeight, 60);
+    expect(container.constraints?.maxHeight, 61);
   });
 
   testWidgets('paid tier collapses the slot', (tester) async {

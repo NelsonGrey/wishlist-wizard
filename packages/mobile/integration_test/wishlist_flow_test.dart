@@ -57,7 +57,7 @@ void main() {
       // Real network round-trip to Firebase Auth -- give it real time.
       await tester.pumpAndSettle(const Duration(seconds: 10));
 
-      expect(find.text('Welcome back,'), findsOneWidget);
+      expect(find.textContaining('Welcome back'), findsOneWidget);
 
       // --- Navigate to Wishlists tab ---
       // The bare text also appears elsewhere once wishlists exist later in

@@ -44,7 +44,7 @@ void main() {
       await tester.enterText(find.widgetWithText(TextFormField, 'Password'), oldPassword);
       await tester.tap(find.widgetWithText(ElevatedButton, 'Sign Up'));
       await tester.pumpAndSettle(const Duration(seconds: 10));
-      expect(find.text('Welcome back,'), findsOneWidget);
+      expect(find.textContaining('Welcome back'), findsOneWidget);
 
       // --- Open Account & Security from the Profile tab ---
       await tester.tap(find.descendant(
@@ -102,7 +102,7 @@ void main() {
       await tester.enterText(find.widgetWithText(TextFormField, 'Password'), oldPassword);
       await tester.tap(find.widgetWithText(ElevatedButton, 'Sign In'));
       await tester.pumpAndSettle(const Duration(seconds: 8));
-      expect(find.text('Welcome back,'), findsNothing); // old password now rejected
+      expect(find.textContaining('Welcome back'), findsNothing); // old password now rejected
       // Let the resulting error SnackBar fully dismiss -- it can otherwise
       // still be covering the "Sign In" button for the next tap.
       await tester.pumpAndSettle();
@@ -110,7 +110,7 @@ void main() {
       await tester.enterText(find.widgetWithText(TextFormField, 'Password'), newPassword);
       await tester.tap(find.widgetWithText(ElevatedButton, 'Sign In'));
       await tester.pumpAndSettle(const Duration(seconds: 8));
-      expect(find.text('Welcome back,'), findsOneWidget); // new password works
+      expect(find.textContaining('Welcome back'), findsOneWidget); // new password works
     },
   );
 }

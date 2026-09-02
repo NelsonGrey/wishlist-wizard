@@ -89,40 +89,50 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  /// First name for the greeting: strips an email domain and any
+  /// separators, title-cases the result. Falls back to "there".
+  String _firstName(String raw) {
+    var s = raw.trim();
+    if (s.contains('@')) s = s.split('@').first;
+    final parts = s
+        .split(RegExp(r'[\s._-]+'))
+        .where((p) => p.isNotEmpty)
+        .toList();
+    if (parts.isEmpty) return 'there';
+    final first = parts.first;
+    return first[0].toUpperCase() + first.substring(1);
+  }
+
   Widget _buildWelcomeSection(BuildContext context, String userName) {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
           colors: [AppColors.emerald, AppColors.primary],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
         ),
         borderRadius: BorderRadius.circular(12),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: [
           Text(
             'Welcome back,',
             style: Theme.of(
               context,
-            ).textTheme.bodyLarge?.copyWith(color: Colors.white70),
+            ).textTheme.titleMedium?.copyWith(color: Colors.white70),
           ),
-          const SizedBox(height: 4),
-          Text(
-            userName,
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
+          const SizedBox(width: 6),
+          Flexible(
+            child: Text(
+              _firstName(userName),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
             ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Manage your wishlists and discover new items',
-            style: Theme.of(
-              context,
-            ).textTheme.bodyMedium?.copyWith(color: Colors.white70),
           ),
         ],
       ),
