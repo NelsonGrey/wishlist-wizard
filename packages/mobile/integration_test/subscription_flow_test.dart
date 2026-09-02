@@ -74,7 +74,12 @@ void main() {
         matching: find.text('Profile'),
       ));
       await tester.pumpAndSettle();
-      await tester.tap(find.widgetWithText(ElevatedButton, 'Manage Subscription'));
+      await tester.scrollUntilVisible(
+        find.widgetWithText(ListTile, 'Manage Subscription'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.tap(find.widgetWithText(ListTile, 'Manage Subscription'));
       // Real Cloud Function round-trip (billingStatus + billingPlans).
       await tester.pumpAndSettle(const Duration(seconds: 8));
       expect(find.text('Subscription'), findsWidgets); // AppBar title
