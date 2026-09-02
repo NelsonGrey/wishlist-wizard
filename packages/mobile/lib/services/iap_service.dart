@@ -92,6 +92,14 @@ class IapService extends ChangeNotifier {
   String? get lastVerifiedTier => _lastVerifiedTier;
   int get eventId => _eventId;
 
+  /// Tiers that can actually be bought in-app on this platform (i.e. have a
+  /// store product). The subscription screen filters the backend's upgrade
+  /// options to this set so tiers with no IAP product -- notably the
+  /// contact-sales "Enterprise" tier -- are never offered on mobile, which
+  /// App Store review rejects.
+  Set<String> get purchasableTiers =>
+      _productCatalog.values.map((spec) => spec.tier).toSet();
+
   String? productIdFor(String tier, String billingCycle) {
     for (final entry in _productCatalog.entries) {
       if (entry.value.tier == tier && entry.value.billingCycle == billingCycle) {
