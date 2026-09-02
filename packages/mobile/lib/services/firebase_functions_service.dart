@@ -213,6 +213,24 @@ class FirebaseFunctionsService {
     }
   }
 
+  /// Release a reservation. No dedicated endpoint exists (the backend's
+  /// reserve is one-way), so this clears the reservation fields through the
+  /// generic item-update route -- which the backend only permits for
+  /// owner/editor collaborators.
+  Future<Map<String, dynamic>> unreserveWishlistItem(String itemId) async {
+    try {
+      final result = await _apiRequest(
+        'PATCH',
+        '/items/$itemId',
+        body: {'reservedByUserId': null, 'reservedBy': null},
+      );
+      return Map<String, dynamic>.from(result as Map);
+    } catch (e) {
+      _logger.severe('Error calling unreserveWishlistItem: $e');
+      rethrow;
+    }
+  }
+
   Future<Map<String, dynamic>> purchaseWishlistItem(String itemId) async {
     try {
       final result = await _apiRequest('POST', '/items/$itemId/purchase');

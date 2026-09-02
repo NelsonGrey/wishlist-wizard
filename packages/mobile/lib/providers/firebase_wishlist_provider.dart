@@ -437,6 +437,50 @@ class FirebaseWishlistProvider extends ChangeNotifier {
     }
   }
 
+  // Reserve an item (a soft hold, distinct from purchase). Uses the
+  // dedicated reserveWishlistItem endpoint -- like purchase, the backend
+  // always attributes the reservation to the authenticated caller.
+  Future<bool> reserveItem(String itemId) async {
+    _setLoading(true);
+    _clearError();
+
+    try {
+      final result = await _functionsService.reserveWishlistItem(itemId);
+      final updatedItem = FirebaseWishlistItem.fromFirestore(itemId, result);
+      if (_currentWishlistId == updatedItem.wishlistId) {
+        _updateItemInCurrentList(updatedItem);
+      }
+      return true;
+    } catch (e) {
+      _setError('Failed to reserve item: $e');
+      return false;
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  // Release a reservation. There's no dedicated endpoint (web is
+  // reserve-only), so this clears the field via the generic update path --
+  // which the backend only allows for owner/editor collaborators.
+  Future<bool> unreserveItem(String itemId) async {
+    _setLoading(true);
+    _clearError();
+
+    try {
+      final result = await _functionsService.unreserveWishlistItem(itemId);
+      final updatedItem = FirebaseWishlistItem.fromFirestore(itemId, result);
+      if (_currentWishlistId == updatedItem.wishlistId) {
+        _updateItemInCurrentList(updatedItem);
+      }
+      return true;
+    } catch (e) {
+      _setError('Failed to release reservation: $e');
+      return false;
+    } finally {
+      _setLoading(false);
+    }
+  }
+
   // Load user notifications
   Future<void> loadNotifications(String userId) async {
     _setLoading(true);
