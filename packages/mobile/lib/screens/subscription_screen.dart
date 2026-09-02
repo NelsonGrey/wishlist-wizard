@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../providers/providers.dart';
 import '../services/iap_service.dart';
+import '../widgets/app_scaffold.dart';
 
 class SubscriptionScreen extends StatefulWidget {
   const SubscriptionScreen({super.key});
@@ -34,8 +35,9 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Subscription')),
+    return AppScaffold(
+      title: 'Subscription',
+      showAd: false,
       body: Consumer2<SubscriptionProvider, IapService>(
         builder: (context, provider, iapService, child) {
           if (iapService.eventId != _handledIapEventId) {
@@ -58,24 +60,22 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
           }
 
           if (provider.error != null) {
-            return Center(
-              child: Padding(
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      provider.error!,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(color: Colors.redAccent),
-                    ),
-                    const SizedBox(height: 12),
-                    ElevatedButton(
-                      onPressed: provider.loadSubscriptionData,
-                      child: const Text('Retry'),
-                    ),
-                  ],
-                ),
+            return Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    provider.error!,
+                    style: const TextStyle(color: Colors.redAccent),
+                  ),
+                  const SizedBox(height: 12),
+                  ElevatedButton(
+                    onPressed: provider.loadSubscriptionData,
+                    child: const Text('Retry'),
+                  ),
+                ],
               ),
             );
           }

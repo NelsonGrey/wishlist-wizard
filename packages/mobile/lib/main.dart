@@ -24,6 +24,7 @@ import 'screens/firebase_wishlists_screen.dart';
 import 'screens/notifications_screen.dart';
 import 'screens/price_tracking_screen.dart';
 import 'screens/subscription_screen.dart';
+import 'widgets/app_scaffold.dart';
 import 'widgets/error_boundary.dart';
 
 // Lets AuthWrapper pop back to the app's root route when the user becomes
@@ -351,21 +352,24 @@ class ProfileScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: const CustomAppBar(title: 'Profile'),
+    return AppScaffold(
+      title: 'Profile',
       // Wrapped in a scroll view: this Column stacks the profile header
       // plus 7 buttons, which overflows unscrollably on real devices with
       // less vertical space than the default test/desktop viewport (found
       // via a real-device integration test run, not previously known).
       body: SingleChildScrollView(
-        child: Center(
+        padding: const EdgeInsets.fromLTRB(16, 24, 16, 24),
+        child: Align(
+          alignment: Alignment.topLeft,
           child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Consumer<AuthProvider>(
                 builder: (context, authProvider, child) {
                   final user = authProvider.user;
                   return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       CircleAvatar(
                         radius: 50,

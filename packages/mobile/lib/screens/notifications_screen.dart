@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../main.dart';
 import '../models/models.dart';
 import '../providers/providers.dart';
+import '../widgets/app_scaffold.dart';
 import 'firebase_wishlists_screen.dart';
 
 /// In-app notification history: real-time list (Firestore-backed, matching
@@ -304,8 +304,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: const CustomAppBar(title: 'Notifications'),
+    return AppScaffold(
+      title: 'Notifications',
       body: Consumer2<AuthProvider, FirebaseWishlistProvider>(
         builder: (context, authProvider, wishlistProvider, child) {
           final user = authProvider.user;

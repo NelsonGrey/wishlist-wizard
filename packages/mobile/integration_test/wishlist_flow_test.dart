@@ -69,7 +69,7 @@ void main() {
         matching: find.text('Wishlists'),
       ));
       await tester.pumpAndSettle(const Duration(seconds: 5));
-      expect(find.text('Firebase Wishlists'), findsOneWidget);
+      expect(find.widgetWithText(AppBar, 'Wishlists'), findsOneWidget);
 
       // --- Create a wishlist ---
       await tester.tap(find.byType(FloatingActionButton));

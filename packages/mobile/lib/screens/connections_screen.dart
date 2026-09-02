@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
 
 import '../services/firebase_functions_service.dart';
+import '../widgets/app_scaffold.dart';
 
 /// Friends & connections — mutual-consent relationships used to share
 /// wishlists and get gift suggestions from people you actually know. Backed
@@ -231,8 +232,8 @@ class _ConnectionsScreenState extends State<ConnectionsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Connections')),
+    return AppScaffold(
+      title: 'Connections',
       body: RefreshIndicator(
         onRefresh: _loadAll,
         child: _isLoading
@@ -326,8 +327,9 @@ class _ConnectionsScreenState extends State<ConnectionsScreen> {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
-        child: Center(
-          child: Text(message, textAlign: TextAlign.center, style: TextStyle(color: Colors.grey[600])),
+        child: Align(
+          alignment: Alignment.centerLeft,
+          child: Text(message, style: TextStyle(color: Colors.grey[600])),
         ),
       ),
     );

@@ -3,6 +3,7 @@ import 'package:flutter_web_auth_2/flutter_web_auth_2.dart';
 import 'package:intl/intl.dart';
 
 import '../services/firebase_functions_service.dart';
+import '../widgets/app_scaffold.dart';
 
 const List<Map<String, String>> _eventTypes = [
   {'value': 'birthday', 'label': 'Birthday'},
@@ -313,13 +314,11 @@ class _CalendarScreenState extends State<CalendarScreen>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Calendar'),
-        bottom: TabBar(
-          controller: _tabController,
-          tabs: const [Tab(text: 'My Calendar'), Tab(text: 'Connections')],
-        ),
+    return AppScaffold(
+      title: 'Calendar',
+      bottom: TabBar(
+        controller: _tabController,
+        tabs: const [Tab(text: 'My Calendar'), Tab(text: 'Connections')],
       ),
       floatingActionButton: _tabController.index == 0
           ? FloatingActionButton(
@@ -354,12 +353,7 @@ class _CalendarScreenState extends State<CalendarScreen>
                       padding: const EdgeInsets.all(16),
                       children: const [
                         SizedBox(height: 60),
-                        Center(
-                          child: Text(
-                            'No calendar events yet. Tap + to add one.',
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
+                        Text('No calendar events yet. Tap + to add one.'),
                       ],
                     )
                   : _buildEventList(),
@@ -461,7 +455,7 @@ class _CalendarScreenState extends State<CalendarScreen>
         padding: const EdgeInsets.all(16),
         children: [
           if (_connectionsError != null) ...[
-            Center(child: Text(_connectionsError!, style: const TextStyle(color: Colors.red))),
+            Text(_connectionsError!, style: const TextStyle(color: Colors.red)),
             const SizedBox(height: 16),
           ],
           Text('Connect a calendar', style: Theme.of(context).textTheme.titleMedium),
@@ -516,13 +510,11 @@ class _CalendarScreenState extends State<CalendarScreen>
         SizedBox(height: 16),
         Text(
           'Calendar connections are a paid feature',
-          textAlign: TextAlign.center,
           style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18),
         ),
         SizedBox(height: 8),
         Text(
           'Upgrade to sync Google, Outlook, Facebook, or Apple calendars with your Wishlist Wizard events.',
-          textAlign: TextAlign.center,
         ),
       ],
     );
