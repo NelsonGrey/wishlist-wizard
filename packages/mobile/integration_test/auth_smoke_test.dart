@@ -94,7 +94,7 @@ void main() {
       await tester.pumpWidget(const WishlistWizardApp());
       await tester.pumpAndSettle(const Duration(seconds: 5));
 
-      expect(find.textContaining('Welcome back'), findsOneWidget);
+      expect(find.textContaining('Welcome back,'), findsOneWidget);
       expect(find.text('Home'), findsOneWidget);
     });
 
