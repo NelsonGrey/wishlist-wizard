@@ -65,11 +65,11 @@ void main() {
     ));
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(
-      find.widgetWithText(OutlinedButton, 'Achievements'),
+      find.widgetWithText(ListTile, 'Achievements'),
       200,
       scrollable: find.byType(Scrollable).first,
     );
-    await tester.tap(find.widgetWithText(OutlinedButton, 'Achievements'));
+    await tester.tap(find.widgetWithText(ListTile, 'Achievements'));
     // Real Cloud Function round-trip (computed server-side on read).
     await tester.pumpAndSettle(const Duration(seconds: 8));
     expect(find.text('Achievements'), findsWidgets); // AppBar title

@@ -295,7 +295,7 @@ class _UsageRow extends StatelessWidget {
           value: progress,
           minHeight: 8,
           borderRadius: BorderRadius.circular(100),
-          color: isWarning ? Colors.orange : Theme.of(context).primaryColor,
+          color: isWarning ? Colors.orange : Theme.of(context).colorScheme.primary,
         ),
       ],
     );

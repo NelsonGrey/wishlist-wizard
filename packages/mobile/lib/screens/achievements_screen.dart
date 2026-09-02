@@ -157,9 +157,9 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
   Widget _buildTierBadge(String tierName, int tier, bool isWizard) {
     const tierColors = [
       Colors.grey,
-      Colors.green,
+      Colors.teal,
       Colors.blue,
-      Colors.purple,
+      Colors.indigo,
       Colors.amber,
     ];
     final color = tierColors[(tier - 1).clamp(0, tierColors.length - 1)];

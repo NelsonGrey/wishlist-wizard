@@ -53,11 +53,11 @@ void main() {
       ));
       await tester.pumpAndSettle();
       await tester.scrollUntilVisible(
-        find.widgetWithText(OutlinedButton, 'Account & Security'),
+        find.widgetWithText(ListTile, 'Account & Security'),
         200,
         scrollable: find.byType(Scrollable).first,
       );
-      await tester.tap(find.widgetWithText(OutlinedButton, 'Account & Security'));
+      await tester.tap(find.widgetWithText(ListTile, 'Account & Security'));
       await tester.pumpAndSettle();
       expect(find.text('Change Password'), findsOneWidget);
 

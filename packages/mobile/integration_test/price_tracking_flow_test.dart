@@ -76,11 +76,11 @@ void main() {
       ));
       await tester.pumpAndSettle();
       await tester.scrollUntilVisible(
-        find.widgetWithText(OutlinedButton, 'Price Tracking'),
+        find.widgetWithText(ListTile, 'Price Tracking'),
         200,
         scrollable: find.byType(Scrollable).first,
       );
-      await tester.tap(find.widgetWithText(OutlinedButton, 'Price Tracking'));
+      await tester.tap(find.widgetWithText(ListTile, 'Price Tracking'));
       await tester.pumpAndSettle(const Duration(seconds: 8));
       expect(find.text('Price Tracking'), findsWidgets); // AppBar title
       expect(find.text('No price alerts set. Tap + to track an item.'), findsOneWidget);

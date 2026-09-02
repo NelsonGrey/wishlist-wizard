@@ -101,11 +101,11 @@ void main() {
     ));
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(
-      find.widgetWithText(OutlinedButton, 'Connections'),
+      find.widgetWithText(ListTile, 'Connections'),
       200,
       scrollable: find.byType(Scrollable).first,
     );
-    await tester.tap(find.widgetWithText(OutlinedButton, 'Connections'));
+    await tester.tap(find.widgetWithText(ListTile, 'Connections'));
     await tester.pumpAndSettle(const Duration(seconds: 8));
     expect(find.text('Connections'), findsWidgets); // AppBar title
   }

@@ -142,10 +142,10 @@ class _FirebaseWishlistsScreenState extends State<FirebaseWishlistsScreen> {
                 leading: CircleAvatar(
                   backgroundColor: Theme.of(
                     context,
-                  ).primaryColor.withValues(alpha: 0.1),
+                  ).colorScheme.primary.withValues(alpha: 0.1),
                   child: Icon(
                     Icons.group,
-                    color: Theme.of(context).primaryColor,
+                    color: Theme.of(context).colorScheme.primary,
                   ),
                 ),
                 title: Text(
@@ -344,10 +344,10 @@ class _FirebaseWishlistsScreenState extends State<FirebaseWishlistsScreen> {
                           leading: CircleAvatar(
                             backgroundColor: Theme.of(
                               context,
-                            ).primaryColor.withValues(alpha: 0.1),
+                            ).colorScheme.primary.withValues(alpha: 0.1),
                             child: Icon(
                               wishlist.isPublic ? Icons.public : Icons.lock,
-                              color: Theme.of(context).primaryColor,
+                              color: Theme.of(context).colorScheme.primary,
                             ),
                           ),
                           title: Text(
@@ -1060,12 +1060,12 @@ class _FirebaseWishlistItemsScreenState
           errorBuilder: (context, error, stackTrace) => CircleAvatar(
             backgroundColor: item.isPurchased
                 ? Colors.green.withValues(alpha: 0.1)
-                : Theme.of(context).primaryColor.withValues(alpha: 0.1),
+                : Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
             child: Icon(
               item.isPurchased ? Icons.check : Icons.card_giftcard,
               color: item.isPurchased
                   ? Colors.green
-                  : Theme.of(context).primaryColor,
+                  : Theme.of(context).colorScheme.primary,
             ),
           ),
         ),
@@ -1075,10 +1075,10 @@ class _FirebaseWishlistItemsScreenState
     return CircleAvatar(
       backgroundColor: item.isPurchased
           ? Colors.green.withValues(alpha: 0.1)
-          : Theme.of(context).primaryColor.withValues(alpha: 0.1),
+          : Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
       child: Icon(
         item.isPurchased ? Icons.check : Icons.card_giftcard,
-        color: item.isPurchased ? Colors.green : Theme.of(context).primaryColor,
+        color: item.isPurchased ? Colors.green : Theme.of(context).colorScheme.primary,
       ),
     );
   }
@@ -1178,7 +1178,7 @@ class _FirebaseWishlistItemsScreenState
                   return Card(
                     margin: const EdgeInsets.only(bottom: 12),
                     color: isFocusedItem
-                        ? Theme.of(context).primaryColor.withValues(alpha: 0.08)
+                        ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.08)
                         : null,
                     child: ListTile(
                       leading: _buildItemLeading(context, item),
@@ -1213,7 +1213,7 @@ class _FirebaseWishlistItemsScreenState
                                 'Related to selected notification',
                                 style: TextStyle(
                                   fontSize: 12,
-                                  color: Theme.of(context).primaryColor,
+                                  color: Theme.of(context).colorScheme.primary,
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
