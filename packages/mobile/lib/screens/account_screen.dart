@@ -1,22 +1,32 @@
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../providers/auth_provider.dart';
+import '../services/firebase_functions_service.dart';
 import '../services/password_policy_service.dart';
 
-/// Account & security settings, reached from the Profile tab. Currently
-/// just a change-password form; a natural home for future account-security
-/// features (e.g. MFA) since it already carries the reauthentication flow
-/// those would also need.
+const _supportEmail = 'support@wishlist-wizard.com';
+
+/// Account & security settings, reached from the Profile tab: change
+/// password, plus data export, "log out everywhere", and a support link.
 class AccountScreen extends StatefulWidget {
   const AccountScreen({
     super.key,
     PasswordPolicyService? passwordPolicyService,
-  }) : _passwordPolicyService = passwordPolicyService;
+    FirebaseFunctionsService? functionsService,
+  }) : _passwordPolicyService = passwordPolicyService,
+       _functionsService = functionsService;
 
-  // Injectable for tests; defaults to a real Firebase-backed service (see
-  // _AccountScreenState._passwordPolicyService below).
+  // Injectable for tests; default to real Firebase-backed services (see
+  // the `late final` fields in _AccountScreenState below).
   final PasswordPolicyService? _passwordPolicyService;
+  final FirebaseFunctionsService? _functionsService;
 
   @override
   State<AccountScreen> createState() => _AccountScreenState();
@@ -34,6 +44,11 @@ class _AccountScreenState extends State<AccountScreen> {
 
   late final PasswordPolicyService _passwordPolicyService =
       widget._passwordPolicyService ?? PasswordPolicyService();
+  late final FirebaseFunctionsService _functionsService =
+      widget._functionsService ?? FirebaseFunctionsService();
+
+  /// Which secondary action ('export' | 'revoke') is running, if any.
+  String? _busyAction;
 
   // Cached live policy, used for hint text and the new-password field's
   // quick client-side check while typing. _changePassword() authoritatively
@@ -143,6 +158,83 @@ class _AccountScreenState extends State<AccountScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(message), backgroundColor: Colors.red),
     );
+  }
+
+  void _showInfo(String message) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  Future<void> _downloadMyData() async {
+    if (_busyAction != null) return;
+    setState(() => _busyAction = 'export');
+    try {
+      final data = await _functionsService.exportMyData();
+      final dir = await getTemporaryDirectory();
+      final file = File('${dir.path}/wishlist-wizard-data.json');
+      await file.writeAsString(
+        const JsonEncoder.withIndent('  ').convert(data),
+      );
+      await SharePlus.instance.share(
+        ShareParams(
+          files: [XFile(file.path, mimeType: 'application/json')],
+          subject: 'My Wishlist Wizard data',
+        ),
+      );
+    } catch (_) {
+      if (mounted) _showError('Could not prepare your data export.');
+    } finally {
+      if (mounted) setState(() => _busyAction = null);
+    }
+  }
+
+  Future<void> _logOutEverywhere() async {
+    if (_busyAction != null) return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Log out of all devices?'),
+        content: const Text(
+          'This signs you out everywhere, including this device. '
+          'You will need to sign in again.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Log out everywhere'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    setState(() => _busyAction = 'revoke');
+    try {
+      await _functionsService.revokeAllSessions();
+      if (!mounted) return;
+      await Provider.of<AuthProvider>(context, listen: false).logout();
+    } catch (_) {
+      if (mounted) {
+        _showError('Could not log out of all devices. Please try again.');
+        setState(() => _busyAction = null);
+      }
+    }
+  }
+
+  Future<void> _contactSupport() async {
+    final uri = Uri(
+      scheme: 'mailto',
+      path: _supportEmail,
+      query: 'subject=${Uri.encodeComponent('[Wishlist Wizard] Support request')}',
+    );
+    if (!await launchUrl(uri)) {
+      if (mounted) _showInfo('Email us at $_supportEmail');
+    }
   }
 
   @override
@@ -264,6 +356,54 @@ class _AccountScreenState extends State<AccountScreen> {
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
                       : const Text('Update Password'),
+                ),
+                const SizedBox(height: 32),
+                const Divider(),
+                const SizedBox(height: 16),
+                Text(
+                  'Data & Privacy',
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+                const SizedBox(height: 8),
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.download_outlined),
+                  title: const Text('Download my data'),
+                  subtitle: const Text(
+                    'Export everything on your account as a file',
+                  ),
+                  trailing: _busyAction == 'export'
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.chevron_right),
+                  onTap: _busyAction == null ? _downloadMyData : null,
+                ),
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.logout),
+                  title: const Text('Log out of all devices'),
+                  subtitle: const Text(
+                    'Ends every active session, including this one',
+                  ),
+                  trailing: _busyAction == 'revoke'
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.chevron_right),
+                  onTap: _busyAction == null ? _logOutEverywhere : null,
+                ),
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.support_agent_outlined),
+                  title: const Text('Contact Support'),
+                  subtitle: const Text('Email the Wishlist Wizard team'),
+                  trailing: const Icon(Icons.open_in_new),
+                  onTap: _contactSupport,
                 ),
               ],
             ),
