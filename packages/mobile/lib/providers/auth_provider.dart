@@ -269,6 +269,13 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Re-reads the signed-in user from Firebase (e.g. after a profile edit
+  /// changed the display name or photo).
+  Future<void> refreshUser() async {
+    final refreshed = await _authService.reloadCurrentUser();
+    if (refreshed != null) _setUser(refreshed);
+  }
+
   void _setLoading(bool loading) {
     _isLoading = loading;
     notifyListeners();
