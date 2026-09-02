@@ -109,7 +109,32 @@ void main() {
 
     verify(() => functionsService.lookupBarcode('012345678905')).called(1);
     expect(find.widgetWithText(TextFormField, 'Wireless Headphones'), findsOneWidget);
+    // The looked-up store fills the Store field, not Notes.
+    expect(find.widgetWithText(TextFormField, 'Acme'), findsOneWidget);
+    final storeField = tester.widget<TextFormField>(
+      find.widgetWithText(TextFormField, 'Acme'),
+    );
+    expect(storeField.controller?.text, 'Acme');
     expect(find.text('Product found — details filled in below'), findsOneWidget);
+  });
+
+  testWidgets('the add form exposes Store and a Priority dropdown', (
+    tester,
+  ) async {
+    await tester.pumpWidget(wrapScreen(
+      authService: authService,
+      functionsService: functionsService,
+      firestoreService: firestoreService,
+    ));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.byType(DropdownButtonFormField<Priority>),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+
+    expect(find.widgetWithText(TextFormField, 'Store (optional)'), findsOneWidget);
+    expect(find.text('Medium'), findsOneWidget); // default priority
   });
 
   testWidgets('shows a message when no product is found', (tester) async {
