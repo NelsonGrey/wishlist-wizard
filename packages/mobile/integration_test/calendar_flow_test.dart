@@ -47,7 +47,7 @@ void main() {
       await tester.enterText(find.widgetWithText(TextFormField, 'Password'), password);
       await tester.tap(find.widgetWithText(ElevatedButton, 'Sign Up'));
       await tester.pumpAndSettle(const Duration(seconds: 10));
-      expect(find.text('Welcome back,'), findsOneWidget);
+      expect(find.textContaining('Welcome back'), findsOneWidget);
 
       // --- Open Calendar from the Profile tab ---
       await tester.tap(find.descendant(

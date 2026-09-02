@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../providers/providers.dart';
+import '../theme/design_tokens.dart';
 import 'admob_widgets.dart';
 
 /// A fixed-height banner-ad slot pinned directly under the app bar.
@@ -18,8 +19,9 @@ class AnchoredAdBanner extends StatelessWidget {
   const AnchoredAdBanner({super.key});
 
   /// Standard AdMob banner is 320x50; the extra 10px is breathing room so the
-  /// ad isn't flush against the app bar and the content below it.
-  static const double _slotHeight = 60;
+  /// ad isn't flush against the app bar and the content below it. The 1px
+  /// bottom border sits inside this height.
+  static const double _slotHeight = 61;
 
   String _tier(BuildContext context) {
     try {
@@ -37,18 +39,19 @@ class AnchoredAdBanner extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
+    // The border belongs to this fixed, non-scrolling slot (AppScaffold places
+    // AnchoredAdBanner above the body's scroll view), so the separation line
+    // between the ad and the app content stays put when the user scrolls.
     return Container(
       height: _slotHeight,
       width: double.infinity,
       alignment: Alignment.center,
-      decoration: BoxDecoration(
-        color: Theme.of(
-          context,
-        ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
+      decoration: const BoxDecoration(
+        // A whisper of warm grey marks the strip as chrome, not content; the
+        // solid hairline underneath is the actual separator.
+        color: Color(0xFFF6F6F5),
         border: Border(
-          bottom: BorderSide(
-            color: Theme.of(context).dividerColor.withValues(alpha: 0.3),
-          ),
+          bottom: BorderSide(color: AppColors.border),
         ),
       ),
       child: const BannerAdWidget(margin: EdgeInsets.zero),
