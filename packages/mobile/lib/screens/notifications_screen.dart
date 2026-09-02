@@ -285,9 +285,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         child: OutlinedButton(
           onPressed: () => setState(() => _filter = value),
           style: OutlinedButton.styleFrom(
-            backgroundColor: selected ? Theme.of(context).primaryColor.withValues(alpha: 0.08) : null,
+            backgroundColor: selected ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.08) : null,
             side: BorderSide(
-              color: selected ? Theme.of(context).primaryColor : Colors.grey.shade300,
+              color: selected ? Theme.of(context).colorScheme.primary : Colors.grey.shade300,
             ),
             padding: const EdgeInsets.symmetric(vertical: 10),
           ),
@@ -391,14 +391,14 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                                 margin: const EdgeInsets.only(bottom: 12),
                                 color: notification.isRead
                                     ? null
-                                    : Theme.of(context).primaryColor.withValues(alpha: 0.05),
+                                    : Theme.of(context).colorScheme.primary.withValues(alpha: 0.05),
                                 child: ListTile(
                                   leading: CircleAvatar(
                                     backgroundColor:
-                                        Theme.of(context).primaryColor.withValues(alpha: 0.1),
+                                        Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
                                     child: Icon(
                                       _iconForType(notification.type),
-                                      color: Theme.of(context).primaryColor,
+                                      color: Theme.of(context).colorScheme.primary,
                                     ),
                                   ),
                                   title: Text(

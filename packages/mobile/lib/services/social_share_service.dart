@@ -232,7 +232,7 @@ class SocialShareService {
       SocialPlatform(
         name: 'Copy Link',
         icon: 'link',
-        color: 0xFF6B46C1,
+        color: 0xFF004E36,
         action: () => copyShareLink,
       ),
     ];

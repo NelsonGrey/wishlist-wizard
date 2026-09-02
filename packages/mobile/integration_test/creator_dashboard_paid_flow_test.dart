@@ -60,11 +60,11 @@ void main() {
       ));
       await tester.pumpAndSettle();
       await tester.scrollUntilVisible(
-        find.widgetWithText(OutlinedButton, 'Creator Tools'),
+        find.widgetWithText(ListTile, 'Creator Tools'),
         200,
         scrollable: find.byType(Scrollable).first,
       );
-      await tester.tap(find.widgetWithText(OutlinedButton, 'Creator Tools'));
+      await tester.tap(find.widgetWithText(ListTile, 'Creator Tools'));
       // Real Cloud Function round-trips: commission summary, affiliate
       // stats, commission ledger, adjustments (all in parallel).
       await tester.pumpAndSettle(const Duration(seconds: 10));

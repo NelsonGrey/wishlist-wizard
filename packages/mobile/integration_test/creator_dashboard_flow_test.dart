@@ -53,11 +53,11 @@ void main() {
       ));
       await tester.pumpAndSettle();
       await tester.scrollUntilVisible(
-        find.widgetWithText(OutlinedButton, 'Creator Tools'),
+        find.widgetWithText(ListTile, 'Creator Tools'),
         200,
         scrollable: find.byType(Scrollable).first,
       );
-      await tester.tap(find.widgetWithText(OutlinedButton, 'Creator Tools'));
+      await tester.tap(find.widgetWithText(ListTile, 'Creator Tools'));
       // Real Cloud Function round-trip: creatorCommissionDashboardSummary.
       await tester.pumpAndSettle(const Duration(seconds: 8));
       expect(find.text('Creator Tools'), findsOneWidget); // AppBar title

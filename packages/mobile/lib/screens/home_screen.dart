@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/models.dart';
 import '../providers/providers.dart';
+import '../theme/design_tokens.dart';
 import '../widgets/app_scaffold.dart';
 import 'firebase_wishlists_screen.dart';
 import 'notifications_screen.dart';
@@ -82,7 +83,7 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showCreateWishlistDialog(context),
-        backgroundColor: Theme.of(context).primaryColor,
+        backgroundColor: Theme.of(context).colorScheme.primary,
         child: const Icon(Icons.add),
       ),
     );
@@ -92,8 +93,8 @@ class _HomeScreenState extends State<HomeScreen> {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Theme.of(context).primaryColor, Theme.of(context).hintColor],
+        gradient: const LinearGradient(
+          colors: [AppColors.emerald, AppColors.primary],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -260,10 +261,10 @@ class _HomeScreenState extends State<HomeScreen> {
                   leading: CircleAvatar(
                     backgroundColor: Theme.of(
                       context,
-                    ).primaryColor.withValues(alpha: 0.1),
+                    ).colorScheme.primary.withValues(alpha: 0.1),
                     child: Icon(
                       wishlist.isPublic ? Icons.public : Icons.lock_outline,
-                      color: Theme.of(context).primaryColor,
+                      color: Theme.of(context).colorScheme.primary,
                     ),
                   ),
                   title: Text(wishlist.name),
@@ -359,7 +360,7 @@ class _HomeScreenState extends State<HomeScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(icon, size: 32, color: Theme.of(context).primaryColor),
+              Icon(icon, size: 32, color: Theme.of(context).colorScheme.primary),
               const SizedBox(height: 8),
               Text(
                 label,

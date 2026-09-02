@@ -56,11 +56,11 @@ void main() {
       ));
       await tester.pumpAndSettle();
       await tester.scrollUntilVisible(
-        find.widgetWithText(OutlinedButton, 'Calendar'),
+        find.widgetWithText(ListTile, 'Calendar'),
         200,
         scrollable: find.byType(Scrollable).first,
       );
-      await tester.tap(find.widgetWithText(OutlinedButton, 'Calendar'));
+      await tester.tap(find.widgetWithText(ListTile, 'Calendar'));
       // Real Cloud Function round-trips: events + connections.
       await tester.pumpAndSettle(const Duration(seconds: 8));
       expect(find.text('Calendar'), findsWidgets); // AppBar title
