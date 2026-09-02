@@ -177,6 +177,33 @@ class FirebaseFunctionsService {
     }
   }
 
+  /// Full user profile (`GET /api/profile` -> `getMyProfile`): displayName,
+  /// photoURL, bio, location, interests[], favoriteStores[],
+  /// giftPreferences{sizes:map, categories:[]}.
+  Future<Map<String, dynamic>> getMyProfile() async {
+    try {
+      final result = await _apiRequest('GET', '/profile');
+      return Map<String, dynamic>.from(result as Map);
+    } catch (e) {
+      _logger.severe('Error calling getMyProfile: $e');
+      rethrow;
+    }
+  }
+
+  /// Patch the user profile (`PATCH /api/profile` -> `updateMyProfile`).
+  /// Accepts any subset of the profile fields above.
+  Future<Map<String, dynamic>> updateMyProfile(
+    Map<String, dynamic> updates,
+  ) async {
+    try {
+      final result = await _apiRequest('PATCH', '/profile', body: updates);
+      return Map<String, dynamic>.from(result as Map);
+    } catch (e) {
+      _logger.severe('Error calling updateMyProfile: $e');
+      rethrow;
+    }
+  }
+
   // =============================================================================
   // WISHLIST ITEM MUTATIONS
   //

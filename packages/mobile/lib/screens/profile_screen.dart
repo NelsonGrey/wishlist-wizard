@@ -10,6 +10,7 @@ import 'achievements_screen.dart';
 import 'calendar_screen.dart';
 import 'connections_screen.dart';
 import 'creator_dashboard_screen.dart';
+import 'edit_profile_screen.dart';
 import 'price_tracking_screen.dart';
 import 'privacy_settings_screen.dart';
 import 'subscription_screen.dart';
@@ -38,7 +39,10 @@ class ProfileScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const _IdentityHeader(),
+            InkWell(
+              onTap: () => _open(context, const EditProfileScreen()),
+              child: const _IdentityHeader(),
+            ),
             const SizedBox(height: AppSpacing.x6),
             _MenuCard(
               label: 'Your Wizard',
@@ -91,6 +95,12 @@ class ProfileScreen extends StatelessWidget {
             _MenuCard(
               label: 'Account',
               tiles: [
+                _MenuTile(
+                  icon: Icons.person_outline,
+                  title: 'Edit Profile',
+                  subtitle: 'Name, photo, bio, and gift preferences',
+                  onTap: () => _open(context, const EditProfileScreen()),
+                ),
                 _MenuTile(
                   icon: Icons.workspace_premium_outlined,
                   title: 'Manage Subscription',
