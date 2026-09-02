@@ -14,6 +14,7 @@ import '../utils/wishlist_csv.dart';
 import '../widgets/app_scaffold.dart';
 import '../widgets/invite_collaborator_dialog.dart';
 import 'contribution_screen.dart';
+import 'shared_wishlist_screen.dart';
 
 // Production web app origin used to build shareable wishlist links from mobile
 // (mirrors the `${window.location.origin}/shared/:shareId` link built on web).
@@ -1153,6 +1154,21 @@ class _FirebaseWishlistItemsScreenState
           tooltip: 'Export as CSV',
           onPressed: _exportItemsAsCsv,
         ),
+        if (_isOwner &&
+            (widget.wishlist.shareId != null &&
+                widget.wishlist.shareId!.isNotEmpty))
+          IconButton(
+            icon: const Icon(Icons.visibility_outlined),
+            tooltip: 'Preview public view',
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => SharedWishlistScreen(
+                  shareId: widget.wishlist.shareId!,
+                ),
+              ),
+            ),
+          ),
       ],
       body: Consumer2<AuthProvider, FirebaseWishlistProvider>(
         builder: (context, authProvider, wishlistProvider, child) {

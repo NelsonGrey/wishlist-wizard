@@ -295,6 +295,19 @@ class FirebaseFunctionsService {
   // COLLABORATION FUNCTIONS ("Shared with Me")
   // =============================================================================
 
+  /// Read-only public view of a wishlist by its share id
+  /// (`GET /api/shared/:shareId` -> `getSharedWishlist`), honouring privacy.
+  /// Returns `{ wishlist: {...}, items: [...] }`.
+  Future<Map<String, dynamic>> getSharedWishlist(String shareId) async {
+    try {
+      final result = await _apiRequest('GET', '/shared/$shareId');
+      return Map<String, dynamic>.from(result as Map);
+    } catch (e) {
+      _logger.severe('Error calling getSharedWishlist: $e');
+      rethrow;
+    }
+  }
+
   Future<List<Map<String, dynamic>>> listSharedWishlists() async {
     try {
       final result = await _apiRequest('GET', '/wishlists/shared-with-me');
