@@ -77,7 +77,7 @@ void main() {
         'https://example.com/products/mirrorless-camera-body',
         cps: 32,
       );
-      await c.hold(const Duration(seconds: 2));
+      await c.hold(const Duration(seconds: 1));
       await c.tapSlow(find.widgetWithText(TextButton, 'Cancel'));
       await tester.pageBack();
       await tester.pumpAndSettle();
@@ -86,28 +86,23 @@ void main() {
       await c.caption('Set your target. We watch the price.');
       await tester.scrollUntilVisible(find.text('Price Tracking'), 160);
       await c.tapSlow(find.text('Price Tracking'));
-      await c.hold(const Duration(seconds: 4));
+      await c.hold(const Duration(seconds: 2));
       await tester.pageBack();
       await tester.pumpAndSettle();
       beats.mark('m4');
       await c.caption('Get the alert when the price drops.');
       await c.tapSlow(nav('Notifications'));
-      await c.hold(const Duration(seconds: 4));
+      await c.hold(const Duration(seconds: 2));
       beats.mark('m5');
       await c.caption('Confirm the drop before you buy.');
       await c.tapSlow(nav('Profile'));
       await tester.scrollUntilVisible(find.text('Price Tracking'), 160);
       await c.tapSlow(find.text('Price Tracking'));
       await c.tapSlow(find.text('Price Drops'));
-      await c.hold(const Duration(seconds: 4));
-      await tester.pageBack();
-      await tester.pumpAndSettle();
+      await c.hold(const Duration(seconds: 3));
       beats.mark('m6');
-      await c.caption('The retailer is one tap away.');
-      await c.tapSlow(nav('Wishlists'));
-      await c.tapSlow(find.text('Camera Kit').first);
-      await c.tapSlow(find.text('Mirrorless Camera Body').first);
-      await c.hold(const Duration(seconds: 4));
+      await c.caption('Buy only when the price feels right.');
+      await c.hold(const Duration(seconds: 3));
       beats.mark('m7');
     } else if (personaId == 'priya_mobile') {
       beats.mark('p6');

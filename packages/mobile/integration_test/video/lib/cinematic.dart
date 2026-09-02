@@ -88,7 +88,7 @@ class CinematicDriver {
 
   Future<void> tapSlow(
     Finder finder, {
-    Duration settle = const Duration(seconds: 3),
+    Duration settle = const Duration(milliseconds: 1500),
   }) async {
     await tester.ensureVisible(finder);
     await tester.pump(const Duration(milliseconds: 350));
