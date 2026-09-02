@@ -11,6 +11,7 @@ import 'calendar_screen.dart';
 import 'connections_screen.dart';
 import 'creator_dashboard_screen.dart';
 import 'price_tracking_screen.dart';
+import 'privacy_settings_screen.dart';
 import 'subscription_screen.dart';
 
 /// The Profile tab: an identity header followed by grouped setting cards, in the
@@ -101,6 +102,12 @@ class ProfileScreen extends StatelessWidget {
                   title: 'Account & Security',
                   subtitle: 'Sign-in methods and password',
                   onTap: () => _open(context, const AccountScreen()),
+                ),
+                _MenuTile(
+                  icon: Icons.lock_outline,
+                  title: 'Privacy',
+                  subtitle: 'Default visibility for new lists and items',
+                  onTap: () => _open(context, const PrivacySettingsScreen()),
                 ),
               ],
             ),

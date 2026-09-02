@@ -961,4 +961,37 @@ class FirebaseFunctionsService {
       rethrow;
     }
   }
+
+  // =============================================================================
+  // PRIVACY DEFAULTS
+  // =============================================================================
+
+  /// Account-wide privacy defaults applied to new wishlists/items
+  /// (`GET /api/privacy/defaults`): defaultWishlistVisibility,
+  /// defaultItemVisibility, allowComments, allowReservations, requireApproval.
+  Future<Map<String, dynamic>> getPrivacyDefaults() async {
+    try {
+      final result = await _apiRequest('GET', '/privacy/defaults');
+      return Map<String, dynamic>.from(result as Map);
+    } catch (e) {
+      _logger.severe('Error calling getPrivacyDefaults: $e');
+      rethrow;
+    }
+  }
+
+  Future<Map<String, dynamic>> updatePrivacyDefaults(
+    Map<String, dynamic> defaults,
+  ) async {
+    try {
+      final result = await _apiRequest(
+        'PUT',
+        '/privacy/defaults',
+        body: defaults,
+      );
+      return Map<String, dynamic>.from(result as Map);
+    } catch (e) {
+      _logger.severe('Error calling updatePrivacyDefaults: $e');
+      rethrow;
+    }
+  }
 }
