@@ -5,9 +5,8 @@ import 'package:url_launcher/url_launcher.dart';
 import '../models/models.dart';
 import '../providers/providers.dart';
 import '../services/social_share_service.dart';
-import '../widgets/admob_widgets.dart';
+import '../widgets/app_scaffold.dart';
 import '../widgets/invite_collaborator_dialog.dart';
-import '../main.dart';
 import 'contribution_screen.dart';
 
 // Production web app origin used to build shareable wishlist links from mobile
@@ -53,8 +52,8 @@ class _FirebaseWishlistsScreenState extends State<FirebaseWishlistsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: const CustomAppBar(title: 'Firebase Wishlists'),
+    return AppScaffold(
+      title: 'Wishlists',
       body: Column(
         children: [
           Padding(
@@ -108,9 +107,11 @@ class _FirebaseWishlistsScreenState extends State<FirebaseWishlistsScreen> {
 
         final sharedWishlists = wishlistProvider.sharedWishlists;
         if (sharedWishlists.isEmpty) {
-          return Center(
+          return Padding(
+            padding: const EdgeInsets.all(24),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Icon(Icons.people_outline, size: 64, color: Colors.grey[400]),
                 const SizedBox(height: 16),
@@ -122,8 +123,7 @@ class _FirebaseWishlistsScreenState extends State<FirebaseWishlistsScreen> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  "When someone invites you to collaborate,\nit'll show up here.",
-                  textAlign: TextAlign.center,
+                  "When someone invites you to collaborate, it'll show up here.",
                   style: TextStyle(color: Colors.grey[600]),
                 ),
               ],
@@ -231,14 +231,15 @@ class _FirebaseWishlistsScreenState extends State<FirebaseWishlistsScreen> {
         }
 
         if (wishlistProvider.error != null) {
-          return Center(
+          return Padding(
+            padding: const EdgeInsets.all(24),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   wishlistProvider.error!,
                   style: const TextStyle(color: Colors.red),
-                  textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 16),
                 ElevatedButton(
@@ -272,9 +273,11 @@ class _FirebaseWishlistsScreenState extends State<FirebaseWishlistsScreen> {
             final wishlists = snapshot.data ?? [];
 
             if (wishlists.isEmpty) {
-              return Center(
+              return Padding(
+                padding: const EdgeInsets.all(24),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Icon(Icons.list_alt, size: 64, color: Colors.grey[400]),
                     const SizedBox(height: 16),
@@ -328,17 +331,6 @@ class _FirebaseWishlistsScreenState extends State<FirebaseWishlistsScreen> {
                       ),
                     ],
                   ),
-                ),
-                Consumer<SubscriptionProvider>(
-                  builder: (context, sub, _) {
-                    if (sub.tier == 'free') {
-                      return const AdContainer(
-                        label: 'Advertisement',
-                        child: BannerAdWidget(),
-                      );
-                    }
-                    return const SizedBox.shrink();
-                  },
                 ),
                 Expanded(
                   child: ListView.builder(
@@ -1093,23 +1085,21 @@ class _FirebaseWishlistItemsScreenState
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: CustomAppBar(
-        title: widget.wishlist.name,
-        actions: [
-          if (_isOwner)
-            IconButton(
-              icon: const Icon(Icons.people_outline),
-              tooltip: 'Collaborators',
-              onPressed: () => _showCollaboratorsSheet(context),
-            ),
+    return AppScaffold(
+      title: widget.wishlist.name,
+      actions: [
+        if (_isOwner)
           IconButton(
-            icon: const Icon(Icons.share),
-            tooltip: 'Share wishlist',
-            onPressed: _shareWishlist,
+            icon: const Icon(Icons.people_outline),
+            tooltip: 'Collaborators',
+            onPressed: () => _showCollaboratorsSheet(context),
           ),
-        ],
-      ),
+        IconButton(
+          icon: const Icon(Icons.share),
+          tooltip: 'Share wishlist',
+          onPressed: _shareWishlist,
+        ),
+      ],
       body: Consumer2<AuthProvider, FirebaseWishlistProvider>(
         builder: (context, authProvider, wishlistProvider, child) {
           if (authProvider.user == null) {
@@ -1145,9 +1135,11 @@ class _FirebaseWishlistItemsScreenState
               });
 
               if (items.isEmpty) {
-                return Center(
+                return Padding(
+                  padding: const EdgeInsets.all(24),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Icon(
                         Icons.card_giftcard,

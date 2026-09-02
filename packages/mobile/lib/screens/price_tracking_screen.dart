@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../services/firebase_functions_service.dart';
+import '../widgets/app_scaffold.dart';
 
 double _parsePrice(dynamic value) {
   if (value is num) return value.toDouble();
@@ -117,12 +118,10 @@ class _PriceTrackingScreenState extends State<PriceTrackingScreen> {
   Widget build(BuildContext context) {
     return DefaultTabController(
       length: 2,
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text('Price Tracking'),
-          bottom: const TabBar(
-            tabs: [Tab(text: 'Your Alerts'), Tab(text: 'Price Drops')],
-          ),
+      child: AppScaffold(
+        title: 'Price Tracking',
+        bottom: const TabBar(
+          tabs: [Tab(text: 'Your Alerts'), Tab(text: 'Price Drops')],
         ),
         floatingActionButton: FloatingActionButton(
           onPressed: _openCreateAlertSheet,
@@ -155,12 +154,7 @@ class _PriceTrackingScreenState extends State<PriceTrackingScreen> {
                       padding: const EdgeInsets.all(16),
                       children: const [
                         SizedBox(height: 60),
-                        Center(
-                          child: Text(
-                            'No price alerts set. Tap + to track an item.',
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
+                        Text('No price alerts set. Tap + to track an item.'),
                       ],
                     )
                   : ListView(
@@ -236,12 +230,7 @@ class _PriceTrackingScreenState extends State<PriceTrackingScreen> {
                       padding: const EdgeInsets.all(16),
                       children: const [
                         SizedBox(height: 60),
-                        Center(
-                          child: Text(
-                            'No significant price drops found yet.',
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
+                        Text('No significant price drops found yet.'),
                       ],
                     )
                   : ListView(

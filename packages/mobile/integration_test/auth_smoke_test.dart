@@ -124,7 +124,7 @@ void main() {
       await tester.tap(find.text('Wishlists'));
       await tester.pumpAndSettle(const Duration(seconds: 5));
 
-      expect(find.text('Firebase Wishlists'), findsOneWidget);
+      expect(find.widgetWithText(AppBar, 'Wishlists'), findsOneWidget);
     });
 
     testWidgets('profile tab shows logout button', (tester) async {

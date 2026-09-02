@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/models.dart';
 import '../providers/providers.dart';
-import '../main.dart';
-import '../widgets/admob_widgets.dart';
+import '../widgets/app_scaffold.dart';
 import 'firebase_wishlists_screen.dart';
 import 'notifications_screen.dart';
 import 'scan_item_screen.dart';
@@ -29,20 +28,18 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: CustomAppBar(
-        title: 'Home',
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.notifications_outlined),
-            tooltip: 'Notifications',
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const NotificationsScreen()),
-            ),
+    return AppScaffold(
+      title: 'Home',
+      actions: [
+        IconButton(
+          icon: const Icon(Icons.notifications_outlined),
+          tooltip: 'Notifications',
+          onPressed: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const NotificationsScreen()),
           ),
-        ],
-      ),
+        ),
+      ],
       body: Consumer2<AuthProvider, FirebaseWishlistProvider>(
         builder: (context, authProvider, wishlistProvider, child) {
           final user = authProvider.user;
@@ -77,18 +74,6 @@ class _HomeScreenState extends State<HomeScreen> {
                   _buildRecentWishlists(context, wishlistProvider),
                   const SizedBox(height: 24),
                   _buildQuickActions(context),
-                  const SizedBox(height: 16),
-                  Consumer<SubscriptionProvider>(
-                    builder: (context, sub, _) {
-                      if (sub.tier == 'free') {
-                        return const AdContainer(
-                          label: 'Advertisement',
-                          child: BannerAdWidget(),
-                        );
-                      }
-                      return const SizedBox.shrink();
-                    },
-                  ),
                 ],
               ),
             ),
@@ -183,6 +168,7 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Icon(icon, color: color, size: 32),
             const SizedBox(height: 8),
@@ -229,7 +215,6 @@ class _HomeScreenState extends State<HomeScreen> {
               child: Text(
                 provider.error!,
                 style: const TextStyle(color: Colors.red),
-                textAlign: TextAlign.center,
               ),
             ),
           )
@@ -238,6 +223,7 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Padding(
               padding: const EdgeInsets.all(24),
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Icon(
                     Icons.list_alt_outlined,
@@ -255,7 +241,6 @@ class _HomeScreenState extends State<HomeScreen> {
                     style: Theme.of(
                       context,
                     ).textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),
-                    textAlign: TextAlign.center,
                   ),
                 ],
               ),
@@ -372,6 +357,7 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Padding(
           padding: const EdgeInsets.all(20),
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Icon(icon, size: 32, color: Theme.of(context).primaryColor),
               const SizedBox(height: 8),
