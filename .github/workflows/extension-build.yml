@@ -11,6 +11,11 @@ on:
       project_name:
         required: true
         type: string
+      environment:
+        description: Which Firebase project the baked VITE_FIREBASE_* config targets
+        required: false
+        type: string
+        default: production
       publish:
         required: false
         type: boolean
@@ -31,6 +36,12 @@ on:
         required: true
         default: wishlist-wizard
         type: string
+      environment:
+        description: Firebase project for the baked config
+        required: false
+        type: choice
+        options: [development, staging, production]
+        default: production
       publish:
         description: Publish the extension after build
         required: false
@@ -63,8 +74,64 @@ jobs:
       
       - name: Install dependencies
         run: npm ci
-      
+
+      # background.js bakes VITE_FIREBASE_API_KEY/AUTH_DOMAIN/PROJECT_ID at
+      # build time (used for the popup's REST signInWithPassword fallback —
+      # the web-auth-bridge token relay is env-agnostic and doesn't need it).
+      # Without these the build shipped 'your-firebase-web-api-key'
+      # placeholders and that login path was dead in a published build.
+      # Fetched live from the Firebase Management API (same approach as
+      # firebase-hosting-dev.yml) — these values are safe to expose
+      # client-side by design.
+      - name: Resolve Firebase project id
+        id: fbproject
+        run: |
+          case "${{ inputs.environment || 'production' }}" in
+            development) echo "id=wishlist-wizard-dev" >> "$GITHUB_OUTPUT" ;;
+            staging)     echo "id=wishlist-wizard-staging" >> "$GITHUB_OUTPUT" ;;
+            *)           echo "id=wishlist-wizard-prod" >> "$GITHUB_OUTPUT" ;;
+          esac
+
+      - name: Authenticate to Google Cloud
+        id: gcp-auth-config
+        uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: projects/1055615167809/locations/global/workloadIdentityPools/github-actions-pool/providers/github-actions-provider
+          service_account: github-actions-deploy@wishlist-wizard-dev.iam.gserviceaccount.com
+          token_format: access_token
+
+      - name: Fetch Firebase Web App Config
+        id: webconfig
+        run: |
+          set -euo pipefail
+          PROJECT_ID="${{ steps.fbproject.outputs.id }}"
+          TOKEN="${{ steps.gcp-auth-config.outputs.access_token }}"
+
+          APP_ID="$(curl -sf -H "Authorization: Bearer $TOKEN" -H "x-goog-user-project: $PROJECT_ID" \
+            "https://firebase.googleapis.com/v1beta1/projects/$PROJECT_ID/webApps" \
+            | node -e 'let d="";process.stdin.on("data",c=>d+=c);process.stdin.on("end",()=>{const o=JSON.parse(d);process.stdout.write((o.apps&&o.apps[0]&&o.apps[0].appId)||"");})')"
+
+          if [ -z "$APP_ID" ]; then
+            echo "::error::No web app registered for Firebase project $PROJECT_ID"
+            exit 1
+          fi
+
+          curl -sf -H "Authorization: Bearer $TOKEN" -H "x-goog-user-project: $PROJECT_ID" \
+            "https://firebase.googleapis.com/v1beta1/projects/$PROJECT_ID/webApps/$APP_ID/config" \
+            | node -e '
+                let d="";process.stdin.on("data",c=>d+=c);process.stdin.on("end",()=>{
+                  const c = JSON.parse(d);
+                  const fs = require("fs");
+                  fs.appendFileSync(process.env.GITHUB_OUTPUT,
+                    `api_key=${c.apiKey||""}\nauth_domain=${c.authDomain||""}\nproject_id=${c.projectId||""}\n`);
+                });
+              '
+
       - name: Build extension for all browsers
+        env:
+          VITE_FIREBASE_API_KEY: ${{ steps.webconfig.outputs.api_key }}
+          VITE_FIREBASE_AUTH_DOMAIN: ${{ steps.webconfig.outputs.auth_domain }}
+          VITE_FIREBASE_PROJECT_ID: ${{ steps.webconfig.outputs.project_id }}
         run: |
           cd packages/browser-extension
           npm run build:all

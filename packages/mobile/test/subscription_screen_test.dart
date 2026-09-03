@@ -12,7 +12,7 @@ import 'package:wishlist_wizard_mobile/services/services.dart';
 class MockFirebaseFunctionsService extends Mock implements FirebaseFunctionsService {}
 
 const _fullStatus = {
-  'tier': 'plus',
+  'tier': 'starter',
   'status': 'active',
   'billingCycle': 'monthly',
   'renewalDate': '2026-12-25T00:00:00.000Z',
@@ -25,7 +25,17 @@ const _fullStatus = {
 };
 const _plansResponse = {
   'available': [
-    {'tier': 'business', 'name': 'Business', 'monthlyPrice': 29.99, 'annualPrice': 299.0, 'annualSavings': 60.88},
+    // Plus is the one self-serve upgrade above Starter.
+    {'tier': 'plus', 'name': 'Plus', 'monthlyPrice': 7.99, 'annualPrice': 79.0, 'annualSavings': 16.88},
+    // Creator/Business are built but waitlist-gated (COMING_SOON_TIERS) --
+    // the backend marks them comingSoon; the screen shows a "Notify me"
+    // capture instead of a purchase button.
+    {'tier': 'creator', 'name': 'Creator Pro', 'monthlyPrice': 14.99, 'annualPrice': 149.0, 'annualSavings': 30.88, 'comingSoon': true},
+    {'tier': 'business', 'name': 'Business', 'monthlyPrice': 29.99, 'annualPrice': 299.0, 'annualSavings': 60.88, 'comingSoon': true},
+    // The backend also returns the contact-sales Enterprise tier (no IAP
+    // product); the screen must not offer it on mobile at all -- not for
+    // purchase, and not in the "Coming soon" section either.
+    {'tier': 'enterprise', 'name': 'Enterprise', 'monthlyPrice': null, 'annualPrice': null, 'comingSoon': true},
   ],
 };
 
@@ -54,7 +64,7 @@ Widget wrapScreen(FirebaseFunctionsService functionsService) {
 // anything below it) until the list is actually scrolled there, same as a
 // real user would need to scroll on a real device.
 Future<void> scrollToUpgradeOptions(WidgetTester tester) {
-  return tester.scrollUntilVisible(find.text('Business'), 200, scrollable: find.byType(Scrollable));
+  return tester.scrollUntilVisible(find.text('Plus'), 200, scrollable: find.byType(Scrollable));
 }
 
 void main() {
@@ -89,7 +99,7 @@ void main() {
     await tester.tap(retryButton);
     await tester.pumpAndSettle();
 
-    expect(find.text('PLUS'), findsOneWidget); // reloaded successfully
+    expect(find.text('STARTER'), findsOneWidget); // reloaded successfully
   });
 
   group('loaded state', () {
@@ -102,7 +112,7 @@ void main() {
       await tester.pumpWidget(wrapScreen(functionsService));
       await tester.pumpAndSettle();
 
-      expect(find.text('PLUS'), findsOneWidget);
+      expect(find.text('STARTER'), findsOneWidget);
       expect(find.text('Status: active • monthly'), findsOneWidget);
       expect(find.text('Renews: 2026-12-25'), findsOneWidget);
     });
@@ -132,8 +142,17 @@ void main() {
       await tester.pumpAndSettle();
       await scrollToUpgradeOptions(tester);
 
-      expect(find.text('Business'), findsOneWidget);
-      expect(find.widgetWithText(ElevatedButton, 'Upgrade to Business'), findsOneWidget);
+      expect(find.text('Plus'), findsOneWidget);
+      expect(find.widgetWithText(ElevatedButton, 'Upgrade to Plus'), findsOneWidget);
+    });
+
+    testWidgets('never offers the Enterprise tier (no IAP product)', (tester) async {
+      await tester.pumpWidget(wrapScreen(functionsService));
+      await tester.pumpAndSettle();
+      await scrollToUpgradeOptions(tester);
+
+      expect(find.text('Enterprise'), findsNothing);
+      expect(find.widgetWithText(ElevatedButton, 'Upgrade to Enterprise'), findsNothing);
     });
 
     testWidgets('shows annual savings only when the Annual billing cycle chip is selected', (tester) async {
@@ -146,7 +165,7 @@ void main() {
       await tester.pumpAndSettle();
       await scrollToUpgradeOptions(tester);
 
-      expect(find.textContaining('Save \$60.88 annually'), findsOneWidget);
+      expect(find.textContaining('Save \$16.88 annually'), findsOneWidget);
     });
 
     testWidgets('does not show annual savings on the default Monthly cycle', (tester) async {
@@ -154,7 +173,7 @@ void main() {
       await tester.pumpAndSettle();
       await scrollToUpgradeOptions(tester);
 
-      expect(find.textContaining('Save \$60.88 annually'), findsNothing);
+      expect(find.textContaining('Save \$16.88 annually'), findsNothing);
     });
 
     testWidgets('tapping Upgrade records a not-available error via IapService (no store product loaded)', (tester) async {
@@ -162,7 +181,7 @@ void main() {
       await tester.pumpAndSettle();
       await scrollToUpgradeOptions(tester);
 
-      await tester.tap(find.widgetWithText(ElevatedButton, 'Upgrade to Business'));
+      await tester.tap(find.widgetWithText(ElevatedButton, 'Upgrade to Plus'));
       await tester.pumpAndSettle();
 
       expect(find.textContaining('is not available for purchase right now'), findsOneWidget);
@@ -186,6 +205,58 @@ void main() {
       await tester.pumpAndSettle();
 
       verify(() => functionsService.billingStatus()).called(1);
+    });
+
+    testWidgets('shows Creator/Business as "Coming soon" with a notify-me capture, not a purchase button', (tester) async {
+      // Tall viewport so the whole ListView mounts and we can assert on
+      // every coming-soon card at once without lazy-scroll juggling.
+      tester.view.physicalSize = const Size(1200, 5000);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      await tester.pumpWidget(wrapScreen(functionsService));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Creator Pro'), findsOneWidget);
+      expect(find.text('Business'), findsOneWidget);
+      expect(
+        find.widgetWithText(ElevatedButton, 'Notify me when it launches'),
+        findsNWidgets(2), // Creator Pro + Business, not Enterprise
+      );
+      // No purchase button for a gated tier.
+      expect(find.widgetWithText(ElevatedButton, 'Upgrade to Creator Pro'), findsNothing);
+      expect(find.widgetWithText(ElevatedButton, 'Upgrade to Business'), findsNothing);
+      // Enterprise (no IAP product) is not offered here either.
+      expect(find.text('Enterprise'), findsNothing);
+    });
+
+    testWidgets('submitting the notify-me form calls registerTierInterest for that tier', (tester) async {
+      when(() => functionsService.registerTierInterest(
+            email: any(named: 'email'),
+            tier: any(named: 'tier'),
+          )).thenAnswer((_) async => {'ok': true, 'alreadyRegistered': false});
+
+      tester.view.physicalSize = const Size(1200, 5000);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      await tester.pumpWidget(wrapScreen(functionsService));
+      await tester.pumpAndSettle();
+
+      // First coming-soon card is Creator Pro (order from _plansResponse).
+      await tester.enterText(find.byType(TextField).first, 'creator@example.com');
+      await tester.tap(
+        find.widgetWithText(ElevatedButton, 'Notify me when it launches').first,
+      );
+      await tester.pumpAndSettle();
+
+      verify(() => functionsService.registerTierInterest(
+            email: 'creator@example.com',
+            tier: 'creator',
+          )).called(1);
+      expect(find.textContaining("You're on the list"), findsOneWidget);
     });
   });
 }

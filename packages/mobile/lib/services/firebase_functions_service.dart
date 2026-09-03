@@ -139,6 +139,29 @@ class FirebaseFunctionsService {
     }
   }
 
+  /// GDPR/CCPA data export — returns the full account payload
+  /// (`exportMyData`, packages/functions/src/api/userProfile.ts).
+  Future<Map<String, dynamic>> exportMyData() async {
+    try {
+      final result = await _apiRequest('POST', '/account/export');
+      return Map<String, dynamic>.from(result as Map);
+    } catch (e) {
+      _logger.severe('Error calling exportMyData: $e');
+      rethrow;
+    }
+  }
+
+  /// Revokes every refresh token for the account, signing the user out of
+  /// all other devices (`revokeAllSessions`).
+  Future<void> revokeAllSessions() async {
+    try {
+      await _apiRequest('POST', '/account/revoke-sessions');
+    } catch (e) {
+      _logger.severe('Error calling revokeAllSessions: $e');
+      rethrow;
+    }
+  }
+
   // =============================================================================
   // USER PROFILE
   // =============================================================================
@@ -151,6 +174,33 @@ class FirebaseFunctionsService {
       await _apiRequest('POST', '/profile/ensure');
     } catch (e) {
       _logger.warning('Error calling ensureProfile: $e');
+    }
+  }
+
+  /// Full user profile (`GET /api/profile` -> `getMyProfile`): displayName,
+  /// photoURL, bio, location, interests[], favoriteStores[],
+  /// giftPreferences{sizes:map, categories:[]}.
+  Future<Map<String, dynamic>> getMyProfile() async {
+    try {
+      final result = await _apiRequest('GET', '/profile');
+      return Map<String, dynamic>.from(result as Map);
+    } catch (e) {
+      _logger.severe('Error calling getMyProfile: $e');
+      rethrow;
+    }
+  }
+
+  /// Patch the user profile (`PATCH /api/profile` -> `updateMyProfile`).
+  /// Accepts any subset of the profile fields above.
+  Future<Map<String, dynamic>> updateMyProfile(
+    Map<String, dynamic> updates,
+  ) async {
+    try {
+      final result = await _apiRequest('PATCH', '/profile', body: updates);
+      return Map<String, dynamic>.from(result as Map);
+    } catch (e) {
+      _logger.severe('Error calling updateMyProfile: $e');
+      rethrow;
     }
   }
 
@@ -213,6 +263,24 @@ class FirebaseFunctionsService {
     }
   }
 
+  /// Release a reservation. No dedicated endpoint exists (the backend's
+  /// reserve is one-way), so this clears the reservation fields through the
+  /// generic item-update route -- which the backend only permits for
+  /// owner/editor collaborators.
+  Future<Map<String, dynamic>> unreserveWishlistItem(String itemId) async {
+    try {
+      final result = await _apiRequest(
+        'PATCH',
+        '/items/$itemId',
+        body: {'reservedByUserId': null, 'reservedBy': null},
+      );
+      return Map<String, dynamic>.from(result as Map);
+    } catch (e) {
+      _logger.severe('Error calling unreserveWishlistItem: $e');
+      rethrow;
+    }
+  }
+
   Future<Map<String, dynamic>> purchaseWishlistItem(String itemId) async {
     try {
       final result = await _apiRequest('POST', '/items/$itemId/purchase');
@@ -226,6 +294,19 @@ class FirebaseFunctionsService {
   // =============================================================================
   // COLLABORATION FUNCTIONS ("Shared with Me")
   // =============================================================================
+
+  /// Read-only public view of a wishlist by its share id
+  /// (`GET /api/shared/:shareId` -> `getSharedWishlist`), honouring privacy.
+  /// Returns `{ wishlist: {...}, items: [...] }`.
+  Future<Map<String, dynamic>> getSharedWishlist(String shareId) async {
+    try {
+      final result = await _apiRequest('GET', '/shared/$shareId');
+      return Map<String, dynamic>.from(result as Map);
+    } catch (e) {
+      _logger.severe('Error calling getSharedWishlist: $e');
+      rethrow;
+    }
+  }
 
   Future<List<Map<String, dynamic>>> listSharedWishlists() async {
     try {
@@ -589,6 +670,26 @@ class FirebaseFunctionsService {
     }
   }
 
+  /// Records a "notify me" sign-up for a Coming-Soon tier (Creator and
+  /// above). See packages/functions/src/api/tierInterest.ts. The mobile
+  /// caller is always signed in, so the capture is linked to the account.
+  Future<Map<String, dynamic>> registerTierInterest({
+    required String email,
+    required String tier,
+  }) async {
+    try {
+      final result = await _apiRequest(
+        'POST',
+        '/tier-interest',
+        body: {'email': email, 'tier': tier, 'source': 'mobile'},
+      );
+      return Map<String, dynamic>.from(result as Map);
+    } catch (e) {
+      _logger.severe('Error calling registerTierInterest: $e');
+      rethrow;
+    }
+  }
+
   /// Verifies a native StoreKit/Play Billing purchase server-side and
   /// updates the user's subscription tier. See packages/functions/src/api/iap.ts.
   Future<Map<String, dynamic>> verifyIapPurchase({
@@ -917,6 +1018,39 @@ class FirebaseFunctionsService {
       return Map<String, dynamic>.from(result as Map);
     } catch (e) {
       _logger.severe('Error calling getCalendarSyncSettings: $e');
+      rethrow;
+    }
+  }
+
+  // =============================================================================
+  // PRIVACY DEFAULTS
+  // =============================================================================
+
+  /// Account-wide privacy defaults applied to new wishlists/items
+  /// (`GET /api/privacy/defaults`): defaultWishlistVisibility,
+  /// defaultItemVisibility, allowComments, allowReservations, requireApproval.
+  Future<Map<String, dynamic>> getPrivacyDefaults() async {
+    try {
+      final result = await _apiRequest('GET', '/privacy/defaults');
+      return Map<String, dynamic>.from(result as Map);
+    } catch (e) {
+      _logger.severe('Error calling getPrivacyDefaults: $e');
+      rethrow;
+    }
+  }
+
+  Future<Map<String, dynamic>> updatePrivacyDefaults(
+    Map<String, dynamic> defaults,
+  ) async {
+    try {
+      final result = await _apiRequest(
+        'PUT',
+        '/privacy/defaults',
+        body: defaults,
+      );
+      return Map<String, dynamic>.from(result as Map);
+    } catch (e) {
+      _logger.severe('Error calling updatePrivacyDefaults: $e');
       rethrow;
     }
   }

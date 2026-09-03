@@ -9,12 +9,19 @@ class SubscriptionUpgradeOption {
   final double? annualPrice;
   final double? annualSavings;
 
+  /// Backend flag (billingStatus/billingPlans) marking a tier that is built
+  /// but not yet open for self-serve purchase. Mirrors COMING_SOON_TIERS in
+  /// packages/shared/src/subscription.ts. The subscription screen shows these
+  /// as a "Coming soon" + notify-me row instead of an upgrade button.
+  final bool comingSoon;
+
   const SubscriptionUpgradeOption({
     required this.tier,
     required this.name,
     this.monthlyPrice,
     this.annualPrice,
     this.annualSavings,
+    this.comingSoon = false,
   });
 
   factory SubscriptionUpgradeOption.fromJson(Map<String, dynamic> json) {
@@ -35,6 +42,7 @@ class SubscriptionUpgradeOption {
       monthlyPrice: toDouble(json['monthlyPrice']),
       annualPrice: toDouble(json['annualPrice']),
       annualSavings: toDouble(json['annualSavings']),
+      comingSoon: json['comingSoon'] == true,
     );
   }
 }
@@ -90,6 +98,16 @@ class SubscriptionProvider extends ChangeNotifier {
     }
   }
 
+
+  /// Records a "notify me" sign-up for a Coming-Soon tier. Delegates to the
+  /// (injected) functions service so widget tests can substitute a mock,
+  /// same as loadSubscriptionData above.
+  Future<Map<String, dynamic>> registerTierInterest({
+    required String email,
+    required String tier,
+  }) {
+    return _functionsService.registerTierInterest(email: email, tier: tier);
+  }
 
   int usageCount(String key) {
     final value = _usage[key];

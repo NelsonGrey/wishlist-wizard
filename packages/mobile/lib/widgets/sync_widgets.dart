@@ -71,7 +71,7 @@ class SyncStatusWidget extends StatelessWidget {
       case SyncStatus.error:
         return Colors.red;
       case SyncStatus.conflicts:
-        return Colors.purple;
+        return Colors.teal;
     }
   }
 
@@ -119,7 +119,7 @@ class SyncFloatingActionButton extends StatelessWidget {
               : () => syncProvider.performSync(),
           backgroundColor: syncProvider.syncStatus == SyncStatus.syncing
               ? Colors.grey
-              : Theme.of(context).primaryColor,
+              : Theme.of(context).colorScheme.primary,
           child: syncProvider.syncStatus == SyncStatus.syncing
               ? const SizedBox(
                   width: 24,
@@ -159,7 +159,7 @@ class SyncSettingsScreen extends StatelessWidget {
                         children: [
                           Icon(
                             Icons.sync,
-                            color: Theme.of(context).primaryColor,
+                            color: Theme.of(context).colorScheme.primary,
                           ),
                           const SizedBox(width: 8),
                           Text(

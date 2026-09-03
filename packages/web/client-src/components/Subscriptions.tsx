@@ -1,7 +1,8 @@
 import { Link } from "wouter";
 import AppEntryLink from "@/components/AppEntryLink";
-import { ArrowRight, BadgeDollarSign, CalendarDays, CheckCircle2, Gift, Megaphone, Users } from "lucide-react";
-import { TIER_LIMITS, TIER_PRICING, type SubscriptionTier } from "@wishlist-wizard/shared";
+import ComingSoonNotify from "@/components/ComingSoonNotify";
+import { ArrowRight, BadgeDollarSign, CalendarDays, CheckCircle2, Clock3, Gift, Megaphone, Users } from "lucide-react";
+import { TIER_LIMITS, TIER_PRICING, isTierComingSoon, type SubscriptionTier } from "@wishlist-wizard/shared";
 
 const MARKETING_TIERS = ["free", "starter", "plus", "creator", "business"] as const;
 
@@ -124,6 +125,7 @@ export default function Subscriptions({ variant = "full" }: SubscriptionsProps) 
               const story = PLAN_STORIES[tierKey];
               const Icon = story.icon;
               const isHighlighted = tierKey === "plus";
+              const comingSoon = isTierComingSoon(tierKey);
 
               return (
                 <article
@@ -131,6 +133,12 @@ export default function Subscriptions({ variant = "full" }: SubscriptionsProps) 
                   className={`flex h-full flex-col rounded-lg border p-5 shadow-sm transition-all ${isHighlighted ? "border-emerald-300 bg-white shadow-emerald-100" : "border-slate-200 bg-white"}`}
                 >
                   {isHighlighted && <div className="mb-4 w-fit rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-800">Best for group gifting</div>}
+                  {comingSoon && (
+                    <div className="mb-4 flex w-fit items-center gap-1.5 rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-900">
+                      <Clock3 className="h-3.5 w-3.5" aria-hidden="true" />
+                      Coming soon
+                    </div>
+                  )}
 
                   <div className={`mb-5 flex h-11 w-11 items-center justify-center rounded-lg border ${story.accent}`}>
                     <Icon className="h-5 w-5" />
@@ -162,17 +170,21 @@ export default function Subscriptions({ variant = "full" }: SubscriptionsProps) 
                   </div>
 
                   <p className="mt-5 text-sm leading-6 text-slate-600">{story.valueProof}</p>
-                  <p className="mt-4 text-xs font-medium text-slate-500">{getPlanMetrics(tierKey)}</p>
+                  <p className="mt-4 mb-5 text-xs font-medium text-slate-500">{getPlanMetrics(tierKey)}</p>
 
-                  <AppEntryLink
-                    href="/register"
-                    className={`mt-auto inline-flex items-center justify-center gap-2 rounded-lg px-4 py-3 text-sm font-semibold transition-colors ${
-                      isHighlighted ? "bg-emerald-800 text-white hover:bg-emerald-900" : "bg-emerald-900 text-white hover:bg-emerald-800"
-                    }`}
-                  >
-                    {story.cta}
-                    <ArrowRight className="h-4 w-4" />
-                  </AppEntryLink>
+                  {comingSoon ? (
+                    <ComingSoonNotify tier={tierKey} variant="card" />
+                  ) : (
+                    <AppEntryLink
+                      href="/register"
+                      className={`mt-auto inline-flex items-center justify-center gap-2 rounded-lg px-4 py-3 text-sm font-semibold transition-colors ${
+                        isHighlighted ? "bg-emerald-800 text-white hover:bg-emerald-900" : "bg-emerald-900 text-white hover:bg-emerald-800"
+                      }`}
+                    >
+                      {story.cta}
+                      <ArrowRight className="h-4 w-4" />
+                    </AppEntryLink>
+                  )}
                 </article>
               );
             })}

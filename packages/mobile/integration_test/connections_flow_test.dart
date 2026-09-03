@@ -27,10 +27,16 @@ void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
   setUpAll(() async {
-    if (Firebase.apps.isEmpty) {
+    try {
       await Firebase.initializeApp(
         options: DefaultFirebaseOptions.currentPlatform,
       );
+    } on FirebaseException catch (e) {
+      // Native iOS auto-configures the [DEFAULT] app from
+      // GoogleService-Info.plist before this runs, so Firebase.apps.isEmpty
+      // is unreliable here -- treat duplicate-app as already initialised
+      // (same workaround as main.dart).
+      if (e.code != 'duplicate-app') rethrow;
     }
     await fb.FirebaseAuth.instance.signOut();
   });
@@ -49,7 +55,7 @@ void main() {
     await tester.enterText(find.widgetWithText(TextFormField, 'Password'), password);
     await tester.tap(find.widgetWithText(ElevatedButton, 'Sign Up'));
     await tester.pumpAndSettle(const Duration(seconds: 10));
-    expect(find.text('Welcome back,'), findsOneWidget);
+    expect(find.textContaining('Welcome back,'), findsOneWidget);
   }
 
   Future<void> signIn(WidgetTester tester, String email) async {
@@ -60,7 +66,7 @@ void main() {
     await tester.enterText(find.widgetWithText(TextFormField, 'Password'), password);
     await tester.tap(find.widgetWithText(ElevatedButton, 'Sign In'));
     await tester.pumpAndSettle(const Duration(seconds: 10));
-    expect(find.text('Welcome back,'), findsOneWidget);
+    expect(find.textContaining('Welcome back,'), findsOneWidget);
   }
 
   // ConnectionsScreen (and any other tab-content screen reached via
@@ -101,11 +107,11 @@ void main() {
     ));
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(
-      find.widgetWithText(OutlinedButton, 'Connections'),
+      find.widgetWithText(ListTile, 'Connections'),
       200,
       scrollable: find.byType(Scrollable).first,
     );
-    await tester.tap(find.widgetWithText(OutlinedButton, 'Connections'));
+    await tester.tap(find.widgetWithText(ListTile, 'Connections'));
     await tester.pumpAndSettle(const Duration(seconds: 8));
     expect(find.text('Connections'), findsWidgets); // AppBar title
   }

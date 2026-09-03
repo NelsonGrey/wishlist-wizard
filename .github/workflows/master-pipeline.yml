@@ -44,12 +44,11 @@ on:
       - develop
       - staging
       - main
-  # develop is deliberately excluded here even though the project manifest
-  # (.cicd/projects/wishlist-wizard.yml) lists it under ci.triggers — adding
-  # it would newly activate deploy-firebase (a real Functions deploy) on
-  # every develop push, a bigger behavior change than "leave develop as-is".
-  # develop keeps its existing dev-hosting-only deploy via
-  # firebase-hosting-dev.yml.
+  # develop is intentionally not triggered here. It has its own dedicated
+  # workflow, firebase-hosting-dev.yml, which deploys Functions + Firestore
+  # rules + Hosting to wishlist-wizard-dev on every develop push — so the
+  # wishlist-wizard and wishlist-wizard-functions develop branches stay in
+  # sync on dev. Routing develop through this pipeline too would double-deploy.
   push:
     branches:
       - staging
@@ -253,7 +252,7 @@ jobs:
           cache: npm
 
       - name: Setup Java 21
-        uses: actions/setup-java@v5
+        uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: '21'
@@ -491,7 +490,7 @@ jobs:
         uses: actions/checkout@v7
 
       - name: Setup Java 21
-        uses: actions/setup-java@v5
+        uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: '21'
@@ -944,6 +943,11 @@ jobs:
     uses: ./.github/workflows/extension-build.yml
     with:
       project_name: ${{ needs.load-config.outputs.project_name }}
+      # One real Chrome Web Store listing → the published extension always
+      # bakes the production Firebase config (VITE_FIREBASE_*), regardless of
+      # which branch triggered the build. The dev build-only path
+      # (firebase-hosting-dev.yml) passes environment: development instead.
+      environment: production
       # There is exactly one real Chrome Web Store listing (no per-environment
       # equivalent to separate Firebase projects), so publish is gated on
       # target_environment == 'production', not just the action name — a

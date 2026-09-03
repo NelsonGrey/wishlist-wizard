@@ -14,8 +14,9 @@ import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
 import {
-  CreditCard, TrendingUp, AlertTriangle, Check, Zap, Users, BarChart3, Code,
+  CreditCard, TrendingUp, AlertTriangle, Check, Zap, Users, BarChart3, Code, Clock3,
 } from 'lucide-react';
+import ComingSoonNotify from '@/components/ComingSoonNotify';
 import type { SubscriptionTier, TierPricing } from '@wishlist-wizard/shared';
 
 interface UpgradeOptionsResponse {
@@ -300,44 +301,62 @@ export default function Subscription() {
         <div>
           <h2 className="text-2xl font-bold mb-4">Upgrade Your Plan</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {subStatus.availableUpgrades.map(({ tier, pricing }) => (
+            {subStatus.availableUpgrades.map(({ tier, pricing, comingSoon }) => (
               <Card key={tier} className="flex flex-col">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <span>{TIER_ICONS[tier]}</span>
                     <span className="capitalize">{tier}</span>
+                    {comingSoon && (
+                      <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-900">
+                        <Clock3 className="h-3 w-3" aria-hidden="true" />
+                        Coming soon
+                      </span>
+                    )}
                   </CardTitle>
                   <CardDescription>{pricing.tagline}</CardDescription>
                 </CardHeader>
-                <CardContent className="flex-1 space-y-4">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Annual Price</p>
-                    <p className="text-2xl font-bold">${pricing.annualUsd}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {pricing.annualSavingPercent}% off monthly
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Monthly Price</p>
-                    <p className="text-lg font-semibold">${pricing.monthlyUsd}/mo</p>
-                  </div>
-                  <div className="space-y-2 pt-4">
-                    <Button
-                      className="w-full"
-                      onClick={() => handleUpgrade(tier, 'annual')}
-                      disabled={redirecting}
-                    >
-                      {redirecting ? 'Redirecting…' : 'Upgrade Annually'}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      className="w-full"
-                      onClick={() => handleUpgrade(tier, 'monthly')}
-                      disabled={redirecting}
-                    >
-                      Upgrade Monthly
-                    </Button>
-                  </div>
+                <CardContent className="flex-1 flex flex-col space-y-4">
+                  {comingSoon ? (
+                    <>
+                      <p className="text-sm text-muted-foreground">
+                        {pricing.displayName} isn't open for sign-ups yet. Leave your email and
+                        we'll let you know the moment it launches.
+                      </p>
+                      <ComingSoonNotify tier={tier} defaultEmail={user?.email ?? ''} variant="inline" />
+                    </>
+                  ) : (
+                    <>
+                      <div>
+                        <p className="text-sm text-muted-foreground">Annual Price</p>
+                        <p className="text-2xl font-bold">${pricing.annualUsd}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {pricing.annualSavingPercent}% off monthly
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-muted-foreground">Monthly Price</p>
+                        <p className="text-lg font-semibold">${pricing.monthlyUsd}/mo</p>
+                      </div>
+                      <div className="space-y-2 pt-4">
+                        <Button
+                          className="w-full"
+                          onClick={() => handleUpgrade(tier, 'annual')}
+                          disabled={redirecting}
+                        >
+                          {redirecting ? 'Redirecting…' : 'Upgrade Annually'}
+                        </Button>
+                        <Button
+                          variant="outline"
+                          className="w-full"
+                          onClick={() => handleUpgrade(tier, 'monthly')}
+                          disabled={redirecting}
+                        >
+                          Upgrade Monthly
+                        </Button>
+                      </div>
+                    </>
+                  )}
                 </CardContent>
               </Card>
             ))}

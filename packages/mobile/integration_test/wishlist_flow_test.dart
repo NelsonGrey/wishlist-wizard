@@ -19,10 +19,16 @@ void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
   setUpAll(() async {
-    if (Firebase.apps.isEmpty) {
+    try {
       await Firebase.initializeApp(
         options: DefaultFirebaseOptions.currentPlatform,
       );
+    } on FirebaseException catch (e) {
+      // Native iOS auto-configures the [DEFAULT] app from
+      // GoogleService-Info.plist before this runs, so Firebase.apps.isEmpty
+      // is unreliable here -- treat duplicate-app as already initialised
+      // (same workaround as main.dart).
+      if (e.code != 'duplicate-app') rethrow;
     }
     await fb.FirebaseAuth.instance.signOut();
   });
@@ -57,7 +63,7 @@ void main() {
       // Real network round-trip to Firebase Auth -- give it real time.
       await tester.pumpAndSettle(const Duration(seconds: 10));
 
-      expect(find.text('Welcome back,'), findsOneWidget);
+      expect(find.textContaining('Welcome back,'), findsOneWidget);
 
       // --- Navigate to Wishlists tab ---
       // The bare text also appears elsewhere once wishlists exist later in
@@ -69,7 +75,7 @@ void main() {
         matching: find.text('Wishlists'),
       ));
       await tester.pumpAndSettle(const Duration(seconds: 5));
-      expect(find.text('Firebase Wishlists'), findsOneWidget);
+      expect(find.widgetWithText(AppBar, 'Wishlists'), findsOneWidget);
 
       // --- Create a wishlist ---
       await tester.tap(find.byType(FloatingActionButton));

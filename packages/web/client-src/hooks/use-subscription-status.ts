@@ -13,7 +13,7 @@ export interface SubscriptionStatus {
   usage: Record<string, number>;
   limits: TierLimits;
   pricing: TierPricing;
-  availableUpgrades: Array<{ tier: SubscriptionTier; pricing: TierPricing }>;
+  availableUpgrades: Array<{ tier: SubscriptionTier; pricing: TierPricing; comingSoon?: boolean }>;
 }
 
 /** Fetches the current user's subscription tier/status via GET /api/billing/status. */
