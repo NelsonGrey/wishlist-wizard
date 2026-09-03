@@ -130,23 +130,35 @@ jobs:
           VITE_STRIPE_PUBLISHABLE_KEY: ${{ secrets.VITE_STRIPE_PUBLISHABLE_KEY_DEVELOPMENT }}
         run: npm run build --workspace=@wishlist-wizard/web
 
-      # ── Now bring in the private functions repo at its develop HEAD and
-      #    build it against ITS OWN lockfile (which is in sync).
+      # ── Bring in the private functions repo at its develop HEAD.
+      #    Checked out to functions_src (a top-level dir that does NOT match
+      #    the root package.json's "packages/*" workspace glob) so `npm ci`
+      #    resolves against the functions repo's own in-sync lockfile instead
+      #    of being hijacked into the monorepo workspace and validated against
+      #    the root lock (which can't know these deps — packages/functions is
+      #    gitignored here). It's rsync'd into packages/functions afterwards
+      #    for `firebase deploy` (firebase.json's "source": "packages/functions").
       - name: Checkout Functions (private companion repo)
         uses: actions/checkout@v5
         with:
           repository: NelsonGrey/wishlist-wizard-functions
           token: ${{ secrets.FUNCTIONS_REPO_PAT }}
           ref: develop
-          path: packages/functions
+          path: functions_src
 
       - name: Build Functions
-        working-directory: packages/functions
-        # prebuild runs scripts/vendor-shared.js, which copies
-        # ../../shared/dist (built above) into the vendored package.
+        env:
+          npm_config_workspaces: "false"
+          WW_SHARED_DIST: ${{ github.workspace }}/packages/shared/dist
+        # prebuild runs scripts/vendor-shared.js, which copies the built
+        # shared dist (WW_SHARED_DIST) into the vendored package.
         run: |
+          cd functions_src
           npm ci
           npm run build
+          cd ..
+          mkdir -p packages/functions
+          rsync -a --delete functions_src/ packages/functions/
 
       - name: Use Dev Firebase Config
         run: cp firebase.dev.json firebase.json
