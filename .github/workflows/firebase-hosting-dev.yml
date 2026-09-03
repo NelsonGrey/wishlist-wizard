@@ -44,6 +44,10 @@ jobs:
   # the Functions deploy had. Does not publish to any store.
   extension:
     name: Build & Test Browser Extension (dev)
+    permissions:
+      contents: read
+      issues: write
+      id-token: write
     uses: ./.github/workflows/extension-build.yml
     with:
       project_name: wishlist-wizard
