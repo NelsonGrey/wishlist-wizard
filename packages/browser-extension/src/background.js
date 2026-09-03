@@ -1017,8 +1017,19 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       sendResponse({ success: true });
     }
 
+    // Read-only: the extension needs the caller's current tier + usage to
+    // enforce plan limits and show the right "you're on Free" label. All
+    // purchase/plan-management UI lives on the web app now (the popup
+    // deep-links to ${baseUrl}/subscriptions) — there is no in-extension
+    // checkout, so billingPlans/billingCheckout/billingPortal are gone.
+    //
+    // Goes through the hosting-routed `api` function (GET /api/billing/status),
+    // NOT cloudFunctionsBaseUrl: the standalone billingStatus Cloud Function
+    // was removed in the router migration and 404s (same reason as
+    // findPriceComparisons' comment above).
     else if (message.action === 'billingStatus') {
-      callCallableFunction('billingStatus', {})
+      getBaseUrl()
+        .then((base) => makeAuthenticatedRequest(`${base}/api/billing/status`, { method: 'GET' }))
         .then((data) => sendResponse({ success: true, data }))
         .catch((error) => {
           const trackingInfo = trackError(error, 'billingStatus');
@@ -1031,53 +1042,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       return true;
     }
 
-    else if (message.action === 'billingPlans') {
-      callCallableFunction('billingPlans', {})
-        .then((data) => sendResponse({ success: true, data }))
-        .catch((error) => {
-          const trackingInfo = trackError(error, 'billingPlans');
-          sendResponse({
-            success: false,
-            error: error.message,
-            errorId: trackingInfo.timestamp
-          });
-        });
-      return true;
-    }
-
-    else if (message.action === 'billingCheckout') {
-      const payload = {
-        tier: String(message.tier || ''),
-        billingCycle: String(message.billingCycle || 'monthly')
-      };
-
-      callCallableFunction('billingCheckout', payload)
-        .then((data) => sendResponse({ success: true, data }))
-        .catch((error) => {
-          const trackingInfo = trackError(error, 'billingCheckout');
-          sendResponse({
-            success: false,
-            error: error.message,
-            errorId: trackingInfo.timestamp
-          });
-        });
-      return true;
-    }
-
-    else if (message.action === 'billingPortal') {
-      callCallableFunction('billingPortal', {})
-        .then((data) => sendResponse({ success: true, data }))
-        .catch((error) => {
-          const trackingInfo = trackError(error, 'billingPortal');
-          sendResponse({
-            success: false,
-            error: error.message,
-            errorId: trackingInfo.timestamp
-          });
-        });
-      return true;
-    }
-    
     else {
       // Unknown action
       const error = new Error(`Unknown action: ${message.action}`);
@@ -1190,27 +1154,6 @@ async function makeAuthenticatedRequest(url, options = {}) {
 
   console.log('[API Success] Response:', responseJson);
   return responseJson;
-}
-
-async function callCallableFunction(functionName, data = {}) {
-  const response = await makeAuthenticatedRequest(
-    `${cloudFunctionsBaseUrl}/${functionName}`,
-    {
-      method: 'POST',
-      body: JSON.stringify({ data })
-    }
-  );
-
-  if (response && typeof response === 'object') {
-    if (Object.prototype.hasOwnProperty.call(response, 'result')) {
-      return response.result;
-    }
-    if (Object.prototype.hasOwnProperty.call(response, 'data')) {
-      return response.data;
-    }
-  }
-
-  return response;
 }
 
 // Fetch wishlists from the API
