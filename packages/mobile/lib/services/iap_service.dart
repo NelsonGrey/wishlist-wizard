@@ -92,13 +92,28 @@ class IapService extends ChangeNotifier {
   String? get lastVerifiedTier => _lastVerifiedTier;
   int get eventId => _eventId;
 
-  /// Tiers that can actually be bought in-app on this platform (i.e. have a
-  /// store product). The subscription screen filters the backend's upgrade
-  /// options to this set so tiers with no IAP product -- notably the
-  /// contact-sales "Enterprise" tier -- are never offered on mobile, which
-  /// App Store review rejects.
-  Set<String> get purchasableTiers =>
+  /// Tiers that are built but intentionally not yet open for self-serve
+  /// purchase. Mirrors COMING_SOON_TIERS in
+  /// packages/shared/src/subscription.ts -- keep the two in sync. The
+  /// subscription screen renders these as a "Coming soon" + notify-me row
+  /// instead of an upgrade button, and the backend rejects checkout for them.
+  static const Set<String> comingSoonTiers = {'creator', 'business', 'enterprise'};
+
+  /// Every tier that has an in-app purchase product defined for this
+  /// platform, regardless of whether it's currently purchasable. Used to keep
+  /// the contact-sales "Enterprise" tier (no product) off mobile entirely,
+  /// including out of the "Coming soon" waitlist section.
+  Set<String> get catalogTiers =>
       _productCatalog.values.map((spec) => spec.tier).toSet();
+
+  /// Tiers that can actually be bought in-app on this platform right now:
+  /// they have a store product AND are not gated behind "Coming soon". The
+  /// subscription screen filters the backend's upgrade options to this set so
+  /// non-purchasable tiers -- the contact-sales "Enterprise" tier, and the
+  /// currently-gated Creator/Business tiers -- are never offered for purchase
+  /// on mobile, which App Store review rejects.
+  Set<String> get purchasableTiers =>
+      catalogTiers.where((tier) => !comingSoonTiers.contains(tier)).toSet();
 
   String? productIdFor(String tier, String billingCycle) {
     for (final entry in _productCatalog.entries) {

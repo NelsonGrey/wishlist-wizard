@@ -670,6 +670,26 @@ class FirebaseFunctionsService {
     }
   }
 
+  /// Records a "notify me" sign-up for a Coming-Soon tier (Creator and
+  /// above). See packages/functions/src/api/tierInterest.ts. The mobile
+  /// caller is always signed in, so the capture is linked to the account.
+  Future<Map<String, dynamic>> registerTierInterest({
+    required String email,
+    required String tier,
+  }) async {
+    try {
+      final result = await _apiRequest(
+        'POST',
+        '/tier-interest',
+        body: {'email': email, 'tier': tier, 'source': 'mobile'},
+      );
+      return Map<String, dynamic>.from(result as Map);
+    } catch (e) {
+      _logger.severe('Error calling registerTierInterest: $e');
+      rethrow;
+    }
+  }
+
   /// Verifies a native StoreKit/Play Billing purchase server-side and
   /// updates the user's subscription tier. See packages/functions/src/api/iap.ts.
   Future<Map<String, dynamic>> verifyIapPurchase({
