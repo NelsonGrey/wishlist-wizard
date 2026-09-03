@@ -75,14 +75,22 @@ Promotion path: `develop` → `main` → production.
 
 ---
 
-### 1.3 Open Issues Triage [STATUS CHANGED — 2026-08-10, needs owner confirmation]
+### 1.3 Open Issues Triage [RESOLVED — 2026-09-02, no accessible issue backlog exists]
 
-**Original problem (2026-06-16):** The repository had 44 open GitHub issues requiring triage.
+**Original problem (2026-06-16):** The repository was reported to have 44 open GitHub issues requiring triage.
 
-**Found 2026-08-10:** The GitHub Issues feature is now **disabled** on `NelsonGrey/wishlist-wizard` (`gh repo view` → `hasIssuesEnabled: false`). This means either (a) the 44 issues were triaged/closed and Issues deliberately turned off, or (b) Issues was disabled with open items still in it and now inaccessible via the GitHub UI/API for this repo. Not something this session can determine from the repo alone — needs the account owner to confirm via GitHub's org/repo settings (Issues can be re-enabled without losing prior issue data). If tracking moved elsewhere (a project board, an external tracker), this section should be updated to point at it instead.
+**Found 2026-08-10:** The GitHub Issues feature is **disabled** on `NelsonGrey/wishlist-wizard`.
 
-- [ ] **Confirm whether the 44 issues were triaged before Issues was disabled, or are dormant and inaccessible** — Owner: _______
-- [ ] **If pre-launch-blocking issues exist in the dormant tracker, re-enable Issues and resolve them; otherwise close this item** — Owner: _______
+**Resolved 2026-09-02 — verified via the GitHub API, not just the UI toggle:**
+- `GET /repos/NelsonGrey/wishlist-wizard/issues?state=all` (which returns issues *and* PRs) returns **only pull requests — zero issue objects**, open or closed.
+- `GET /search/issues?q=repo:NelsonGrey/wishlist-wizard+type:issue` → `total_count: 0`. GitHub's search index has never indexed a single issue for this repo under its current name.
+- `repos/...` metadata: `has_issues: false`, `open_issues_count: 1` — and that "1" is the field's inclusion of the one open Dependabot **PR**, not an issue.
+- The old `mnelson3/wishlist-wizard` path 301-redirects to `NelsonGrey/wishlist-wizard` (a rename/transfer, same underlying repo and data), so there is no separate old repo still holding the 44.
+
+**Conclusion:** there is no dormant, inaccessible issue backlog. Whatever the 2026-06-16 "44 issues" figure referred to (a pre-transfer state, a different tracker, or a miscount), it is not a live pre-launch backlog now — the repo has zero issues in every API surface. Nothing to re-enable, nothing to triage. This item is closed; if issue tracking is wanted post-launch, re-enable Issues then and start fresh.
+
+- [x] **Confirm whether the 44 issues were triaged or are dormant/inaccessible** — Done 2026-09-02: neither; the repo has 0 issues via `issues?state=all` and `search/issues type:issue`.
+- [x] **If pre-launch-blocking issues exist in a dormant tracker, resolve them; otherwise close this item** — Closed: no such tracker exists.
 
 ---
 
