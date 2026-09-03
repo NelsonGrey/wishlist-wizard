@@ -6,9 +6,9 @@ import { test, expect } from './fixtures';
 // pre-seeded session), submitting an add-to-wishlist all the way through to
 // success or a server error, and creating a wishlist inline from the product
 // screen. These exercise the extension's actual backend contracts
-// (extensionGetWishlists / extensionAddItem / extensionCreateWishlist /
+// (GET/POST /api/extension/wishlists, POST /api/extension/items,
 // Firebase's signInWithPassword REST call) via stubbed responses, the same
-// way add-to-wishlist-flow.spec.ts stubs billingStatus/billingPlans.
+// way add-to-wishlist-flow.spec.ts stubs GET /api/billing/status.
 
 const FIXTURE_URL = 'https://e2e-fixture-shop.test/products/trail-backpack';
 
@@ -65,11 +65,8 @@ async function seedAuthenticatedSession(context: BrowserContext, extensionId: st
 
 test.describe('browser extension — popup auth', () => {
   test.beforeEach(async ({ context }) => {
-    await context.route('**/billingStatus', (route) =>
-      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ plan: 'free', status: 'active' }) })
-    );
-    await context.route('**/billingPlans', (route) =>
-      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ plans: [] }) })
+    await context.route('**/api/billing/status', (route) =>
+      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ tier: 'free', status: 'active', usage: {}, limits: {} }) })
     );
   });
 
@@ -155,11 +152,8 @@ test.describe('browser extension — popup auth', () => {
 
 test.describe('browser extension — add-to-wishlist submission', () => {
   test.beforeEach(async ({ context }) => {
-    await context.route('**/billingStatus', (route) =>
-      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ plan: 'free', status: 'active' }) })
-    );
-    await context.route('**/billingPlans', (route) =>
-      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ plans: [] }) })
+    await context.route('**/api/billing/status', (route) =>
+      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ tier: 'free', status: 'active', usage: {}, limits: {} }) })
     );
     await context.route(FIXTURE_URL, (route) =>
       route.fulfill({ status: 200, contentType: 'text/html', body: FIXTURE_HTML })
@@ -185,7 +179,7 @@ test.describe('browser extension — add-to-wishlist submission', () => {
 
   test('selecting a wishlist and submitting adds the item and shows the success screen', async ({ context, extensionId }) => {
     await seedAuthenticatedSession(context, extensionId);
-    await context.route('**/extensionGetWishlists', (route) =>
+    await context.route('**/api/extension/wishlists', (route) =>
       route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -195,7 +189,7 @@ test.describe('browser extension — add-to-wishlist submission', () => {
         ]),
       })
     );
-    await context.route('**/extensionAddItem', (route) =>
+    await context.route('**/api/extension/items', (route) =>
       route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ id: 'item1' }) })
     );
 
@@ -212,14 +206,14 @@ test.describe('browser extension — add-to-wishlist submission', () => {
 
   test('a server error on submission shows the error screen with a retry option', async ({ context, extensionId }) => {
     await seedAuthenticatedSession(context, extensionId);
-    await context.route('**/extensionGetWishlists', (route) =>
+    await context.route('**/api/extension/wishlists', (route) =>
       route.fulfill({
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify([{ id: 'w1', name: 'Birthday List' }]),
       })
     );
-    await context.route('**/extensionAddItem', (route) =>
+    await context.route('**/api/extension/items', (route) =>
       route.fulfill({
         status: 500,
         contentType: 'application/json',
@@ -237,24 +231,56 @@ test.describe('browser extension — add-to-wishlist submission', () => {
     await expect(popup.locator('#retry-button')).toBeVisible();
   });
 
+  test('a plan-limit error shows the paywall, which deep-links to the web app instead of an in-popup checkout', async ({ context, extensionId }) => {
+    await seedAuthenticatedSession(context, extensionId);
+    await context.route('**/api/extension/wishlists', (route) =>
+      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([{ id: 'w1', name: 'Birthday List' }]) })
+    );
+    await context.route('**/api/extension/items', (route) =>
+      route.fulfill({
+        status: 403,
+        contentType: 'application/json',
+        body: JSON.stringify({ error: 'You have reached the wishlist item limit on your free plan. Upgrade to add more.' }),
+      })
+    );
+
+    const popup = await openPopupOnProductScreen(context, extensionId);
+    await expect(popup.locator('#wishlist-select option')).toHaveCount(2, { timeout: 10000 });
+    await popup.locator('#add-button').click();
+
+    // Paywall overlay — no pricing cards, no billing-cycle toggle, no in-popup checkout.
+    await expect(popup.locator('#paywall-overlay')).toBeVisible({ timeout: 10000 });
+    await expect(popup.locator('#paywall-options')).toHaveCount(0);
+    await expect(popup.locator('#paywall-billing-monthly')).toHaveCount(0);
+    await expect(popup.locator('#tier-modal-overlay')).toHaveCount(0);
+
+    // "View plans" opens the web app's subscription page in a new tab.
+    const newPagePromise = context.waitForEvent('page');
+    await popup.locator('#paywall-view-plans-button').click();
+    const newPage = await newPagePromise;
+    expect(newPage.url()).toContain('/app/subscription');
+  });
+
   test('creating a wishlist inline selects it automatically for the current item', async ({ context, extensionId }) => {
     await seedAuthenticatedSession(context, extensionId);
 
     let getWishlistsCalls = 0;
-    await context.route('**/extensionGetWishlists', (route) => {
+    // GET and POST share the /api/extension/wishlists path now — branch on method.
+    await context.route('**/api/extension/wishlists', (route) => {
+      if (route.request().method() === 'POST') {
+        route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ id: 'w2', name: 'Holiday List' }),
+        });
+        return;
+      }
       getWishlistsCalls += 1;
       const wishlists = getWishlistsCalls === 1
         ? [{ id: 'w1', name: 'Existing List' }]
         : [{ id: 'w1', name: 'Existing List' }, { id: 'w2', name: 'Holiday List' }];
       route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(wishlists) });
     });
-    await context.route('**/extensionCreateWishlist', (route) =>
-      route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({ id: 'w2', name: 'Holiday List' }),
-      })
-    );
 
     const popup = await openPopupOnProductScreen(context, extensionId);
     await expect(popup.locator('#wishlist-select option')).toHaveCount(2, { timeout: 10000 }); // placeholder + w1

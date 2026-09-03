@@ -108,7 +108,7 @@ void main() {
     expect(find.text('Mark'), findsOneWidget);
   });
 
-  testWidgets('falls back to email when the user has no name', (tester) async {
+  testWidgets('derives a first name from the email when the user has no name', (tester) async {
     final noNameUser = User(id: 'u1', email: 'mark@example.com', createdAt: DateTime(2026));
     when(() => authService.authStateChanges).thenAnswer((_) => Stream<User?>.value(noNameUser));
     when(() => authService.getCurrentUser()).thenAnswer((_) async => noNameUser);
@@ -116,7 +116,10 @@ void main() {
 
     await pumpHome(tester);
 
-    expect(find.text('mark@example.com'), findsOneWidget);
+    // The greeting shows the email local-part, title-cased -- not the raw address.
+    expect(find.text('Welcome back,'), findsOneWidget);
+    expect(find.text('Mark'), findsOneWidget);
+    expect(find.text('mark@example.com'), findsNothing);
   });
 
   testWidgets('shows the empty state when there are no wishlists', (tester) async {

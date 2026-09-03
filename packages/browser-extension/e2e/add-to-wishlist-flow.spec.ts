@@ -56,16 +56,13 @@ async function seedAuthenticatedSession(context: BrowserContext, extensionId: st
 
 test.describe('browser extension — add while browsing', () => {
   test.beforeEach(async ({ context }) => {
-    // The real (non-emulated) billing Cloud Functions would 401 any token
-    // that isn't a genuinely valid Firebase session — including a seeded
-    // one — and background.js correctly clears auth state on any 401. Stub
-    // those two calls so this test can exercise the extension's own flow in
+    // The real billing endpoint (GET /api/billing/status) would 401 any
+    // token that isn't a genuinely valid Firebase session — including a
+    // seeded one — and background.js correctly clears auth state on any 401.
+    // Stub it so this test can exercise the extension's own flow in
     // isolation, without needing the whole web app + Firebase emulator stack.
-    await context.route('**/billingStatus', (route) =>
-      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ plan: 'free', status: 'active' }) })
-    );
-    await context.route('**/billingPlans', (route) =>
-      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ plans: [] }) })
+    await context.route('**/api/billing/status', (route) =>
+      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ tier: 'free', status: 'active', usage: {}, limits: {} }) })
     );
     await context.route(FIXTURE_URL, (route) =>
       route.fulfill({ status: 200, contentType: 'text/html', body: FIXTURE_HTML })

@@ -12,10 +12,16 @@ void main() {
   // Initialize Firebase once before all tests so setUp/setUpAll hooks can
   // call FirebaseAuth.instance safely.
   setUpAll(() async {
-    if (Firebase.apps.isEmpty) {
+    try {
       await Firebase.initializeApp(
         options: DefaultFirebaseOptions.currentPlatform,
       );
+    } on FirebaseException catch (e) {
+      // Native iOS auto-configures the [DEFAULT] app from
+      // GoogleService-Info.plist before this runs, so Firebase.apps.isEmpty
+      // is unreliable here -- treat duplicate-app as already initialised
+      // (same workaround as main.dart).
+      if (e.code != 'duplicate-app') rethrow;
     }
   });
 
@@ -94,7 +100,7 @@ void main() {
       await tester.pumpWidget(const WishlistWizardApp());
       await tester.pumpAndSettle(const Duration(seconds: 5));
 
-      expect(find.text('Welcome back,'), findsOneWidget);
+      expect(find.textContaining('Welcome back,'), findsOneWidget);
       expect(find.text('Home'), findsOneWidget);
     });
 
@@ -124,7 +130,7 @@ void main() {
       await tester.tap(find.text('Wishlists'));
       await tester.pumpAndSettle(const Duration(seconds: 5));
 
-      expect(find.text('Firebase Wishlists'), findsOneWidget);
+      expect(find.widgetWithText(AppBar, 'Wishlists'), findsOneWidget);
     });
 
     testWidgets('profile tab shows logout button', (tester) async {

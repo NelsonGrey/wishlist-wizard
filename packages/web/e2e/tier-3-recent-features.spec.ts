@@ -212,27 +212,44 @@ test.describe('Tier 3: Billing — paid-tier checkout', () => {
     test.skip(!ready, 'Registration unavailable in this environment — see e2e/fixtures/bootstrap.ts');
   });
 
-  // Regression test for the 2026-08-09 bug where router.ts's secrets array
-  // never bound the Creator/Business price IDs, breaking checkout for those
-  // two tiers in every environment (see
-  // project_stripe_creator_business_price_bug_2026-08-09). Doesn't complete
-  // a purchase — just proves /api/billing/checkout resolves a real Stripe
-  // Checkout Session URL for a specific tier, which is exactly what that bug
-  // broke silently.
-  test('T3.6: upgrading to a paid tier redirects to a real Stripe Checkout session', async () => {
+  // Proves /api/billing/checkout still resolves a real Stripe Checkout
+  // Session URL for a self-serve tier. Originally a regression test for the
+  // 2026-08-09 bug where router.ts's secrets array never bound the
+  // Creator/Business price IDs; now that Creator-and-above are waitlist-gated
+  // (COMING_SOON_TIERS), it targets whichever purchasable tier card renders
+  // an "Upgrade Monthly" button (Starter/Plus). Doesn't complete a purchase.
+  test('T3.6: upgrading to a self-serve tier redirects to a real Stripe Checkout session', async () => {
     await page.goto('/app/subscription');
     await page.waitForLoadState('domcontentloaded');
 
     await expect(page.getByText('Upgrade Your Plan')).toBeVisible({ timeout: 15000 });
 
     const upgradeCards = page.locator('.grid > div').filter({ has: page.getByRole('button', { name: 'Upgrade Monthly' }) });
-    const creatorCard = upgradeCards.filter({ hasText: 'creator' });
-    const targetCard = (await creatorCard.count()) > 0 ? creatorCard.first() : upgradeCards.first();
+    const targetCard = upgradeCards.first();
     await expect(targetCard).toBeVisible({ timeout: 10000 });
 
     await targetCard.getByRole('button', { name: 'Upgrade Monthly' }).click();
 
     await page.waitForURL(/checkout\.stripe\.com/, { timeout: 15000 });
     expect(page.url()).toContain('checkout.stripe.com');
+  });
+
+  // Creator-and-above are built but intentionally not open for self-serve
+  // purchase yet (COMING_SOON_TIERS in @wishlist-wizard/shared). Their
+  // upgrade cards must show a "Coming soon" state with an email-capture
+  // control and NO checkout button — server-side billingCheckout also
+  // hard-rejects these tiers.
+  test('T3.7: a Coming-Soon tier shows a waitlist capture instead of a checkout button', async () => {
+    await page.goto('/app/subscription');
+    await page.waitForLoadState('domcontentloaded');
+
+    await expect(page.getByText('Upgrade Your Plan')).toBeVisible({ timeout: 15000 });
+
+    const comingSoonCard = page.locator('.grid > div').filter({ hasText: 'Coming soon' }).first();
+    await expect(comingSoonCard).toBeVisible({ timeout: 10000 });
+
+    await expect(comingSoonCard.getByRole('button', { name: /notify me when it launches/i })).toBeVisible();
+    await expect(comingSoonCard.getByRole('button', { name: 'Upgrade Monthly' })).toHaveCount(0);
+    await expect(comingSoonCard.getByRole('button', { name: 'Upgrade Annually' })).toHaveCount(0);
   });
 });

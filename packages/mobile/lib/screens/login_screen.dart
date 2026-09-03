@@ -1,9 +1,11 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../services/password_policy_service.dart';
+import '../theme/design_tokens.dart';
 import 'forgot_password_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -158,7 +160,7 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     debugPrint('[LoginScreen] build');
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F2FF),
+      backgroundColor: AppColors.background,
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
@@ -176,17 +178,22 @@ class _LoginScreenState extends State<LoginScreen> {
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           // App Logo/Title
-                          const Icon(
-                            Icons.card_giftcard,
-                            size: 80,
-                            color: Color(0xFF6B46C1),
+                          Center(
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(AppRadius.xl),
+                              child: SvgPicture.asset(
+                                'assets/logo.svg',
+                                width: 88,
+                                height: 88,
+                              ),
+                            ),
                           ),
                           const SizedBox(height: 24),
                           Text(
                             'Wishlist Wizard',
                             style: Theme.of(context).textTheme.headlineMedium
                                 ?.copyWith(
-                                  color: const Color(0xFF6B46C1),
+                                  color: AppColors.emerald,
                                   fontWeight: FontWeight.bold,
                                 ),
                             textAlign: TextAlign.center,

@@ -16,10 +16,16 @@ void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
   setUpAll(() async {
-    if (Firebase.apps.isEmpty) {
+    try {
       await Firebase.initializeApp(
         options: DefaultFirebaseOptions.currentPlatform,
       );
+    } on FirebaseException catch (e) {
+      // Native iOS auto-configures the [DEFAULT] app from
+      // GoogleService-Info.plist before this runs, so Firebase.apps.isEmpty
+      // is unreliable here -- treat duplicate-app as already initialised
+      // (same workaround as main.dart).
+      if (e.code != 'duplicate-app') rethrow;
     }
     await fb.FirebaseAuth.instance.signOut();
   });
@@ -41,7 +47,7 @@ void main() {
       await tester.enterText(find.widgetWithText(TextFormField, 'Password'), password);
       await tester.tap(find.widgetWithText(ElevatedButton, 'Sign Up'));
       await tester.pumpAndSettle(const Duration(seconds: 10));
-      expect(find.text('Welcome back,'), findsOneWidget);
+      expect(find.textContaining('Welcome back,'), findsOneWidget);
 
       // --- Create a wishlist with one priced item ---
       await tester.tap(find.descendant(
@@ -76,11 +82,11 @@ void main() {
       ));
       await tester.pumpAndSettle();
       await tester.scrollUntilVisible(
-        find.widgetWithText(OutlinedButton, 'Price Tracking'),
+        find.widgetWithText(ListTile, 'Price Tracking'),
         200,
         scrollable: find.byType(Scrollable).first,
       );
-      await tester.tap(find.widgetWithText(OutlinedButton, 'Price Tracking'));
+      await tester.tap(find.widgetWithText(ListTile, 'Price Tracking'));
       await tester.pumpAndSettle(const Duration(seconds: 8));
       expect(find.text('Price Tracking'), findsWidgets); // AppBar title
       expect(find.text('No price alerts set. Tap + to track an item.'), findsOneWidget);

@@ -265,6 +265,22 @@ class FirebaseAuthService {
     }
   }
 
+  /// Reloads the Firebase user (picking up a server-side displayName/photoURL
+  /// change, e.g. after a profile edit) and returns the fresh model.
+  Future<User?> reloadCurrentUser() async {
+    if (!await _ensureFirebaseInitialized()) {
+      return null;
+    }
+    try {
+      await _auth.currentUser?.reload();
+      final firebaseUser = _auth.currentUser;
+      return firebaseUser == null ? null : _firebaseUserToUser(firebaseUser);
+    } catch (e) {
+      print('Error reloading current user: $e');
+      return null;
+    }
+  }
+
   Future<void> logout() async {
     _pendingLinkCredential = null;
     if (!await _ensureFirebaseInitialized()) {

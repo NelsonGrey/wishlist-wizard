@@ -3,6 +3,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../firebase_options.dart';
 import '../services/firebase_functions_service.dart';
+import '../widgets/app_scaffold.dart';
 
 const Map<String, String> _payoutStatusLabels = {
   'not_created': 'Not started',
@@ -138,21 +139,19 @@ class _CreatorDashboardScreenState extends State<CreatorDashboardScreen> {
   Widget build(BuildContext context) {
     return DefaultTabController(
       length: 4,
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text('Creator Tools'),
-          bottom: _isLoading || _upgradeRequired || _error != null
-              ? null
-              : const TabBar(
-                  isScrollable: true,
-                  tabs: [
-                    Tab(text: 'Performance'),
-                    Tab(text: 'Commissions'),
-                    Tab(text: 'Payouts'),
-                    Tab(text: 'Adjustments'),
-                  ],
-                ),
-        ),
+      child: AppScaffold(
+        title: 'Creator Tools',
+        bottom: _isLoading || _upgradeRequired || _error != null
+            ? null
+            : const TabBar(
+                isScrollable: true,
+                tabs: [
+                  Tab(text: 'Performance'),
+                  Tab(text: 'Commissions'),
+                  Tab(text: 'Payouts'),
+                  Tab(text: 'Adjustments'),
+                ],
+              ),
         body: _buildBody(),
       ),
     );
@@ -197,13 +196,11 @@ class _CreatorDashboardScreenState extends State<CreatorDashboardScreen> {
         SizedBox(height: 16),
         Text(
           'The creator dashboard is a Creator Pro feature',
-          textAlign: TextAlign.center,
           style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18),
         ),
         SizedBox(height: 8),
         Text(
           'Upgrade to track performance, commission status, payout readiness, and adjustments for the retail links you share.',
-          textAlign: TextAlign.center,
         ),
       ],
     );
@@ -423,7 +420,7 @@ class _CreatorDashboardScreenState extends State<CreatorDashboardScreen> {
               padding: const EdgeInsets.all(16),
               children: const [
                 SizedBox(height: 60),
-                Center(child: Text('No adjustments on your account.')),
+                Text('No adjustments on your account.'),
               ],
             )
           : ListView(

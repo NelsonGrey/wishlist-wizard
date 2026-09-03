@@ -21,10 +21,16 @@ void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
   setUpAll(() async {
-    if (Firebase.apps.isEmpty) {
+    try {
       await Firebase.initializeApp(
         options: DefaultFirebaseOptions.currentPlatform,
       );
+    } on FirebaseException catch (e) {
+      // Native iOS auto-configures the [DEFAULT] app from
+      // GoogleService-Info.plist before this runs, so Firebase.apps.isEmpty
+      // is unreliable here -- treat duplicate-app as already initialised
+      // (same workaround as main.dart).
+      if (e.code != 'duplicate-app') rethrow;
     }
     await fb.FirebaseAuth.instance.signOut();
   });
@@ -55,7 +61,7 @@ void main() {
       await tester.enterText(find.widgetWithText(TextFormField, 'Password'), password);
       await tester.tap(find.widgetWithText(ElevatedButton, 'Sign Up'));
       await tester.pumpAndSettle(const Duration(seconds: 10));
-      expect(find.text('Welcome back,'), findsOneWidget);
+      expect(find.textContaining('Welcome back,'), findsOneWidget);
 
       // --- Create a wishlist ---
       await tester.tap(find.descendant(

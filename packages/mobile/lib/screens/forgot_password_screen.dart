@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
+import '../theme/design_tokens.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({super.key});
@@ -51,12 +52,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F2FF),
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF6B46C1),
-        foregroundColor: Colors.white,
-        title: const Text('Reset Password'),
-      ),
+      backgroundColor: AppColors.background,
+      appBar: AppBar(title: const Text('Reset Password')),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24.0),
@@ -73,14 +70,14 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                       const Icon(
                         Icons.lock_reset,
                         size: 80,
-                        color: Color(0xFF6B46C1),
+                        color: AppColors.primary,
                       ),
                       const SizedBox(height: 24),
                       Text(
                         _emailSent ? 'Email Sent!' : 'Forgot Password?',
                         style: Theme.of(context).textTheme.headlineMedium
                             ?.copyWith(
-                              color: const Color(0xFF6B46C1),
+                              color: AppColors.emerald,
                               fontWeight: FontWeight.bold,
                             ),
                         textAlign: TextAlign.center,
