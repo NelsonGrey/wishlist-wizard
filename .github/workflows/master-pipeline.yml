@@ -943,6 +943,11 @@ jobs:
     uses: ./.github/workflows/extension-build.yml
     with:
       project_name: ${{ needs.load-config.outputs.project_name }}
+      # One real Chrome Web Store listing → the published extension always
+      # bakes the production Firebase config (VITE_FIREBASE_*), regardless of
+      # which branch triggered the build. The dev build-only path
+      # (firebase-hosting-dev.yml) passes environment: development instead.
+      environment: production
       # There is exactly one real Chrome Web Store listing (no per-environment
       # equivalent to separate Firebase projects), so publish is gated on
       # target_environment == 'production', not just the action name — a

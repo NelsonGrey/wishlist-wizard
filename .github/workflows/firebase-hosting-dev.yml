@@ -38,6 +38,18 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # Build + unit + e2e (extension loaded in a real browser) on every develop
+  # push, with the dev Firebase config baked in. Previously the extension
+  # only got CI via master-pipeline.yml (staging/main) — the same develop gap
+  # the Functions deploy had. Does not publish to any store.
+  extension:
+    name: Build & Test Browser Extension (dev)
+    uses: ./.github/workflows/extension-build.yml
+    with:
+      project_name: wishlist-wizard
+      environment: development
+      publish: false
+
   deploy-dev:
     name: Deploy Functions + Rules + Hosting to Dev
     runs-on: ubuntu-latest
