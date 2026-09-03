@@ -44,12 +44,11 @@ on:
       - develop
       - staging
       - main
-  # develop is deliberately excluded here even though the project manifest
-  # (.cicd/projects/wishlist-wizard.yml) lists it under ci.triggers — adding
-  # it would newly activate deploy-firebase (a real Functions deploy) on
-  # every develop push, a bigger behavior change than "leave develop as-is".
-  # develop keeps its existing dev-hosting-only deploy via
-  # firebase-hosting-dev.yml.
+  # develop is intentionally not triggered here. It has its own dedicated
+  # workflow, firebase-hosting-dev.yml, which deploys Functions + Firestore
+  # rules + Hosting to wishlist-wizard-dev on every develop push — so the
+  # wishlist-wizard and wishlist-wizard-functions develop branches stay in
+  # sync on dev. Routing develop through this pipeline too would double-deploy.
   push:
     branches:
       - staging
@@ -233,19 +232,6 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v7
 
-      # packages/functions moved to a separate private repo (business logic
-      # shouldn't be world-readable on this public repo). It lands at the
-      # exact path it used to occupy, so vendor-shared.js's relative path to
-      # packages/shared/dist and firebase*.json's "source": "packages/functions"
-      # both keep working unchanged.
-      - name: Checkout Functions (private companion repo)
-        uses: actions/checkout@v7
-        with:
-          repository: NelsonGrey/wishlist-wizard-functions
-          token: ${{ secrets.FUNCTIONS_REPO_PAT }}
-          ref: ${{ needs.load-config.outputs.target_environment == 'production' && 'main' || needs.load-config.outputs.target_environment == 'staging' && 'staging' || 'develop' }}
-          path: packages/functions
-
       - name: Setup Node.js
         uses: actions/setup-node@v7
         with:
@@ -253,7 +239,7 @@ jobs:
           cache: npm
 
       - name: Setup Java 21
-        uses: actions/setup-java@v5
+        uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: '21'
@@ -264,6 +250,44 @@ jobs:
         with:
           channel: stable
           cache: true
+
+      # Every monorepo-root npm operation runs BEFORE packages/functions is
+      # checked out. If the functions repo (a "packages/*" workspace) is
+      # present when root `npm ci` runs, it fails EUSAGE: the root lockfile
+      # is generated without the gitignored packages/functions, so it can
+      # never be in sync with the functions repo's own dependencies (e.g.
+      # a `nodemailer` point release the root lock hasn't seen).
+      - name: Install root dependencies + build shared packages
+        run: |
+          npm ci
+          npm run build --workspace=@wishlist-wizard/shared
+          npm run build --workspace=@shared/firebase-utils
+
+      # Business logic lives in a separate private repo. Checked out to
+      # functions_src (NOT a "packages/*" match) so its `npm ci` resolves
+      # against its own in-sync lockfile instead of being hijacked into the
+      # monorepo workspace; rsync'd into packages/functions afterwards so
+      # `npm run check`/`test --workspaces` and firebase.json's
+      # "source": "packages/functions" both work unchanged.
+      - name: Checkout Functions (private companion repo)
+        uses: actions/checkout@v7
+        with:
+          repository: NelsonGrey/wishlist-wizard-functions
+          token: ${{ secrets.FUNCTIONS_REPO_PAT }}
+          ref: ${{ needs.load-config.outputs.target_environment == 'production' && 'main' || needs.load-config.outputs.target_environment == 'staging' && 'staging' || 'develop' }}
+          path: functions_src
+
+      - name: Build Functions (isolated from the monorepo workspace)
+        env:
+          npm_config_workspaces: "false"
+          WW_SHARED_DIST: ${{ github.workspace }}/packages/shared/dist
+        run: |
+          cd functions_src
+          npm ci
+          npm run build
+          cd ..
+          mkdir -p packages/functions
+          rsync -a --delete functions_src/ packages/functions/
 
       - name: Run Quality Gates
         run: |
@@ -279,7 +303,6 @@ jobs:
             exit 1
           fi
 
-          npm ci
           npm run lint
           npm run check
           npm run test --workspaces --if-present
@@ -491,7 +514,7 @@ jobs:
         uses: actions/checkout@v7
 
       - name: Setup Java 21
-        uses: actions/setup-java@v5
+        uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: '21'
@@ -653,19 +676,6 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v7
 
-      # packages/functions moved to a separate private repo (business logic
-      # shouldn't be world-readable on this public repo). It lands at the
-      # exact path it used to occupy, so vendor-shared.js's relative path to
-      # packages/shared/dist and firebase*.json's "source": "packages/functions"
-      # both keep working unchanged.
-      - name: Checkout Functions (private companion repo)
-        uses: actions/checkout@v7
-        with:
-          repository: NelsonGrey/wishlist-wizard-functions
-          token: ${{ secrets.FUNCTIONS_REPO_PAT }}
-          ref: ${{ needs.load-config.outputs.target_environment == 'production' && 'main' || needs.load-config.outputs.target_environment == 'staging' && 'staging' || 'develop' }}
-          path: packages/functions
-
       - name: Setup Node.js
         uses: actions/setup-node@v7
         with:
@@ -677,6 +687,10 @@ jobs:
           npm install -g firebase-tools
           firebase --version
 
+      # Root npm install + shared builds BEFORE the functions checkout — see
+      # the identical note on the `test` job. The functions repo (a
+      # "packages/*" workspace) present during root `npm ci` fails EUSAGE
+      # against the root lockfile, which never tracked its deps.
       - name: Install Dependencies
         run: npm ci --legacy-peer-deps 2>/dev/null || npm ci --force
 
@@ -688,6 +702,29 @@ jobs:
           else
             echo "✓ @shared/firebase-utils (skip)"
           fi
+
+      # Business logic in a separate private repo. Isolated build (non
+      # "packages/*" path, own lockfile) then rsync into packages/functions
+      # for firebase.json's "source" — same pattern as the deploy workflow.
+      - name: Checkout Functions (private companion repo)
+        uses: actions/checkout@v7
+        with:
+          repository: NelsonGrey/wishlist-wizard-functions
+          token: ${{ secrets.FUNCTIONS_REPO_PAT }}
+          ref: ${{ needs.load-config.outputs.target_environment == 'production' && 'main' || needs.load-config.outputs.target_environment == 'staging' && 'staging' || 'develop' }}
+          path: functions_src
+
+      - name: Build Functions (isolated from the monorepo workspace)
+        env:
+          npm_config_workspaces: "false"
+          WW_SHARED_DIST: ${{ github.workspace }}/packages/shared/dist
+        run: |
+          cd functions_src
+          npm ci
+          npm run build
+          cd ..
+          mkdir -p packages/functions
+          rsync -a --delete functions_src/ packages/functions/
 
       - name: Resolve Firebase Project
         id: firebase_project
@@ -944,6 +981,11 @@ jobs:
     uses: ./.github/workflows/extension-build.yml
     with:
       project_name: ${{ needs.load-config.outputs.project_name }}
+      # One real Chrome Web Store listing → the published extension always
+      # bakes the production Firebase config (VITE_FIREBASE_*), regardless of
+      # which branch triggered the build. The dev build-only path
+      # (firebase-hosting-dev.yml) passes environment: development instead.
+      environment: production
       # There is exactly one real Chrome Web Store listing (no per-environment
       # equivalent to separate Firebase projects), so publish is gated on
       # target_environment == 'production', not just the action name — a

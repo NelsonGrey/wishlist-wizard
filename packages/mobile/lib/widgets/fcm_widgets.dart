@@ -510,7 +510,7 @@ class _FCMNotificationPreferencesScreenState
       case FCMNotificationType.priceAlert:
         return Colors.red;
       case FCMNotificationType.collaborationInvite:
-        return Colors.purple;
+        return Colors.teal;
       case FCMNotificationType.systemUpdate:
         return Colors.grey;
     }
@@ -781,7 +781,7 @@ class _FCMNotificationHistoryState extends State<FCMNotificationHistory> {
       case FCMNotificationType.priceAlert:
         return Colors.red;
       case FCMNotificationType.collaborationInvite:
-        return Colors.purple;
+        return Colors.teal;
       case FCMNotificationType.systemUpdate:
         return Colors.grey;
     }

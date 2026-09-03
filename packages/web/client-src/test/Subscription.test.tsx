@@ -265,6 +265,56 @@ describe('Subscription', () => {
     });
   });
 
+  describe('Coming-soon upgrades', () => {
+    const COMING_SOON = {
+      tier: 'creator' as const,
+      pricing: { ...BASE_PRICING, displayName: 'Creator Pro', tagline: 'For creators', annualUsd: 149, monthlyUsd: 14.99 },
+      comingSoon: true,
+    };
+
+    it('shows a Coming soon badge and no checkout buttons for a gated tier', () => {
+      mockSubStatus = { ...BASE_STATUS, availableUpgrades: [COMING_SOON] };
+      render(<Subscription />);
+
+      expect(screen.getByText('Coming soon')).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Upgrade Annually' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Upgrade Monthly' })).not.toBeInTheDocument();
+      expect(screen.queryByText('$149')).not.toBeInTheDocument();
+    });
+
+    it('captures a notify-me sign-up via POST /api/tier-interest', async () => {
+      mockSubStatus = { ...BASE_STATUS, availableUpgrades: [COMING_SOON] };
+      render(<Subscription />);
+      apiRequest.mockResolvedValueOnce({ ok: true, alreadyRegistered: false });
+
+      fireEvent.change(screen.getByPlaceholderText('you@example.com'), {
+        target: { value: 'creator@example.com' },
+      });
+      fireEvent.click(screen.getByRole('button', { name: /notify me when it launches/i }));
+
+      await waitFor(() =>
+        expect(apiRequest).toHaveBeenCalledWith('/api/tier-interest', {
+          method: 'POST',
+          body: { email: 'creator@example.com', tier: 'creator', source: 'web' },
+        }),
+      );
+      expect(await screen.findByText(/we'll email you when Creator Pro launches/i)).toBeInTheDocument();
+    });
+
+    it('rejects an invalid email without calling the API', async () => {
+      mockSubStatus = { ...BASE_STATUS, availableUpgrades: [COMING_SOON] };
+      render(<Subscription />);
+
+      fireEvent.change(screen.getByPlaceholderText('you@example.com'), {
+        target: { value: 'not-an-email' },
+      });
+      fireEvent.click(screen.getByRole('button', { name: /notify me when it launches/i }));
+
+      expect(await screen.findByText('Enter a valid email address.')).toBeInTheDocument();
+      expect(apiRequest).not.toHaveBeenCalled();
+    });
+  });
+
   describe('Free trial banner', () => {
     it('shows for the free tier when a trial is available', () => {
       mockSubStatus = { ...BASE_STATUS, tier: 'free', status: 'none', pricing: { ...BASE_PRICING, trialDays: 14 } };

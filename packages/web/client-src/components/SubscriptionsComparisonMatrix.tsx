@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { Check, Minus, Infinity } from "lucide-react";
-import { TIER_LIMITS, TIER_PRICING, type SubscriptionTier } from "@wishlist-wizard/shared";
+import { TIER_LIMITS, TIER_PRICING, isTierComingSoon, type SubscriptionTier } from "@wishlist-wizard/shared";
 
 const TIERS: SubscriptionTier[] = ["free", "starter", "plus", "creator", "business"];
 
@@ -164,6 +164,11 @@ export default function SubscriptionsComparisonMatrix() {
                 {TIERS.map((tier) => (
                   <th key={tier} className="px-5 py-4 text-sm font-semibold uppercase tracking-wide text-slate-700">
                     {TIER_PRICING[tier].displayName}
+                    {isTierComingSoon(tier) && (
+                      <span className="mt-1 block text-[0.65rem] font-semibold normal-case tracking-normal text-amber-700">
+                        Coming soon
+                      </span>
+                    )}
                   </th>
                 ))}
               </tr>

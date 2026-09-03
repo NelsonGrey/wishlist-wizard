@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
+import '../models/models.dart';
 import '../providers/providers.dart';
 import '../services/firebase_functions_service.dart';
 import 'barcode_scanner_screen.dart';
@@ -34,6 +35,9 @@ class _ScanItemScreenState extends State<ScanItemScreen> {
   final _urlCtrl = TextEditingController();
   final _priceCtrl = TextEditingController();
   final _descCtrl = TextEditingController();
+  final _storeCtrl = TextEditingController();
+
+  Priority _priority = Priority.medium;
   final _barcodeCtrl = TextEditingController();
 
   String? _selectedWishlistId;
@@ -47,6 +51,7 @@ class _ScanItemScreenState extends State<ScanItemScreen> {
     _urlCtrl.dispose();
     _priceCtrl.dispose();
     _descCtrl.dispose();
+    _storeCtrl.dispose();
     _barcodeCtrl.dispose();
     super.dispose();
   }
@@ -89,7 +94,7 @@ class _ScanItemScreenState extends State<ScanItemScreen> {
           _nameCtrl.text = product!['title'] as String;
         }
         if (product?['store'] != null) {
-          _descCtrl.text = product!['store'] as String;
+          _storeCtrl.text = product!['store'] as String;
         }
       });
       ScaffoldMessenger.of(context).showSnackBar(
@@ -144,6 +149,8 @@ class _ScanItemScreenState extends State<ScanItemScreen> {
         _priceCtrl.text.replaceAll(RegExp(r'[^\d.]'), ''),
       ),
       url: _urlCtrl.text.trim().isEmpty ? null : _urlCtrl.text.trim(),
+      store: _storeCtrl.text.trim().isEmpty ? null : _storeCtrl.text.trim(),
+      priority: _priority,
     );
 
     if (!mounted) return;
@@ -279,6 +286,35 @@ class _ScanItemScreenState extends State<ScanItemScreen> {
                 keyboardType: const TextInputType.numberWithOptions(
                   decimal: true,
                 ),
+              ),
+              const SizedBox(height: 12),
+              // Store
+              TextFormField(
+                controller: _storeCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Store (optional)',
+                  hintText: 'e.g. Amazon, REI',
+                  prefixIcon: Icon(Icons.storefront_outlined),
+                ),
+              ),
+              const SizedBox(height: 12),
+              // Priority
+              DropdownButtonFormField<Priority>(
+                initialValue: _priority,
+                decoration: const InputDecoration(
+                  labelText: 'Priority',
+                  prefixIcon: Icon(Icons.flag_outlined),
+                ),
+                items: const [
+                  DropdownMenuItem(value: Priority.low, child: Text('Low')),
+                  DropdownMenuItem(
+                    value: Priority.medium,
+                    child: Text('Medium'),
+                  ),
+                  DropdownMenuItem(value: Priority.high, child: Text('High')),
+                ],
+                onChanged: (v) =>
+                    setState(() => _priority = v ?? Priority.medium),
               ),
               const SizedBox(height: 12),
               // Notes

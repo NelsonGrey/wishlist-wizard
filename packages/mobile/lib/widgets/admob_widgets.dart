@@ -158,7 +158,7 @@ class _NativeAdWidgetState extends State<NativeAdWidget> {
         cornerRadius: 12.0,
         callToActionTextStyle: NativeTemplateTextStyle(
           textColor: Colors.white,
-          backgroundColor: Theme.of(context).primaryColor,
+          backgroundColor: Theme.of(context).colorScheme.primary,
           style: NativeTemplateFontStyle.bold,
           size: 16.0,
         ),
@@ -384,7 +384,7 @@ class _AdRewardedFeatureState extends State<AdRewardedFeature> {
                   Icon(
                     widget.icon,
                     size: 32,
-                    color: Theme.of(context).primaryColor,
+                    color: Theme.of(context).colorScheme.primary,
                   ),
                   const SizedBox(height: 8),
                 ],

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io' show Platform;
 
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -13,18 +14,24 @@ import 'services/services.dart';
 import 'services/admob_service.dart';
 import 'services/fcm_service.dart';
 import 'services/iap_service.dart';
-import 'screens/account_screen.dart';
-import 'screens/achievements_screen.dart';
-import 'screens/calendar_screen.dart';
-import 'screens/connections_screen.dart';
-import 'screens/creator_dashboard_screen.dart';
+import 'theme/app_theme.dart';
+import 'theme/design_tokens.dart';
 import 'screens/login_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/firebase_wishlists_screen.dart';
 import 'screens/notifications_screen.dart';
-import 'screens/price_tracking_screen.dart';
-import 'screens/subscription_screen.dart';
+import 'screens/profile_screen.dart';
 import 'widgets/error_boundary.dart';
+
+// Lets AuthWrapper pop back to the app's root route when the user becomes
+// signed out while a screen is pushed on top (e.g. account_screen.dart's
+// Account & Security, reached via Navigator.push from the Profile tab) --
+// otherwise a sign-out that happens away from the root (a revoked session,
+// or account_screen.dart's own change-password flow re-authenticating and
+// then, in principle, ending up signed out) rebuilds LoginScreen
+// underneath while the pushed route stays on top of the Navigator stack,
+// stranding the user on a stale screen with no way back except a restart.
+final rootNavigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -101,45 +108,11 @@ class WishlistWizardApp extends StatelessWidget {
           ChangeNotifierProvider(create: (_) => IapService()..initialize()),
         ],
         child: MaterialApp(
+          navigatorKey: rootNavigatorKey,
           title: 'Wishlist Wizard',
-          theme: ThemeData(
-            primarySwatch: Colors.green,
-            primaryColor: const Color(0xFF064E3B),
-            hintColor: const Color(0xFF065F46),
-            appBarTheme: const AppBarTheme(
-              backgroundColor: Color(0xFF064E3B),
-              foregroundColor: Colors.white,
-              elevation: 2,
-            ),
-            elevatedButtonTheme: ElevatedButtonThemeData(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF064E3B),
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 24,
-                  vertical: 12,
-                ),
-              ),
-            ),
-            inputDecorationTheme: InputDecorationTheme(
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: Color(0xFF064E3B)),
-              ),
-            ),
-            cardTheme: CardThemeData(
-              elevation: 2,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-          ),
+          theme: AppTheme.light(),
+          darkTheme: AppTheme.dark(),
+          themeMode: ThemeMode.light,
           home: const AuthWrapper(),
         ),
       ),
@@ -147,8 +120,24 @@ class WishlistWizardApp extends StatelessWidget {
   }
 }
 
-class AuthWrapper extends StatelessWidget {
+class AuthWrapper extends StatefulWidget {
   const AuthWrapper({super.key});
+
+  @override
+  State<AuthWrapper> createState() => _AuthWrapperState();
+}
+
+class _AuthWrapperState extends State<AuthWrapper> {
+  // Tracks isLoggedIn across builds so the pop-to-root below only fires on
+  // an actual signed-in -> signed-out transition, not on every rebuild
+  // that happens to land on the LoginScreen branch -- Consumer rebuilds on
+  // every notifyListeners() call, including the per-operation loading
+  // toggle from resetPassword() (called from ForgotPasswordScreen, itself
+  // pushed on top of LoginScreen while already signed out) or any other
+  // auth call made while already logged out. Unconditionally popping on
+  // every such rebuild would strand that pushed screen right back at
+  // login, the same bug this was meant to fix in the first place.
+  bool? _wasLoggedIn;
 
   @override
   Widget build(BuildContext context) {
@@ -157,38 +146,35 @@ class AuthWrapper extends StatelessWidget {
     }
     return Consumer<AuthProvider>(
       builder: (context, authProvider, child) {
-        if (authProvider.isLoading) {
+        if (authProvider.isInitializing) {
           if (kDebugMode) {
             debugPrint('[AuthWrapper] showing loading gate');
           }
           return Scaffold(
-            body: Container(
-              color: const Color(0xFFECFDF5),
-              child: const Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.card_giftcard,
-                      size: 56,
-                      color: Color(0xFF064E3B),
+            backgroundColor: AppColors.ivory,
+            body: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  SvgPicture.asset('assets/logo.svg', width: 72, height: 72),
+                  const SizedBox(height: 20),
+                  const CircularProgressIndicator(),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Starting Wishlist Wizard...',
+                    style: TextStyle(
+                      color: AppColors.emerald,
+                      fontWeight: FontWeight.w600,
                     ),
-                    SizedBox(height: 16),
-                    CircularProgressIndicator(),
-                    SizedBox(height: 16),
-                    Text(
-                      'Starting Wishlist Wizard...',
-                      style: TextStyle(
-                        color: Color(0xFF064E3B),
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
           );
         }
+
+        final wasLoggedIn = _wasLoggedIn;
+        _wasLoggedIn = authProvider.isLoggedIn;
 
         if (authProvider.isLoggedIn) {
           if (kDebugMode) {
@@ -199,6 +185,19 @@ class AuthWrapper extends StatelessWidget {
 
         if (kDebugMode) {
           debugPrint('[AuthWrapper] routing to LoginScreen');
+        }
+        if (wasLoggedIn == true) {
+          // A real signed-in -> signed-out transition (as opposed to a
+          // rebuild that merely lands here again while already logged
+          // out) -- drop any route pushed on top of this one (Account &
+          // Security, Calendar, etc.). Otherwise the pushed route stays on
+          // top of the Navigator's stack while LoginScreen rebuilds
+          // underneath it, stranding the user on a stale screen. Scheduled
+          // for after this frame since Navigator can't be mutated
+          // mid-build.
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            rootNavigatorKey.currentState?.popUntil((route) => route.isFirst);
+          });
         }
         return const LoginScreen();
       },
@@ -287,8 +286,8 @@ class _MainNavigatorState extends State<MainNavigator> {
             _currentIndex = index;
           });
         },
-        selectedItemColor: Theme.of(context).primaryColor,
-        unselectedItemColor: Colors.grey,
+        selectedItemColor: Theme.of(context).colorScheme.primary,
+        unselectedItemColor: AppColors.mutedForeground,
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
           BottomNavigationBarItem(icon: Icon(Icons.list), label: 'Wishlists'),
@@ -303,246 +302,6 @@ class _MainNavigatorState extends State<MainNavigator> {
   }
 }
 
-class ProfileScreen extends StatelessWidget {
-  const ProfileScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: const CustomAppBar(title: 'Profile'),
-      // Wrapped in a scroll view: this Column stacks the profile header
-      // plus 7 buttons, which overflows unscrollably on real devices with
-      // less vertical space than the default test/desktop viewport (found
-      // via a real-device integration test run, not previously known).
-      body: SingleChildScrollView(
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Consumer<AuthProvider>(
-                builder: (context, authProvider, child) {
-                  final user = authProvider.user;
-                  return Column(
-                    children: [
-                      CircleAvatar(
-                        radius: 50,
-                        backgroundImage: user?.profileImageUrl != null
-                            ? NetworkImage(user!.profileImageUrl!)
-                            : null,
-                        child: user?.profileImageUrl == null
-                            ? const Icon(Icons.person, size: 50)
-                            : null,
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        user?.name ?? user?.email ?? 'Unknown User',
-                        style: Theme.of(context).textTheme.headlineSmall,
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        user?.email ?? '',
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Colors.grey[600],
-                        ),
-                      ),
-                    ],
-                  );
-                },
-              ),
-              const SizedBox(height: 32),
-              ElevatedButton.icon(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const SubscriptionScreen(),
-                    ),
-                  );
-                },
-                icon: const Icon(Icons.workspace_premium),
-                label: const Text('Manage Subscription'),
-              ),
-              const SizedBox(height: 12),
-              OutlinedButton.icon(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const AchievementsScreen(),
-                    ),
-                  );
-                },
-                icon: const Icon(Icons.emoji_events_outlined),
-                label: const Text('Achievements'),
-              ),
-              const SizedBox(height: 12),
-              OutlinedButton.icon(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const PriceTrackingScreen(),
-                    ),
-                  );
-                },
-                icon: const Icon(Icons.trending_down_outlined),
-                label: const Text('Price Tracking'),
-              ),
-              const SizedBox(height: 12),
-              OutlinedButton.icon(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const ConnectionsScreen(),
-                    ),
-                  );
-                },
-                icon: const Icon(Icons.people_outline),
-                label: const Text('Connections'),
-              ),
-              const SizedBox(height: 12),
-              OutlinedButton.icon(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const CalendarScreen(),
-                    ),
-                  );
-                },
-                icon: const Icon(Icons.calendar_today_outlined),
-                label: const Text('Calendar'),
-              ),
-              const SizedBox(height: 12),
-              OutlinedButton.icon(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const CreatorDashboardScreen(),
-                    ),
-                  );
-                },
-                icon: const Icon(Icons.storefront_outlined),
-                label: const Text('Creator Tools'),
-              ),
-              const SizedBox(height: 12),
-              OutlinedButton.icon(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const AccountScreen(),
-                    ),
-                  );
-                },
-                icon: const Icon(Icons.security),
-                label: const Text('Account & Security'),
-              ),
-              const SizedBox(height: 12),
-              ElevatedButton(
-                onPressed: () {
-                  Provider.of<AuthProvider>(context, listen: false).logout();
-                },
-                child: const Text('Logout'),
-              ),
-              const SizedBox(height: 24),
-              TextButton(
-                onPressed: () => _showDeleteAccountDialog(context),
-                style: TextButton.styleFrom(foregroundColor: Colors.red),
-                child: const Text('Delete Account'),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  void _showDeleteAccountDialog(BuildContext context) {
-    final confirmController = TextEditingController();
-    var deleting = false;
-
-    showDialog(
-      context: context,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (dialogContext, setDialogState) {
-          final confirmed =
-              confirmController.text.trim().toLowerCase() ==
-              'delete my account';
-
-          return AlertDialog(
-            title: const Text('Delete Your Account?'),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'This action cannot be undone. All your wishlists, preferences, and data will be permanently deleted.',
-                ),
-                const SizedBox(height: 16),
-                const Text('Please type "delete my account" to confirm:'),
-                const SizedBox(height: 8),
-                TextField(
-                  controller: confirmController,
-                  autofocus: true,
-                  enabled: !deleting,
-                  decoration: const InputDecoration(
-                    hintText: 'delete my account',
-                  ),
-                  onChanged: (_) => setDialogState(() {}),
-                ),
-              ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: deleting ? null : () => Navigator.pop(dialogContext),
-                child: const Text('Cancel'),
-              ),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.red,
-                  foregroundColor: Colors.white,
-                ),
-                onPressed: !confirmed || deleting
-                    ? null
-                    : () async {
-                        setDialogState(() => deleting = true);
-                        try {
-                          await FirebaseFunctionsService().deleteAccount();
-                          if (dialogContext.mounted) {
-                            Navigator.pop(dialogContext);
-                          }
-                          if (context.mounted) {
-                            Provider.of<AuthProvider>(
-                              context,
-                              listen: false,
-                            ).logout();
-                          }
-                        } catch (e) {
-                          setDialogState(() => deleting = false);
-                          if (dialogContext.mounted) {
-                            ScaffoldMessenger.of(dialogContext).showSnackBar(
-                              const SnackBar(
-                                content: Text(
-                                  'Failed to delete account. Please try again.',
-                                ),
-                                backgroundColor: Colors.red,
-                              ),
-                            );
-                          }
-                        }
-                      },
-                child: Text(deleting ? 'Deleting...' : 'Delete Account'),
-              ),
-            ],
-          );
-        },
-      ),
-    );
-  }
-}
 
 class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String title;

@@ -16,8 +16,6 @@ let contentScriptFailedHard = false;
 let checkProductPageInFlight = false;
 let statusBannerTimer = null;
 let subscriptionStatus = null;
-let subscriptionUpgradeOptions = [];
-let paywallBillingCycle = 'monthly';
 const MAX_CONTENT_SCRIPT_RETRIES = 2;
 const EXTENSION_ENV_OPTIONS = {
   development: 'https://wishlist-wizard-dev.web.app',
@@ -261,15 +259,18 @@ function getSubscriptionUsageRows() {
   const usage = subscriptionStatus?.usage || {};
   const limits = subscriptionStatus?.limits || {};
 
+  // Field names match GET /api/billing/status exactly
+  // (wishlistsOwned / totalItems / priceTrackedItems) — the old
+  // wishlists / itemsTotal keys never existed on that response.
   return [
     {
       label: 'Wishlists',
-      used: Number(usage.wishlists || 0),
+      used: Number(usage.wishlistsOwned || 0),
       limit: Number(limits.maxWishlists || 0)
     },
     {
       label: 'Items',
-      used: Number(usage.itemsTotal || 0),
+      used: Number(usage.totalItems || 0),
       limit: Number(limits.maxItemsPerWishlist || 0)
     },
     {
@@ -280,22 +281,17 @@ function getSubscriptionUsageRows() {
   ];
 }
 
+// Read-only tier/usage snapshot, used for plan-limit enforcement and the
+// paywall's usage readout. Plans, checkout and billing management all live
+// on the web app now — the paywall just deep-links there.
 async function refreshSubscriptionData() {
   if (!isLoggedIn) {
     return;
   }
 
-  const [statusResponse, optionsResponse] = await Promise.all([
-    sendBackgroundAction('billingStatus'),
-    sendBackgroundAction('billingPlans')
-  ]);
-
+  const statusResponse = await sendBackgroundAction('billingStatus');
   if (statusResponse?.success) {
     subscriptionStatus = statusResponse.data || null;
-  }
-
-  if (optionsResponse?.success) {
-    subscriptionUpgradeOptions = optionsResponse.data?.available || optionsResponse.data?.upgradeOptions || [];
   }
 }
 
@@ -306,149 +302,38 @@ function closePaywall() {
   }
 }
 
-function closeTierModal() {
-  const overlay = document.getElementById('tier-modal-overlay');
-  if (overlay) {
-    overlay.classList.add('hidden');
-  }
+// Opens the web app's subscription page in a new tab. Signed-in users go to
+// /app/subscription (current plan, usage, upgrade + "Coming soon" waitlist,
+// and Stripe billing management all live there); the paywall only ever shows
+// for a signed-in user, so /subscriptions is just a defensive fallback.
+async function openPlansPage() {
+  const base = await getBaseUrl();
+  const path = isLoggedIn ? '/app/subscription' : '/subscriptions';
+  chrome.tabs.create({ url: `${base}${path}` });
+  showStatusBanner('Opened plans in a new tab.', 'info', 2500);
 }
 
-function renderTierComparisonModal() {
-  const body = document.getElementById('tier-comparison-body');
-  if (!body) {
-    return;
-  }
-
-  body.innerHTML = '';
-  const options = Array.isArray(subscriptionUpgradeOptions)
-    ? subscriptionUpgradeOptions
-    : [];
-
-  if (!options.length) {
-    const row = document.createElement('tr');
-    row.innerHTML = '<td colspan="3">No upgrade options available.</td>';
-    body.appendChild(row);
-    return;
-  }
-
-  options.forEach((option) => {
-    const row = document.createElement('tr');
-    const monthly = option?.monthlyPrice != null ? `$${Number(option.monthlyPrice).toFixed(2)}` : '-';
-    const annual = option?.annualPrice != null ? `$${Number(option.annualPrice).toFixed(2)}` : '-';
-
-    row.innerHTML = `
-      <td>${option?.name || option?.tier || 'Tier'}</td>
-      <td>${monthly}</td>
-      <td>${annual}</td>
-    `;
-    body.appendChild(row);
-  });
-}
-
-function openTierComparisonModal() {
-  renderTierComparisonModal();
-  const overlay = document.getElementById('tier-modal-overlay');
-  if (overlay) {
-    overlay.classList.remove('hidden');
-  }
-}
-
-function renderPaywall() {
+function renderPaywallUsage() {
   const usageContainer = document.getElementById('paywall-usage');
-  const optionsContainer = document.getElementById('paywall-options');
-  const monthlyButton = document.getElementById('paywall-billing-monthly');
-  const annualButton = document.getElementById('paywall-billing-annual');
-
-  if (!usageContainer || !optionsContainer) {
+  if (!usageContainer) {
     return;
   }
-
   usageContainer.innerHTML = '';
   getSubscriptionUsageRows().forEach((row) => {
     const line = document.createElement('div');
     line.textContent = `${row.label}: ${row.used} / ${row.limit || 'unlimited'}`;
     usageContainer.appendChild(line);
   });
-
-  monthlyButton?.classList.toggle('primary-button', paywallBillingCycle === 'monthly');
-  monthlyButton?.classList.toggle('secondary-button', paywallBillingCycle !== 'monthly');
-  annualButton?.classList.toggle('primary-button', paywallBillingCycle === 'annual');
-  annualButton?.classList.toggle('secondary-button', paywallBillingCycle !== 'annual');
-
-  optionsContainer.innerHTML = '';
-  const options = Array.isArray(subscriptionUpgradeOptions)
-    ? subscriptionUpgradeOptions
-    : [];
-
-  if (!options.length) {
-    const emptyState = document.createElement('div');
-    emptyState.className = 'message-box';
-    emptyState.innerHTML = '<p>No upgrades are available right now.</p>';
-    optionsContainer.appendChild(emptyState);
-    return;
-  }
-
-  options.forEach((option) => {
-    const card = document.createElement('div');
-    card.className = 'paywall-option';
-
-    const displayedPrice = paywallBillingCycle === 'annual'
-      ? option?.annualPrice ?? option?.monthlyPrice
-      : option?.monthlyPrice ?? option?.annualPrice;
-
-    const priceLabel = displayedPrice == null
-      ? 'Price unavailable'
-      : `$${Number(displayedPrice).toFixed(2)} / ${paywallBillingCycle === 'annual' ? 'year' : 'month'}`;
-
-    card.innerHTML = `
-      <h3>${option?.name || option?.tier || 'Tier'}</h3>
-      <div class="price-line">${priceLabel}</div>
-      ${paywallBillingCycle === 'annual' && option?.annualSavings != null ? `<div class="hint-line">Save $${Number(option.annualSavings).toFixed(2)} annually</div>` : ''}
-      <button class="primary-button" data-paywall-tier="${option?.tier || ''}">Upgrade</button>
-    `;
-
-    const upgradeButton = card.querySelector('[data-paywall-tier]');
-    if (upgradeButton) {
-      upgradeButton.addEventListener('click', async () => {
-        const tier = upgradeButton.getAttribute('data-paywall-tier');
-        if (!tier) {
-          showStatusBanner('Missing tier selection', 'error', 3000);
-          return;
-        }
-
-        const checkoutResponse = await sendBackgroundAction('billingCheckout', {
-          tier,
-          billingCycle: paywallBillingCycle
-        });
-
-        if (!checkoutResponse?.success) {
-          showStatusBanner(checkoutResponse?.error || 'Unable to start checkout', 'error', 3000);
-          return;
-        }
-
-        const checkoutUrl = checkoutResponse?.data?.checkoutUrl || checkoutResponse?.data?.url;
-        if (!checkoutUrl) {
-          showStatusBanner('Checkout URL not returned by server', 'error', 3000);
-          return;
-        }
-
-        chrome.tabs.create({ url: checkoutUrl });
-        showStatusBanner('Checkout opened in new tab.', 'info', 2500);
-      });
-    }
-
-    optionsContainer.appendChild(card);
-  });
 }
 
 async function openPaywall(message = '') {
   await refreshSubscriptionData();
-  renderPaywall();
+  renderPaywallUsage();
 
   const subtitle = document.getElementById('paywall-subtitle');
   if (subtitle) {
     subtitle.textContent = message ||
-      'You have reached a plan limit. Upgrade to unlock more wishlists, items, and tracking.';
+      'You have reached a plan limit. Open your plan to unlock more wishlists, items, and tracking.';
   }
 
   const overlay = document.getElementById('paywall-overlay');
@@ -1757,46 +1642,10 @@ function setupEventListeners() {
     });
   }
 
-  const paywallMonthlyButton = document.getElementById('paywall-billing-monthly');
-  if (paywallMonthlyButton) {
-    paywallMonthlyButton.addEventListener('click', () => {
-      paywallBillingCycle = 'monthly';
-      renderPaywall();
-    });
-  }
-
-  const paywallAnnualButton = document.getElementById('paywall-billing-annual');
-  if (paywallAnnualButton) {
-    paywallAnnualButton.addEventListener('click', () => {
-      paywallBillingCycle = 'annual';
-      renderPaywall();
-    });
-  }
-
-  const paywallCompareButton = document.getElementById('paywall-compare-button');
-  if (paywallCompareButton) {
-    paywallCompareButton.addEventListener('click', () => {
-      openTierComparisonModal();
-    });
-  }
-
-  const paywallManageBillingButton = document.getElementById('paywall-manage-billing-button');
-  if (paywallManageBillingButton) {
-    paywallManageBillingButton.addEventListener('click', async () => {
-      const response = await sendBackgroundAction('billingPortal');
-      if (!response?.success) {
-        showStatusBanner(response?.error || 'Unable to open billing portal', 'error', 3000);
-        return;
-      }
-
-      const portalUrl = response?.data?.portalUrl || response?.data?.url;
-      if (!portalUrl) {
-        showStatusBanner('Billing portal URL not returned by server', 'error', 3000);
-        return;
-      }
-
-      chrome.tabs.create({ url: portalUrl });
-      showStatusBanner('Billing portal opened in new tab.', 'success', 2500);
+  const paywallViewPlansButton = document.getElementById('paywall-view-plans-button');
+  if (paywallViewPlansButton) {
+    paywallViewPlansButton.addEventListener('click', () => {
+      openPlansPage();
     });
   }
 
@@ -1805,11 +1654,6 @@ function setupEventListeners() {
     paywallCloseButton.addEventListener('click', closePaywall);
   }
 
-  const tierModalCloseButton = document.getElementById('tier-modal-close-button');
-  if (tierModalCloseButton) {
-    tierModalCloseButton.addEventListener('click', closeTierModal);
-  }
-  
   // Cancel button
   document.getElementById('cancel-button').addEventListener('click', () => {
     window.close();

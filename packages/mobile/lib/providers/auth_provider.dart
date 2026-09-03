@@ -24,10 +24,21 @@ class AuthProvider extends ChangeNotifier {
 
   User? _user;
   bool _isLoading = false;
+  // True only until the very first auth-state resolution completes.
+  // AuthWrapper gates its full-screen startup splash on this, separately
+  // from _isLoading: _isLoading also toggles on every subsequent
+  // login/register/logout/resetPassword call (each screen uses it for its
+  // own local button spinner), and gating the splash on that too meant
+  // every one of those -- most visibly a failed login attempt -- replaced
+  // LoginScreen with the splash Scaffold and back, a destructive rebuild
+  // that silently wiped the whole form (see reauthenticate/changePassword
+  // above for the sibling bug this was found alongside).
+  bool _isInitializing = true;
   String? _error;
 
   User? get user => _user;
   bool get isLoading => _isLoading;
+  bool get isInitializing => _isInitializing;
   String? get error => _error;
   bool get isLoggedIn => _user != null;
 
@@ -72,6 +83,8 @@ class AuthProvider extends ChangeNotifier {
       _setError('Failed to check authentication status');
     } finally {
       _setLoading(false);
+      _isInitializing = false;
+      notifyListeners();
       if (kDebugMode) {
         debugPrint('[AuthProvider] Auth initialization complete');
       }
@@ -200,8 +213,18 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
+  // reauthenticate() and changePassword() deliberately don't touch
+  // _setLoading(): unlike login/register/etc. (called from LoginScreen,
+  // before MainNavigator exists, where the app-wide splash gate is the
+  // only UI to show), these are only ever called from AccountScreen --
+  // pushed deep inside MainNavigator's own Navigator. Toggling the shared
+  // isLoading flag makes AuthWrapper (the app's root widget) tear down and
+  // rebuild the entire subtree on every call, which discards the pushed
+  // AccountScreen route and resets MainNavigator to its first tab --
+  // silently swallowing whatever error or success feedback AccountScreen
+  // meant to show, on both the failure and success paths. AccountScreen
+  // already tracks its own local _isSubmitting for the button spinner.
   Future<bool> reauthenticate(String currentPassword) async {
-    _setLoading(true);
     _clearError();
 
     try {
@@ -219,13 +242,10 @@ class AuthProvider extends ChangeNotifier {
     } catch (e) {
       _setError('An unexpected error occurred');
       return false;
-    } finally {
-      _setLoading(false);
     }
   }
 
   Future<bool> changePassword(String newPassword) async {
-    _setLoading(true);
     _clearError();
 
     try {
@@ -241,14 +261,19 @@ class AuthProvider extends ChangeNotifier {
     } catch (e) {
       _setError('An unexpected error occurred');
       return false;
-    } finally {
-      _setLoading(false);
     }
   }
 
   void _setUser(User? user) {
     _user = user;
     notifyListeners();
+  }
+
+  /// Re-reads the signed-in user from Firebase (e.g. after a profile edit
+  /// changed the display name or photo).
+  Future<void> refreshUser() async {
+    final refreshed = await _authService.reloadCurrentUser();
+    if (refreshed != null) _setUser(refreshed);
   }
 
   void _setLoading(bool loading) {

@@ -60,6 +60,27 @@ void main() {
     });
   });
 
+  group('IapService — Coming-Soon tier gating', () {
+    test('comingSoonTiers matches shared COMING_SOON_TIERS', () {
+      expect(IapService.comingSoonTiers, {'creator', 'business', 'enterprise'});
+    });
+
+    test('catalogTiers includes every tier with a store product', () {
+      // Creator/Business have iOS/Android products even though they are
+      // currently gated — that is what keeps them eligible for the
+      // "Coming soon" waitlist row (vs. Enterprise, which has none).
+      expect(service.catalogTiers, containsAll(<String>['starter', 'plus', 'creator', 'business']));
+      expect(service.catalogTiers, isNot(contains('enterprise')));
+    });
+
+    test('purchasableTiers excludes the Coming-Soon tiers', () {
+      expect(service.purchasableTiers, contains('starter'));
+      expect(service.purchasableTiers, contains('plus'));
+      expect(service.purchasableTiers, isNot(contains('creator')));
+      expect(service.purchasableTiers, isNot(contains('business')));
+    });
+  });
+
   group('IapService.dispose', () {
     test('does not throw when no purchase subscription was ever started', () {
       final freshService = IapService();

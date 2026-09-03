@@ -116,6 +116,11 @@ class FirebaseWishlistItem {
   final bool isPurchased;
   final String? purchasedBy;
   final DateTime? purchasedAt;
+
+  /// Uid of the person who has this item reserved (a soft hold, distinct from
+  /// [isPurchased]). Null when nobody has reserved it.
+  final String? reservedBy;
+  final DateTime? reservedAt;
   final List<String> tags;
   final Priority priority;
   final DateTime createdAt;
@@ -135,11 +140,16 @@ class FirebaseWishlistItem {
     this.isPurchased = false,
     this.purchasedBy,
     this.purchasedAt,
+    this.reservedBy,
+    this.reservedAt,
     this.tags = const [],
     this.priority = Priority.medium,
     required this.createdAt,
     required this.updatedAt,
   });
+
+  /// True when the item is reserved by someone and not yet purchased.
+  bool get isReserved => reservedBy != null && !isPurchased;
 
   Map<String, dynamic> toFirestore() {
     return {
@@ -155,6 +165,8 @@ class FirebaseWishlistItem {
       'isPurchased': isPurchased,
       'purchasedBy': purchasedBy,
       'purchasedAt': purchasedAt,
+      'reservedBy': reservedBy,
+      'reservedAt': reservedAt,
       'tags': tags,
       'priority': priority.toString().split('.').last,
       'createdAt': createdAt,
@@ -169,6 +181,7 @@ class FirebaseWishlistItem {
     // Support cross-platform field aliases written by Cloud Functions:
     //   title → name,  productUrl → url,  addedBy → userId,
     //   purchasedByUserId → isPurchased=true + purchasedBy
+    //   reservedByUserId  → reservedBy
     final purchasedByUserId = data['purchasedByUserId'] as String?;
     return FirebaseWishlistItem(
       id: docId,
@@ -185,6 +198,8 @@ class FirebaseWishlistItem {
           (data['isPurchased'] as bool? ?? false) || purchasedByUserId != null,
       purchasedBy: data['purchasedBy'] ?? purchasedByUserId,
       purchasedAt: _parseDateNullable(data['purchasedAt']),
+      reservedBy: data['reservedByUserId'] ?? data['reservedBy'],
+      reservedAt: _parseDateNullable(data['reservedAt']),
       tags: List<String>.from(data['tags'] ?? []),
       priority: _stringToPriority(data['priority']),
       createdAt: _parseDate(data['createdAt']),
