@@ -1,0 +1,1 @@
+# deliver manages the App Review Information section from this folder. demo_password is intentionally absent — it is a secret (set ASC_DEMO_PASSWORD in CI, or paste into App Store Connect directly). Having this folder present also stops deliver from treating "no local review_information" as "delete the review attachments" during a metadata sync.
