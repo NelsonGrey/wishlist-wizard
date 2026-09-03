@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -143,6 +144,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                 ...provider.upgradeOptions
                     .where(
                       (option) =>
+                          !option.comingSoon &&
                           iapService.purchasableTiers.contains(option.tier),
                     )
                     .map(
@@ -160,6 +162,35 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                         ),
                       ),
                     ),
+                // Creator-and-above are built but not yet open for self-serve
+                // purchase (see COMING_SOON_TIERS in
+                // packages/shared/src/subscription.ts). Offer a waitlist
+                // instead of a purchase button -- an unpurchasable plan with a
+                // buy button fails App Store review.
+                ...() {
+                  final comingSoon = provider.upgradeOptions
+                      .where(
+                        (option) =>
+                            option.comingSoon &&
+                            iapService.catalogTiers.contains(option.tier),
+                      )
+                      .toList(growable: false);
+                  if (comingSoon.isEmpty) return const <Widget>[];
+                  return [
+                    const SizedBox(height: 16),
+                    const Text(
+                      'Coming soon',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    ...comingSoon.map(
+                      (option) => _ComingSoonUpgradeCard(option: option),
+                    ),
+                  ];
+                }(),
                 if (iapService.isAvailable) ...[
                   const SizedBox(height: 12),
                   TextButton(
@@ -365,6 +396,174 @@ class _UpgradeOptionCard extends StatelessWidget {
                 isLoading ? 'Processing...' : 'Upgrade to ${option.name}',
               ),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// "Coming soon" plan row: instead of a purchase button, captures an email
+/// so the user can be notified when the tier opens. Posts to
+/// FirebaseFunctionsService.registerTierInterest (/api/tier-interest).
+class _ComingSoonUpgradeCard extends StatefulWidget {
+  const _ComingSoonUpgradeCard({required this.option});
+
+  final SubscriptionUpgradeOption option;
+
+  @override
+  State<_ComingSoonUpgradeCard> createState() => _ComingSoonUpgradeCardState();
+}
+
+class _ComingSoonUpgradeCardState extends State<_ComingSoonUpgradeCard> {
+  late final TextEditingController _emailController;
+  bool _submitting = false;
+  bool _done = false;
+  String? _error;
+
+  static final RegExp _emailRe = RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$');
+
+  @override
+  void initState() {
+    super.initState();
+    _emailController = TextEditingController(text: _currentUserEmail());
+  }
+
+  /// The signed-in user's email, used to prefill the field. Guarded because
+  /// `FirebaseAuth.instance` throws when Firebase isn't initialised (widget
+  /// tests) — a blank field is a fine fallback.
+  String _currentUserEmail() {
+    try {
+      return firebase_auth.FirebaseAuth.instance.currentUser?.email ?? '';
+    } catch (_) {
+      return '';
+    }
+  }
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    final email = _emailController.text.trim();
+    if (!_emailRe.hasMatch(email)) {
+      setState(() => _error = 'Enter a valid email address.');
+      return;
+    }
+    setState(() {
+      _submitting = true;
+      _error = null;
+    });
+    try {
+      final result = await context.read<SubscriptionProvider>().registerTierInterest(
+            email: email,
+            tier: widget.option.tier,
+          );
+      if (!mounted) return;
+      setState(() {
+        _submitting = false;
+        _done = result['ok'] == true;
+        if (!_done) _error = 'Something went wrong. Please try again.';
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _submitting = false;
+        _error = 'Something went wrong. Please try again.';
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 10),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    widget.option.name,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.amber.shade100,
+                    borderRadius: BorderRadius.circular(100),
+                  ),
+                  child: Text(
+                    'Coming soon',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.amber.shade900,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            if (_done)
+              Row(
+                children: [
+                  Icon(Icons.check_circle,
+                      size: 18, color: Colors.green.shade700),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      "You're on the list — we'll email you when "
+                      '${widget.option.name} launches.',
+                    ),
+                  ),
+                ],
+              )
+            else ...[
+              Text(
+                "${widget.option.name} isn't open for sign-ups yet. Leave your "
+                'email and we\'ll let you know when it launches.',
+                style: TextStyle(color: Colors.grey[700]),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _emailController,
+                keyboardType: TextInputType.emailAddress,
+                enabled: !_submitting,
+                decoration: const InputDecoration(
+                  labelText: 'Email',
+                  hintText: 'you@example.com',
+                  border: OutlineInputBorder(),
+                  isDense: true,
+                ),
+              ),
+              if (_error != null) ...[
+                const SizedBox(height: 6),
+                Text(
+                  _error!,
+                  style: const TextStyle(color: Colors.redAccent, fontSize: 12),
+                ),
+              ],
+              const SizedBox(height: 12),
+              ElevatedButton(
+                onPressed: _submitting ? null : _submit,
+                child: Text(
+                  _submitting ? 'Adding you…' : 'Notify me when it launches',
+                ),
+              ),
+            ],
           ],
         ),
       ),

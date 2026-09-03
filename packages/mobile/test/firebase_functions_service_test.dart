@@ -52,6 +52,7 @@ void main() {
     'getGroupGiftSummary': () => service.getGroupGiftSummary('i1'),
     'billingStatus': () => service.billingStatus(),
     'billingPlans': () => service.billingPlans(),
+    'registerTierInterest': () => service.registerTierInterest(email: 'a@example.com', tier: 'creator'),
     'verifyIapPurchase': () => service.verifyIapPurchase(
           productId: 'PLUS_iOS_MONTH',
           purchaseId: 'p1',
@@ -102,7 +103,7 @@ void main() {
       // firebase_functions_service.dart's public API surface. If someone
       // adds a new wrapper method and forgets to add it here, this number
       // should prompt a second look rather than silently under-covering.
-      expect(rethrowingCalls.length, 54);
+      expect(rethrowingCalls.length, 55);
     });
   });
 

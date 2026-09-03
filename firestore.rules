@@ -263,6 +263,14 @@ service cloud.firestore {
       allow update, delete: if false; // Append-only, immutable
     }
 
+    // "Notify me" sign-ups for Coming-Soon tiers (Creator and above). Written
+    // only by the api router's /api/tier-interest handler via the Admin SDK;
+    // no direct client access (a logged-out marketing visitor has no auth
+    // anyway, and the capture may include other users' emails).
+    match /tierInterest/{interestId} {
+      allow read, write: if false;
+    }
+
     // Affiliate commission ledger and everything payout-related - no direct
     // client access at all, not even read, matching affiliateClicks/
     // affiliateConversions above. A financial ledger's every read needs to

@@ -320,6 +320,50 @@ export const TIER_PRICING: Record<SubscriptionTier, TierPricing> = {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
+// "Coming Soon" gating
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Tiers that are fully built but intentionally not yet available for
+ * self-serve purchase. The product owner is not ready to support the
+ * Creator-and-above needs until the lower tiers prove out, so these appear
+ * in pricing/marketing UI as "Coming Soon" with an email-capture ("notify
+ * me") action instead of a checkout button, and server-side checkout is
+ * rejected for them.
+ *
+ * This is the single lever: to launch a tier, remove it from this array
+ * (and, for mobile, surface its store product again in iap_service.dart).
+ * Nothing about TIER_LIMITS / enforcement / webhooks changes — an existing
+ * active subscription on one of these tiers keeps all its capabilities.
+ *
+ * 'enterprise' has always been contact-sales (no self-serve price) and is
+ * listed here so the same "notify me" treatment applies uniformly.
+ */
+export const COMING_SOON_TIERS: readonly SubscriptionTier[] = [
+  'creator',
+  'business',
+  'enterprise',
+];
+
+/**
+ * Paid tiers a user can buy right now through self-serve checkout.
+ * Derived complement of COMING_SOON_TIERS over the paid tiers.
+ */
+export const PURCHASABLE_TIERS: readonly SubscriptionTier[] = (
+  ['starter', 'plus', 'creator', 'business', 'enterprise'] as SubscriptionTier[]
+).filter((t) => !COMING_SOON_TIERS.includes(t));
+
+/** True if `tier` is gated behind "Coming Soon" (not self-serve purchasable yet). */
+export function isTierComingSoon(tier: SubscriptionTier | string): boolean {
+  return (COMING_SOON_TIERS as readonly string[]).includes(tier);
+}
+
+/** True if `tier` can be purchased right now (a paid tier that isn't coming-soon). */
+export function isTierPurchasable(tier: SubscriptionTier | string): boolean {
+  return tier !== 'free' && !isTierComingSoon(tier);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Utility helpers
 // ─────────────────────────────────────────────────────────────────────────────
 
