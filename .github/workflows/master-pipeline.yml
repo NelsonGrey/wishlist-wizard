@@ -44,12 +44,12 @@ on:
       - develop
       - staging
       - main
-  # develop is deliberately excluded here even though the project manifest
-  # (.cicd/projects/wishlist-wizard.yml) lists it under ci.triggers — adding
-  # it would newly activate deploy-firebase (a real Functions deploy) on
-  # every develop push, a bigger behavior change than "leave develop as-is".
-  # develop keeps its existing dev-hosting-only deploy via
-  # firebase-hosting-dev.yml.
+  # develop is intentionally not triggered here. It has its own dedicated
+  # workflow, firebase-hosting-dev.yml, which calls the same reusable
+  # firebase-deploy-local.yml (Functions + Firestore rules + Hosting to
+  # wishlist-wizard-dev) on every develop push — so the wishlist-wizard and
+  # wishlist-wizard-functions develop branches stay in sync on dev. Routing
+  # develop through this pipeline too would just double-deploy.
   push:
     branches:
       - staging
