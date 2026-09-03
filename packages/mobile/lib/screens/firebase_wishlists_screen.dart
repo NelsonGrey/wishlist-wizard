@@ -1,14 +1,20 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/models.dart';
 import '../providers/providers.dart';
 import '../services/social_share_service.dart';
-import '../widgets/admob_widgets.dart';
+import '../theme/design_tokens.dart';
+import '../utils/wishlist_csv.dart';
+import '../widgets/app_scaffold.dart';
 import '../widgets/invite_collaborator_dialog.dart';
-import '../main.dart';
 import 'contribution_screen.dart';
+import 'shared_wishlist_screen.dart';
 
 // Production web app origin used to build shareable wishlist links from mobile
 // (mirrors the `${window.location.origin}/shared/:shareId` link built on web).
@@ -53,8 +59,8 @@ class _FirebaseWishlistsScreenState extends State<FirebaseWishlistsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: const CustomAppBar(title: 'Firebase Wishlists'),
+    return AppScaffold(
+      title: 'Wishlists',
       body: Column(
         children: [
           Padding(
@@ -108,9 +114,11 @@ class _FirebaseWishlistsScreenState extends State<FirebaseWishlistsScreen> {
 
         final sharedWishlists = wishlistProvider.sharedWishlists;
         if (sharedWishlists.isEmpty) {
-          return Center(
+          return Padding(
+            padding: const EdgeInsets.all(24),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Icon(Icons.people_outline, size: 64, color: Colors.grey[400]),
                 const SizedBox(height: 16),
@@ -122,8 +130,7 @@ class _FirebaseWishlistsScreenState extends State<FirebaseWishlistsScreen> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  "When someone invites you to collaborate,\nit'll show up here.",
-                  textAlign: TextAlign.center,
+                  "When someone invites you to collaborate, it'll show up here.",
                   style: TextStyle(color: Colors.grey[600]),
                 ),
               ],
@@ -142,10 +149,10 @@ class _FirebaseWishlistsScreenState extends State<FirebaseWishlistsScreen> {
                 leading: CircleAvatar(
                   backgroundColor: Theme.of(
                     context,
-                  ).primaryColor.withValues(alpha: 0.1),
+                  ).colorScheme.primary.withValues(alpha: 0.1),
                   child: Icon(
                     Icons.group,
-                    color: Theme.of(context).primaryColor,
+                    color: Theme.of(context).colorScheme.primary,
                   ),
                 ),
                 title: Text(
@@ -231,14 +238,15 @@ class _FirebaseWishlistsScreenState extends State<FirebaseWishlistsScreen> {
         }
 
         if (wishlistProvider.error != null) {
-          return Center(
+          return Padding(
+            padding: const EdgeInsets.all(24),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   wishlistProvider.error!,
                   style: const TextStyle(color: Colors.red),
-                  textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 16),
                 ElevatedButton(
@@ -272,9 +280,11 @@ class _FirebaseWishlistsScreenState extends State<FirebaseWishlistsScreen> {
             final wishlists = snapshot.data ?? [];
 
             if (wishlists.isEmpty) {
-              return Center(
+              return Padding(
+                padding: const EdgeInsets.all(24),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Icon(Icons.list_alt, size: 64, color: Colors.grey[400]),
                     const SizedBox(height: 16),
@@ -329,17 +339,6 @@ class _FirebaseWishlistsScreenState extends State<FirebaseWishlistsScreen> {
                     ],
                   ),
                 ),
-                Consumer<SubscriptionProvider>(
-                  builder: (context, sub, _) {
-                    if (sub.tier == 'free') {
-                      return const AdContainer(
-                        label: 'Advertisement',
-                        child: BannerAdWidget(),
-                      );
-                    }
-                    return const SizedBox.shrink();
-                  },
-                ),
                 Expanded(
                   child: ListView.builder(
                     padding: const EdgeInsets.all(16),
@@ -352,10 +351,10 @@ class _FirebaseWishlistsScreenState extends State<FirebaseWishlistsScreen> {
                           leading: CircleAvatar(
                             backgroundColor: Theme.of(
                               context,
-                            ).primaryColor.withValues(alpha: 0.1),
+                            ).colorScheme.primary.withValues(alpha: 0.1),
                             child: Icon(
                               wishlist.isPublic ? Icons.public : Icons.lock,
-                              color: Theme.of(context).primaryColor,
+                              color: Theme.of(context).colorScheme.primary,
                             ),
                           ),
                           title: Text(
@@ -735,6 +734,10 @@ class _FirebaseWishlistItemsScreenState
   final ScrollController _scrollController = ScrollController();
   bool _didAutoScroll = false;
 
+  /// Latest items from the stream, kept so the app-bar CSV export can read
+  /// them without a separate fetch.
+  List<FirebaseWishlistItem> _items = const [];
+
   bool get _isOwner => widget.wishlist.myRole == CollaboratorRole.owner;
   bool get _canAddItems => widget.wishlist.myRole != CollaboratorRole.viewer;
   bool get _canEditItems =>
@@ -848,6 +851,37 @@ class _FirebaseWishlistItemsScreenState
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Unable to share right now.')),
+      );
+    }
+  }
+
+  Future<void> _exportItemsAsCsv() async {
+    if (_items.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Nothing to export yet.')),
+      );
+      return;
+    }
+    try {
+      final safeName = widget.wishlist.name
+          .replaceAll(RegExp(r'[^\w\- ]'), '')
+          .trim()
+          .replaceAll(RegExp(r'\s+'), '-');
+      final dir = await getTemporaryDirectory();
+      final file = File(
+        '${dir.path}/${safeName.isEmpty ? 'wishlist' : safeName}-items.csv',
+      );
+      await file.writeAsString(wishlistItemsToCsv(_items));
+      await SharePlus.instance.share(
+        ShareParams(
+          files: [XFile(file.path, mimeType: 'text/csv')],
+          subject: '${widget.wishlist.name} — wishlist items',
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Unable to export right now.')),
       );
     }
   }
@@ -1014,7 +1048,15 @@ class _FirebaseWishlistItemsScreenState
               Text(
                 item.isPurchased
                     ? 'Status: Purchased'
+                    : item.isReserved
+                    ? 'Status: Reserved'
                     : 'Status: Not purchased',
+                style: item.isReserved && !item.isPurchased
+                    ? const TextStyle(
+                        color: AppColors.warning,
+                        fontWeight: FontWeight.w600,
+                      )
+                    : null,
               ),
               const SizedBox(height: 16),
               if ((item.url ?? '').isNotEmpty)
@@ -1068,12 +1110,12 @@ class _FirebaseWishlistItemsScreenState
           errorBuilder: (context, error, stackTrace) => CircleAvatar(
             backgroundColor: item.isPurchased
                 ? Colors.green.withValues(alpha: 0.1)
-                : Theme.of(context).primaryColor.withValues(alpha: 0.1),
+                : Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
             child: Icon(
               item.isPurchased ? Icons.check : Icons.card_giftcard,
               color: item.isPurchased
                   ? Colors.green
-                  : Theme.of(context).primaryColor,
+                  : Theme.of(context).colorScheme.primary,
             ),
           ),
         ),
@@ -1083,33 +1125,51 @@ class _FirebaseWishlistItemsScreenState
     return CircleAvatar(
       backgroundColor: item.isPurchased
           ? Colors.green.withValues(alpha: 0.1)
-          : Theme.of(context).primaryColor.withValues(alpha: 0.1),
+          : Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
       child: Icon(
         item.isPurchased ? Icons.check : Icons.card_giftcard,
-        color: item.isPurchased ? Colors.green : Theme.of(context).primaryColor,
+        color: item.isPurchased ? Colors.green : Theme.of(context).colorScheme.primary,
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: CustomAppBar(
-        title: widget.wishlist.name,
-        actions: [
-          if (_isOwner)
-            IconButton(
-              icon: const Icon(Icons.people_outline),
-              tooltip: 'Collaborators',
-              onPressed: () => _showCollaboratorsSheet(context),
-            ),
+    return AppScaffold(
+      title: widget.wishlist.name,
+      actions: [
+        if (_isOwner)
           IconButton(
-            icon: const Icon(Icons.share),
-            tooltip: 'Share wishlist',
-            onPressed: _shareWishlist,
+            icon: const Icon(Icons.people_outline),
+            tooltip: 'Collaborators',
+            onPressed: () => _showCollaboratorsSheet(context),
           ),
-        ],
-      ),
+        IconButton(
+          icon: const Icon(Icons.share),
+          tooltip: 'Share wishlist',
+          onPressed: _shareWishlist,
+        ),
+        IconButton(
+          icon: const Icon(Icons.file_download_outlined),
+          tooltip: 'Export as CSV',
+          onPressed: _exportItemsAsCsv,
+        ),
+        if (_isOwner &&
+            (widget.wishlist.shareId != null &&
+                widget.wishlist.shareId!.isNotEmpty))
+          IconButton(
+            icon: const Icon(Icons.visibility_outlined),
+            tooltip: 'Preview public view',
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => SharedWishlistScreen(
+                  shareId: widget.wishlist.shareId!,
+                ),
+              ),
+            ),
+          ),
+      ],
       body: Consumer2<AuthProvider, FirebaseWishlistProvider>(
         builder: (context, authProvider, wishlistProvider, child) {
           if (authProvider.user == null) {
@@ -1136,6 +1196,7 @@ class _FirebaseWishlistItemsScreenState
               }
 
               final items = snapshot.data ?? [];
+              _items = items;
 
               WidgetsBinding.instance.addPostFrameCallback((_) {
                 if (!mounted) {
@@ -1145,9 +1206,11 @@ class _FirebaseWishlistItemsScreenState
               });
 
               if (items.isEmpty) {
-                return Center(
+                return Padding(
+                  padding: const EdgeInsets.all(24),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Icon(
                         Icons.card_giftcard,
@@ -1186,7 +1249,7 @@ class _FirebaseWishlistItemsScreenState
                   return Card(
                     margin: const EdgeInsets.only(bottom: 12),
                     color: isFocusedItem
-                        ? Theme.of(context).primaryColor.withValues(alpha: 0.08)
+                        ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.08)
                         : null,
                     child: ListTile(
                       leading: _buildItemLeading(context, item),
@@ -1221,7 +1284,7 @@ class _FirebaseWishlistItemsScreenState
                                 'Related to selected notification',
                                 style: TextStyle(
                                   fontSize: 12,
-                                  color: Theme.of(context).primaryColor,
+                                  color: Theme.of(context).colorScheme.primary,
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
@@ -1284,6 +1347,14 @@ class _FirebaseWishlistItemsScreenState
                                   }
                                 }
 
+                                if (value == 'reserve') {
+                                  await wishlistProvider.reserveItem(item.id);
+                                }
+
+                                if (value == 'unreserve') {
+                                  await wishlistProvider.unreserveItem(item.id);
+                                }
+
                                 if (value == 'delete') {
                                   await wishlistProvider.deleteWishlistItem(
                                     item.id,
@@ -1314,11 +1385,37 @@ class _FirebaseWishlistItemsScreenState
                                               : Icons.check,
                                         ),
                                         const SizedBox(width: 8),
-                                        Text(
-                                          item.isPurchased
-                                              ? 'Mark unpurchased'
-                                              : 'Mark purchased',
+                                        Flexible(
+                                          child: Text(
+                                            item.isPurchased
+                                                ? 'Mark unpurchased'
+                                                : 'Mark purchased',
+                                          ),
                                         ),
+                                      ],
+                                    ),
+                                  ),
+                                if (_canReserveOrPurchase &&
+                                    !item.isPurchased &&
+                                    !item.isReserved)
+                                  const PopupMenuItem(
+                                    value: 'reserve',
+                                    child: Row(
+                                      children: [
+                                        Icon(Icons.bookmark_add_outlined),
+                                        SizedBox(width: 8),
+                                        Text('Reserve'),
+                                      ],
+                                    ),
+                                  ),
+                                if (_canEditItems && item.isReserved)
+                                  const PopupMenuItem(
+                                    value: 'unreserve',
+                                    child: Row(
+                                      children: [
+                                        Icon(Icons.bookmark_remove_outlined),
+                                        SizedBox(width: 8),
+                                        Flexible(child: Text('Release hold')),
                                       ],
                                     ),
                                   ),

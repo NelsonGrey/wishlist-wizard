@@ -40,7 +40,10 @@ Widget wrapAccountScreen({
         authService: authService,
         functionsService: functionsService,
       ),
-      child: AccountScreen(passwordPolicyService: passwordPolicyService),
+      child: AccountScreen(
+        passwordPolicyService: passwordPolicyService,
+        functionsService: functionsService,
+      ),
     ),
   );
 }
@@ -278,4 +281,63 @@ void main() {
       expect(find.text('Password updated.'), findsOneWidget);
     },
   );
+
+  group('Data & Privacy', () {
+    testWidgets('renders the three data/privacy actions', (tester) async {
+      await tester.pumpWidget(buildScreen());
+      await tester.pumpAndSettle();
+      await tester.scrollUntilVisible(
+        find.text('Contact Support'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+
+      expect(find.text('Download my data'), findsOneWidget);
+      expect(find.text('Log out of all devices'), findsOneWidget);
+      expect(find.text('Contact Support'), findsOneWidget);
+    });
+
+    testWidgets('"Download my data" calls exportMyData', (tester) async {
+      when(
+        () => functionsService.exportMyData(),
+      ).thenAnswer((_) async => {'account': {}, 'wishlists': []});
+
+      await tester.pumpWidget(buildScreen());
+      await tester.pumpAndSettle();
+      await tester.scrollUntilVisible(
+        find.text('Download my data'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.tap(find.text('Download my data'));
+      await tester.pump();
+
+      verify(() => functionsService.exportMyData()).called(1);
+    });
+
+    testWidgets(
+      '"Log out of all devices" revokes sessions after confirmation',
+      (tester) async {
+        when(
+          () => functionsService.revokeAllSessions(),
+        ).thenAnswer((_) async {});
+
+        await tester.pumpWidget(buildScreen());
+        await tester.pumpAndSettle();
+        await tester.scrollUntilVisible(
+          find.text('Log out of all devices'),
+          200,
+          scrollable: find.byType(Scrollable).first,
+        );
+        await tester.tap(find.text('Log out of all devices'));
+        await tester.pumpAndSettle();
+        await tester.tap(
+          find.widgetWithText(ElevatedButton, 'Log out everywhere'),
+        );
+        await tester.pump();
+
+        verify(() => functionsService.revokeAllSessions()).called(1);
+      },
+    );
+  });
 }

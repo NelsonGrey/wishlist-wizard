@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models/achievements.dart';
 import '../services/firebase_functions_service.dart';
+import '../widgets/app_scaffold.dart';
 
 /// Trophy case + progress guide for every achievement, computed server-side
 /// from real usage data (see packages/functions/src/api/achievements.ts) --
@@ -54,8 +55,8 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Achievements')),
+    return AppScaffold(
+      title: 'Achievements',
       body: RefreshIndicator(
         onRefresh: _load,
         child: _isLoading
@@ -156,9 +157,9 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
   Widget _buildTierBadge(String tierName, int tier, bool isWizard) {
     const tierColors = [
       Colors.grey,
-      Colors.green,
+      Colors.teal,
       Colors.blue,
-      Colors.purple,
+      Colors.indigo,
       Colors.amber,
     ];
     final color = tierColors[(tier - 1).clamp(0, tierColors.length - 1)];

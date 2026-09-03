@@ -92,6 +92,7 @@ function shouldUseFirebaseApiRouter(url: string, _method: string): boolean {
     '/api/recommendations',
     '/api/price-alerts',
     '/api/price-drops',
+    '/api/tier-interest',
     '/api/beneficiaries',
     '/api/wishlist-items',
     '/api/products/preview',

@@ -72,13 +72,19 @@ FirebaseWishlist _wishlist(String id, {bool isPublic = false, CollaboratorRole m
       updatedAt: DateTime(2026),
     );
 
-FirebaseWishlistItem _item(String id, {bool isPurchased = false, double? price}) => FirebaseWishlistItem(
+FirebaseWishlistItem _item(
+  String id, {
+  bool isPurchased = false,
+  String? reservedBy,
+  double? price,
+}) => FirebaseWishlistItem(
       id: id,
       name: 'Item $id',
       price: price,
       wishlistId: 'w1',
       userId: 'u1',
       isPurchased: isPurchased,
+      reservedBy: reservedBy,
       priority: Priority.medium,
       createdAt: DateTime(2026),
       updatedAt: DateTime(2026),
@@ -393,6 +399,49 @@ void main() {
       await tester.pumpAndSettle();
 
       verify(() => functionsService.purchaseWishlistItem('1')).called(1);
+    });
+
+    testWidgets('reserves an item via the popup menu', (tester) async {
+      when(() => firestoreService.getWishlistItemsStream('w1')).thenAnswer((_) => Stream.value([_item('1')]));
+      when(() => functionsService.reserveWishlistItem(any())).thenAnswer((_) async => {});
+      await pumpScreen(tester);
+
+      await tester.tap(find.byType(PopupMenuButton<String>));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Reserve'));
+      await tester.pumpAndSettle();
+
+      verify(() => functionsService.reserveWishlistItem('1')).called(1);
+    });
+
+    testWidgets('a reserved item hides the Reserve action', (tester) async {
+      when(() => firestoreService.getWishlistItemsStream('w1'))
+          .thenAnswer((_) => Stream.value([_item('1', reservedBy: 'someone')]));
+      await pumpScreen(tester);
+
+      await tester.tap(find.byType(PopupMenuButton<String>));
+      await tester.pumpAndSettle();
+      expect(find.text('Reserve'), findsNothing);
+    });
+
+    testWidgets('a reserved item shows Reserved status in the detail sheet', (tester) async {
+      when(() => firestoreService.getWishlistItemsStream('w1'))
+          .thenAnswer((_) => Stream.value([_item('1', reservedBy: 'someone')]));
+      await pumpScreen(tester);
+
+      await tester.tap(find.text('Item 1'));
+      await tester.pumpAndSettle();
+      expect(find.text('Status: Reserved'), findsOneWidget);
+    });
+
+    testWidgets('a purchased item hides the Reserve action', (tester) async {
+      when(() => firestoreService.getWishlistItemsStream('w1'))
+          .thenAnswer((_) => Stream.value([_item('1', isPurchased: true)]));
+      await pumpScreen(tester);
+
+      await tester.tap(find.byType(PopupMenuButton<String>));
+      await tester.pumpAndSettle();
+      expect(find.text('Reserve'), findsNothing);
     });
 
     testWidgets('deletes an item via the popup menu', (tester) async {

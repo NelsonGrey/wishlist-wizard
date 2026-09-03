@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/models.dart';
 import '../providers/providers.dart';
-import '../main.dart';
-import '../widgets/admob_widgets.dart';
+import '../theme/design_tokens.dart';
+import '../widgets/app_scaffold.dart';
 import 'firebase_wishlists_screen.dart';
 import 'notifications_screen.dart';
 import 'scan_item_screen.dart';
@@ -29,20 +29,18 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: CustomAppBar(
-        title: 'Home',
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.notifications_outlined),
-            tooltip: 'Notifications',
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const NotificationsScreen()),
-            ),
+    return AppScaffold(
+      title: 'Home',
+      actions: [
+        IconButton(
+          icon: const Icon(Icons.notifications_outlined),
+          tooltip: 'Notifications',
+          onPressed: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const NotificationsScreen()),
           ),
-        ],
-      ),
+        ),
+      ],
       body: Consumer2<AuthProvider, FirebaseWishlistProvider>(
         builder: (context, authProvider, wishlistProvider, child) {
           final user = authProvider.user;
@@ -77,18 +75,6 @@ class _HomeScreenState extends State<HomeScreen> {
                   _buildRecentWishlists(context, wishlistProvider),
                   const SizedBox(height: 24),
                   _buildQuickActions(context),
-                  const SizedBox(height: 16),
-                  Consumer<SubscriptionProvider>(
-                    builder: (context, sub, _) {
-                      if (sub.tier == 'free') {
-                        return const AdContainer(
-                          label: 'Advertisement',
-                          child: BannerAdWidget(),
-                        );
-                      }
-                      return const SizedBox.shrink();
-                    },
-                  ),
                 ],
               ),
             ),
@@ -97,46 +83,56 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showCreateWishlistDialog(context),
-        backgroundColor: Theme.of(context).primaryColor,
+        backgroundColor: Theme.of(context).colorScheme.primary,
         child: const Icon(Icons.add),
       ),
     );
   }
 
+  /// First name for the greeting: strips an email domain and any
+  /// separators, title-cases the result. Falls back to "there".
+  String _firstName(String raw) {
+    var s = raw.trim();
+    if (s.contains('@')) s = s.split('@').first;
+    final parts = s
+        .split(RegExp(r'[\s._-]+'))
+        .where((p) => p.isNotEmpty)
+        .toList();
+    if (parts.isEmpty) return 'there';
+    final first = parts.first;
+    return first[0].toUpperCase() + first.substring(1);
+  }
+
   Widget _buildWelcomeSection(BuildContext context, String userName) {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Theme.of(context).primaryColor, Theme.of(context).hintColor],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+        gradient: const LinearGradient(
+          colors: [AppColors.emerald, AppColors.primary],
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
         ),
         borderRadius: BorderRadius.circular(12),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: [
           Text(
             'Welcome back,',
             style: Theme.of(
               context,
-            ).textTheme.bodyLarge?.copyWith(color: Colors.white70),
+            ).textTheme.titleMedium?.copyWith(color: Colors.white70),
           ),
-          const SizedBox(height: 4),
-          Text(
-            userName,
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
+          const SizedBox(width: 6),
+          Flexible(
+            child: Text(
+              _firstName(userName),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
             ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Manage your wishlists and discover new items',
-            style: Theme.of(
-              context,
-            ).textTheme.bodyMedium?.copyWith(color: Colors.white70),
           ),
         ],
       ),
@@ -183,6 +179,7 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Icon(icon, color: color, size: 32),
             const SizedBox(height: 8),
@@ -229,7 +226,6 @@ class _HomeScreenState extends State<HomeScreen> {
               child: Text(
                 provider.error!,
                 style: const TextStyle(color: Colors.red),
-                textAlign: TextAlign.center,
               ),
             ),
           )
@@ -238,6 +234,7 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Padding(
               padding: const EdgeInsets.all(24),
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Icon(
                     Icons.list_alt_outlined,
@@ -255,7 +252,6 @@ class _HomeScreenState extends State<HomeScreen> {
                     style: Theme.of(
                       context,
                     ).textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),
-                    textAlign: TextAlign.center,
                   ),
                 ],
               ),
@@ -275,10 +271,10 @@ class _HomeScreenState extends State<HomeScreen> {
                   leading: CircleAvatar(
                     backgroundColor: Theme.of(
                       context,
-                    ).primaryColor.withValues(alpha: 0.1),
+                    ).colorScheme.primary.withValues(alpha: 0.1),
                     child: Icon(
                       wishlist.isPublic ? Icons.public : Icons.lock_outline,
-                      color: Theme.of(context).primaryColor,
+                      color: Theme.of(context).colorScheme.primary,
                     ),
                   ),
                   title: Text(wishlist.name),
@@ -372,8 +368,9 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Padding(
           padding: const EdgeInsets.all(20),
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(icon, size: 32, color: Theme.of(context).primaryColor),
+              Icon(icon, size: 32, color: Theme.of(context).colorScheme.primary),
               const SizedBox(height: 8),
               Text(
                 label,

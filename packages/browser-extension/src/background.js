@@ -8,23 +8,18 @@ const firebaseConfig = {
   projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || 'your-project-id'
 };
 
+// Every backend call the extension makes now goes through the hosting-routed
+// `api` function under ${baseUrl}/api/** (see makeAuthenticatedRequest call
+// sites) — the same path the web app uses. The old per-env
+// cloudFunctionsBaseUrl (direct us-central1-<project>.cloudfunctions.net
+// calls) was removed: standalone Cloud Functions can't get a public invoker
+// binding under this org's Domain Restricted Sharing policy, so those URLs
+// 404 / 403. Only the site base URL is environment-specific now.
 const EXTENSION_ENVIRONMENTS = {
-  development: {
-    baseUrl: 'https://wishlist-wizard-dev.web.app',
-    cloudFunctionsBaseUrl: 'https://us-central1-wishlist-wizard-dev.cloudfunctions.net'
-  },
-  staging: {
-    baseUrl: 'https://wishlist-wizard-staging.web.app',
-    cloudFunctionsBaseUrl: 'https://us-central1-wishlist-wizard-staging.cloudfunctions.net'
-  },
-  production: {
-    baseUrl: 'https://wishlist-wizard-prod.web.app',
-    cloudFunctionsBaseUrl: 'https://us-central1-wishlist-wizard-prod.cloudfunctions.net'
-  },
-  local: {
-    baseUrl: 'http://localhost:3001',
-    cloudFunctionsBaseUrl: 'http://localhost:5001/wishlist-wizard-dev/us-central1'
-  }
+  development: { baseUrl: 'https://wishlist-wizard-dev.web.app' },
+  staging: { baseUrl: 'https://wishlist-wizard-staging.web.app' },
+  production: { baseUrl: 'https://wishlist-wizard-prod.web.app' },
+  local: { baseUrl: 'http://localhost:3001' }
 };
 
 function normalizeExtensionEnvironment(value) {
@@ -40,13 +35,9 @@ function normalizeExtensionEnvironment(value) {
     : 'development';
 }
 
-// Base URL for the Wishlist Wizard website API
-// Note: Service workers don't have access to window.location, so we hardcode the URLs
-// Using dev environment to match Firebase config (wishlist-wizard-dev)
+// Base URL for the Wishlist Wizard web app (service workers have no
+// window.location, so this is resolved from stored config / hardcoded).
 let baseUrl = EXTENSION_ENVIRONMENTS.development.baseUrl;
-
-// Cloud Functions base URL - used for extension API calls
-let cloudFunctionsBaseUrl = EXTENSION_ENVIRONMENTS.development.cloudFunctionsBaseUrl;
 
 let extensionConfigPromise = null;
 
@@ -60,14 +51,13 @@ async function loadExtensionEnvironmentConfig() {
     }
 
     chrome.storage.local.get(
-      ['wwEnvironment', 'wwBaseUrlOverride', 'wwCloudFunctionsBaseUrlOverride'],
+      ['wwEnvironment', 'wwBaseUrlOverride'],
       (result) => {
         const env = normalizeExtensionEnvironment(result?.wwEnvironment);
         const envConfig = EXTENSION_ENVIRONMENTS[env] || defaultConfig;
 
         resolve({
-          baseUrl: result?.wwBaseUrlOverride || envConfig.baseUrl,
-          cloudFunctionsBaseUrl: result?.wwCloudFunctionsBaseUrlOverride || envConfig.cloudFunctionsBaseUrl
+          baseUrl: result?.wwBaseUrlOverride || envConfig.baseUrl
         });
       }
     );
@@ -79,12 +69,10 @@ async function ensureExtensionEnvironmentConfig() {
     extensionConfigPromise = loadExtensionEnvironmentConfig()
       .then((config) => {
         baseUrl = config.baseUrl;
-        cloudFunctionsBaseUrl = config.cloudFunctionsBaseUrl;
         return config;
       })
       .catch(() => {
         baseUrl = EXTENSION_ENVIRONMENTS.development.baseUrl;
-        cloudFunctionsBaseUrl = EXTENSION_ENVIRONMENTS.development.cloudFunctionsBaseUrl;
         return EXTENSION_ENVIRONMENTS.development;
       });
   }
@@ -98,19 +86,12 @@ if (chrome?.storage?.onChanged) {
       return;
     }
 
-    if (changes.wwEnvironment || changes.wwBaseUrlOverride || changes.wwCloudFunctionsBaseUrlOverride) {
+    if (changes.wwEnvironment || changes.wwBaseUrlOverride) {
       extensionConfigPromise = null;
       ensureExtensionEnvironmentConfig();
     }
   });
 }
-
-// For localhost development, you can change this to:
-// let baseUrl = 'http://localhost:3001';
-// let cloudFunctionsBaseUrl = 'http://localhost:5001/wishlist-wizard-dev/us-central1';
-// For production, change to:
-// let baseUrl = 'https://wishlist-wizard.web.app';
-// let cloudFunctionsBaseUrl = 'https://us-central1-wishlist-wizard-prod.cloudfunctions.net';
 
 // Auth token storage for JWT-based authentication
 let authToken = null;
@@ -1017,8 +998,19 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       sendResponse({ success: true });
     }
 
+    // Read-only: the extension needs the caller's current tier + usage to
+    // enforce plan limits and show the right "you're on Free" label. All
+    // purchase/plan-management UI lives on the web app now (the popup
+    // deep-links to ${baseUrl}/subscriptions) — there is no in-extension
+    // checkout, so billingPlans/billingCheckout/billingPortal are gone.
+    //
+    // Goes through the hosting-routed `api` function (GET /api/billing/status),
+    // NOT cloudFunctionsBaseUrl: the standalone billingStatus Cloud Function
+    // was removed in the router migration and 404s (same reason as
+    // findPriceComparisons' comment above).
     else if (message.action === 'billingStatus') {
-      callCallableFunction('billingStatus', {})
+      getBaseUrl()
+        .then((base) => makeAuthenticatedRequest(`${base}/api/billing/status`, { method: 'GET' }))
         .then((data) => sendResponse({ success: true, data }))
         .catch((error) => {
           const trackingInfo = trackError(error, 'billingStatus');
@@ -1031,53 +1023,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       return true;
     }
 
-    else if (message.action === 'billingPlans') {
-      callCallableFunction('billingPlans', {})
-        .then((data) => sendResponse({ success: true, data }))
-        .catch((error) => {
-          const trackingInfo = trackError(error, 'billingPlans');
-          sendResponse({
-            success: false,
-            error: error.message,
-            errorId: trackingInfo.timestamp
-          });
-        });
-      return true;
-    }
-
-    else if (message.action === 'billingCheckout') {
-      const payload = {
-        tier: String(message.tier || ''),
-        billingCycle: String(message.billingCycle || 'monthly')
-      };
-
-      callCallableFunction('billingCheckout', payload)
-        .then((data) => sendResponse({ success: true, data }))
-        .catch((error) => {
-          const trackingInfo = trackError(error, 'billingCheckout');
-          sendResponse({
-            success: false,
-            error: error.message,
-            errorId: trackingInfo.timestamp
-          });
-        });
-      return true;
-    }
-
-    else if (message.action === 'billingPortal') {
-      callCallableFunction('billingPortal', {})
-        .then((data) => sendResponse({ success: true, data }))
-        .catch((error) => {
-          const trackingInfo = trackError(error, 'billingPortal');
-          sendResponse({
-            success: false,
-            error: error.message,
-            errorId: trackingInfo.timestamp
-          });
-        });
-      return true;
-    }
-    
     else {
       // Unknown action
       const error = new Error(`Unknown action: ${message.action}`);
@@ -1192,27 +1137,6 @@ async function makeAuthenticatedRequest(url, options = {}) {
   return responseJson;
 }
 
-async function callCallableFunction(functionName, data = {}) {
-  const response = await makeAuthenticatedRequest(
-    `${cloudFunctionsBaseUrl}/${functionName}`,
-    {
-      method: 'POST',
-      body: JSON.stringify({ data })
-    }
-  );
-
-  if (response && typeof response === 'object') {
-    if (Object.prototype.hasOwnProperty.call(response, 'result')) {
-      return response.result;
-    }
-    if (Object.prototype.hasOwnProperty.call(response, 'data')) {
-      return response.data;
-    }
-  }
-
-  return response;
-}
-
 // Fetch wishlists from the API
 async function fetchWishlists() {
   try {
@@ -1222,9 +1146,12 @@ async function fetchWishlists() {
       throw new Error('Authentication required. Please sign in to your account.');
     }
     
-    // Get wishlists from the Cloud Function
-    const response = await makeAuthenticatedRequest(`${cloudFunctionsBaseUrl}/extensionGetWishlists`);
-    
+    // Goes through the hosting-routed `api` function (GET /api/extension/wishlists),
+    // NOT cloudFunctionsBaseUrl — standalone Cloud Functions can't get a public
+    // invoker binding under this org's policy (see findPriceComparisons below).
+    const base = await getBaseUrl();
+    const response = await makeAuthenticatedRequest(`${base}/api/extension/wishlists`);
+
     // Log for debugging
     console.log('Fetched wishlists:', response);
     
@@ -1267,8 +1194,10 @@ async function addItemToWishlist(itemData) {
     // Log what we're sending for debugging
     console.log('Adding item to wishlist:', enrichedItemData);
     
-    // Send the request to Cloud Function
-    const response = await makeAuthenticatedRequest(`${cloudFunctionsBaseUrl}/extensionAddItem`, {
+    // POST /api/extension/items via the `api` router (needs wishlistId + title
+    // in the body, which enrichedItemData carries through from the popup).
+    const base = await getBaseUrl();
+    const response = await makeAuthenticatedRequest(`${base}/api/extension/items`, {
       method: 'POST',
       body: JSON.stringify(enrichedItemData)
     });
@@ -1324,9 +1253,9 @@ async function fetchRecentItems() {
       throw new Error('Authentication required. Please sign in to your account.');
     }
     
-    // Get recent items from Cloud Function
-    const response = await makeAuthenticatedRequest(`${cloudFunctionsBaseUrl}/extensionGetRecentItems`);
-    
+    const base = await getBaseUrl();
+    const response = await makeAuthenticatedRequest(`${base}/api/extension/recent-items`);
+
     console.log('Fetched recent items:', response);
     return Array.isArray(response) ? response : [];
   } catch (error) {
@@ -1345,9 +1274,11 @@ async function fetchWishlistItems(wishlistId) {
       throw new Error('Authentication required. Please sign in to your account.');
     }
     
-    // Get wishlist items from Cloud Function
-    const response = await makeAuthenticatedRequest(`${cloudFunctionsBaseUrl}/extensionGetWishlistItems?wishlistId=${wishlistId}`);
-    
+    const base = await getBaseUrl();
+    const response = await makeAuthenticatedRequest(
+      `${base}/api/extension/wishlists/${encodeURIComponent(wishlistId)}/items`
+    );
+
     console.log('Fetched wishlist items:', response);
     return Array.isArray(response) ? response : [];
   } catch (error) {
@@ -1366,8 +1297,8 @@ async function createWishlist(name) {
       throw new Error('Authentication required. Please sign in to your account.');
     }
     
-    // Create wishlist on the Cloud Function
-    const response = await makeAuthenticatedRequest(`${cloudFunctionsBaseUrl}/extensionCreateWishlist`, {
+    const base = await getBaseUrl();
+    const response = await makeAuthenticatedRequest(`${base}/api/extension/wishlists`, {
       method: 'POST',
       body: JSON.stringify({ name })
     });
@@ -1390,8 +1321,8 @@ async function removeItem(itemId) {
       throw new Error('Authentication required. Please sign in to your account.');
     }
     
-    // Remove item from Cloud Function
-    await makeAuthenticatedRequest(`${cloudFunctionsBaseUrl}/extensionDeleteItem?itemId=${itemId}`, {
+    const base = await getBaseUrl();
+    await makeAuthenticatedRequest(`${base}/api/extension/items/${encodeURIComponent(itemId)}`, {
       method: 'DELETE'
     });
     
@@ -1413,11 +1344,12 @@ async function shareWishlist(wishlistId) {
       throw new Error('Authentication required. Please sign in to your account.');
     }
     
-    // Get share URL from Cloud Function
-    const response = await makeAuthenticatedRequest(`${cloudFunctionsBaseUrl}/extensionShareWishlist?wishlistId=${wishlistId}`, {
-      method: 'POST'
-    });
-    
+    const base = await getBaseUrl();
+    const response = await makeAuthenticatedRequest(
+      `${base}/api/extension/wishlists/${encodeURIComponent(wishlistId)}/share`,
+      { method: 'POST' }
+    );
+
     console.log('Generated share URL:', response);
     return response.shareUrl || response.url;
   } catch (error) {
