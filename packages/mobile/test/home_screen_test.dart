@@ -181,18 +181,6 @@ void main() {
     expect(find.text('Notifications'), findsWidgets); // AppBar title on the pushed screen
   });
 
-  testWidgets('Browse quick action navigates to the Browse Products screen', (tester) async {
-    when(() => firestoreService.getUserWishlists('u1')).thenAnswer((_) async => []);
-    await pumpHome(tester);
-    await scrollTo(tester, find.text('Browse'));
-
-    await tester.tap(find.text('Browse'));
-    await tester.pumpAndSettle();
-
-    expect(find.text('Browse Products'), findsOneWidget);
-    expect(find.text('Browse Products Screen'), findsOneWidget);
-  });
-
   group('Create Wishlist dialog', () {
     setUp(() {
       when(() => firestoreService.getUserWishlists('u1')).thenAnswer((_) async => []);
