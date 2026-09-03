@@ -27,14 +27,15 @@ const _plansResponse = {
   'available': [
     // Plus is the one self-serve upgrade above Starter.
     {'tier': 'plus', 'name': 'Plus', 'monthlyPrice': 7.99, 'annualPrice': 79.0, 'annualSavings': 16.88},
-    // Creator/Business are built but waitlist-gated (COMING_SOON_TIERS) --
-    // the backend marks them comingSoon; the screen shows a "Notify me"
-    // capture instead of a purchase button.
+    // Creator/Business are built but waitlist-gated (COMING_SOON_TIERS) and
+    // the backend marks them comingSoon. On mobile the paywall drops them
+    // entirely — the "Coming soon" waitlist lives on the web only, because a
+    // plan shown on the App Store paywall with no StoreKit product behind it
+    // fails review (Guideline 3.1.1). Kept in this fixture to prove the
+    // screen filters them out.
     {'tier': 'creator', 'name': 'Creator Pro', 'monthlyPrice': 14.99, 'annualPrice': 149.0, 'annualSavings': 30.88, 'comingSoon': true},
     {'tier': 'business', 'name': 'Business', 'monthlyPrice': 29.99, 'annualPrice': 299.0, 'annualSavings': 60.88, 'comingSoon': true},
-    // The backend also returns the contact-sales Enterprise tier (no IAP
-    // product); the screen must not offer it on mobile at all -- not for
-    // purchase, and not in the "Coming soon" section either.
+    // Contact-sales Enterprise tier (no IAP product) — also filtered out.
     {'tier': 'enterprise', 'name': 'Enterprise', 'monthlyPrice': null, 'annualPrice': null, 'comingSoon': true},
   ],
 };
@@ -207,9 +208,8 @@ void main() {
       verify(() => functionsService.billingStatus()).called(1);
     });
 
-    testWidgets('shows Creator/Business as "Coming soon" with a notify-me capture, not a purchase button', (tester) async {
-      // Tall viewport so the whole ListView mounts and we can assert on
-      // every coming-soon card at once without lazy-scroll juggling.
+    testWidgets('waitlist-gated and contact-sales tiers never appear on the paywall (App Store Guideline 3.1.1)', (tester) async {
+      // Tall viewport so the whole ListView mounts at once.
       tester.view.physicalSize = const Size(1200, 5000);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
@@ -218,25 +218,19 @@ void main() {
       await tester.pumpWidget(wrapScreen(functionsService));
       await tester.pumpAndSettle();
 
-      expect(find.text('Creator Pro'), findsOneWidget);
-      expect(find.text('Business'), findsOneWidget);
-      expect(
-        find.widgetWithText(ElevatedButton, 'Notify me when it launches'),
-        findsNWidgets(2), // Creator Pro + Business, not Enterprise
-      );
-      // No purchase button for a gated tier.
-      expect(find.widgetWithText(ElevatedButton, 'Upgrade to Creator Pro'), findsNothing);
-      expect(find.widgetWithText(ElevatedButton, 'Upgrade to Business'), findsNothing);
-      // Enterprise (no IAP product) is not offered here either.
-      expect(find.text('Enterprise'), findsNothing);
+      // Only Plus (the one purchasable upgrade above Starter) is offered.
+      expect(find.widgetWithText(ElevatedButton, 'Upgrade to Plus'), findsOneWidget);
+
+      // Creator/Business (waitlist-gated) and Enterprise (contact-sales, no
+      // IAP product) must not be shown here in any form — a plan on the
+      // paywall with no StoreKit product behind it reads as routing around
+      // StoreKit and fails review.
+      for (final absent in const ['Creator Pro', 'Business', 'Enterprise', 'Coming soon', 'Notify me when it launches']) {
+        expect(find.text(absent), findsNothing, reason: '"$absent" must not be on the paywall');
+      }
     });
 
-    testWidgets('submitting the notify-me form calls registerTierInterest for that tier', (tester) async {
-      when(() => functionsService.registerTierInterest(
-            email: any(named: 'email'),
-            tier: any(named: 'tier'),
-          )).thenAnswer((_) async => {'ok': true, 'alreadyRegistered': false});
-
+    testWidgets('shows the auto-renew disclosure and Terms of Use / Privacy Policy links', (tester) async {
       tester.view.physicalSize = const Size(1200, 5000);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
@@ -245,18 +239,11 @@ void main() {
       await tester.pumpWidget(wrapScreen(functionsService));
       await tester.pumpAndSettle();
 
-      // First coming-soon card is Creator Pro (order from _plansResponse).
-      await tester.enterText(find.byType(TextField).first, 'creator@example.com');
-      await tester.tap(
-        find.widgetWithText(ElevatedButton, 'Notify me when it launches').first,
-      );
-      await tester.pumpAndSettle();
-
-      verify(() => functionsService.registerTierInterest(
-            email: 'creator@example.com',
-            tier: 'creator',
-          )).called(1);
-      expect(find.textContaining("You're on the list"), findsOneWidget);
+      expect(find.textContaining('charged to your Apple ID'), findsOneWidget);
+      expect(find.textContaining('turn off auto-renew'), findsOneWidget);
+      expect(find.textContaining('Account Settings'), findsOneWidget);
+      expect(find.text('Terms of Use'), findsOneWidget);
+      expect(find.text('Privacy Policy'), findsOneWidget);
     });
   });
 }
