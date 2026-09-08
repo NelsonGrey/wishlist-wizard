@@ -41,7 +41,7 @@ dependencies:
   
   # Image & Media
   image_picker: ^1.1.2
-  cached_network_image: ^3.4.1
+  cached_network_image: ^4.0.0
 
   # Filesystem (temp files for CSV / data export sharing)
   path_provider: ^2.1.5
