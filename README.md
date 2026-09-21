@@ -327,7 +327,7 @@ See `AUTOMATED_DEPLOYMENT.md` for complete setup and configuration details.
 
 ## 🤝 Getting Help
 
-- **Support**: Email support@wishlistwizard.com
+- **Support**: Email support@wishlist-wizard.com
 - **Documentation**: https://docs.wishlistwizard.com
 - **FAQ**: Available in the Help section of the app
 

@@ -15,7 +15,7 @@ This repository holds the Wishlist Wizard web, mobile, and browser-extension cli
 This repository doesn't have a public issue tracker, so please don't report security concerns that way. Use one of:
 
 - GitHub's [private vulnerability reporting](https://github.com/NelsonGrey/wishlist-wizard/security/advisories/new) (enabled on this repo), or
-- Email **security@wishlistwizard.com** (or **support@wishlistwizard.com**)
+- Email **support@wishlist-wizard.com**
 
 Either way, include:
 

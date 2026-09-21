@@ -753,7 +753,7 @@ npm run metrics:baseline
 ```
 
 - [ ] `./automate.sh monitor start` — monitoring daemon running — Owner: _______
-- [ ] Alert email `admin@wishlist-wizard.com` (or configured email) is a real, monitored inbox — Owner: _______
+- [ ] Alert email `support@wishlist-wizard.com` (or configured email) is a real, monitored inbox — Owner: _______
 - [ ] Slack webhook configured and alert messages tested — Owner: _______
 - [ ] Firebase console alerts configured: Functions error rate, Firestore quota thresholds — Owner: _______
 - [ ] Uptime monitoring configured (e.g., Firebase Alerting or external uptime tool) — Owner: _______
@@ -773,7 +773,7 @@ The `go-live-gate.sh` checks for these specific docs at launch:
 - [ ] `FIREBASE_STRATEGY.md` exists (referenced in README) — Owner: _______
 - [ ] `AUTOMATED_DEPLOYMENT.md` exists — Owner: _______
 - [ ] README.md is accurate for the `1.0.0` public release — Owner: _______
-- [ ] Support email `support@wishlistwizard.com` is a live, monitored inbox — Owner: _______
+- [ ] Support email `support@wishlist-wizard.com` is a live, monitored inbox — Owner: _______
 - [ ] `docs.wishlistwizard.com` is live or has a coming-soon redirect — Owner: _______
 
 ---
