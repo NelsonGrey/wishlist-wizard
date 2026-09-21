@@ -91,8 +91,8 @@ export default function CookiePolicy() {
             <h2 className="text-2xl font-semibold text-gray-900 mb-4">6. Contact Us</h2>
             <p className="text-gray-700">
               If you have questions about our cookie policy or how we use cookies, please contact us at{" "}
-              <a href="mailto:privacy@wishlist-wizard.com" className="text-emerald-700 hover:text-emerald-800">
-                privacy@wishlist-wizard.com
+              <a href="mailto:support@wishlist-wizard.com" className="text-emerald-700 hover:text-emerald-800">
+                support@wishlist-wizard.com
               </a>
               .
             </p>
