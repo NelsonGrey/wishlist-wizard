@@ -2,6 +2,57 @@
 
 Wishlist Wizard is a comprehensive wishlist management platform that empowers users to create, share, and collaborate on wishlists with advanced social and tracking capabilities. It offers a seamless experience across web, mobile, and browser extension platforms.
 
+## 🎬 Demo
+
+### Architecture
+
+Three thin clients (web, mobile, browser extension) share one Firebase backend. Business logic lives in a private companion repo, `wishlist-wizard-functions`; the diagram below shows the client-side architecture and the API boundary this repo actually calls (`docs/SYSTEM_ARCHITECTURE.md`).
+
+```mermaid
+flowchart LR
+    subgraph Clients
+        Web["Web App<br/>React 19 + TS<br/>packages/web"]
+        Mobile["Mobile App<br/>Flutter<br/>packages/mobile"]
+        Ext["Browser Extension<br/>Manifest V3<br/>packages/browser-extension"]
+    end
+
+    Shared[["packages/shared<br/>types + Zod schemas"]]
+    Web -.uses.-> Shared
+
+    Auth["Firebase Authentication<br/>ID tokens"]
+
+    subgraph Backend["Firebase Functions (private repo: wishlist-wizard-functions)"]
+        Router["api router (onRequest)<br/>/api/* — wishlists, items,<br/>shared links, notifications"]
+        Callables["Standalone onCall functions<br/>auth/profile CRUD, extension auth,<br/>FCM triggers, reserve/purchase"]
+    end
+
+    Firestore[("Cloud Firestore<br/>wishlists · wishlistItems ·<br/>notifications · users")]
+    ExtAPIs["External retailer APIs<br/>Amazon/eBay/Walmart/... + SerpAPI<br/>price comparison"]
+
+    Web -- "sign in/up" --> Auth
+    Mobile -- "sign in/up" --> Auth
+    Ext -- "web-auth-bridge.js" --> Auth
+
+    Web -- "fetch + bearer ID token" --> Router
+    Mobile -- "Dio + ID token" --> Router
+    Web -- "httpsCallable" --> Callables
+    Ext -- "httpsCallable\n(authenticateExtension, addItemFromExtension)" --> Callables
+
+    Web -- "Firestore SDK\naddDoc/onSnapshot" --> Firestore
+    Router --> Firestore
+    Callables --> Firestore
+    Router -- "price lookups" --> ExtAPIs
+```
+
+### Walkthrough: creating, sharing, and claiming a wishlist item
+
+1. **Create a wishlist.** The web dashboard calls `FirebaseWishlistService.createWishlist()` (`packages/web/client-src/lib/firebase-service.ts:173`), which writes an `addDoc` directly to the `wishlists` Firestore collection with the fields on the `Wishlist` interface (`id, userId, name, isPublic, isCollaborative, shareId, occasion, ...`), defined at `firebase-service.ts:45`.
+2. **Add an item.** `FirebaseWishlistService.addWishlistItem()` (`firebase-service.ts:280`) adds a doc to `wishlistItems`, typed by the `WishlistItem` interface (`title, price, productUrl, store, priority, reservedByUserId, purchasedByUserId`, `firebase-service.ts:68`).
+3. **Share it.** Every wishlist carries a `shareId`. A recipient opens `/shared/:shareId`, which `SharedWishlist.tsx` (`packages/web/client-src/pages/SharedWishlist.tsx:108-123`) resolves by calling `GET /api/shared/${shareId}` through the Firebase Functions `api` router, returning a `SharedWishlistResponse { wishlist, items }` (typed at `SharedWishlist.tsx:15-44`).
+4. **A collaborator reserves the item.** From `WishlistDetail.tsx`, `reserveItemMutation` (`packages/web/client-src/pages/WishlistDetail.tsx:601`) calls `FirebaseWishlistService.reserveItem(itemId, userId)`, which does `apiRequest('/api/items/${itemId}/reserve', { method: 'POST', body: { userId }, useFirebaseFunctions: true })` (`firebase-service.ts:329-335`) — a callable, not a raw Firestore write, so the gift-giver never sees the reservation. The UI then reads `item.reservedByUserId` to flip the item's status badge to "Reserved" (`WishlistDetail.tsx:372-375`), and a `collaboration_invite`/`item_reserved`-style notification is emitted per the shared types in `packages/shared/src/collaboration.ts`.
+
+Everything past step 3 (the router/callable handlers themselves, Firestore rules enforcement, price-tracking jobs) lives in the private `wishlist-wizard-functions` repo — not reproducible here, but the request shapes above are read directly from this repo's client code, not invented.
+
 ## 🌟 Key Features
 
 ### Core Functionality
