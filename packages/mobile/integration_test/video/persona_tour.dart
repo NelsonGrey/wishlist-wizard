@@ -94,14 +94,15 @@ void main() {
       await c.tapSlow(nav('Notifications'));
       await c.hold(const Duration(seconds: 2));
       beats.mark('m5');
-      await c.caption('Confirm the drop before you buy.');
+      await c.caption('Compare today\'s price with your target.');
       await c.tapSlow(nav('Profile'));
       await tester.scrollUntilVisible(find.text('Price Tracking'), 160);
       await c.tapSlow(find.text('Price Tracking'));
-      await c.tapSlow(find.text('Price Drops'));
       await c.hold(const Duration(seconds: 3));
       beats.mark('m6');
-      await c.caption('Buy only when the price feels right.');
+      // Let the populated alert breathe for the closing narration instead of
+      // stacking another callout over the same evidence.
+      await c.caption(null);
       await c.hold(const Duration(seconds: 3));
       beats.mark('m7');
     } else if (personaId == 'priya_mobile') {
