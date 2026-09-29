@@ -23,7 +23,7 @@
   - [Collaborative Wishlists](#collaborative-wishlists)
   - [E-Commerce Platform Integration](#e-commerce-platform-integration)
 - [Technical Details](#technical-details)
-  - [Architecture](#architecture)
+  - [Architecture](#architecture-1)
   - [System Requirements](#system-requirements)
   - [Environment Setup](#environment-setup)
   - [API Integration](#api-integration)
