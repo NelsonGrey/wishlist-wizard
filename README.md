@@ -1,8 +1,49 @@
 # Wishlist Wizard - Wishlist Management Platform
 
+[![CI](https://github.com/NelsonGrey/wishlist-wizard/actions/workflows/master-pipeline.yml/badge.svg?branch=develop)](https://github.com/NelsonGrey/wishlist-wizard/actions/workflows/master-pipeline.yml) [![License](https://img.shields.io/badge/license-proprietary-lightgrey.svg)](https://github.com/NelsonGrey/wishlist-wizard/blob/develop/LICENSE)
+
+## Contents
+
+- [Demo](#demo)
+  - [Architecture](#architecture)
+  - [Walkthrough: creating, sharing, and claiming a wishlist item](#walkthrough-creating-sharing-and-claiming-a-wishlist-item)
+- [Key Features](#key-features)
+  - [Core Functionality](#core-functionality)
+  - [Advanced Features](#advanced-features)
+  - [Browser Extension](#browser-extension)
+  - [E-Commerce Integration](#e-commerce-integration)
+- [Getting Started](#getting-started)
+  - [Development Setup](#development-setup)
+  - [Account Creation](#account-creation)
+  - [Creating Your First Wishlist](#creating-your-first-wishlist)
+  - [Adding Beneficiaries](#adding-beneficiaries)
+  - [Browser Extension Installation](#browser-extension-installation)
+- [Advanced Usage](#advanced-usage)
+  - [Calendar Integration](#calendar-integration)
+  - [Collaborative Wishlists](#collaborative-wishlists)
+  - [E-Commerce Platform Integration](#e-commerce-platform-integration)
+- [Technical Details](#technical-details)
+  - [Architecture](#architecture)
+  - [System Requirements](#system-requirements)
+  - [Environment Setup](#environment-setup)
+  - [API Integration](#api-integration)
+  - [Firebase Integration (Primary Infrastructure)](#firebase-integration-primary-infrastructure)
+- [Zero-Touch DevOps Automation](#zero-touch-devops-automation)
+  - [Automation Features](#automation-features)
+  - [Quick Automation Start](#quick-automation-start)
+  - [Automated CI/CD Pipeline](#automated-cicd-pipeline)
+  - [Security Features](#security-features)
+- [Automated Deployment](#automated-deployment)
+  - [Deployment Targets](#deployment-targets)
+  - [Automated Pipeline](#automated-pipeline)
+  - [Manual Deployment](#manual-deployment)
+  - [Data Privacy](#data-privacy)
+- [Getting Help](#getting-help)
+- [Upcoming Features](#upcoming-features)
+
 Wishlist Wizard is a comprehensive wishlist management platform that empowers users to create, share, and collaborate on wishlists with advanced social and tracking capabilities. It offers a seamless experience across web, mobile, and browser extension platforms.
 
-## 🎬 Demo
+## Demo
 
 ### Architecture
 
@@ -53,7 +94,7 @@ flowchart LR
 
 Everything past step 3 (the router/callable handlers themselves, Firestore rules enforcement, price-tracking jobs) lives in the private `wishlist-wizard-functions` repo — not reproducible here, but the request shapes above are read directly from this repo's client code, not invented.
 
-## 🌟 Key Features
+## Key Features
 
 ### Core Functionality
 - **Wishlist Creation & Management**: Create and organize multiple wishlists for different occasions and beneficiaries.
@@ -80,7 +121,7 @@ Everything past step 3 (the router/callable handlers themselves, Firestore rules
   ledger, Stripe Connect creator payouts, and a tier-gated creator dashboard (`/app/creator-dashboard`),
   shipped 2026-07-21.
 
-## 🚀 Getting Started
+## Getting Started
 
 ### Development Setup
 
@@ -201,7 +242,7 @@ flutter build apk --release
 3. Click "Add to Browser"
 4. Sign in with your Wishlist Wizard account
 
-## 💫 Advanced Usage
+## Advanced Usage
 
 ### Calendar Integration
 1. Navigate to "Calendar" in the sidebar
@@ -224,7 +265,7 @@ flutter build apk --release
 3. The system will now fetch product data from these platforms
 4. Product metadata and links are normalized for consistent wishlist management
 
-## 🛠️ Technical Details
+## Technical Details
 
 ### Architecture
 - **Frontend**: React 19 + TypeScript + Vite
@@ -253,7 +294,7 @@ Wishlist Wizard integrates with the following external APIs:
 - **Social Media**: For advanced sharing capabilities
 - **Firebase**: Primary infrastructure — Auth, Firestore, Functions, Hosting, Cloud Messaging, Analytics (not optional — see below)
 
-### 🔥 Firebase Integration (Primary Infrastructure)
+### Firebase Integration (Primary Infrastructure)
 **Wishlist Wizard leverages Firebase as the primary infrastructure platform** for authentication, data storage, serverless functions, hosting, and analytics.
 
 #### Required Firebase Setup:
@@ -294,11 +335,11 @@ npx firebase deploy --project wishlist-wizard
 
 See `FIREBASE_STRATEGY.md` for comprehensive Firebase integration details.
 
-## 🚀 Zero-Touch DevOps Automation
+## Zero-Touch DevOps Automation
 
 Wishlist Wizard includes a complete **zero-touch DevOps automation suite** that eliminates manual credential management and provides automated CI/CD, monitoring, and deployment capabilities.
 
-### 🎯 Automation Features
+### Automation Features
 - **Automated Token Management**: GitHub, Firebase, Docker registry, and API tokens rotate automatically
 - **Multi-Environment Management**: Development, staging, and production environments with isolated secrets
 - **Intelligent Monitoring**: 24/7 health checks with auto-healing and smart alerting
@@ -307,7 +348,7 @@ Wishlist Wizard includes a complete **zero-touch DevOps automation suite** that 
 - **Multi-Channel Alerts**: Email, Slack, and log-based notifications
 - **Automated Backups**: Daily backups with disaster recovery capabilities
 
-### 🚀 Quick Automation Start
+### Quick Automation Start
 ```bash
 # Complete automated setup
 ./automate.sh setup
@@ -322,13 +363,13 @@ Wishlist Wizard includes a complete **zero-touch DevOps automation suite** that 
 ./automate.sh tokens rotate
 ```
 
-### 📊 Automated CI/CD Pipeline
+### Automated CI/CD Pipeline
 - **Quality Checks**: TypeScript compilation, tests, security audit
 - **Multi-Platform Builds**: Web, API, mobile, and extension builds
 - **Automated Deployment**: Push to `main` triggers full deployment
 - **Artifact Management**: Build artifacts stored for rollback capability
 
-### 🔐 Security Features
+### Security Features
 - **Automated Token Rotation**: GitHub, Firebase, API secrets rotate automatically
 - **Environment Isolation**: Secrets isolated per environment
 - **GitHub Secrets Sync**: Automatic synchronization of secrets
@@ -339,7 +380,7 @@ See `docs/CICD_SETUP_GUIDE.md` for the current CI/CD pipeline as it actually run
 that pipeline and has not been re-verified against it — treat with caution until confirmed
 current.
 
-## 🚀 Automated Deployment
+## Automated Deployment
 
 Wishlist Wizard includes a comprehensive CI/CD pipeline that automatically builds, tests, and deploys all components:
 
@@ -376,13 +417,13 @@ See `AUTOMATED_DEPLOYMENT.md` for complete setup and configuration details.
 - Wishlists can be set to private, shared with specific people, or public
 - You can delete your account and all associated data at any time
 
-## 🤝 Getting Help
+## Getting Help
 
 - **Support**: Email support@wishlist-wizard.com
 - **Documentation**: https://docs.wishlistwizard.com
 - **FAQ**: Available in the Help section of the app
 
-## 🔮 Upcoming Features
+## Upcoming Features
 
 - AI recommendations
 - Group gifting payments
