@@ -385,9 +385,9 @@ current.
 Wishlist Wizard includes a comprehensive CI/CD pipeline that automatically builds, tests, and deploys all components:
 
 ### Deployment Targets
-- **🌐 Web App**: Firebase Hosting (`https://wishlist-wizard.web.app`)
-- **🚂 API Server**: Firebase Functions (`https://api.wishlist-wizard.web.app`)
-- **📱 Mobile PWA**: Firebase Hosting (`https://wishlist-wizard.web.app`)
+- **🌐 Web App**: Firebase Hosting (`https://wishlist-wizard.com`)
+- **🚂 API Server**: Firebase Functions (`https://wishlist-wizard.com/api`)
+- **📱 Mobile PWA**: Firebase Hosting (`https://wishlist-wizard.com`)
 - **🔌 Chrome Extension**: Chrome Web Store (manual submission)
 
 ### Automated Pipeline

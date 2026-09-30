@@ -1,9 +1,9 @@
 # Wishlist Wizard — Go Live Document
 
-> **Version:** 1.4  
-> **Last Updated:** 2026-09-02  
+> **Version:** 1.5  
+> **Last Updated:** 2026-09-30  
 > **Repo:** https://github.com/mnelson3/wishlist-wizard (default branch: `develop`)  
-> **Production URL:** https://wishlist-wizard.web.app  
+> **Production URL:** https://wishlist-wizard.com  
 > **Staging URL:** https://wishlist-wizard-staging.web.app  
 
 ---
@@ -40,6 +40,13 @@ A 2026-07-16 audit found this document's — and `docs/PRODUCT_DESIGN.md`'s — 
 | **Browser extension** | 🟡 Core "killer app" flow real and tested; still no confirmed Chrome Web Store listing | The floating-button add-to-wishlist flow was fixed and verified 2026-07-18 (§1.12/§1.13), with a real committed Playwright E2E suite wired into CI. Coupon finder and price comparison still call backend endpoints that don't exist — deferred to Phase 2, not launch-blocking. **Confirmed 2026-08-09: Chrome Web Store submission is genuinely manual-only** (no API path for first-time listing) and is deliberately deferred by the user — not an oversight. |
 | **Mobile (iOS/Android, Flutter)** | 🟢 Thin but real, Android deploy path confirmed live | Push notifications, offline caching, and sharing are wired. Barcode lookup — backend-ready since the functions/api-router migration but never called from the UI — was wired into the Add Item screen 2026-08-08. A real crash bug (`FirebaseWishlistProvider.createWishlist()` discarding the real doc id) was found and fixed 2026-07-18 with a regression-proven test. **2026-08-09: found and fixed a genuine Play Console `versionCode` collision** (bumped `pubspec.yaml` to `1.0.0+3`); **confirmed live 2026-08-10** via a real Play Console internal-track upload (§1.20). Also fixed: `google-services.json` committed as a symlink, which broke Android CI's environment-switching. Still missing: Shared-with-Me, Creator Mode, native platform features (Siri Shortcuts, App Clips, iCloud, widgets) — never built, not regressions. |
 | **Backend (Firebase Functions + Firestore)** | 🟢 Live, confirmed; deploy pipeline hardened | Root `server/`/`client/` (old Express+Postgres) are dead. Affiliate tracking, calendar OAuth sync, and the router-pattern migration (§ router-migration memory, 2026-07-23 — all 63 callables) are solid. **Creator/business-tier Stripe checkout was found broken in all three environments** (`router.ts` never bound the Creator/Business price-ID secrets, and the dev/staging secret values themselves held the wrong field from a pasted list) — both fixed and pushed 2026-08-09. **Deploy-verification on 2026-08-10 fixed one blocker (root-lockfile drift) and uncovered a second, deeper one: `staging`/`main` Functions currently fail to `tsc`-compile at all** (missing `lib: ES2022` in their `tsconfig.json` vs. an `.at()` call in `admin.ts` — see §1.20 addendum). The Stripe fix itself is still unconfirmed live. The affiliate/creator payout backend (ledger, reconciliation, Stripe Connect) is fully built and deployed to dev with a tier-gated creator dashboard live-verified — see the corrected Part 5 entry below; prior versions of this document incorrectly said this was unstarted. |
+
+**Update 2026-09-30 — CI/deploy repaired, re-promotion to staging + TestFlight.**
+- **Dev Functions deploy had gone red** after a Dependabot bump to `firebase-admin` 14.5.0, which requires Node ≥ 22 while the reusable deploy workflow (and the functions `engines` field) still built on Node 20 — `tsc` failed with `Cannot find namespace 'FirebaseFirestore'`. Fixed: `firebase-deploy-local.yml` defaults to Node 22, functions `engines.node` is 22 (matches the `nodejs22` runtime in every `firebase*.json`). Dev deploy verified green after the fix.
+- **Master CI/CD Pipeline had failed on every PR since ≥ 2026-09-21** with root `npm ci` `ERESOLVE`: the private functions repo is checked out into `packages/functions`, which was an npm workspace member, so its own `overrides` (for `eslint-plugin-import`, `firebase-functions-test`) were ignored and every Dependabot bump re-broke the root install. Fixed structurally: `packages/functions` is now **excluded from root workspaces** (`"!packages/functions"`), root lockfile regenerated, `--workspace=functions` scripts/docs switched to `npm --prefix packages/functions`, and the functions repo dropped two unused, peer-conflicting devDependencies (`eslint-plugin-import`, `eslint-config-google`). Functions is built/deployed in isolation (as the deploy workflow already did).
+- **Production URL correction:** `wishlist-wizard.web.app` is *not* a live Hosting site (404 "Site Not Found"). Production is `https://wishlist-wizard.com` (Firebase site `wishlist-wizard-prod.web.app`). Fixed stale references in this doc and the README, and **fixed a real bug: the mobile app built shareable wishlist links against the dead `wishlist-wizard.web.app` origin** (now `wishlist-wizard.com`).
+- Mobile build number bumped to `1.0.0+10`.
+- Production remains deliberately offline (`marketing_offline` / `app_offline` = `true` in Remote Config) — unchanged.
 
 **Update 2026-09-02 — full §2.3 gate re-run + a stack of mobile work landed on `develop`.**
 - The full Part 2.3 sequence was run end-to-end for the first time since 2026-07-16 (see §2.3 for line-by-line results). **`npm run check`, `npm run lint`, and the requirements gates pass.** The red gates are: `npm audit` regressed to 3 high vulns (all dev/build tooling, not runtime); the two Firebase/user-flow smoke tests now run but fail at fixture setup because the companion-repo smoke script still calls the pre-router-migration `createUserProfile` callable; `go-live-gate.sh` is consequently BLOCKED (4 issues, all downstream of those smoke tests); `preflight:extension`/`preflight:mobile` fail only because release artifacts weren't built this pass. **Nothing red is a product defect** — the deployed dev backend answers correctly (confirmed the same day by a full mobile integration suite).
@@ -706,7 +713,7 @@ npm run package:extension:release
 - [ ] SSL certificate provisioned by Firebase (automatic via Let's Encrypt) — Owner: _______
 - [ ] `www` redirect to apex domain (or vice versa) configured — Owner: _______
 - [ ] `docs.wishlistwizard.com` domain configured and documentation live — Owner: _______
-- [ ] `api.wishlist-wizard.web.app` (or custom API domain) confirmed operational — Owner: _______
+- [ ] `https://wishlist-wizard.com/api/**` (Hosting rewrite to the api function) confirmed operational — Owner: _______
 - [ ] Email domain SPF/DKIM/DMARC DNS records set for Google Workspace (SendGrid is not used — see §2.11, email goes via Nodemailer + Gmail SMTP) — Owner: _______
 
 ---
@@ -854,7 +861,7 @@ npm run build --workspace=@wishlist-wizard/web
 firebase deploy --only hosting --project wishlist-wizard-prod
 ```
 - [ ] Web app deployed — Owner: _______
-- [ ] `https://wishlist-wizard.web.app` loads successfully — Owner: _______
+- [ ] `https://wishlist-wizard.com` loads successfully — Owner: _______
 
 **Step 4 — Or: Deploy All via Script**
 ```bash
@@ -879,7 +886,7 @@ npm run test:e2e:prod
 Execute these tests within 30 minutes of deployment:
 
 - [ ] `npm run test:e2e:prod` passes — Owner: _______
-- [ ] **Web:** Navigate to `https://wishlist-wizard.web.app` — page loads, no console errors — Owner: _______
+- [ ] **Web:** Navigate to `https://wishlist-wizard.com` — page loads, no console errors — Owner: _______
 - [ ] **Web:** Create a new account — registration email received — Owner: _______
 - [ ] **Web:** Log in and create a wishlist — Owner: _______
 - [ ] **Web:** Add an item to the wishlist — Owner: _______
