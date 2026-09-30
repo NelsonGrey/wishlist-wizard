@@ -473,7 +473,7 @@ This guide provides solutions for common issues encountered during development, 
 
 1. **Check Firebase Functions logs**:
    ```bash
-   npm run logs --workspace=functions
+   npm --prefix packages/functions run logs
    ```
 
 2. **Verify environment variables** on server:

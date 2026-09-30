@@ -161,7 +161,7 @@ npm run build
 # Test individual packages
 npm run build --workspace=@wishlist-wizard/shared
 npm run build --workspace=@wishlist-wizard/browser-extension
-npm run build --workspace=functions
+npm --prefix packages/functions run build
 npm run build --workspace=@wishlist-wizard/web
 cd packages/mobile && flutter build web --release
 ```
