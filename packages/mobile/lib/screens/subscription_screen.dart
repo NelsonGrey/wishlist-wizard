@@ -1,10 +1,13 @@
-import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../providers/providers.dart';
 import '../services/iap_service.dart';
 import '../widgets/app_scaffold.dart';
+
+const String _termsUrl = 'https://wishlist-wizard.com/terms';
+const String _privacyUrl = 'https://wishlist-wizard.com/privacy';
 
 class SubscriptionScreen extends StatefulWidget {
   const SubscriptionScreen({super.key});
@@ -137,10 +140,14 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
                 ),
                 const SizedBox(height: 8),
-                // Only offer tiers that have an in-app purchase product on
-                // this platform. This filters out the contact-sales
-                // "Enterprise" tier the backend returns for web -- offering a
-                // non-IAP plan on mobile gets the app rejected in review.
+                // Only tiers that are (a) purchasable right now and (b) have
+                // an in-app purchase product on this platform. This excludes
+                // the contact-sales "Enterprise" tier and the currently
+                // waitlist-gated Creator/Business tiers — showing any plan on
+                // the paywall that has no StoreKit product behind it reads as
+                // a purchase path routed around StoreKit and fails App Store
+                // review (Guideline 3.1.1). Those tiers are surfaced only on
+                // the web, where the "Coming soon" waitlist lives.
                 ...provider.upgradeOptions
                     .where(
                       (option) =>
@@ -162,37 +169,8 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                         ),
                       ),
                     ),
-                // Creator-and-above are built but not yet open for self-serve
-                // purchase (see COMING_SOON_TIERS in
-                // packages/shared/src/subscription.ts). Offer a waitlist
-                // instead of a purchase button -- an unpurchasable plan with a
-                // buy button fails App Store review.
-                ...() {
-                  final comingSoon = provider.upgradeOptions
-                      .where(
-                        (option) =>
-                            option.comingSoon &&
-                            iapService.catalogTiers.contains(option.tier),
-                      )
-                      .toList(growable: false);
-                  if (comingSoon.isEmpty) return const <Widget>[];
-                  return [
-                    const SizedBox(height: 16),
-                    const Text(
-                      'Coming soon',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    ...comingSoon.map(
-                      (option) => _ComingSoonUpgradeCard(option: option),
-                    ),
-                  ];
-                }(),
                 if (iapService.isAvailable) ...[
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 4),
                   TextButton(
                     onPressed: iapService.isLoading
                         ? null
@@ -200,6 +178,8 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                     child: const Text('Restore purchases'),
                   ),
                 ],
+                const SizedBox(height: 8),
+                const _SubscriptionDisclosure(),
               ],
             ),
           );
@@ -403,169 +383,65 @@ class _UpgradeOptionCard extends StatelessWidget {
   }
 }
 
-/// "Coming soon" plan row: instead of a purchase button, captures an email
-/// so the user can be notified when the tier opens. Posts to
-/// FirebaseFunctionsService.registerTierInterest (/api/tier-interest).
-class _ComingSoonUpgradeCard extends StatefulWidget {
-  const _ComingSoonUpgradeCard({required this.option});
+/// Auto-renewable subscription disclosure required on any screen that offers
+/// them (App Store Review Guideline 3.1.2 / Schedule 2): renewal terms,
+/// where to manage/cancel, and functional Terms of Use + Privacy Policy
+/// links.
+class _SubscriptionDisclosure extends StatelessWidget {
+  const _SubscriptionDisclosure();
 
-  final SubscriptionUpgradeOption option;
-
-  @override
-  State<_ComingSoonUpgradeCard> createState() => _ComingSoonUpgradeCardState();
-}
-
-class _ComingSoonUpgradeCardState extends State<_ComingSoonUpgradeCard> {
-  late final TextEditingController _emailController;
-  bool _submitting = false;
-  bool _done = false;
-  String? _error;
-
-  static final RegExp _emailRe = RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$');
-
-  @override
-  void initState() {
-    super.initState();
-    _emailController = TextEditingController(text: _currentUserEmail());
-  }
-
-  /// The signed-in user's email, used to prefill the field. Guarded because
-  /// `FirebaseAuth.instance` throws when Firebase isn't initialised (widget
-  /// tests) — a blank field is a fine fallback.
-  String _currentUserEmail() {
-    try {
-      return firebase_auth.FirebaseAuth.instance.currentUser?.email ?? '';
-    } catch (_) {
-      return '';
-    }
-  }
-
-  @override
-  void dispose() {
-    _emailController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _submit() async {
-    final email = _emailController.text.trim();
-    if (!_emailRe.hasMatch(email)) {
-      setState(() => _error = 'Enter a valid email address.');
-      return;
-    }
-    setState(() {
-      _submitting = true;
-      _error = null;
-    });
-    try {
-      final result = await context.read<SubscriptionProvider>().registerTierInterest(
-            email: email,
-            tier: widget.option.tier,
-          );
-      if (!mounted) return;
-      setState(() {
-        _submitting = false;
-        _done = result['ok'] == true;
-        if (!_done) _error = 'Something went wrong. Please try again.';
-      });
-    } catch (_) {
-      if (!mounted) return;
-      setState(() {
-        _submitting = false;
-        _error = 'Something went wrong. Please try again.';
-      });
+  Future<void> _open(BuildContext context, String url) async {
+    final ok = await launchUrl(
+      Uri.parse(url),
+      mode: LaunchMode.externalApplication,
+    );
+    if (!ok && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not open $url')),
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 10),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    widget.option.name,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 2,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.amber.shade100,
-                    borderRadius: BorderRadius.circular(100),
-                  ),
-                  child: Text(
-                    'Coming soon',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.amber.shade900,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            if (_done)
-              Row(
-                children: [
-                  Icon(Icons.check_circle,
-                      size: 18, color: Colors.green.shade700),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      "You're on the list — we'll email you when "
-                      '${widget.option.name} launches.',
-                    ),
-                  ),
-                ],
-              )
-            else ...[
-              Text(
-                "${widget.option.name} isn't open for sign-ups yet. Leave your "
-                'email and we\'ll let you know when it launches.',
-                style: TextStyle(color: Colors.grey[700]),
+    final muted = TextStyle(fontSize: 12, color: Colors.grey[700], height: 1.4);
+    final linkStyle = TextStyle(
+      fontSize: 12,
+      color: Theme.of(context).colorScheme.primary,
+      decoration: TextDecoration.underline,
+    );
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(4, 4, 4, 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Payment is charged to your Apple ID account when you confirm the '
+            'purchase. Your subscription renews automatically for the same '
+            'price and period unless you turn off auto-renew at least 24 hours '
+            'before the end of the current period; your account is charged for '
+            'renewal within 24 hours of that time. You can manage your '
+            'subscription and turn off auto-renew in your device Account '
+            'Settings after purchase.',
+            style: muted,
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 16,
+            runSpacing: 4,
+            children: [
+              InkWell(
+                onTap: () => _open(context, _termsUrl),
+                child: Text('Terms of Use', style: linkStyle),
               ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: _emailController,
-                keyboardType: TextInputType.emailAddress,
-                enabled: !_submitting,
-                decoration: const InputDecoration(
-                  labelText: 'Email',
-                  hintText: 'you@example.com',
-                  border: OutlineInputBorder(),
-                  isDense: true,
-                ),
-              ),
-              if (_error != null) ...[
-                const SizedBox(height: 6),
-                Text(
-                  _error!,
-                  style: const TextStyle(color: Colors.redAccent, fontSize: 12),
-                ),
-              ],
-              const SizedBox(height: 12),
-              ElevatedButton(
-                onPressed: _submitting ? null : _submit,
-                child: Text(
-                  _submitting ? 'Adding you…' : 'Notify me when it launches',
-                ),
+              InkWell(
+                onTap: () => _open(context, _privacyUrl),
+                child: Text('Privacy Policy', style: linkStyle),
               ),
             ],
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

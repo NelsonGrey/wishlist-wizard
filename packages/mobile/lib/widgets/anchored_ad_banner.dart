@@ -35,6 +35,9 @@ class AnchoredAdBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (const bool.fromEnvironment('VIDEO_CAPTURE')) {
+      return const SizedBox.shrink();
+    }
     if (_tier(context) != 'free') {
       return const SizedBox.shrink();
     }
@@ -50,9 +53,7 @@ class AnchoredAdBanner extends StatelessWidget {
         // A whisper of warm grey marks the strip as chrome, not content; the
         // solid hairline underneath is the actual separator.
         color: Color(0xFFF6F6F5),
-        border: Border(
-          bottom: BorderSide(color: AppColors.border),
-        ),
+        border: Border(bottom: BorderSide(color: AppColors.border)),
       ),
       child: const BannerAdWidget(margin: EdgeInsets.zero),
     );

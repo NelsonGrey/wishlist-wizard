@@ -398,3 +398,26 @@ packages/functions/
 
 # Claude Code local session data
 .claude/
+
+# Persona video production — raw captures, final renders, and backend env.
+# The spec, personas.json, voiceover scripts, shell scripts, Codex prompts,
+# and brand card PNGs under video-production/assets/cards/ ARE committed.
+video-production/out/
+video-production/dist/
+video-production/review/*.mp4
+video-production/.env.*.web
+video-production/assets/music/
+video-production/voiceover/recordings/*
+!video-production/voiceover/recordings/README.md
+!video-production/voiceover/recordings/manifest.example.json
+
+# Generated social-media asset library
+/media-library/
+
+# Local credentials, signing keys, and App Store Connect API keys staged for
+# releases (Apple .p8 keys, Play service-account JSON, OAuth client secrets,
+# extension signing keys, provisioning profiles) — never committed.
+/json/
+
+# Local build/export output (screenshots, zips) — not source, not committed.
+/output/

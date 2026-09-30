@@ -1,8 +1,100 @@
 # Wishlist Wizard - Wishlist Management Platform
 
+[![CI](https://github.com/NelsonGrey/wishlist-wizard/actions/workflows/master-pipeline.yml/badge.svg?branch=develop)](https://github.com/NelsonGrey/wishlist-wizard/actions/workflows/master-pipeline.yml) [![License](https://img.shields.io/badge/license-proprietary-lightgrey.svg)](https://github.com/NelsonGrey/wishlist-wizard/blob/develop/LICENSE)
+
+## Contents
+
+- [Demo](#demo)
+  - [Architecture](#architecture)
+  - [Walkthrough: creating, sharing, and claiming a wishlist item](#walkthrough-creating-sharing-and-claiming-a-wishlist-item)
+- [Key Features](#key-features)
+  - [Core Functionality](#core-functionality)
+  - [Advanced Features](#advanced-features)
+  - [Browser Extension](#browser-extension)
+  - [E-Commerce Integration](#e-commerce-integration)
+- [Getting Started](#getting-started)
+  - [Development Setup](#development-setup)
+  - [Account Creation](#account-creation)
+  - [Creating Your First Wishlist](#creating-your-first-wishlist)
+  - [Adding Beneficiaries](#adding-beneficiaries)
+  - [Browser Extension Installation](#browser-extension-installation)
+- [Advanced Usage](#advanced-usage)
+  - [Calendar Integration](#calendar-integration)
+  - [Collaborative Wishlists](#collaborative-wishlists)
+  - [E-Commerce Platform Integration](#e-commerce-platform-integration)
+- [Technical Details](#technical-details)
+  - [Architecture](#architecture-1)
+  - [System Requirements](#system-requirements)
+  - [Environment Setup](#environment-setup)
+  - [API Integration](#api-integration)
+  - [Firebase Integration (Primary Infrastructure)](#firebase-integration-primary-infrastructure)
+- [Zero-Touch DevOps Automation](#zero-touch-devops-automation)
+  - [Automation Features](#automation-features)
+  - [Quick Automation Start](#quick-automation-start)
+  - [Automated CI/CD Pipeline](#automated-cicd-pipeline)
+  - [Security Features](#security-features)
+- [Automated Deployment](#automated-deployment)
+  - [Deployment Targets](#deployment-targets)
+  - [Automated Pipeline](#automated-pipeline)
+  - [Manual Deployment](#manual-deployment)
+  - [Data Privacy](#data-privacy)
+- [Getting Help](#getting-help)
+- [Upcoming Features](#upcoming-features)
+
 Wishlist Wizard is a comprehensive wishlist management platform that empowers users to create, share, and collaborate on wishlists with advanced social and tracking capabilities. It offers a seamless experience across web, mobile, and browser extension platforms.
 
-## 🌟 Key Features
+## Demo
+
+### Architecture
+
+Three thin clients (web, mobile, browser extension) share one Firebase backend. Business logic lives in a private companion repo, `wishlist-wizard-functions`; the diagram below shows the client-side architecture and the API boundary this repo actually calls (`docs/SYSTEM_ARCHITECTURE.md`).
+
+```mermaid
+flowchart LR
+    subgraph Clients
+        Web["Web App<br/>React 19 + TS<br/>packages/web"]
+        Mobile["Mobile App<br/>Flutter<br/>packages/mobile"]
+        Ext["Browser Extension<br/>Manifest V3<br/>packages/browser-extension"]
+    end
+
+    Shared[["packages/shared<br/>types + Zod schemas"]]
+    Web -.uses.-> Shared
+
+    Auth["Firebase Authentication<br/>ID tokens"]
+
+    subgraph Backend["Firebase Functions (private repo: wishlist-wizard-functions)"]
+        Router["api router (onRequest)<br/>/api/* — wishlists, items,<br/>shared links, notifications"]
+        Callables["Standalone onCall functions<br/>auth/profile CRUD, extension auth,<br/>FCM triggers, reserve/purchase"]
+    end
+
+    Firestore[("Cloud Firestore<br/>wishlists · wishlistItems ·<br/>notifications · users")]
+    ExtAPIs["External retailer APIs<br/>Amazon/eBay/Walmart/... + SerpAPI<br/>price comparison"]
+
+    Web -- "sign in/up" --> Auth
+    Mobile -- "sign in/up" --> Auth
+    Ext -- "web-auth-bridge.js" --> Auth
+
+    Web -- "fetch + bearer ID token" --> Router
+    Mobile -- "Dio + ID token" --> Router
+    Web -- "httpsCallable" --> Callables
+    Ext -- "httpsCallable\n(authenticateExtension, addItemFromExtension)" --> Callables
+
+    Web -- "Firestore SDK\naddDoc/onSnapshot" --> Firestore
+    Router --> Firestore
+    Callables --> Firestore
+    Router -- "price lookups" --> ExtAPIs
+```
+
+### Walkthrough: creating, sharing, and claiming a wishlist item
+
+1. **Create a wishlist.** The web dashboard calls `FirebaseWishlistService.createWishlist()` (`packages/web/client-src/lib/firebase-service.ts:173`), which writes an `addDoc` directly to the `wishlists` Firestore collection with the fields on the `Wishlist` interface (`id, userId, name, isPublic, isCollaborative, shareId, occasion, ...`), defined at `firebase-service.ts:45`.
+2. **Add an item.** `FirebaseWishlistService.addWishlistItem()` (`firebase-service.ts:280`) adds a doc to `wishlistItems`, typed by the `WishlistItem` interface (`title, price, productUrl, store, priority, reservedByUserId, purchasedByUserId`, `firebase-service.ts:68`).
+3. **Share it.** Every wishlist carries a `shareId`. A recipient opens `/shared/:shareId`, which `SharedWishlist.tsx` (`packages/web/client-src/pages/SharedWishlist.tsx:108-123`) resolves by calling `GET /api/shared/${shareId}` through the Firebase Functions `api` router, returning a `SharedWishlistResponse { wishlist, items }` (typed at `SharedWishlist.tsx:15-44`).
+4. **A collaborator reserves the item.** From `WishlistDetail.tsx`, `reserveItemMutation` (`packages/web/client-src/pages/WishlistDetail.tsx:601`) calls `FirebaseWishlistService.reserveItem(itemId, userId)`, which does `apiRequest('/api/items/${itemId}/reserve', { method: 'POST', body: { userId }, useFirebaseFunctions: true })` (`firebase-service.ts:329-335`) — a callable, not a raw Firestore write, so the gift-giver never sees the reservation. The UI then reads `item.reservedByUserId` to flip the item's status badge to "Reserved" (`WishlistDetail.tsx:372-375`), and a `collaboration_invite`/`item_reserved`-style notification is emitted per the shared types in `packages/shared/src/collaboration.ts`.
+
+Everything past step 3 (the router/callable handlers themselves, Firestore rules enforcement, price-tracking jobs) lives in the private `wishlist-wizard-functions` repo — not reproducible here, but the request shapes above are read directly from this repo's client code, not invented.
+
+## Key Features
 
 ### Core Functionality
 - **Wishlist Creation & Management**: Create and organize multiple wishlists for different occasions and beneficiaries.
@@ -29,7 +121,7 @@ Wishlist Wizard is a comprehensive wishlist management platform that empowers us
   ledger, Stripe Connect creator payouts, and a tier-gated creator dashboard (`/app/creator-dashboard`),
   shipped 2026-07-21.
 
-## 🚀 Getting Started
+## Getting Started
 
 ### Development Setup
 
@@ -150,7 +242,7 @@ flutter build apk --release
 3. Click "Add to Browser"
 4. Sign in with your Wishlist Wizard account
 
-## 💫 Advanced Usage
+## Advanced Usage
 
 ### Calendar Integration
 1. Navigate to "Calendar" in the sidebar
@@ -173,7 +265,7 @@ flutter build apk --release
 3. The system will now fetch product data from these platforms
 4. Product metadata and links are normalized for consistent wishlist management
 
-## 🛠️ Technical Details
+## Technical Details
 
 ### Architecture
 - **Frontend**: React 19 + TypeScript + Vite
@@ -202,7 +294,7 @@ Wishlist Wizard integrates with the following external APIs:
 - **Social Media**: For advanced sharing capabilities
 - **Firebase**: Primary infrastructure — Auth, Firestore, Functions, Hosting, Cloud Messaging, Analytics (not optional — see below)
 
-### 🔥 Firebase Integration (Primary Infrastructure)
+### Firebase Integration (Primary Infrastructure)
 **Wishlist Wizard leverages Firebase as the primary infrastructure platform** for authentication, data storage, serverless functions, hosting, and analytics.
 
 #### Required Firebase Setup:
@@ -243,11 +335,11 @@ npx firebase deploy --project wishlist-wizard
 
 See `FIREBASE_STRATEGY.md` for comprehensive Firebase integration details.
 
-## 🚀 Zero-Touch DevOps Automation
+## Zero-Touch DevOps Automation
 
 Wishlist Wizard includes a complete **zero-touch DevOps automation suite** that eliminates manual credential management and provides automated CI/CD, monitoring, and deployment capabilities.
 
-### 🎯 Automation Features
+### Automation Features
 - **Automated Token Management**: GitHub, Firebase, Docker registry, and API tokens rotate automatically
 - **Multi-Environment Management**: Development, staging, and production environments with isolated secrets
 - **Intelligent Monitoring**: 24/7 health checks with auto-healing and smart alerting
@@ -256,7 +348,7 @@ Wishlist Wizard includes a complete **zero-touch DevOps automation suite** that 
 - **Multi-Channel Alerts**: Email, Slack, and log-based notifications
 - **Automated Backups**: Daily backups with disaster recovery capabilities
 
-### 🚀 Quick Automation Start
+### Quick Automation Start
 ```bash
 # Complete automated setup
 ./automate.sh setup
@@ -271,13 +363,13 @@ Wishlist Wizard includes a complete **zero-touch DevOps automation suite** that 
 ./automate.sh tokens rotate
 ```
 
-### 📊 Automated CI/CD Pipeline
+### Automated CI/CD Pipeline
 - **Quality Checks**: TypeScript compilation, tests, security audit
 - **Multi-Platform Builds**: Web, API, mobile, and extension builds
 - **Automated Deployment**: Push to `main` triggers full deployment
 - **Artifact Management**: Build artifacts stored for rollback capability
 
-### 🔐 Security Features
+### Security Features
 - **Automated Token Rotation**: GitHub, Firebase, API secrets rotate automatically
 - **Environment Isolation**: Secrets isolated per environment
 - **GitHub Secrets Sync**: Automatic synchronization of secrets
@@ -288,14 +380,14 @@ See `docs/CICD_SETUP_GUIDE.md` for the current CI/CD pipeline as it actually run
 that pipeline and has not been re-verified against it — treat with caution until confirmed
 current.
 
-## 🚀 Automated Deployment
+## Automated Deployment
 
 Wishlist Wizard includes a comprehensive CI/CD pipeline that automatically builds, tests, and deploys all components:
 
 ### Deployment Targets
-- **🌐 Web App**: Firebase Hosting (`https://wishlist-wizard.web.app`)
-- **🚂 API Server**: Firebase Functions (`https://api.wishlist-wizard.web.app`)
-- **📱 Mobile PWA**: Firebase Hosting (`https://wishlist-wizard.web.app`)
+- **🌐 Web App**: Firebase Hosting (`https://wishlist-wizard.com`)
+- **🚂 API Server**: Firebase Functions (`https://wishlist-wizard.com/api`)
+- **📱 Mobile PWA**: Firebase Hosting (`https://wishlist-wizard.com`)
 - **🔌 Chrome Extension**: Chrome Web Store (manual submission)
 
 ### Automated Pipeline
@@ -325,13 +417,13 @@ See `AUTOMATED_DEPLOYMENT.md` for complete setup and configuration details.
 - Wishlists can be set to private, shared with specific people, or public
 - You can delete your account and all associated data at any time
 
-## 🤝 Getting Help
+## Getting Help
 
-- **Support**: Email support@wishlistwizard.com
+- **Support**: Email support@wishlist-wizard.com
 - **Documentation**: https://docs.wishlistwizard.com
 - **FAQ**: Available in the Help section of the app
 
-## 🔮 Upcoming Features
+## Upcoming Features
 
 - AI recommendations
 - Group gifting payments
@@ -341,5 +433,4 @@ See `AUTOMATED_DEPLOYMENT.md` for complete setup and configuration details.
 
 ---
 
-© 2024 Wishlist Wizard. All rights reserved.
-# Test commit to trigger iOS build with CocoaPods fix
+© 2026 Wishlist Wizard, a product of Nelson Grey. All rights reserved.

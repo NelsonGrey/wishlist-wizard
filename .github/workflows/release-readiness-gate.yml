@@ -36,7 +36,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v5
         with:
-          node-version: '20'
+          node-version: '22'
           cache: 'npm'
 
       - name: Install dependencies
@@ -50,7 +50,9 @@ jobs:
 
       - name: Run Firebase endpoint smoke tests
         run: |
-          npm run build --workspace=functions
+          npm run build --workspace=@wishlist-wizard/shared
+          npm --prefix packages/functions ci
+          npm --prefix packages/functions run build
           npx --yes firebase-tools emulators:exec \
             --project wishlist-wizard \
             --only auth,firestore,functions \

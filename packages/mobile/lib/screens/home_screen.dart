@@ -316,40 +316,18 @@ class _HomeScreenState extends State<HomeScreen> {
           ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: _buildActionCard(
-                context,
-                icon: Icons.camera_alt,
-                label: 'Scan Item',
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const ScanItemScreen(),
-                    ),
-                  );
-                },
+        _buildActionCard(
+          context,
+          icon: Icons.camera_alt,
+          label: 'Scan Item',
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const ScanItemScreen(),
               ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: _buildActionCard(
-                context,
-                icon: Icons.search,
-                label: 'Browse',
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const BrowseScreen(),
-                    ),
-                  );
-                },
-              ),
-            ),
-          ],
+            );
+          },
         ),
       ],
     );
@@ -455,14 +433,3 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-class BrowseScreen extends StatelessWidget {
-  const BrowseScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Browse Products')),
-      body: const Center(child: Text('Browse Products Screen')),
-    );
-  }
-}

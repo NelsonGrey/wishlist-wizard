@@ -402,7 +402,9 @@ platform :ios do
         contact_first_name: "Mark",
         contact_last_name: "Nelson",
         contact_phone: raw_contact_phone.empty? ? "+16307158474" : raw_contact_phone,
-        notes: "No demo account needed — sign-in supports Google, email, or continuing as a guest."
+        notes: "Sign in with Google, email/password, or continue as a guest. " \
+               "A demo account (apple-review-demo@wishlist-wizard.com) with " \
+               "pre-populated content is also available."
       },
       changelog: "Automated TestFlight build from CI/CD pipeline",
       distribute_external: true,
@@ -441,7 +443,18 @@ platform :ios do
         last_name: "Nelson",
         phone_number: ENV["BETA_CONTACT_PHONE"] || "+16307158474",
         email_address: ENV["BETA_FEEDBACK_EMAIL"] || "mark.a.nelson@outlook.com",
-        notes: "No demo account needed — sign-in supports Google, email, or continuing as a guest."
+        demo_user: "apple-review-demo@wishlist-wizard.com",
+        # Never committed. Set as a CI secret for auto-submit, or paste
+        # directly into App Store Connect's Sign-In Required field.
+        demo_password: ENV["ASC_DEMO_PASSWORD"],
+        notes: "Sign in with the demo account above (or Google / continue as guest). " \
+               "The demo account is pre-populated with wishlists, items, and price " \
+               "tracking. To reach the subscription paywall: tap the profile tab -> " \
+               "\"Subscription\", or perform an action that exceeds the free plan " \
+               "(e.g. create a 4th wishlist). Only the Starter and Plus tiers are " \
+               "currently sold in-app; other tiers shown on the website are not " \
+               "offered in the app binary. Purchases go through StoreKit only; " \
+               "there is no external purchase path."
       },
       submit_for_review: false,
       # precheck's IAP-metadata inspection requires Apple ID/2FA auth, not
@@ -469,7 +482,18 @@ platform :ios do
         last_name: "Nelson",
         phone_number: ENV["BETA_CONTACT_PHONE"] || "+16307158474",
         email_address: ENV["BETA_FEEDBACK_EMAIL"] || "mark.a.nelson@outlook.com",
-        notes: "No demo account needed — sign-in supports Google, email, or continuing as a guest."
+        demo_user: "apple-review-demo@wishlist-wizard.com",
+        # Never committed. Set as a CI secret for auto-submit, or paste
+        # directly into App Store Connect's Sign-In Required field.
+        demo_password: ENV["ASC_DEMO_PASSWORD"],
+        notes: "Sign in with the demo account above (or Google / continue as guest). " \
+               "The demo account is pre-populated with wishlists, items, and price " \
+               "tracking. To reach the subscription paywall: tap the profile tab -> " \
+               "\"Subscription\", or perform an action that exceeds the free plan " \
+               "(e.g. create a 4th wishlist). Only the Starter and Plus tiers are " \
+               "currently sold in-app; other tiers shown on the website are not " \
+               "offered in the app binary. Purchases go through StoreKit only; " \
+               "there is no external purchase path."
       },
       submit_for_review: true,
       automatic_release: false,

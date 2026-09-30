@@ -18,7 +18,7 @@ import 'shared_wishlist_screen.dart';
 
 // Production web app origin used to build shareable wishlist links from mobile
 // (mirrors the `${window.location.origin}/shared/:shareId` link built on web).
-const String _webAppOrigin = 'https://wishlist-wizard.web.app';
+const String _webAppOrigin = 'https://wishlist-wizard.com';
 
 class FirebaseWishlistsScreen extends StatefulWidget {
   const FirebaseWishlistsScreen({super.key});
