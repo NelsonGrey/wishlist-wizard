@@ -14,5 +14,8 @@
       "matchCommandLine": true
     }
   },
-  "java.configuration.updateBuildConfiguration": "automatic"
+  "java.configuration.updateBuildConfiguration": "automatic",
+  "githubPullRequests.ignoredPullRequestBranches": [
+    "develop"
+  ]
 }
