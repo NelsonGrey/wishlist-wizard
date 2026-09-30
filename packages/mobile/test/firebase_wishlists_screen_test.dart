@@ -475,7 +475,7 @@ void main() {
       await tester.tap(find.byTooltip('Share wishlist'));
       await tester.pumpAndSettle();
 
-      expect(fakeShare.lastParams!.text, contains('https://wishlist-wizard.web.app/shared/abc123'));
+      expect(fakeShare.lastParams!.text, contains('https://wishlist-wizard.com/shared/abc123'));
     });
   });
 }
