@@ -842,7 +842,7 @@ firebase deploy --only firestore:rules,firestore:indexes --project wishlist-wiza
 
 **Step 2 — Firebase Functions**
 ```bash
-npm run build --workspace=functions
+npm --prefix packages/functions run build
 firebase deploy --only functions --project wishlist-wizard-prod
 ```
 - [ ] Functions deployed — watch Firebase console for errors — Owner: _______

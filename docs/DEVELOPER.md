@@ -137,7 +137,7 @@ See [API_REFERENCE.md](API_REFERENCE.md) for payloads and examples.
    - `packages/functions/` must first be cloned separately from the private
      companion repo `NelsonGrey/wishlist-wizard-functions` — it's gitignored
      here and does not come with a normal `git clone` of this repo.
-   - `npm run serve --workspace=functions`
+   - `npm --prefix packages/functions run serve`
 
 4. **Tests**
    - `npm test` (all workspaces)

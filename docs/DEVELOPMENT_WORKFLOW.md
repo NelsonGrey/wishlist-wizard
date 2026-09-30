@@ -286,7 +286,7 @@ NODE_ENV=test
 npm run dev
 
 # Start Firebase Functions emulator
-npm run serve --workspace=functions
+npm --prefix packages/functions run serve
 
 # Lint code
 npm run lint
