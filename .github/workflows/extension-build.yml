@@ -23,7 +23,7 @@ on:
       node_version:
         required: false
         type: string
-        default: "20"
+        default: "22"
     secrets:
       chrome_extension_id:
         required: false
@@ -50,7 +50,7 @@ on:
       node_version:
         description: Node.js version
         required: false
-        default: "20"
+        default: "22"
         type: string
 
 concurrency:
@@ -69,7 +69,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v7
         with:
-          node-version: ${{ inputs.node_version || '20' }}
+          node-version: ${{ inputs.node_version || '22' }}
           cache: 'npm'
       
       - name: Install dependencies

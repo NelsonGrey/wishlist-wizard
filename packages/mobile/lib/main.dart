@@ -109,6 +109,9 @@ class WishlistWizardApp extends StatelessWidget {
         ],
         child: MaterialApp(
           navigatorKey: rootNavigatorKey,
+          debugShowCheckedModeBanner: !const bool.fromEnvironment(
+            'VIDEO_CAPTURE',
+          ),
           title: 'Wishlist Wizard',
           theme: AppTheme.light(),
           darkTheme: AppTheme.dark(),
@@ -230,6 +233,10 @@ class _MainNavigatorState extends State<MainNavigator> {
   }
 
   Future<void> _initializeFcm() async {
+    // Marketing capture builds must never trigger a system permission sheet.
+    // The compile-time flag is supplied only by record-ios-personas.sh.
+    if (const bool.fromEnvironment('VIDEO_CAPTURE')) return;
+
     await _fcmManager.initialize(
       onTokenRefresh: (token) async {
         try {
@@ -301,7 +308,6 @@ class _MainNavigatorState extends State<MainNavigator> {
     );
   }
 }
-
 
 class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String title;

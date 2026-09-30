@@ -52,7 +52,7 @@ APP_STORE_CONNECT_KEY=<app-store-connect-private-key-pem-or-base64>
 MATCH_GIT_URL=https://github.com/mnelson3/nelson-grey
 
 # TestFlight Configuration
-BETA_FEEDBACK_EMAIL=feedback@wishlistwizard.com
+BETA_FEEDBACK_EMAIL=support@wishlist-wizard.com
 
 # Release Notes (optional)
 RELEASE_NOTES=New version with bug fixes and improvements
