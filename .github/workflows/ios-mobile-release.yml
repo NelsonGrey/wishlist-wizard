@@ -161,7 +161,7 @@ jobs:
               bundle exec fastlane build_release
               ;;
             testflight)
-              export BETA_FEEDBACK_EMAIL="${BETA_FEEDBACK_EMAIL:-mark.a.nelson@outlook.com}"
+              export BETA_FEEDBACK_EMAIL="${BETA_FEEDBACK_EMAIL:-marknelson@nelsongrey.com}"
               export BETA_GROUP_NAME="${{ inputs.beta_group_name || 'Internal Testers' }}"
               bundle exec fastlane beta
               ;;
