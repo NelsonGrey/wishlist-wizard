@@ -50,10 +50,6 @@ jobs:
       stripe_publishable_key_development: ${{ secrets.VITE_STRIPE_PUBLISHABLE_KEY_DEVELOPMENT }}
       stripe_publishable_key_staging: ${{ secrets.VITE_STRIPE_PUBLISHABLE_KEY_STAGING }}
       stripe_publishable_key_production: ${{ secrets.VITE_STRIPE_PUBLISHABLE_KEY_PRODUCTION }}
-      # dev has no EnvironmentPasswordGate (only staging is in
-      # PROTECTED_ENVIRONMENTS), so no NON_PROD_SITE_PASSWORD_DEVELOPMENT is
-      # passed — the reusable workflow defaults it to empty.
-      non_prod_site_password_staging: ${{ secrets.NON_PROD_SITE_PASSWORD_STAGING }}
 
   # Build + unit + e2e (extension loaded in a real browser) on every develop
   # push, with the dev Firebase config baked in. Previously the extension

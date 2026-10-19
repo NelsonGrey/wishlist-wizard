@@ -1,19 +1,18 @@
 import { test, Page } from '@playwright/test';
 
 /**
- * Staging is gated behind EnvironmentPasswordGate (see
- * client-src/components/security/EnvironmentPasswordGate.tsx) — nothing
- * renders until the real password is submitted. The Web UAT CI job doesn't
- * receive NON_PROD_SITE_PASSWORD_STAGING (only the build step does), so
- * tests have no way to submit the real form. Seed the same sessionStorage
- * flag the gate sets on a successful unlock, before the app's own scripts
- * run on every navigation — this only ever matters on staging (the only
- * entry in PROTECTED_ENVIRONMENTS), so it's a no-op everywhere else.
+ * Dev and staging are gated behind EnvironmentGate (see
+ * client-src/components/security/EnvironmentGate.tsx) — nothing renders until
+ * a Google account on the allowlist signs in, which CI cannot do. Seed the
+ * same sessionStorage flags the gate sets on a successful sign-in, before the
+ * app's own scripts run on every navigation — a no-op on production, which
+ * is never gated.
  */
 export async function seedGateBypass(page: Page): Promise<void> {
   await page.addInitScript(() => {
     try {
-      sessionStorage.setItem('ww:env-password-unlocked:staging', 'true');
+      sessionStorage.setItem('ww:env-gate:authorized', '1');
+      sessionStorage.setItem('ww:env-gate:email', 'e2e@nelsongrey.com');
     } catch {
       // Ignore storage errors — worst case the gate shows and the test
       // fails with a clear timeout, same as before this fixture existed.

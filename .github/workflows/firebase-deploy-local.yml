@@ -40,10 +40,6 @@ on:
         required: false
       stripe_publishable_key_production:
         required: false
-      non_prod_site_password_development:
-        required: false
-      non_prod_site_password_staging:
-        required: false
 
 jobs:
   deploy-firebase:
@@ -176,15 +172,12 @@ jobs:
           case "${{ inputs.environment }}" in
             production)
               echo "stripe_key=${{ secrets.stripe_publishable_key_production }}" >> $GITHUB_OUTPUT
-              echo "site_password=" >> $GITHUB_OUTPUT
               ;;
             staging)
               echo "stripe_key=${{ secrets.stripe_publishable_key_staging }}" >> $GITHUB_OUTPUT
-              echo "site_password=${{ secrets.non_prod_site_password_staging }}" >> $GITHUB_OUTPUT
               ;;
             *)
               echo "stripe_key=${{ secrets.stripe_publishable_key_development }}" >> $GITHUB_OUTPUT
-              echo "site_password=${{ secrets.non_prod_site_password_development }}" >> $GITHUB_OUTPUT
               ;;
           esac
 
@@ -213,7 +206,8 @@ jobs:
           VITE_FIREBASE_APP_ID_PRODUCTION: ${{ inputs.environment == 'production' && steps.webconfig.outputs.app_id || '' }}
           VITE_FIREBASE_MEASUREMENT_ID_PRODUCTION: ${{ inputs.environment == 'production' && steps.webconfig.outputs.measurement_id || '' }}
           VITE_STRIPE_PUBLISHABLE_KEY: ${{ steps.web_secrets.outputs.stripe_key }}
-          VITE_NON_PROD_SITE_PASSWORD: ${{ steps.web_secrets.outputs.site_password }}
+          VITE_ALLOWED_EMAIL_DOMAINS: ${{ vars.ALLOWED_EMAIL_DOMAINS || 'nelsongrey.com' }}
+          VITE_ALLOWED_EMAILS: ${{ vars.ALLOWED_EMAILS }}
         run: npm run build --workspace=@wishlist-wizard/web
 
       # ── Now bring in the private functions repo (business logic shouldn't
