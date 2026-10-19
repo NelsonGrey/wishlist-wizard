@@ -2,7 +2,8 @@
 
 interface ImportMetaEnv {
   readonly VITE_ENVIRONMENT?: string;
-  readonly VITE_NON_PROD_SITE_PASSWORD?: string;
+  readonly VITE_ALLOWED_EMAILS?: string;
+  readonly VITE_ALLOWED_EMAIL_DOMAINS?: string;
 }
 
 interface ImportMeta {

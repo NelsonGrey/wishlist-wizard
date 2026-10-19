@@ -10,7 +10,7 @@ import CookieConsentBanner from "./components/CookieConsentBanner";
 import { AuthProvider } from "./contexts/AuthContext";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 import { queryClient } from "./lib/queryClient";
-import EnvironmentPasswordGate from "./components/security/EnvironmentPasswordGate";
+import EnvironmentGate from "./components/security/EnvironmentGate";
 import MarketingHoldingPage from "./pages/MarketingHoldingPage";
 import { useMarketingOffline } from "./hooks/useMarketingOffline";
 import { marketingHoldingPageRoutes } from "./lib/marketingRoutes";
@@ -151,15 +151,8 @@ function LayoutRouter({ children }: { children: React.ReactNode }) {
   return <PublicLayout>{children}</PublicLayout>;
 }
 
-function NonHomeEnvironmentGate({ children }: { children: React.ReactNode }) {
-  const environment = resolveRuntimeEnvironment();
-  const nonProdPassword = String(import.meta.env.VITE_NON_PROD_SITE_PASSWORD || '');
-
-  return (
-    <EnvironmentPasswordGate environment={environment} requiredPassword={nonProdPassword}>
-      {children}
-    </EnvironmentPasswordGate>
-  );
+function NonProdEnvironmentGate({ children }: { children: React.ReactNode }) {
+  return <EnvironmentGate environment={resolveRuntimeEnvironment()}>{children}</EnvironmentGate>;
 }
 
 // Gates the marketing route group behind the marketing_offline Remote
@@ -192,7 +185,7 @@ function AppRouter() {
             <AnalyticsRouteTracker />
             <MarketingRoutesGate>
             <LayoutRouter>
-              <NonHomeEnvironmentGate>
+              <NonProdEnvironmentGate>
                 <Suspense fallback={<div className="flex-1 min-h-[60vh]" aria-busy="true" />}>
                   <Switch>
                   {/* Public Pages - Marketing Site */}
@@ -398,7 +391,7 @@ function AppRouter() {
                   <Route component={NotFound} />
                   </Switch>
                 </Suspense>
-              </NonHomeEnvironmentGate>
+              </NonProdEnvironmentGate>
             </LayoutRouter>
             </MarketingRoutesGate>
           </Router>

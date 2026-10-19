@@ -8,23 +8,24 @@ This repository enforces environment security controls for lifecycle branches:
 
 ## Controls Implemented
 
-1. Non-production password protection
+1. Non-production Google sign-in gate
 
-- The web app now requires a password in non-production environments.
-- Gate is fail-closed: if no password is configured at build time, access remains locked.
-- Build variable used by the app: `VITE_NON_PROD_SITE_PASSWORD`.
+- The web app requires a Google sign-in from an allowlisted account in `development` and `staging` (never production or localhost). Same model as `EnvironmentGate` in vehicle-vitals, modulo-squares, sprout and balance-forward.
+- Gate is fail-closed: with no allowlist configured at build time, nobody gets in.
+- Build variables used by the app: `VITE_ALLOWED_EMAIL_DOMAINS`, `VITE_ALLOWED_EMAILS` (comma-separated).
+- This is a UI-level gate: it keeps the public out, but the static bundle is still served. Data protection comes from Firestore/Storage rules and Auth.
 
 2. Production restricted to marketing-only content
 
 - Production hosting redirects app/auth/API routes back to `/`.
 - Production router excludes authenticated portal and auth pages.
 
-## Required GitHub Secrets
+## GitHub Variables
 
-Configure these repository secrets before deploying non-production branches:
+The allowlist ships in the public bundle by design, so these are repository variables, not secrets:
 
-- `NON_PROD_SITE_PASSWORD_DEVELOPMENT`
-- `NON_PROD_SITE_PASSWORD_STAGING`
+- `ALLOWED_EMAIL_DOMAINS` (defaults to `nelsongrey.com`)
+- `ALLOWED_EMAILS` (optional, exact addresses)
 
 ## Files Updated
 
@@ -34,7 +35,7 @@ Configure these repository secrets before deploying non-production branches:
 - `firebase.prod.json`
 - `packages/web/client-src/App.tsx`
 - `packages/web/client-src/AppRouter.tsx`
-- `packages/web/client-src/components/security/EnvironmentPasswordGate.tsx`
+- `packages/web/client-src/components/security/EnvironmentGate.tsx`
 - `packages/web/client-src/env.d.ts`
 - `.github/workflows/production-validation.yml`
 

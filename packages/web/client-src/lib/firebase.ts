@@ -11,7 +11,7 @@ import {
   initializeRemoteConfig,
 } from '@shared/firebase-utils';
 import type { User, Auth, AuthCredential } from 'firebase/auth';
-import type { FirebaseApp } from 'firebase/app';
+import { getApps, initializeApp, type FirebaseApp } from 'firebase/app';
 import type { Firestore } from 'firebase/firestore';
 import type { FirebaseStorage } from 'firebase/storage';
 import {
@@ -28,6 +28,7 @@ import {
   GoogleAuthProvider,
   OAuthProvider,
   EmailAuthProvider,
+  getAuth,
   signInWithPopup,
   linkWithCredential,
   reauthenticateWithCredential,
@@ -292,6 +293,24 @@ function ensureFirebaseCoreInitialized(): boolean {
   }
 
   return true;
+}
+
+const ENVIRONMENT_GATE_APP_NAME = 'environment-gate';
+
+/**
+ * Auth instance on an independent Firebase App, used only by the dev/staging
+ * EnvironmentGate. The app's own auth listener never observes it, so passing
+ * the gate does not log the visitor into the app.
+ */
+export async function getEnvironmentGateAuth(): Promise<Auth> {
+  await loadRuntimeFirebaseConfigFromHosting();
+  if (!hasAllConfigValues()) {
+    throw new Error('Sign-in is not configured for this environment.');
+  }
+  const app =
+    getApps().find(existing => existing.name === ENVIRONMENT_GATE_APP_NAME) ??
+    initializeApp(firebaseConfig, ENVIRONMENT_GATE_APP_NAME);
+  return getAuth(app);
 }
 
 export async function initFirebase(options?: {
