@@ -28,6 +28,7 @@ vi.mock('@/lib/firebase', () => ({
     callback(null);
     return vi.fn(); // unsubscribe
   }),
+  getEnvironmentGateAuth: vi.fn(),
   signIn: vi.fn(),
   signUp: vi.fn(),
   signOut: vi.fn(),
@@ -71,7 +72,7 @@ describe('AppRouter Smoke Tests', () => {
     remoteConfigMock.isFeatureEnabledForUser.mockReturnValue(true);
   });
 
-  describe('Non-Production Password Gate', () => {
+  describe('Non-Production Environment Gate', () => {
     const originalLocation = window.location;
 
     const setHostname = (hostname: string) => {
@@ -91,35 +92,41 @@ describe('AppRouter Smoke Tests', () => {
       });
     });
 
-    it('gates the homepage in non-production environments when password is set', async () => {
+    it('gates the homepage on staging', async () => {
       setHostname('wishlist-wizard-staging.web.app');
-      vi.stubEnv('VITE_NON_PROD_SITE_PASSWORD', 'test-password');
 
       window.history.pushState({}, 'Home', '/');
       render(<AppRouter />);
 
-      expect(await screen.findByTestId('env-password-gate')).toBeInTheDocument();
+      expect(await screen.findByTestId('env-gate')).toBeInTheDocument();
     });
 
-    it('requires password for non-home routes in non-production environments', async () => {
+    it('gates non-home routes on staging', async () => {
       setHostname('wishlist-wizard-staging.web.app');
-      vi.stubEnv('VITE_NON_PROD_SITE_PASSWORD', 'test-password');
 
       window.history.pushState({}, 'About', '/about');
       render(<AppRouter />);
 
-      expect(await screen.findByTestId('env-password-gate')).toBeInTheDocument();
+      expect(await screen.findByTestId('env-gate')).toBeInTheDocument();
     });
 
-    it('does not gate the development environment when a password is set', async () => {
+    it('gates the development environment', async () => {
       setHostname('wishlist-wizard-dev.web.app');
-      vi.stubEnv('VITE_NON_PROD_SITE_PASSWORD', 'test-password');
+
+      window.history.pushState({}, 'Home', '/');
+      render(<AppRouter />);
+
+      expect(await screen.findByTestId('env-gate')).toBeInTheDocument();
+    });
+
+    it('does not gate production', async () => {
+      setHostname('wishlist-wizard.com');
 
       window.history.pushState({}, 'Home', '/');
       render(<AppRouter />);
 
       await waitFor(() => {
-        expect(screen.queryByTestId('env-password-gate')).not.toBeInTheDocument();
+        expect(screen.queryByTestId('env-gate')).not.toBeInTheDocument();
       });
     });
   });
