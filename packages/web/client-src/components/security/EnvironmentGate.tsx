@@ -140,13 +140,19 @@ export default function EnvironmentGate({
   return (
     <main className="flex min-h-screen items-center justify-center bg-gray-100 px-4">
       <section
-        className="w-full max-w-lg rounded-lg border bg-white p-6 shadow-sm"
+        className="w-full max-w-lg rounded-lg border border-emerald-100 border-t-4 border-t-emerald-700 bg-white p-6 shadow-sm"
         data-testid="env-gate"
       >
-        <h1 className="text-xl font-semibold text-gray-900">{label} Environment</h1>
+        <div className="mb-5 flex items-center">
+          <img src="/logo.svg" alt="" className="mr-2.5 h-9 w-9" />
+          <span className="text-lg font-bold text-emerald-800">Wishlist Wizard</span>
+        </div>
+        <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-emerald-700">
+          Restricted {environment} environment
+        </p>
+        <h1 className="text-xl font-semibold text-gray-900">Team access only</h1>
         <p className="mt-2 text-sm text-gray-600">
-          This is a restricted {environment} environment. Access is limited to authorized team
-          members.
+          Sign in with an authorized Google account to view this {label.toLowerCase()} site.
         </p>
         {error ? (
           <p role="alert" className="mt-3 text-sm text-red-600">
@@ -157,7 +163,7 @@ export default function EnvironmentGate({
           type="button"
           onClick={handleSignIn}
           disabled={isSigningIn}
-          className="mt-5 w-full rounded-md bg-emerald-700 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-800 disabled:opacity-60"
+          className="mt-5 w-full rounded-md bg-emerald-700 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-700 focus-visible:ring-offset-2 disabled:opacity-60"
         >
           {isSigningIn ? 'Signing in...' : 'Sign in with Google'}
         </button>
