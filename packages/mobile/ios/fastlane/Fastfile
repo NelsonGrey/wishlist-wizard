@@ -390,7 +390,10 @@ platform :ios do
     upload_to_testflight(
       ipa: ipa_path,
       skip_waiting_for_build_processing: true,
-      beta_app_feedback_email: "marknelson@nelsongrey.com",
+      # Tester-facing TestFlight feedback address. Default matches
+      # packages/mobile/setup-ios-distribution.sh (BETA_FEEDBACK_EMAIL).
+      # App Review contacts below stay marknelson@nelsongrey.com.
+      beta_app_feedback_email: ENV["BETA_FEEDBACK_EMAIL"] || "support@wishlist-wizard.com",
       # Required once per app before Apple allows distributing a build to an
       # EXTERNAL testing group (distribute_external: true below) — found the
       # hard way: the build itself succeeds and uploads fine, only the final
@@ -398,7 +401,9 @@ platform :ios do
       # "betaAppLocalizations not found for this app" until this is set.
       beta_app_description: "Wishlist Wizard is a smart wishlist management app. Create and share wishlists for any occasion, track prices on items you want, and coordinate group gifting with friends and family so everyone can chip in on bigger gifts.",
       beta_app_review_info: {
-        contact_email: ENV["BETA_FEEDBACK_EMAIL"] || "marknelson@nelsongrey.com",
+        # Beta App Review contact. Not the tester feedback address above,
+        # and not driven by BETA_FEEDBACK_EMAIL.
+        contact_email: "marknelson@nelsongrey.com",
         contact_first_name: "Mark",
         contact_last_name: "Nelson",
         contact_phone: raw_contact_phone.empty? ? "+16307158474" : raw_contact_phone,
